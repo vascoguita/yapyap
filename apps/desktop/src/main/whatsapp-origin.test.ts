@@ -4,6 +4,12 @@ import { resolveWhatsAppOrigin, WHATSAPP_ORIGIN } from './whatsapp-origin.ts';
 const real = { origin: WHATSAPP_ORIGIN, overridden: false, rejectedOverride: false };
 const rejected = { origin: WHATSAPP_ORIGIN, overridden: false, rejectedOverride: true };
 
+describe('WHATSAPP_ORIGIN', () => {
+  it('is the official WhatsApp Web origin', () => {
+    expect(WHATSAPP_ORIGIN).toBe('https://web.whatsapp.com');
+  });
+});
+
 describe('resolveWhatsAppOrigin', () => {
   it('uses the real WhatsApp origin when no override is set', () => {
     expect(resolveWhatsAppOrigin(undefined)).toEqual(real);
