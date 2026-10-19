@@ -1,6 +1,6 @@
 name: Feature request
 description: Suggest an improvement to YapYap.
-labels: ["type: feature", "status: needs-triage"]
+labels: ['type: feature', 'status: needs-triage']
 body:
   - type: textarea
     id: problem
@@ -26,8 +26,8 @@ body:
       label: Could this be a plugin instead?
       options:
         - Not sure
-        - "Yes"
-        - "No"
+        - 'Yes'
+        - 'No'
   - type: checkboxes
     id: checks
     attributes:
