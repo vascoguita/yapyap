@@ -1,8 +1,8 @@
 # Progress
 
 - **Current milestone:** M1 · Bootstrap
-- **Last merged PR:** #131 (visual identity with app icon, palette and brand page)
-- **Next issue:** #21 (package smoke tests), #17 (Flatpak), #20 (release pipeline), #18 (AUR)
+- **Last merged PR:** #132 (package every format with hardened fuses)
+- **Next issue:** #17 (Flatpak), #20 (release pipeline), #18 (AUR)
 - **Open blockers:** #22 (`AUTOMATION_TOKEN`), #23, #24, #25, #26 need maintainer-provided secrets or settings (pipelines skip those steps gracefully)
 
 ## Milestones

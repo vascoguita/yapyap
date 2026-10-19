@@ -32,6 +32,7 @@ Use pnpm (version pinned in `package.json`) on Node.js 24 LTS.
 | Vulnerability audit             | `pnpm audit --audit-level high`                                           |
 | Docs site (dev / build)         | `pnpm docs:dev` / `pnpm docs:build`                                       |
 | Package installers for this OS  | `pnpm package` (output in `apps/desktop/release/`)                        |
+| Smoke-test an installed package | `YAPYAP_PACKAGED_EXECUTABLE=<path> pnpm test:smoke`                       |
 | Verify hardened fuses           | `node scripts/src/bin/verify-fuses.ts <executable or .app>`               |
 
 Update this table in the PR that adds a command.
@@ -129,3 +130,6 @@ Update this table in the PR that adds a command.
 - Scripts run under Node's type stripping, so only erasable TypeScript is
   allowed (no enums, no constructor parameter properties). `erasableSyntaxOnly`
   enforces this.
+- Packaged builds disable the Node inspector fuse, so Playwright's Electron
+  launcher cannot drive them. The smoke test connects over CDP through the
+  `DevToolsActivePort` file in the profile directory instead.
