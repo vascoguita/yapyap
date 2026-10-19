@@ -7,4 +7,14 @@ packages:
 
 # Dependency install scripts are denied unless listed here with a justification
 # in the PR that adds them.
-allowBuilds: {}
+allowBuilds:
+  # VitePress pulls in esbuild, whose binary arrives as an optional platform
+  # package; its postinstall only re-verifies it, so the script stays denied.
+  esbuild: false
+
+overrides:
+  # VitePress 1.6.4 (latest stable) still pins Vite 5, which has unpatched
+  # advisories; Vite 6.4.4 is the patched line its Vue plugin supports.
+  vitepress>vite: 6.4.4
+  # Stryker's REST client pulls in a qs release with denial-of-service advisories.
+  qs@<6.16.0: 6.16.1
