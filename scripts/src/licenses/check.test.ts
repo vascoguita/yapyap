@@ -1,23 +1,68 @@
 import { describe, expect, it } from 'vitest';
-import { findViolations, formatReport, isAllowed } from './check.ts';
+import { ALLOWED_LICENSES, findViolations, formatReport, isAllowed } from './check.ts';
+
+describe('ALLOWED_LICENSES', () => {
+  it('is exactly the reviewed MIT-compatible allowlist', () => {
+    expect([...ALLOWED_LICENSES].sort()).toEqual(
+      [
+        '0BSD',
+        'Apache-2.0',
+        'BlueOak-1.0.0',
+        'BSD-2-Clause',
+        'BSD-3-Clause',
+        'CC-BY-4.0',
+        'CC0-1.0',
+        'ISC',
+        'MIT',
+        'MPL-2.0',
+        'Python-2.0',
+        'Unlicense',
+        'Zlib',
+      ].sort(),
+    );
+  });
+});
 
 describe('isAllowed', () => {
   it.each([
     'MIT',
     'Apache-2.0',
+    '(MIT)',
     '(MIT OR GPL-3.0)',
+    'GPL-3.0 OR MIT',
     'MIT AND ISC',
     '(MIT OR Apache-2.0) AND BSD-3-Clause',
+    'MIT OR GPL-3.0 AND AGPL-3.0',
+    '(MIT)OR(GPL-3.0)',
+    'Apache-2.0 WITH LLVM-exception',
+    '((MIT))',
+    'MIT  OR  GPL-3.0',
+    ' (MIT) ',
   ])('allows %s', (expression) => {
     expect(isAllowed(expression)).toBe(true);
   });
 
-  it.each(['GPL-3.0', 'AGPL-3.0-only', 'MIT AND GPL-2.0', 'SSPL-1.0', 'UNKNOWN', ''])(
-    'rejects %s',
-    (expression) => {
-      expect(isAllowed(expression)).toBe(false);
-    },
-  );
+  it.each([
+    'GPL-3.0',
+    'AGPL-3.0-only',
+    'MIT AND GPL-2.0',
+    'GPL-2.0 AND MIT',
+    '(MIT OR Apache-2.0) AND GPL-3.0',
+    'GPL-3.0 AND (MIT OR ISC)',
+    'GPL-2.0 WITH Classpath-exception-2.0',
+    'SSPL-1.0',
+    'UNKNOWN',
+    '',
+    '(MIT',
+    'MIT)',
+    'MIT OR',
+    'MIT MIT',
+    'OR',
+    'MIT WITH',
+    'MIT WITH X Y',
+  ])('rejects %s', (expression) => {
+    expect(isAllowed(expression)).toBe(false);
+  });
 });
 
 describe('findViolations', () => {
