@@ -93,7 +93,7 @@ locally when available. Visual baselines are per-OS.
 
 ### Mutation testing
 
-On PRs, Stryker mutates only changed files within the mutation scope
+Stryker uses its `command` runner. Each mutant runs `vitest run --config vitest.mutation.config.ts`, a flat single-project config, and the mutant is switched on through the environment. The Vitest runner plugin does not activate mutants under Vitest 5 (ADR 0008, C12). The scope lives in `scripts/src/mutation/scope.ts`, which both Stryker and the PR target selection use. On PRs, Stryker mutates only changed files within the mutation scope
 (`--mutate` from the diff). Nightly runs the full scope. The threshold is
 `break: 90`.
 

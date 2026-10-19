@@ -1,7 +1,7 @@
 import type { BrowserWindowConstructorOptions } from 'electron';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { APP_ID } from './identity.ts';
-import { startApp, type AppPort, type WindowPort } from './start.ts';
+import { SHOW_FALLBACK_MS, startApp, type AppPort, type WindowPort } from './start.ts';
 import { secureWebPreferences } from './web-preferences.ts';
 import { WHATSAPP_ORIGIN } from './whatsapp-origin.ts';
 
@@ -26,6 +26,14 @@ function fakes(env: Record<string, string | undefined> = {}) {
 }
 
 describe('startApp', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('opens a hidden, hardened window on the real WhatsApp origin and shows it when ready', async () => {
     const f = fakes();
     await startApp(f);
@@ -39,6 +47,25 @@ describe('startApp', () => {
     f.listeners.get('ready-to-show')?.();
     expect(f.window.show).toHaveBeenCalledOnce();
     expect(f.warn).not.toHaveBeenCalled();
+  });
+
+  it('shows the window after a fallback delay when ready-to-show never fires, exactly once', async () => {
+    const f = fakes();
+    await startApp(f);
+    vi.advanceTimersByTime(SHOW_FALLBACK_MS - 1);
+    expect(f.window.show).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(f.window.show).toHaveBeenCalledOnce();
+    f.listeners.get('ready-to-show')?.();
+    expect(f.window.show).toHaveBeenCalledOnce();
+  });
+
+  it('does not show the window twice when ready-to-show fires before the fallback', async () => {
+    const f = fakes();
+    await startApp(f);
+    f.listeners.get('ready-to-show')?.();
+    vi.advanceTimersByTime(SHOW_FALLBACK_MS);
+    expect(f.window.show).toHaveBeenCalledOnce();
   });
 
   it('waits for the app to be ready before creating the window', async () => {

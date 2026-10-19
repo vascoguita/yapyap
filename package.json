@@ -17,12 +17,14 @@
     "test:coverage": "vitest run --coverage",
     "commitlint": "commitlint --from origin/master --to HEAD --verbose",
     "test:e2e": "pnpm --filter @yapyap/desktop test:e2e",
-    "check:licenses": "pnpm --filter @yapyap/scripts check-licenses"
+    "check:licenses": "pnpm --filter @yapyap/scripts check-licenses",
+    "test:mutation": "stryker run"
   },
   "devDependencies": {
     "@commitlint/cli": "21.2.4",
     "@commitlint/config-conventional": "21.2.4",
     "@eslint/js": "10.0.1",
+    "@stryker-mutator/core": "10.0.0",
     "@types/node": "26.6.5",
     "@vitest/coverage-v8": "5.0.5",
     "eslint": "10.13.0",

@@ -1,0 +1,17 @@
+import { MUTATION_SCOPE } from './scripts/src/mutation/scope.ts';
+
+export default {
+  packageManager: 'pnpm',
+  // The Vitest runner plugin does not activate mutants under Vitest 5 (every
+  // mutant survives), so each mutant runs the suite as a command and is
+  // switched on through the environment instead (ADR 0008, C12).
+  testRunner: 'command',
+  commandRunner: { command: 'pnpm exec vitest run --config vitest.mutation.config.ts' },
+  mutate: [...MUTATION_SCOPE, '!**/*.test.ts', '!**/*.d.ts', '!**/bin/**'],
+  thresholds: { high: 95, low: 90, break: 90 },
+  reporters: ['clear-text', 'progress', 'html', 'json'],
+  htmlReporter: { fileName: 'reports/mutation/index.html' },
+  jsonReporter: { fileName: 'reports/mutation/mutation.json' },
+  tempDirName: '.stryker-tmp',
+  cleanTempDir: 'always',
+};

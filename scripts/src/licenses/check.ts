@@ -3,7 +3,7 @@
  * that would bind the whole app (GPL, AGPL, LGPL for bundled code, SSPL) are
  * deliberately absent; MPL-2.0 is file-scoped and therefore compatible.
  */
-const ALLOWED_LICENSES: ReadonlySet<string> = new Set([
+export const ALLOWED_LICENSES: ReadonlySet<string | undefined> = new Set([
   '0BSD',
   'Apache-2.0',
   'BlueOak-1.0.0',
@@ -25,18 +25,77 @@ export interface Violation {
   readonly license: string;
 }
 
-/** Evaluates simple SPDX expressions: `A OR B` needs one allowed side, `A AND B` needs all. */
+class Parser {
+  private readonly tokens: readonly string[];
+  private position = 0;
+
+  constructor(tokens: readonly string[]) {
+    this.tokens = tokens;
+  }
+
+  /** expression := term ("OR" term)* — AND binds tighter than OR in SPDX. */
+  expression(): boolean {
+    let allowed = this.term();
+    while (this.accept('OR')) {
+      const right = this.term();
+      allowed ||= right;
+    }
+    return allowed;
+  }
+
+  get finished(): boolean {
+    return this.position === this.tokens.length;
+  }
+
+  private term(): boolean {
+    let allowed = this.factor();
+    while (this.accept('AND')) {
+      const right = this.factor();
+      allowed &&= right;
+    }
+    return allowed;
+  }
+
+  private factor(): boolean {
+    if (this.accept('(')) {
+      const allowed = this.expression();
+      this.expect(')');
+      return allowed;
+    }
+    const license = this.tokens[this.position++];
+    // An exception can only widen what the base license permits, so judge the base.
+    if (this.accept('WITH')) this.position++;
+    return ALLOWED_LICENSES.has(license);
+  }
+
+  private accept(token: string): boolean {
+    if (this.tokens[this.position] !== token) return false;
+    this.position++;
+    return true;
+  }
+
+  private expect(token: string): void {
+    if (!this.accept(token)) throw new SyntaxError();
+  }
+}
+
+/** Evaluates an SPDX license expression; malformed expressions are never allowed. */
 export function isAllowed(expression: string): boolean {
-  const flat = expression.replace(/[()]/g, ' ').trim();
-  return flat
-    .split(/\s+OR\s+/)
-    .some((alternative) =>
-      alternative.split(/\s+AND\s+/).every((license) => ALLOWED_LICENSES.has(license.trim())),
-    );
+  const tokens = expression
+    .replace(/[()]/g, ' $& ')
+    .split(/\s/)
+    .filter((token) => token !== '');
+  const parser = new Parser(tokens);
+  try {
+    return parser.expression() && parser.finished;
+  } catch {
+    return false;
+  }
 }
 
 function record(value: unknown): Record<string, unknown> {
-  return typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : {};
+  // Object() maps null and undefined to {} and leaves objects untouched.
+  return Object(value) as Record<string, unknown>;
 }
 
 function toViolation(entry: unknown, license: string): Violation {

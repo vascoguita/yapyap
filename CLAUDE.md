@@ -15,21 +15,24 @@ under `docs/adr/`.
 
 Use pnpm (version pinned in `package.json`) on Node.js 24 LTS.
 
-| Task                            | Command                                               |
-| ------------------------------- | ----------------------------------------------------- |
-| Install                         | `pnpm install` (CI: `pnpm install --frozen-lockfile`) |
-| Lint (ESLint + Prettier + knip) | `pnpm lint`                                           |
-| Format                          | `pnpm format`                                         |
-| Typecheck                       | `pnpm typecheck`                                      |
-| Unit + integration tests        | `pnpm test`                                           |
-| Coverage (100% gate)            | `pnpm test:coverage`                                  |
-| Commit messages                 | `pnpm commitlint`                                     |
-| License compatibility           | `pnpm check:licenses`                                 |
-| Vulnerability audit             | `pnpm audit --audit-level high`                       |
+| Task                            | Command                                                                   |
+| ------------------------------- | ------------------------------------------------------------------------- |
+| Install                         | `pnpm install` (CI: `pnpm install --frozen-lockfile`)                     |
+| Run the app (hot reload)        | `pnpm dev`                                                                |
+| Build all packages              | `pnpm build`                                                              |
+| Lint (ESLint + Prettier + knip) | `pnpm lint`                                                               |
+| Format                          | `pnpm format`                                                             |
+| Typecheck                       | `pnpm typecheck`                                                          |
+| Unit + integration tests        | `pnpm test`                                                               |
+| Coverage (100% gate)            | `pnpm test:coverage`                                                      |
+| E2E tests                       | `xvfb-run -a pnpm test:e2e` on Linux when available, else `pnpm test:e2e` |
+| Mutation tests (≥ 90%)          | `pnpm test:mutation` (PR CI mutates changed in-scope files only)          |
+| Commit messages                 | `pnpm commitlint`                                                         |
+| License compatibility           | `pnpm check:licenses`                                                     |
+| Vulnerability audit             | `pnpm audit --audit-level high`                                           |
 
-Later milestones add `pnpm dev`, `pnpm build`, `pnpm test:e2e`,
-`pnpm test:mutation` and `pnpm package`. Update this table in the PR that
-adds each one.
+Later milestones add `pnpm package`. Update this table in the PR that adds
+each command.
 
 ## Architecture map
 
@@ -117,3 +120,9 @@ adds each one.
   no `allowBuilds` entry is needed.
 - Never use top-level `await` in the main entry. Playwright holds back the
   `ready` event until the entry module finishes evaluating, so the app hangs.
+- Stryker's Vitest runner silently tests nothing under Vitest 5. We use the
+  `command` runner and `vitest.mutation.config.ts`. A suspicious score means
+  checking "tests per mutant" in the output.
+- Scripts run under Node's type stripping, so only erasable TypeScript is
+  allowed (no enums, no constructor parameter properties). `erasableSyntaxOnly`
+  enforces this.

@@ -12,5 +12,6 @@
       "entry": ["src/bin/*.ts"],
       "project": ["src/**/*.ts"]
     }
-  }
+  },
+  "ignoreDependencies": ["@stryker-mutator/command-runner"]
 }
