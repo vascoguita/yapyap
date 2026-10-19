@@ -99,8 +99,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { format: nsis, arch: x64, os: windows-latest }
-          - { format: nsis, arch: arm64, os: windows-11-arm }
+          - { format: nsis, arch: x64, os: windows-latest, installer: 'YapYap-*-win-setup.exe' }
+          - { format: nsis, arch: arm64, os: windows-11-arm, installer: 'YapYap-*-win-setup.exe' }
+          - {
+              format: nsis-arm64-only,
+              arch: arm64,
+              os: windows-11-arm,
+              installer: 'YapYap-*-win-arm64-setup.exe',
+            }
           - { format: portable, arch: x64, os: windows-latest }
     runs-on: ${{ matrix.os }}
     steps:
@@ -118,15 +124,21 @@ jobs:
           name: packages-windows
           path: packages
       - name: Install silently (NSIS)
-        if: matrix.format == 'nsis'
+        if: matrix.format != 'portable'
         shell: pwsh
+        env:
+          INSTALLER: ${{ matrix.installer }}
         run: |
-          $setup = Get-Item packages\YapYap-*-win-setup.exe
+          $setup = Get-Item "packages\$env:INSTALLER"
           $process = Start-Process -Wait -PassThru -FilePath $setup.FullName -ArgumentList '/S'
           if ($process.ExitCode -ne 0) { throw "Installer exited with $($process.ExitCode)" }
           $roots = @("$env:LOCALAPPDATA\Programs", $env:ProgramFiles, ${env:ProgramFiles(x86)})
           $exe = Get-ChildItem -Path $roots -Recurse -Filter YapYap.exe -ErrorAction SilentlyContinue | Select-Object -First 1
-          if (-not $exe) { Get-ChildItem -Path $roots -Recurse -Depth 2 -ErrorAction SilentlyContinue | Out-Host; throw 'YapYap.exe not found after install' }
+          if (-not $exe) {
+            Get-ChildItem "$env:LOCALAPPDATA\Programs" -ErrorAction SilentlyContinue | Out-Host
+            Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall -ErrorAction SilentlyContinue | Where-Object { $_.Name -match 'YapYap|yapyap' } | Out-Host
+            throw 'YapYap.exe not found after install'
+          }
           Write-Host "Installed at $($exe.FullName)"
           "YAPYAP_PACKAGED_EXECUTABLE=$($exe.FullName)" >> $env:GITHUB_ENV
       - name: Use the portable build
