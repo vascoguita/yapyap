@@ -24,6 +24,8 @@ Use pnpm (version pinned in `package.json`) on Node.js 24 LTS.
 | Unit + integration tests        | `pnpm test`                                           |
 | Coverage (100% gate)            | `pnpm test:coverage`                                  |
 | Commit messages                 | `pnpm commitlint`                                     |
+| License compatibility           | `pnpm check:licenses`                                 |
+| Vulnerability audit             | `pnpm audit --audit-level high`                       |
 
 Later milestones add `pnpm dev`, `pnpm build`, `pnpm test:e2e`,
 `pnpm test:mutation` and `pnpm package`. Update this table in the PR that
