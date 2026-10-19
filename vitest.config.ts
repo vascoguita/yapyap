@@ -6,12 +6,18 @@ export default defineConfig({
       'apps/*/vitest.config.ts',
       'packages/*/vitest.config.ts',
       'plugins/*/vitest.config.ts',
+      'scripts/vitest.config.ts',
     ],
     coverage: {
       provider: 'v8',
-      include: ['apps/*/src/**', 'packages/*/src/**', 'plugins/*/src/**'],
+      include: ['apps/*/src/**', 'packages/*/src/**', 'plugins/*/src/**', 'scripts/src/**'],
       // Every exclusion must be justified in docs/adr/0005-test-strategy.md.
-      exclude: ['**/*.d.ts', '**/*.test.ts', 'apps/desktop/src/main/index.ts'],
+      exclude: [
+        '**/*.d.ts',
+        '**/*.test.ts',
+        'apps/desktop/src/main/index.ts',
+        'scripts/src/bin/**',
+      ],
       thresholds: { lines: 100, branches: 100, functions: 100, statements: 100 },
       reporter: ['text', 'json-summary', 'lcov'],
     },

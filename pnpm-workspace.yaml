@@ -3,6 +3,7 @@ packages:
   - packages/*
   - plugins/*
   - docs
+  - scripts
 
 # Dependency install scripts are denied unless listed here with a justification
 # in the PR that adds them.
