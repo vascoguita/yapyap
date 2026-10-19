@@ -123,3 +123,6 @@ each command.
 - Stryker's Vitest runner silently tests nothing under Vitest 5. We use the
   `command` runner and `vitest.mutation.config.ts`. A suspicious score means
   checking "tests per mutant" in the output.
+- Scripts run under Node's type stripping, so only erasable TypeScript is
+  allowed (no enums, no constructor parameter properties). `erasableSyntaxOnly`
+  enforces this.

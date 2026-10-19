@@ -26,9 +26,12 @@ export interface Violation {
 }
 
 class Parser {
+  private readonly tokens: readonly string[];
   private position = 0;
 
-  constructor(private readonly tokens: readonly string[]) {}
+  constructor(tokens: readonly string[]) {
+    this.tokens = tokens;
+  }
 
   /** expression := term ("OR" term)* — AND binds tighter than OR in SPDX. */
   expression(): boolean {
