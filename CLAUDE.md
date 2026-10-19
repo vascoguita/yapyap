@@ -42,6 +42,7 @@ adds each one.
 | Signing CLI      | `packages/plugin-sign/`                     | Ed25519 signing and verification (PKCS#8 PEM keys)                                      |
 | Plugins          | `plugins/ai-assistant/`, `plugins/example/` | First-party plugins                                                                     |
 | Docs             | `docs/`                                     | VitePress site, ADRs in `docs/adr/`                                                     |
+| Repo automation  | `scripts/`                                  | Tested automation such as pinned-version checks; entries in `scripts/src/bin/`          |
 
 ## Non-negotiable rules
 
