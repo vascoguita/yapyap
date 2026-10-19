@@ -107,7 +107,18 @@ jobs:
               os: windows-11-arm,
               installer: 'YapYap-*-win-arm64-setup.exe',
             }
-          - { format: portable, arch: x64, os: windows-latest }
+          - {
+              format: portable,
+              arch: x64,
+              os: windows-latest,
+              installer: 'YapYap-*-win-x64-portable.exe',
+            }
+          - {
+              format: portable,
+              arch: arm64,
+              os: windows-11-arm,
+              installer: 'YapYap-*-win-arm64-portable.exe',
+            }
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -141,8 +152,10 @@ jobs:
       - name: Use the portable build
         if: matrix.format == 'portable'
         shell: pwsh
+        env:
+          INSTALLER: ${{ matrix.installer }}
         run: |
-          $exe = Get-Item packages\YapYap-*-win-x64-portable.exe
+          $exe = Get-Item "packages\$env:INSTALLER"
           "YAPYAP_PACKAGED_EXECUTABLE=$($exe.FullName)" >> $env:GITHUB_ENV
       - run: pnpm test:smoke
 

@@ -14,6 +14,7 @@ describe('buildJobs', () => {
           'never',
           '-c.extraMetadata.installChannel=appimage',
         ],
+        env: {},
       },
       {
         channel: 'deb',
@@ -25,6 +26,7 @@ describe('buildJobs', () => {
           'never',
           '-c.extraMetadata.installChannel=deb',
         ],
+        env: {},
       },
       {
         channel: 'rpm',
@@ -36,12 +38,13 @@ describe('buildJobs', () => {
           'never',
           '-c.extraMetadata.installChannel=rpm',
         ],
+        env: {},
       },
     ]);
     expect(buildJobs('linux', 'x64')[0]?.args).toContain('--x64');
   });
 
-  it('cross-builds the Windows installer and portable build for x64 and arm64', () => {
+  it('cross-builds the Windows installer and portable build for x64 and arm64 with an extractable filter', () => {
     expect(buildJobs('win32', 'x64')).toEqual([
       {
         channel: 'nsis',
@@ -54,6 +57,7 @@ describe('buildJobs', () => {
           'never',
           '-c.extraMetadata.installChannel=nsis',
         ],
+        env: { ELECTRON_BUILDER_7Z_FILTER: 'BCJ' },
       },
       {
         channel: 'portable',
@@ -66,6 +70,7 @@ describe('buildJobs', () => {
           'never',
           '-c.extraMetadata.installChannel=portable',
         ],
+        env: { ELECTRON_BUILDER_7Z_FILTER: 'BCJ' },
       },
     ]);
   });
@@ -83,6 +88,7 @@ describe('buildJobs', () => {
           'never',
           '-c.extraMetadata.installChannel=dmg',
         ],
+        env: {},
       },
     ]);
   });
