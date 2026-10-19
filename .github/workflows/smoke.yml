@@ -64,20 +64,25 @@ jobs:
       # The setuid Chromium sandbox needs namespaces that Docker's defaults block.
       options: --privileged
     steps:
-      - run: dnf install -y git tar xz xorg-x11-server-Xvfb
+      - run: dnf install -y git tar xz procps-ng xorg-x11-server-Xvfb
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      # pnpm's setup action needs Node.js, which the bare Fedora image lacks.
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ${{ matrix.artifact }}
           path: packages
       - name: Install RPM
         run: dnf install -y ./packages/*.rpm
+      - name: Match Fedora's user-namespace policy
+        # Fedora allows unprivileged user namespaces, which Chromium's sandbox
+        # uses; the Ubuntu runner host restricts them even inside containers.
+        run: sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - name: Smoke test as an unprivileged user
         # Chromium refuses to run as root, which is the container default.
         run: |
@@ -117,8 +122,13 @@ jobs:
         shell: pwsh
         run: |
           $setup = Get-Item packages\YapYap-*-win-setup.exe
-          Start-Process -Wait -FilePath $setup.FullName -ArgumentList '/S'
-          "YAPYAP_PACKAGED_EXECUTABLE=$env:LOCALAPPDATA\Programs\YapYap\YapYap.exe" >> $env:GITHUB_ENV
+          $process = Start-Process -Wait -PassThru -FilePath $setup.FullName -ArgumentList '/S'
+          if ($process.ExitCode -ne 0) { throw "Installer exited with $($process.ExitCode)" }
+          $roots = @("$env:LOCALAPPDATA\Programs", $env:ProgramFiles, ${env:ProgramFiles(x86)})
+          $exe = Get-ChildItem -Path $roots -Recurse -Filter YapYap.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $exe) { Get-ChildItem -Path $roots -Recurse -Depth 2 -ErrorAction SilentlyContinue | Out-Host; throw 'YapYap.exe not found after install' }
+          Write-Host "Installed at $($exe.FullName)"
+          "YAPYAP_PACKAGED_EXECUTABLE=$($exe.FullName)" >> $env:GITHUB_ENV
       - name: Use the portable build
         if: matrix.format == 'portable'
         shell: pwsh
