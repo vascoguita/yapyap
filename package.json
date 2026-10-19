@@ -9,7 +9,7 @@
   "scripts": {
     "lint": "eslint --max-warnings=0 . && prettier --check . && knip",
     "format": "prettier --write .",
-    "typecheck": "tsc -b",
+    "typecheck": "tsc -p tsconfig.json && pnpm -r --if-present typecheck",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "commitlint": "commitlint --from origin/master --to HEAD --verbose"
