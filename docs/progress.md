@@ -1,8 +1,8 @@
 # Progress
 
 - **Current milestone:** M1 · Bootstrap
-- **Last merged PR:** #130 (VitePress documentation site on GitHub Pages)
-- **Next issue:** #16 (packaging), #19 (desktop entry and metainfo), #9 (build job)
+- **Last merged PR:** #131 (visual identity with app icon, palette and brand page)
+- **Next issue:** #21 (package smoke tests), #17 (Flatpak), #20 (release pipeline), #18 (AUR)
 - **Open blockers:** #22 (`AUTOMATION_TOKEN`), #23, #24, #25, #26 need maintainer-provided secrets or settings (pipelines skip those steps gracefully)
 
 ## Milestones

@@ -31,24 +31,26 @@ Use pnpm (version pinned in `package.json`) on Node.js 24 LTS.
 | License compatibility           | `pnpm check:licenses`                                                     |
 | Vulnerability audit             | `pnpm audit --audit-level high`                                           |
 | Docs site (dev / build)         | `pnpm docs:dev` / `pnpm docs:build`                                       |
+| Package installers for this OS  | `pnpm package` (output in `apps/desktop/release/`)                        |
+| Verify hardened fuses           | `node scripts/src/bin/verify-fuses.ts <executable or .app>`               |
 
-Later milestones add `pnpm package`. Update this table in the PR that adds
-each command.
+Update this table in the PR that adds a command.
 
 ## Architecture map
 
-| Part             | Path                                        | Notes                                                                                   |
-| ---------------- | ------------------------------------------- | --------------------------------------------------------------------------------------- |
-| Main process     | `apps/desktop/src/main/`                    | App lifecycle, windows, IPC validation, settings, updates                               |
-| Preloads         | `apps/desktop/src/preload/`                 | Minimal typed `contextBridge` APIs, one per zone                                        |
-| Chrome renderer  | `apps/desktop/src/renderer/`                | YapYap's own UI (Preact), served from `app://`                                          |
-| WhatsApp adapter | `apps/desktop/src/adapter/`                 | **The only place** with WhatsApp DOM knowledge; versioned selectors; returns plain data |
-| Plugin host      | `apps/desktop/src/main/plugins/`            | Sandboxed plugin renderers, RPC, capabilities, signatures                               |
-| Plugin SDK       | `packages/sdk/`                             | Typed plugin API and manifest JSON Schema (TSDoc on every export)                       |
-| Signing CLI      | `packages/plugin-sign/`                     | Ed25519 signing and verification (PKCS#8 PEM keys)                                      |
-| Plugins          | `plugins/ai-assistant/`, `plugins/example/` | First-party plugins                                                                     |
-| Docs             | `docs/`                                     | VitePress site, ADRs in `docs/adr/`                                                     |
-| Repo automation  | `scripts/`                                  | Tested automation such as pinned-version checks; entries in `scripts/src/bin/`          |
+| Part             | Path                                              | Notes                                                                                   |
+| ---------------- | ------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Main process     | `apps/desktop/src/main/`                          | App lifecycle, windows, IPC validation, settings, updates                               |
+| Preloads         | `apps/desktop/src/preload/`                       | Minimal typed `contextBridge` APIs, one per zone                                        |
+| Chrome renderer  | `apps/desktop/src/renderer/`                      | YapYap's own UI (Preact), served from `app://`                                          |
+| WhatsApp adapter | `apps/desktop/src/adapter/`                       | **The only place** with WhatsApp DOM knowledge; versioned selectors; returns plain data |
+| Plugin host      | `apps/desktop/src/main/plugins/`                  | Sandboxed plugin renderers, RPC, capabilities, signatures                               |
+| Plugin SDK       | `packages/sdk/`                                   | Typed plugin API and manifest JSON Schema (TSDoc on every export)                       |
+| Signing CLI      | `packages/plugin-sign/`                           | Ed25519 signing and verification (PKCS#8 PEM keys)                                      |
+| Plugins          | `plugins/ai-assistant/`, `plugins/example/`       | First-party plugins                                                                     |
+| Docs             | `docs/`                                           | VitePress site, ADRs in `docs/adr/`                                                     |
+| Repo automation  | `scripts/`                                        | Tested automation such as pinned-version checks; entries in `scripts/src/bin/`          |
+| Packaging        | `apps/desktop/electron-builder.yml`, `packaging/` | electron-builder targets, fuses, desktop entry, AppStream metainfo                      |
 
 ## Non-negotiable rules
 
