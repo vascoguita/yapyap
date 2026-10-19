@@ -1,0 +1,12 @@
+{
+  "name": "@yapyap/desktop",
+  "version": "0.0.0",
+  "private": true,
+  "description": "YapYap desktop app",
+  "license": "MIT",
+  "author": "Vasco Guita",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  }
+}

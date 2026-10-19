@@ -1,0 +1,9 @@
+{
+  "name": "@yapyap/plugin-sign",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Ed25519 signing and verification CLI for YapYap plugins",
+  "license": "MIT",
+  "author": "Vasco Guita",
+  "type": "module"
+}

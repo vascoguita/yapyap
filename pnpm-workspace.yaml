@@ -1,0 +1,9 @@
+packages:
+  - apps/*
+  - packages/*
+  - plugins/*
+  - docs
+
+# Dependency install scripts are denied unless listed here with a justification
+# in the PR that adds them.
+allowBuilds: {}
