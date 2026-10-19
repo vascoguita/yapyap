@@ -84,14 +84,14 @@ These settings are applied through the GitHub API and must stay in place.
 The pipelines skip steps whose secrets are missing, and print a notice in the
 job summary instead of failing.
 
-| Secret / variable | Used for | Missing → |
-| --- | --- | --- |
-| `PLUGIN_SIGNING_KEY` (secret) | Signing first-party plugins (PKCS#8 PEM, Ed25519) | First-party plugins are not signed; release blocked |
-| `PLUGIN_SIGNING_PUBLIC_KEY` (variable) | Embedded first-party trust anchor (SPKI PEM) | Build fails |
-| `RELEASE_PLEASE_TOKEN` | Release PRs that trigger required checks | Maintainer re-runs checks by hand |
-| `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`, `CSC_LINK`, `CSC_KEY_PASSWORD` | macOS signing and notarization | Unsigned DMG, no macOS self-update |
-| `WIN_CSC_LINK`, `WIN_CSC_KEY_PASSWORD` | Windows Authenticode signing | Unsigned installers (SmartScreen warning) |
-| `AUR_SSH_KEY` | Publishing `yapyap-bin` to the AUR | PKGBUILD attached to the release only |
+| Secret / variable                                                                          | Used for                                          | Missing →                                           |
+| ------------------------------------------------------------------------------------------ | ------------------------------------------------- | --------------------------------------------------- |
+| `PLUGIN_SIGNING_KEY` (secret)                                                              | Signing first-party plugins (PKCS#8 PEM, Ed25519) | First-party plugins are not signed; release blocked |
+| `PLUGIN_SIGNING_PUBLIC_KEY` (variable)                                                     | Embedded first-party trust anchor (SPKI PEM)      | Build fails                                         |
+| `RELEASE_PLEASE_TOKEN`                                                                     | Release PRs that trigger required checks          | Maintainer re-runs checks by hand                   |
+| `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`, `CSC_LINK`, `CSC_KEY_PASSWORD` | macOS signing and notarization                    | Unsigned DMG, no macOS self-update                  |
+| `WIN_CSC_LINK`, `WIN_CSC_KEY_PASSWORD`                                                     | Windows Authenticode signing                      | Unsigned installers (SmartScreen warning)           |
+| `AUR_SSH_KEY`                                                                              | Publishing `yapyap-bin` to the AUR                | PKGBUILD attached to the release only               |
 
 Issues that need one of these are labelled `needs-maintainer`.
 

@@ -1,6 +1,6 @@
 name: Plugin request
 description: Propose a plugin, or a new plugin capability.
-labels: ["area: plugins", "status: needs-triage"]
+labels: ['area: plugins', 'status: needs-triage']
 body:
   - type: textarea
     id: idea

@@ -14,15 +14,15 @@ coverage numbers mean something, and must never touch real WhatsApp.
 
 ### Layers
 
-| Layer | Tool | Scope |
-| --- | --- | --- |
-| Unit | Vitest (node / happy-dom) | All pure logic: settings migrations, URL policy, UA builder, capability checker, signature verification, redaction, update policy, adapter parsing |
-| Integration | Vitest | IPC handlers with a fake Electron surface, plugin host RPC pipeline, protocol handlers, plugin installer |
-| E2E | Playwright `_electron` | App chrome, multi-account, tray, settings, recovery actions, plugins, the malicious-plugin suite, and accessibility (axe) |
-| Visual | Playwright screenshots | App chrome in light and dark themes, per OS baseline |
-| Mutation | Stryker (vitest runner) | WhatsApp adapter, plugin host, capability checker, signature verification, settings migrations, AI providers. Score ≥ 90%, enforced. |
-| Package smoke | CI per artifact | Install, launch, window opens, fake WhatsApp loads |
-| Benchmarks | Nightly | Cold start and idle memory per account against budgets |
+| Layer         | Tool                      | Scope                                                                                                                                              |
+| ------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit          | Vitest (node / happy-dom) | All pure logic: settings migrations, URL policy, UA builder, capability checker, signature verification, redaction, update policy, adapter parsing |
+| Integration   | Vitest                    | IPC handlers with a fake Electron surface, plugin host RPC pipeline, protocol handlers, plugin installer                                           |
+| E2E           | Playwright `_electron`    | App chrome, multi-account, tray, settings, recovery actions, plugins, the malicious-plugin suite, and accessibility (axe)                          |
+| Visual        | Playwright screenshots    | App chrome in light and dark themes, per OS baseline                                                                                               |
+| Mutation      | Stryker (vitest runner)   | WhatsApp adapter, plugin host, capability checker, signature verification, settings migrations, AI providers. Score ≥ 90%, enforced.               |
+| Package smoke | CI per artifact           | Install, launch, window opens, fake WhatsApp loads                                                                                                 |
+| Benchmarks    | Nightly                   | Cold start and idle memory per account against budgets                                                                                             |
 
 ### Fake WhatsApp
 
@@ -49,12 +49,12 @@ attacker-controlled redirect.
 - Files excluded from coverage are listed in `vitest.config.ts` and justified
   here, and nowhere else:
 
-  | Excluded | Why |
-  | --- | --- |
-  | `apps/desktop/src/main/index.ts` | Process entry: wires real Electron modules into tested factories. Only runnable inside Electron, and exercised by every E2E test. |
-  | `apps/desktop/src/preload/*/index.ts` | `contextBridge.exposeInMainWorld` calls. Each only binds an already unit-tested API object, and exercised by E2E. |
-  | `**/*.d.ts`, generated `*.schema.json` | No executable code |
-  | `test/**`, `e2e/**`, `**/*.config.ts` | Test and build infrastructure |
+  | Excluded                               | Why                                                                                                                               |
+  | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+  | `apps/desktop/src/main/index.ts`       | Process entry: wires real Electron modules into tested factories. Only runnable inside Electron, and exercised by every E2E test. |
+  | `apps/desktop/src/preload/*/index.ts`  | `contextBridge.exposeInMainWorld` calls. Each only binds an already unit-tested API object, and exercised by E2E.                 |
+  | `**/*.d.ts`, generated `*.schema.json` | No executable code                                                                                                                |
+  | `test/**`, `e2e/**`, `**/*.config.ts`  | Test and build infrastructure                                                                                                     |
 
   The rule for entry files: they may only import factories and call them with
   real dependencies. They contain no branches. A lint rule (`complexity: 1`

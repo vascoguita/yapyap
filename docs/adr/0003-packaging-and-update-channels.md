@@ -14,16 +14,16 @@ Updates are a code-delivery channel, so they must be verified.
 
 ### Formats
 
-| OS | Format | Arch | Built by | Updates |
-| --- | --- | --- | --- | --- |
-| Linux | Flatpak (Electron BaseApp 26.08 + zypak) | x86_64, aarch64 | flatpak-builder | System (Flathub / `flatpak update`) |
-| Linux | AppImage | x86_64, aarch64 | electron-builder | **Self-update** (electron-updater) |
-| Linux | DEB | x64, arm64 | electron-builder | System (apt) |
-| Linux | RPM | x86_64, aarch64 | electron-builder | System (dnf/zypper) |
-| Arch | AUR `yapyap-bin` | x86_64, aarch64 | PKGBUILD generated per release | System (AUR helper) |
-| Windows | NSIS installer | x64, arm64 | electron-builder | **Self-update** |
-| Windows | Portable | x64, arm64 | electron-builder | Notice only, links to the release |
-| macOS | Universal DMG + ZIP | arm64 + x64 | electron-builder | **Self-update**, only when signed and notarized |
+| OS      | Format                                   | Arch            | Built by                       | Updates                                         |
+| ------- | ---------------------------------------- | --------------- | ------------------------------ | ----------------------------------------------- |
+| Linux   | Flatpak (Electron BaseApp 26.08 + zypak) | x86_64, aarch64 | flatpak-builder                | System (Flathub / `flatpak update`)             |
+| Linux   | AppImage                                 | x86_64, aarch64 | electron-builder               | **Self-update** (electron-updater)              |
+| Linux   | DEB                                      | x64, arm64      | electron-builder               | System (apt)                                    |
+| Linux   | RPM                                      | x86_64, aarch64 | electron-builder               | System (dnf/zypper)                             |
+| Arch    | AUR `yapyap-bin`                         | x86_64, aarch64 | PKGBUILD generated per release | System (AUR helper)                             |
+| Windows | NSIS installer                           | x64, arm64      | electron-builder               | **Self-update**                                 |
+| Windows | Portable                                 | x64, arm64      | electron-builder               | Notice only, links to the release               |
+| macOS   | Universal DMG + ZIP                      | arm64 + x64     | electron-builder               | **Self-update**, only when signed and notarized |
 
 Linux arm64 artifacts are built natively on `ubuntu-24.04-arm` runners.
 Windows arm64 is cross-built on x64.
@@ -41,11 +41,11 @@ marker and the runtime evidence agree on a self-updating channel. Any mismatch
 falls back to "no self-update". A pure function maps
 `(marker, evidence) → policy`, with tests for every combination.
 
-| Policy | Behavior |
-| --- | --- |
+| Policy        | Behavior                                                                                                     |
+| ------------- | ------------------------------------------------------------------------------------------------------------ |
 | `self-update` | electron-updater checks GitHub Releases, downloads, verifies and installs on restart with the user's consent |
-| `notify` | Portable build: checks the GitHub Releases API, shows "new version available" with a link, never downloads |
-| `system` | Flatpak, DEB, RPM, AUR: no update checks. "About" says updates come from the system package manager. |
+| `notify`      | Portable build: checks the GitHub Releases API, shows "new version available" with a link, never downloads   |
+| `system`      | Flatpak, DEB, RPM, AUR: no update checks. "About" says updates come from the system package manager.         |
 
 ### Verification
 

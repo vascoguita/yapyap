@@ -1,0 +1,9 @@
+{
+  "name": "@yapyap/plugin-ai-assistant",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Bring-your-own-model AI writing assistant for YapYap",
+  "license": "MIT",
+  "author": "Vasco Guita",
+  "type": "module"
+}

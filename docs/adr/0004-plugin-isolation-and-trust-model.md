@@ -28,7 +28,7 @@ and `signature` (`publicKey`, `algorithm: "ed25519"`, `value`).
 
 - The **signed payload** is the canonical JSON (sorted keys, no whitespace)
   of `{ manifest without signature, files: [[path, sha256], ...] sorted by
-  path }`. Every file in the archive must appear in that list. Extra,
+path }`. Every file in the archive must appear in that list. Extra,
   missing or modified files fail verification.
 - Keys are Ed25519. The `plugin-sign` CLI takes a PKCS#8 PEM private key and
   never writes or prints private key material. The manifest carries the
@@ -90,6 +90,7 @@ to `<userData>/plugins/<id>/<version>/` only after the signature verifies.
   4. execution with a timeout
 
   Every call either returns a result or a typed error.
+
 - **Resource limits.** `app.getAppMetrics()` samples each plugin's renderer
   PID. Sustained CPU or working-set overruns terminate the renderer. Three
   terminations within a window disable the plugin and notify the user.
@@ -99,15 +100,15 @@ to `<userData>/plugins/<id>/<version>/` only after the signature verifies.
 Capabilities are granted per plugin **and per account**, and can be revoked at
 any time in settings.
 
-| Capability | Grants |
-| --- | --- |
-| `chat:read-active` | The active chat's metadata and its last N messages (N capped by the user), as plain data |
-| `chat:read-unread-summary` | Unread counts and the last N unread messages per chat |
-| `composer:insert-draft` | Insert text into the composer of the active chat. Never sends. |
-| `notifications:show` | Show a native notification attributed to the plugin |
-| `storage:local` | A persistent private partition and a key-value store API |
-| `secrets:own` | Read and write the plugin's own secrets namespace (Electron `safeStorage`) |
-| `network:<host>` | HTTPS requests to that host via the plugin session |
+| Capability                 | Grants                                                                                   |
+| -------------------------- | ---------------------------------------------------------------------------------------- |
+| `chat:read-active`         | The active chat's metadata and its last N messages (N capped by the user), as plain data |
+| `chat:read-unread-summary` | Unread counts and the last N unread messages per chat                                    |
+| `composer:insert-draft`    | Insert text into the composer of the active chat. Never sends.                           |
+| `notifications:show`       | Show a native notification attributed to the plugin                                      |
+| `storage:local`            | A persistent private partition and a key-value store API                                 |
+| `secrets:own`              | Read and write the plugin's own secrets namespace (Electron `safeStorage`)               |
+| `network:<host>`           | HTTPS requests to that host via the plugin session                                       |
 
 There is **no API to send a message**, and no capability that returns DOM
 nodes, HTML, or arbitrary page script execution. All chat data comes from the

@@ -15,12 +15,12 @@ be a stock, current Chromium with a matching user agent.
 
 ### Trust zones
 
-| Zone | Process | Trust | Content |
-| --- | --- | --- | --- |
-| Main | Electron main (Node) | Trusted | App logic, settings, IPC validation, plugin host, capability checker |
-| App chrome | Renderer, `app://chrome/` | Trusted code, untrusted input | Account switcher, settings, dialogs, recovery UI, plugin UI rendered from declarative contributions |
-| WhatsApp | One renderer per account | Untrusted (remote) | `https://web.whatsapp.com` plus the WhatsApp adapter preload in an isolated world |
-| Plugin | One hidden renderer per enabled plugin | Untrusted (third party) | Plugin bundle served from `plugin://<id>/` |
+| Zone       | Process                                | Trust                         | Content                                                                                             |
+| ---------- | -------------------------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------- |
+| Main       | Electron main (Node)                   | Trusted                       | App logic, settings, IPC validation, plugin host, capability checker                                |
+| App chrome | Renderer, `app://chrome/`              | Trusted code, untrusted input | Account switcher, settings, dialogs, recovery UI, plugin UI rendered from declarative contributions |
+| WhatsApp   | One renderer per account               | Untrusted (remote)            | `https://web.whatsapp.com` plus the WhatsApp adapter preload in an isolated world                   |
+| Plugin     | One hidden renderer per enabled plugin | Untrusted (third party)       | Plugin bundle served from `plugin://<id>/`                                                          |
 
 ### Window composition
 
@@ -91,8 +91,8 @@ and an ESLint restriction forbids constructing `BrowserWindow` or
 ### Content Security Policy
 
 - App chrome: `default-src 'none'; script-src 'self'; style-src 'self';
-  img-src 'self' data:; font-src 'self'; connect-src 'none';
-  frame-ancestors 'none'; base-uri 'none'; form-action 'none'`, served
+img-src 'self' data:; font-src 'self'; connect-src 'none';
+frame-ancestors 'none'; base-uri 'none'; form-action 'none'`, served
   from a custom `app://` protocol, not `file://`.
 - Plugins: `default-src 'none'; script-src 'self'`, plus `style-src 'self'`
   and `img-src 'self' data:` for panels. See [ADR 0004](0004-plugin-isolation-and-trust-model.md).
@@ -124,28 +124,28 @@ back from every build and asserts them.
 
 ### Electron security checklist compliance
 
-| # | Checklist item | How YapYap complies |
-| --- | --- | --- |
-| 1 | Only load secure content | WhatsApp is HTTPS. Chrome and plugins use custom privileged protocols. Mixed content is blocked. |
-| 2 | No Node.js integration for remote content | `nodeIntegration: false` everywhere |
-| 3 | Context isolation | `contextIsolation: true` everywhere |
-| 4 | Process sandboxing | `sandbox: true` everywhere, plus `app.enableSandbox()` |
-| 5 | Permission request handler | Per-zone allowlists, see above |
-| 6 | Do not disable `webSecurity` | Never set |
-| 7 | Define a CSP | Chrome and plugin CSPs set as response headers |
-| 8 | Do not enable `allowRunningInsecureContent` | Never set |
-| 9 | Do not enable experimental features | Never set |
-| 10 | Do not use `enableBlinkFeatures` | Never set |
-| 11 | `<webview>`: do not use `allowpopups` | `webviewTag: false`; `<webview>` is not used |
-| 12 | Verify WebView options before creation | `will-attach-webview` always prevented |
-| 13 | Disable or limit navigation | Navigation guards, see above |
-| 14 | Disable or limit creation of new windows | `setWindowOpenHandler` denies |
-| 15 | Do not use `shell.openExternal` with untrusted content | Scheme allowlist, URL re-serialization, `http(s)`, `mailto` and `tel` only |
-| 16 | Use a current version of Electron | Latest stable, kept current by Dependabot, nightly beta run |
-| 17 | Validate the `sender` of all IPC messages | Sender frame origin and role checked in every handler |
-| 18 | Avoid the `file://` protocol | `app://` and `plugin://` custom protocols |
-| 19 | Check which fuses you can change | Fuses table above, asserted in CI |
-| 20 | Do not expose Electron APIs to untrusted web content | Minimal typed bridges only |
+| #   | Checklist item                                         | How YapYap complies                                                                              |
+| --- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| 1   | Only load secure content                               | WhatsApp is HTTPS. Chrome and plugins use custom privileged protocols. Mixed content is blocked. |
+| 2   | No Node.js integration for remote content              | `nodeIntegration: false` everywhere                                                              |
+| 3   | Context isolation                                      | `contextIsolation: true` everywhere                                                              |
+| 4   | Process sandboxing                                     | `sandbox: true` everywhere, plus `app.enableSandbox()`                                           |
+| 5   | Permission request handler                             | Per-zone allowlists, see above                                                                   |
+| 6   | Do not disable `webSecurity`                           | Never set                                                                                        |
+| 7   | Define a CSP                                           | Chrome and plugin CSPs set as response headers                                                   |
+| 8   | Do not enable `allowRunningInsecureContent`            | Never set                                                                                        |
+| 9   | Do not enable experimental features                    | Never set                                                                                        |
+| 10  | Do not use `enableBlinkFeatures`                       | Never set                                                                                        |
+| 11  | `<webview>`: do not use `allowpopups`                  | `webviewTag: false`; `<webview>` is not used                                                     |
+| 12  | Verify WebView options before creation                 | `will-attach-webview` always prevented                                                           |
+| 13  | Disable or limit navigation                            | Navigation guards, see above                                                                     |
+| 14  | Disable or limit creation of new windows               | `setWindowOpenHandler` denies                                                                    |
+| 15  | Do not use `shell.openExternal` with untrusted content | Scheme allowlist, URL re-serialization, `http(s)`, `mailto` and `tel` only                       |
+| 16  | Use a current version of Electron                      | Latest stable, kept current by Dependabot, nightly beta run                                      |
+| 17  | Validate the `sender` of all IPC messages              | Sender frame origin and role checked in every handler                                            |
+| 18  | Avoid the `file://` protocol                           | `app://` and `plugin://` custom protocols                                                        |
+| 19  | Check which fuses you can change                       | Fuses table above, asserted in CI                                                                |
+| 20  | Do not expose Electron APIs to untrusted web content   | Minimal typed bridges only                                                                       |
 
 ## Consequences
 

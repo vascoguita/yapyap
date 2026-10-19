@@ -1,0 +1,9 @@
+pnpm-lock.yaml
+CHANGELOG.md
+coverage/
+out/
+release/
+reports/
+docs/.vitepress/cache/
+docs/.vitepress/dist/
+docs/api/
