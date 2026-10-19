@@ -18,9 +18,10 @@ coverage numbers mean something, and must never touch real WhatsApp.
 | ------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Unit          | Vitest (node / happy-dom) | All pure logic: settings migrations, URL policy, UA builder, capability checker, signature verification, redaction, update policy, adapter parsing |
 | Integration   | Vitest                    | IPC handlers with a fake Electron surface, plugin host RPC pipeline, protocol handlers, plugin installer                                           |
+| Property      | Vitest + fast-check       | Parsers and validators of untrusted input (origin overrides, license expressions, versions, later IPC payloads and plugin manifests)               |
 | E2E           | Playwright `_electron`    | App chrome, multi-account, tray, settings, recovery actions, plugins, the malicious-plugin suite, and accessibility (axe)                          |
 | Visual        | Playwright screenshots    | App chrome in light and dark themes, per OS baseline                                                                                               |
-| Mutation      | Stryker (vitest runner)   | WhatsApp adapter, plugin host, capability checker, signature verification, settings migrations, AI providers. Score ≥ 90%, enforced.               |
+| Mutation      | Stryker (command runner)  | WhatsApp adapter, plugin host, capability checker, signature verification, settings migrations, AI providers. Score ≥ 90%, enforced.               |
 | Package smoke | CI per artifact           | Install, launch, window opens, fake WhatsApp loads                                                                                                 |
 | Benchmarks    | Nightly                   | Cold start and idle memory per account against budgets                                                                                             |
 
@@ -96,6 +97,19 @@ locally when available. Visual baselines are per-OS.
 Stryker uses its `command` runner. Each mutant runs `vitest run --config vitest.mutation.config.ts`, a flat single-project config, and the mutant is switched on through the environment. The Vitest runner plugin does not activate mutants under Vitest 5 (ADR 0008, C12). The scope lives in `scripts/src/mutation/scope.ts`, which both Stryker and the PR target selection use. On PRs, Stryker mutates only changed files within the mutation scope
 (`--mutate` from the diff). Nightly runs the full scope. The threshold is
 `break: 90`.
+
+Stryker already runs one suite per CPU, so the mutation config gives each suite
+a single Vitest worker, and its setup file stops fast-check at the first failure
+without shrinking. Without either, killed mutants are reported as timeouts.
+
+### Property-based tests
+
+Code that parses untrusted or external input also gets property-based tests in
+`*.property.test.ts` files, using fast-check. A property states an invariant
+(for example, "the resolved origin is WhatsApp or loopback HTTP") or compares
+the code with a simple reference model, and fast-check searches for
+counterexamples. They run with the unit tests, and they also count as fuzzing
+for the OpenSSF Scorecard.
 
 ## Consequences
 
