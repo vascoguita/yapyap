@@ -60,7 +60,7 @@ jobs:
           - { arch: arm64, os: ubuntu-24.04-arm, artifact: packages-linux-arm64 }
     runs-on: ${{ matrix.os }}
     container:
-      image: fedora:44
+      image: fedora:44@sha256:43b29f65a41eb9c35e1cd5323e3bdf3b655c2357a9f4f1ff2f9c2798e5045d80
       # The setuid Chromium sandbox needs namespaces that Docker's defaults block.
       options: --privileged
     steps:
@@ -132,13 +132,10 @@ jobs:
           $setup = Get-Item "packages\$env:INSTALLER"
           $process = Start-Process -Wait -PassThru -FilePath $setup.FullName -ArgumentList '/S'
           if ($process.ExitCode -ne 0) { throw "Installer exited with $($process.ExitCode)" }
-          $roots = @("$env:LOCALAPPDATA\Programs", $env:ProgramFiles, ${env:ProgramFiles(x86)})
-          $exe = Get-ChildItem -Path $roots -Recurse -Filter YapYap.exe -ErrorAction SilentlyContinue | Select-Object -First 1
-          if (-not $exe) {
-            Get-ChildItem "$env:LOCALAPPDATA\Programs" -ErrorAction SilentlyContinue | Out-Host
-            Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall -ErrorAction SilentlyContinue | Where-Object { $_.Name -match 'YapYap|yapyap' } | Out-Host
-            throw 'YapYap.exe not found after install'
-          }
+          $dir = "$env:LOCALAPPDATA\Programs\YapYap"
+          Get-ChildItem $dir -ErrorAction SilentlyContinue | Out-Host
+          $exe = Get-Item "$dir\YapYap.exe" -ErrorAction SilentlyContinue
+          if (-not $exe) { throw "YapYap.exe not found in $dir" }
           Write-Host "Installed at $($exe.FullName)"
           "YAPYAP_PACKAGED_EXECUTABLE=$($exe.FullName)" >> $env:GITHUB_ENV
       - name: Use the portable build
