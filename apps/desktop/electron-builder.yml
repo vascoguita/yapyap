@@ -27,6 +27,9 @@ electronFuses:
   onlyLoadAppFromAsar: true
   loadBrowserProcessSpecificV8Snapshot: false
   grantFileProtocolExtraPrivileges: false
+  # Flipping fuses invalidates Electron's ad-hoc signature; unsigned arm64 macOS
+  # builds must be re-signed ad hoc or the OS refuses to launch them.
+  resetAdHocDarwinSignature: true
 
 linux:
   executableName: yapyap
