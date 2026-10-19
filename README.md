@@ -1,5 +1,10 @@
 # YapYap
 
+[![CI](https://github.com/vascoguita/yapyap/actions/workflows/ci.yml/badge.svg)](https://github.com/vascoguita/yapyap/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/vascoguita/yapyap/actions/workflows/codeql.yml/badge.svg)](https://github.com/vascoguita/yapyap/actions/workflows/codeql.yml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/vascoguita/yapyap/badge)](https://scorecard.dev/viewer/?uri=github.com/vascoguita/yapyap)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 A fast, private, extensible desktop client for WhatsApp Web, for Linux,
 Windows and macOS.
 
