@@ -5,8 +5,8 @@
       "entry": ["*.config.{js,ts}"]
     },
     "apps/desktop": {
-      "entry": ["src/main/index.ts"],
-      "project": ["src/**/*.ts"]
+      "entry": ["e2e/**/*.spec.ts"],
+      "project": ["src/**/*.ts", "e2e/**/*.ts"]
     }
   }
 }
