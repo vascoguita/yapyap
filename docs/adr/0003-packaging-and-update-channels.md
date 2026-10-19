@@ -30,14 +30,14 @@ Windows arm64 is cross-built on x64.
 
 ### Install-channel detection
 
-At build time, electron-builder writes a `channel` field to the packaged
-`resources/install-channel.json`: `appimage`, `nsis`, `portable`, `dmg`,
-`deb`, `rpm`, `aur` or `flatpak`. Flatpak, DEB and RPM are produced from
-separate build configurations. At runtime the channel is cross-checked with
-environment evidence: `FLATPAK_ID` and `/.flatpak-info` for Flatpak,
-`APPIMAGE` for AppImage, `PORTABLE_EXECUTABLE_DIR` for portable, and the
-code-signing status on macOS. The updater only starts when **both** the build
-marker and the runtime evidence agree on a self-updating channel. Any mismatch
+Each package format is built in its own electron-builder invocation, which
+stamps `installChannel` (`appimage`, `nsis`, `portable`, `dmg`, `deb`, `rpm`,
+`aur` or `flatpak`) into the packaged `package.json` through
+`extraMetadata`. At runtime the channel is cross-checked with environment
+evidence: `FLATPAK_ID` and `/.flatpak-info` for Flatpak, `APPIMAGE` for
+AppImage, `PORTABLE_EXECUTABLE_DIR` for portable, and the code-signing status
+on macOS. The updater only starts when **both** the build marker and the
+runtime evidence agree on a self-updating channel. Any mismatch
 falls back to "no self-update". A pure function maps
 `(marker, evidence) → policy`, with tests for every combination.
 

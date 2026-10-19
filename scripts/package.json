@@ -10,6 +10,8 @@
     "typecheck": "tsc -p tsconfig.json",
     "check-pinned-versions": "node src/bin/check-pinned-versions.ts",
     "check-licenses": "node src/bin/check-licenses.ts",
-    "mutation-targets": "node src/bin/mutation-targets.ts"
+    "mutation-targets": "node src/bin/mutation-targets.ts",
+    "package": "node src/bin/package.ts",
+    "verify-fuses": "node src/bin/verify-fuses.ts"
   }
 }

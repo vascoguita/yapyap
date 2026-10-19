@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=YapYap
+GenericName=Messaging client
+Comment=Desktop client for WhatsApp Web (unofficial)
+Exec=yapyap %U
+Icon=io.github.vascoguita.YapYap
+Terminal=false
+Categories=Network;InstantMessaging;Chat;
+Keywords=whatsapp;chat;messaging;
+StartupWMClass=io.github.vascoguita.YapYap
+MimeType=x-scheme-handler/whatsapp;
+StartupNotify=true

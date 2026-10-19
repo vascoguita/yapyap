@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.vascoguita.YapYap</id>
+  <name>YapYap</name>
+  <summary>Fast, private desktop client for WhatsApp Web</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <developer id="io.github.vascoguita">
+    <name>Vasco Guita</name>
+  </developer>
+  <description>
+    <p>
+      YapYap wraps the official WhatsApp Web in a hardened desktop shell with native notifications,
+      a system tray, multiple isolated accounts and recovery tools that fix a stuck session without
+      logging out.
+    </p>
+    <p>
+      It has no telemetry, keeps its logs local and redacted, and supports signed, sandboxed plugins,
+      including an optional bring-your-own-model writing assistant that only ever inserts drafts.
+    </p>
+    <p>YapYap is unofficial and is not affiliated with, endorsed by, or sponsored by WhatsApp or Meta.</p>
+  </description>
+  <launchable type="desktop-id">io.github.vascoguita.YapYap.desktop</launchable>
+  <url type="homepage">https://vascoguita.github.io/yapyap/</url>
+  <url type="bugtracker">https://github.com/vascoguita/yapyap/issues</url>
+  <url type="help">https://vascoguita.github.io/yapyap/guide/</url>
+  <url type="vcs-browser">https://github.com/vascoguita/yapyap</url>
+  <url type="contribute">https://vascoguita.github.io/yapyap/contributing</url>
+  <branding>
+    <color type="primary" scheme_preference="light">#C9C3FF</color>
+    <color type="primary" scheme_preference="dark">#3F2FB8</color>
+  </branding>
+  <content_rating type="oars-1.1">
+    <content_attribute id="social-chat">intense</content_attribute>
+    <content_attribute id="social-info">mild</content_attribute>
+    <content_attribute id="social-audio">intense</content_attribute>
+    <content_attribute id="social-contacts">intense</content_attribute>
+  </content_rating>
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+    <control>touch</control>
+  </supports>
+  <requires>
+    <internet>always</internet>
+  </requires>
+  <categories>
+    <category>Network</category>
+    <category>InstantMessaging</category>
+    <category>Chat</category>
+  </categories>
+  <keywords>
+    <keyword>whatsapp</keyword>
+    <keyword>chat</keyword>
+    <keyword>messaging</keyword>
+  </keywords>
+  <provides>
+    <binary>yapyap</binary>
+  </provides>
+  <releases/>
+</component>
