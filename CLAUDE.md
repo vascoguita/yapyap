@@ -105,3 +105,6 @@ adds each one.
 - `typescript-eslint` deprecates `tseslint.config()`. Use `defineConfig` from
   `eslint/config`.
 - Relative imports use explicit `.ts` extensions (`allowImportingTsExtensions`).
+- Adding or renaming a required CI job means updating
+  `.github/rulesets/master.json` and re-applying it (see CONTRIBUTING), or PRs
+  will wait forever for a check that never reports.

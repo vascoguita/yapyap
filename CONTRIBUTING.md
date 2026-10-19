@@ -74,10 +74,19 @@ These settings are applied through the GitHub API and must stay in place.
 - **Security:** secret scanning with push protection, Dependabot alerts and
   security updates, private vulnerability reporting. Discussions are enabled.
 - **Pages:** the source is GitHub Actions, not a branch.
-- **Ruleset `master`:** pull request required, required status checks
-  (branch must be up to date), signed commits, no force push, no deletion,
-  conversation resolution required.
-- **Ruleset `release tags`:** `v*` tags cannot be deleted or moved.
+- **Rulesets:** stored as JSON in [`.github/rulesets/`](.github/rulesets/).
+  - `master`: pull request required, merge commits only, required status
+    checks with "branch must be up to date", signed commits, no force push,
+    no deletion, conversation resolution required.
+  - `release tags`: `v*` tags cannot be deleted, moved or updated.
+
+  After changing a ruleset file (for example when a required CI job is
+  added or renamed), apply it:
+
+  ```sh
+  id=$(gh api repos/vascoguita/yapyap/rulesets --jq '.[] | select(.name=="master") | .id')
+  gh api -X PUT "repos/vascoguita/yapyap/rulesets/$id" --input .github/rulesets/master.json
+  ```
 
 ## Secrets and maintainer-only steps
 

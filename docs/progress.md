@@ -1,7 +1,7 @@
 # Progress
 
 - **Current milestone:** M1 · Bootstrap
-- **Last merged PR:** #120 (architecture decisions and community health files)
+- **Last merged PR:** #121 (monorepo scaffold with strict TypeScript, linting and coverage gate)
 - **Next issue:** #15 (minimal launchable desktop app) and #7 (E2E harness)
 - **Open blockers:** #22, #23, #24, #25, #26 need maintainer-provided secrets or settings (pipelines skip those steps gracefully)
 
