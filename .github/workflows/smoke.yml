@@ -102,7 +102,7 @@ jobs:
           - { format: nsis, arch: x64, os: windows-latest, installer: 'YapYap-*-win-setup.exe' }
           - { format: nsis, arch: arm64, os: windows-11-arm, installer: 'YapYap-*-win-setup.exe' }
           - {
-              format: nsis-arm64-only,
+              format: nsis-only,
               arch: arm64,
               os: windows-11-arm,
               installer: 'YapYap-*-win-arm64-setup.exe',
