@@ -20,11 +20,13 @@
     "check:licenses": "pnpm --filter @yapyap/scripts check-licenses",
     "test:mutation": "stryker run",
     "docs:dev": "pnpm --filter @yapyap/docs dev",
-    "docs:build": "pnpm --filter @yapyap/docs build"
+    "docs:build": "pnpm --filter @yapyap/docs build",
+    "package": "pnpm --filter @yapyap/desktop build && node scripts/src/bin/package.ts"
   },
   "devDependencies": {
     "@commitlint/cli": "21.2.4",
     "@commitlint/config-conventional": "21.2.4",
+    "@electron/fuses": "2.1.3",
     "@eslint/js": "10.0.1",
     "@stryker-mutator/core": "10.0.0",
     "@types/node": "26.6.5",
