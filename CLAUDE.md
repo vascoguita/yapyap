@@ -127,6 +127,11 @@ Update this table in the PR that adds a command.
 - Stryker's Vitest runner silently tests nothing under Vitest 5. We use the
   `command` runner and `vitest.mutation.config.ts`. A suspicious score means
   checking "tests per mutant" in the output.
+- Mutation runs give each Vitest suite one worker and stop fast-check at the
+  first failure (`vitest.mutation.setup.ts`). Undoing either makes killed
+  mutants show up as timeouts.
+- Inside a fast-check property, don't `return expect(...)`. fast-check treats
+  the returned value as the property's result.
 - Scripts run under Node's type stripping, so only erasable TypeScript is
   allowed (no enums, no constructor parameter properties). `erasableSyntaxOnly`
   enforces this.

@@ -25,6 +25,8 @@ export interface Violation {
   readonly license: string;
 }
 
+const OPERATORS: ReadonlySet<string | undefined> = new Set(['AND', 'OR', 'WITH', '(', ')']);
+
 class Parser {
   private readonly tokens: readonly string[];
   private position = 0;
@@ -62,10 +64,18 @@ class Parser {
       this.expect(')');
       return allowed;
     }
-    const license = this.tokens[this.position++];
+    const license = this.identifier();
     // An exception can only widen what the base license permits, so judge the base.
-    if (this.accept('WITH')) this.position++;
+    if (this.accept('WITH')) this.identifier();
     return ALLOWED_LICENSES.has(license);
+  }
+
+  // Reading past the end yields undefined, which no allowlist contains and which
+  // leaves the parser unfinished, so it needs no separate check.
+  private identifier(): string | undefined {
+    const token = this.tokens[this.position++];
+    if (OPERATORS.has(token)) throw new SyntaxError();
+    return token;
   }
 
   private accept(token: string): boolean {

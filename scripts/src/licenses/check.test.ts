@@ -60,6 +60,11 @@ describe('isAllowed', () => {
     'OR',
     'MIT WITH',
     'MIT WITH X Y',
+    'MIT WITH AND',
+    'MIT WITH OR',
+    'MIT WITH WITH',
+    'MIT WITH (',
+    'MIT WITH )',
   ])('rejects %s', (expression) => {
     expect(isAllowed(expression)).toBe(false);
   });

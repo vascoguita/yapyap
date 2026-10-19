@@ -11,5 +11,9 @@ export default defineConfig({
       'scripts/src/**/*.test.ts',
     ],
     environment: 'node',
+    setupFiles: ['vitest.mutation.setup.ts'],
+    // Stryker already runs one suite per CPU; a worker pool inside each suite
+    // oversubscribes the machine until mutants time out instead of failing.
+    maxWorkers: 1,
   },
 });
