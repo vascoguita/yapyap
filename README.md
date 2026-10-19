@@ -1,3 +1,5 @@
+<p align="center"><img src="apps/desktop/build/icon.svg" alt="YapYap icon" width="96" height="96"></p>
+
 # YapYap
 
 [![CI](https://github.com/vascoguita/yapyap/actions/workflows/ci.yml/badge.svg)](https://github.com/vascoguita/yapyap/actions/workflows/ci.yml)

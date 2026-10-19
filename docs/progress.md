@@ -1,8 +1,8 @@
 # Progress
 
 - **Current milestone:** M1 · Bootstrap
-- **Last merged PR:** #129 (mutation testing gate with Stryker)
-- **Next issue:** #14 (brand), #9 (build job), #16 (packaging)
+- **Last merged PR:** #130 (VitePress documentation site on GitHub Pages)
+- **Next issue:** #16 (packaging), #19 (desktop entry and metainfo), #9 (build job)
 - **Open blockers:** #22 (`AUTOMATION_TOKEN`), #23, #24, #25, #26 need maintainer-provided secrets or settings (pipelines skip those steps gracefully)
 
 ## Milestones

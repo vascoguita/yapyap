@@ -12,12 +12,19 @@ export default defineConfig({
   srcExclude: ['progress.md'],
   // ADR folders keep README.md so they also read well on GitHub.
   rewrites: { 'adr/README.md': 'adr/index.md' },
-  head: [['link', { rel: 'icon', type: 'image/svg+xml', href: '/yapyap/logo.svg' }]],
+  head: [
+    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/yapyap/logo.svg' }],
+    [
+      'meta',
+      { property: 'og:image', content: 'https://vascoguita.github.io/yapyap/social-preview.png' },
+    ],
+  ],
   themeConfig: {
     logo: '/logo.svg',
     nav: [
       { text: 'Guide', link: '/guide/' },
       { text: 'Privacy', link: '/privacy' },
+      { text: 'Brand', link: '/brand' },
       { text: 'Architecture', link: '/architecture/' },
       { text: 'Contributing', link: '/contributing' },
     ],
