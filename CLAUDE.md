@@ -30,6 +30,7 @@ Use pnpm (version pinned in `package.json`) on Node.js 24 LTS.
 | Commit messages                 | `pnpm commitlint`                                                         |
 | License compatibility           | `pnpm check:licenses`                                                     |
 | Vulnerability audit             | `pnpm audit --audit-level high`                                           |
+| Docs site (dev / build)         | `pnpm docs:dev` / `pnpm docs:build`                                       |
 
 Later milestones add `pnpm package`. Update this table in the PR that adds
 each command.
