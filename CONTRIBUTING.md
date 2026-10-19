@@ -74,6 +74,7 @@ These settings are applied through the GitHub API and must stay in place.
 - **Security:** secret scanning with push protection, Dependabot alerts and
   security updates, private vulnerability reporting. Discussions are enabled.
 - **Pages:** the source is GitHub Actions, not a branch.
+- **Actions:** the default workflow token is read-only, and workflows may open pull requests (release-please needs this). Each workflow requests only the permissions it needs.
 - **Rulesets:** stored as JSON in [`.github/rulesets/`](.github/rulesets/).
   - `master`: pull request required, merge commits only, required status
     checks with "branch must be up to date", signed commits, no force push,
@@ -131,6 +132,7 @@ PR open on `master` and updates it from Conventional Commits. Merging that PR
 tags `vX.Y.Z`, updates `CHANGELOG.md` and creates the GitHub Release, which
 starts the release build. Never tag by hand.
 
-Before 1.0, `feat` commits bump the patch version. To ship a milestone
-release such as v0.1.0, add a commit whose body has a `Release-As: 0.1.0`
-footer.
+The first release is v0.1.0 (`initial-version`). The release PR stays open
+until the milestone that ships it is complete. Before 1.0, `feat` commits
+bump the patch version. To ship a milestone release such as v0.2.0, add a
+commit whose body has a `Release-As: 0.2.0` footer.
