@@ -7,12 +7,15 @@
     "node": ">=24.22.0"
   },
   "scripts": {
+    "dev": "pnpm --filter @yapyap/desktop dev",
+    "build": "pnpm -r --if-present build",
     "lint": "eslint --max-warnings=0 . && prettier --check . && knip",
     "format": "prettier --write .",
     "typecheck": "tsc -p tsconfig.json && pnpm -r --if-present typecheck",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "commitlint": "commitlint --from origin/master --to HEAD --verbose"
+    "commitlint": "commitlint --from origin/master --to HEAD --verbose",
+    "test:e2e": "pnpm --filter @yapyap/desktop test:e2e"
   },
   "devDependencies": {
     "@commitlint/cli": "21.2.4",
