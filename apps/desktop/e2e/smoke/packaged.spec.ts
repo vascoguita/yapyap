@@ -1,12 +1,23 @@
 import { chromium, expect, test } from '@playwright/test';
 import { spawn, type ChildProcess } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { appEnvironment } from '../app-environment.ts';
 import { startFakeWhatsApp } from '../fake-whatsapp-server.ts';
 
 const executable = process.env['YAPYAP_PACKAGED_EXECUTABLE'] ?? '';
+
+function readEndpoint(file: string): string {
+  try {
+    const [port = '', path = ''] = readFileSync(file, 'utf8').split('\n');
+    return port !== '' && path !== '' ? `ws://127.0.0.1:${port}${path}` : '';
+  } catch {
+    // Missing until Chromium starts, and on Windows locked (EBUSY) while it is
+    // being written, so a failed read just means "not yet".
+    return '';
+  }
+}
 
 // Packaged builds disable the Node inspector fuse, so Playwright's Electron
 // launcher cannot attach. Chromium still writes its DevTools endpoint to the
@@ -17,14 +28,11 @@ async function devToolsEndpoint(app: ChildProcess, profile: string): Promise<str
   await expect
     .poll(
       () =>
-        app.exitCode === null ? existsSync(file) : Promise.reject(new Error('App exited early')),
-      {
-        timeout: 60_000,
-      },
+        app.exitCode === null ? readEndpoint(file) : Promise.reject(new Error('App exited early')),
+      { timeout: 60_000 },
     )
-    .toBe(true);
-  const [port, path] = readFileSync(file, 'utf8').split('\n');
-  return `ws://127.0.0.1:${String(port)}${String(path)}`;
+    .toMatch(/^ws:\/\//);
+  return readEndpoint(file);
 }
 
 test('the installed package opens a window on the fake WhatsApp page', async () => {
