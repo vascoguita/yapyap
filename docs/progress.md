@@ -1,8 +1,8 @@
 # Progress
 
 - **Current milestone:** M1 · Bootstrap
-- **Last merged PR:** #133 (smoke-test every installed package format)
-- **Next issue:** #17 (Flatpak), #20 (release pipeline), #18 (AUR)
+- **Last merged PR:** #140 (property-based tests with fast-check)
+- **Next issue:** #20 (release pipeline), #18 (AUR)
 - **Open blockers:** #22 (`AUTOMATION_TOKEN`), #23, #24, #25, #26, #137, #138 need maintainer-provided secrets or settings (pipelines skip those steps gracefully)
 
 ## Milestones

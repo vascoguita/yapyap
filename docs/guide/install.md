@@ -17,3 +17,18 @@ Every release includes SHA-256 checksums, a software bill of materials, and
 signed build provenance attestations, so you can verify what you download.
 Releases are published on
 [GitHub](https://github.com/vascoguita/yapyap/releases).
+
+## Flatpak permissions
+
+The Flatpak runs in a sandbox with only the access it needs:
+
+| Permission                                | Why                                                        |
+| ----------------------------------------- | ---------------------------------------------------------- |
+| Network                                   | WhatsApp Web and plugin connections                        |
+| Wayland, or X11 as a fallback; GPU        | Drawing the window with hardware acceleration              |
+| PulseAudio                                | Voice and video calls, voice messages, notification sounds |
+| Notifications and StatusNotifier on D-Bus | Native notifications and the tray icon                     |
+| Downloads folder                          | Saving files there automatically when you turn that on     |
+
+Everything else, such as choosing where to save a file or picking a screen to
+share, goes through desktop portals, so YapYap never sees the rest of your files.
