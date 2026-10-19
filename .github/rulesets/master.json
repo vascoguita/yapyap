@@ -73,6 +73,9 @@
           },
           {
             "context": "Mutation (changed modules)"
+          },
+          {
+            "context": "Docs build"
           }
         ]
       }
