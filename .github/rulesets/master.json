@@ -3,12 +3,21 @@
   "target": "branch",
   "enforcement": "active",
   "conditions": {
-    "ref_name": { "include": ["~DEFAULT_BRANCH"], "exclude": [] }
+    "ref_name": {
+      "include": ["~DEFAULT_BRANCH"],
+      "exclude": []
+    }
   },
   "rules": [
-    { "type": "deletion" },
-    { "type": "non_fast_forward" },
-    { "type": "required_signatures" },
+    {
+      "type": "deletion"
+    },
+    {
+      "type": "non_fast_forward"
+    },
+    {
+      "type": "required_signatures"
+    },
     {
       "type": "pull_request",
       "parameters": {
@@ -26,11 +35,30 @@
         "strict_required_status_checks_policy": true,
         "do_not_enforce_on_create": false,
         "required_status_checks": [
-          { "context": "Lint and typecheck" },
-          { "context": "Test (ubuntu-latest)" },
-          { "context": "Test (windows-latest)" },
-          { "context": "Test (macos-latest)" },
-          { "context": "Conventional PR title" }
+          {
+            "context": "Lint and typecheck"
+          },
+          {
+            "context": "Test (ubuntu-latest)"
+          },
+          {
+            "context": "Test (windows-latest)"
+          },
+          {
+            "context": "Test (macos-latest)"
+          },
+          {
+            "context": "Conventional PR title"
+          },
+          {
+            "context": "E2E (ubuntu-latest)"
+          },
+          {
+            "context": "E2E (windows-latest)"
+          },
+          {
+            "context": "E2E (macos-latest)"
+          }
         ]
       }
     }
