@@ -108,3 +108,9 @@ adds each one.
 - Adding or renaming a required CI job means updating
   `.github/rulesets/master.json` and re-applying it (see CONTRIBUTING), or PRs
   will wait forever for a check that never reports.
+- Terminals inside VS Code export `ELECTRON_RUN_AS_NODE=1`. The E2E fixture
+  strips it; strip it yourself before running `electron` by hand.
+- Electron 44 has no postinstall step. It downloads its binary on first use, so
+  no `allowBuilds` entry is needed.
+- Never use top-level `await` in the main entry. Playwright holds back the
+  `ready` event until the entry module finishes evaluating, so the app hangs.
