@@ -4,10 +4,12 @@ test('opens a window that loads the fake WhatsApp page', async ({ app, window, f
   await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
   expect(new URL(window.url()).origin).toBe(fakeWhatsApp.origin);
   expect(await window.title()).toBe('WhatsApp');
-  const visible = await app.evaluate(({ BrowserWindow }) =>
-    BrowserWindow.getAllWindows().map((w) => w.isVisible()),
-  );
-  expect(visible).toEqual([true]);
+  // ready-to-show can land after the page renders, especially under Xvfb.
+  await expect
+    .poll(() =>
+      app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().map((w) => w.isVisible())),
+    )
+    .toEqual([true]);
 });
 
 test('runs WhatsApp in a sandboxed, isolated renderer without Node.js', async ({ window }) => {
