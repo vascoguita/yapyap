@@ -1,9 +1,9 @@
 # Progress
 
 - **Current milestone:** M1 · Bootstrap
-- **Last merged PR:** #132 (package every format with hardened fuses)
+- **Last merged PR:** #133 (smoke-test every installed package format)
 - **Next issue:** #17 (Flatpak), #20 (release pipeline), #18 (AUR)
-- **Open blockers:** #22 (`AUTOMATION_TOKEN`), #23, #24, #25, #26 need maintainer-provided secrets or settings (pipelines skip those steps gracefully)
+- **Open blockers:** #22 (`AUTOMATION_TOKEN`), #23, #24, #25, #26, #137, #138 need maintainer-provided secrets or settings (pipelines skip those steps gracefully)
 
 ## Milestones
 
@@ -22,3 +22,5 @@
 ## Notes
 
 - The release-please PR stays open until M3 is complete. Merging it ships v0.1.0.
+- Build-only advisories without an upstream fix are resolved with `overrides` in
+  `pnpm-workspace.yaml`, each with a comment explaining why.

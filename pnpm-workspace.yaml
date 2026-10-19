@@ -20,3 +20,7 @@ overrides:
   vitepress>vite: 6.4.4
   # Stryker's REST client pulls in a qs release with denial-of-service advisories.
   qs@<6.16.0: 6.16.1
+  # electron-builder's Electron downloader still uses global-agent 3, whose
+  # logger depends on sprintf-js, which has an unpatched denial-of-service
+  # advisory. global-agent 4 keeps the same bootstrap() API without it.
+  global-agent@3: 4.1.3
