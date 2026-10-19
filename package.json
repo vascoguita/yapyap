@@ -21,7 +21,8 @@
     "test:mutation": "stryker run",
     "docs:dev": "pnpm --filter @yapyap/docs dev",
     "docs:build": "pnpm --filter @yapyap/docs build",
-    "package": "pnpm --filter @yapyap/desktop build && node scripts/src/bin/package.ts"
+    "package": "pnpm --filter @yapyap/desktop build && node scripts/src/bin/package.ts",
+    "test:smoke": "pnpm --filter @yapyap/desktop test:smoke"
   },
   "devDependencies": {
     "@commitlint/cli": "21.2.4",
