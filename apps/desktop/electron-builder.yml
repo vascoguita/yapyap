@@ -1,0 +1,79 @@
+appId: io.github.vascoguita.YapYap
+productName: YapYap
+copyright: Copyright © Vasco Guita
+directories:
+  output: release
+  buildResources: build
+files:
+  - out/**
+  - package.json
+asar: true
+artifactName: ${productName}-${version}-${os}-${arch}.${ext}
+protocols:
+  - name: WhatsApp link
+    schemes: [whatsapp]
+publish:
+  provider: github
+  owner: vascoguita
+  repo: yapyap
+  releaseType: release
+# Hardened at package time (ADR 0001); a packaging test reads them back.
+electronFuses:
+  runAsNode: false
+  enableCookieEncryption: true
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  enableEmbeddedAsarIntegrityValidation: true
+  onlyLoadAppFromAsar: true
+  loadBrowserProcessSpecificV8Snapshot: false
+  grantFileProtocolExtraPrivileges: false
+
+linux:
+  executableName: yapyap
+  # Names the .desktop file after desktopName so it matches the Wayland app_id.
+  syncDesktopName: true
+  icon: build/icons
+  # electron-builder derives the desktop entry's Categories and Comment from these.
+  category: Network;InstantMessaging;Chat
+  synopsis: Desktop client for WhatsApp Web (unofficial)
+  description: Desktop client for WhatsApp Web (unofficial)
+  maintainer: Vasco Guita <https://github.com/vascoguita>
+  vendor: Vasco Guita
+  desktop:
+    entry:
+      Name: YapYap
+      GenericName: Messaging client
+      Keywords: whatsapp;chat;messaging;
+      StartupWMClass: io.github.vascoguita.YapYap
+      MimeType: x-scheme-handler/whatsapp;
+deb:
+  packageCategory: net
+  fpm:
+    - ../../packaging/linux/io.github.vascoguita.YapYap.metainfo.xml=/usr/share/metainfo/io.github.vascoguita.YapYap.metainfo.xml
+rpm:
+  packageCategory: Applications/Internet
+  fpm:
+    - ../../packaging/linux/io.github.vascoguita.YapYap.metainfo.xml=/usr/share/metainfo/io.github.vascoguita.YapYap.metainfo.xml
+
+win:
+  executableName: YapYap
+  icon: build/icon.png
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  artifactName: ${productName}-${version}-win-${arch}-setup.${ext}
+portable:
+  artifactName: ${productName}-${version}-win-${arch}-portable.${ext}
+
+mac:
+  icon: build/icon.png
+  category: public.app-category.social-networking
+  hardenedRuntime: true
+  target:
+    - target: dmg
+      arch: universal
+    - target: zip
+      arch: universal
+dmg:
+  artifactName: ${productName}-${version}-mac-${arch}.${ext}

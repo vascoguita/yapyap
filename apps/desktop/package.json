@@ -10,11 +10,13 @@
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "typecheck": "tsc -p tsconfig.json",
-    "test:e2e": "electron-vite build && playwright test"
+    "test:e2e": "electron-vite build && playwright test",
+    "builder": "electron-builder"
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",
     "electron": "44.9.0",
+    "electron-builder": "26.15.3",
     "electron-vite": "6.0.0",
     "vite": "8.3.4"
   },
