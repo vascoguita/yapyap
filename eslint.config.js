@@ -60,7 +60,18 @@ export default defineConfig(
     },
   },
   {
+    // Entry files only wire real Electron objects into tested factories; they
+    // are excluded from coverage, so they must stay branch-free (ADR 0005).
+    files: ['apps/desktop/src/main/index.ts', 'apps/desktop/src/preload/*/index.ts'],
+    rules: { complexity: ['error', 1] },
+  },
+  {
     files: ['**/*.test.ts', '**/*.spec.ts', '**/test/**/*.ts', '**/e2e/**/*.ts'],
     rules: { 'max-lines-per-function': 'off' },
+  },
+  {
+    // Playwright fixtures without dependencies must destructure an empty object.
+    files: ['**/e2e/**/*.ts'],
+    rules: { 'no-empty-pattern': 'off' },
   },
 );

@@ -139,10 +139,10 @@ peers support it. This conflict is logged in [ADR 0008](0008-requirement-conflic
 ### Install scripts
 
 `pnpm-workspace.yaml` denies every dependency install script except those
-listed in `allowBuilds` (pnpm 12's allowlist). The allowlist starts empty.
-`electron` joins it in the PR that adds Electron, because Electron downloads
-its platform binary in a postinstall step. Every addition is justified in the
-PR that adds it.
+listed in `allowBuilds` (pnpm 12's allowlist). The allowlist is empty: no
+dependency currently needs an install script. Electron 44 no longer has a
+postinstall step; it downloads its binary on first use instead. Every
+addition must be justified in the PR that adds it.
 
 ### Lint rules (enforced in CI)
 
