@@ -76,6 +76,18 @@
           },
           {
             "context": "Docs build"
+          },
+          {
+            "context": "Package (linux-x64)"
+          },
+          {
+            "context": "Package (linux-arm64)"
+          },
+          {
+            "context": "Package (windows)"
+          },
+          {
+            "context": "Package (macos)"
           }
         ]
       }
