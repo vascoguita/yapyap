@@ -7,6 +7,10 @@
     "apps/desktop": {
       "entry": ["e2e/**/*.spec.ts"],
       "project": ["src/**/*.ts", "e2e/**/*.ts"]
+    },
+    "scripts": {
+      "entry": ["src/bin/*.ts"],
+      "project": ["src/**/*.ts"]
     }
   }
 }

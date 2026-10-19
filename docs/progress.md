@@ -1,9 +1,9 @@
 # Progress
 
 - **Current milestone:** M1 · Bootstrap
-- **Last merged PR:** #122 (rulesets for master and release tags)
-- **Next issue:** #9 (complete PR CI: build job), then #8 (mutation testing)
-- **Open blockers:** #22, #23, #24, #25, #26 need maintainer-provided secrets or settings (pipelines skip those steps gracefully)
+- **Last merged PR:** #123 (minimal hardened app with Electron E2E harness)
+- **Next issue:** #12 (release-please), #10 (security scanning), #8 (mutation testing)
+- **Open blockers:** #22 (`AUTOMATION_TOKEN`), #23, #24, #25, #26 need maintainer-provided secrets or settings (pipelines skip those steps gracefully)
 
 ## Milestones
 

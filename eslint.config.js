@@ -62,7 +62,11 @@ export default defineConfig(
   {
     // Entry files only wire real Electron objects into tested factories; they
     // are excluded from coverage, so they must stay branch-free (ADR 0005).
-    files: ['apps/desktop/src/main/index.ts', 'apps/desktop/src/preload/*/index.ts'],
+    files: [
+      'apps/desktop/src/main/index.ts',
+      'apps/desktop/src/preload/*/index.ts',
+      'scripts/src/bin/*.ts',
+    ],
     rules: { complexity: ['error', 1] },
   },
   {

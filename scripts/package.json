@@ -1,0 +1,13 @@
+{
+  "name": "@yapyap/scripts",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Repository automation for YapYap",
+  "license": "MIT",
+  "author": "Vasco Guita",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "check-pinned-versions": "node src/bin/check-pinned-versions.ts"
+  }
+}

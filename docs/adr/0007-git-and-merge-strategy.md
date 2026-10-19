@@ -42,6 +42,6 @@ pull request, with `master` always green and releases fully automated.
 
 - Required checks don't run on PRs opened with the default `GITHUB_TOKEN`.
   release-please therefore needs a GitHub App or fine-grained token
-  (`RELEASE_PLEASE_TOKEN`) for its PR to be mergeable. Until one exists, the
+  (`AUTOMATION_TOKEN`, also used by the pinned-versions workflow) for its PR to be mergeable. Until one exists, the
   maintainer re-triggers checks by hand. This is tracked as a
   `needs-maintainer` issue.

@@ -49,16 +49,18 @@ attacker-controlled redirect.
 - Files excluded from coverage are listed in `vitest.config.ts` and justified
   here, and nowhere else:
 
-  | Excluded                               | Why                                                                                                                               |
-  | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-  | `apps/desktop/src/main/index.ts`       | Process entry: wires real Electron modules into tested factories. Only runnable inside Electron, and exercised by every E2E test. |
-  | `apps/desktop/src/preload/*/index.ts`  | `contextBridge.exposeInMainWorld` calls. Each only binds an already unit-tested API object, and exercised by E2E.                 |
-  | `**/*.d.ts`, generated `*.schema.json` | No executable code                                                                                                                |
-  | `test/**`, `e2e/**`, `**/*.config.ts`  | Test and build infrastructure                                                                                                     |
+  | Excluded                              | Why                                                                                                                               |
+  | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+  | `apps/desktop/src/main/index.ts`      | Process entry: wires real Electron modules into tested factories. Only runnable inside Electron, and exercised by every E2E test. |
+  | `apps/desktop/src/preload/*/index.ts` | `contextBridge.exposeInMainWorld` calls. Each only binds an already unit-tested API object, and exercised by E2E.                 |
+  | `scripts/src/bin/*.ts`                | Command entry points that only read `process.env` and pass real `fetch` and `fs` into tested modules; branch-free by lint rule.   |
 
-  The rule for entry files: they may only import factories and call them with
-  real dependencies. They contain no branches. A lint rule (`complexity: 1`
-  for these paths) enforces it.
+| `**/*.d.ts`, generated `*.schema.json` | No executable code |
+| `test/**`, `e2e/**`, `**/*.config.ts` | Test and build infrastructure |
+
+The rule for entry files: they may only import factories and call them with
+real dependencies. They contain no branches. A lint rule (`complexity: 1`
+for these paths) enforces it.
 
 ### Malicious-plugin suite
 
