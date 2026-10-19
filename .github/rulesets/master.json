@@ -58,6 +58,18 @@
           },
           {
             "context": "E2E (macos-latest)"
+          },
+          {
+            "context": "Analyze (javascript-typescript)"
+          },
+          {
+            "context": "Analyze (actions)"
+          },
+          {
+            "context": "Audit and licenses"
+          },
+          {
+            "context": "Dependency review"
           }
         ]
       }

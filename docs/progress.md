@@ -1,8 +1,8 @@
 # Progress
 
 - **Current milestone:** M1 · Bootstrap
-- **Last merged PR:** #125 (release automation with release-please)
-- **Next issue:** #10 (security scanning), #8 (mutation testing), #13 (docs site)
+- **Last merged PR:** #127 (release versioning starts at 0.1.0)
+- **Next issue:** #8 (mutation testing), #13 (docs site), #14 (brand)
 - **Open blockers:** #22 (`AUTOMATION_TOKEN`), #23, #24, #25, #26 need maintainer-provided secrets or settings (pipelines skip those steps gracefully)
 
 ## Milestones

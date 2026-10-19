@@ -16,7 +16,8 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "commitlint": "commitlint --from origin/master --to HEAD --verbose",
-    "test:e2e": "pnpm --filter @yapyap/desktop test:e2e"
+    "test:e2e": "pnpm --filter @yapyap/desktop test:e2e",
+    "check:licenses": "pnpm --filter @yapyap/scripts check-licenses"
   },
   "devDependencies": {
     "@commitlint/cli": "21.2.4",
