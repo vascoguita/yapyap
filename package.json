@@ -18,7 +18,9 @@
     "commitlint": "commitlint --from origin/master --to HEAD --verbose",
     "test:e2e": "pnpm --filter @yapyap/desktop test:e2e",
     "check:licenses": "pnpm --filter @yapyap/scripts check-licenses",
-    "test:mutation": "stryker run"
+    "test:mutation": "stryker run",
+    "docs:dev": "pnpm --filter @yapyap/docs dev",
+    "docs:build": "pnpm --filter @yapyap/docs build"
   },
   "devDependencies": {
     "@commitlint/cli": "21.2.4",
