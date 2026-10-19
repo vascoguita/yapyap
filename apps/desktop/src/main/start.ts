@@ -3,6 +3,12 @@ import { APP_ID, PRODUCT_NAME } from './identity.ts';
 import { secureWebPreferences } from './web-preferences.ts';
 import { resolveWhatsAppOrigin } from './whatsapp-origin.ts';
 
+/**
+ * `ready-to-show` is not guaranteed to fire (for example without a compositor),
+ * and a window that never appears looks like a hung app.
+ */
+export const SHOW_FALLBACK_MS = 3000;
+
 export interface AppPort {
   whenReady(): Promise<unknown>;
   setAppUserModelId(id: string): void;
@@ -44,8 +50,13 @@ export async function startApp({ app, createWindow, env, warn }: StartDependenci
     show: false,
     webPreferences: secureWebPreferences(),
   });
-  window.once('ready-to-show', () => {
+  let shown = false;
+  const showOnce = (): void => {
+    if (shown) return;
+    shown = true;
     window.show();
-  });
+  };
+  window.once('ready-to-show', showOnce);
+  setTimeout(showOnce, SHOW_FALLBACK_MS);
   await window.loadURL(origin);
 }
