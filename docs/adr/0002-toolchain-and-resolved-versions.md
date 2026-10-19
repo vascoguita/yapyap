@@ -50,21 +50,21 @@ Releases API. Pre-release, beta and nightly versions are never used.
 
 #### Quality and tests
 
-| Package                                                  | Version |
-| -------------------------------------------------------- | ------- |
-| eslint                                                   | 10.13.0 |
-| @eslint/js                                               | 10.0.1  |
-| typescript-eslint                                        | 8.71.2  |
-| prettier                                                 | 3.9.10  |
-| knip                                                     | 6.42.0  |
-| vitest, @vitest/coverage-v8                              | 5.0.5   |
-| @playwright/test                                         | 1.64.1  |
-| @axe-core/playwright                                     | 4.14.0  |
-| @stryker-mutator/core, vitest-runner, typescript-checker | 10.0.0  |
-| happy-dom                                                | 21.0.3  |
-| @testing-library/preact                                  | 3.2.4   |
-| @commitlint/cli, @commitlint/config-conventional         | 21.2.4  |
-| @types/node                                              | 26.6.5  |
+| Package                                                   | Version |
+| --------------------------------------------------------- | ------- |
+| eslint                                                    | 10.13.0 |
+| @eslint/js                                                | 10.0.1  |
+| typescript-eslint                                         | 8.71.2  |
+| prettier                                                  | 3.9.10  |
+| knip                                                      | 6.42.0  |
+| vitest, @vitest/coverage-v8                               | 5.0.5   |
+| @playwright/test                                          | 1.64.1  |
+| @axe-core/playwright                                      | 4.14.0  |
+| @stryker-mutator/core (command runner; see ADR 0008, C12) | 10.0.0  |
+| happy-dom                                                 | 21.0.3  |
+| @testing-library/preact                                   | 3.2.4   |
+| @commitlint/cli, @commitlint/config-conventional          | 21.2.4  |
+| @types/node                                               | 26.6.5  |
 
 #### Runtime dependencies
 
