@@ -185,3 +185,8 @@ jobs:
             apps/desktop/release/*.zip
             apps/desktop/release/*.yml
           retention-days: 7
+
+  smoke:
+    name: Smoke
+    needs: package
+    uses: ./.github/workflows/smoke.yml
