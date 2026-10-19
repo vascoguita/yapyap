@@ -147,3 +147,21 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# YapYap
+out/
+dist-electron/
+release/
+*.tsbuildinfo
+playwright-report/
+test-results/
+reports/
+.stryker-tmp/
+docs/.vitepress/cache/
+docs/.vitepress/dist/
+docs/api/
+*.yapyap-plugin
+*.pem
+!**/test/**/fixtures/**/*.pem
+.flatpak-builder/
+flatpak-build/
