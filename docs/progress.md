@@ -1,8 +1,8 @@
 # Progress
 
 - **Current milestone:** M1 · Bootstrap
-- **Last merged PR:** #123 (minimal hardened app with Electron E2E harness)
-- **Next issue:** #12 (release-please), #10 (security scanning), #8 (mutation testing)
+- **Last merged PR:** #124 (automated dependency and pinned-version updates)
+- **Next issue:** #10 (security scanning), #8 (mutation testing), #13 (docs site)
 - **Open blockers:** #22 (`AUTOMATION_TOKEN`), #23, #24, #25, #26 need maintainer-provided secrets or settings (pipelines skip those steps gracefully)
 
 ## Milestones

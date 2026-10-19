@@ -123,3 +123,14 @@ To rotate the key without breaking installed plugins:
 
 Use the issue forms for bugs and features. Report vulnerabilities privately as
 described in [SECURITY.md](SECURITY.md).
+
+## Releases
+
+[release-please](https://github.com/googleapis/release-please) keeps a release
+PR open on `master` and updates it from Conventional Commits. Merging that PR
+tags `vX.Y.Z`, updates `CHANGELOG.md` and creates the GitHub Release, which
+starts the release build. Never tag by hand.
+
+Before 1.0, `feat` commits bump the patch version. To ship a milestone
+release such as v0.1.0, add a commit whose body has a `Release-As: 0.1.0`
+footer.
