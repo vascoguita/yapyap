@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { secureWebPreferences } from './web-preferences.ts';
+import { rendererPreferences, secureWebPreferences } from './web-preferences.ts';
 
 const constructed = vi.hoisted(() => [] as unknown[]);
 
@@ -13,28 +13,7 @@ vi.mock('electron', () => ({
   },
 }));
 
-const { createSecureWindow, rendererPreferences } = await import('./windows.ts');
-
-describe('rendererPreferences', () => {
-  it('is the hardened baseline when nothing is added', () => {
-    expect(rendererPreferences()).toStrictEqual(secureWebPreferences());
-  });
-
-  it('adds only the preload, partition and spellcheck it is given', () => {
-    expect(
-      rendererPreferences({ preload: '/app/preload.js', partition: 'persist:a', spellcheck: true }),
-    ).toStrictEqual({
-      ...secureWebPreferences(),
-      preload: '/app/preload.js',
-      partition: 'persist:a',
-      spellcheck: true,
-    });
-    expect(rendererPreferences({ partition: 'persist:b' })).toStrictEqual({
-      ...secureWebPreferences(),
-      partition: 'persist:b',
-    });
-  });
-});
+const { createSecureWindow } = await import('./windows.ts');
 
 describe('createSecureWindow', () => {
   beforeEach(() => {

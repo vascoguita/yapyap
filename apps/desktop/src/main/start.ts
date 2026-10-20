@@ -1,5 +1,5 @@
 import { APP_ID, PRODUCT_NAME } from './identity.ts';
-import { installWebContentsGuards, type GuardedContents } from './web-contents-guards.ts';
+import { secureAllWebContents, type GuardedContents } from './security.ts';
 import type { WindowOptions } from './windows.ts';
 import { resolveWhatsAppOrigin } from './whatsapp-origin.ts';
 
@@ -22,6 +22,7 @@ export interface AppPort {
 }
 
 export interface WindowPort {
+  readonly webContents: object;
   once(event: 'ready-to-show', listener: () => void): unknown;
   show(): void;
   loadURL(url: string): Promise<unknown>;
@@ -31,13 +32,16 @@ export interface StartDependencies {
   readonly app: AppPort;
   readonly createWindow: (options: WindowOptions) => WindowPort;
   readonly env: Readonly<Record<string, string | undefined>>;
+  readonly openExternal: (url: string) => Promise<unknown>;
   readonly warn: (message: string) => void;
 }
 
-export async function startApp({ app, createWindow, env, warn }: StartDependencies): Promise<void> {
+export async function startApp(deps: StartDependencies): Promise<void> {
+  const { app, createWindow, env, warn } = deps;
+  const homes = new WeakMap<object, string>();
   // Must run before the app is ready; it sandboxes renderers Electron creates itself.
   app.enableSandbox();
-  installWebContentsGuards(app);
+  secureAllWebContents(app, { homes, openExternal: deps.openExternal, warn });
   // Windows groups notifications and taskbar entries by this ID.
   app.setAppUserModelId(APP_ID);
   app.on('window-all-closed', () => {
@@ -63,6 +67,7 @@ export async function startApp({ app, createWindow, env, warn }: StartDependenci
     shown = true;
     window.show();
   };
+  homes.set(window.webContents, origin);
   window.once('ready-to-show', showOnce);
   setTimeout(showOnce, SHOW_FALLBACK_MS);
   await window.loadURL(origin);

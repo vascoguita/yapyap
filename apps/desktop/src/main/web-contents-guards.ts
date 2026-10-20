@@ -2,33 +2,31 @@ export interface PreventableEvent {
   preventDefault(): void;
 }
 
-export interface GuardedContents {
+export interface WebviewContents {
   on(event: 'will-attach-webview', listener: (event: PreventableEvent) => void): unknown;
 }
 
-export interface GuardedApp {
+export interface GuardedApp<Contents> {
   on(
     event: 'web-contents-created',
-    listener: (event: unknown, contents: GuardedContents) => void,
+    listener: (event: unknown, contents: Contents) => void,
   ): unknown;
 }
 
-export type WebContentsGuard = (contents: GuardedContents) => void;
-
 /** `webviewTag` is off everywhere, so an attaching `<webview>` is always an attack. */
-export const preventWebviews: WebContentsGuard = (contents) => {
+export function preventWebviews(contents: WebviewContents): void {
   contents.on('will-attach-webview', (event) => {
     event.preventDefault();
   });
-};
+}
 
 /**
  * Applies every guard to every web contents, including ones Electron or
- * Chromium create on their own, such as DevTools and service-worker hosts.
+ * Chromium create on their own, such as popups and DevTools.
  */
-export function installWebContentsGuards(
-  app: GuardedApp,
-  guards: readonly WebContentsGuard[] = [preventWebviews],
+export function installWebContentsGuards<Contents>(
+  app: GuardedApp<Contents>,
+  guards: readonly ((contents: Contents) => void)[],
 ): void {
   app.on('web-contents-created', (_event, contents) => {
     for (const guard of guards) guard(contents);

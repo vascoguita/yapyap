@@ -4,7 +4,26 @@ import { SHOW_FALLBACK_MS, startApp, type AppPort, type WindowPort } from './sta
 import { WHATSAPP_ORIGIN } from './whatsapp-origin.ts';
 import type { WindowOptions } from './windows.ts';
 
+type Listener = (...args: never[]) => void;
+
+/** A web contents whose listeners the test can fire by event name. */
+function fakeContents() {
+  const handlers = new Map<string, Listener[]>();
+  const contents = {
+    on: vi.fn((event: string, listener: Listener) => {
+      handlers.set(event, [...(handlers.get(event) ?? []), listener]);
+    }),
+    setWindowOpenHandler: vi.fn(),
+    loadURL: vi.fn(() => Promise.resolve()),
+  };
+  const fire = (event: string, ...args: unknown[]): void => {
+    for (const listener of handlers.get(event) ?? []) listener(...(args as never[]));
+  };
+  return { contents, fire };
+}
+
 function fakes(env: Record<string, string | undefined> = {}) {
+  const web = fakeContents();
   const listeners = new Map<string, (...args: never[]) => void>();
   const app = {
     enableSandbox: vi.fn(),
@@ -16,13 +35,15 @@ function fakes(env: Record<string, string | undefined> = {}) {
     quit: vi.fn(),
   } satisfies AppPort;
   const window = {
+    webContents: web.contents,
     once: vi.fn((event: string, listener: () => void) => listeners.set(event, listener)),
     show: vi.fn(),
     loadURL: vi.fn(() => Promise.resolve()),
   } satisfies WindowPort;
   const createWindow = vi.fn<(options: WindowOptions) => WindowPort>(() => window);
   const warn = vi.fn();
-  return { app, window, createWindow, warn, env, listeners };
+  const openExternal = vi.fn(() => Promise.resolve());
+  return { app, window, web, createWindow, warn, openExternal, env, listeners };
 }
 
 describe('startApp', () => {
@@ -55,15 +76,25 @@ describe('startApp', () => {
       return Promise.resolve();
     });
     await startApp(f);
-    const preventDefault = vi.fn();
-    const contents = {
-      on: vi.fn((_event: string, listener: (event: { preventDefault(): void }) => void) => {
-        listener({ preventDefault });
-      }),
-    };
-    f.listeners.get('web-contents-created')?.(...([{}, contents] as never[]));
-    expect(contents.on).toHaveBeenCalledWith('will-attach-webview', expect.any(Function));
-    expect(preventDefault).toHaveBeenCalledOnce();
+    const other = fakeContents();
+    f.listeners.get('web-contents-created')?.(...([{}, other.contents] as never[]));
+    const attach = { preventDefault: vi.fn() };
+    other.fire('will-attach-webview', attach);
+    expect(attach.preventDefault).toHaveBeenCalledOnce();
+    expect(other.contents.setWindowOpenHandler).toHaveBeenCalledOnce();
+  });
+
+  it('keeps the window on its origin and opens other links in the browser', async () => {
+    const f = fakes();
+    await startApp(f);
+    f.listeners.get('web-contents-created')?.(...([{}, f.web.contents] as never[]));
+    const inside = { url: `${WHATSAPP_ORIGIN}/x`, isMainFrame: true, preventDefault: vi.fn() };
+    const outside = { url: 'https://example.com/', isMainFrame: true, preventDefault: vi.fn() };
+    f.web.fire('will-navigate', inside);
+    f.web.fire('will-navigate', outside);
+    expect(inside.preventDefault).not.toHaveBeenCalled();
+    expect(outside.preventDefault).toHaveBeenCalledOnce();
+    expect(f.openExternal).toHaveBeenCalledExactlyOnceWith('https://example.com/');
   });
 
   it('shows the window after a fallback delay when ready-to-show never fires, exactly once', async () => {

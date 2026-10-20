@@ -3,7 +3,7 @@ import {
   installWebContentsGuards,
   preventWebviews,
   type GuardedApp,
-  type GuardedContents,
+  type WebviewContents,
   type PreventableEvent,
 } from './web-contents-guards.ts';
 
@@ -13,20 +13,20 @@ function fakeContents() {
     on: vi.fn((_event: 'will-attach-webview', listener: (event: PreventableEvent) => void) => {
       listeners.push(listener);
     }),
-  } satisfies GuardedContents;
+  } satisfies WebviewContents;
   return { contents, listeners };
 }
 
 function fakeApp() {
-  let created: (event: unknown, contents: GuardedContents) => void = () => undefined;
+  let created: (event: unknown, contents: WebviewContents) => void = () => undefined;
   const app = {
     on: vi.fn((_event: 'web-contents-created', listener: typeof created) => {
       created = listener;
     }),
-  } satisfies GuardedApp;
+  } satisfies GuardedApp<WebviewContents>;
   return {
     app,
-    create: (contents: GuardedContents) => {
+    create: (contents: WebviewContents) => {
       created({}, contents);
     },
   };
@@ -53,13 +53,5 @@ describe('installWebContentsGuards', () => {
     create(first);
     create(second);
     for (const guard of guards) expect(guard.mock.calls).toEqual([[first], [second]]);
-  });
-
-  it('prevents webviews by default', () => {
-    const { app, create } = fakeApp();
-    installWebContentsGuards(app);
-    const { contents } = fakeContents();
-    create(contents);
-    expect(contents.on).toHaveBeenCalledWith('will-attach-webview', expect.any(Function));
   });
 });

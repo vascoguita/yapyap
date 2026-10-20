@@ -2,7 +2,7 @@
 
 - **Current milestone:** M2 · Single-account shell
 - **Last merged PR:** #143 (AUR package)
-- **Next issue:** #28 (navigation and external links), #29 (permissions)
+- **Next issue:** #29 (permissions), #30 (app chrome renderer)
 - **Open blockers:** #22 (`AUTOMATION_TOKEN`), #23, #24, #25, #26, #138 need maintainer-provided secrets or settings (pipelines skip those steps gracefully)
 
 ## Milestones

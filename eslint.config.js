@@ -88,6 +88,12 @@ export default defineConfig(
     rules: { 'max-lines-per-function': 'off' },
   },
   {
+    // The fake WhatsApp page's scripts run in a browser and are outside every tsconfig.
+    files: ['apps/desktop/test/fake-whatsapp/*.js'],
+    extends: [tseslint.configs.disableTypeChecked],
+    languageOptions: { globals: { document: 'readonly', window: 'readonly' } },
+  },
+  {
     // Playwright fixtures without dependencies must destructure an empty object.
     files: ['**/e2e/**/*.ts'],
     rules: { 'no-empty-pattern': 'off' },
