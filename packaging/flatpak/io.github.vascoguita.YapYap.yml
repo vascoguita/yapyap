@@ -1,0 +1,48 @@
+app-id: io.github.vascoguita.YapYap
+runtime: org.freedesktop.Platform
+runtime-version: '26.08'
+sdk: org.freedesktop.Sdk
+base: org.electronjs.Electron2.BaseApp
+base-version: '26.08'
+command: yapyap
+separate-locales: false
+finish-args:
+  - --share=ipc
+  - --share=network
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --socket=pulseaudio
+  - --device=dri
+  # Native notifications and the tray (StatusNotifierItem) use these names.
+  - --talk-name=org.freedesktop.Notifications
+  - --talk-name=org.kde.StatusNotifierWatcher
+  # Downloads can be saved automatically; everything else goes through portals.
+  - --filesystem=xdg-download
+modules:
+  - name: yapyap
+    buildsystem: simple
+    sources:
+      - type: dir
+        path: ../../apps/desktop/release/linux-unpacked
+        dest: app
+      - type: file
+        path: ../linux/io.github.vascoguita.YapYap.desktop
+      - type: file
+        path: ../linux/io.github.vascoguita.YapYap.metainfo.xml
+      - type: dir
+        path: ../../apps/desktop/build/icons
+        dest: icons
+      - type: file
+        path: ../../apps/desktop/build/icon.svg
+      - type: script
+        dest-filename: yapyap.sh
+        commands:
+          # zypak lets Chromium's sandbox work inside the Flatpak sandbox.
+          - exec zypak-wrapper /app/main/yapyap "$@"
+    build-commands:
+      - cp -a app /app/main
+      - install -Dm755 yapyap.sh /app/bin/yapyap
+      - install -Dm644 io.github.vascoguita.YapYap.desktop /app/share/applications/io.github.vascoguita.YapYap.desktop
+      - install -Dm644 io.github.vascoguita.YapYap.metainfo.xml /app/share/metainfo/io.github.vascoguita.YapYap.metainfo.xml
+      - install -Dm644 icon.svg /app/share/icons/hicolor/scalable/apps/io.github.vascoguita.YapYap.svg
+      - for size in 16 24 32 48 64 128 256 512; do install -Dm644 icons/${size}x${size}.png /app/share/icons/hicolor/${size}x${size}/apps/io.github.vascoguita.YapYap.png; done

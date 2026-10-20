@@ -124,6 +124,18 @@
           },
           {
             "context": "Smoke / Smoke (dmg-universal)"
+          },
+          {
+            "context": "Flatpak (x86_64)"
+          },
+          {
+            "context": "Flatpak (aarch64)"
+          },
+          {
+            "context": "Smoke / Smoke (flatpak-x86_64)"
+          },
+          {
+            "context": "Smoke / Smoke (flatpak-aarch64)"
           }
         ]
       }
