@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
-    "typecheck": "tsc -p tsconfig.json && tsc -p src/renderer/tsconfig.json && tsc -p e2e/tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json && tsc -p src/renderer/tsconfig.json && tsc -p src/adapter/tsconfig.json && tsc -p e2e/tsconfig.json",
     "test:e2e": "electron-vite build && playwright test --project e2e",
     "builder": "electron-builder",
     "test:smoke": "playwright test --project smoke"

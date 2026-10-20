@@ -11,6 +11,7 @@ export const MUTATION_SCOPE: readonly string[] = [
   'apps/desktop/src/main/navigation/**/*.ts',
   'apps/desktop/src/main/permissions/**/*.ts',
   'apps/desktop/src/main/plugins/**/*.ts',
+  'apps/desktop/src/main/recovery/**/*.ts',
   'apps/desktop/src/main/settings/migrations/**/*.ts',
   'apps/desktop/src/main/security.ts',
   'apps/desktop/src/main/web-contents-guards.ts',

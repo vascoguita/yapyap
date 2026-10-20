@@ -150,6 +150,12 @@ Update this table in the PR that adds a command.
   `src/shared/chrome-api.ts`, the preload bridge, and a handler registered
   through `registerChromeHandlers`, which checks the sender and payload. Node's
   URL parser treats `app:` as opaque, so compare origins with `isSameOrigin`.
+- Code that inspects WhatsApp's page lives in `src/adapter/` and runs in the
+  adapter's isolated world (`ADAPTER_WORLD_ID`). Probes return plain flags,
+  never page text, which can contain chats.
+- Never let a rejected `loadURL` end startup. Load failures are reported by
+  the recovery monitor (`src/main/recovery/`), which shows the recovery
+  screen.
 - Create windows only with `createSecureWindow` in
   `apps/desktop/src/main/windows.ts`. Lint rejects `new BrowserWindow`,
   `BaseWindow`, `BrowserView` and `WebContentsView` anywhere else, and new

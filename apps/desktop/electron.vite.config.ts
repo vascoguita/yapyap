@@ -16,7 +16,10 @@ export default defineConfig({
     root: resolve(import.meta.dirname, 'src/renderer'),
     build: {
       rollupOptions: {
-        input: { about: resolve(import.meta.dirname, 'src/renderer/about.html') },
+        input: {
+          about: resolve(import.meta.dirname, 'src/renderer/about.html'),
+          recovery: resolve(import.meta.dirname, 'src/renderer/recovery.html'),
+        },
       },
     },
   },

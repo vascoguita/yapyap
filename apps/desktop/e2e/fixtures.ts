@@ -8,7 +8,12 @@ import { join } from 'node:path';
 import { appEnvironment } from './app-environment.ts';
 import { startFakeWhatsApp, type FakeWhatsApp } from './fake-whatsapp-server.ts';
 
-const MAIN = join(import.meta.dirname, '..', 'out', 'main', 'index.js');
+export const MAIN = join(import.meta.dirname, '..', 'out', 'main', 'index.js');
+
+interface Options {
+  /** The fake WhatsApp page served at `/`. */
+  fakePage: string;
+}
 
 interface Fixtures {
   fakeWhatsApp: FakeWhatsApp;
@@ -16,9 +21,10 @@ interface Fixtures {
   window: Page;
 }
 
-export const test = base.extend<Fixtures>({
-  fakeWhatsApp: async ({}, use) => {
-    const server = await startFakeWhatsApp();
+export const test = base.extend<Fixtures & Options>({
+  fakePage: ['index.html', { option: true }],
+  fakeWhatsApp: async ({ fakePage }, use) => {
+    const server = await startFakeWhatsApp(fakePage);
     await use(server);
     await server.close();
   },

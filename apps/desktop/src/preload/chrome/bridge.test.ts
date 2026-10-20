@@ -4,18 +4,35 @@ import { createChromeBridge } from './bridge.ts';
 describe('createChromeBridge', () => {
   it('maps each operation to its own fixed channel', async () => {
     const info = { name: 'YapYap' };
-    const invoke = vi.fn((channel: string) =>
-      Promise.resolve(channel === 'about:info' ? info : 'ignored'),
-    );
+    const problem = { kind: 'blank', description: 'Blank.' };
+    const answers: Record<string, unknown> = { 'about:info': info, 'recovery:problem': problem };
+    const invoke = vi.fn((channel: string) => Promise.resolve(answers[channel] ?? 'ignored'));
     const api = createChromeBridge(invoke);
     expect(await api.about.info()).toBe(info);
     await api.about.copyTechnicalDetails();
-    expect(invoke.mock.calls).toEqual([['about:info'], ['about:copy-technical-details']]);
+    expect(await api.recovery.problem()).toBe(problem);
+    await api.recovery.retry();
+    await api.recovery.clearCache();
+    await api.recovery.copyDiagnostics();
+    expect(invoke.mock.calls).toEqual([
+      ['about:info'],
+      ['about:copy-technical-details'],
+      ['recovery:problem'],
+      ['recovery:retry'],
+      ['recovery:clear-cache'],
+      ['recovery:copy-diagnostics'],
+    ]);
   });
 
   it('exposes nothing but the listed operations', () => {
     const api = createChromeBridge(vi.fn());
-    expect(Object.keys(api)).toEqual(['about']);
+    expect(Object.keys(api)).toEqual(['about', 'recovery']);
     expect(Object.keys(api.about)).toEqual(['info', 'copyTechnicalDetails']);
+    expect(Object.keys(api.recovery)).toEqual([
+      'problem',
+      'retry',
+      'clearCache',
+      'copyDiagnostics',
+    ]);
   });
 });

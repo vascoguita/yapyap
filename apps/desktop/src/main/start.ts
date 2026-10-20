@@ -1,8 +1,10 @@
-import type { ChromeFeature } from './chrome/feature.ts';
+import type { ChromeFeature, WhatsAppContents } from './chrome/feature.ts';
 import { APP_ID, PRODUCT_NAME } from './identity.ts';
 import type { DisplayCapturePort, MediaType, SessionPort } from './permissions/session-guard.ts';
 import { guardSession, installSecurity, type GuardedContents } from './security.ts';
 import type { ViewInfo, ViewRegistry } from './views.ts';
+import type { Overlay } from './recovery/controller.ts';
+import type { RendererOptions } from './web-preferences.ts';
 import type { WindowOptions } from './windows.ts';
 import { resolveWhatsAppOrigin } from './whatsapp-origin.ts';
 
@@ -26,15 +28,16 @@ export interface AppPort {
 }
 
 export interface WindowPort {
-  readonly webContents: object;
+  readonly webContents: WhatsAppContents;
   once(event: 'ready-to-show', listener: () => void): unknown;
   show(): void;
   loadURL(url: string): Promise<unknown>;
 }
 
-export interface StartDependencies {
+export interface StartDependencies<Window extends WindowPort> {
   readonly app: AppPort;
-  readonly createWindow: (options: WindowOptions) => WindowPort;
+  readonly createWindow: (options: WindowOptions) => Window;
+  readonly createOverlay: (window: Window, renderer: RendererOptions) => Overlay;
   readonly defaultSession: () => SessionPort;
   readonly askMedia: (view: ViewInfo, mediaTypes: readonly MediaType[]) => Promise<boolean>;
   readonly capture: DisplayCapturePort;
@@ -44,7 +47,29 @@ export interface StartDependencies {
   readonly warn: (message: string) => void;
 }
 
-export async function startApp(deps: StartDependencies): Promise<void> {
+const MAIN_WINDOW: WindowOptions = {
+  title: PRODUCT_NAME,
+  width: 1200,
+  height: 800,
+  minWidth: 640,
+  minHeight: 480,
+  show: false,
+};
+
+function showWhenReady(window: WindowPort): void {
+  let shown = false;
+  const showOnce = (): void => {
+    if (shown) return;
+    shown = true;
+    window.show();
+  };
+  window.once('ready-to-show', showOnce);
+  setTimeout(showOnce, SHOW_FALLBACK_MS);
+}
+
+export async function startApp<Window extends WindowPort>(
+  deps: StartDependencies<Window>,
+): Promise<void> {
   const { app, createWindow, env, warn } = deps;
   const views: ViewRegistry = new WeakMap();
   const security = { ...deps, views };
@@ -64,23 +89,13 @@ export async function startApp(deps: StartDependencies): Promise<void> {
 
   await app.whenReady();
   guardSession(deps.defaultSession(), security);
-  deps.chrome.afterReady(views, warn);
-  const window = createWindow({
-    title: PRODUCT_NAME,
-    width: 1200,
-    height: 800,
-    minWidth: 640,
-    minHeight: 480,
-    show: false,
-  });
-  let shown = false;
-  const showOnce = (): void => {
-    if (shown) return;
-    shown = true;
-    window.show();
-  };
+  const chrome = deps.chrome.afterReady(views, warn);
+  const window = createWindow(MAIN_WINDOW);
   views.set(window.webContents, { zone: 'whatsapp', home: origin, label: 'WhatsApp' });
-  window.once('ready-to-show', showOnce);
-  setTimeout(showOnce, SHOW_FALLBACK_MS);
-  await window.loadURL(origin);
+  chrome.attachRecovery(window.webContents, origin, (renderer) =>
+    deps.createOverlay(window, renderer),
+  );
+  showWhenReady(window);
+  // A failed load must not end startup: the monitor shows the recovery screen.
+  await window.loadURL(origin).catch(() => undefined);
 }

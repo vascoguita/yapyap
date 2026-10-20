@@ -55,9 +55,9 @@ function setup() {
   } satisfies ChromeFeatureDependencies;
   const views = new WeakMap<object, ViewInfo>();
   const feature = createChromeFeature(deps);
-  const call = (channel: string) =>
+  const call = (channel: string, sender: object = window.webContents) =>
     listeners.get(channel)?.({
-      sender: window.webContents,
+      sender,
       senderFrame: { url: 'app://chrome/about.html' },
     });
   const clickAbout = (): void => {
@@ -114,5 +114,57 @@ describe('createChromeFeature', () => {
 
   it('keeps chrome storage in memory', () => {
     expect(CHROME_PARTITION).toBe('yapyap-chrome');
+  });
+
+  it('shows the recovery screen over a failing WhatsApp view and routes its actions to it', async () => {
+    const t = setup();
+    const runtime = t.feature.afterReady(t.views, vi.fn());
+    const handlers = new Map<string, (...args: never[]) => void>();
+    const contents = {
+      on: vi.fn((event: string, listener: (...args: never[]) => void) => {
+        handlers.set(event, listener);
+      }),
+      executeJavaScriptInIsolatedWorld: vi.fn(),
+      loadURL: vi.fn(() => Promise.resolve()),
+      session: {
+        clearCache: vi.fn(() => Promise.resolve()),
+        clearStorageData: vi.fn(() => Promise.resolve()),
+      },
+    };
+    const overlay = { webContents: { loadURL: vi.fn(() => Promise.resolve()) }, remove: vi.fn() };
+    const createOverlay = vi.fn(() => overlay);
+    runtime.attachRecovery(contents, 'https://web.whatsapp.com', createOverlay);
+    handlers.get('did-fail-load')?.(
+      ...([{}, -106, 'ERR_INTERNET_DISCONNECTED', 'https://web.whatsapp.com/', true] as never[]),
+    );
+    expect(createOverlay).toHaveBeenCalledExactlyOnceWith({
+      preload: '/app/preload/chrome.cjs',
+      partition: CHROME_PARTITION,
+    });
+    expect(t.call('recovery:problem', overlay.webContents)).toEqual({
+      kind: 'load-failed',
+      description: 'WhatsApp could not load (ERR_INTERNET_DISCONNECTED, -106).',
+    });
+    await t.call('recovery:copy-diagnostics', overlay.webContents);
+    expect(t.deps.writeClipboard).toHaveBeenLastCalledWith(
+      expect.stringMatching(/^YapYap 0\.1\.0 \(deb\)\n[\s\S]*Problem: WhatsApp could not load/),
+    );
+    await t.call('recovery:clear-cache', overlay.webContents);
+    expect(contents.session.clearCache).toHaveBeenCalledOnce();
+    handlers.get('did-fail-load')?.(
+      ...([{}, -106, 'ERR', 'https://web.whatsapp.com/', true] as never[]),
+    );
+    await t.call('recovery:retry', overlay.webContents);
+    expect(contents.loadURL).toHaveBeenCalledTimes(2);
+    expect(() => t.call('recovery:problem', overlay.webContents)).toThrow(
+      'No recovery screen belongs to this window.',
+    );
+  });
+
+  it('refuses recovery calls from chrome views that are not a recovery screen', () => {
+    const t = setup();
+    t.feature.afterReady(t.views, vi.fn());
+    t.clickAbout();
+    expect(() => t.call('recovery:retry')).toThrow('No recovery screen belongs to this window.');
   });
 });

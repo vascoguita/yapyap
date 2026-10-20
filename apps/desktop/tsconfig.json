@@ -4,5 +4,5 @@
     "types": ["node"]
   },
   "include": ["src/**/*.ts", "test/**/*.ts", "*.config.ts"],
-  "exclude": ["src/renderer/**"]
+  "exclude": ["src/renderer/**", "src/adapter/**/*.test.ts"]
 }

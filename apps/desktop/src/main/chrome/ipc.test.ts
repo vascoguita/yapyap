@@ -25,7 +25,7 @@ function setup() {
       },
     ),
   } satisfies IpcMainPort;
-  const handle = vi.fn((...args: unknown[]) => ({ echoed: args }));
+  const handle = vi.fn((call: { sender: object }, ...args: unknown[]) => ({ call, echoed: args }));
   const warn = vi.fn();
   registerChromeHandlers(ipc, views, [{ channel: 'test:op', accepts: NO_ARGUMENTS, handle }], warn);
   const call = (sender: object, frameUrl: string | null, ...args: unknown[]) =>
@@ -39,7 +39,10 @@ function setup() {
 describe('registerChromeHandlers', () => {
   it('runs the operation for a chrome frame on app://chrome', () => {
     const t = setup();
-    expect(t.call(t.chrome, 'app://chrome/about.html')).toEqual({ echoed: [] });
+    expect(t.call(t.chrome, 'app://chrome/about.html')).toEqual({
+      call: { sender: t.chrome },
+      echoed: [],
+    });
     expect(t.warn).not.toHaveBeenCalled();
   });
 

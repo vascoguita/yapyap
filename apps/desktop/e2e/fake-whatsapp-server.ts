@@ -15,15 +15,16 @@ export interface FakeWhatsApp {
   close(): Promise<void>;
 }
 
-function resolvePath(url: string | undefined): string | undefined {
+function resolvePath(url: string | undefined, home: string): string | undefined {
   const pathname = new URL(url ?? '/', 'http://127.0.0.1').pathname;
-  const file = normalize(join(ROOT, pathname === '/' ? 'index.html' : pathname));
+  const file = normalize(join(ROOT, pathname === '/' ? home : pathname));
   return file.startsWith(ROOT + sep) ? file : undefined;
 }
 
-export async function startFakeWhatsApp(): Promise<FakeWhatsApp> {
+/** `home` is the page served at `/`, so tests can stage WhatsApp's failure modes. */
+export async function startFakeWhatsApp(home = 'index.html'): Promise<FakeWhatsApp> {
   const server: Server = createServer((request, response) => {
-    const file = resolvePath(request.url);
+    const file = resolvePath(request.url, home);
     if (file === undefined) {
       response.writeHead(404).end();
       return;
