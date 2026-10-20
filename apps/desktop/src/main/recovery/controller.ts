@@ -36,6 +36,14 @@ export interface Recovery {
   readonly retry: () => Promise<void>;
   readonly clearCacheAndRetry: () => Promise<void>;
   readonly copyDiagnostics: () => Promise<unknown>;
+  /** Retries on its own only when WhatsApp could not be reached. */
+  readonly reconnect: () => void;
+}
+
+/** Keeps cookies, IndexedDB and local storage, so the user stays logged in. */
+async function clearSiteCache(contents: RecoverableContents): Promise<void> {
+  await contents.session.clearCache();
+  await contents.session.clearStorageData({ storages: ['serviceworkers', 'cachestorage'] });
 }
 
 /** Shows the recovery screen over a WhatsApp window and carries out its actions. */
@@ -65,13 +73,12 @@ export function createRecovery(deps: RecoveryDependencies): Recovery {
         ? null
         : { kind: current.failure.kind, description: describeFailure(current.failure) },
     retry,
-    // Keeps cookies, IndexedDB and local storage, so the user stays logged in.
     clearCacheAndRetry: async () => {
-      await deps.contents.session.clearCache();
-      await deps.contents.session.clearStorageData({
-        storages: ['serviceworkers', 'cachestorage'],
-      });
+      await clearSiteCache(deps.contents);
       await retry();
+    },
+    reconnect: () => {
+      if (current?.failure.kind === 'load-failed') void retry();
     },
     copyDiagnostics: () => {
       const problem = current === undefined ? 'none' : describeFailure(current.failure);

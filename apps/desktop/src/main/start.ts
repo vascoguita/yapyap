@@ -1,4 +1,6 @@
 import type { ChromeFeature, WhatsAppContents } from './chrome/feature.ts';
+import { watchConnectivity } from './connectivity/connectivity.ts';
+import { offlineTitle, type TitledWindow } from './connectivity/offline-title.ts';
 import { APP_ID, PRODUCT_NAME } from './identity.ts';
 import type { DisplayCapturePort, MediaType } from './permissions/session-guard.ts';
 import { chromeUserAgent } from './identity/user-agent.ts';
@@ -34,7 +36,7 @@ export interface AppPort {
   quit(): void;
 }
 
-export interface WindowPort {
+export interface WindowPort extends TitledWindow {
   readonly webContents: WhatsAppContents;
   once(event: 'ready-to-show', listener: () => void): unknown;
   show(): void;
@@ -54,6 +56,8 @@ export interface StartDependencies<Window extends WindowPort> {
   readonly chrome: ChromeFeature;
   readonly env: Readonly<Record<string, string | undefined>>;
   readonly openExternal: (url: string) => Promise<unknown>;
+  readonly isOnline: () => boolean;
+  readonly onResume: (listener: () => void) => void;
   readonly warn: (message: string) => void;
 }
 
@@ -107,9 +111,17 @@ export async function startApp<Window extends WindowPort>(
   const chrome = deps.chrome.afterReady(views, warn);
   const window = createWindow(MAIN_WINDOW);
   views.set(window.webContents, { zone: 'whatsapp', home: origin, label: 'WhatsApp' });
-  chrome.attachRecovery(window.webContents, origin, (renderer) =>
+  const recovery = chrome.attachRecovery(window.webContents, origin, (renderer) =>
     deps.createOverlay(window, renderer),
   );
+  watchConnectivity({
+    isOnline: deps.isOnline,
+    onResume: deps.onResume,
+    every: setInterval,
+    schedule: setTimeout,
+    onChange: offlineTitle(window, PRODUCT_NAME),
+    reconnect: recovery.reconnect,
+  });
   showWhenReady(window);
   // A failed load must not end startup: the monitor shows the recovery screen.
   await window.loadURL(origin).catch(() => undefined);

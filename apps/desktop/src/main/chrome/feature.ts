@@ -54,7 +54,7 @@ interface ChromeRuntime {
     contents: WhatsAppContents,
     origin: string,
     createOverlay: (renderer: RendererOptions) => Overlay,
-  ) => void;
+  ) => Pick<Recovery, 'reconnect'>;
 }
 
 export interface ChromeFeature {
@@ -114,6 +114,7 @@ function recoveryAttacher(
     });
     recoveries.push(recovery);
     monitorPage(contents, { onFailure: recovery.show, schedule: setTimeout, warn });
+    return recovery;
   };
 }
 
