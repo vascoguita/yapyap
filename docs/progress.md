@@ -1,8 +1,8 @@
 # Progress
 
 - **Current milestone:** M1 · Bootstrap
-- **Last merged PR:** #141 (Flatpak bundle)
-- **Next issue:** #18 (AUR), then M2
+- **Last merged PR:** #142 (release pipeline)
+- **Next issue:** M2 · Single-account shell
 - **Open blockers:** #22 (`AUTOMATION_TOKEN`), #23, #24, #25, #26, #137, #138 need maintainer-provided secrets or settings (pipelines skip those steps gracefully)
 
 ## Milestones

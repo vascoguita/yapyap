@@ -51,6 +51,8 @@ jobs:
     name: Publish release assets
     needs: [release-please, smoke]
     runs-on: ubuntu-latest
+    outputs:
+      aur: ${{ steps.aur.outputs.generated }}
     permissions:
       contents: write
       id-token: write
@@ -67,6 +69,26 @@ jobs:
           pattern: packages-*
           merge-multiple: true
           path: ${{ runner.temp }}/dist
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Generate the AUR package files
+        id: aur
+        env:
+          DIST: ${{ runner.temp }}/dist
+        run: |
+          version="${TAG#v}"
+          # makepkg versions cannot contain '-', so pre-releases skip the AUR.
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::notice::$version is a pre-release, so it is not packaged for the AUR."
+            exit 0
+          fi
+          mkdir "$RUNNER_TEMP/aur"
+          node scripts/src/bin/aur.ts "$version" "$DIST"/*-amd64.deb "$DIST"/*-arm64.deb "$RUNNER_TEMP/aur"
+          # The checksum and upload globs skip dotfiles, so both files get a prefix.
+          cp "$RUNNER_TEMP/aur/PKGBUILD" "$DIST/yapyap-bin.PKGBUILD"
+          cp "$RUNNER_TEMP/aur/.SRCINFO" "$DIST/yapyap-bin.SRCINFO"
+          echo "generated=true" >> "$GITHUB_OUTPUT"
       - name: Generate the CycloneDX SBOM
         uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
         with:
@@ -87,3 +109,36 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           DIST: ${{ runner.temp }}/dist
         run: gh release upload "$TAG" "$DIST"/* --clobber --repo "$GITHUB_REPOSITORY"
+
+  aur:
+    name: Publish to the AUR
+    needs: [release-please, publish]
+    if: needs.publish.outputs.aur == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Push yapyap-bin
+        env:
+          AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.release-please.outputs.tag_name }}
+        run: |
+          if [ -z "$AUR_SSH_KEY" ]; then
+            echo "::notice::AUR_SSH_KEY is missing: the PKGBUILD is attached to the release but not published to the AUR (see CONTRIBUTING)."
+            exit 0
+          fi
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$AUR_SSH_KEY" > "$HOME/.ssh/aur"
+          chmod 600 "$HOME/.ssh/aur"
+          # Trust only the host key whose fingerprint the AUR publishes.
+          ssh-keyscan -t ed25519 aur.archlinux.org > "$HOME/.ssh/known_hosts"
+          ssh-keygen -lf "$HOME/.ssh/known_hosts" | grep -q 'SHA256:RFzBCUItH9LZS0cKB5UE6ceAYhBD5C8GeOBip8Z11+4'
+          export GIT_SSH_COMMAND="ssh -i $HOME/.ssh/aur -o IdentitiesOnly=yes"
+          git clone ssh://aur@aur.archlinux.org/yapyap-bin.git "$RUNNER_TEMP/aur"
+          cd "$RUNNER_TEMP/aur"
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" -p yapyap-bin.PKGBUILD -p yapyap-bin.SRCINFO
+          mv yapyap-bin.PKGBUILD PKGBUILD
+          mv yapyap-bin.SRCINFO .SRCINFO
+          git add PKGBUILD .SRCINFO
+          git -c user.name='Vasco Guita' -c user.email='vascoguita@users.noreply.github.com' \
+            commit -m "Update to ${TAG#v}"
+          git push origin HEAD:master

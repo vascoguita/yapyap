@@ -143,6 +143,10 @@ The release build (`.github/workflows/release.yml`) reuses the same packaging
 3. The installers, the Flatpak bundles, the auto-update metadata
    (`latest*.yml` and `.blockmap` files), a CycloneDX SBOM and `SHA256SUMS`
    are attached to the release, with signed build provenance attestations.
+4. A PKGBUILD and `.SRCINFO` for `yapyap-bin` are generated from the
+   release's Debian packages, attached to the release, and pushed to the AUR
+   when `AUR_SSH_KEY` exists. Pull requests build and install the same
+   PKGBUILD in an Arch Linux container.
 
 The release page exists for about 40 minutes before its assets arrive, so the
 updater must treat a release without update metadata as "no update yet".

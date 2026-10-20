@@ -136,6 +136,9 @@
           },
           {
             "context": "Smoke / Smoke (flatpak-aarch64)"
+          },
+          {
+            "context": "Smoke / Smoke (aur-x86_64)"
           }
         ]
       }

@@ -34,6 +34,7 @@ Use pnpm (version pinned in `package.json`) on Node.js 24 LTS.
 | Package installers for this OS  | `pnpm package` (output in `apps/desktop/release/`)                                       |
 | Smoke-test an installed package | `YAPYAP_PACKAGED_EXECUTABLE=<path> pnpm test:smoke`                                      |
 | Verify hardened fuses           | `node scripts/src/bin/verify-fuses.ts <executable or .app>`                              |
+| AUR PKGBUILD and .SRCINFO       | `node scripts/src/bin/aur.ts <version> <amd64 .deb> <arm64 .deb> <output dir>`           |
 | Flatpak bundle (Linux)          | See the `flatpak` job in `.github/workflows/package.yml`; it runs in Flathub's container |
 
 Update this table in the PR that adds a command.
