@@ -3,6 +3,7 @@ import {
   clipboard,
   ipcMain,
   Menu,
+  nativeTheme,
   net,
   Notification,
   powerMonitor,
@@ -91,6 +92,7 @@ startApp({
     powerMonitor.on('resume', listener);
   },
   settings,
+  nativeTheme,
   notify,
   warn,
 }).catch((error: unknown) => {

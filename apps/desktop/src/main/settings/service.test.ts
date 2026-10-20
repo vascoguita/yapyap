@@ -11,6 +11,8 @@ describe('openSettings', () => {
   it('serves the loaded settings and saves changes', () => {
     const dir = fresh();
     const settings = openSettings(dir, 1, vi.fn());
+    const listener = vi.fn();
+    settings.onChange(listener);
     expect(settings.current()).toEqual(defaultSettings());
     expect(settings.notice).toBeUndefined();
     expect(settings.readOnly).toBe(false);
@@ -19,6 +21,7 @@ describe('openSettings', () => {
       general: { ...current.general, autostart: true },
     }));
     expect(settings.current().general.autostart).toBe(true);
+    expect(listener).toHaveBeenCalledExactlyOnceWith(settings.current());
     const saved = JSON.parse(readFileSync(join(dir, 'settings.json'), 'utf8')) as {
       general: object;
     };
@@ -31,12 +34,15 @@ describe('openSettings', () => {
     const warn = vi.fn();
     const settings = openSettings(dir, 1, warn);
     expect(settings.readOnly).toBe(true);
+    const listener = vi.fn();
+    settings.onChange(listener);
     settings.update((current) => ({
       ...current,
       general: { ...current.general, autostart: true },
     }));
     expect(readFileSync(join(dir, 'settings.json'), 'utf8')).toBe('{"schemaVersion":9}');
     expect(settings.current().general.autostart).toBe(false);
+    expect(listener).not.toHaveBeenCalled();
     expect(warn).toHaveBeenCalledExactlyOnceWith(
       'Not saving settings: they belong to a newer version of YapYap.',
     );

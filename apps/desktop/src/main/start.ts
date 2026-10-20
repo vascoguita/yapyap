@@ -3,6 +3,7 @@ import { watchConnectivity } from './connectivity/connectivity.ts';
 import { offlineTitle, type TitledWindow } from './connectivity/offline-title.ts';
 import { APP_ID, PRODUCT_NAME } from './identity.ts';
 import type { DisplayCapturePort, MediaType } from './permissions/session-guard.ts';
+import { followThemeSetting, type ThemePort } from './appearance/theme.ts';
 import { chromeUserAgent } from './identity/user-agent.ts';
 import {
   describeGraphics,
@@ -76,6 +77,7 @@ export interface StartDependencies<Window extends WindowPort> {
   readonly onResume: (listener: () => void) => void;
   readonly gpuCrashLog: { readonly read: () => string; readonly write: (text: string) => void };
   readonly settings: SettingsService;
+  readonly nativeTheme: ThemePort;
   readonly notify: (message: string) => void;
   readonly warn: (message: string) => void;
 }
@@ -156,6 +158,7 @@ export async function startApp<Window extends WindowPort>(
 
   await app.whenReady();
   secureSession(deps.defaultSession(), security);
+  followThemeSetting(deps.nativeTheme, deps.settings);
   const chrome = deps.chrome.afterReady(views, warn, describeGraphics(graphics));
   if (deps.settings.notice !== undefined) deps.notify(deps.settings.notice);
   const graphicsNotice =

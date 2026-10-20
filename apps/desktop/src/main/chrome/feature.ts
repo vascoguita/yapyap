@@ -37,7 +37,7 @@ const ABOUT_PAGE: ChromePage = {
   window: {
     title: 'About YapYap',
     width: 480,
-    height: 560,
+    height: 640,
     resizable: false,
     minimizable: false,
     maximizable: false,

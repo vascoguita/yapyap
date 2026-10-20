@@ -102,7 +102,9 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
       notice: undefined as string | undefined,
       readOnly: false,
       update: vi.fn(),
+      onChange: vi.fn(),
     },
+    nativeTheme: { themeSource: 'light' as 'system' | 'light' | 'dark' },
     notify: vi.fn(),
     onResume: vi.fn(),
     env,
@@ -325,6 +327,13 @@ describe('startApp', () => {
     expect(f.notify).toHaveBeenCalledExactlyOnceWith(
       'Some settings were invalid and were reset to their defaults.',
     );
+  });
+
+  it('follows the theme setting once ready', async () => {
+    const f = fakes();
+    await startApp(f);
+    expect(f.nativeTheme.themeSource).toBe('system');
+    expect(f.settings.onChange).toHaveBeenCalledOnce();
   });
 
   it('starts without hardware acceleration in safe mode and says so', async () => {
