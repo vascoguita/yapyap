@@ -108,7 +108,8 @@ jobs:
       # The setuid Chromium sandbox needs namespaces that Docker's defaults block.
       options: --privileged
     steps:
-      - run: dnf install -y git tar xz procps-ng xorg-x11-server-Xvfb
+      # Fedora's mirrors, especially the openh264 one, sometimes drop downloads.
+      - run: dnf install -y --setopt=retries=10 git tar xz procps-ng xorg-x11-server-Xvfb
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -122,7 +123,7 @@ jobs:
           name: ${{ matrix.artifact }}
           path: packages
       - name: Install RPM
-        run: dnf install -y ./packages/*.rpm
+        run: dnf install -y --setopt=retries=10 ./packages/*.rpm
       - name: Match Fedora's user-namespace policy
         # Fedora allows unprivileged user namespaces, which Chromium's sandbox
         # uses; the Ubuntu runner host restricts them even inside containers.
