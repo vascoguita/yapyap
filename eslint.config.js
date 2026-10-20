@@ -65,6 +65,7 @@ export default defineConfig(
     files: [
       'apps/desktop/src/main/index.ts',
       'apps/desktop/src/preload/*/index.ts',
+      'apps/desktop/src/renderer/*/main.tsx',
       'scripts/src/bin/*.ts',
     ],
     rules: { complexity: ['error', 1] },
@@ -84,7 +85,7 @@ export default defineConfig(
     },
   },
   {
-    files: ['**/*.test.ts', '**/*.spec.ts', '**/test/**/*.ts', '**/e2e/**/*.ts'],
+    files: ['**/*.test.ts', '**/*.test.tsx', '**/*.spec.ts', '**/test/**/*.ts', '**/e2e/**/*.ts'],
     rules: { 'max-lines-per-function': 'off' },
   },
   {

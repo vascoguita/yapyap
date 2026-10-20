@@ -9,21 +9,26 @@
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
-    "typecheck": "tsc -p tsconfig.json && tsc -p e2e/tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json && tsc -p src/renderer/tsconfig.json && tsc -p e2e/tsconfig.json",
     "test:e2e": "electron-vite build && playwright test --project e2e",
     "builder": "electron-builder",
     "test:smoke": "playwright test --project smoke"
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",
+    "@testing-library/preact": "3.2.4",
     "electron": "44.9.0",
     "electron-builder": "26.15.3",
     "electron-vite": "6.0.0",
     "fast-check": "4.10.2",
+    "happy-dom": "21.0.3",
     "vite": "8.3.4"
   },
   "productName": "YapYap",
   "desktopName": "io.github.vascoguita.YapYap.desktop",
   "main": "./out/main/index.js",
-  "homepage": "https://vascoguita.github.io/yapyap/"
+  "homepage": "https://vascoguita.github.io/yapyap/",
+  "dependencies": {
+    "preact": "11.0.1"
+  }
 }

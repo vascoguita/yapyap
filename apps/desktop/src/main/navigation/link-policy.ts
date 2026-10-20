@@ -10,10 +10,20 @@ const PHONE = /^\+?\d{1,20}$/;
 const PHONE_SEPARATORS = /[\s().-]/g;
 const EMAIL = /^[\w.+-]+@[\w-]+(?:\.[\w-]+)+$/;
 
+/**
+ * Schemes YapYap registers with Chromium as standard: Chromium gives them a
+ * real origin, while the WHATWG parser in Node treats them as opaque.
+ */
+const STANDARD_APP_SCHEMES = new Set(['app:']);
+
+function originOf(url: URL): string {
+  return STANDARD_APP_SCHEMES.has(url.protocol) ? `${url.protocol}//${url.host}` : url.origin;
+}
+
 /** True when `url` belongs to `home`. Opaque origins never match, even each other. */
 export function isSameOrigin(url: string, home: string | undefined): boolean {
   if (!URL.canParse(url)) return false;
-  const { origin } = new URL(url);
+  const origin = originOf(new URL(url));
   return origin !== 'null' && origin === home;
 }
 

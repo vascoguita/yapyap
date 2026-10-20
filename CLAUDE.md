@@ -145,6 +145,11 @@ Update this table in the PR that adds a command.
   `Package / Package (macos)`. Use that full name in the ruleset.
 - Flatpak lint exceptions live in `packaging/flatpak/lint-exceptions.json`,
   each with its reason and issue. Remove an entry as soon as its issue lands.
+- App chrome pages are served from `app://chrome/` on the in-memory
+  `yapyap-chrome` partition. Add an operation by extending `ChromeApi` in
+  `src/shared/chrome-api.ts`, the preload bridge, and a handler registered
+  through `registerChromeHandlers`, which checks the sender and payload. Node's
+  URL parser treats `app:` as opaque, so compare origins with `isSameOrigin`.
 - Create windows only with `createSecureWindow` in
   `apps/desktop/src/main/windows.ts`. Lint rejects `new BrowserWindow`,
   `BaseWindow`, `BrowserView` and `WebContentsView` anywhere else, and new

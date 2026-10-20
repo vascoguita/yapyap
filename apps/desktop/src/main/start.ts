@@ -1,3 +1,4 @@
+import type { ChromeFeature } from './chrome/feature.ts';
 import { APP_ID, PRODUCT_NAME } from './identity.ts';
 import type { DisplayCapturePort, MediaType, SessionPort } from './permissions/session-guard.ts';
 import { guardSession, installSecurity, type GuardedContents } from './security.ts';
@@ -37,6 +38,7 @@ export interface StartDependencies {
   readonly defaultSession: () => SessionPort;
   readonly askMedia: (view: ViewInfo, mediaTypes: readonly MediaType[]) => Promise<boolean>;
   readonly capture: DisplayCapturePort;
+  readonly chrome: ChromeFeature;
   readonly env: Readonly<Record<string, string | undefined>>;
   readonly openExternal: (url: string) => Promise<unknown>;
   readonly warn: (message: string) => void;
@@ -49,6 +51,7 @@ export async function startApp(deps: StartDependencies): Promise<void> {
   // Must run before the app is ready; it sandboxes renderers Electron creates itself.
   app.enableSandbox();
   installSecurity(app, security);
+  deps.chrome.beforeReady();
   // Windows groups notifications and taskbar entries by this ID.
   app.setAppUserModelId(APP_ID);
   app.on('window-all-closed', () => {
@@ -61,6 +64,7 @@ export async function startApp(deps: StartDependencies): Promise<void> {
 
   await app.whenReady();
   guardSession(deps.defaultSession(), security);
+  deps.chrome.afterReady(views, warn);
   const window = createWindow({
     title: PRODUCT_NAME,
     width: 1200,

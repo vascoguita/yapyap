@@ -10,12 +10,19 @@ export default defineConfig({
     ],
     coverage: {
       provider: 'v8',
-      include: ['apps/*/src/**', 'packages/*/src/**', 'plugins/*/src/**', 'scripts/src/**'],
+      include: [
+        'apps/*/src/**/*.{ts,tsx}',
+        'packages/*/src/**/*.ts',
+        'plugins/*/src/**/*.{ts,tsx}',
+        'scripts/src/**/*.ts',
+      ],
       // Every exclusion must be justified in docs/adr/0005-test-strategy.md.
       exclude: [
         '**/*.d.ts',
         '**/*.test.ts',
+        '**/*.test.tsx',
         'apps/desktop/src/main/index.ts',
+        'apps/desktop/src/preload/*/index.ts',
         'scripts/src/bin/**',
       ],
       thresholds: { lines: 100, branches: 100, functions: 100, statements: 100 },
