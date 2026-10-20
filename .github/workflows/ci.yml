@@ -83,7 +83,12 @@ jobs:
           key: electron-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
       - name: E2E (Linux, virtual display)
         if: runner.os == 'Linux'
-        run: xvfb-run -a pnpm test:e2e
+        # Ubuntu restricts unprivileged user namespaces, and a development
+        # Electron has no setuid sandbox helper, so Chromium's sandbox (which
+        # E2E tests keep on) would abort a directly spawned second instance.
+        run: |
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          xvfb-run -a pnpm test:e2e
       - name: E2E
         if: runner.os != 'Linux'
         run: pnpm test:e2e
