@@ -151,7 +151,7 @@ vite.config.ts.timestamp-*
 # YapYap
 out/
 dist-electron/
-release/
+apps/*/release/
 *.tsbuildinfo
 playwright-report/
 test-results/

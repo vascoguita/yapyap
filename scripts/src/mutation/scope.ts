@@ -13,6 +13,7 @@ export const MUTATION_SCOPE: readonly string[] = [
   'packages/plugin-sign/src/**/*.ts',
   'plugins/ai-assistant/src/providers/**/*.ts',
   'scripts/src/licenses/**/*.ts',
+  'scripts/src/release/**/*.ts',
 ];
 
 const NEVER_MUTATED = ['**/*.test.ts', '**/*.d.ts', '**/bin/**'];
