@@ -13,6 +13,7 @@ describe('openSettings', () => {
     const settings = openSettings(dir, 1, vi.fn());
     expect(settings.current()).toEqual(defaultSettings());
     expect(settings.notice).toBeUndefined();
+    expect(settings.readOnly).toBe(false);
     settings.update((current) => ({
       ...current,
       general: { ...current.general, autostart: true },
@@ -29,6 +30,7 @@ describe('openSettings', () => {
     writeFileSync(join(dir, 'settings.json'), '{"schemaVersion":9}');
     const warn = vi.fn();
     const settings = openSettings(dir, 1, warn);
+    expect(settings.readOnly).toBe(true);
     settings.update((current) => ({
       ...current,
       general: { ...current.general, autostart: true },

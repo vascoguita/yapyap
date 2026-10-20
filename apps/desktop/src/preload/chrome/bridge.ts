@@ -3,13 +3,16 @@ import {
   type AboutInfo,
   type ChromeApi,
   type RecoveryProblem,
+  type SettingsSnapshot,
 } from '../../shared/chrome-api.ts';
 
 /**
  * Builds the chrome API from a single invoke function. Each operation has its
  * own fixed channel, so the page can never choose what it calls.
  */
-export function createChromeBridge(invoke: (channel: string) => Promise<unknown>): ChromeApi {
+export function createChromeBridge(
+  invoke: (channel: string, ...args: unknown[]) => Promise<unknown>,
+): ChromeApi {
   const run = (channel: string) => async (): Promise<void> => {
     await invoke(channel);
   };
@@ -23,6 +26,12 @@ export function createChromeBridge(invoke: (channel: string) => Promise<unknown>
       retry: run(CHROME_CHANNELS.recoveryRetry),
       clearCache: run(CHROME_CHANNELS.recoveryClearCache),
       copyDiagnostics: run(CHROME_CHANNELS.recoveryCopyDiagnostics),
+    },
+    settings: {
+      get: () => invoke(CHROME_CHANNELS.settingsGet) as Promise<SettingsSnapshot>,
+      set: (id, value) =>
+        invoke(CHROME_CHANNELS.settingsSet, id, value) as Promise<SettingsSnapshot>,
+      restart: run(CHROME_CHANNELS.settingsRestart),
     },
   };
 }

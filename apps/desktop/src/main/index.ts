@@ -32,6 +32,8 @@ const notify = (body: string): void => {
   new Notification({ title: 'YapYap', body }).show();
 };
 
+const settings = openSettings(app.getPath('userData'), Date.now(), warn);
+
 const chrome = createChromeFeature({
   registerSchemesAsPrivileged: (schemes) => {
     protocol.registerSchemesAsPrivileged([...schemes]);
@@ -56,6 +58,11 @@ const chrome = createChromeFeature({
   rendererRoot: join(import.meta.dirname, '..', 'renderer'),
   preloadPath: join(import.meta.dirname, '..', 'preload', 'chrome.cjs'),
   readFile: (path) => readFile(path),
+  settings,
+  restart: () => {
+    app.relaunch();
+    app.quit();
+  },
 });
 
 // No top-level await: test harnesses hold back the `ready` event until the
@@ -82,7 +89,7 @@ startApp({
   onResume: (listener) => {
     powerMonitor.on('resume', listener);
   },
-  settings: openSettings(app.getPath('userData'), Date.now(), warn),
+  settings,
   notify,
   warn,
 }).catch((error: unknown) => {

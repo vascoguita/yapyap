@@ -1,42 +1,57 @@
+import type { MenuItemConstructorOptions } from 'electron';
 import { describe, expect, it, vi } from 'vitest';
 import { buildMenuTemplate } from './menu.ts';
 
+function actions() {
+  return { openAbout: vi.fn(), openSettings: vi.fn() };
+}
+
+const items = (menu: MenuItemConstructorOptions | undefined) =>
+  Array.isArray(menu?.submenu) ? menu.submenu : [];
+
 describe('buildMenuTemplate', () => {
-  it('puts About in the Help menu on Windows and Linux', () => {
-    const openAbout = vi.fn();
-    const template = buildMenuTemplate('linux', openAbout);
-    expect(template.map((item) => item.role)).toEqual([
-      'fileMenu',
+  it('puts Settings in the File menu and About in the Help menu on Windows and Linux', () => {
+    const a = actions();
+    const template = buildMenuTemplate('linux', a);
+    expect(template.map((item) => item.role ?? item.label)).toEqual([
+      '&File',
       'editMenu',
       'viewMenu',
       'windowMenu',
       'help',
     ]);
-    const help = template.at(-1)?.submenu;
-    expect(help).toEqual([{ label: 'About YapYap', click: openAbout }]);
+    expect(items(template[0])).toEqual([
+      { label: 'Settings…', accelerator: 'CmdOrCtrl+,', click: a.openSettings },
+      { type: 'separator' },
+      { role: 'quit' },
+    ]);
+    expect(items(template.at(-1))).toEqual([{ label: 'About YapYap', click: a.openAbout }]);
   });
 
-  it('puts About first in the app menu on macOS', () => {
-    const openAbout = vi.fn();
-    const [appMenu, ...rest] = buildMenuTemplate('darwin', openAbout);
+  it('puts About and Settings in the app menu on macOS', () => {
+    const a = actions();
+    const [appMenu, ...rest] = buildMenuTemplate('darwin', a);
     expect(appMenu?.label).toBe('YapYap');
-    expect(Array.isArray(appMenu?.submenu) ? appMenu.submenu[0] : undefined).toEqual({
-      label: 'About YapYap',
-      click: openAbout,
+    const entries = items(appMenu);
+    expect(entries[0]).toEqual({ label: 'About YapYap', click: a.openAbout });
+    expect(entries[2]).toEqual({
+      label: 'Settings…',
+      accelerator: 'CmdOrCtrl+,',
+      click: a.openSettings,
     });
-    expect(Array.isArray(appMenu?.submenu) ? appMenu.submenu.map((item) => item.role) : []).toEqual(
-      [
-        undefined,
-        undefined,
-        'services',
-        undefined,
-        'hide',
-        'hideOthers',
-        'unhide',
-        undefined,
-        'quit',
-      ],
-    );
+    expect(entries.map((item) => item.role ?? item.type)).toEqual([
+      undefined,
+      'separator',
+      undefined,
+      'separator',
+      'services',
+      'separator',
+      'hide',
+      'hideOthers',
+      'unhide',
+      'separator',
+      'quit',
+    ]);
     expect(rest.map((item) => item.role)).toEqual([
       'fileMenu',
       'editMenu',

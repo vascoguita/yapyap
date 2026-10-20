@@ -1,3 +1,5 @@
+import type { SettingValue } from './settings-fields.ts';
+
 /** What the About window shows; built in main, rendered by the chrome renderer. */
 export interface AboutInfo {
   readonly name: string;
@@ -16,6 +18,16 @@ export interface RecoveryProblem {
   readonly description: string;
 }
 
+/** The settings window's view of the settings. */
+export interface SettingsSnapshot {
+  /** Keyed by field ID, for the fields in `SETTING_FIELDS`. */
+  readonly values: Readonly<Record<string, SettingValue>>;
+  /** A changed setting only takes effect after a restart. */
+  readonly restartPending: boolean;
+  /** The settings belong to a newer YapYap, so changes cannot be saved. */
+  readonly readOnly: boolean;
+}
+
 /** The API the chrome preload exposes as `window.yapyap`, one function per operation. */
 export interface ChromeApi {
   readonly about: {
@@ -28,6 +40,11 @@ export interface ChromeApi {
     readonly clearCache: () => Promise<void>;
     readonly copyDiagnostics: () => Promise<void>;
   };
+  readonly settings: {
+    readonly get: () => Promise<SettingsSnapshot>;
+    readonly set: (id: string, value: SettingValue) => Promise<SettingsSnapshot>;
+    readonly restart: () => Promise<void>;
+  };
 }
 
 export const CHROME_CHANNELS = {
@@ -37,4 +54,7 @@ export const CHROME_CHANNELS = {
   recoveryRetry: 'recovery:retry',
   recoveryClearCache: 'recovery:clear-cache',
   recoveryCopyDiagnostics: 'recovery:copy-diagnostics',
+  settingsGet: 'settings:get',
+  settingsSet: 'settings:set',
+  settingsRestart: 'settings:restart',
 } as const;
