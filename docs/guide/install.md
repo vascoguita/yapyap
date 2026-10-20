@@ -13,10 +13,19 @@ YapYap will be available in these formats:
 | Windows          | Portable (x64, arm64)      | Notifies you of new versions     |
 | macOS            | Universal DMG              | Built-in updater (signed builds) |
 
-Every release includes SHA-256 checksums, a software bill of materials, and
-signed build provenance attestations, so you can verify what you download.
 Releases are published on
 [GitHub](https://github.com/vascoguita/yapyap/releases).
+
+## Verify a download
+
+Every release includes `SHA256SUMS`, a CycloneDX software bill of materials,
+and signed build provenance attestations, so you can check that a file is
+exactly what YapYap's release workflow built:
+
+```sh
+sha256sum --check --ignore-missing SHA256SUMS
+gh attestation verify YapYap-0.1.0-linux-x86_64.AppImage --repo vascoguita/yapyap
+```
 
 ## Flatpak permissions
 

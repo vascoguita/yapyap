@@ -2,6 +2,6 @@
   "io.github.vascoguita.YapYap": {
     "metainfo-missing-screenshots": "Screenshots of the app against the fake WhatsApp page are added before the Flathub submission (#117, #119).",
     "appstream-screenshots-not-mirrored-in-ostree": "Follows from the missing screenshots (#117, #119).",
-    "appstream-failed-validation": "The only failure is releases-info-missing: the release pipeline stamps each release into the metainfo (#20)."
+    "appstream-failed-validation": "The only failure is releases-info-missing: pull request builds are not releases, and release builds stamp the release into the metainfo first."
   }
 }
