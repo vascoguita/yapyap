@@ -29,6 +29,7 @@
   "main": "./out/main/index.js",
   "homepage": "https://vascoguita.github.io/yapyap/",
   "dependencies": {
-    "preact": "11.0.1"
+    "preact": "11.0.1",
+    "typebox": "1.4.2"
   }
 }

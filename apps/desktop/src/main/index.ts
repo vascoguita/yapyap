@@ -16,12 +16,21 @@ import { release } from 'node:os';
 import { join } from 'node:path';
 import { readInstallChannel } from './about/about-info.ts';
 import { CHROME_PARTITION, createChromeFeature } from './chrome/feature.ts';
+import { openSettings } from './settings/service.ts';
 import { electronCapture } from './permissions/electron-capture.ts';
 import { askMediaWithDialog } from './permissions/media-prompt.ts';
 import { startApp } from './start.ts';
 import { createSecureOverlay, createSecureWindow } from './windows.ts';
 
 const GPU_CRASH_LOG = join(app.getPath('userData'), 'gpu-crashes.json');
+
+const warn = (message: string): void => {
+  console.warn(message);
+};
+
+const notify = (body: string): void => {
+  new Notification({ title: 'YapYap', body }).show();
+};
 
 const chrome = createChromeFeature({
   registerSchemesAsPrivileged: (schemes) => {
@@ -34,9 +43,7 @@ const chrome = createChromeFeature({
     Menu.setApplicationMenu(Menu.buildFromTemplate(template));
   },
   writeClipboard: (text) => clipboard.writeText(text),
-  notify: (body) => {
-    new Notification({ title: 'YapYap', body }).show();
-  },
+  notify,
   facts: () => ({
     version: app.getVersion(),
     channel: readInstallChannel(() => readFileSync(join(app.getAppPath(), 'package.json'), 'utf8')),
@@ -75,9 +82,9 @@ startApp({
   onResume: (listener) => {
     powerMonitor.on('resume', listener);
   },
-  warn: (message) => {
-    console.warn(message);
-  },
+  settings: openSettings(app.getPath('userData'), Date.now(), warn),
+  notify,
+  warn,
 }).catch((error: unknown) => {
   console.error(error);
   app.exit(1);

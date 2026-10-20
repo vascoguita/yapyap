@@ -219,6 +219,9 @@ importers:
       preact:
         specifier: 11.0.1
         version: 11.0.1
+      typebox:
+        specifier: 1.4.2
+        version: 1.4.2
     devDependencies:
       '@playwright/test':
         specifier: 1.64.1
@@ -3860,6 +3863,9 @@ packages:
   type-fest@0.20.2:
     resolution: {integrity: sha512-Ne+eE4r0/iWnpAxD852z3A+N0Bt5RN//NjJwRd2VFHEmrywxf5vsZlh4R6lixl6B+wz/8d+maTSAkN1FIkI3LQ==}
     engines: {node: '>=10'}
+
+  typebox@1.4.2:
+    resolution: {integrity: sha512-eSoZzgSIyOKDtTH9MI7XMAxMaiXq7UiSFWarysN1ka66baTLDxAVdQ6WkWn6qDqsJFVrcjzvuP+CqHo9yrlQpg==}
 
   typed-inject@5.0.0:
     resolution: {integrity: sha512-0Ql2ORqBORLMdAW89TQKZsb1PQkFGImFfVmncXWe7a+AA3+7dh7Se9exxZowH4kbnlvKEFkMxUYdHUpjYWFJaA==}
@@ -7991,6 +7997,8 @@ snapshots:
 
   type-fest@0.20.2:
     optional: true
+
+  typebox@1.4.2: {}
 
   typed-inject@5.0.0: {}
 

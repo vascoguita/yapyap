@@ -27,6 +27,11 @@ through an export.
   missing keys. On failure: try `.bak`. If that fails too, start with
   defaults, keep the bad file as `settings.corrupt-<timestamp>.json`, and
   show a notice. Launch never fails because of settings.
+- **Repair**: missing values take their defaults and only invalid values are
+  reset (TypeBox `Value.Default`, then `Value.Repair`), so one bad value never
+  costs the others. Unknown keys are dropped. Sections are added as the
+  features that own them land, each with a migration once the schema version
+  is past 1.
 - **Sections**: `general` (language, startMinimized, closeToTray, autostart),
   `appearance` (theme, zoom default), `notifications` (enabled, dnd,
   showPreview, sound), `accounts[]` (id, name, color, partition, muted, zoom,

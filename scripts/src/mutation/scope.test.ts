@@ -5,7 +5,8 @@ describe('inMutationScope', () => {
   it.each([
     'apps/desktop/src/adapter/selectors/v1.ts',
     'apps/desktop/src/main/plugins/capabilities.ts',
-    'apps/desktop/src/main/settings/migrations/v2.ts',
+    'apps/desktop/src/main/settings/migrations.ts',
+    'apps/desktop/src/main/settings/store.ts',
     'apps/desktop/src/main/whatsapp-origin.ts',
     'packages/plugin-sign/src/sign.ts',
     'plugins/ai-assistant/src/providers/anthropic.ts',
@@ -29,7 +30,7 @@ describe('inMutationScope', () => {
       expect.arrayContaining([
         expect.stringContaining('adapter'),
         expect.stringContaining('plugins'),
-        expect.stringContaining('migrations'),
+        expect.stringContaining('settings'),
         expect.stringContaining('plugin-sign'),
         expect.stringContaining('providers'),
       ]),
