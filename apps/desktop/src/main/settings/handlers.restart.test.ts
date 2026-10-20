@@ -20,6 +20,7 @@ describe('settingsHandlers with settings that apply at once', () => {
       update: (change: (current: Settings) => Settings) => {
         settings = change(settings);
       },
+      onChange: vi.fn(),
     };
     const set = settingsHandlers(service, vi.fn()).find(
       (handler) => handler.channel === 'settings:set',

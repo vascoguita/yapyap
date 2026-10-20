@@ -54,7 +54,13 @@ function setup() {
     rendererRoot: '/app/renderer',
     preloadPath: '/app/preload/chrome.cjs',
     readFile: vi.fn(() => Promise.resolve(new Uint8Array([60]))),
-    settings: { current: defaultSettings, notice: undefined, readOnly: false, update: vi.fn() },
+    settings: {
+      current: defaultSettings,
+      notice: undefined,
+      readOnly: false,
+      update: vi.fn(),
+      onChange: vi.fn(),
+    },
     restart: vi.fn(),
   } satisfies ChromeFeatureDependencies;
   const views = new WeakMap<object, ViewInfo>();
@@ -106,7 +112,7 @@ describe('createChromeFeature', () => {
       {
         title: 'About YapYap',
         width: 480,
-        height: 560,
+        height: 640,
         resizable: false,
         minimizable: false,
         maximizable: false,
@@ -152,6 +158,7 @@ describe('createChromeFeature', () => {
     expect(t.window.loadURL).toHaveBeenCalledWith('app://chrome/settings.html');
     expect(t.call('settings:get')).toEqual({
       values: {
+        'appearance.theme': 'system',
         'reliability.hardwareAcceleration': true,
         'reliability.hardwareVideoDecoding': true,
       },

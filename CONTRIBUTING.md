@@ -65,6 +65,20 @@ pnpm package            # build installers for the current OS
 
 See [ADR 0007](docs/adr/0007-git-and-merge-strategy.md) for the reasoning.
 
+### Visual baselines
+
+`apps/desktop/e2e/theme.spec.ts` compares the app chrome against screenshots
+kept per OS under `apps/desktop/e2e/__screenshots__/<platform>/`. Fonts and
+native controls differ between operating systems and machines, so baselines
+come from CI, never from a local run:
+
+1. Push the change. The E2E job fails on each OS where a baseline is missing
+   or no longer matches.
+2. Download that job's `playwright-report-<os>` artifact and copy each
+   `*-actual.png` from `test-results/` to the matching baseline path, without
+   the `-actual` suffix.
+3. Look at every new image before committing it.
+
 ## Repository settings
 
 These settings are applied through the GitHub API and must stay in place.

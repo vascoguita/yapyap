@@ -6,6 +6,7 @@ import type { Settings } from './schema.ts';
 
 const HARDWARE = 'reliability.hardwareAcceleration';
 const VIDEO = 'reliability.hardwareVideoDecoding';
+const THEME = 'appearance.theme';
 
 function setup(readOnly = false) {
   let settings: Settings = defaultSettings();
@@ -16,6 +17,7 @@ function setup(readOnly = false) {
     update: vi.fn((change: (current: Settings) => Settings) => {
       settings = change(settings);
     }),
+    onChange: vi.fn(),
   };
   const restart = vi.fn();
   const handlers = new Map(
@@ -36,12 +38,27 @@ describe('settingsHandlers', () => {
     expect(['settings:get', 'settings:set', 'settings:restart'].map(t.handler)).toHaveLength(3);
   });
 
-  it('finds every listed setting in the schema, as a switch', () => {
+  it('finds every listed setting in the schema, with the kind of value its control expects', () => {
     const t = setup();
     const snapshot = t.handler('settings:get').handle(t.call) as { values: object };
     const values = Object.entries(snapshot.values);
     expect(values.map(([id]) => id)).toEqual(SETTING_FIELDS.map((field) => field.id));
-    for (const [, value] of values) expect(typeof value).toBe('boolean');
+    SETTING_FIELDS.forEach((field, index) => {
+      const value: unknown = values[index]?.[1];
+      if (field.options === undefined) expect(typeof value).toBe('boolean');
+      else expect(field.options.map((option) => option.value)).toContain(value);
+    });
+  });
+
+  it('accepts each option of a choice and saves it without asking for a restart', () => {
+    const t = setup();
+    const set = t.handler('settings:set');
+    for (const theme of ['light', 'dark', 'system']) expect(set.accepts([THEME, theme])).toBe(true);
+    expect(set.accepts([THEME, 'sepia'])).toBe(false);
+    expect(set.handle(t.call, THEME, 'dark')).toEqual(
+      expect.objectContaining({ restartPending: false }),
+    );
+    expect(t.settings().appearance.theme).toBe('dark');
   });
 
   it('shows the listed settings as they are', () => {
@@ -50,7 +67,7 @@ describe('settingsHandlers', () => {
     expect(get.accepts([])).toBe(true);
     expect(get.accepts([1])).toBe(false);
     expect(get.handle(t.call)).toEqual({
-      values: { [HARDWARE]: true, [VIDEO]: true },
+      values: { [THEME]: 'system', [HARDWARE]: true, [VIDEO]: true },
       restartPending: false,
       readOnly: true,
     });
@@ -60,7 +77,7 @@ describe('settingsHandlers', () => {
     const t = setup();
     const set = t.handler('settings:set');
     expect(set.handle(t.call, HARDWARE, false)).toEqual({
-      values: { [HARDWARE]: false, [VIDEO]: true },
+      values: { [THEME]: 'system', [HARDWARE]: false, [VIDEO]: true },
       restartPending: true,
       readOnly: false,
     });

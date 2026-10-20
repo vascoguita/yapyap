@@ -28,6 +28,14 @@ acceleration, shows **Restart now** once you change it. Settings are saved
 the moment you change them; if the settings file is ever damaged, YapYap
 starts with the last good copy and tells you.
 
+## Theme
+
+Choose **Light**, **Dark** or **Same as the system** under Settings →
+Appearance. The change applies at once to YapYap's windows, their title bars
+and WhatsApp itself, as long as WhatsApp's own theme (in WhatsApp's
+settings) is left at **System default**. Animations are turned off when your
+system asks for reduced motion.
+
 ## Graphics problems
 
 If the window flickers, stays blank or video calls show artifacts, turn off

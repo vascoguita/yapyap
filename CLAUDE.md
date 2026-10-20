@@ -162,6 +162,10 @@ Update this table in the PR that adds a command.
 - E2E tests start the app through `launchApp` in `e2e/fixtures.ts`, which
   gives each test a throwaway `--user-data-dir`. Never launch Electron in a
   spec without it, or tests write to the developer's real profile.
+- Playwright's Electron launcher emulates a light color scheme unless told
+  otherwise; `launchApp` passes `colorScheme: null` so tests see YapYap's
+  real theme. Visual baselines are per OS and come from CI artifacts (see
+  CONTRIBUTING), never from a local run.
 - Code that inspects WhatsApp's page lives in `src/adapter/` and runs in the
   adapter's isolated world (`ADAPTER_WORLD_ID`). Probes return plain flags,
   never page text, which can contain chats.

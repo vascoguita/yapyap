@@ -10,12 +10,48 @@ import {
 
 type Change = (id: string, value: SettingValue) => void;
 
-export function Toggle(props: {
+interface FieldProps {
   readonly field: SettingField;
   readonly snapshot: SettingsSnapshot;
   readonly onChange: Change;
-}): JSX.Element {
+}
+
+function Hint({ field }: { readonly field: SettingField }): JSX.Element {
+  return (
+    <p id={`${field.id}-hint`} class="hint">
+      {field.description}
+      {field.restart ? ' Takes effect after a restart.' : ''}
+    </p>
+  );
+}
+
+function Choice(props: FieldProps & { readonly options: NonNullable<SettingField['options']> }) {
+  const { field, snapshot, onChange, options } = props;
+  return (
+    <fieldset class="choice" aria-describedby={`${field.id}-hint`} disabled={snapshot.readOnly}>
+      <legend>{field.label}</legend>
+      {options.map(({ value, label }) => (
+        <label key={value}>
+          <input
+            type="radio"
+            name={field.id}
+            value={value}
+            checked={snapshot.values[field.id] === value}
+            onChange={() => {
+              onChange(field.id, value);
+            }}
+          />
+          {label}
+        </label>
+      ))}
+      <Hint field={field} />
+    </fieldset>
+  );
+}
+
+export function Field(props: FieldProps): JSX.Element {
   const { field, snapshot, onChange } = props;
+  if (field.options !== undefined) return <Choice {...props} options={field.options} />;
   const hint = `${field.id}-hint`;
   return (
     <div class="field">
@@ -30,10 +66,7 @@ export function Toggle(props: {
         }}
       />
       <label for={field.id}>{field.label}</label>
-      <p id={hint} class="hint">
-        {field.description}
-        {field.restart ? ' Takes effect after a restart.' : ''}
-      </p>
+      <Hint field={field} />
     </div>
   );
 }
@@ -49,7 +82,7 @@ function Sections(props: {
       <section key={id} aria-labelledby={`${id}-title`}>
         <h2 id={`${id}-title`}>{title}</h2>
         {fields.map((field) => (
-          <Toggle key={field.id} field={field} {...props} />
+          <Field key={field.id} field={field} {...props} />
         ))}
       </section>,
     ];

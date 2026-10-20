@@ -28,6 +28,8 @@ export function launchApp(
 ): Promise<ElectronApplication> {
   return electron.launch({
     args: [MAIN, `--user-data-dir=${profile}`, ...args],
+    // Playwright forces a light color scheme by default, which would hide YapYap's own theming.
+    colorScheme: null,
     env: appEnvironment(origin),
   });
 }

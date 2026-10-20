@@ -2,12 +2,14 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ChromeApi, SettingsSnapshot } from '../../shared/chrome-api.ts';
-import { closeOnEscape, Settings, Toggle } from './Settings.tsx';
+import type { SettingValue } from '../../shared/settings-fields.ts';
+import { closeOnEscape, Field, Settings } from './Settings.tsx';
 
 const HARDWARE = 'reliability.hardwareAcceleration';
+const THEME = 'appearance.theme';
 
 const snapshot = (overrides: Partial<SettingsSnapshot> = {}): SettingsSnapshot => ({
-  values: { [HARDWARE]: true },
+  values: { [THEME]: 'system', [HARDWARE]: true },
   restartPending: false,
   readOnly: false,
   ...overrides,
@@ -19,8 +21,13 @@ function api(overrides: Partial<ChromeApi['settings']> = {}) {
     recovery: { problem: vi.fn(), retry: vi.fn(), clearCache: vi.fn(), copyDiagnostics: vi.fn() },
     settings: {
       get: vi.fn(() => Promise.resolve(snapshot())),
-      set: vi.fn((_id: string, value: boolean) =>
-        Promise.resolve(snapshot({ values: { [HARDWARE]: value }, restartPending: !value })),
+      set: vi.fn((id: string, value: SettingValue) =>
+        Promise.resolve(
+          snapshot({
+            values: { ...snapshot().values, [id]: value },
+            restartPending: id === HARDWARE && value === false,
+          }),
+        ),
       ),
       restart: vi.fn(() => Promise.resolve()),
       ...overrides,
@@ -83,7 +90,7 @@ describe('Settings', () => {
   });
 
   it('shows unchecked switches for settings that are off', async () => {
-    const off = snapshot({ values: { [HARDWARE]: false } });
+    const off = snapshot({ values: { [THEME]: 'dark', [HARDWARE]: false } });
     render(<Settings api={api({ get: () => Promise.resolve(off) })} />);
     expect((await toggle()).checked).toBe(false);
     expect(screen.queryByText(/newer version/)).toBeNull();
@@ -94,6 +101,28 @@ describe('Settings', () => {
     expect(await screen.findByText('Settings are unavailable.')).toBeTruthy();
   });
 
+  it('offers the theme as a group of choices that applies without a restart', async () => {
+    const t = api();
+    render(<Settings api={t} />);
+    const group = await screen.findByRole('group', { name: 'Theme' });
+    expect(group.getAttribute('aria-describedby')).toBe(`${THEME}-hint`);
+    expect(document.getElementById(`${THEME}-hint`)?.textContent).toMatch(/System default\.$/);
+    const system = screen.getByRole<HTMLInputElement>('radio', { name: 'Same as the system' });
+    expect(system.checked).toBe(true);
+    fireEvent.click(screen.getByRole('radio', { name: 'Dark' }));
+    expect(t.settings.set).toHaveBeenCalledExactlyOnceWith(THEME, 'dark');
+    await vi.waitFor(() => {
+      expect(screen.getByRole<HTMLInputElement>('radio', { name: 'Dark' }).checked).toBe(true);
+    });
+    expect(screen.queryByRole('button', { name: 'Restart now' })).toBeNull();
+  });
+
+  it('locks the choices too when a newer YapYap owns the settings', async () => {
+    render(<Settings api={api({ get: () => Promise.resolve(snapshot({ readOnly: true })) })} />);
+    const group = await screen.findByRole<HTMLFieldSetElement>('group', { name: 'Theme' });
+    expect(group.disabled).toBe(true);
+  });
+
   it('adds no restart hint to a setting that applies at once', () => {
     const field = {
       id: 'general.example',
@@ -101,7 +130,7 @@ describe('Settings', () => {
       description: 'Applies at once.',
       restart: false,
     } as const;
-    render(<Toggle field={field} snapshot={snapshot()} onChange={vi.fn()} />);
+    render(<Field field={field} snapshot={snapshot()} onChange={vi.fn()} />);
     expect(document.getElementById('general.example-hint')?.textContent).toBe('Applies at once.');
   });
 

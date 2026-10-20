@@ -8,6 +8,8 @@ export interface SettingsService {
   readonly readOnly: boolean;
   /** Applies a change and saves it, unless the file belongs to a newer YapYap. */
   readonly update: (change: (settings: Settings) => Settings) => void;
+  /** Calls `listener` after every saved change, so live settings apply at once. */
+  readonly onChange: (listener: (settings: Settings) => void) => void;
 }
 
 export function openSettings(
@@ -17,6 +19,7 @@ export function openSettings(
 ): SettingsService {
   const loaded = loadSettings(dir, now);
   let settings = loaded.settings;
+  const listeners: ((settings: Settings) => void)[] = [];
   return {
     current: () => settings,
     notice: loaded.notice,
@@ -28,6 +31,10 @@ export function openSettings(
       }
       settings = change(settings);
       saveSettings(dir, settings);
+      for (const listener of listeners) listener(settings);
+    },
+    onChange: (listener) => {
+      listeners.push(listener);
     },
   };
 }
