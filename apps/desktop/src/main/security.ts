@@ -1,3 +1,8 @@
+import {
+  presentAsChrome,
+  type ChromeIdentity,
+  type IdentitySession,
+} from './identity/user-agent.ts';
 import { createNavigationGuard, type NavigationContents } from './navigation/navigation-guard.ts';
 import {
   guardSession,
@@ -20,15 +25,25 @@ export interface SecurityApp {
     event: 'web-contents-created',
     listener: (event: unknown, contents: GuardedContents) => void,
   ): unknown;
-  on(event: 'session-created', listener: (session: SessionPort) => void): unknown;
+  on(event: 'session-created', listener: (session: GuardedSession) => void): unknown;
 }
 
-export type SecurityDependencies = SessionGuardDependencies;
+export type GuardedSession = SessionPort & IdentitySession;
+
+export interface SecurityDependencies extends SessionGuardDependencies {
+  readonly identity: ChromeIdentity;
+}
+
+/** Applies the permission policy and the Chrome identity to one session. */
+export function secureSession(session: GuardedSession, deps: SecurityDependencies): void {
+  guardSession(session, deps);
+  presentAsChrome(session, deps.identity);
+}
 
 /**
  * Installs every guard from ADR 0001 on every web contents and every session
  * created from now on. The default session must also be passed to
- * {@link guardSession} once the app is ready.
+ * {@link secureSession} once the app is ready.
  */
 export function installSecurity(app: SecurityApp, deps: SecurityDependencies): void {
   const navigation = createNavigationGuard({
@@ -44,8 +59,6 @@ export function installSecurity(app: SecurityApp, deps: SecurityDependencies): v
     navigation,
   ]);
   app.on('session-created', (session) => {
-    guardSession(session, deps);
+    secureSession(session, deps);
   });
 }
-
-export { guardSession };

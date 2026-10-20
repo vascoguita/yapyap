@@ -121,10 +121,14 @@ frame-ancestors 'none'; base-uri 'none'; form-action 'none'`, served
 
 ### User agent
 
-`app.userAgentFallback` and each account session use the standard desktop
-Chrome UA for the bundled `process.versions.chrome`, with no `Electron/` or
-`YapYap/` tokens. Client hints are rewritten to match. Without this, WhatsApp
-may show its "unsupported browser" page.
+`app.userAgentFallback` and every session use Chrome's reduced desktop UA for
+the bundled `process.versions.chrome` (`Chrome/<major>.0.0.0`, with Chrome's
+frozen OS token per platform), with no `Electron/` or `YapYap/` tokens. The
+`sec-ch-ua` and `sec-ch-ua-full-version-list` request headers gain the
+`"Google Chrome"` brand. Without this, WhatsApp may show its "unsupported
+browser" page. `navigator.userAgentData.brands` in the page still lists only
+Chromium, because rewriting it would mean running code in WhatsApp's main
+world, which this ADR rules out.
 
 ### Custom CSS and JS
 

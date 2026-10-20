@@ -8,6 +8,7 @@ import { matchesGlob } from 'node:path';
 export const MUTATION_SCOPE: readonly string[] = [
   'apps/desktop/src/adapter/**/*.ts',
   'apps/desktop/src/main/chrome/**/*.ts',
+  'apps/desktop/src/main/identity/**/*.ts',
   'apps/desktop/src/main/navigation/**/*.ts',
   'apps/desktop/src/main/permissions/**/*.ts',
   'apps/desktop/src/main/plugins/**/*.ts',

@@ -1,7 +1,13 @@
 import type { ChromeFeature, WhatsAppContents } from './chrome/feature.ts';
 import { APP_ID, PRODUCT_NAME } from './identity.ts';
-import type { DisplayCapturePort, MediaType, SessionPort } from './permissions/session-guard.ts';
-import { guardSession, installSecurity, type GuardedContents } from './security.ts';
+import type { DisplayCapturePort, MediaType } from './permissions/session-guard.ts';
+import { chromeUserAgent } from './identity/user-agent.ts';
+import {
+  installSecurity,
+  secureSession,
+  type GuardedContents,
+  type GuardedSession,
+} from './security.ts';
 import type { ViewInfo, ViewRegistry } from './views.ts';
 import type { Overlay } from './recovery/controller.ts';
 import type { RendererOptions } from './web-preferences.ts';
@@ -15,6 +21,7 @@ import { resolveWhatsAppOrigin } from './whatsapp-origin.ts';
 export const SHOW_FALLBACK_MS = 3000;
 
 export interface AppPort {
+  userAgentFallback: string;
   enableSandbox(): void;
   whenReady(): Promise<unknown>;
   setAppUserModelId(id: string): void;
@@ -23,7 +30,7 @@ export interface AppPort {
     event: 'web-contents-created',
     listener: (event: unknown, contents: GuardedContents) => void,
   ): unknown;
-  on(event: 'session-created', listener: (session: SessionPort) => void): unknown;
+  on(event: 'session-created', listener: (session: GuardedSession) => void): unknown;
   quit(): void;
 }
 
@@ -38,7 +45,10 @@ export interface StartDependencies<Window extends WindowPort> {
   readonly app: AppPort;
   readonly createWindow: (options: WindowOptions) => Window;
   readonly createOverlay: (window: Window, renderer: RendererOptions) => Overlay;
-  readonly defaultSession: () => SessionPort;
+  readonly defaultSession: () => GuardedSession;
+  /** `process.versions.chrome`: the identity must match the bundled engine. */
+  readonly chromeVersion: string;
+  readonly platform: string;
   readonly askMedia: (view: ViewInfo, mediaTypes: readonly MediaType[]) => Promise<boolean>;
   readonly capture: DisplayCapturePort;
   readonly chrome: ChromeFeature;
@@ -72,7 +82,12 @@ export async function startApp<Window extends WindowPort>(
 ): Promise<void> {
   const { app, createWindow, env, warn } = deps;
   const views: ViewRegistry = new WeakMap();
-  const security = { ...deps, views };
+  const identity = {
+    userAgent: chromeUserAgent(deps.platform, deps.chromeVersion),
+    chromeVersion: deps.chromeVersion,
+  };
+  const security = { ...deps, views, identity };
+  app.userAgentFallback = identity.userAgent;
   // Must run before the app is ready; it sandboxes renderers Electron creates itself.
   app.enableSandbox();
   installSecurity(app, security);
@@ -88,7 +103,7 @@ export async function startApp<Window extends WindowPort>(
     warn('Ignoring YAPYAP_TEST_WHATSAPP_ORIGIN: only loopback http origins are allowed.');
 
   await app.whenReady();
-  guardSession(deps.defaultSession(), security);
+  secureSession(deps.defaultSession(), security);
   const chrome = deps.chrome.afterReady(views, warn);
   const window = createWindow(MAIN_WINDOW);
   views.set(window.webContents, { zone: 'whatsapp', home: origin, label: 'WhatsApp' });

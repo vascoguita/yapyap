@@ -31,7 +31,8 @@ function setup() {
     useSystemPicker: false,
   };
   const askMedia = vi.fn(() => Promise.resolve(false));
-  installSecurity(app, { views, openExternal, warn: vi.fn(), askMedia, capture });
+  const identity = { userAgent: 'Chrome UA', chromeVersion: '152.0.7977.167' };
+  installSecurity(app, { views, openExternal, warn: vi.fn(), askMedia, capture, identity });
   appListeners.get('web-contents-created')?.(...([{}, contents as GuardedContents] as never[]));
   const createContents = (other: object): void => {
     appListeners.get('web-contents-created')?.(...([{}, other] as never[]));
@@ -107,16 +108,19 @@ describe('secureAllWebContents', () => {
     expect(event.preventDefault).toHaveBeenCalledOnce();
   });
 
-  it('applies the permission policy to every new session', () => {
+  it('applies the permission policy and the Chrome identity to every new session', () => {
     const t = setup();
     const session = {
       setPermissionRequestHandler: vi.fn(),
       setPermissionCheckHandler: vi.fn(),
       setDevicePermissionHandler: vi.fn(),
       setDisplayMediaRequestHandler: vi.fn(),
+      setUserAgent: vi.fn(),
+      webRequest: { onBeforeSendHeaders: vi.fn() },
     };
     t.createSession(session);
     expect(session.setPermissionRequestHandler).toHaveBeenCalledOnce();
+    expect(session.setUserAgent).toHaveBeenCalledExactlyOnceWith('Chrome UA');
     expect(session.setDisplayMediaRequestHandler).toHaveBeenCalledWith(expect.any(Function), {
       useSystemPicker: false,
     });
