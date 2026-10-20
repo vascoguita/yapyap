@@ -141,6 +141,11 @@ Update this table in the PR that adds a command.
 - Scripts run under Node's type stripping, so only erasable TypeScript is
   allowed (no enums, no constructor parameter properties). `erasableSyntaxOnly`
   enforces this.
+- electron-builder skips code signing on `pull_request` events but treats any
+  defined `CSC_LINK`, even an empty string, as a certificate path elsewhere.
+  Never set signing variables to `''`; export them only when the secret exists.
+  PR checks cannot catch this, so watch the first `master` run after changing
+  packaging.
 - Jobs in reusable workflows report as `<caller job> / <job>`, for example
   `Package / Package (macos)`. Use that full name in the ruleset.
 - Flatpak lint exceptions live in `packaging/flatpak/lint-exceptions.json`,
