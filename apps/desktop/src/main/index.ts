@@ -1,6 +1,8 @@
 import {
   app,
+  BrowserWindow,
   clipboard,
+  desktopCapturer,
   ipcMain,
   Menu,
   nativeTheme,
@@ -10,6 +12,7 @@ import {
   protocol,
   session,
   shell,
+  type WebContents,
 } from 'electron';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
@@ -22,6 +25,8 @@ import { electronCapture } from './permissions/electron-capture.ts';
 import { askMediaWithDialog } from './permissions/media-prompt.ts';
 import { startApp } from './start.ts';
 import { createSecureOverlay, createSecureWindow } from './windows.ts';
+
+const PICKER_THUMBNAIL = { width: 320, height: 180 };
 
 const GPU_CRASH_LOG = join(app.getPath('userData'), 'gpu-crashes.json');
 
@@ -64,6 +69,10 @@ const chrome = createChromeFeature({
     app.relaunch();
     app.quit();
   },
+  captureSources: () =>
+    desktopCapturer.getSources({ types: ['screen', 'window'], thumbnailSize: PICKER_THUMBNAIL }),
+  // The picker's owner is a web contents Electron itself handed to the capture handler.
+  windowOf: (contents) => BrowserWindow.fromWebContents(contents as WebContents),
 });
 
 // No top-level await: test harnesses hold back the `ready` event until the
@@ -74,7 +83,8 @@ startApp({
   createOverlay: (window, renderer) => createSecureOverlay(window, renderer),
   defaultSession: () => session.defaultSession,
   askMedia: askMediaWithDialog,
-  capture: electronCapture(process.platform, process.env),
+  capture: (pickInApp) =>
+    electronCapture(process.platform, process.env, process.getSystemVersion(), pickInApp),
   chrome,
   chromeVersion: process.versions.chrome,
   platform: process.platform,

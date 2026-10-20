@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { APP_ID } from './identity.ts';
-import { SHOW_FALLBACK_MS, startApp, type AppPort, type WindowPort } from './start.ts';
+import { SHOW_FALLBACK_MS } from './show-when-ready.ts';
+import { startApp, type AppPort, type WindowPort } from './start.ts';
+import type { CaptureChoice } from './permissions/session-guard.ts';
 import { defaultSettings } from './settings/decode.ts';
 import { WHATSAPP_ORIGIN } from './whatsapp-origin.ts';
 import type { WindowOptions } from './windows.ts';
@@ -62,6 +64,9 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
         createOverlay: (renderer: object) => unknown,
       ) => { reconnect: () => void }
     >(() => ({ reconnect: vi.fn() })),
+    pickCaptureSource: vi.fn<(contents: object) => Promise<CaptureChoice | undefined>>(() =>
+      Promise.resolve({ video: { id: 'screen:1:0', name: 'Screen' } }),
+    ),
   };
   const warn = vi.fn();
   const openExternal = vi.fn(() => Promise.resolve());
@@ -76,7 +81,7 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
   const capture = {
     contentsOfFrame: vi.fn(),
     isVisibleAndFocused: vi.fn(() => true),
-    pickWithPortal: undefined,
+    pick: undefined,
     useSystemPicker: false,
   };
   return {
@@ -88,7 +93,9 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     createWindow,
     defaultSession: () => session,
     askMedia: vi.fn(() => Promise.resolve(true)),
-    capture,
+    capture: vi.fn<(pickInApp: (contents: object) => Promise<unknown>) => typeof capture>(
+      () => capture,
+    ),
     chromeVersion: '152.0.7977.167',
     platform: 'linux',
     chrome: { beforeReady: vi.fn(), afterReady: vi.fn(() => runtime) },
@@ -224,6 +231,8 @@ describe('startApp', () => {
     const callback = vi.fn();
     handler(f.web.contents, 'notifications', callback, { requestingUrl: `${WHATSAPP_ORIGIN}/` });
     handler(f.web.contents, 'geolocation', callback, { requestingUrl: `${WHATSAPP_ORIGIN}/` });
+    // Answers settle as promises, since some requests wait for the user.
+    await Promise.resolve();
     expect(callback.mock.calls).toEqual([[true], [false]]);
   });
 
@@ -327,6 +336,27 @@ describe('startApp', () => {
     expect(f.notify).toHaveBeenCalledExactlyOnceWith(
       'Some settings were invalid and were reset to their defaults.',
     );
+  });
+
+  it('hands screen-sharing requests to YapYap’s picker once chrome is ready', async () => {
+    const f = fakes();
+    let ready: () => void = () => undefined;
+    f.app.whenReady.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          ready = resolve;
+        }),
+    );
+    const started = startApp(f);
+    const [[pickInApp]] = f.capture.mock.calls as unknown as [
+      [(contents: object) => Promise<unknown>],
+    ];
+    const requester = {};
+    expect(await pickInApp(requester)).toBeUndefined();
+    ready();
+    await started;
+    expect(await pickInApp(requester)).toEqual({ video: { id: 'screen:1:0', name: 'Screen' } });
+    expect(f.runtime.pickCaptureSource).toHaveBeenCalledExactlyOnceWith(requester);
   });
 
   it('follows the theme setting once ready', async () => {

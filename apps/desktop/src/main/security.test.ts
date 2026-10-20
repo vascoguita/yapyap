@@ -27,7 +27,7 @@ function setup() {
   const capture = {
     contentsOfFrame: vi.fn(),
     isVisibleAndFocused: vi.fn(),
-    pickWithPortal: undefined,
+    pick: undefined,
     useSystemPicker: false,
   };
   const askMedia = vi.fn(() => Promise.resolve(false));

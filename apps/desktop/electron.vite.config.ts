@@ -20,6 +20,7 @@ export default defineConfig({
           about: resolve(import.meta.dirname, 'src/renderer/about.html'),
           recovery: resolve(import.meta.dirname, 'src/renderer/recovery.html'),
           settings: resolve(import.meta.dirname, 'src/renderer/settings.html'),
+          picker: resolve(import.meta.dirname, 'src/renderer/picker.html'),
         },
       },
     },

@@ -1,6 +1,7 @@
 import type { MenuItemConstructorOptions } from 'electron';
 import { CHROME_CHANNELS } from '../../shared/chrome-api.ts';
 import { buildAboutInfo, formatTechnicalDetails, type RuntimeFacts } from '../about/about-info.ts';
+import { createSourcePicker, type DesktopSource, type SourcePicker } from '../capture/picker.ts';
 import { buildMenuTemplate } from '../menu.ts';
 import {
   createRecovery,
@@ -25,7 +26,9 @@ import {
 } from './ipc.ts';
 import {
   createChromeWindowOpener,
+  openChromeWindow,
   type ChromePage,
+  type ChromeWindowDependencies,
   type ChromeWindowPort,
 } from './window-opener.ts';
 
@@ -41,6 +44,19 @@ const ABOUT_PAGE: ChromePage = {
     resizable: false,
     minimizable: false,
     maximizable: false,
+  },
+};
+
+const PICKER_PAGE: ChromePage = {
+  path: 'picker.html',
+  window: {
+    title: 'Share your screen',
+    width: 760,
+    height: 580,
+    minWidth: 480,
+    minHeight: 400,
+    minimizable: false,
+    modal: true,
   },
 };
 
@@ -74,6 +90,9 @@ export interface ChromeFeatureDependencies {
   readonly settings: SettingsService;
   /** Quits and starts YapYap again, to apply settings that need a restart. */
   readonly restart: () => void;
+  readonly captureSources: () => Promise<readonly DesktopSource[]>;
+  /** The window showing `contents`, so the picker can sit on top of it. */
+  readonly windowOf: (contents: object) => WindowOptions['parent'] | null;
 }
 
 export type WhatsAppContents = MonitoredContents & RecoverableContents & CrashableContents;
@@ -85,6 +104,8 @@ interface ChromeRuntime {
     origin: string,
     createOverlay: (renderer: RendererOptions) => Overlay,
   ) => Pick<Recovery, 'reconnect'>;
+  /** YapYap's screen-sharing picker, for platforms without a system one. */
+  readonly pickCaptureSource: SourcePicker['pick'];
 }
 
 export interface ChromeFeature {
@@ -164,6 +185,38 @@ function recoveryAttacher(
   };
 }
 
+function sourcePicker(
+  deps: ChromeFeatureDependencies,
+  windows: ChromeWindowDependencies,
+): SourcePicker {
+  return createSourcePicker({
+    getSources: deps.captureSources,
+    offerAudio: deps.platform === 'win32',
+    openPicker: (owner) => {
+      const parent = deps.windowOf(owner);
+      const window = openChromeWindow(windows, PICKER_PAGE, parent == null ? {} : { parent });
+      return {
+        webContents: window.webContents,
+        close: () => {
+          window.close();
+        },
+        onClosed: (listener) => {
+          window.once('closed', listener);
+        },
+      };
+    },
+  });
+}
+
+function chromeWindows(
+  deps: ChromeFeatureDependencies,
+  renderer: RendererOptions,
+  views: ViewRegistry,
+  warn: (message: string) => void,
+): ChromeWindowDependencies {
+  return { createWindow: (options) => deps.createWindow(options, renderer), views, warn };
+}
+
 export function createChromeFeature(deps: ChromeFeatureDependencies): ChromeFeature {
   const renderer = { preload: deps.preloadPath, partition: CHROME_PARTITION };
   return {
@@ -177,6 +230,8 @@ export function createChromeFeature(deps: ChromeFeatureDependencies): ChromeFeat
       const handler = createChromeHandler(deps.rendererRoot, deps.readFile);
       deps.chromeProtocol().handle(CHROME_SCHEME, handler);
       const recoveries: Recovery[] = [];
+      const windows = chromeWindows(deps, renderer, views, warn);
+      const picker = sourcePicker(deps, windows);
       registerChromeHandlers(
         deps.ipc,
         views,
@@ -184,19 +239,21 @@ export function createChromeFeature(deps: ChromeFeatureDependencies): ChromeFeat
           ...aboutHandlers(withGraphics),
           ...recoveryHandlers(recoveries),
           ...settingsHandlers(deps.settings, deps.restart),
+          ...picker.handlers,
         ],
         warn,
       );
-      const createWindow = (options: WindowOptions) => deps.createWindow(options, renderer);
-      const opener = (page: ChromePage) =>
-        createChromeWindowOpener({ createWindow, views, warn }, page);
+      const opener = (page: ChromePage) => createChromeWindowOpener(windows, page);
       deps.setMenu(
         buildMenuTemplate(deps.platform, {
           openAbout: opener(ABOUT_PAGE),
           openSettings: opener(SETTINGS_PAGE),
         }),
       );
-      return { attachRecovery: recoveryAttacher(withGraphics, renderer, views, warn, recoveries) };
+      return {
+        attachRecovery: recoveryAttacher(withGraphics, renderer, views, warn, recoveries),
+        pickCaptureSource: picker.pick,
+      };
     },
   };
 }

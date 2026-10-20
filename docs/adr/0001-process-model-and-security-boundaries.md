@@ -86,24 +86,31 @@ and an ESLint restriction forbids constructing `BrowserWindow` or
 - `setDevicePermissionHandler` denies by default (no WebHID, WebUSB or
   WebSerial), and every Web Bluetooth device chooser is cancelled, because
   Electron otherwise picks the first nearby device.
-- **Screen sharing** goes through `setDisplayMediaRequestHandler`, so calls
-  work while consent stays explicit:
+- **Screen sharing** keeps consent explicit while calls work:
+  - Electron reports screen capture to the permission handler as a `media`
+    request that names no device, whether it comes from `getDisplayMedia` or
+    the legacy desktop `getUserMedia`, and the legacy path captures without
+    ever reaching `setDisplayMediaRequestHandler`. So the user picks the
+    source in the permission step, before anything is granted, and the
+    display-media handler only hands over that pick, once (#146).
   - It is accepted only from a WhatsApp frame (an account view or that
-    account's call window) whose window is visible and focused. Requests from
-    hidden accounts, chrome or plugins are rejected.
+    account's call window) on its own origin whose window is visible and
+    focused. Requests from hidden accounts, chrome or plugins are rejected.
   - The source is always chosen by the user, never preselected. On macOS 15+
-    this uses the system picker (`useSystemPicker: true`). Electron then never
-    calls the handler, so the visible-and-focused check does not apply there,
-    but the OS picker is itself an explicit, visible consent. On Linux
-    Wayland it uses the xdg-desktop-portal ScreenCast picker over PipeWire.
-    On Windows, X11 and older macOS it uses YapYap's own accessible picker,
-    built from `desktopCapturer.getSources` with screen and window thumbnails
-    (#146; until then, those requests are denied).
-  - System audio (`loopback`) is offered on Windows only, as an explicit
-    checkbox in the picker.
-  - Cancelling the picker rejects the request cleanly, so WhatsApp sees a
-    normal "permission denied". While sharing, the tray and the account's
-    sidebar entry show a persistent "sharing" indicator with a stop action.
+    this uses the system picker (`useSystemPicker: true`), and the request is
+    granted for the OS picker to handle. On Linux Wayland it uses the
+    xdg-desktop-portal ScreenCast picker over PipeWire, which also guards the
+    legacy path. On Windows, X11 and older macOS it uses YapYap's own
+    accessible picker, a modal chrome window built from
+    `desktopCapturer.getSources` with screen and window thumbnails. Its IPC
+    answers only the picker window of the pending request, and only with a
+    source it offered.
+  - System audio (`loopback`) is offered on Windows only, as an explicit,
+    unchecked checkbox in the picker.
+  - Cancelling or closing the picker rejects the request cleanly, so WhatsApp
+    sees a normal "permission denied". While sharing, the tray and the
+    account's sidebar entry show a persistent "sharing" indicator with a stop
+    action (#161).
   - We do not require a page user gesture, because WhatsApp can request
     capture asynchronously inside a call. The picker choice is the consent.
 - A `web-contents-created` hook attaches all of the above to every new

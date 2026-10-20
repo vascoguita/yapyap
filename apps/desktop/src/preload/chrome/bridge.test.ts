@@ -25,6 +25,9 @@ describe('createChromeBridge', () => {
     expect(await api.settings.get()).toBe(snapshot);
     expect(await api.settings.set('reliability.hardwareAcceleration', false)).toBe(snapshot);
     await api.settings.restart();
+    expect(await api.picker.offer()).toBe('ignored');
+    await api.picker.choose('screen:1:0', true);
+    await api.picker.cancel();
     expect(invoke.mock.calls).toEqual([
       ['about:info'],
       ['about:copy-technical-details'],
@@ -35,12 +38,16 @@ describe('createChromeBridge', () => {
       ['settings:get'],
       ['settings:set', 'reliability.hardwareAcceleration', false],
       ['settings:restart'],
+      ['picker:offer'],
+      ['picker:choose', 'screen:1:0', true],
+      ['picker:cancel'],
     ]);
   });
 
   it('exposes nothing but the listed operations', () => {
     const api = createChromeBridge(vi.fn());
-    expect(Object.keys(api)).toEqual(['about', 'recovery', 'settings']);
+    expect(Object.keys(api)).toEqual(['about', 'recovery', 'settings', 'picker']);
+    expect(Object.keys(api.picker)).toEqual(['offer', 'choose', 'cancel']);
     expect(Object.keys(api.settings)).toEqual(['get', 'set', 'restart']);
     expect(Object.keys(api.about)).toEqual(['info', 'copyTechnicalDetails']);
     expect(Object.keys(api.recovery)).toEqual([

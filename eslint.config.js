@@ -92,7 +92,9 @@ export default defineConfig(
     // The fake WhatsApp page's scripts run in a browser and are outside every tsconfig.
     files: ['apps/desktop/test/fake-whatsapp/*.js'],
     extends: [tseslint.configs.disableTypeChecked],
-    languageOptions: { globals: { document: 'readonly', window: 'readonly' } },
+    languageOptions: {
+      globals: { document: 'readonly', navigator: 'readonly', window: 'readonly' },
+    },
   },
   {
     // Playwright fixtures without dependencies must destructure an empty object.
