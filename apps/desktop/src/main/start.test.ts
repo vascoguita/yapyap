@@ -16,6 +16,8 @@ function fakeContents() {
     setWindowOpenHandler: vi.fn(),
     loadURL: vi.fn(() => Promise.resolve()),
     executeJavaScriptInIsolatedWorld: vi.fn(() => Promise.resolve()),
+    reload: vi.fn(),
+    forcefullyCrashRenderer: vi.fn(),
     session: {
       clearCache: vi.fn(() => Promise.resolve()),
       clearStorageData: vi.fn(() => Promise.resolve()),
@@ -32,6 +34,7 @@ function fakes(env: Record<string, string | undefined> = {}) {
   const listeners = new Map<string, (...args: never[]) => void>();
   const app = {
     userAgentFallback: '',
+    disableHardwareAcceleration: vi.fn(),
     enableSandbox: vi.fn(),
     whenReady: vi.fn(() => Promise.resolve()),
     setAppUserModelId: vi.fn(),
@@ -91,6 +94,7 @@ function fakes(env: Record<string, string | undefined> = {}) {
     warn,
     openExternal,
     isOnline: vi.fn(() => true),
+    gpuCrashLog: { read: () => '[]', write: vi.fn() },
     onResume: vi.fn(),
     env,
     listeners,

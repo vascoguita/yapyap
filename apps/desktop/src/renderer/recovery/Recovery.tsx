@@ -6,12 +6,14 @@ const TITLES: Readonly<Record<RecoveryProblem['kind'], string>> = {
   unsupported: 'WhatsApp says this browser is not supported',
   blank: 'WhatsApp did not finish loading',
   'load-failed': 'WhatsApp could not be reached',
+  crashed: 'WhatsApp keeps stopping',
 };
 
 const ADVICE: Readonly<Record<RecoveryProblem['kind'], string>> = {
   unsupported: 'Clearing the cache usually fixes this. If it does not, check for a YapYap update.',
   blank: 'Try again. If the page stays blank, clearing the cache usually fixes it.',
   'load-failed': 'Check your internet connection, then try again.',
+  crashed: 'Try again. If it keeps happening, clearing the cache usually helps.',
 };
 
 function useProblem(api: ChromeApi): RecoveryProblem | null | undefined {

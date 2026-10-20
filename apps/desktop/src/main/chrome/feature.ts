@@ -9,6 +9,7 @@ import {
   type RecoverableContents,
   type Recovery,
 } from '../recovery/controller.ts';
+import { guardCrashes, type CrashableContents } from '../recovery/crash-guard.ts';
 import { monitorPage, type MonitoredContents } from '../recovery/monitor.ts';
 import type { ViewRegistry } from '../views.ts';
 import type { RendererOptions } from '../web-preferences.ts';
@@ -39,6 +40,8 @@ export interface ChromeFeatureDependencies {
   readonly createWindow: (options: WindowOptions, renderer: RendererOptions) => AboutWindowPort;
   readonly setMenu: (template: MenuItemConstructorOptions[]) => void;
   readonly writeClipboard: (text: string) => Promise<unknown>;
+  /** A system notification, for things the user should know but need not act on. */
+  readonly notify: (message: string) => void;
   readonly facts: () => RuntimeFacts;
   readonly platform: string;
   readonly rendererRoot: string;
@@ -46,7 +49,7 @@ export interface ChromeFeatureDependencies {
   readonly readFile: (path: string) => Promise<Uint8Array>;
 }
 
-export type WhatsAppContents = MonitoredContents & RecoverableContents;
+export type WhatsAppContents = MonitoredContents & RecoverableContents & CrashableContents;
 
 interface ChromeRuntime {
   /** Watches a WhatsApp view and shows the recovery screen over it when it fails. */
@@ -114,6 +117,13 @@ function recoveryAttacher(
     });
     recoveries.push(recovery);
     monitorPage(contents, { onFailure: recovery.show, schedule: setTimeout, warn });
+    guardCrashes(contents, {
+      now: Date.now,
+      schedule: setTimeout,
+      notify: deps.notify,
+      showFailure: recovery.show,
+      warn,
+    });
     return recovery;
   };
 }

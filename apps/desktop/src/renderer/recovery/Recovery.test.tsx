@@ -32,6 +32,7 @@ describe('Recovery', () => {
     ['unsupported', 'WhatsApp says this browser is not supported', /check for a YapYap update/],
     ['blank', 'WhatsApp did not finish loading', /stays blank/],
     ['load-failed', 'WhatsApp could not be reached', /internet connection/],
+    ['crashed', 'WhatsApp keeps stopping', /keeps happening/],
   ])('explains a %s problem', async (kind, title, advice) => {
     render(<Recovery api={api(problem(kind))} />);
     expect(await screen.findByRole('heading', { name: title })).toBeTruthy();

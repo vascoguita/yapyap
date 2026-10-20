@@ -12,7 +12,7 @@ export interface AboutInfo {
 
 /** Why WhatsApp is not showing, as the recovery screen explains it. */
 export interface RecoveryProblem {
-  readonly kind: 'unsupported' | 'blank' | 'load-failed';
+  readonly kind: 'unsupported' | 'blank' | 'load-failed' | 'crashed';
   readonly description: string;
 }
 

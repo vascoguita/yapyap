@@ -40,6 +40,7 @@ function setup() {
       menu = template;
     }),
     writeClipboard: vi.fn(() => Promise.resolve()),
+    notify: vi.fn(),
     facts: () => ({
       version: '0.1.0',
       channel: 'deb',
@@ -125,6 +126,8 @@ describe('createChromeFeature', () => {
         handlers.set(event, listener);
       }),
       executeJavaScriptInIsolatedWorld: vi.fn(),
+      reload: vi.fn(),
+      forcefullyCrashRenderer: vi.fn(),
       loadURL: vi.fn(() => Promise.resolve()),
       session: {
         clearCache: vi.fn(() => Promise.resolve()),
