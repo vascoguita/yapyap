@@ -37,20 +37,26 @@ export function launchApp(
 
 /**
  * Starts YapYap again on `profile` while the app under test runs there, as a
- * user or the OS would, and resolves with its exit code once it hands over.
+ * user or the OS would, and resolves with how it ended once it hands over.
  */
 export async function launchAgain(
   origin: string,
   profile: string,
   args: readonly string[],
-): Promise<number | null> {
+): Promise<{ code: number | null; signal: string | null; stderr: string }> {
   const { default: executable } = (await import('electron')) as unknown as { default: string };
   const second = spawn(executable, [MAIN, `--user-data-dir=${profile}`, ...args], {
     env: appEnvironment(origin),
-    stdio: 'ignore',
+    stdio: ['ignore', 'ignore', 'pipe'],
+  });
+  let stderr = '';
+  second.stderr.on('data', (chunk: Buffer) => {
+    stderr += chunk.toString();
   });
   return new Promise((resolve) => {
-    second.once('exit', resolve);
+    second.once('exit', (code, signal) => {
+      resolve({ code, signal, stderr });
+    });
   });
 }
 
