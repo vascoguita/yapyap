@@ -15,26 +15,26 @@ under `docs/adr/`.
 
 Use pnpm (version pinned in `package.json`) on Node.js 24 LTS.
 
-| Task                            | Command                                                                             |
-| ------------------------------- | ----------------------------------------------------------------------------------- |
-| Install                         | `pnpm install` (CI: `pnpm install --frozen-lockfile`)                               |
-| Run the app (hot reload)        | `pnpm dev`                                                                          |
-| Build all packages              | `pnpm build`                                                                        |
-| Lint (ESLint + Prettier + knip) | `pnpm lint`                                                                         |
-| Format                          | `pnpm format`                                                                       |
-| Typecheck                       | `pnpm typecheck`                                                                    |
-| Unit + integration tests        | `pnpm test`                                                                         |
-| Coverage (100% gate)            | `pnpm test:coverage`                                                                |
-| E2E tests                       | `xvfb-run -a pnpm test:e2e` on Linux when available, else `pnpm test:e2e`           |
-| Mutation tests (≥ 90%)          | `pnpm test:mutation` (PR CI mutates changed in-scope files only)                    |
-| Commit messages                 | `pnpm commitlint`                                                                   |
-| License compatibility           | `pnpm check:licenses`                                                               |
-| Vulnerability audit             | `pnpm audit --audit-level high`                                                     |
-| Docs site (dev / build)         | `pnpm docs:dev` / `pnpm docs:build`                                                 |
-| Package installers for this OS  | `pnpm package` (output in `apps/desktop/release/`)                                  |
-| Smoke-test an installed package | `YAPYAP_PACKAGED_EXECUTABLE=<path> pnpm test:smoke`                                 |
-| Verify hardened fuses           | `node scripts/src/bin/verify-fuses.ts <executable or .app>`                         |
-| Flatpak bundle (Linux)          | See the `flatpak` job in `.github/workflows/ci.yml`; it runs in Flathub's container |
+| Task                            | Command                                                                                  |
+| ------------------------------- | ---------------------------------------------------------------------------------------- |
+| Install                         | `pnpm install` (CI: `pnpm install --frozen-lockfile`)                                    |
+| Run the app (hot reload)        | `pnpm dev`                                                                               |
+| Build all packages              | `pnpm build`                                                                             |
+| Lint (ESLint + Prettier + knip) | `pnpm lint`                                                                              |
+| Format                          | `pnpm format`                                                                            |
+| Typecheck                       | `pnpm typecheck`                                                                         |
+| Unit + integration tests        | `pnpm test`                                                                              |
+| Coverage (100% gate)            | `pnpm test:coverage`                                                                     |
+| E2E tests                       | `xvfb-run -a pnpm test:e2e` on Linux when available, else `pnpm test:e2e`                |
+| Mutation tests (≥ 90%)          | `pnpm test:mutation` (PR CI mutates changed in-scope files only)                         |
+| Commit messages                 | `pnpm commitlint`                                                                        |
+| License compatibility           | `pnpm check:licenses`                                                                    |
+| Vulnerability audit             | `pnpm audit --audit-level high`                                                          |
+| Docs site (dev / build)         | `pnpm docs:dev` / `pnpm docs:build`                                                      |
+| Package installers for this OS  | `pnpm package` (output in `apps/desktop/release/`)                                       |
+| Smoke-test an installed package | `YAPYAP_PACKAGED_EXECUTABLE=<path> pnpm test:smoke`                                      |
+| Verify hardened fuses           | `node scripts/src/bin/verify-fuses.ts <executable or .app>`                              |
+| Flatpak bundle (Linux)          | See the `flatpak` job in `.github/workflows/package.yml`; it runs in Flathub's container |
 
 Update this table in the PR that adds a command.
 
@@ -53,6 +53,7 @@ Update this table in the PR that adds a command.
 | Docs             | `docs/`                                           | VitePress site, ADRs in `docs/adr/`                                                     |
 | Repo automation  | `scripts/`                                        | Tested automation such as pinned-version checks; entries in `scripts/src/bin/`          |
 | Packaging        | `apps/desktop/electron-builder.yml`, `packaging/` | electron-builder targets, fuses, desktop entry, AppStream metainfo                      |
+| Release pipeline | `.github/workflows/{package,smoke,release}.yml`   | CI and releases share packaging and smoke tests; releases add signing, SBOM, provenance |
 
 ## Non-negotiable rules
 
@@ -136,6 +137,8 @@ Update this table in the PR that adds a command.
 - Scripts run under Node's type stripping, so only erasable TypeScript is
   allowed (no enums, no constructor parameter properties). `erasableSyntaxOnly`
   enforces this.
+- Jobs in reusable workflows report as `<caller job> / <job>`, for example
+  `Package / Package (macos)`. Use that full name in the ruleset.
 - Flatpak lint exceptions live in `packaging/flatpak/lint-exceptions.json`,
   each with its reason and issue. Remove an entry as soon as its issue lands.
 - Packaged builds disable the Node inspector fuse, so Playwright's Electron

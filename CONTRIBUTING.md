@@ -132,6 +132,21 @@ PR open on `master` and updates it from Conventional Commits. Merging that PR
 tags `vX.Y.Z`, updates `CHANGELOG.md` and creates the GitHub Release, which
 starts the release build. Never tag by hand.
 
+The release build (`.github/workflows/release.yml`) reuses the same packaging
+(`package.yml`) and smoke tests (`smoke.yml`) as pull requests:
+
+1. Every package format is built for every architecture, with the release
+   stamped into the AppStream metainfo. Builds are signed and notarized only
+   with the secrets that exist; missing ones produce a notice and unsigned
+   builds.
+2. Every package is installed and launched against the fake WhatsApp page.
+3. The installers, the Flatpak bundles, the auto-update metadata
+   (`latest*.yml` and `.blockmap` files), a CycloneDX SBOM and `SHA256SUMS`
+   are attached to the release, with signed build provenance attestations.
+
+The release page exists for about 40 minutes before its assets arrive, so the
+updater must treat a release without update metadata as "no update yet".
+
 The first release is v0.1.0 (`initial-version`). The release PR stays open
 until the milestone that ships it is complete. Before 1.0, `feat` commits
 bump the patch version. To ship a milestone release such as v0.2.0, add a

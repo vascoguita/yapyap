@@ -78,16 +78,16 @@
             "context": "Docs build"
           },
           {
-            "context": "Package (linux-x64)"
+            "context": "Package / Package (linux-x64)"
           },
           {
-            "context": "Package (linux-arm64)"
+            "context": "Package / Package (linux-arm64)"
           },
           {
-            "context": "Package (windows)"
+            "context": "Package / Package (windows)"
           },
           {
-            "context": "Package (macos)"
+            "context": "Package / Package (macos)"
           },
           {
             "context": "Smoke / Smoke (appimage-x64)"
@@ -126,10 +126,10 @@
             "context": "Smoke / Smoke (dmg-universal)"
           },
           {
-            "context": "Flatpak (x86_64)"
+            "context": "Package / Flatpak (x86_64)"
           },
           {
-            "context": "Flatpak (aarch64)"
+            "context": "Package / Flatpak (aarch64)"
           },
           {
             "context": "Smoke / Smoke (flatpak-x86_64)"
