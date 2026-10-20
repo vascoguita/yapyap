@@ -25,6 +25,8 @@ async function savedHardwareAcceleration(profile: string): Promise<unknown> {
 }
 
 test('puts Settings in the menu on the conventional shortcut', async ({ app }) => {
+  // The menu is set just before the WhatsApp window is created.
+  await app.firstWindow();
   const accelerator = await app.evaluate(
     ({ Menu }) =>
       Menu.getApplicationMenu()
