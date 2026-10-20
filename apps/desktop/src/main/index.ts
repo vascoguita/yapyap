@@ -23,6 +23,7 @@ import { CHROME_PARTITION, createChromeFeature } from './chrome/feature.ts';
 import { openSettings } from './settings/service.ts';
 import { electronCapture } from './permissions/electron-capture.ts';
 import { askMediaWithDialog } from './permissions/media-prompt.ts';
+import { confirmResetWithDialog } from './session-reset-prompt.ts';
 import { startApp } from './start.ts';
 import { createSecureOverlay, createSecureWindow } from './windows.ts';
 
@@ -69,6 +70,7 @@ const chrome = createChromeFeature({
     app.relaunch();
     app.quit();
   },
+  confirmReset: confirmResetWithDialog,
   captureSources: () =>
     desktopCapturer.getSources({ types: ['screen', 'window'], thumbnailSize: PICKER_THUMBNAIL }),
   // The picker's owner is a web contents Electron itself handed to the capture handler.

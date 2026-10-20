@@ -4,6 +4,20 @@ import { PRODUCT_NAME } from './identity.ts';
 export interface MenuActions {
   readonly openAbout: () => void;
   readonly openSettings: () => void;
+  readonly clearCache: () => void;
+  readonly resetSession: () => void;
+}
+
+/** Maintenance for the WhatsApp account, for when it misbehaves. */
+function accountMenu(actions: MenuActions): MenuItemConstructorOptions {
+  return {
+    label: '&Account',
+    submenu: [
+      { label: 'Clear Cache and Reload', click: actions.clearCache },
+      { type: 'separator' },
+      { label: 'Reset Session…', click: actions.resetSession },
+    ],
+  };
 }
 
 /**
@@ -34,9 +48,9 @@ export function buildMenuTemplate(
       label: '&File',
       submenu: [settings, { type: 'separator' }, { role: 'quit' }],
     };
-    return [file, ...standard, { role: 'help', submenu: [about] }];
+    return [file, accountMenu(actions), ...standard, { role: 'help', submenu: [about] }];
   }
-  return [macAppMenu(about, settings), { role: 'fileMenu' }, ...standard];
+  return [macAppMenu(about, settings), { role: 'fileMenu' }, accountMenu(actions), ...standard];
 }
 
 function macAppMenu(
