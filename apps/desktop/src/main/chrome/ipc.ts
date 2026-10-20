@@ -11,11 +11,16 @@ export interface IpcMainPort {
   handle(channel: string, listener: (event: IpcInvokeEvent, ...args: unknown[]) => unknown): void;
 }
 
+/** Who called, so an operation can act on the caller's own window. */
+export interface ChromeCall {
+  readonly sender: object;
+}
+
 export interface ChromeHandler {
   readonly channel: string;
   /** Rejects any payload the operation does not expect. */
   readonly accepts: (args: readonly unknown[]) => boolean;
-  readonly handle: (...args: unknown[]) => unknown;
+  readonly handle: (call: ChromeCall, ...args: unknown[]) => unknown;
 }
 
 /** For operations that take no arguments. */
@@ -43,7 +48,7 @@ export function registerChromeHandlers(
         warn(`Rejected an IPC call on ${channel}.`);
         throw new Error(`Rejected an IPC call on ${channel}.`);
       }
-      return handle(...args);
+      return handle({ sender: event.sender }, ...args);
     });
   }
 }

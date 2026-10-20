@@ -8,7 +8,7 @@ import { CHROME_PARTITION, createChromeFeature } from './chrome/feature.ts';
 import { electronCapture } from './permissions/electron-capture.ts';
 import { askMediaWithDialog } from './permissions/media-prompt.ts';
 import { startApp } from './start.ts';
-import { createSecureWindow } from './windows.ts';
+import { createSecureOverlay, createSecureWindow } from './windows.ts';
 
 const chrome = createChromeFeature({
   registerSchemesAsPrivileged: (schemes) => {
@@ -40,6 +40,7 @@ const chrome = createChromeFeature({
 startApp({
   app,
   createWindow: (options) => createSecureWindow(options),
+  createOverlay: (window, renderer) => createSecureOverlay(window, renderer),
   defaultSession: () => session.defaultSession,
   askMedia: askMediaWithDialog,
   capture: electronCapture(process.platform, process.env),

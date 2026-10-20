@@ -15,6 +15,11 @@ function fakeContents() {
     }),
     setWindowOpenHandler: vi.fn(),
     loadURL: vi.fn(() => Promise.resolve()),
+    executeJavaScriptInIsolatedWorld: vi.fn(() => Promise.resolve()),
+    session: {
+      clearCache: vi.fn(() => Promise.resolve()),
+      clearStorageData: vi.fn(() => Promise.resolve()),
+    },
   };
   const fire = (event: string, ...args: unknown[]): void => {
     for (const listener of handlers.get(event) ?? []) listener(...(args as never[]));
@@ -41,6 +46,7 @@ function fakes(env: Record<string, string | undefined> = {}) {
     loadURL: vi.fn(() => Promise.resolve()),
   } satisfies WindowPort;
   const createWindow = vi.fn<(options: WindowOptions) => WindowPort>(() => window);
+  const runtime = { attachRecovery: vi.fn() };
   const warn = vi.fn();
   const openExternal = vi.fn(() => Promise.resolve());
   const session = {
@@ -57,6 +63,7 @@ function fakes(env: Record<string, string | undefined> = {}) {
   };
   return {
     app,
+    runtime,
     window,
     web,
     session,
@@ -64,7 +71,8 @@ function fakes(env: Record<string, string | undefined> = {}) {
     defaultSession: () => session,
     askMedia: vi.fn(() => Promise.resolve(true)),
     capture,
-    chrome: { beforeReady: vi.fn(), afterReady: vi.fn() },
+    chrome: { beforeReady: vi.fn(), afterReady: vi.fn(() => runtime) },
+    createOverlay: vi.fn(),
     warn,
     openExternal,
     env,
@@ -119,6 +127,21 @@ describe('startApp', () => {
     });
     await startApp(f);
     expect(f.chrome.afterReady).toHaveBeenCalledExactlyOnceWith(expect.any(WeakMap), f.warn);
+  });
+
+  it('watches the WhatsApp window and lays the recovery screen over that window', async () => {
+    const f = fakes();
+    await startApp(f);
+    expect(f.runtime.attachRecovery).toHaveBeenCalledExactlyOnceWith(
+      f.web.contents,
+      WHATSAPP_ORIGIN,
+      expect.any(Function),
+    );
+    const [[, , createOverlay]] = f.runtime.attachRecovery.mock.calls as [
+      [unknown, unknown, (renderer: object) => unknown],
+    ];
+    createOverlay({ preload: '/p.cjs' });
+    expect(f.createOverlay).toHaveBeenCalledExactlyOnceWith(f.window, { preload: '/p.cjs' });
   });
 
   it('applies the permission policy to the default session and to every new session', async () => {
@@ -203,6 +226,12 @@ describe('startApp', () => {
     expect(f.app.quit).not.toHaveBeenCalled();
     f.listeners.get('window-all-closed')?.();
     expect(f.app.quit).toHaveBeenCalledOnce();
+  });
+
+  it('keeps running when WhatsApp fails to load, leaving it to the recovery screen', async () => {
+    const f = fakes();
+    f.window.loadURL.mockRejectedValueOnce(new Error('ERR_CONNECTION_REFUSED'));
+    await expect(startApp(f)).resolves.toBeUndefined();
   });
 
   it('loads a loopback test origin when one is configured', async () => {

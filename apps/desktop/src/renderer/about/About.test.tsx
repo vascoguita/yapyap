@@ -22,6 +22,12 @@ function api(overrides: Partial<ChromeApi['about']> = {}): ChromeApi {
       copyTechnicalDetails: vi.fn(() => Promise.resolve()),
       ...overrides,
     },
+    recovery: {
+      problem: vi.fn(),
+      retry: vi.fn(),
+      clearCache: vi.fn(),
+      copyDiagnostics: vi.fn(),
+    },
   };
 }
 

@@ -26,7 +26,9 @@ be a stock, current Chromium with a matching user agent.
 
 One `BaseWindow` holds a chrome `WebContentsView` (sidebar and overlays) and
 one `WebContentsView` per account. Only the active account's view is attached;
-inactive accounts stay loaded so they keep receiving notifications. Each
+inactive accounts stay loaded so they keep receiving notifications. Full-window
+chrome screens, such as recovery, are chrome views laid over the account view
+(`createSecureOverlay`). Each
 account uses its own persistent session partition `persist:account-<uuid>`, so
 cookies, IndexedDB, service workers and cache never cross accounts.
 
