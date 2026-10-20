@@ -64,6 +64,7 @@ function fakes(env: Record<string, string | undefined> = {}) {
     defaultSession: () => session,
     askMedia: vi.fn(() => Promise.resolve(true)),
     capture,
+    chrome: { beforeReady: vi.fn(), afterReady: vi.fn() },
     warn,
     openExternal,
     env,
@@ -107,6 +108,17 @@ describe('startApp', () => {
     other.fire('will-attach-webview', attach);
     expect(attach.preventDefault).toHaveBeenCalledOnce();
     expect(other.contents.setWindowOpenHandler).toHaveBeenCalledOnce();
+  });
+
+  it('registers the chrome scheme before the app is ready and serves chrome after', async () => {
+    const f = fakes();
+    f.app.whenReady.mockImplementationOnce(() => {
+      expect(f.chrome.beforeReady).toHaveBeenCalledOnce();
+      expect(f.chrome.afterReady).not.toHaveBeenCalled();
+      return Promise.resolve();
+    });
+    await startApp(f);
+    expect(f.chrome.afterReady).toHaveBeenCalledExactlyOnceWith(expect.any(WeakMap), f.warn);
   });
 
   it('applies the permission policy to the default session and to every new session', async () => {

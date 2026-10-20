@@ -1,0 +1,55 @@
+import type { AboutInfo } from '../../shared/chrome-api.ts';
+import { PRODUCT_NAME } from '../identity.ts';
+
+export interface RuntimeFacts {
+  readonly version: string;
+  readonly channel: string;
+  readonly versions: {
+    readonly electron?: string;
+    readonly chrome?: string;
+    readonly node: string;
+  };
+  readonly platform: string;
+  readonly release: string;
+  readonly arch: string;
+}
+
+export function buildAboutInfo(facts: RuntimeFacts): AboutInfo {
+  return {
+    name: PRODUCT_NAME,
+    version: facts.version,
+    channel: facts.channel,
+    electron: facts.versions.electron ?? 'unknown',
+    chromium: facts.versions.chrome ?? 'unknown',
+    node: facts.versions.node,
+    os: `${facts.platform} ${facts.release} (${facts.arch})`,
+    license: 'MIT',
+  };
+}
+
+/** Plain text for bug reports. It holds no account or personal data. */
+export function formatTechnicalDetails(info: AboutInfo): string {
+  return [
+    `${info.name} ${info.version} (${info.channel})`,
+    `Electron ${info.electron}`,
+    `Chromium ${info.chromium}`,
+    `Node.js ${info.node}`,
+    `OS ${info.os}`,
+  ].join('\n');
+}
+
+/**
+ * Packaging stamps the install channel into the app's package.json (ADR
+ * 0003). Builds run from source have no channel, and may have no
+ * package.json next to the app at all.
+ */
+export function readInstallChannel(readPackageJson: () => string): string {
+  let channel: unknown;
+  try {
+    channel = (Object(JSON.parse(readPackageJson())) as { installChannel?: unknown })
+      .installChannel;
+  } catch {
+    channel = undefined;
+  }
+  return typeof channel === 'string' && channel !== '' ? channel : 'development';
+}
