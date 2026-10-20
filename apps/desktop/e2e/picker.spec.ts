@@ -52,3 +52,15 @@ test('denies the request when the user closes the picker with Escape', async ({ 
   await picker.keyboard.down('Escape');
   await expect(window.getByTestId('share-result')).toHaveText('NotAllowedError');
 });
+
+test('quits cleanly while the picker is open', async ({ app, window }) => {
+  await requestShare(app, window);
+  const exited = new Promise((resolve) => app.process().once('exit', resolve));
+  // Quits after answering, so the call returns before the app goes away.
+  await app.evaluate(({ app: electronApp }) => {
+    setTimeout(() => {
+      electronApp.quit();
+    });
+  });
+  await exited;
+});

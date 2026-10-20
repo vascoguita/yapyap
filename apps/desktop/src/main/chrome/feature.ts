@@ -2,7 +2,7 @@ import type { MenuItemConstructorOptions } from 'electron';
 import { CHROME_CHANNELS } from '../../shared/chrome-api.ts';
 import { buildAboutInfo, formatTechnicalDetails, type RuntimeFacts } from '../about/about-info.ts';
 import { createSourcePicker, type DesktopSource, type SourcePicker } from '../capture/picker.ts';
-import { buildMenuTemplate } from '../menu.ts';
+import { buildMenuTemplate, type MenuActions } from '../menu.ts';
 import {
   createRecovery,
   type Overlay,
@@ -90,6 +90,8 @@ export interface ChromeFeatureDependencies {
   readonly settings: SettingsService;
   /** Quits and starts YapYap again, to apply settings that need a restart. */
   readonly restart: () => void;
+  /** Asks before logging the account out; true when the user agrees. */
+  readonly confirmReset: () => Promise<boolean>;
   readonly captureSources: () => Promise<readonly DesktopSource[]>;
   /** The window showing `contents`, so the picker can sit on top of it. */
   readonly windowOf: (contents: object) => WindowOptions['parent'] | null;
@@ -192,13 +194,17 @@ function sourcePicker(
   return createSourcePicker({
     getSources: deps.captureSources,
     offerAudio: deps.platform === 'win32',
+    wait: (ms) =>
+      new Promise((resolve) => {
+        setTimeout(resolve, ms);
+      }),
     openPicker: (owner) => {
       const parent = deps.windowOf(owner);
       const window = openChromeWindow(windows, PICKER_PAGE, parent == null ? {} : { parent });
       return {
         webContents: window.webContents,
         close: () => {
-          window.close();
+          if (!window.isDestroyed()) window.close();
         },
         onClosed: (listener) => {
           window.once('closed', listener);
@@ -208,6 +214,28 @@ function sourcePicker(
   });
 }
 
+/** Acts on the WhatsApp view; there is one per window until accounts arrive. */
+function accountActions(
+  deps: ChromeFeatureDependencies,
+  recoveries: readonly Recovery[],
+  warn: (message: string) => void,
+): Pick<MenuActions, 'clearCache' | 'resetSession'> {
+  const failed = (): void => {
+    warn('Could not finish an account maintenance action.');
+  };
+  return {
+    clearCache: () => {
+      recoveries[0]?.clearCacheAndRetry().catch(failed);
+    },
+    resetSession: () => {
+      deps
+        .confirmReset()
+        .then((confirmed) => (confirmed ? recoveries[0]?.resetSession() : undefined))
+        .catch(failed);
+    },
+  };
+}
+
 function chromeWindows(
   deps: ChromeFeatureDependencies,
   renderer: RendererOptions,
@@ -215,6 +243,22 @@ function chromeWindows(
   warn: (message: string) => void,
 ): ChromeWindowDependencies {
   return { createWindow: (options) => deps.createWindow(options, renderer), views, warn };
+}
+
+function setMenu(
+  deps: ChromeFeatureDependencies,
+  windows: ChromeWindowDependencies,
+  recoveries: readonly Recovery[],
+  warn: (message: string) => void,
+): void {
+  const opener = (page: ChromePage) => createChromeWindowOpener(windows, page);
+  deps.setMenu(
+    buildMenuTemplate(deps.platform, {
+      openAbout: opener(ABOUT_PAGE),
+      openSettings: opener(SETTINGS_PAGE),
+      ...accountActions(deps, recoveries, warn),
+    }),
+  );
 }
 
 export function createChromeFeature(deps: ChromeFeatureDependencies): ChromeFeature {
@@ -243,13 +287,7 @@ export function createChromeFeature(deps: ChromeFeatureDependencies): ChromeFeat
         ],
         warn,
       );
-      const opener = (page: ChromePage) => createChromeWindowOpener(windows, page);
-      deps.setMenu(
-        buildMenuTemplate(deps.platform, {
-          openAbout: opener(ABOUT_PAGE),
-          openSettings: opener(SETTINGS_PAGE),
-        }),
-      );
+      setMenu(deps, windows, recoveries, warn);
       return {
         attachRecovery: recoveryAttacher(withGraphics, renderer, views, warn, recoveries),
         pickCaptureSource: picker.pick,

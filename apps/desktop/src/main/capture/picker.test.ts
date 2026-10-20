@@ -21,7 +21,11 @@ function fakeWindow() {
     onClosed: vi.fn((listener: () => void) => {
       closed = listener;
     }),
-  } satisfies PickerWindow;
+    /** Closed by the user or the OS, not by the picker. */
+    closeFromOutside: () => {
+      closed();
+    },
+  } satisfies PickerWindow & { closeFromOutside: () => void };
   return window;
 }
 
@@ -31,8 +35,11 @@ function setup(offerAudio = false) {
     .fn<(owner: object) => PickerWindow>()
     .mockReturnValueOnce(windows[0] as PickerWindow)
     .mockReturnValueOnce(windows[1] as PickerWindow);
-  const getSources = vi.fn(() => Promise.resolve([SCREEN, WINDOW]));
-  const picker = createSourcePicker({ getSources, openPicker, offerAudio });
+  const getSources = vi.fn<() => Promise<readonly DesktopSource[]>>(() =>
+    Promise.resolve([SCREEN, WINDOW]),
+  );
+  const wait = vi.fn(() => Promise.resolve());
+  const picker = createSourcePicker({ getSources, openPicker, offerAudio, wait });
   const handler = (channel: string): ChromeHandler => {
     const found = picker.handlers.find((candidate) => candidate.channel === channel);
     if (found === undefined) throw new Error(channel);
@@ -40,7 +47,7 @@ function setup(offerAudio = false) {
   };
   const [first] = windows;
   const from = (window = first) => ({ sender: window?.webContents ?? {} });
-  return { picker, windows, openPicker, getSources, handler, from };
+  return { picker, windows, openPicker, getSources, wait, handler, from };
 }
 
 const settle = () => new Promise((resolve) => setTimeout(resolve));
@@ -106,6 +113,35 @@ describe('createSourcePicker', () => {
     await settle();
     t.windows[1]?.close();
     expect(await closed).toBeUndefined();
+  });
+
+  it('denies when the window is closed from outside, without closing it again', async () => {
+    const t = setup();
+    const pending = t.picker.pick({});
+    await settle();
+    t.windows[0]?.closeFromOutside();
+    expect(await pending).toBeUndefined();
+    expect(t.windows[0]?.close).not.toHaveBeenCalled();
+  });
+
+  it('asks again briefly when the system lists no sources at first', async () => {
+    const t = setup();
+    t.getSources.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+    void t.picker.pick({});
+    await settle();
+    expect(t.getSources).toHaveBeenCalledTimes(3);
+    expect(t.wait.mock.calls).toEqual([[300], [300]]);
+    const offer = t.handler('picker:offer').handle(t.from()) as { sources: unknown[] };
+    expect(offer.sources).toHaveLength(2);
+  });
+
+  it('offers an empty list after three empty answers', async () => {
+    const t = setup();
+    t.getSources.mockResolvedValue([]);
+    void t.picker.pick({});
+    await settle();
+    expect(t.getSources).toHaveBeenCalledTimes(3);
+    expect(t.handler('picker:offer').handle(t.from())).toEqual({ sources: [], offerAudio: false });
   });
 
   it('denies a second request while a picker is open', async () => {

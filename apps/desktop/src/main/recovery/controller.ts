@@ -13,7 +13,8 @@ export interface RecoverableContents {
   loadURL(url: string): Promise<unknown>;
   readonly session: {
     clearCache(): Promise<void>;
-    clearStorageData(options: { storages: ('serviceworkers' | 'cachestorage')[] }): Promise<void>;
+    /** Without options, clears every kind of storage, including the login. */
+    clearStorageData(options?: { storages: ('serviceworkers' | 'cachestorage')[] }): Promise<void>;
   };
 }
 
@@ -35,6 +36,8 @@ export interface Recovery {
   readonly problem: () => RecoveryProblem | null;
   readonly retry: () => Promise<void>;
   readonly clearCacheAndRetry: () => Promise<void>;
+  /** Deletes all of the account's site data, which logs it out, and reloads. */
+  readonly resetSession: () => Promise<void>;
   readonly copyDiagnostics: () => Promise<unknown>;
   /** Retries on its own only when WhatsApp could not be reached. */
   readonly reconnect: () => void;
@@ -44,6 +47,12 @@ export interface Recovery {
 async function clearSiteCache(contents: RecoverableContents): Promise<void> {
   await contents.session.clearCache();
   await contents.session.clearStorageData({ storages: ['serviceworkers', 'cachestorage'] });
+}
+
+/** Deletes cookies, storage and caches alike, which logs the account out. */
+async function clearAllSiteData(contents: RecoverableContents): Promise<void> {
+  await contents.session.clearStorageData();
+  await contents.session.clearCache();
 }
 
 /** Shows the recovery screen over a WhatsApp window and carries out its actions. */
@@ -73,10 +82,8 @@ export function createRecovery(deps: RecoveryDependencies): Recovery {
         ? null
         : { kind: current.failure.kind, description: describeFailure(current.failure) },
     retry,
-    clearCacheAndRetry: async () => {
-      await clearSiteCache(deps.contents);
-      await retry();
-    },
+    clearCacheAndRetry: () => clearSiteCache(deps.contents).then(retry),
+    resetSession: () => clearAllSiteData(deps.contents).then(retry),
     reconnect: () => {
       if (current?.failure.kind === 'load-failed') void retry();
     },

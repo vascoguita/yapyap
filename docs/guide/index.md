@@ -63,3 +63,14 @@ selected until you choose. On Windows you can also tick **Also share system
 audio**. On Wayland and macOS 15 and later, your system's own picker asks
 instead. Cancelling, closing the picker or pressing <kbd>Esc</kbd> shares
 nothing.
+
+## When WhatsApp misbehaves
+
+The **Account** menu has two maintenance actions:
+
+- **Clear Cache and Reload** removes WhatsApp's cached files and service
+  worker, then reloads. You stay logged in, so try this first when WhatsApp
+  looks broken or will not update.
+- **Reset Session…** logs you out and deletes WhatsApp's data on this
+  computer. YapYap asks first. Your chats stay on your phone; link this
+  device again to continue.

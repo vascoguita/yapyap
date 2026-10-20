@@ -3,8 +3,17 @@ import { describe, expect, it, vi } from 'vitest';
 import { buildMenuTemplate } from './menu.ts';
 
 function actions() {
-  return { openAbout: vi.fn(), openSettings: vi.fn() };
+  return { openAbout: vi.fn(), openSettings: vi.fn(), clearCache: vi.fn(), resetSession: vi.fn() };
 }
+
+const ACCOUNT = (a: ReturnType<typeof actions>) => ({
+  label: '&Account',
+  submenu: [
+    { label: 'Clear Cache and Reload', click: a.clearCache },
+    { type: 'separator' },
+    { label: 'Reset Session…', click: a.resetSession },
+  ],
+});
 
 const items = (menu: MenuItemConstructorOptions | undefined) =>
   Array.isArray(menu?.submenu) ? menu.submenu : [];
@@ -15,6 +24,7 @@ describe('buildMenuTemplate', () => {
     const template = buildMenuTemplate('linux', a);
     expect(template.map((item) => item.role ?? item.label)).toEqual([
       '&File',
+      '&Account',
       'editMenu',
       'viewMenu',
       'windowMenu',
@@ -26,6 +36,7 @@ describe('buildMenuTemplate', () => {
       { role: 'quit' },
     ]);
     expect(items(template.at(-1))).toEqual([{ label: 'About YapYap', click: a.openAbout }]);
+    expect(template[1]).toEqual(ACCOUNT(a));
   });
 
   it('puts About and Settings in the app menu on macOS', () => {
@@ -52,11 +63,13 @@ describe('buildMenuTemplate', () => {
       'separator',
       'quit',
     ]);
-    expect(rest.map((item) => item.role)).toEqual([
+    expect(rest.map((item) => item.role ?? item.label)).toEqual([
       'fileMenu',
+      '&Account',
       'editMenu',
       'viewMenu',
       'windowMenu',
     ]);
+    expect(rest[1]).toEqual(ACCOUNT(a));
   });
 });

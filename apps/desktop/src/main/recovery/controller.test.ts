@@ -96,6 +96,16 @@ describe('createRecovery', () => {
     expect(t.deps.contents.loadURL).toHaveBeenCalledWith(ORIGIN);
   });
 
+  it('resets the session by clearing every kind of site data, then reloads', async () => {
+    const t = setup();
+    t.recovery.show(BLANK);
+    await t.recovery.resetSession();
+    expect(t.deps.contents.session.clearStorageData).toHaveBeenCalledExactlyOnceWith();
+    expect(t.deps.contents.session.clearCache).toHaveBeenCalledOnce();
+    expect(t.deps.contents.loadURL).toHaveBeenCalledWith(ORIGIN);
+    expect(t.recovery.problem()).toBeNull();
+  });
+
   it('reconnects on its own only when WhatsApp could not be reached', () => {
     const t = setup();
     t.recovery.reconnect();
