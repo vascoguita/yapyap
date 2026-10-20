@@ -2,7 +2,7 @@
 
 - **Current milestone:** M2 · Single-account shell
 - **Last merged PR:** #148 (app chrome and About)
-- **Next issue:** #34 (offline handling), #146 (screen-sharing picker), #32 (WhatsApp adapter)
+- **Next issue:** #146 (screen-sharing picker), #32 (WhatsApp adapter), #35 (crash recovery)
 - **Open blockers:** #22 (`AUTOMATION_TOKEN`), #23, #24, #25, #26, #138 need maintainer-provided secrets or settings (pipelines skip those steps gracefully)
 
 ## Milestones

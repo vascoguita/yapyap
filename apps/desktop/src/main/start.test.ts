@@ -43,11 +43,21 @@ function fakes(env: Record<string, string | undefined> = {}) {
   const window = {
     webContents: web.contents,
     once: vi.fn((event: string, listener: () => void) => listeners.set(event, listener)),
+    on: vi.fn(),
+    setTitle: vi.fn(),
     show: vi.fn(),
     loadURL: vi.fn(() => Promise.resolve()),
   } satisfies WindowPort;
   const createWindow = vi.fn<(options: WindowOptions) => WindowPort>(() => window);
-  const runtime = { attachRecovery: vi.fn() };
+  const runtime = {
+    attachRecovery: vi.fn<
+      (
+        contents: unknown,
+        origin: string,
+        createOverlay: (renderer: object) => unknown,
+      ) => { reconnect: () => void }
+    >(() => ({ reconnect: vi.fn() })),
+  };
   const warn = vi.fn();
   const openExternal = vi.fn(() => Promise.resolve());
   const session = {
@@ -80,6 +90,8 @@ function fakes(env: Record<string, string | undefined> = {}) {
     createOverlay: vi.fn(),
     warn,
     openExternal,
+    isOnline: vi.fn(() => true),
+    onResume: vi.fn(),
     env,
     listeners,
   };
@@ -245,6 +257,20 @@ describe('startApp', () => {
     expect(f.app.quit).not.toHaveBeenCalled();
     f.listeners.get('window-all-closed')?.();
     expect(f.app.quit).toHaveBeenCalledOnce();
+  });
+
+  it('marks the title while offline and reconnects when the system wakes', async () => {
+    vi.useFakeTimers();
+    const f = fakes();
+    const reconnect = vi.fn();
+    f.runtime.attachRecovery.mockReturnValueOnce({ reconnect });
+    f.isOnline.mockReturnValue(false);
+    await startApp(f);
+    expect(f.window.setTitle).toHaveBeenCalledWith('YapYap (offline)');
+    const [[resume]] = f.onResume.mock.calls as [[() => void]];
+    resume();
+    vi.runOnlyPendingTimers();
+    expect(reconnect).toHaveBeenCalled();
   });
 
   it('keeps running when WhatsApp fails to load, leaving it to the recovery screen', async () => {

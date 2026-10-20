@@ -1,4 +1,14 @@
-import { app, clipboard, ipcMain, Menu, protocol, session, shell } from 'electron';
+import {
+  app,
+  clipboard,
+  ipcMain,
+  Menu,
+  net,
+  powerMonitor,
+  protocol,
+  session,
+  shell,
+} from 'electron';
 import { readFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { release } from 'node:os';
@@ -49,6 +59,10 @@ startApp({
   platform: process.platform,
   env: process.env,
   openExternal: (url) => shell.openExternal(url),
+  isOnline: () => net.isOnline(),
+  onResume: (listener) => {
+    powerMonitor.on('resume', listener);
+  },
   warn: (message) => {
     console.warn(message);
   },

@@ -96,6 +96,17 @@ describe('createRecovery', () => {
     expect(t.deps.contents.loadURL).toHaveBeenCalledWith(ORIGIN);
   });
 
+  it('reconnects on its own only when WhatsApp could not be reached', () => {
+    const t = setup();
+    t.recovery.reconnect();
+    t.recovery.show(BLANK);
+    t.recovery.reconnect();
+    expect(t.deps.contents.loadURL).not.toHaveBeenCalled();
+    t.recovery.show({ kind: 'load-failed', code: -106, description: 'ERR_INTERNET_DISCONNECTED' });
+    t.recovery.reconnect();
+    expect(t.deps.contents.loadURL).toHaveBeenCalledExactlyOnceWith(ORIGIN);
+  });
+
   it('copies the technical details with the current problem', async () => {
     const t = setup();
     await t.recovery.copyDiagnostics();
