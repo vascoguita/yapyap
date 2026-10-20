@@ -4,7 +4,7 @@ import { expect, test } from './fixtures.ts';
 async function clickAccountItem(app: ElectronApplication, label: string): Promise<void> {
   await app.evaluate(({ Menu }, wanted) => {
     Menu.getApplicationMenu()
-      ?.items.find((menu) => menu.label.replace('&', '') === 'Account')
+      ?.items.find((menu) => menu.label.replaceAll('&', '') === 'Account')
       ?.submenu?.items.find((item) => item.label === wanted)
       ?.click();
   }, label);

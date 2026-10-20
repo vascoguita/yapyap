@@ -214,8 +214,41 @@ describe('createChromeFeature', () => {
     expect(t.window.close).toHaveBeenCalledOnce();
   });
 
+  it('never closes a picker window that is already destroyed', async () => {
+    const t = setup();
+    t.deps.captureSources.mockResolvedValueOnce([
+      { id: 'screen:1:0', name: 'Screen', thumbnail: { toDataURL: () => 'data:' } },
+    ]);
+    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    const choice = runtime.pickCaptureSource({});
+    await new Promise((resolve) => setTimeout(resolve));
+    t.window.isDestroyed = () => true;
+    t.call('picker:cancel');
+    expect(await choice).toBeUndefined();
+    expect(t.window.close).not.toHaveBeenCalled();
+  });
+
+  it('waits between attempts when the system lists no sources at first', async () => {
+    vi.useFakeTimers();
+    try {
+      const t = setup();
+      t.deps.captureSources.mockResolvedValueOnce([]);
+      const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+      void runtime.pickCaptureSource({});
+      await vi.advanceTimersByTimeAsync(299);
+      expect(t.deps.captureSources).toHaveBeenCalledOnce();
+      await vi.advanceTimersByTimeAsync(1);
+      expect(t.deps.captureSources).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('opens the picker as a plain window when the requester has none', async () => {
     const t = setup();
+    t.deps.captureSources.mockResolvedValueOnce([
+      { id: 'screen:1:0', name: 'Screen', thumbnail: { toDataURL: () => 'data:' } },
+    ]);
     const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
     void runtime.pickCaptureSource({});
     await new Promise((resolve) => setTimeout(resolve));

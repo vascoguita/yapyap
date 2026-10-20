@@ -194,13 +194,17 @@ function sourcePicker(
   return createSourcePicker({
     getSources: deps.captureSources,
     offerAudio: deps.platform === 'win32',
+    wait: (ms) =>
+      new Promise((resolve) => {
+        setTimeout(resolve, ms);
+      }),
     openPicker: (owner) => {
       const parent = deps.windowOf(owner);
       const window = openChromeWindow(windows, PICKER_PAGE, parent == null ? {} : { parent });
       return {
         webContents: window.webContents,
         close: () => {
-          window.close();
+          if (!window.isDestroyed()) window.close();
         },
         onClosed: (listener) => {
           window.once('closed', listener);

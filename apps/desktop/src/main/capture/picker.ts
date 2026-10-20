@@ -20,6 +20,20 @@ export interface SourcePickerDependencies {
   readonly openPicker: (owner: object) => PickerWindow;
   /** System audio can only be captured on Windows. */
   readonly offerAudio: boolean;
+  readonly wait: (ms: number) => Promise<void>;
+}
+
+/** desktopCapturer sometimes lists nothing for a moment, such as right after a display change. */
+const SOURCE_ATTEMPTS = 3;
+const SOURCE_RETRY_MS = 300;
+
+async function listSources(deps: SourcePickerDependencies): Promise<readonly DesktopSource[]> {
+  let sources = await deps.getSources();
+  for (let attempt = 1; attempt < SOURCE_ATTEMPTS && sources.length === 0; attempt += 1) {
+    await deps.wait(SOURCE_RETRY_MS);
+    sources = await deps.getSources();
+  }
+  return sources;
 }
 
 interface ActivePick {
@@ -90,18 +104,19 @@ export function createSourcePicker(deps: SourcePickerDependencies): SourcePicker
   return {
     pick: async (owner) => {
       if (active !== undefined) return undefined;
-      const sources = await deps.getSources();
+      const sources = await listSources(deps);
       return new Promise((resolve) => {
         const window = deps.openPicker(owner);
-        const settle = (choice: CaptureChoice | undefined): void => {
+        const settle = (choice: CaptureChoice | undefined, closing = false): void => {
           if (active?.window !== window) return;
           active = undefined;
           resolve(choice);
-          window.close();
+          if (!closing) window.close();
         };
         active = { window, sources, settle };
+        // A window that is already closing must not be closed again.
         window.onClosed(() => {
-          settle(undefined);
+          settle(undefined, true);
         });
       });
     },
