@@ -48,34 +48,39 @@ jobs:
         run: |
           desktop-file-validate packaging/linux/io.github.vascoguita.YapYap.desktop
           appstreamcli validate --no-net packaging/linux/io.github.vascoguita.YapYap.metainfo.xml
-      - name: Report code signing
+      - name: Configure code signing
+        # electron-builder skips signing on pull requests but treats any defined
+        # CSC_LINK, even an empty one, as a certificate path on other events, so
+        # signing variables are exported only when a release has the secret.
         if: inputs.release
         shell: bash
         env:
-          HAS_MAC_CERTIFICATE: ${{ secrets.CSC_LINK != '' }}
-          HAS_NOTARY: ${{ secrets.APPLE_ID != '' }}
-          HAS_WINDOWS_CERTIFICATE: ${{ secrets.WIN_CSC_LINK != '' }}
+          MAC_CSC_LINK: ${{ secrets.CSC_LINK }}
+          MAC_CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
         run: |
-          if [ "$RUNNER_OS" = macOS ] && [ "$HAS_MAC_CERTIFICATE" != true ]; then
-            echo "::notice::macOS signing secrets are missing: the DMG is unsigned and does not self-update (see CONTRIBUTING)."
+          export_if_set() {
+            [ -n "$2" ] || return 1
+            { echo "$1<<YAPYAP_SECRET"; echo "$2"; echo "YAPYAP_SECRET"; } >> "$GITHUB_ENV"
+          }
+          if [ "$RUNNER_OS" = macOS ]; then
+            # electron-builder falls back to CSC_LINK on Windows, so the macOS
+            # certificate is only exported on macOS.
+            export_if_set CSC_LINK "$MAC_CSC_LINK" && export_if_set CSC_KEY_PASSWORD "$MAC_CSC_KEY_PASSWORD" ||
+              echo "::notice::macOS signing secrets are missing: the DMG is unsigned and does not self-update (see CONTRIBUTING)."
+            export_if_set APPLE_ID "$APPLE_ID" && export_if_set APPLE_APP_SPECIFIC_PASSWORD "$APPLE_APP_SPECIFIC_PASSWORD" &&
+              export_if_set APPLE_TEAM_ID "$APPLE_TEAM_ID" ||
+              echo "::notice::Apple notarization secrets are missing: the app is not notarized (see CONTRIBUTING)."
           fi
-          if [ "$RUNNER_OS" = macOS ] && [ "$HAS_NOTARY" != true ]; then
-            echo "::notice::Apple notarization secrets are missing: the app is not notarized (see CONTRIBUTING)."
-          fi
-          if [ "$RUNNER_OS" = Windows ] && [ "$HAS_WINDOWS_CERTIFICATE" != true ]; then
-            echo "::notice::Windows signing secrets are missing: installers are unsigned (see CONTRIBUTING)."
+          if [ "$RUNNER_OS" = Windows ]; then
+            export_if_set WIN_CSC_LINK "$WIN_CSC_LINK" && export_if_set WIN_CSC_KEY_PASSWORD "$WIN_CSC_KEY_PASSWORD" ||
+              echo "::notice::Windows signing secrets are missing: installers are unsigned (see CONTRIBUTING)."
           fi
       - run: pnpm package
-        env:
-          # electron-builder falls back to CSC_LINK on Windows, so the macOS
-          # certificate is only exposed to macOS runners.
-          CSC_LINK: ${{ inputs.release && runner.os == 'macOS' && secrets.CSC_LINK || '' }}
-          CSC_KEY_PASSWORD: ${{ inputs.release && runner.os == 'macOS' && secrets.CSC_KEY_PASSWORD || '' }}
-          APPLE_ID: ${{ inputs.release && runner.os == 'macOS' && secrets.APPLE_ID || '' }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ inputs.release && runner.os == 'macOS' && secrets.APPLE_APP_SPECIFIC_PASSWORD || '' }}
-          APPLE_TEAM_ID: ${{ inputs.release && runner.os == 'macOS' && secrets.APPLE_TEAM_ID || '' }}
-          WIN_CSC_LINK: ${{ inputs.release && runner.os == 'Windows' && secrets.WIN_CSC_LINK || '' }}
-          WIN_CSC_KEY_PASSWORD: ${{ inputs.release && runner.os == 'Windows' && secrets.WIN_CSC_KEY_PASSWORD || '' }}
       - name: Verify fuses (Linux)
         if: runner.os == 'Linux'
         run: node scripts/src/bin/verify-fuses.ts apps/desktop/release/linux*-unpacked/yapyap
