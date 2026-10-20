@@ -1,5 +1,7 @@
 import { APP_ID, PRODUCT_NAME } from './identity.ts';
-import { secureAllWebContents, type GuardedContents } from './security.ts';
+import type { DisplayCapturePort, MediaType, SessionPort } from './permissions/session-guard.ts';
+import { guardSession, installSecurity, type GuardedContents } from './security.ts';
+import type { ViewInfo, ViewRegistry } from './views.ts';
 import type { WindowOptions } from './windows.ts';
 import { resolveWhatsAppOrigin } from './whatsapp-origin.ts';
 
@@ -18,6 +20,7 @@ export interface AppPort {
     event: 'web-contents-created',
     listener: (event: unknown, contents: GuardedContents) => void,
   ): unknown;
+  on(event: 'session-created', listener: (session: SessionPort) => void): unknown;
   quit(): void;
 }
 
@@ -31,6 +34,9 @@ export interface WindowPort {
 export interface StartDependencies {
   readonly app: AppPort;
   readonly createWindow: (options: WindowOptions) => WindowPort;
+  readonly defaultSession: () => SessionPort;
+  readonly askMedia: (view: ViewInfo, mediaTypes: readonly MediaType[]) => Promise<boolean>;
+  readonly capture: DisplayCapturePort;
   readonly env: Readonly<Record<string, string | undefined>>;
   readonly openExternal: (url: string) => Promise<unknown>;
   readonly warn: (message: string) => void;
@@ -38,10 +44,11 @@ export interface StartDependencies {
 
 export async function startApp(deps: StartDependencies): Promise<void> {
   const { app, createWindow, env, warn } = deps;
-  const homes = new WeakMap<object, string>();
+  const views: ViewRegistry = new WeakMap();
+  const security = { ...deps, views };
   // Must run before the app is ready; it sandboxes renderers Electron creates itself.
   app.enableSandbox();
-  secureAllWebContents(app, { homes, openExternal: deps.openExternal, warn });
+  installSecurity(app, security);
   // Windows groups notifications and taskbar entries by this ID.
   app.setAppUserModelId(APP_ID);
   app.on('window-all-closed', () => {
@@ -53,6 +60,7 @@ export async function startApp(deps: StartDependencies): Promise<void> {
     warn('Ignoring YAPYAP_TEST_WHATSAPP_ORIGIN: only loopback http origins are allowed.');
 
   await app.whenReady();
+  guardSession(deps.defaultSession(), security);
   const window = createWindow({
     title: PRODUCT_NAME,
     width: 1200,
@@ -67,7 +75,7 @@ export async function startApp(deps: StartDependencies): Promise<void> {
     shown = true;
     window.show();
   };
-  homes.set(window.webContents, origin);
+  views.set(window.webContents, { zone: 'whatsapp', home: origin, label: 'WhatsApp' });
   window.once('ready-to-show', showOnce);
   setTimeout(showOnce, SHOW_FALLBACK_MS);
   await window.loadURL(origin);

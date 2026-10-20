@@ -133,6 +133,9 @@ Update this table in the PR that adds a command.
 - Mutation runs give each Vitest suite one worker and stop fast-check at the
   first failure (`vitest.mutation.setup.ts`). Undoing either makes killed
   mutants show up as timeouts.
+- Stryker runs on half the CPUs (`stryker.config.mjs`). If a local run reports
+  mostly timeouts, the machine is busy: lower `--concurrency` rather than
+  trusting the score.
 - Inside a fast-check property, don't `return expect(...)`. fast-check treats
   the returned value as the property's result.
 - Scripts run under Node's type stripping, so only erasable TypeScript is

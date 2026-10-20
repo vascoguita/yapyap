@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   installWebContentsGuards,
   preventWebviews,
+  refuseBluetoothDevices,
+  type BluetoothContents,
   type GuardedApp,
   type WebviewContents,
   type PreventableEvent,
@@ -53,5 +55,23 @@ describe('installWebContentsGuards', () => {
     create(first);
     create(second);
     for (const guard of guards) expect(guard.mock.calls).toEqual([[first], [second]]);
+  });
+});
+
+describe('refuseBluetoothDevices', () => {
+  it('cancels every Bluetooth device chooser instead of picking the first device', () => {
+    let chooser: Parameters<BluetoothContents['on']>[1] = () => undefined;
+    const contents = {
+      on: vi.fn((_event: 'select-bluetooth-device', listener: typeof chooser) => {
+        chooser = listener;
+      }),
+    } satisfies BluetoothContents;
+    refuseBluetoothDevices(contents);
+    const event = { preventDefault: vi.fn() };
+    const callback = vi.fn();
+    chooser(event, [{ deviceId: 'nearby' }], callback);
+    expect(contents.on).toHaveBeenCalledWith('select-bluetooth-device', expect.any(Function));
+    expect(event.preventDefault).toHaveBeenCalledOnce();
+    expect(callback).toHaveBeenCalledExactlyOnceWith('');
   });
 });

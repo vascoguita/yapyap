@@ -72,21 +72,31 @@ and an ESLint restriction forbids constructing `BrowserWindow` or
   preferences, its first navigation goes through the link policy, and it is
   destroyed then, or after five seconds if it never navigates.
 - `setPermissionRequestHandler` and `setPermissionCheckHandler` use a
-  per-zone allowlist. The WhatsApp zone gets `notifications`, `media` (with a
-  user prompt, scoped to the requesting account), `clipboard-sanitized-write`,
-  `fullscreen` and `pointerLock: false`. Chrome and plugin zones get nothing.
+  per-zone allowlist, applied to every session. The WhatsApp zone, from its
+  own origin only, gets `notifications`, `clipboard-sanitized-write`,
+  `fullscreen`, `speaker-selection` (so calls can use the chosen output
+  device) and `media`. `media` asks first, naming the account, and the answer
+  lasts until the app quits. Chrome and plugin zones get nothing, and neither
+  do web contents YapYap did not create.
+- `openExternal` permission requests (external-app launches from any frame)
+  are always refused to Chromium; their URL goes through the link policy
+  instead, so it opens at most once and only for allowed schemes.
 - `setDevicePermissionHandler` denies by default (no WebHID, WebUSB or
-  WebSerial).
+  WebSerial), and every Web Bluetooth device chooser is cancelled, because
+  Electron otherwise picks the first nearby device.
 - **Screen sharing** goes through `setDisplayMediaRequestHandler`, so calls
   work while consent stays explicit:
   - It is accepted only from a WhatsApp frame (an account view or that
     account's call window) whose window is visible and focused. Requests from
     hidden accounts, chrome or plugins are rejected.
   - The source is always chosen by the user, never preselected. On macOS 15+
-    this uses the system picker (`useSystemPicker: true`). On Linux Wayland it
-    uses the xdg-desktop-portal ScreenCast picker over PipeWire. On Windows,
-    X11 and older macOS it uses YapYap's own accessible picker, built from
-    `desktopCapturer.getSources` with screen and window thumbnails.
+    this uses the system picker (`useSystemPicker: true`). Electron then never
+    calls the handler, so the visible-and-focused check does not apply there,
+    but the OS picker is itself an explicit, visible consent. On Linux
+    Wayland it uses the xdg-desktop-portal ScreenCast picker over PipeWire.
+    On Windows, X11 and older macOS it uses YapYap's own accessible picker,
+    built from `desktopCapturer.getSources` with screen and window thumbnails
+    (#146; until then, those requests are denied).
   - System audio (`loopback`) is offered on Windows only, as an explicit
     checkbox in the picker.
   - Cancelling the picker rejects the request cleanly, so WhatsApp sees a

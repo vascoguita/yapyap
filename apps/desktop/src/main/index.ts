@@ -1,4 +1,6 @@
-import { app, shell } from 'electron';
+import { app, session, shell } from 'electron';
+import { electronCapture } from './permissions/electron-capture.ts';
+import { askMediaWithDialog } from './permissions/media-prompt.ts';
 import { startApp } from './start.ts';
 import { createSecureWindow } from './windows.ts';
 
@@ -7,6 +9,9 @@ import { createSecureWindow } from './windows.ts';
 startApp({
   app,
   createWindow: (options) => createSecureWindow(options),
+  defaultSession: () => session.defaultSession,
+  askMedia: askMediaWithDialog,
+  capture: electronCapture(process.platform, process.env),
   env: process.env,
   openExternal: (url) => shell.openExternal(url),
   warn: (message) => {

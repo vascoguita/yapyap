@@ -43,7 +43,32 @@ function fakes(env: Record<string, string | undefined> = {}) {
   const createWindow = vi.fn<(options: WindowOptions) => WindowPort>(() => window);
   const warn = vi.fn();
   const openExternal = vi.fn(() => Promise.resolve());
-  return { app, window, web, createWindow, warn, openExternal, env, listeners };
+  const session = {
+    setPermissionRequestHandler: vi.fn(),
+    setPermissionCheckHandler: vi.fn(),
+    setDevicePermissionHandler: vi.fn(),
+    setDisplayMediaRequestHandler: vi.fn(),
+  };
+  const capture = {
+    contentsOfFrame: vi.fn(),
+    isVisibleAndFocused: vi.fn(() => true),
+    pickWithPortal: undefined,
+    useSystemPicker: false,
+  };
+  return {
+    app,
+    window,
+    web,
+    session,
+    createWindow,
+    defaultSession: () => session,
+    askMedia: vi.fn(() => Promise.resolve(true)),
+    capture,
+    warn,
+    openExternal,
+    env,
+    listeners,
+  };
 }
 
 describe('startApp', () => {
@@ -82,6 +107,38 @@ describe('startApp', () => {
     other.fire('will-attach-webview', attach);
     expect(attach.preventDefault).toHaveBeenCalledOnce();
     expect(other.contents.setWindowOpenHandler).toHaveBeenCalledOnce();
+  });
+
+  it('applies the permission policy to the default session and to every new session', async () => {
+    const f = fakes();
+    f.app.whenReady.mockImplementationOnce(() => {
+      expect(f.session.setPermissionRequestHandler).not.toHaveBeenCalled();
+      return Promise.resolve();
+    });
+    await startApp(f);
+    expect(f.session.setPermissionRequestHandler).toHaveBeenCalledOnce();
+    const created = { ...f.session, setPermissionRequestHandler: vi.fn() };
+    f.listeners.get('session-created')?.(...([created] as never[]));
+    expect(created.setPermissionRequestHandler).toHaveBeenCalledOnce();
+  });
+
+  it('lets the WhatsApp window send notifications from its own origin', async () => {
+    const f = fakes();
+    await startApp(f);
+    const [[handler]] = f.session.setPermissionRequestHandler.mock.calls as [
+      [
+        (
+          contents: object,
+          permission: string,
+          callback: (granted: boolean) => void,
+          details: object,
+        ) => void,
+      ],
+    ];
+    const callback = vi.fn();
+    handler(f.web.contents, 'notifications', callback, { requestingUrl: `${WHATSAPP_ORIGIN}/` });
+    handler(f.web.contents, 'geolocation', callback, { requestingUrl: `${WHATSAPP_ORIGIN}/` });
+    expect(callback.mock.calls).toEqual([[true], [false]]);
   });
 
   it('keeps the window on its origin and opens other links in the browser', async () => {

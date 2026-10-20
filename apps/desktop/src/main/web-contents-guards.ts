@@ -6,6 +6,17 @@ export interface WebviewContents {
   on(event: 'will-attach-webview', listener: (event: PreventableEvent) => void): unknown;
 }
 
+export interface BluetoothContents {
+  on(
+    event: 'select-bluetooth-device',
+    listener: (
+      event: PreventableEvent,
+      devices: readonly unknown[],
+      callback: (deviceId: string) => void,
+    ) => void,
+  ): unknown;
+}
+
 export interface GuardedApp<Contents> {
   on(
     event: 'web-contents-created',
@@ -17,6 +28,17 @@ export interface GuardedApp<Contents> {
 export function preventWebviews(contents: WebviewContents): void {
   contents.on('will-attach-webview', (event) => {
     event.preventDefault();
+  });
+}
+
+/**
+ * Electron picks the first nearby Bluetooth device unless the event is
+ * handled, so every Web Bluetooth device chooser is cancelled instead.
+ */
+export function refuseBluetoothDevices(contents: BluetoothContents): void {
+  contents.on('select-bluetooth-device', (event, _devices, callback) => {
+    event.preventDefault();
+    callback('');
   });
 }
 
