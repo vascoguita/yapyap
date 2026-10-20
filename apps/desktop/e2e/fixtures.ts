@@ -4,6 +4,7 @@ import {
   type ElectronApplication,
   type Page,
 } from '@playwright/test';
+import { spawn } from 'node:child_process';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -31,6 +32,25 @@ export function launchApp(
     // Playwright forces a light color scheme by default, which would hide YapYap's own theming.
     colorScheme: null,
     env: appEnvironment(origin),
+  });
+}
+
+/**
+ * Starts YapYap again on `profile` while the app under test runs there, as a
+ * user or the OS would, and resolves with its exit code once it hands over.
+ */
+export async function launchAgain(
+  origin: string,
+  profile: string,
+  args: readonly string[],
+): Promise<number | null> {
+  const { default: executable } = (await import('electron')) as unknown as { default: string };
+  const second = spawn(executable, [MAIN, `--user-data-dir=${profile}`, ...args], {
+    env: appEnvironment(origin),
+    stdio: 'ignore',
+  });
+  return new Promise((resolve) => {
+    second.once('exit', resolve);
   });
 }
 
