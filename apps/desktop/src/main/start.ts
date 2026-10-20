@@ -5,6 +5,7 @@ import { APP_ID, PRODUCT_NAME } from './identity.ts';
 import type { DisplayCapturePort, MediaType } from './permissions/session-guard.ts';
 import { chromeUserAgent } from './identity/user-agent.ts';
 import { guardGpu } from './recovery/gpu-safe-mode.ts';
+import type { SettingsService } from './settings/service.ts';
 import {
   installSecurity,
   secureSession,
@@ -66,6 +67,8 @@ export interface StartDependencies<Window extends WindowPort> {
   readonly isOnline: () => boolean;
   readonly onResume: (listener: () => void) => void;
   readonly gpuCrashLog: { readonly read: () => string; readonly write: (text: string) => void };
+  readonly settings: SettingsService;
+  readonly notify: (message: string) => void;
   readonly warn: (message: string) => void;
 }
 
@@ -98,6 +101,7 @@ function beforeReady<Window extends WindowPort>(
   app.userAgentFallback = security.identity.userAgent;
   // Sandboxes the renderers Electron creates on its own too.
   app.enableSandbox();
+  if (!deps.settings.current().reliability.hardwareAcceleration) app.disableHardwareAcceleration();
   guardGpu(app, {
     readLog: deps.gpuCrashLog.read,
     writeLog: deps.gpuCrashLog.write,
@@ -132,6 +136,7 @@ export async function startApp<Window extends WindowPort>(
   await app.whenReady();
   secureSession(deps.defaultSession(), security);
   const chrome = deps.chrome.afterReady(views, warn);
+  if (deps.settings.notice !== undefined) deps.notify(deps.settings.notice);
   const window = createWindow(MAIN_WINDOW);
   views.set(window.webContents, { zone: 'whatsapp', home: origin, label: 'WhatsApp' });
   const recovery = chrome.attachRecovery(window.webContents, origin, (renderer) =>

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { APP_ID } from './identity.ts';
 import { SHOW_FALLBACK_MS, startApp, type AppPort, type WindowPort } from './start.ts';
+import { defaultSettings } from './settings/decode.ts';
 import { WHATSAPP_ORIGIN } from './whatsapp-origin.ts';
 import type { WindowOptions } from './windows.ts';
 
@@ -95,6 +96,12 @@ function fakes(env: Record<string, string | undefined> = {}) {
     openExternal,
     isOnline: vi.fn(() => true),
     gpuCrashLog: { read: () => '[]', write: vi.fn() },
+    settings: {
+      current: () => defaultSettings(),
+      notice: undefined as string | undefined,
+      update: vi.fn(),
+    },
+    notify: vi.fn(),
     onResume: vi.fn(),
     env,
     listeners,
@@ -275,6 +282,30 @@ describe('startApp', () => {
     resume();
     vi.runOnlyPendingTimers();
     expect(reconnect).toHaveBeenCalled();
+  });
+
+  it('turns hardware acceleration off before ready when the settings say so', async () => {
+    const f = fakes();
+    const settings = defaultSettings();
+    f.settings.current = () => ({
+      ...settings,
+      reliability: { ...settings.reliability, hardwareAcceleration: false },
+    });
+    f.app.whenReady.mockImplementationOnce(() => {
+      expect(f.app.disableHardwareAcceleration).toHaveBeenCalledOnce();
+      return Promise.resolve();
+    });
+    await startApp(f);
+  });
+
+  it('keeps hardware acceleration on by default and tells the user about repaired settings', async () => {
+    const f = fakes();
+    f.settings.notice = 'Some settings were invalid and were reset to their defaults.';
+    await startApp(f);
+    expect(f.app.disableHardwareAcceleration).not.toHaveBeenCalled();
+    expect(f.notify).toHaveBeenCalledExactlyOnceWith(
+      'Some settings were invalid and were reset to their defaults.',
+    );
   });
 
   it('keeps running when WhatsApp fails to load, leaving it to the recovery screen', async () => {
