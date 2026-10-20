@@ -43,6 +43,8 @@ test('turns transitions off for people who prefer reduced motion', async ({ app 
 
 for (const theme of ['light', 'dark'] as const) {
   test(`app chrome looks right in the ${theme} theme`, async ({ app }) => {
+    // Startup applies the saved theme just before the first window; set ours after it.
+    await app.firstWindow();
     await app.evaluate(({ nativeTheme }, source) => {
       nativeTheme.themeSource = source;
     }, theme);
