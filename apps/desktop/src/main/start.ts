@@ -2,7 +2,7 @@ import type { ChromeFeature, WhatsAppContents } from './chrome/feature.ts';
 import { watchConnectivity } from './connectivity/connectivity.ts';
 import { offlineTitle, type TitledWindow } from './connectivity/offline-title.ts';
 import { APP_ID, PRODUCT_NAME } from './identity.ts';
-import type { DisplayCapturePort, MediaType } from './permissions/session-guard.ts';
+import type { CaptureChoice, DisplayCapturePort, MediaType } from './permissions/session-guard.ts';
 import { followThemeSetting, type ThemePort } from './appearance/theme.ts';
 import { chromeUserAgent } from './identity/user-agent.ts';
 import {
@@ -23,13 +23,8 @@ import type { ViewInfo, ViewRegistry } from './views.ts';
 import type { Overlay } from './recovery/controller.ts';
 import type { RendererOptions } from './web-preferences.ts';
 import type { WindowOptions } from './windows.ts';
+import { showWhenReady } from './show-when-ready.ts';
 import { resolveWhatsAppOrigin } from './whatsapp-origin.ts';
-
-/**
- * `ready-to-show` is not guaranteed to fire (for example without a compositor),
- * and a window that never appears looks like a hung app.
- */
-export const SHOW_FALLBACK_MS = 3000;
 
 export interface AppPort {
   disableHardwareAcceleration(): void;
@@ -67,7 +62,8 @@ export interface StartDependencies<Window extends WindowPort> {
   readonly chromeVersion: string;
   readonly platform: string;
   readonly askMedia: (view: ViewInfo, mediaTypes: readonly MediaType[]) => Promise<boolean>;
-  readonly capture: DisplayCapturePort;
+  /** Builds screen capture around YapYap's own picker, which only exists once chrome is ready. */
+  readonly capture: (pickInApp: PickInApp) => DisplayCapturePort;
   readonly chrome: ChromeFeature;
   readonly env: Readonly<Record<string, string | undefined>>;
   /** The command line, for `--safe-mode`. */
@@ -102,15 +98,20 @@ const MAIN_WINDOW: WindowOptions = {
   show: false,
 };
 
-function showWhenReady(window: WindowPort): void {
-  let shown = false;
-  const showOnce = (): void => {
-    if (shown) return;
-    shown = true;
-    window.show();
+type PickInApp = (contents: object) => Promise<CaptureChoice | undefined>;
+
+/**
+ * Sessions are guarded before the app is ready, but YapYap's picker only
+ * exists once chrome is up: until then, requests are denied.
+ */
+function latePicker(): { readonly pick: PickInApp; readonly bind: (pick: PickInApp) => void } {
+  let bound: PickInApp | undefined;
+  return {
+    pick: (contents) => bound?.(contents) ?? Promise.resolve(undefined),
+    bind: (pick) => {
+      bound = pick;
+    },
   };
-  window.once('ready-to-show', showOnce);
-  setTimeout(showOnce, SHOW_FALLBACK_MS);
 }
 
 /** Everything Electron only accepts before the app is ready. */
@@ -140,6 +141,17 @@ function beforeReady<Window extends WindowPort>(
   return graphics;
 }
 
+/** Tells the user about anything startup changed that they did not choose. */
+function announceStartup(
+  deps: Pick<StartDependencies<WindowPort>, 'settings' | 'notify'>,
+  graphics: Graphics,
+): void {
+  if (deps.settings.notice !== undefined) deps.notify(deps.settings.notice);
+  const graphicsNotice =
+    graphics.reason === undefined ? undefined : GRAPHICS_NOTICES[graphics.reason];
+  if (graphicsNotice !== undefined) deps.notify(graphicsNotice);
+}
+
 export async function startApp<Window extends WindowPort>(
   deps: StartDependencies<Window>,
 ): Promise<void> {
@@ -149,7 +161,9 @@ export async function startApp<Window extends WindowPort>(
     userAgent: chromeUserAgent(deps.platform, deps.chromeVersion),
     chromeVersion: deps.chromeVersion,
   };
-  const security = { ...deps, views, identity };
+  const picker = latePicker();
+  const capture = deps.capture(picker.pick);
+  const security = { ...deps, capture, views, identity };
   const graphics = beforeReady(deps, security);
 
   const { origin, rejectedOverride } = resolveWhatsAppOrigin(env['YAPYAP_TEST_WHATSAPP_ORIGIN']);
@@ -160,10 +174,8 @@ export async function startApp<Window extends WindowPort>(
   secureSession(deps.defaultSession(), security);
   followThemeSetting(deps.nativeTheme, deps.settings);
   const chrome = deps.chrome.afterReady(views, warn, describeGraphics(graphics));
-  if (deps.settings.notice !== undefined) deps.notify(deps.settings.notice);
-  const graphicsNotice =
-    graphics.reason === undefined ? undefined : GRAPHICS_NOTICES[graphics.reason];
-  if (graphicsNotice !== undefined) deps.notify(graphicsNotice);
+  picker.bind(chrome.pickCaptureSource);
+  announceStartup(deps, graphics);
   const window = createWindow(MAIN_WINDOW);
   views.set(window.webContents, { zone: 'whatsapp', home: origin, label: 'WhatsApp' });
   const recovery = chrome.attachRecovery(window.webContents, origin, (renderer) =>

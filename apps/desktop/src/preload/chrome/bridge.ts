@@ -2,6 +2,7 @@ import {
   CHROME_CHANNELS,
   type AboutInfo,
   type ChromeApi,
+  type PickerOffer,
   type RecoveryProblem,
   type SettingsSnapshot,
 } from '../../shared/chrome-api.ts';
@@ -32,6 +33,13 @@ export function createChromeBridge(
       set: (id, value) =>
         invoke(CHROME_CHANNELS.settingsSet, id, value) as Promise<SettingsSnapshot>,
       restart: run(CHROME_CHANNELS.settingsRestart),
+    },
+    picker: {
+      offer: () => invoke(CHROME_CHANNELS.pickerOffer) as Promise<PickerOffer>,
+      choose: async (id, audio) => {
+        await invoke(CHROME_CHANNELS.pickerChoose, id, audio);
+      },
+      cancel: run(CHROME_CHANNELS.pickerCancel),
     },
   };
 }

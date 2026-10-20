@@ -30,6 +30,22 @@ export interface SettingsSnapshot {
   readonly readOnly: boolean;
 }
 
+/** A screen or window the user can share, with a small preview. */
+export interface PickerSource {
+  readonly id: string;
+  readonly name: string;
+  readonly kind: 'screen' | 'window';
+  /** A `data:` image URL. */
+  readonly thumbnail: string;
+}
+
+/** What the screen-sharing picker offers. */
+export interface PickerOffer {
+  readonly sources: readonly PickerSource[];
+  /** Whether system audio can be shared too (Windows only). */
+  readonly offerAudio: boolean;
+}
+
 /** The API the chrome preload exposes as `window.yapyap`, one function per operation. */
 export interface ChromeApi {
   readonly about: {
@@ -47,6 +63,11 @@ export interface ChromeApi {
     readonly set: (id: string, value: SettingValue) => Promise<SettingsSnapshot>;
     readonly restart: () => Promise<void>;
   };
+  readonly picker: {
+    readonly offer: () => Promise<PickerOffer>;
+    readonly choose: (id: string, audio: boolean) => Promise<void>;
+    readonly cancel: () => Promise<void>;
+  };
 }
 
 export const CHROME_CHANNELS = {
@@ -59,4 +80,7 @@ export const CHROME_CHANNELS = {
   settingsGet: 'settings:get',
   settingsSet: 'settings:set',
   settingsRestart: 'settings:restart',
+  pickerOffer: 'picker:offer',
+  pickerChoose: 'picker:choose',
+  pickerCancel: 'picker:cancel',
 } as const;

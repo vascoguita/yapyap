@@ -20,6 +20,7 @@ function setup() {
     focus: vi.fn(),
     once: vi.fn(),
     show: vi.fn(),
+    close: vi.fn(),
     loadURL: vi.fn(() => Promise.resolve()),
   };
   let handler: ((request: { url: string }) => Promise<Response>) | undefined;
@@ -62,6 +63,8 @@ function setup() {
       onChange: vi.fn(),
     },
     restart: vi.fn(),
+    captureSources: vi.fn<ChromeFeatureDependencies['captureSources']>(() => Promise.resolve([])),
+    windowOf: vi.fn<ChromeFeatureDependencies['windowOf']>(() => null),
   } satisfies ChromeFeatureDependencies;
   const views = new WeakMap<object, ViewInfo>();
   const feature = createChromeFeature(deps);
@@ -167,6 +170,50 @@ describe('createChromeFeature', () => {
     });
     t.call('settings:restart');
     expect(t.deps.restart).toHaveBeenCalledOnce();
+  });
+
+  it('opens the screen-sharing picker over the requesting window and settles through IPC', async () => {
+    const t = setup();
+    const parent = {};
+    t.deps.windowOf.mockReturnValueOnce(parent as never);
+    const source = { id: 'screen:1:0', name: 'Screen', thumbnail: { toDataURL: () => 'data:' } };
+    t.deps.captureSources.mockResolvedValueOnce([source]);
+    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    const owner = {};
+    const choice = runtime.pickCaptureSource(owner);
+    await new Promise((resolve) => setTimeout(resolve));
+    expect(t.deps.windowOf).toHaveBeenCalledWith(owner);
+    expect(t.deps.createWindow).toHaveBeenCalledWith(
+      {
+        title: 'Share your screen',
+        width: 760,
+        height: 580,
+        minWidth: 480,
+        minHeight: 400,
+        minimizable: false,
+        modal: true,
+        parent,
+        show: false,
+      },
+      { preload: '/app/preload/chrome.cjs', partition: CHROME_PARTITION },
+    );
+    expect(t.window.loadURL).toHaveBeenCalledWith('app://chrome/picker.html');
+    expect(t.window.once).toHaveBeenCalledWith('closed', expect.any(Function));
+    expect(t.call('picker:offer')).toEqual({
+      sources: [{ id: 'screen:1:0', name: 'Screen', kind: 'screen', thumbnail: 'data:' }],
+      offerAudio: false,
+    });
+    t.call('picker:cancel');
+    expect(await choice).toBeUndefined();
+    expect(t.window.close).toHaveBeenCalledOnce();
+  });
+
+  it('opens the picker as a plain window when the requester has none', async () => {
+    const t = setup();
+    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    void runtime.pickCaptureSource({});
+    await new Promise((resolve) => setTimeout(resolve));
+    expect(t.deps.createWindow.mock.lastCall).not.toHaveProperty(['0', 'parent']);
   });
 
   it('keeps chrome storage in memory', () => {

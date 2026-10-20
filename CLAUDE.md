@@ -166,6 +166,14 @@ Update this table in the PR that adds a command.
   otherwise; `launchApp` passes `colorScheme: null` so tests see YapYap's
   real theme. Visual baselines are per OS and come from CI artifacts (see
   CONTRIBUTING), never from a local run.
+- Screen capture reaches the permission handler as a `media` request with no
+  device types, and the legacy desktop `getUserMedia` uses the same request
+  but never reaches `setDisplayMediaRequestHandler`. Never grant that request
+  without a user pick; see `allowScreenCapture` in
+  `src/main/permissions/session-guard.ts` and ADR 0001.
+- E2E runs drop `WAYLAND_DISPLAY` so local runs use the virtual X11 display
+  like CI. Under it no window manager focuses windows, so tests that need a
+  focused window focus it and poll `isFocused()`.
 - Code that inspects WhatsApp's page lives in `src/adapter/` and runs in the
   adapter's isolated world (`ADAPTER_WORLD_ID`). Probes return plain flags,
   never page text, which can contain chats.

@@ -192,3 +192,74 @@ button:hover {
     scroll-behavior: auto !important;
   }
 }
+
+main.picker {
+  align-items: stretch;
+  text-align: left;
+}
+
+main.picker form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sources {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.sources legend {
+  margin-bottom: 4px;
+  padding: 0;
+  font-weight: 600;
+}
+
+.source {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+}
+
+.source:has(input:checked) {
+  border-color: var(--accent);
+}
+
+.source:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.source input {
+  position: absolute;
+  opacity: 0;
+}
+
+.source img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  object-fit: contain;
+  background: var(--border);
+}
+
+.source span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+main.picker .actions {
+  justify-content: flex-end;
+}
+
+button:disabled {
+  opacity: 0.5;
+}

@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { SHOW_FALLBACK_MS } from '../show-when-ready.ts';
 import type { ViewInfo } from '../views.ts';
 import { createChromeWindowOpener, type ChromeWindowPort } from './window-opener.ts';
 
@@ -9,9 +10,10 @@ function fakeWindow() {
     webContents: {},
     isDestroyed: vi.fn(() => destroyed),
     focus: vi.fn(),
-    once: vi.fn((_event: 'ready-to-show', listener: () => void) => {
+    once: vi.fn((_event: 'ready-to-show' | 'closed', listener: () => void) => {
       ready = listener;
     }),
+    close: vi.fn(),
     show: vi.fn(),
     loadURL: vi.fn(() => Promise.resolve()),
   } satisfies ChromeWindowPort;
@@ -68,6 +70,22 @@ describe('createChromeWindowOpener', () => {
     expect(first.window.show).not.toHaveBeenCalled();
     first.ready();
     expect(first.window.show).toHaveBeenCalledOnce();
+  });
+
+  it('shows the window after a short wait when it never reports ready', () => {
+    vi.useFakeTimers();
+    try {
+      const t = setup();
+      t.open();
+      vi.advanceTimersByTime(SHOW_FALLBACK_MS - 1);
+      expect(t.windows[0].window.show).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(1);
+      expect(t.windows[0].window.show).toHaveBeenCalledOnce();
+      t.windows[0].ready();
+      expect(t.windows[0].window.show).toHaveBeenCalledOnce();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('focuses the open window instead of opening another', () => {

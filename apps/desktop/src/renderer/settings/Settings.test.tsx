@@ -32,6 +32,7 @@ function api(overrides: Partial<ChromeApi['settings']> = {}) {
       restart: vi.fn(() => Promise.resolve()),
       ...overrides,
     },
+    picker: { offer: vi.fn(), choose: vi.fn(), cancel: vi.fn() },
   } satisfies ChromeApi;
 }
 

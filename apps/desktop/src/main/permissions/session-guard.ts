@@ -24,6 +24,12 @@ export interface CaptureSource {
   readonly name: string;
 }
 
+/** What the user chose to share: a source, plus system audio where they opted in. */
+export interface CaptureChoice {
+  readonly video: CaptureSource;
+  readonly audio?: 'loopback';
+}
+
 export interface SessionPort {
   setPermissionRequestHandler(
     handler: (
@@ -45,7 +51,7 @@ export interface SessionPort {
   setDisplayMediaRequestHandler(
     handler: (
       request: DisplayMediaRequest,
-      callback: (streams: { video: CaptureSource } | null) => void,
+      callback: (streams: CaptureChoice | null) => void,
     ) => void,
     options: { useSystemPicker: boolean },
   ): void;
@@ -55,8 +61,12 @@ export interface DisplayCapturePort {
   /** The web contents that owns a frame, if it still exists. */
   readonly contentsOfFrame: (frame: object) => object | undefined;
   readonly isVisibleAndFocused: (contents: object) => boolean;
-  /** Set where the OS offers its own source picker (the PipeWire portal on Wayland). */
-  readonly pickWithPortal: (() => Promise<CaptureSource | undefined>) | undefined;
+  /**
+   * Lets the user choose a source for the requesting web contents: the
+   * PipeWire portal on Wayland, YapYap's own picker on Windows and X11.
+   * Absent where the OS shows its own picker (macOS).
+   */
+  readonly pick: ((contents: object) => Promise<CaptureChoice | undefined>) | undefined;
   /** macOS 15+ shows its own picker and then never calls the handler. */
   readonly useSystemPicker: boolean;
 }
@@ -72,6 +82,9 @@ export interface SessionGuardDependencies {
 
 type Grants = Set<string>;
 
+/** The source each window's user picked, waiting for the capture it was picked for. */
+type Shares = WeakMap<object, CaptureChoice>;
+
 const grantKey = (view: ViewInfo, mediaType: string): string => `${view.label}\u0000${mediaType}`;
 
 function viewOf(deps: SessionGuardDependencies, contents: object | null): ViewInfo | undefined {
@@ -86,7 +99,6 @@ async function askOnce(
   mediaTypes: readonly MediaType[],
 ): Promise<boolean> {
   const pending = mediaTypes.filter((type) => !grants.has(grantKey(view, type)));
-  if (mediaTypes.length === 0) return false;
   if (pending.length === 0) return true;
   const allowed = await deps.askMedia(view, pending);
   if (allowed) for (const type of pending) grants.add(grantKey(view, type));
@@ -105,26 +117,64 @@ function routeExternal(deps: SessionGuardDependencies, view: ViewInfo | undefine
   });
 }
 
-function requestHandler(deps: SessionGuardDependencies, grants: Grants) {
+/**
+ * A media request with no device types is screen capture, from either
+ * `getDisplayMedia` or the legacy desktop `getUserMedia`. Electron cannot
+ * tell them apart, and the legacy one captures without ever reaching the
+ * display-media handler, so the user picks the source here, before anything
+ * is granted. Where the OS shows its own picker (macOS), it guards both.
+ */
+async function allowScreenCapture(
+  deps: SessionGuardDependencies,
+  shares: Shares,
+  contents: object | null,
+  fromHome: boolean,
+): Promise<boolean> {
+  const { capture } = deps;
+  const view = viewOf(deps, contents);
+  if (contents === null || view?.zone !== 'whatsapp' || !fromHome) return false;
+  if (!capture.isVisibleAndFocused(contents)) return false;
+  if (capture.pick === undefined) return capture.useSystemPicker;
+  shares.delete(contents);
+  const choice = await capture.pick(contents);
+  if (choice !== undefined) shares.set(contents, choice);
+  return choice !== undefined;
+}
+
+const isScreenCapture = (permission: string, mediaTypes: readonly MediaType[]): boolean =>
+  permission === 'media' && mediaTypes.length === 0;
+
+function answer(
+  deps: SessionGuardDependencies,
+  grants: Grants,
+  shares: Shares,
+  contents: object | null,
+  permission: string,
+  details: RequestDetails,
+): Promise<boolean> {
+  const view = viewOf(deps, contents);
+  const fromHome = isSameOrigin(details.requestingUrl ?? '', view?.home);
+  const mediaTypes = details.mediaTypes ?? [];
+  if (isScreenCapture(permission, mediaTypes))
+    return allowScreenCapture(deps, shares, contents, fromHome);
+  const decision = decidePermission(view?.zone, permission, fromHome);
+  if (decision !== 'ask' || view === undefined) return Promise.resolve(decision === 'allow');
+  return askOnce(deps, grants, view, mediaTypes);
+}
+
+function requestHandler(deps: SessionGuardDependencies, grants: Grants, shares: Shares) {
   return (
     contents: object | null,
     permission: string,
     callback: (granted: boolean) => void,
     details: RequestDetails,
   ): void => {
-    const view = viewOf(deps, contents);
     if (permission === 'openExternal') {
-      routeExternal(deps, view, details.externalURL);
+      routeExternal(deps, viewOf(deps, contents), details.externalURL);
       callback(false);
       return;
     }
-    const fromHome = isSameOrigin(details.requestingUrl ?? '', view?.home);
-    const decision = decidePermission(view?.zone, permission, fromHome);
-    if (decision !== 'ask' || view === undefined) {
-      callback(decision === 'allow');
-      return;
-    }
-    askOnce(deps, grants, view, details.mediaTypes ?? []).then(callback, () => {
+    answer(deps, grants, shares, contents, permission, details).then(callback, () => {
       callback(false);
     });
   };
@@ -144,56 +194,51 @@ function checkHandler(deps: SessionGuardDependencies, grants: Grants) {
   };
 }
 
-/**
- * Screen capture is offered only to a WhatsApp frame on its own origin whose
- * window is visible and focused.
- */
-function mayCapture(deps: SessionGuardDependencies, request: DisplayMediaRequest): boolean {
-  const { capture } = deps;
-  const contents = request.frame === null ? undefined : capture.contentsOfFrame(request.frame);
-  if (contents === undefined) return false;
+/** Takes this window's pick, valid only for a WhatsApp frame on its own origin. */
+function takeShare(
+  deps: SessionGuardDependencies,
+  shares: Shares,
+  contents: object,
+  securityOrigin: string,
+): CaptureChoice | undefined {
+  const choice = shares.get(contents);
+  shares.delete(contents);
   const view = deps.views.get(contents);
-  return (
-    view?.zone === 'whatsapp' &&
-    isSameOrigin(request.securityOrigin, view.home) &&
-    capture.isVisibleAndFocused(contents)
-  );
+  const allowed = view?.zone === 'whatsapp' && isSameOrigin(securityOrigin, view.home);
+  return allowed ? choice : undefined;
 }
 
-/** The user always picks the source; nothing is ever preselected. */
-function displayMediaHandler(deps: SessionGuardDependencies) {
+/**
+ * Hands over the source the user just picked for this WhatsApp frame's
+ * window, once. Nothing is ever chosen here.
+ */
+function displayMediaHandler(deps: SessionGuardDependencies, shares: Shares) {
   return (
     request: DisplayMediaRequest,
-    callback: (streams: { video: CaptureSource } | null) => void,
+    callback: (streams: CaptureChoice | null) => void,
   ): void => {
-    const { capture } = deps;
-    if (!mayCapture(deps, request) || capture.pickWithPortal === undefined) {
-      callback(null);
-      return;
+    const contents =
+      request.frame === null ? undefined : deps.capture.contentsOfFrame(request.frame);
+    const choice =
+      contents === undefined
+        ? undefined
+        : takeShare(deps, shares, contents, request.securityOrigin);
+    try {
+      callback(choice ?? null);
+    } catch {
+      deps.warn('A screen-sharing request ended before its source could be shared.');
     }
-    capture
-      .pickWithPortal()
-      .then(
-        (source) => {
-          callback(source === undefined ? null : { video: source });
-        },
-        () => {
-          callback(null);
-        },
-      )
-      .catch(() => {
-        deps.warn('A screen-sharing request ended before a source was chosen.');
-      });
   };
 }
 
 /** Applies the permission policy from ADR 0001 to one session. */
 export function guardSession(session: SessionPort, deps: SessionGuardDependencies): void {
   const grants: Grants = new Set();
-  session.setPermissionRequestHandler(requestHandler(deps, grants));
+  const shares: Shares = new WeakMap();
+  session.setPermissionRequestHandler(requestHandler(deps, grants, shares));
   session.setPermissionCheckHandler(checkHandler(deps, grants));
   session.setDevicePermissionHandler(() => false);
-  session.setDisplayMediaRequestHandler(displayMediaHandler(deps), {
+  session.setDisplayMediaRequestHandler(displayMediaHandler(deps, shares), {
     useSystemPicker: deps.capture.useSystemPicker,
   });
 }

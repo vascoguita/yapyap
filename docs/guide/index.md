@@ -53,3 +53,13 @@ turns off hardware acceleration for that launch only:
 When graphics crash three times within a day, YapYap starts the next launch
 without hardware acceleration on its own and tells you. **Copy technical
 details** in About includes the graphics mode, so bug reports show it.
+
+## Screen sharing
+
+When you share your screen in a WhatsApp call, YapYap asks what to share
+before anything is captured. On Windows, X11 and macOS before 15, YapYap's
+own picker lists your screens and windows with previews, and nothing is
+selected until you choose. On Windows you can also tick **Also share system
+audio**. On Wayland and macOS 15 and later, your system's own picker asks
+instead. Cancelling, closing the picker or pressing <kbd>Esc</kbd> shares
+nothing.

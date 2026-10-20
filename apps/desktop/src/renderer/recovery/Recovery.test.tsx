@@ -18,6 +18,7 @@ function api(
       ...overrides,
     },
     settings: { get: vi.fn(), set: vi.fn(), restart: vi.fn() },
+    picker: { offer: vi.fn(), choose: vi.fn(), cancel: vi.fn() },
   } satisfies ChromeApi;
 }
 

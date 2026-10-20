@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { ViewInfo } from '../views.ts';
 import {
   guardSession,
+  type CaptureChoice,
   type CaptureSource,
   type DisplayCapturePort,
   type SessionGuardDependencies,
@@ -36,7 +37,7 @@ function setup(capture: Partial<DisplayCapturePort> = {}) {
     capture: {
       contentsOfFrame: vi.fn(() => whatsapp),
       isVisibleAndFocused: vi.fn(() => true),
-      pickWithPortal: undefined,
+      pick: undefined,
       useSystemPicker: false,
       ...capture,
     },
@@ -115,13 +116,6 @@ describe('permission requests', () => {
     expect(t.deps.askMedia).toHaveBeenCalledTimes(2);
   });
 
-  it('denies media requests that name no device without asking', async () => {
-    const t = setup();
-    expect(await t.ask(t.whatsapp, 'media', { mediaTypes: [] })).toBe(false);
-    expect(await t.ask(t.whatsapp, 'media')).toBe(false);
-    expect(t.deps.askMedia).not.toHaveBeenCalled();
-  });
-
   it('routes external-app launches through the link policy and refuses them to Chromium', async () => {
     const t = setup();
     const external = (externalURL?: string) => t.ask(t.whatsapp, 'openExternal', { externalURL });
@@ -173,6 +167,13 @@ describe('device access', () => {
 });
 
 describe('screen sharing', () => {
+  const picked: CaptureChoice = { video: SOURCE, audio: 'loopback' };
+  const pickWith = (choice: CaptureChoice | undefined = picked) =>
+    vi.fn<(contents: object) => Promise<CaptureChoice | undefined>>(() => Promise.resolve(choice));
+  // A media request that names no device is screen capture, from getDisplayMedia or legacy getUserMedia.
+  const askToCapture = (t: ReturnType<typeof setup>, details: object = {}) =>
+    t.ask(t.whatsapp, 'media', { mediaTypes: [], ...details });
+
   it('asks for the macOS system picker only when the platform offers it', () => {
     const t = setup({ useSystemPicker: true });
     expect(t.session.setDisplayMediaRequestHandler).toHaveBeenCalledWith(expect.any(Function), {
@@ -180,22 +181,67 @@ describe('screen sharing', () => {
     });
   });
 
-  it('shares the source the user picks in the portal from a visible, focused WhatsApp frame', async () => {
-    const pickWithPortal = vi.fn(() => Promise.resolve<CaptureSource | undefined>(SOURCE));
-    const t = setup({ pickWithPortal });
-    expect(await t.share({ frame: t.frame })).toEqual({ video: SOURCE });
-    expect(t.deps.capture.contentsOfFrame).toHaveBeenCalledWith(t.frame);
+  it('lets the user pick before granting, then shares exactly that pick once', async () => {
+    const pick = pickWith();
+    const t = setup({ pick });
+    expect(await askToCapture(t)).toBe(true);
+    expect(pick).toHaveBeenCalledExactlyOnceWith(t.whatsapp);
     expect(t.deps.capture.isVisibleAndFocused).toHaveBeenCalledWith(t.whatsapp);
+    expect(t.deps.askMedia).not.toHaveBeenCalled();
+    expect(await t.share({ frame: t.frame })).toEqual(picked);
+    expect(t.deps.capture.contentsOfFrame).toHaveBeenCalledWith(t.frame);
+    expect(await t.share({ frame: t.frame })).toBeNull();
   });
 
-  it('denies cleanly when the user cancels the portal or it fails', async () => {
-    const pickWithPortal = vi
-      .fn<() => Promise<CaptureSource | undefined>>()
+  it('treats a media request without device types as screen capture too', async () => {
+    const pick = pickWith();
+    const t = setup({ pick });
+    expect(await t.ask(t.whatsapp, 'media')).toBe(true);
+    expect(pick).toHaveBeenCalledOnce();
+  });
+
+  it('denies and forgets an earlier pick when the user cancels or the picker fails', async () => {
+    const pick = vi
+      .fn<(contents: object) => Promise<CaptureChoice | undefined>>()
+      .mockResolvedValueOnce(picked)
       .mockResolvedValueOnce(undefined)
       .mockRejectedValueOnce(new Error('portal unavailable'));
-    const t = setup({ pickWithPortal });
+    const t = setup({ pick });
+    expect(await askToCapture(t)).toBe(true);
+    expect(await askToCapture(t)).toBe(false);
     expect(await t.share({ frame: t.frame })).toBeNull();
-    expect(await t.share({ frame: t.frame })).toBeNull();
+    expect(await askToCapture(t)).toBe(false);
+  });
+
+  it('leaves macOS to its system picker and grants nothing where no picker exists', async () => {
+    expect(await askToCapture(setup({ useSystemPicker: true }))).toBe(true);
+    expect(await askToCapture(setup())).toBe(false);
+  });
+
+  it.each<[string, Partial<DisplayCapturePort>, (t: ReturnType<typeof setup>) => Promise<boolean>]>(
+    [
+      [
+        'the window is hidden or unfocused',
+        { isVisibleAndFocused: () => false },
+        (t) => askToCapture(t),
+      ],
+      [
+        'it comes from another origin',
+        {},
+        (t) => askToCapture(t, { requestingUrl: 'https://ads.example/' }),
+      ],
+      [
+        'it comes from app chrome',
+        {},
+        (t) => t.ask(t.chrome, 'media', { mediaTypes: [], requestingUrl: 'app://chrome/' }),
+      ],
+      ['its web contents are gone', {}, (t) => t.ask(null, 'media', { mediaTypes: [] })],
+    ],
+  )('denies without picking when %s', async (_, capture, request) => {
+    const pick = pickWith();
+    const t = setup({ pick, useSystemPicker: true, ...capture });
+    expect(await request(t)).toBe(false);
+    expect(pick).not.toHaveBeenCalled();
   });
 
   it.each<[string, Partial<DisplayCapturePort>, { frame: object | null; securityOrigin?: string }]>(
@@ -203,30 +249,31 @@ describe('screen sharing', () => {
       ['the frame is gone', {}, { frame: null }],
       ['the frame has no web contents', { contentsOfFrame: () => undefined }, { frame: {} }],
       ['the frame is not WhatsApp', { contentsOfFrame: () => ({}) }, { frame: {} }],
-      ['the window is hidden or unfocused', { isVisibleAndFocused: () => false }, { frame: {} }],
       ['the frame is on another origin', {}, { frame: {}, securityOrigin: 'https://ads.example' }],
     ],
-  )('denies without asking when %s', async (_, capture, request) => {
-    const pickWithPortal = vi.fn(() => Promise.resolve<CaptureSource | undefined>(SOURCE));
-    const t = setup({ pickWithPortal, ...capture });
+  )('shares nothing when %s', async (_, capture, request) => {
+    const t = setup({ pick: pickWith(), ...capture });
+    await askToCapture(t);
     expect(await t.share(request)).toBeNull();
-    expect(pickWithPortal).not.toHaveBeenCalled();
   });
 
-  it('denies when the platform has no picker yet', async () => {
-    const t = setup();
+  it('drops the pick after a refused share, so a later one cannot reuse it', async () => {
+    const t = setup({ pick: pickWith() });
+    await askToCapture(t);
+    expect(await t.share({ frame: t.frame, securityOrigin: 'https://ads.example' })).toBeNull();
     expect(await t.share({ frame: t.frame })).toBeNull();
   });
 
-  it('logs a request that ended before a source was chosen', async () => {
-    const t = setup({ pickWithPortal: () => Promise.resolve(SOURCE) });
+  it('logs a request that ended before its source could be shared', async () => {
+    const t = setup({ pick: pickWith() });
+    await askToCapture(t);
     const display = t.session.setDisplayMediaRequestHandler.mock.calls[0]?.[0];
     display?.({ frame: t.frame, securityOrigin: HOME }, () => {
       throw new Error('Render frame was disposed');
     });
     await settle();
     expect(t.deps.warn).toHaveBeenCalledExactlyOnceWith(
-      'A screen-sharing request ended before a source was chosen.',
+      'A screen-sharing request ended before its source could be shared.',
     );
   });
 });
