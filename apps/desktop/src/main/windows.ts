@@ -1,27 +1,7 @@
-import { BrowserWindow, type BrowserWindowConstructorOptions, type WebPreferences } from 'electron';
-import { secureWebPreferences } from './web-preferences.ts';
-
-/** The only settings a caller may add on top of the hardened baseline. */
-export interface RendererOptions {
-  readonly preload?: string;
-  readonly partition?: string;
-  readonly spellcheck?: boolean;
-}
+import { BrowserWindow, type BrowserWindowConstructorOptions } from 'electron';
+import { rendererPreferences, type RendererOptions } from './web-preferences.ts';
 
 export type WindowOptions = Omit<BrowserWindowConstructorOptions, 'webPreferences'>;
-
-export function rendererPreferences({
-  preload,
-  partition,
-  spellcheck,
-}: RendererOptions = {}): WebPreferences {
-  return {
-    ...secureWebPreferences(),
-    ...(preload === undefined ? {} : { preload }),
-    ...(partition === undefined ? {} : { partition }),
-    ...(spellcheck === undefined ? {} : { spellcheck }),
-  };
-}
 
 /**
  * The only place YapYap creates windows; lint forbids it anywhere else.

@@ -55,13 +55,22 @@ and an ESLint restriction forbids constructing `BrowserWindow` or
 
 ### Navigation, windows and permissions
 
-- `will-navigate`, `will-redirect` and `will-frame-navigate` allow only
-  same-origin navigation within the view's home origin. Anything else is
-  cancelled. `http(s)` targets open in the default browser.
-- `setWindowOpenHandler` denies every request. `http(s)` URLs open externally.
-  `mailto:` and `tel:` go to `shell.openExternal` only after the URL is parsed
-  and re-serialized. `whatsapp:` deep links are handled internally. All other
-  schemes are dropped.
+- `will-navigate` and `will-redirect` allow the main frame to navigate only
+  within the view's home origin. A cancelled click goes through the link
+  policy below; a cancelled redirect is simply dropped. Subframes are left to
+  the page's own CSP and the sandbox, because WhatsApp plays some link
+  previews inline in iframes (ADR 0008, C14). Web contents YapYap did not
+  create have no home origin, so none of their main-frame navigations stay.
+- `setWindowOpenHandler` denies every request after routing its URL through
+  the link policy: `http(s)` URLs open in the default browser, and `mailto:`
+  and `tel:` are parsed, validated and re-serialized before
+  `shell.openExternal` (phone numbers keep only digits and a leading `+`).
+  `whatsapp://send` deep links load the matching WhatsApp Web URL in the
+  view. All other schemes are dropped.
+- The one exception is an empty `about:blank` popup, which WhatsApp opens
+  before setting its location. It is created hidden with the hardened
+  preferences, its first navigation goes through the link policy, and it is
+  destroyed then, or after five seconds if it never navigates.
 - `setPermissionRequestHandler` and `setPermissionCheckHandler` use a
   per-zone allowlist. The WhatsApp zone gets `notifications`, `media` (with a
   user prompt, scoped to the requesting account), `clipboard-sanitized-write`,

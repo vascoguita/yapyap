@@ -1,4 +1,4 @@
-import { app } from 'electron';
+import { app, shell } from 'electron';
 import { startApp } from './start.ts';
 import { createSecureWindow } from './windows.ts';
 
@@ -8,6 +8,7 @@ startApp({
   app,
   createWindow: (options) => createSecureWindow(options),
   env: process.env,
+  openExternal: (url) => shell.openExternal(url),
   warn: (message) => {
     console.warn(message);
   },
