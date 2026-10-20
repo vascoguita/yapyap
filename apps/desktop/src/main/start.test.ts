@@ -31,6 +31,7 @@ function fakes(env: Record<string, string | undefined> = {}) {
   const web = fakeContents();
   const listeners = new Map<string, (...args: never[]) => void>();
   const app = {
+    userAgentFallback: '',
     enableSandbox: vi.fn(),
     whenReady: vi.fn(() => Promise.resolve()),
     setAppUserModelId: vi.fn(),
@@ -54,6 +55,8 @@ function fakes(env: Record<string, string | undefined> = {}) {
     setPermissionCheckHandler: vi.fn(),
     setDevicePermissionHandler: vi.fn(),
     setDisplayMediaRequestHandler: vi.fn(),
+    setUserAgent: vi.fn(),
+    webRequest: { onBeforeSendHeaders: vi.fn() },
   };
   const capture = {
     contentsOfFrame: vi.fn(),
@@ -71,6 +74,8 @@ function fakes(env: Record<string, string | undefined> = {}) {
     defaultSession: () => session,
     askMedia: vi.fn(() => Promise.resolve(true)),
     capture,
+    chromeVersion: '152.0.7977.167',
+    platform: 'linux',
     chrome: { beforeReady: vi.fn(), afterReady: vi.fn(() => runtime) },
     createOverlay: vi.fn(),
     warn,
@@ -144,6 +149,19 @@ describe('startApp', () => {
     expect(f.createOverlay).toHaveBeenCalledExactlyOnceWith(f.window, { preload: '/p.cjs' });
   });
 
+  it('presents the bundled Chromium as desktop Chrome everywhere', async () => {
+    const f = fakes();
+    f.app.whenReady.mockImplementationOnce(() => {
+      expect(f.app.userAgentFallback).toBe(
+        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36',
+      );
+      return Promise.resolve();
+    });
+    await startApp(f);
+    expect(f.session.setUserAgent).toHaveBeenCalledExactlyOnceWith(f.app.userAgentFallback);
+    expect(f.session.webRequest.onBeforeSendHeaders).toHaveBeenCalledOnce();
+  });
+
   it('applies the permission policy to the default session and to every new session', async () => {
     const f = fakes();
     f.app.whenReady.mockImplementationOnce(() => {
@@ -152,9 +170,10 @@ describe('startApp', () => {
     });
     await startApp(f);
     expect(f.session.setPermissionRequestHandler).toHaveBeenCalledOnce();
-    const created = { ...f.session, setPermissionRequestHandler: vi.fn() };
+    const created = { ...f.session, setPermissionRequestHandler: vi.fn(), setUserAgent: vi.fn() };
     f.listeners.get('session-created')?.(...([created] as never[]));
     expect(created.setPermissionRequestHandler).toHaveBeenCalledOnce();
+    expect(created.setUserAgent).toHaveBeenCalledExactlyOnceWith(f.app.userAgentFallback);
   });
 
   it('lets the WhatsApp window send notifications from its own origin', async () => {

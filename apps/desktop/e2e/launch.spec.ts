@@ -43,3 +43,24 @@ test('offers web pages no <webview> element', async ({ window }) => {
   await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
   expect(await window.evaluate(() => customElements.get('webview') === undefined)).toBe(true);
 });
+
+test('presents itself to WhatsApp as the bundled Chromium in desktop Chrome form', async ({
+  app,
+  window,
+}) => {
+  await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
+  const chrome = await app.evaluate(() => process.versions.chrome);
+  const major = chrome.split('.')[0] ?? '';
+  const seen = await window.evaluate(async () => ({
+    userAgent: navigator.userAgent,
+    headers: (await (await fetch('/__headers')).json()) as Record<string, string>,
+  }));
+  expect(seen.userAgent).toMatch(
+    new RegExp(
+      `^Mozilla/5\\.0 \\(.+\\) AppleWebKit/537\\.36 \\(KHTML, like Gecko\\) Chrome/${major}\\.0\\.0\\.0 Safari/537\\.36$`,
+    ),
+  );
+  expect(seen.userAgent).not.toMatch(/Electron|YapYap/i);
+  expect(seen.headers['user-agent']).toBe(seen.userAgent);
+  expect(seen.headers['sec-ch-ua']).toContain(`"Google Chrome";v="${major}"`);
+});

@@ -24,6 +24,13 @@ function resolvePath(url: string | undefined, home: string): string | undefined 
 /** `home` is the page served at `/`, so tests can stage WhatsApp's failure modes. */
 export async function startFakeWhatsApp(home = 'index.html'): Promise<FakeWhatsApp> {
   const server: Server = createServer((request, response) => {
+    // Lets tests check what WhatsApp would see: the user agent and client hints.
+    if (request.url === '/__headers') {
+      response
+        .writeHead(200, { 'content-type': 'application/json' })
+        .end(JSON.stringify(request.headers));
+      return;
+    }
     const file = resolvePath(request.url, home);
     if (file === undefined) {
       response.writeHead(404).end();

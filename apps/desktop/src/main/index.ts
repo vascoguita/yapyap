@@ -45,6 +45,8 @@ startApp({
   askMedia: askMediaWithDialog,
   capture: electronCapture(process.platform, process.env),
   chrome,
+  chromeVersion: process.versions.chrome,
+  platform: process.platform,
   env: process.env,
   openExternal: (url) => shell.openExternal(url),
   warn: (message) => {
