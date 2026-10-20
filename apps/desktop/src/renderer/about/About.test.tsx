@@ -28,6 +28,7 @@ function api(overrides: Partial<ChromeApi['about']> = {}): ChromeApi {
       clearCache: vi.fn(),
       copyDiagnostics: vi.fn(),
     },
+    settings: { get: vi.fn(), set: vi.fn(), restart: vi.fn() },
   };
 }
 

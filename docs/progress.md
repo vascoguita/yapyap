@@ -1,8 +1,8 @@
 # Progress
 
 - **Current milestone:** M2 · Single-account shell
-- **Last merged PR:** #154 (crash recovery)
-- **Next issue:** #44 (settings window), #40 (graphics safe mode), #47 (themes), #146 (screen-sharing picker)
+- **Last merged PR:** #157 (settings store)
+- **Next issue:** #40 (graphics safe mode), #47 (themes), #146 (screen-sharing picker)
 - **Open blockers:** #22 (`AUTOMATION_TOKEN`), #23, #24, #25, #26, #138 need maintainer-provided secrets or settings (pipelines skip those steps gracefully)
 
 ## Milestones

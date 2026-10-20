@@ -1,6 +1,7 @@
 import type { MenuItemConstructorOptions } from 'electron';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
+import { defaultSettings } from '../settings/decode.ts';
 import type { ViewInfo } from '../views.ts';
 import {
   CHROME_PARTITION,
@@ -53,6 +54,8 @@ function setup() {
     rendererRoot: '/app/renderer',
     preloadPath: '/app/preload/chrome.cjs',
     readFile: vi.fn(() => Promise.resolve(new Uint8Array([60]))),
+    settings: { current: defaultSettings, notice: undefined, readOnly: false, update: vi.fn() },
+    restart: vi.fn(),
   } satisfies ChromeFeatureDependencies;
   const views = new WeakMap<object, ViewInfo>();
   const feature = createChromeFeature(deps);
@@ -61,12 +64,21 @@ function setup() {
       sender,
       senderFrame: { url: 'app://chrome/about.html' },
     });
-  const clickAbout = (): void => {
-    const help = menu.at(-1)?.submenu;
-    const about = Array.isArray(help) ? help[0] : undefined;
-    (about?.click as (() => void) | undefined)?.();
+  const click = (menuIndex: number) => (): void => {
+    const submenu = menu.at(menuIndex)?.submenu;
+    const item = Array.isArray(submenu) ? submenu[0] : undefined;
+    (item?.click as (() => void) | undefined)?.();
   };
-  return { deps, feature, views, window, call, clickAbout, handler: () => handler };
+  return {
+    deps,
+    feature,
+    views,
+    window,
+    call,
+    clickAbout: click(-1),
+    clickSettings: click(0),
+    handler: () => handler,
+  };
 }
 
 describe('createChromeFeature', () => {
@@ -91,12 +103,21 @@ describe('createChromeFeature', () => {
     t.feature.afterReady(t.views, vi.fn());
     t.clickAbout();
     expect(t.deps.createWindow).toHaveBeenCalledWith(
-      expect.objectContaining({ title: 'About YapYap' }),
+      {
+        title: 'About YapYap',
+        width: 480,
+        height: 560,
+        resizable: false,
+        minimizable: false,
+        maximizable: false,
+        show: false,
+      },
       {
         preload: '/app/preload/chrome.cjs',
         partition: CHROME_PARTITION,
       },
     );
+    expect(t.window.loadURL).toHaveBeenCalledWith('app://chrome/about.html');
     expect(t.views.get(t.window.webContents)?.zone).toBe('chrome');
   });
 
@@ -111,6 +132,31 @@ describe('createChromeFeature', () => {
     expect(t.deps.writeClipboard).toHaveBeenCalledExactlyOnceWith(
       'YapYap 0.1.0 (deb)\nElectron 44.9.0\nChromium 152\nNode.js 24.22.0\nOS linux 7.0.0 (x64)',
     );
+  });
+
+  it('opens Settings from the menu and answers its IPC calls', () => {
+    const t = setup();
+    t.feature.afterReady(t.views, vi.fn());
+    t.clickSettings();
+    expect(t.deps.createWindow).toHaveBeenCalledWith(
+      {
+        title: 'YapYap Settings',
+        width: 640,
+        height: 560,
+        minWidth: 420,
+        minHeight: 360,
+        show: false,
+      },
+      { preload: '/app/preload/chrome.cjs', partition: CHROME_PARTITION },
+    );
+    expect(t.window.loadURL).toHaveBeenCalledWith('app://chrome/settings.html');
+    expect(t.call('settings:get')).toEqual({
+      values: { 'reliability.hardwareAcceleration': true },
+      restartPending: false,
+      readOnly: false,
+    });
+    t.call('settings:restart');
+    expect(t.deps.restart).toHaveBeenCalledOnce();
   });
 
   it('keeps chrome storage in memory', () => {

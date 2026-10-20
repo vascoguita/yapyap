@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { ViewInfo } from '../views.ts';
-import { createAboutOpener, type AboutWindowPort } from './about-window.ts';
+import { createChromeWindowOpener, type ChromeWindowPort } from './window-opener.ts';
 
 function fakeWindow() {
   let ready: () => void = () => undefined;
@@ -14,7 +14,7 @@ function fakeWindow() {
     }),
     show: vi.fn(),
     loadURL: vi.fn(() => Promise.resolve()),
-  } satisfies AboutWindowPort;
+  } satisfies ChromeWindowPort;
   return {
     window,
     ready: () => {
@@ -29,7 +29,7 @@ function fakeWindow() {
 function setup() {
   const windows = [fakeWindow(), fakeWindow()] as const;
   const createWindow = vi
-    .fn<() => AboutWindowPort>()
+    .fn<() => ChromeWindowPort>()
     .mockReturnValueOnce(windows[0].window)
     .mockReturnValueOnce(windows[1].window);
   const views = new WeakMap<object, ViewInfo>();
@@ -39,24 +39,23 @@ function setup() {
     createWindow,
     views,
     warn,
-    open: createAboutOpener({ createWindow, views, warn }),
+    open: createChromeWindowOpener(
+      { createWindow, views, warn },
+      { path: 'about.html', window: { title: 'About YapYap', width: 480, show: true } },
+    ),
   };
 }
 
 const settle = () => new Promise((resolve) => setTimeout(resolve));
 
-describe('createAboutOpener', () => {
-  it('opens a small, fixed-size chrome window on the About page and shows it when ready', () => {
+describe('createChromeWindowOpener', () => {
+  it('opens a hidden chrome window on the page and shows it when ready', () => {
     const t = setup();
     t.open();
     const [first] = t.windows;
     expect(t.createWindow).toHaveBeenCalledExactlyOnceWith({
       title: 'About YapYap',
       width: 480,
-      height: 560,
-      resizable: false,
-      minimizable: false,
-      maximizable: false,
       show: false,
     });
     expect(t.views.get(first.window.webContents)).toEqual({
@@ -65,6 +64,7 @@ describe('createAboutOpener', () => {
       label: 'YapYap',
     });
     expect(first.window.loadURL).toHaveBeenCalledWith('app://chrome/about.html');
+    expect(first.window.once).toHaveBeenCalledWith('ready-to-show', expect.any(Function));
     expect(first.window.show).not.toHaveBeenCalled();
     first.ready();
     expect(first.window.show).toHaveBeenCalledOnce();
@@ -92,6 +92,6 @@ describe('createAboutOpener', () => {
     t.windows[0].window.loadURL.mockRejectedValueOnce(new Error('ERR_FAILED'));
     t.open();
     await settle();
-    expect(t.warn).toHaveBeenCalledExactlyOnceWith('Could not load the About window.');
+    expect(t.warn).toHaveBeenCalledExactlyOnceWith('Could not load about.html.');
   });
 });

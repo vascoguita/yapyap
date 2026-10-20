@@ -5,8 +5,16 @@ describe('createChromeBridge', () => {
   it('maps each operation to its own fixed channel', async () => {
     const info = { name: 'YapYap' };
     const problem = { kind: 'blank', description: 'Blank.' };
-    const answers: Record<string, unknown> = { 'about:info': info, 'recovery:problem': problem };
-    const invoke = vi.fn((channel: string) => Promise.resolve(answers[channel] ?? 'ignored'));
+    const snapshot = { values: {}, restartPending: false, readOnly: false };
+    const answers: Record<string, unknown> = {
+      'about:info': info,
+      'recovery:problem': problem,
+      'settings:get': snapshot,
+      'settings:set': snapshot,
+    };
+    const invoke = vi.fn<(channel: string, ...args: unknown[]) => Promise<unknown>>((channel) =>
+      Promise.resolve(answers[channel] ?? 'ignored'),
+    );
     const api = createChromeBridge(invoke);
     expect(await api.about.info()).toBe(info);
     await api.about.copyTechnicalDetails();
@@ -14,6 +22,9 @@ describe('createChromeBridge', () => {
     await api.recovery.retry();
     await api.recovery.clearCache();
     await api.recovery.copyDiagnostics();
+    expect(await api.settings.get()).toBe(snapshot);
+    expect(await api.settings.set('reliability.hardwareAcceleration', false)).toBe(snapshot);
+    await api.settings.restart();
     expect(invoke.mock.calls).toEqual([
       ['about:info'],
       ['about:copy-technical-details'],
@@ -21,12 +32,16 @@ describe('createChromeBridge', () => {
       ['recovery:retry'],
       ['recovery:clear-cache'],
       ['recovery:copy-diagnostics'],
+      ['settings:get'],
+      ['settings:set', 'reliability.hardwareAcceleration', false],
+      ['settings:restart'],
     ]);
   });
 
   it('exposes nothing but the listed operations', () => {
     const api = createChromeBridge(vi.fn());
-    expect(Object.keys(api)).toEqual(['about', 'recovery']);
+    expect(Object.keys(api)).toEqual(['about', 'recovery', 'settings']);
+    expect(Object.keys(api.settings)).toEqual(['get', 'set', 'restart']);
     expect(Object.keys(api.about)).toEqual(['info', 'copyTechnicalDetails']);
     expect(Object.keys(api.recovery)).toEqual([
       'problem',

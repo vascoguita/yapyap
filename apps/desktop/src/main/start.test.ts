@@ -99,6 +99,7 @@ function fakes(env: Record<string, string | undefined> = {}) {
     settings: {
       current: () => defaultSettings(),
       notice: undefined as string | undefined,
+      readOnly: false,
       update: vi.fn(),
     },
     notify: vi.fn(),

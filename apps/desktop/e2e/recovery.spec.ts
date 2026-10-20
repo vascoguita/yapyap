@@ -1,7 +1,6 @@
-import { _electron as electron, type ElectronApplication, type Page } from '@playwright/test';
-import { appEnvironment } from './app-environment.ts';
+import type { ElectronApplication, Page } from '@playwright/test';
 import { startFakeWhatsApp } from './fake-whatsapp-server.ts';
-import { expect, MAIN, test } from './fixtures.ts';
+import { expect, launchApp, test } from './fixtures.ts';
 
 /** The recovery screen is a view laid over the WhatsApp window, not a window of its own. */
 async function recoveryScreen(app: ElectronApplication): Promise<Page> {
@@ -51,10 +50,12 @@ test.describe('when WhatsApp loads a blank page', () => {
   });
 });
 
-test('shows the recovery screen when WhatsApp cannot be reached, and retries', async () => {
+test('shows the recovery screen when WhatsApp cannot be reached, and retries', async ({
+  profile,
+}) => {
   const gone = await startFakeWhatsApp();
   await gone.close();
-  const app = await electron.launch({ args: [MAIN], env: appEnvironment(gone.origin) });
+  const app = await launchApp(gone.origin, profile);
   try {
     const screen = await recoveryScreen(app);
     await expect(

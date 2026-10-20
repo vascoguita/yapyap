@@ -1,7 +1,6 @@
 import type { MenuItemConstructorOptions } from 'electron';
 import { CHROME_CHANNELS } from '../../shared/chrome-api.ts';
 import { buildAboutInfo, formatTechnicalDetails, type RuntimeFacts } from '../about/about-info.ts';
-import { createAboutOpener, type AboutWindowPort } from '../about/about-window.ts';
 import { buildMenuTemplate } from '../menu.ts';
 import {
   createRecovery,
@@ -11,6 +10,8 @@ import {
 } from '../recovery/controller.ts';
 import { guardCrashes, type CrashableContents } from '../recovery/crash-guard.ts';
 import { monitorPage, type MonitoredContents } from '../recovery/monitor.ts';
+import { settingsHandlers } from '../settings/handlers.ts';
+import type { SettingsService } from '../settings/service.ts';
 import type { ViewRegistry } from '../views.ts';
 import type { RendererOptions } from '../web-preferences.ts';
 import type { WindowOptions } from '../windows.ts';
@@ -22,9 +23,31 @@ import {
   type ChromeHandler,
   type IpcMainPort,
 } from './ipc.ts';
+import {
+  createChromeWindowOpener,
+  type ChromePage,
+  type ChromeWindowPort,
+} from './window-opener.ts';
 
 /** In memory only: app chrome never shares storage with WhatsApp or keeps any. */
 export const CHROME_PARTITION = 'yapyap-chrome';
+
+const ABOUT_PAGE: ChromePage = {
+  path: 'about.html',
+  window: {
+    title: 'About YapYap',
+    width: 480,
+    height: 560,
+    resizable: false,
+    minimizable: false,
+    maximizable: false,
+  },
+};
+
+const SETTINGS_PAGE: ChromePage = {
+  path: 'settings.html',
+  window: { title: 'YapYap Settings', width: 640, height: 560, minWidth: 420, minHeight: 360 },
+};
 
 interface PrivilegedScheme {
   readonly scheme: string;
@@ -37,7 +60,7 @@ export interface ChromeFeatureDependencies {
     handle(scheme: string, handler: (request: { readonly url: string }) => Promise<Response>): void;
   };
   readonly ipc: IpcMainPort;
-  readonly createWindow: (options: WindowOptions, renderer: RendererOptions) => AboutWindowPort;
+  readonly createWindow: (options: WindowOptions, renderer: RendererOptions) => ChromeWindowPort;
   readonly setMenu: (template: MenuItemConstructorOptions[]) => void;
   readonly writeClipboard: (text: string) => Promise<unknown>;
   /** A system notification, for things the user should know but need not act on. */
@@ -47,6 +70,9 @@ export interface ChromeFeatureDependencies {
   readonly rendererRoot: string;
   readonly preloadPath: string;
   readonly readFile: (path: string) => Promise<Uint8Array>;
+  readonly settings: SettingsService;
+  /** Quits and starts YapYap again, to apply settings that need a restart. */
+  readonly restart: () => void;
 }
 
 export type WhatsAppContents = MonitoredContents & RecoverableContents & CrashableContents;
@@ -143,12 +169,21 @@ export function createChromeFeature(deps: ChromeFeatureDependencies): ChromeFeat
       registerChromeHandlers(
         deps.ipc,
         views,
-        [...aboutHandlers(deps), ...recoveryHandlers(recoveries)],
+        [
+          ...aboutHandlers(deps),
+          ...recoveryHandlers(recoveries),
+          ...settingsHandlers(deps.settings, deps.restart),
+        ],
         warn,
       );
       const createWindow = (options: WindowOptions) => deps.createWindow(options, renderer);
+      const opener = (page: ChromePage) =>
+        createChromeWindowOpener({ createWindow, views, warn }, page);
       deps.setMenu(
-        buildMenuTemplate(deps.platform, createAboutOpener({ createWindow, views, warn })),
+        buildMenuTemplate(deps.platform, {
+          openAbout: opener(ABOUT_PAGE),
+          openSettings: opener(SETTINGS_PAGE),
+        }),
       );
       return { attachRecovery: recoveryAttacher(deps, renderer, views, warn, recoveries) };
     },

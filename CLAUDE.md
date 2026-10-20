@@ -155,6 +155,13 @@ Update this table in the PR that adds a command.
   `src/shared/chrome-api.ts`, the preload bridge, and a handler registered
   through `registerChromeHandlers`, which checks the sender and payload. Node's
   URL parser treats `app:` as opaque, so compare origins with `isSameOrigin`.
+- A setting appears in the settings window only once YapYap acts on it: add
+  it to `SETTING_FIELDS` in `src/shared/settings-fields.ts` in the PR that
+  implements it. The `settings:set` handler accepts only listed fields and
+  checks the whole result against the schema.
+- E2E tests start the app through `launchApp` in `e2e/fixtures.ts`, which
+  gives each test a throwaway `--user-data-dir`. Never launch Electron in a
+  spec without it, or tests write to the developer's real profile.
 - Code that inspects WhatsApp's page lives in `src/adapter/` and runs in the
   adapter's isolated world (`ADAPTER_WORLD_ID`). Probes return plain flags,
   never page text, which can contain chats.
