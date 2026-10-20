@@ -11,7 +11,8 @@ describe('compareVersions properties', () => {
     fc.assert(
       fc.property(version, version, (a, b) => {
         expect(compareVersions(a, a)).toBe(0);
-        expect(Math.sign(compareVersions(a, b))).toBe(-Math.sign(compareVersions(b, a)));
+        // Summing the signs avoids comparing 0 with -0, which toBe treats as different.
+        expect(Math.sign(compareVersions(a, b)) + Math.sign(compareVersions(b, a))).toBe(0);
       }),
     );
   });
