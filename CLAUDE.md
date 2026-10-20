@@ -142,6 +142,10 @@ Update this table in the PR that adds a command.
   `Package / Package (macos)`. Use that full name in the ruleset.
 - Flatpak lint exceptions live in `packaging/flatpak/lint-exceptions.json`,
   each with its reason and issue. Remove an entry as soon as its issue lands.
+- Create windows only with `createSecureWindow` in
+  `apps/desktop/src/main/windows.ts`. Lint rejects `new BrowserWindow`,
+  `BaseWindow`, `BrowserView` and `WebContentsView` anywhere else, and new
+  per-web-contents guards go in `web-contents-guards.ts`.
 - Packaged builds disable the Node inspector fuse, so Playwright's Electron
   launcher cannot drive them. The smoke test connects over CDP through the
   `DevToolsActivePort` file in the profile directory instead.

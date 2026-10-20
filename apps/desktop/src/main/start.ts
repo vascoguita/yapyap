@@ -1,6 +1,6 @@
-import type { BrowserWindowConstructorOptions } from 'electron';
 import { APP_ID, PRODUCT_NAME } from './identity.ts';
-import { secureWebPreferences } from './web-preferences.ts';
+import { installWebContentsGuards, type GuardedContents } from './web-contents-guards.ts';
+import type { WindowOptions } from './windows.ts';
 import { resolveWhatsAppOrigin } from './whatsapp-origin.ts';
 
 /**
@@ -10,9 +10,14 @@ import { resolveWhatsAppOrigin } from './whatsapp-origin.ts';
 export const SHOW_FALLBACK_MS = 3000;
 
 export interface AppPort {
+  enableSandbox(): void;
   whenReady(): Promise<unknown>;
   setAppUserModelId(id: string): void;
   on(event: 'window-all-closed', listener: () => void): unknown;
+  on(
+    event: 'web-contents-created',
+    listener: (event: unknown, contents: GuardedContents) => void,
+  ): unknown;
   quit(): void;
 }
 
@@ -24,12 +29,15 @@ export interface WindowPort {
 
 export interface StartDependencies {
   readonly app: AppPort;
-  readonly createWindow: (options: BrowserWindowConstructorOptions) => WindowPort;
+  readonly createWindow: (options: WindowOptions) => WindowPort;
   readonly env: Readonly<Record<string, string | undefined>>;
   readonly warn: (message: string) => void;
 }
 
 export async function startApp({ app, createWindow, env, warn }: StartDependencies): Promise<void> {
+  // Must run before the app is ready; it sandboxes renderers Electron creates itself.
+  app.enableSandbox();
+  installWebContentsGuards(app);
   // Windows groups notifications and taskbar entries by this ID.
   app.setAppUserModelId(APP_ID);
   app.on('window-all-closed', () => {
@@ -48,7 +56,6 @@ export async function startApp({ app, createWindow, env, warn }: StartDependenci
     minWidth: 640,
     minHeight: 480,
     show: false,
-    webPreferences: secureWebPreferences(),
   });
   let shown = false;
   const showOnce = (): void => {

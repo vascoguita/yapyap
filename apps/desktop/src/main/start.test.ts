@@ -1,16 +1,18 @@
-import type { BrowserWindowConstructorOptions } from 'electron';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { APP_ID } from './identity.ts';
 import { SHOW_FALLBACK_MS, startApp, type AppPort, type WindowPort } from './start.ts';
-import { secureWebPreferences } from './web-preferences.ts';
 import { WHATSAPP_ORIGIN } from './whatsapp-origin.ts';
+import type { WindowOptions } from './windows.ts';
 
 function fakes(env: Record<string, string | undefined> = {}) {
-  const listeners = new Map<string, () => void>();
+  const listeners = new Map<string, (...args: never[]) => void>();
   const app = {
+    enableSandbox: vi.fn(),
     whenReady: vi.fn(() => Promise.resolve()),
     setAppUserModelId: vi.fn(),
-    on: vi.fn((event: string, listener: () => void) => listeners.set(event, listener)),
+    on: vi.fn((event: string, listener: (...args: never[]) => void) =>
+      listeners.set(event, listener),
+    ),
     quit: vi.fn(),
   } satisfies AppPort;
   const window = {
@@ -18,9 +20,7 @@ function fakes(env: Record<string, string | undefined> = {}) {
     show: vi.fn(),
     loadURL: vi.fn(() => Promise.resolve()),
   } satisfies WindowPort;
-  const createWindow = vi.fn<(options: BrowserWindowConstructorOptions) => WindowPort>(
-    () => window,
-  );
+  const createWindow = vi.fn<(options: WindowOptions) => WindowPort>(() => window);
   const warn = vi.fn();
   return { app, window, createWindow, warn, env, listeners };
 }
@@ -39,14 +39,31 @@ describe('startApp', () => {
     await startApp(f);
 
     expect(f.app.setAppUserModelId).toHaveBeenCalledWith(APP_ID);
-    expect(f.createWindow).toHaveBeenCalledWith(
-      expect.objectContaining({ show: false, webPreferences: secureWebPreferences() }),
-    );
+    expect(f.createWindow).toHaveBeenCalledWith(expect.objectContaining({ show: false }));
     expect(f.window.loadURL).toHaveBeenCalledWith(WHATSAPP_ORIGIN);
     expect(f.window.show).not.toHaveBeenCalled();
     f.listeners.get('ready-to-show')?.();
     expect(f.window.show).toHaveBeenCalledOnce();
     expect(f.warn).not.toHaveBeenCalled();
+  });
+
+  it('sandboxes every renderer and guards every web contents before the app is ready', async () => {
+    const f = fakes();
+    f.app.whenReady.mockImplementationOnce(() => {
+      expect(f.app.enableSandbox).toHaveBeenCalledOnce();
+      expect(f.listeners.has('web-contents-created')).toBe(true);
+      return Promise.resolve();
+    });
+    await startApp(f);
+    const preventDefault = vi.fn();
+    const contents = {
+      on: vi.fn((_event: string, listener: (event: { preventDefault(): void }) => void) => {
+        listener({ preventDefault });
+      }),
+    };
+    f.listeners.get('web-contents-created')?.(...([{}, contents] as never[]));
+    expect(contents.on).toHaveBeenCalledWith('will-attach-webview', expect.any(Function));
+    expect(preventDefault).toHaveBeenCalledOnce();
   });
 
   it('shows the window after a fallback delay when ready-to-show never fires, exactly once', async () => {
