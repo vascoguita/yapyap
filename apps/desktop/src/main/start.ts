@@ -4,11 +4,13 @@ import { offlineTitle, type TitledWindow } from './connectivity/offline-title.ts
 import { APP_ID, PRODUCT_NAME } from './identity.ts';
 import type { DisplayCapturePort, MediaType } from './permissions/session-guard.ts';
 import { chromeUserAgent } from './identity/user-agent.ts';
+import { guardGpu } from './recovery/gpu-safe-mode.ts';
 import {
   installSecurity,
   secureSession,
   type GuardedContents,
   type GuardedSession,
+  type SecurityDependencies,
 } from './security.ts';
 import type { ViewInfo, ViewRegistry } from './views.ts';
 import type { Overlay } from './recovery/controller.ts';
@@ -23,11 +25,16 @@ import { resolveWhatsAppOrigin } from './whatsapp-origin.ts';
 export const SHOW_FALLBACK_MS = 3000;
 
 export interface AppPort {
+  disableHardwareAcceleration(): void;
   userAgentFallback: string;
   enableSandbox(): void;
   whenReady(): Promise<unknown>;
   setAppUserModelId(id: string): void;
   on(event: 'window-all-closed', listener: () => void): unknown;
+  on(
+    event: 'child-process-gone',
+    listener: (event: unknown, details: { readonly type: string; readonly reason: string }) => void,
+  ): unknown;
   on(
     event: 'web-contents-created',
     listener: (event: unknown, contents: GuardedContents) => void,
@@ -58,6 +65,7 @@ export interface StartDependencies<Window extends WindowPort> {
   readonly openExternal: (url: string) => Promise<unknown>;
   readonly isOnline: () => boolean;
   readonly onResume: (listener: () => void) => void;
+  readonly gpuCrashLog: { readonly read: () => string; readonly write: (text: string) => void };
   readonly warn: (message: string) => void;
 }
 
@@ -81,6 +89,30 @@ function showWhenReady(window: WindowPort): void {
   setTimeout(showOnce, SHOW_FALLBACK_MS);
 }
 
+/** Everything Electron only accepts before the app is ready. */
+function beforeReady<Window extends WindowPort>(
+  deps: StartDependencies<Window>,
+  security: SecurityDependencies,
+): void {
+  const { app, warn } = deps;
+  app.userAgentFallback = security.identity.userAgent;
+  // Sandboxes the renderers Electron creates on its own too.
+  app.enableSandbox();
+  guardGpu(app, {
+    readLog: deps.gpuCrashLog.read,
+    writeLog: deps.gpuCrashLog.write,
+    now: Date.now,
+    warn,
+  });
+  installSecurity(app, security);
+  deps.chrome.beforeReady();
+  // Windows groups notifications and taskbar entries by this ID.
+  app.setAppUserModelId(APP_ID);
+  app.on('window-all-closed', () => {
+    app.quit();
+  });
+}
+
 export async function startApp<Window extends WindowPort>(
   deps: StartDependencies<Window>,
 ): Promise<void> {
@@ -91,16 +123,7 @@ export async function startApp<Window extends WindowPort>(
     chromeVersion: deps.chromeVersion,
   };
   const security = { ...deps, views, identity };
-  app.userAgentFallback = identity.userAgent;
-  // Must run before the app is ready; it sandboxes renderers Electron creates itself.
-  app.enableSandbox();
-  installSecurity(app, security);
-  deps.chrome.beforeReady();
-  // Windows groups notifications and taskbar entries by this ID.
-  app.setAppUserModelId(APP_ID);
-  app.on('window-all-closed', () => {
-    app.quit();
-  });
+  beforeReady(deps, security);
 
   const { origin, rejectedOverride } = resolveWhatsAppOrigin(env['YAPYAP_TEST_WHATSAPP_ORIGIN']);
   if (rejectedOverride)

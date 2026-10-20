@@ -3,6 +3,7 @@ import type { PageHealth } from '../../adapter/page-health.ts';
 export type Failure =
   | { readonly kind: 'unsupported' }
   | { readonly kind: 'blank' }
+  | { readonly kind: 'crashed' }
   | { readonly kind: 'load-failed'; readonly code: number; readonly description: string };
 
 /** Chromium's error for navigations YapYap cancels itself, such as off-origin links. */
@@ -26,5 +27,6 @@ export function describeFailure(failure: Failure): string {
   if (failure.kind === 'unsupported')
     return 'WhatsApp reported that this browser is not supported.';
   if (failure.kind === 'blank') return 'WhatsApp loaded a blank page.';
+  if (failure.kind === 'crashed') return 'WhatsApp kept stopping unexpectedly.';
   return `WhatsApp could not load (${failure.description}, ${String(failure.code)}).`;
 }

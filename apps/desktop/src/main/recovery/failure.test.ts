@@ -34,6 +34,7 @@ describe('describeFailure', () => {
       'WhatsApp reported that this browser is not supported.',
     );
     expect(describeFailure({ kind: 'blank' })).toBe('WhatsApp loaded a blank page.');
+    expect(describeFailure({ kind: 'crashed' })).toBe('WhatsApp kept stopping unexpectedly.');
     expect(
       describeFailure({
         kind: 'load-failed',

@@ -4,12 +4,13 @@ import {
   ipcMain,
   Menu,
   net,
+  Notification,
   powerMonitor,
   protocol,
   session,
   shell,
 } from 'electron';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { release } from 'node:os';
 import { join } from 'node:path';
@@ -19,6 +20,8 @@ import { electronCapture } from './permissions/electron-capture.ts';
 import { askMediaWithDialog } from './permissions/media-prompt.ts';
 import { startApp } from './start.ts';
 import { createSecureOverlay, createSecureWindow } from './windows.ts';
+
+const GPU_CRASH_LOG = join(app.getPath('userData'), 'gpu-crashes.json');
 
 const chrome = createChromeFeature({
   registerSchemesAsPrivileged: (schemes) => {
@@ -31,6 +34,9 @@ const chrome = createChromeFeature({
     Menu.setApplicationMenu(Menu.buildFromTemplate(template));
   },
   writeClipboard: (text) => clipboard.writeText(text),
+  notify: (body) => {
+    new Notification({ title: 'YapYap', body }).show();
+  },
   facts: () => ({
     version: app.getVersion(),
     channel: readInstallChannel(() => readFileSync(join(app.getAppPath(), 'package.json'), 'utf8')),
@@ -60,6 +66,12 @@ startApp({
   env: process.env,
   openExternal: (url) => shell.openExternal(url),
   isOnline: () => net.isOnline(),
+  gpuCrashLog: {
+    read: () => readFileSync(GPU_CRASH_LOG, 'utf8'),
+    write: (text) => {
+      writeFileSync(GPU_CRASH_LOG, text);
+    },
+  },
   onResume: (listener) => {
     powerMonitor.on('resume', listener);
   },
