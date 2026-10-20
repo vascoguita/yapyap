@@ -1,8 +1,8 @@
 # Progress
 
 - **Current milestone:** M2 · Single-account shell
-- **Last merged PR:** #162 (screen-sharing picker)
-- **Next issue:** #46 (window state), #48 (zoom), #49 (clipboard)
+- **Last merged PR:** #163 (clear cache and reset session)
+- **Next issue:** #48 (zoom), #49 (clipboard), #50 (downloads)
 - **Open blockers:** #22 (`AUTOMATION_TOKEN`), #23, #24, #25, #26, #138 need maintainer-provided secrets or settings (pipelines skip those steps gracefully)
 
 ## Milestones

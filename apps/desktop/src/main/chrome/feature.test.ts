@@ -168,6 +168,7 @@ describe('createChromeFeature', () => {
     expect(t.call('settings:get')).toEqual({
       values: {
         'appearance.theme': 'system',
+        'appearance.autoHideMenuBar': false,
         'reliability.hardwareAcceleration': true,
         'reliability.hardwareVideoDecoding': true,
       },

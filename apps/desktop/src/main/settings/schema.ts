@@ -24,6 +24,7 @@ export const SettingsSchema = Type.Object(
           default: 'system',
         }),
         zoom: Type.Number({ minimum: 0.5, maximum: 3, default: 1 }),
+        autoHideMenuBar: Type.Boolean({ default: false }),
       },
       { default: {}, additionalProperties: false },
     ),

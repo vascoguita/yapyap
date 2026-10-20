@@ -282,7 +282,7 @@ export function createChromeFeature(deps: ChromeFeatureDependencies): ChromeFeat
         [
           ...aboutHandlers(withGraphics),
           ...recoveryHandlers(recoveries),
-          ...settingsHandlers(deps.settings, deps.restart),
+          ...settingsHandlers(deps.settings, deps.restart, deps.platform),
           ...picker.handlers,
         ],
         warn,

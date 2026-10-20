@@ -20,6 +20,8 @@ export interface SettingField {
   readonly restart: boolean;
   /** One of several values; without options, the setting is an on/off switch. */
   readonly options?: readonly { readonly value: string; readonly label: string }[];
+  /** The platforms (`process.platform`) where it does something; all of them when absent. */
+  readonly platforms?: readonly string[];
 }
 
 /**
@@ -38,6 +40,13 @@ export const SETTING_FIELDS: readonly SettingField[] = [
       { value: 'light', label: 'Light' },
       { value: 'dark', label: 'Dark' },
     ],
+  },
+  {
+    id: 'appearance.autoHideMenuBar',
+    label: 'Hide the menu bar',
+    description: 'Press Alt to show it when you need it.',
+    restart: false,
+    platforms: ['linux', 'win32'],
   },
   {
     id: 'reliability.hardwareAcceleration',

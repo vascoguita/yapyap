@@ -5,7 +5,7 @@ import { decodeSettings, defaultSettings } from './decode.ts';
 const DEFAULTS = {
   schemaVersion: 1,
   general: { language: 'system', startMinimized: false, autostart: false },
-  appearance: { theme: 'system', zoom: 1 },
+  appearance: { theme: 'system', zoom: 1, autoHideMenuBar: false },
   reliability: { hardwareAcceleration: true, hardwareVideoDecoding: true, memoryWatchdogMb: 2048 },
   privacy: { crashReports: 'off' },
 };
@@ -18,7 +18,10 @@ describe('defaultSettings', () => {
 
 describe('decodeSettings', () => {
   it('reads a valid file unchanged', () => {
-    const settings = { ...DEFAULTS, appearance: { theme: 'dark', zoom: 1.25 } };
+    const settings = {
+      ...DEFAULTS,
+      appearance: { theme: 'dark', zoom: 1.25, autoHideMenuBar: true },
+    };
     expect(decodeSettings(JSON.stringify(settings))).toEqual({ kind: 'ok', settings, reset: [] });
   });
 
@@ -51,7 +54,7 @@ describe('decodeSettings', () => {
   });
 
   it('reads what it understands of a newer file and marks it', () => {
-    const appearance = { theme: 'light', zoom: 2 };
+    const appearance = { theme: 'light', zoom: 2, autoHideMenuBar: false };
     const decoded = decodeSettings(
       JSON.stringify({ ...DEFAULTS, appearance, schemaVersion: 7, future: true }),
     );
@@ -61,7 +64,11 @@ describe('decodeSettings', () => {
   it('accepts every option of each choice', () => {
     for (const theme of ['system', 'light', 'dark']) {
       for (const crashReports of ['off', 'local', 'ask']) {
-        const settings = { ...DEFAULTS, appearance: { theme, zoom: 1 }, privacy: { crashReports } };
+        const settings = {
+          ...DEFAULTS,
+          appearance: { theme, zoom: 1, autoHideMenuBar: false },
+          privacy: { crashReports },
+        };
         expect(decodeSettings(JSON.stringify(settings))).toEqual({
           kind: 'ok',
           settings,

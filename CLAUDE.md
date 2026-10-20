@@ -174,6 +174,10 @@ Update this table in the PR that adds a command.
 - E2E runs drop `WAYLAND_DISPLAY` so local runs use the virtual X11 display
   like CI. Under it no window manager focuses windows, so tests that need a
   focused window focus it and poll `isFocused()`.
+- In E2E tests, `BrowserWindow.getAllWindows()` has no stable order once a
+  chrome window is open. Find WhatsApp's window by its URL, never by index.
+- Window geometry lives in `window-state.json`, not in settings: it is state,
+  not a preference, and must never trigger a settings migration.
 - Code that inspects WhatsApp's page lives in `src/adapter/` and runs in the
   adapter's isolated world (`ADAPTER_WORLD_ID`). Probes return plain flags,
   never page text, which can contain chats.
