@@ -70,6 +70,20 @@ export default defineConfig(
     rules: { complexity: ['error', 1] },
   },
   {
+    // Every renderer must start from the hardened factory (ADR 0001).
+    files: ['apps/**/*.ts', 'packages/**/*.ts', 'plugins/**/*.ts'],
+    ignores: ['apps/desktop/src/main/windows.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        ...['callee.name', 'callee.property.name'].map((callee) => ({
+          selector: `NewExpression[${callee}=/^(BaseWindow|BrowserView|BrowserWindow|WebContentsView)$/]`,
+          message: 'Create windows and views through apps/desktop/src/main/windows.ts (ADR 0001).',
+        })),
+      ],
+    },
+  },
+  {
     files: ['**/*.test.ts', '**/*.spec.ts', '**/test/**/*.ts', '**/e2e/**/*.ts'],
     rules: { 'max-lines-per-function': 'off' },
   },

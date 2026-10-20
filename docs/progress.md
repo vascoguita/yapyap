@@ -1,17 +1,17 @@
 # Progress
 
-- **Current milestone:** M1 · Bootstrap
-- **Last merged PR:** #142 (release pipeline)
-- **Next issue:** M2 · Single-account shell
-- **Open blockers:** #22 (`AUTOMATION_TOKEN`), #23, #24, #25, #26, #137, #138 need maintainer-provided secrets or settings (pipelines skip those steps gracefully)
+- **Current milestone:** M2 · Single-account shell
+- **Last merged PR:** #143 (AUR package)
+- **Next issue:** #28 (navigation and external links), #29 (permissions)
+- **Open blockers:** #22 (`AUTOMATION_TOKEN`), #23, #24, #25, #26, #138 need maintainer-provided secrets or settings (pipelines skip those steps gracefully)
 
 ## Milestones
 
 | Milestone                                            | Status      |
 | ---------------------------------------------------- | ----------- |
 | M0 · Research and ADRs                               | Done        |
-| M1 · Bootstrap                                       | In progress |
-| M2 · Single-account shell                            | Not started |
+| M1 · Bootstrap                                       | Done        |
+| M2 · Single-account shell                            | In progress |
 | M3 · Accounts, tray, notifications, updates (v0.1.0) | Not started |
 | M4 · Remaining desktop features (v0.1.x)             | Not started |
 | M5 · Plugin platform                                 | Not started |
