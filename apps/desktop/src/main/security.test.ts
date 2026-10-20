@@ -1,16 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TRANSIENT_POPUP_MS } from './navigation/navigation-guard.ts';
-import { secureAllWebContents, type GuardedContents } from './security.ts';
+import { installSecurity, type GuardedContents } from './security.ts';
 import { rendererPreferences } from './web-preferences.ts';
 
 type Listener = (...args: never[]) => void;
 
 function setup() {
-  let created: (event: unknown, contents: GuardedContents) => void = () => undefined;
+  const appListeners = new Map<string, Listener>();
   const app = {
-    on: vi.fn((_event: 'web-contents-created', listener: typeof created) => {
-      created = listener;
-    }),
+    on: vi.fn((event: string, listener: Listener) => appListeners.set(event, listener)),
   };
   const handlers = new Map<string, Listener[]>();
   let openHandler: (details: { url: string }) => unknown = () => undefined;
@@ -23,14 +21,35 @@ function setup() {
     }),
     loadURL: vi.fn(() => Promise.resolve()),
   };
-  const homes = new WeakMap<object, string>([[contents, 'https://web.whatsapp.com']]);
+  const home = 'https://web.whatsapp.com';
+  const views = new WeakMap([[contents, { zone: 'whatsapp' as const, home, label: 'WhatsApp' }]]);
   const openExternal = vi.fn(() => Promise.resolve());
-  secureAllWebContents(app, { homes, openExternal, warn: vi.fn() });
-  created({}, contents);
+  const capture = {
+    contentsOfFrame: vi.fn(),
+    isVisibleAndFocused: vi.fn(),
+    pickWithPortal: undefined,
+    useSystemPicker: false,
+  };
+  const askMedia = vi.fn(() => Promise.resolve(false));
+  installSecurity(app, { views, openExternal, warn: vi.fn(), askMedia, capture });
+  appListeners.get('web-contents-created')?.(...([{}, contents as GuardedContents] as never[]));
+  const createContents = (other: object): void => {
+    appListeners.get('web-contents-created')?.(...([{}, other] as never[]));
+  };
+  const createSession = (session: object): void => {
+    appListeners.get('session-created')?.(...([session] as never[]));
+  };
   const fire = (event: string, ...args: unknown[]): void => {
     for (const listener of handlers.get(event) ?? []) listener(...(args as never[]));
   };
-  return { contents, fire, openExternal, open: (url: string) => openHandler({ url }) };
+  return {
+    contents,
+    fire,
+    openExternal,
+    createContents,
+    createSession,
+    open: (url: string) => openHandler({ url }),
+  };
 }
 
 describe('secureAllWebContents', () => {
@@ -42,10 +61,15 @@ describe('secureAllWebContents', () => {
     vi.useRealTimers();
   });
 
-  it('guards each web contents against webviews and off-origin navigation', () => {
+  it('guards each web contents against webviews, Bluetooth and off-origin navigation', () => {
     const t = setup();
     const attach = { preventDefault: vi.fn() };
     t.fire('will-attach-webview', attach);
+    const bluetooth = { preventDefault: vi.fn() };
+    const choose = vi.fn();
+    t.fire('select-bluetooth-device', bluetooth, [], choose);
+    expect(bluetooth.preventDefault).toHaveBeenCalledOnce();
+    expect(choose).toHaveBeenCalledExactlyOnceWith('');
     const leave = { url: 'https://example.com/', isMainFrame: true, preventDefault: vi.fn() };
     const stay = { url: 'https://web.whatsapp.com/x', isMainFrame: true, preventDefault: vi.fn() };
     t.fire('will-navigate', leave);
@@ -68,5 +92,33 @@ describe('secureAllWebContents', () => {
     expect(popup.destroy).not.toHaveBeenCalled();
     vi.advanceTimersByTime(1);
     expect(popup.destroy).toHaveBeenCalledOnce();
+  });
+
+  it('treats web contents YapYap did not create as having no home', () => {
+    const t = setup();
+    const stranger = {
+      ...t.contents,
+      on: vi.fn<(event: string, listener: (event: unknown) => void) => void>(),
+    };
+    t.createContents(stranger);
+    const [, listener] = stranger.on.mock.calls.find(([event]) => event === 'will-navigate') ?? [];
+    const event = { url: 'https://web.whatsapp.com/', isMainFrame: true, preventDefault: vi.fn() };
+    listener?.(event);
+    expect(event.preventDefault).toHaveBeenCalledOnce();
+  });
+
+  it('applies the permission policy to every new session', () => {
+    const t = setup();
+    const session = {
+      setPermissionRequestHandler: vi.fn(),
+      setPermissionCheckHandler: vi.fn(),
+      setDevicePermissionHandler: vi.fn(),
+      setDisplayMediaRequestHandler: vi.fn(),
+    };
+    t.createSession(session);
+    expect(session.setPermissionRequestHandler).toHaveBeenCalledOnce();
+    expect(session.setDisplayMediaRequestHandler).toHaveBeenCalledWith(expect.any(Function), {
+      useSystemPicker: false,
+    });
   });
 });
