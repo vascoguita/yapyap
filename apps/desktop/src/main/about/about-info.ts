@@ -12,6 +12,7 @@ export interface RuntimeFacts {
   readonly platform: string;
   readonly release: string;
   readonly arch: string;
+  readonly graphics: string;
 }
 
 export function buildAboutInfo(facts: RuntimeFacts): AboutInfo {
@@ -24,6 +25,7 @@ export function buildAboutInfo(facts: RuntimeFacts): AboutInfo {
     node: facts.versions.node,
     os: `${facts.platform} ${facts.release} (${facts.arch})`,
     license: 'MIT',
+    graphics: facts.graphics,
   };
 }
 
@@ -35,6 +37,7 @@ export function formatTechnicalDetails(info: AboutInfo): string {
     `Chromium ${info.chromium}`,
     `Node.js ${info.node}`,
     `OS ${info.os}`,
+    `Graphics ${info.graphics}`,
   ].join('\n');
 }
 

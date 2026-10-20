@@ -30,6 +30,7 @@ export const SettingsSchema = Type.Object(
     reliability: Type.Object(
       {
         hardwareAcceleration: Type.Boolean({ default: true }),
+        hardwareVideoDecoding: Type.Boolean({ default: true }),
         memoryWatchdogMb: Type.Integer({ minimum: 512, maximum: 16_384, default: 2048 }),
       },
       { default: {}, additionalProperties: false },

@@ -10,6 +10,8 @@ export interface AboutInfo {
   readonly node: string;
   readonly os: string;
   readonly license: string;
+  /** The rendering mode, such as software rendering in safe mode. */
+  readonly graphics: string;
 }
 
 /** Why WhatsApp is not showing, as the recovery screen explains it. */

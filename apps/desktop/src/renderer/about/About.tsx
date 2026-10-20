@@ -19,6 +19,7 @@ function Details({ info }: { readonly info: AboutInfo }): JSX.Element {
     ['Chromium', info.chromium],
     ['Node.js', info.node],
     ['Operating system', info.os],
+    ['Graphics', info.graphics],
     ['License', info.license],
   ];
   return (

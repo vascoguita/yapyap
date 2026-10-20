@@ -65,7 +65,8 @@ export interface ChromeFeatureDependencies {
   readonly writeClipboard: (text: string) => Promise<unknown>;
   /** A system notification, for things the user should know but need not act on. */
   readonly notify: (message: string) => void;
-  readonly facts: () => RuntimeFacts;
+  /** Everything but the graphics mode, which is only settled at startup. */
+  readonly facts: () => Omit<RuntimeFacts, 'graphics'>;
   readonly platform: string;
   readonly rendererRoot: string;
   readonly preloadPath: string;
@@ -89,10 +90,19 @@ interface ChromeRuntime {
 export interface ChromeFeature {
   /** Must run before the app is ready, when custom schemes can still be registered. */
   readonly beforeReady: () => void;
-  readonly afterReady: (views: ViewRegistry, warn: (message: string) => void) => ChromeRuntime;
+  /** `graphics` describes the rendering mode startup settled on, for diagnostics. */
+  readonly afterReady: (
+    views: ViewRegistry,
+    warn: (message: string) => void,
+    graphics: string,
+  ) => ChromeRuntime;
 }
 
-function aboutHandlers(deps: ChromeFeatureDependencies): ChromeHandler[] {
+type FactsSource = Pick<ChromeFeatureDependencies, 'writeClipboard'> & {
+  readonly facts: () => RuntimeFacts;
+};
+
+function aboutHandlers(deps: FactsSource): ChromeHandler[] {
   const info = () => buildAboutInfo(deps.facts());
   return [
     { channel: CHROME_CHANNELS.aboutInfo, accepts: NO_ARGUMENTS, handle: info },
@@ -124,7 +134,7 @@ function recoveryHandlers(recoveries: readonly Recovery[]): ChromeHandler[] {
 }
 
 function recoveryAttacher(
-  deps: ChromeFeatureDependencies,
+  deps: Omit<ChromeFeatureDependencies, 'facts'> & FactsSource,
   renderer: RendererOptions,
   views: ViewRegistry,
   warn: (message: string) => void,
@@ -162,7 +172,8 @@ export function createChromeFeature(deps: ChromeFeatureDependencies): ChromeFeat
         { scheme: CHROME_SCHEME, privileges: { standard: true, secure: true } },
       ]);
     },
-    afterReady: (views, warn) => {
+    afterReady: (views, warn, graphics) => {
+      const withGraphics = { ...deps, facts: () => ({ ...deps.facts(), graphics }) };
       const handler = createChromeHandler(deps.rendererRoot, deps.readFile);
       deps.chromeProtocol().handle(CHROME_SCHEME, handler);
       const recoveries: Recovery[] = [];
@@ -170,7 +181,7 @@ export function createChromeFeature(deps: ChromeFeatureDependencies): ChromeFeat
         deps.ipc,
         views,
         [
-          ...aboutHandlers(deps),
+          ...aboutHandlers(withGraphics),
           ...recoveryHandlers(recoveries),
           ...settingsHandlers(deps.settings, deps.restart),
         ],
@@ -185,7 +196,7 @@ export function createChromeFeature(deps: ChromeFeatureDependencies): ChromeFeat
           openSettings: opener(SETTINGS_PAGE),
         }),
       );
-      return { attachRecovery: recoveryAttacher(deps, renderer, views, warn, recoveries) };
+      return { attachRecovery: recoveryAttacher(withGraphics, renderer, views, warn, recoveries) };
     },
   };
 }

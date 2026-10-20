@@ -30,12 +30,13 @@ function fakeContents() {
   return { contents, fire };
 }
 
-function fakes(env: Record<string, string | undefined> = {}) {
+function fakes(env: Record<string, string | undefined> = {}, argv: readonly string[] = []) {
   const web = fakeContents();
   const listeners = new Map<string, (...args: never[]) => void>();
   const app = {
     userAgentFallback: '',
     disableHardwareAcceleration: vi.fn(),
+    commandLine: { appendSwitch: vi.fn() },
     enableSandbox: vi.fn(),
     whenReady: vi.fn(() => Promise.resolve()),
     setAppUserModelId: vi.fn(),
@@ -105,6 +106,7 @@ function fakes(env: Record<string, string | undefined> = {}) {
     notify: vi.fn(),
     onResume: vi.fn(),
     env,
+    argv,
     listeners,
   };
 }
@@ -155,7 +157,11 @@ describe('startApp', () => {
       return Promise.resolve();
     });
     await startApp(f);
-    expect(f.chrome.afterReady).toHaveBeenCalledExactlyOnceWith(expect.any(WeakMap), f.warn);
+    expect(f.chrome.afterReady).toHaveBeenCalledExactlyOnceWith(
+      expect.any(WeakMap),
+      f.warn,
+      'hardware accelerated',
+    );
   });
 
   it('watches the WhatsApp window and lays the recovery screen over that window', async () => {
@@ -297,6 +303,12 @@ describe('startApp', () => {
       return Promise.resolve();
     });
     await startApp(f);
+    expect(f.chrome.afterReady).toHaveBeenCalledWith(
+      expect.anything(),
+      f.warn,
+      'software rendering (turned off in settings)',
+    );
+    expect(f.notify).not.toHaveBeenCalled();
   });
 
   it('keeps hardware acceleration on by default and tells the user about repaired settings', async () => {
@@ -304,8 +316,37 @@ describe('startApp', () => {
     f.settings.notice = 'Some settings were invalid and were reset to their defaults.';
     await startApp(f);
     expect(f.app.disableHardwareAcceleration).not.toHaveBeenCalled();
+    expect(f.app.commandLine.appendSwitch).not.toHaveBeenCalled();
+    expect(f.chrome.afterReady).toHaveBeenCalledWith(
+      expect.anything(),
+      f.warn,
+      'hardware accelerated',
+    );
     expect(f.notify).toHaveBeenCalledExactlyOnceWith(
       'Some settings were invalid and were reset to their defaults.',
+    );
+  });
+
+  it('starts without hardware acceleration in safe mode and says so', async () => {
+    const f = fakes({}, ['/opt/YapYap/yapyap', '--safe-mode']);
+    await startApp(f);
+    expect(f.app.disableHardwareAcceleration).toHaveBeenCalledOnce();
+    expect(f.app.commandLine.appendSwitch).toHaveBeenCalledExactlyOnceWith(
+      'disable-accelerated-video-decode',
+    );
+    expect(f.notify).toHaveBeenCalledExactlyOnceWith(
+      'YapYap started in safe mode, without hardware acceleration.',
+    );
+  });
+
+  it('tells the user when repeated GPU crashes turned acceleration off', async () => {
+    const f = fakes();
+    const now = Date.now();
+    f.gpuCrashLog.read = () => JSON.stringify([now - 3, now - 2, now - 1]);
+    await startApp(f);
+    expect(f.app.disableHardwareAcceleration).toHaveBeenCalledOnce();
+    expect(f.notify).toHaveBeenCalledExactlyOnceWith(
+      'Graphics kept crashing, so YapYap started without hardware acceleration this time.',
     );
   });
 

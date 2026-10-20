@@ -4,7 +4,12 @@ import { offlineTitle, type TitledWindow } from './connectivity/offline-title.ts
 import { APP_ID, PRODUCT_NAME } from './identity.ts';
 import type { DisplayCapturePort, MediaType } from './permissions/session-guard.ts';
 import { chromeUserAgent } from './identity/user-agent.ts';
-import { guardGpu } from './recovery/gpu-safe-mode.ts';
+import {
+  describeGraphics,
+  guardGpu,
+  type Graphics,
+  type GraphicsReason,
+} from './recovery/gpu-safe-mode.ts';
 import type { SettingsService } from './settings/service.ts';
 import {
   installSecurity,
@@ -27,6 +32,7 @@ export const SHOW_FALLBACK_MS = 3000;
 
 export interface AppPort {
   disableHardwareAcceleration(): void;
+  readonly commandLine: { appendSwitch(name: string): void };
   userAgentFallback: string;
   enableSandbox(): void;
   whenReady(): Promise<unknown>;
@@ -63,6 +69,8 @@ export interface StartDependencies<Window extends WindowPort> {
   readonly capture: DisplayCapturePort;
   readonly chrome: ChromeFeature;
   readonly env: Readonly<Record<string, string | undefined>>;
+  /** The command line, for `--safe-mode`. */
+  readonly argv: readonly string[];
   readonly openExternal: (url: string) => Promise<unknown>;
   readonly isOnline: () => boolean;
   readonly onResume: (listener: () => void) => void;
@@ -71,6 +79,17 @@ export interface StartDependencies<Window extends WindowPort> {
   readonly notify: (message: string) => void;
   readonly warn: (message: string) => void;
 }
+
+/** Starts without hardware acceleration, for when graphics problems stop YapYap from starting. */
+const SAFE_MODE_FLAG = '--safe-mode';
+
+/** A fallback the user did not choose in settings is worth telling them about. */
+const GRAPHICS_NOTICES: Readonly<Record<GraphicsReason, string | undefined>> = {
+  'safe-mode': 'YapYap started in safe mode, without hardware acceleration.',
+  'gpu-crashes':
+    'Graphics kept crashing, so YapYap started without hardware acceleration this time.',
+  settings: undefined,
+};
 
 const MAIN_WINDOW: WindowOptions = {
   title: PRODUCT_NAME,
@@ -96,13 +115,14 @@ function showWhenReady(window: WindowPort): void {
 function beforeReady<Window extends WindowPort>(
   deps: StartDependencies<Window>,
   security: SecurityDependencies,
-): void {
+): Graphics {
   const { app, warn } = deps;
   app.userAgentFallback = security.identity.userAgent;
   // Sandboxes the renderers Electron creates on its own too.
   app.enableSandbox();
-  if (!deps.settings.current().reliability.hardwareAcceleration) app.disableHardwareAcceleration();
-  guardGpu(app, {
+  const graphics = guardGpu(app, {
+    preferences: deps.settings.current().reliability,
+    safeMode: deps.argv.includes(SAFE_MODE_FLAG),
     readLog: deps.gpuCrashLog.read,
     writeLog: deps.gpuCrashLog.write,
     now: Date.now,
@@ -115,6 +135,7 @@ function beforeReady<Window extends WindowPort>(
   app.on('window-all-closed', () => {
     app.quit();
   });
+  return graphics;
 }
 
 export async function startApp<Window extends WindowPort>(
@@ -127,7 +148,7 @@ export async function startApp<Window extends WindowPort>(
     chromeVersion: deps.chromeVersion,
   };
   const security = { ...deps, views, identity };
-  beforeReady(deps, security);
+  const graphics = beforeReady(deps, security);
 
   const { origin, rejectedOverride } = resolveWhatsAppOrigin(env['YAPYAP_TEST_WHATSAPP_ORIGIN']);
   if (rejectedOverride)
@@ -135,8 +156,11 @@ export async function startApp<Window extends WindowPort>(
 
   await app.whenReady();
   secureSession(deps.defaultSession(), security);
-  const chrome = deps.chrome.afterReady(views, warn);
+  const chrome = deps.chrome.afterReady(views, warn, describeGraphics(graphics));
   if (deps.settings.notice !== undefined) deps.notify(deps.settings.notice);
+  const graphicsNotice =
+    graphics.reason === undefined ? undefined : GRAPHICS_NOTICES[graphics.reason];
+  if (graphicsNotice !== undefined) deps.notify(graphicsNotice);
   const window = createWindow(MAIN_WINDOW);
   views.set(window.webContents, { zone: 'whatsapp', home: origin, label: 'WhatsApp' });
   const recovery = chrome.attachRecovery(window.webContents, origin, (renderer) =>

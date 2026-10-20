@@ -11,3 +11,8 @@ Keywords=whatsapp;chat;messaging;
 StartupWMClass=io.github.vascoguita.YapYap
 MimeType=x-scheme-handler/whatsapp;
 StartupNotify=true
+Actions=SafeMode;
+
+[Desktop Action SafeMode]
+Name=Start in Safe Mode
+Exec=yapyap --safe-mode

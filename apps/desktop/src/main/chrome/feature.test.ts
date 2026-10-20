@@ -92,7 +92,7 @@ describe('createChromeFeature', () => {
 
   it('serves the renderer folder on the chrome session', async () => {
     const t = setup();
-    t.feature.afterReady(t.views, vi.fn());
+    t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
     const response = await t.handler()?.({ url: 'app://chrome/about.html' });
     expect(response?.status).toBe(200);
     expect(t.deps.readFile).toHaveBeenCalledWith(join('/app/renderer', 'about.html'));
@@ -100,7 +100,7 @@ describe('createChromeFeature', () => {
 
   it('opens About from the menu as a chrome window with the chrome preload and partition', () => {
     const t = setup();
-    t.feature.afterReady(t.views, vi.fn());
+    t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
     t.clickAbout();
     expect(t.deps.createWindow).toHaveBeenCalledWith(
       {
@@ -123,20 +123,20 @@ describe('createChromeFeature', () => {
 
   it('answers About IPC calls from the About window', async () => {
     const t = setup();
-    t.feature.afterReady(t.views, vi.fn());
+    t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
     t.clickAbout();
     expect(t.call('about:info')).toEqual(
       expect.objectContaining({ version: '0.1.0', channel: 'deb' }),
     );
     await t.call('about:copy-technical-details');
     expect(t.deps.writeClipboard).toHaveBeenCalledExactlyOnceWith(
-      'YapYap 0.1.0 (deb)\nElectron 44.9.0\nChromium 152\nNode.js 24.22.0\nOS linux 7.0.0 (x64)',
+      'YapYap 0.1.0 (deb)\nElectron 44.9.0\nChromium 152\nNode.js 24.22.0\nOS linux 7.0.0 (x64)\nGraphics hardware accelerated',
     );
   });
 
   it('opens Settings from the menu and answers its IPC calls', () => {
     const t = setup();
-    t.feature.afterReady(t.views, vi.fn());
+    t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
     t.clickSettings();
     expect(t.deps.createWindow).toHaveBeenCalledWith(
       {
@@ -151,7 +151,10 @@ describe('createChromeFeature', () => {
     );
     expect(t.window.loadURL).toHaveBeenCalledWith('app://chrome/settings.html');
     expect(t.call('settings:get')).toEqual({
-      values: { 'reliability.hardwareAcceleration': true },
+      values: {
+        'reliability.hardwareAcceleration': true,
+        'reliability.hardwareVideoDecoding': true,
+      },
       restartPending: false,
       readOnly: false,
     });
@@ -165,7 +168,7 @@ describe('createChromeFeature', () => {
 
   it('shows the recovery screen over a failing WhatsApp view and routes its actions to it', async () => {
     const t = setup();
-    const runtime = t.feature.afterReady(t.views, vi.fn());
+    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
     const handlers = new Map<string, (...args: never[]) => void>();
     const contents = {
       on: vi.fn((event: string, listener: (...args: never[]) => void) => {
@@ -212,7 +215,7 @@ describe('createChromeFeature', () => {
 
   it('refuses recovery calls from chrome views that are not a recovery screen', () => {
     const t = setup();
-    t.feature.afterReady(t.views, vi.fn());
+    t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
     t.clickAbout();
     expect(() => t.call('recovery:retry')).toThrow('No recovery screen belongs to this window.');
   });

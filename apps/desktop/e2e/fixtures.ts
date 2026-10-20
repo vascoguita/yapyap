@@ -21,9 +21,13 @@ interface Options {
  * Starts the development build on a throwaway profile, so tests never touch
  * the developer's own settings or each other's.
  */
-export function launchApp(origin: string, profile: string): Promise<ElectronApplication> {
+export function launchApp(
+  origin: string,
+  profile: string,
+  args: readonly string[] = [],
+): Promise<ElectronApplication> {
   return electron.launch({
-    args: [MAIN, `--user-data-dir=${profile}`],
+    args: [MAIN, `--user-data-dir=${profile}`, ...args],
     env: appEnvironment(origin),
   });
 }

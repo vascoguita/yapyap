@@ -49,6 +49,12 @@ linux:
       Keywords: whatsapp;chat;messaging;
       StartupWMClass: io.github.vascoguita.YapYap
       MimeType: x-scheme-handler/whatsapp;
+      Actions: SafeMode;
+    # Reachable from the launcher when graphics problems stop YapYap from starting.
+    desktopActions:
+      SafeMode:
+        Name: Start in Safe Mode
+        Exec: yapyap --safe-mode
 deb:
   packageCategory: net
   fpm:
