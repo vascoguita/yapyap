@@ -99,6 +99,13 @@ describe('Picker', () => {
     expect(screen.queryByRole('group', { name: 'Windows' })).toBeNull();
   });
 
+  it('says when there is nothing to share, and still offers Cancel', async () => {
+    render(<Picker api={api(() => Promise.resolve({ sources: [], offerAudio: false }))} />);
+    expect(await screen.findByText('No screens or windows can be shared right now.')).toBeTruthy();
+    expect(share().disabled).toBe(true);
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeTruthy();
+  });
+
   it('says when nothing can be offered', async () => {
     render(<Picker api={api(() => Promise.reject(new Error('gone')))} />);
     expect(await screen.findByText('Nothing can be shared right now.')).toBeTruthy();

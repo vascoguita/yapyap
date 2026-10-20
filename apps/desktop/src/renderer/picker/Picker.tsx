@@ -42,6 +42,8 @@ function Sources(props: {
   readonly selected: string | undefined;
   readonly onSelect: (id: string) => void;
 }): JSX.Element[] {
+  if (props.offer.sources.length === 0)
+    return [<p key="none">No screens or windows can be shared right now.</p>];
   return GROUPS.flatMap(({ kind, title }) => {
     const sources = props.offer.sources.filter((source) => source.kind === kind);
     if (sources.length === 0) return [];
