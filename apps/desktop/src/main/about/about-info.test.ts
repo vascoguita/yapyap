@@ -8,6 +8,7 @@ const FACTS = {
   platform: 'linux',
   release: '7.0.0',
   arch: 'x64',
+  graphics: 'hardware accelerated',
 };
 
 describe('buildAboutInfo', () => {
@@ -21,6 +22,7 @@ describe('buildAboutInfo', () => {
       node: '24.22.0',
       os: 'linux 7.0.0 (x64)',
       license: 'MIT',
+      graphics: 'hardware accelerated',
     });
   });
 
@@ -39,6 +41,7 @@ describe('formatTechnicalDetails', () => {
         'Chromium 152.0.7977.167',
         'Node.js 24.22.0',
         'OS linux 7.0.0 (x64)',
+        'Graphics hardware accelerated',
       ].join('\n'),
     );
   });

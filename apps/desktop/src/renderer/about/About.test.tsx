@@ -13,6 +13,7 @@ const INFO: AboutInfo = {
   node: '24.22.0',
   os: 'linux 7.0.0 (x64)',
   license: 'MIT',
+  graphics: 'software rendering (safe mode)',
 };
 
 function api(overrides: Partial<ChromeApi['about']> = {}): ChromeApi {
@@ -37,13 +38,14 @@ describe('About', () => {
     cleanup();
   });
 
-  it('shows the version, channel, engines, OS and license', async () => {
+  it('shows the version, channel, engines, OS, graphics and license', async () => {
     render(<About api={api()} />);
     expect(screen.getByText('Loading…')).toBeTruthy();
     expect(await screen.findByText('0.1.0 (appimage)')).toBeTruthy();
     for (const value of ['44.9.0', '152.0.7977.167', '24.22.0', 'linux 7.0.0 (x64)', 'MIT']) {
       expect(screen.getByText(value)).toBeTruthy();
     }
+    expect(screen.getByText('software rendering (safe mode)')).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'YapYap' })).toBeTruthy();
   });
 

@@ -6,7 +6,7 @@ const DEFAULTS = {
   schemaVersion: 1,
   general: { language: 'system', startMinimized: false, autostart: false },
   appearance: { theme: 'system', zoom: 1 },
-  reliability: { hardwareAcceleration: true, memoryWatchdogMb: 2048 },
+  reliability: { hardwareAcceleration: true, hardwareVideoDecoding: true, memoryWatchdogMb: 2048 },
   privacy: { crashReports: 'off' },
 };
 

@@ -5,6 +5,7 @@ import { settingsHandlers } from './handlers.ts';
 import type { Settings } from './schema.ts';
 
 const HARDWARE = 'reliability.hardwareAcceleration';
+const VIDEO = 'reliability.hardwareVideoDecoding';
 
 function setup(readOnly = false) {
   let settings: Settings = defaultSettings();
@@ -49,7 +50,7 @@ describe('settingsHandlers', () => {
     expect(get.accepts([])).toBe(true);
     expect(get.accepts([1])).toBe(false);
     expect(get.handle(t.call)).toEqual({
-      values: { [HARDWARE]: true },
+      values: { [HARDWARE]: true, [VIDEO]: true },
       restartPending: false,
       readOnly: true,
     });
@@ -59,7 +60,7 @@ describe('settingsHandlers', () => {
     const t = setup();
     const set = t.handler('settings:set');
     expect(set.handle(t.call, HARDWARE, false)).toEqual({
-      values: { [HARDWARE]: false },
+      values: { [HARDWARE]: false, [VIDEO]: true },
       restartPending: true,
       readOnly: false,
     });

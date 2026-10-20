@@ -78,6 +78,7 @@ startApp({
   chromeVersion: process.versions.chrome,
   platform: process.platform,
   env: process.env,
+  argv: process.argv,
   openExternal: (url) => shell.openExternal(url),
   isOnline: () => net.isOnline(),
   gpuCrashLog: {

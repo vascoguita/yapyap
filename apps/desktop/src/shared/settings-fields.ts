@@ -32,4 +32,11 @@ export const SETTING_FIELDS: readonly SettingField[] = [
       'Uses the graphics card to draw YapYap. Turn this off if the window flickers or stays blank.',
     restart: true,
   },
+  {
+    id: 'reliability.hardwareVideoDecoding',
+    label: 'Use hardware video decoding',
+    description:
+      'Uses the graphics card to play videos and video calls. Turn this off if video stutters or shows artifacts.',
+    restart: true,
+  },
 ];
