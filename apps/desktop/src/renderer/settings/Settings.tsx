@@ -76,7 +76,10 @@ function Sections(props: {
   readonly onChange: Change;
 }): JSX.Element[] {
   return SETTINGS_SECTIONS.flatMap(({ id, title }) => {
-    const fields = SETTING_FIELDS.filter((field) => field.id.startsWith(`${id}.`));
+    // Main lists only the settings that do something on this platform.
+    const fields = SETTING_FIELDS.filter(
+      (field) => field.id.startsWith(`${id}.`) && field.id in props.snapshot.values,
+    );
     if (fields.length === 0) return [];
     return [
       <section key={id} aria-labelledby={`${id}-title`}>

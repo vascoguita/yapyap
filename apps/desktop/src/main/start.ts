@@ -25,7 +25,15 @@ import type { RendererOptions } from './web-preferences.ts';
 import type { WindowOptions } from './windows.ts';
 import { claimSingleInstance, type LinkWindow } from './instances.ts';
 import { chatLinkInArguments } from './navigation/deep-link.ts';
+import { quitOnShutdown, type ShutdownSources } from './shutdown.ts';
 import { showWhenReady } from './show-when-ready.ts';
+import {
+  manageMainWindow,
+  restoreWindowState,
+  type ManagedWindow,
+  type WindowStateStore,
+} from './window/main-window.ts';
+import type { Rect } from './window/window-state.ts';
 import { resolveWhatsAppOrigin } from './whatsapp-origin.ts';
 
 export interface AppPort {
@@ -35,7 +43,7 @@ export interface AppPort {
   enableSandbox(): void;
   whenReady(): Promise<unknown>;
   setAppUserModelId(id: string): void;
-  on(event: 'window-all-closed', listener: () => void): unknown;
+  on(event: 'window-all-closed' | 'before-quit' | 'activate', listener: () => void): unknown;
   on(
     event: 'child-process-gone',
     listener: (event: unknown, details: { readonly type: string; readonly reason: string }) => void,
@@ -57,7 +65,9 @@ export interface AppPort {
   quit(): void;
 }
 
-export interface WindowPort extends TitledWindow, LinkWindow {
+export interface WindowPort
+  extends Omit<TitledWindow, 'on'>, LinkWindow, Omit<ManagedWindow, 'on'> {
+  on: TitledWindow['on'] & ManagedWindow['on'];
   readonly webContents: WhatsAppContents;
   once(event: 'ready-to-show', listener: () => void): unknown;
   show(): void;
@@ -85,6 +95,10 @@ export interface StartDependencies<Window extends WindowPort> {
   readonly gpuCrashLog: { readonly read: () => string; readonly write: (text: string) => void };
   readonly settings: SettingsService;
   readonly nativeTheme: ThemePort;
+  readonly windowState: WindowStateStore;
+  /** The usable area of each connected display, once the app is ready. */
+  readonly workAreas: () => readonly Rect[];
+  readonly shutdown: ShutdownSources;
   readonly notify: (message: string) => void;
   readonly warn: (message: string) => void;
 }
@@ -188,13 +202,30 @@ function watchOnline(
   });
 }
 
+/** Opens the WhatsApp window where the user left it. */
+function openMainWindow<Window extends WindowPort>(deps: StartDependencies<Window>): Window {
+  const { state, bounds } = restoreWindowState(deps.windowState, deps.workAreas());
+  const window = deps.createWindow({ ...MAIN_WINDOW, ...bounds });
+  manageMainWindow(window, state, {
+    store: deps.windowState,
+    platform: deps.platform,
+    settings: deps.settings,
+    app: deps.app,
+    warn: deps.warn,
+  });
+  return window;
+}
+
 export async function startApp<Window extends WindowPort>(
   deps: StartDependencies<Window>,
 ): Promise<void> {
-  const { app, createWindow, warn } = deps;
+  const { app, warn } = deps;
   const origin = whatsAppOrigin(deps.env, warn);
   const instances = claimSingleInstance(app, origin, warn);
   if (instances === undefined) return;
+  quitOnShutdown(deps.shutdown, () => {
+    app.quit();
+  });
   const views: ViewRegistry = new WeakMap();
   const identity = {
     userAgent: chromeUserAgent(deps.platform, deps.chromeVersion),
@@ -210,7 +241,7 @@ export async function startApp<Window extends WindowPort>(
   const chrome = deps.chrome.afterReady(views, warn, describeGraphics(graphics));
   picker.bind(chrome.pickCaptureSource);
   announceStartup(deps, graphics);
-  const window = createWindow(MAIN_WINDOW);
+  const window = openMainWindow(deps);
   views.set(window.webContents, { zone: 'whatsapp', home: origin, label: 'WhatsApp' });
   const recovery = chrome.attachRecovery(window.webContents, origin, (renderer) =>
     deps.createOverlay(window, renderer),

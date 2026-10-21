@@ -6,7 +6,10 @@ import { defaultSettings } from './decode.ts';
 import { loadSettings, saveSettings, SETTINGS_FILE } from './store.ts';
 
 const fresh = () => mkdtempSync(join(tmpdir(), 'yapyap-settings-'));
-const custom = () => ({ ...defaultSettings(), appearance: { theme: 'dark' as const, zoom: 1.5 } });
+const custom = () => ({
+  ...defaultSettings(),
+  appearance: { theme: 'dark' as const, zoom: 1.5, autoHideMenuBar: false },
+});
 
 describe('loadSettings', () => {
   it('starts with defaults and no notice on first run', () => {

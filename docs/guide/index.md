@@ -82,3 +82,15 @@ back. Clicking a `whatsapp://` link, or opening a `https://wa.me/` or
 `https://api.whatsapp.com/send` link with YapYap, opens that chat in WhatsApp,
 with any prefilled text. YapYap accepts only the phone number and the text
 from these links.
+
+## Window and quitting
+
+YapYap reopens where you left it, at the same size, and maximized or full
+screen if it was. If that spot is on a monitor that is no longer connected,
+it opens at its default size instead.
+
+On Windows and Linux, closing the window quits YapYap, and **Hide the menu
+bar** under Settings → Appearance hides the menu until you press
+<kbd>Alt</kbd>. <kbd>Ctrl</kbd>+<kbd>,</kbd> opens Settings either way. On
+macOS, closing the window keeps YapYap running, as other Mac apps do: click
+its Dock icon to bring the window back, and choose **Quit** to quit.

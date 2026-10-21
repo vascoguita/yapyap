@@ -22,7 +22,7 @@ describe('settingsHandlers with settings that apply at once', () => {
       },
       onChange: vi.fn(),
     };
-    const set = settingsHandlers(service, vi.fn()).find(
+    const set = settingsHandlers(service, vi.fn(), 'linux').find(
       (handler) => handler.channel === 'settings:set',
     );
     const call = { sender: {} };

@@ -119,6 +119,7 @@ describe('createChromeFeature', () => {
     t.clickAbout();
     expect(t.deps.createWindow).toHaveBeenCalledWith(
       {
+        autoHideMenuBar: true,
         title: 'About YapYap',
         width: 480,
         height: 640,
@@ -155,6 +156,7 @@ describe('createChromeFeature', () => {
     t.clickSettings();
     expect(t.deps.createWindow).toHaveBeenCalledWith(
       {
+        autoHideMenuBar: true,
         title: 'YapYap Settings',
         width: 640,
         height: 560,
@@ -168,6 +170,7 @@ describe('createChromeFeature', () => {
     expect(t.call('settings:get')).toEqual({
       values: {
         'appearance.theme': 'system',
+        'appearance.autoHideMenuBar': false,
         'reliability.hardwareAcceleration': true,
         'reliability.hardwareVideoDecoding': true,
       },
@@ -191,6 +194,7 @@ describe('createChromeFeature', () => {
     expect(t.deps.windowOf).toHaveBeenCalledWith(owner);
     expect(t.deps.createWindow).toHaveBeenCalledWith(
       {
+        autoHideMenuBar: true,
         title: 'Share your screen',
         width: 760,
         height: 580,

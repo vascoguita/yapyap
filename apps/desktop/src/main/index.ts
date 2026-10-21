@@ -10,6 +10,7 @@ import {
   Notification,
   powerMonitor,
   protocol,
+  screen,
   session,
   shell,
   type WebContents,
@@ -30,6 +31,7 @@ import { createSecureOverlay, createSecureWindow } from './windows.ts';
 const PICKER_THUMBNAIL = { width: 320, height: 180 };
 
 const GPU_CRASH_LOG = join(app.getPath('userData'), 'gpu-crashes.json');
+const WINDOW_STATE = join(app.getPath('userData'), 'window-state.json');
 
 const warn = (message: string): void => {
   console.warn(message);
@@ -105,6 +107,21 @@ startApp({
   },
   settings,
   nativeTheme,
+  windowState: {
+    read: () => readFileSync(WINDOW_STATE, 'utf8'),
+    write: (text) => {
+      writeFileSync(WINDOW_STATE, text);
+    },
+  },
+  workAreas: () => screen.getAllDisplays().map((display) => display.workArea),
+  shutdown: {
+    onSignal: (signal, listener) => {
+      process.on(signal, listener);
+    },
+    onSystemShutdown: (listener) => {
+      powerMonitor.on('shutdown', listener);
+    },
+  },
   notify,
   warn,
 }).catch((error: unknown) => {

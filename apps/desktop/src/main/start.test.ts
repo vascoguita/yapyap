@@ -57,6 +57,14 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     isMinimized: vi.fn(() => false),
     restore: vi.fn(),
     focus: vi.fn(),
+    hide: vi.fn(),
+    maximize: vi.fn(),
+    setFullScreen: vi.fn(),
+    getNormalBounds: vi.fn(() => ({ x: 0, y: 0, width: 1200, height: 800 })),
+    isMaximized: vi.fn(() => false),
+    isFullScreen: vi.fn(() => false),
+    setAutoHideMenuBar: vi.fn(),
+    setMenuBarVisibility: vi.fn(),
     loadURL: vi.fn(() => Promise.resolve()),
   } satisfies WindowPort;
   const createWindow = vi.fn<(options: WindowOptions) => WindowPort>(() => window);
@@ -120,6 +128,14 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     onResume: vi.fn(),
     env,
     argv,
+    windowState: {
+      read: vi.fn((): string => {
+        throw new Error('ENOENT');
+      }),
+      write: vi.fn(),
+    },
+    workAreas: () => [{ x: 0, y: 0, width: 1920, height: 1040 }],
+    shutdown: { onSignal: vi.fn(), onSystemShutdown: vi.fn() },
     listeners,
   };
 }
@@ -392,11 +408,25 @@ describe('startApp', () => {
     expect(f.window.loadURL).toHaveBeenLastCalledWith(`${WHATSAPP_ORIGIN}/send?text=Hi`);
   });
 
+  it('reopens the window where it was left and quits on termination signals', async () => {
+    const f = fakes();
+    const bounds = { x: 10, y: 20, width: 900, height: 600 };
+    f.windowState.read.mockReturnValueOnce(
+      JSON.stringify({ bounds, maximized: true, fullScreen: false }),
+    );
+    await startApp(f);
+    expect(f.createWindow).toHaveBeenCalledWith(expect.objectContaining(bounds));
+    expect(f.window.maximize).toHaveBeenCalledOnce();
+    const [[, quitOnSignal]] = f.shutdown.onSignal.mock.calls as unknown as [[string, () => void]];
+    quitOnSignal();
+    expect(f.app.quit).toHaveBeenCalledOnce();
+  });
+
   it('follows the theme setting once ready', async () => {
     const f = fakes();
     await startApp(f);
     expect(f.nativeTheme.themeSource).toBe('system');
-    expect(f.settings.onChange).toHaveBeenCalledOnce();
+    expect(f.settings.onChange).toHaveBeenCalled();
   });
 
   it('starts without hardware acceleration in safe mode and says so', async () => {

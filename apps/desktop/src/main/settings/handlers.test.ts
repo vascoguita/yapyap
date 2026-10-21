@@ -7,6 +7,7 @@ import type { Settings } from './schema.ts';
 const HARDWARE = 'reliability.hardwareAcceleration';
 const VIDEO = 'reliability.hardwareVideoDecoding';
 const THEME = 'appearance.theme';
+const MENU_BAR = 'appearance.autoHideMenuBar';
 
 function setup(readOnly = false) {
   let settings: Settings = defaultSettings();
@@ -21,7 +22,7 @@ function setup(readOnly = false) {
   };
   const restart = vi.fn();
   const handlers = new Map(
-    settingsHandlers(service, restart).map((handler) => [handler.channel, handler]),
+    settingsHandlers(service, restart, 'linux').map((handler) => [handler.channel, handler]),
   );
   const handler = (channel: string) => {
     const found = handlers.get(channel);
@@ -61,13 +62,35 @@ describe('settingsHandlers', () => {
     expect(t.settings().appearance.theme).toBe('dark');
   });
 
+  it('lists a setting only on the platforms where it does something', () => {
+    const service = {
+      current: defaultSettings,
+      notice: undefined,
+      readOnly: false,
+      update: vi.fn(),
+      onChange: vi.fn(),
+    };
+    const get = (platform: string) => {
+      const handler = settingsHandlers(service, vi.fn(), platform).find(
+        ({ channel }) => channel === 'settings:get',
+      );
+      return handler?.handle({ sender: {} }) as { values: object };
+    };
+    expect(get('linux').values).toHaveProperty(['appearance.autoHideMenuBar'], false);
+    expect(get('darwin').values).not.toHaveProperty(['appearance.autoHideMenuBar']);
+    const set = settingsHandlers(service, vi.fn(), 'darwin').find(
+      ({ channel }) => channel === 'settings:set',
+    );
+    expect(set?.accepts(['appearance.autoHideMenuBar', true])).toBe(false);
+  });
+
   it('shows the listed settings as they are', () => {
     const t = setup(true);
     const get = t.handler('settings:get');
     expect(get.accepts([])).toBe(true);
     expect(get.accepts([1])).toBe(false);
     expect(get.handle(t.call)).toEqual({
-      values: { [THEME]: 'system', [HARDWARE]: true, [VIDEO]: true },
+      values: { [THEME]: 'system', [MENU_BAR]: false, [HARDWARE]: true, [VIDEO]: true },
       restartPending: false,
       readOnly: true,
     });
@@ -77,7 +100,7 @@ describe('settingsHandlers', () => {
     const t = setup();
     const set = t.handler('settings:set');
     expect(set.handle(t.call, HARDWARE, false)).toEqual({
-      values: { [THEME]: 'system', [HARDWARE]: false, [VIDEO]: true },
+      values: { [THEME]: 'system', [MENU_BAR]: false, [HARDWARE]: false, [VIDEO]: true },
       restartPending: true,
       readOnly: false,
     });
