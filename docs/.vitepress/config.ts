@@ -35,6 +35,7 @@ export default defineConfig({
           items: [
             { text: 'Getting started', link: '/guide/' },
             { text: 'Install', link: '/guide/install' },
+            { text: 'Troubleshooting', link: '/guide/troubleshooting' },
           ],
         },
       ],

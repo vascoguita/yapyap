@@ -167,7 +167,7 @@ back from every build and asserts them.
 | 1   | Only load secure content                               | WhatsApp is HTTPS. Chrome and plugins use custom privileged protocols. Mixed content is blocked. |
 | 2   | No Node.js integration for remote content              | `nodeIntegration: false` everywhere                                                              |
 | 3   | Context isolation                                      | `contextIsolation: true` everywhere                                                              |
-| 4   | Process sandboxing                                     | `sandbox: true` everywhere, plus `app.enableSandbox()`                                           |
+| 4   | Process sandboxing                                     | `sandbox: true` everywhere, plus `app.enableSandbox()`; never starts with `--no-sandbox` (#134)  |
 | 5   | Permission request handler                             | Per-zone allowlists, see above                                                                   |
 | 6   | Do not disable `webSecurity`                           | Never set                                                                                        |
 | 7   | Define a CSP                                           | Chrome and plugin CSPs set as response headers                                                   |
@@ -194,3 +194,13 @@ back from every build and asserts them.
   becomes a one-file fix.
 - Some conveniences are lost by design: no `<webview>`, no remote modules, no
   Node in any renderer.
+
+## Never without the sandbox
+
+YapYap refuses to start when Chromium's sandbox is turned off, by
+`--no-sandbox` or `ELECTRON_DISABLE_SANDBOX`. It explains why in a dialog and
+quits, before any session or window exists. electron-builder's AppImage
+launcher adds `--no-sandbox` on its own when user namespaces are
+unavailable, and Playwright adds it to every Electron it launches, so both
+would otherwise run YapYap unsandboxed without anyone noticing. E2E tests
+launch with `chromiumSandbox: true` (#134).

@@ -178,6 +178,11 @@ Update this table in the PR that adds a command.
   chrome window is open. Find WhatsApp's window by its URL, never by index.
 - Window geometry lives in `window-state.json`, not in settings: it is state,
   not a preference, and must never trigger a settings migration.
+- YapYap refuses to start with `--no-sandbox` or `ELECTRON_DISABLE_SANDBOX`.
+  Playwright passes `--no-sandbox` to Electron unless `chromiumSandbox: true`
+  is set, which `launchApp` does. Linux runs need unprivileged user
+  namespaces for the sandbox: CI lifts Ubuntu's restriction, and VS Code's
+  AppArmor profile grants them to terminals inside it.
 - Code that inspects WhatsApp's page lives in `src/adapter/` and runs in the
   adapter's isolated world (`ADAPTER_WORLD_ID`). Probes return plain flags,
   never page text, which can contain chats.

@@ -24,7 +24,9 @@ import { CHROME_PARTITION, createChromeFeature } from './chrome/feature.ts';
 import { openSettings } from './settings/service.ts';
 import { electronCapture } from './permissions/electron-capture.ts';
 import { askMediaWithDialog } from './permissions/media-prompt.ts';
+import { sandboxDisabled } from './sandbox-check.ts';
 import { confirmResetWithDialog } from './session-reset-prompt.ts';
+import { explainUnsafeStartWithDialog } from './unsafe-start-prompt.ts';
 import { startApp } from './start.ts';
 import { createSecureOverlay, createSecureWindow } from './windows.ts';
 
@@ -122,8 +124,13 @@ startApp({
       powerMonitor.on('shutdown', listener);
     },
   },
+  sandboxDisabled: sandboxDisabled(app.commandLine, process.env),
+  explainUnsafeStart: explainUnsafeStartWithDialog,
   notify,
   warn,
+  logError: (message) => {
+    console.error(message);
+  },
 }).catch((error: unknown) => {
   console.error(error);
   app.exit(1);

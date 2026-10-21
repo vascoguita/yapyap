@@ -1,7 +1,7 @@
 # Progress
 
 - **Current milestone:** M2 · Single-account shell
-- **Last merged PR:** #163 (clear cache and reset session)
+- **Last merged PR:** #166 (zoom)
 - **Next issue:** #49 (clipboard), #50 (downloads), #51 (media)
 - **Open blockers:** #22 (`AUTOMATION_TOKEN`), #23, #24, #25, #26, #138 need maintainer-provided secrets or settings (pipelines skip those steps gracefully)
 

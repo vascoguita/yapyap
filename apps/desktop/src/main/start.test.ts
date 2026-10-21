@@ -137,6 +137,9 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     },
     workAreas: () => [{ x: 0, y: 0, width: 1920, height: 1040 }],
     shutdown: { onSignal: vi.fn(), onSystemShutdown: vi.fn() },
+    sandboxDisabled: false,
+    explainUnsafeStart: vi.fn(() => Promise.resolve(false)),
+    logError: vi.fn(),
     listeners,
   };
 }
@@ -421,6 +424,19 @@ describe('startApp', () => {
     const [[, quitOnSignal]] = f.shutdown.onSignal.mock.calls as unknown as [[string, () => void]];
     quitOnSignal();
     expect(f.app.quit).toHaveBeenCalledOnce();
+  });
+
+  it('refuses to start without the sandbox, explaining why, and opens nothing', async () => {
+    const f = { ...fakes(), sandboxDisabled: true };
+    await startApp(f);
+    expect(f.logError).toHaveBeenCalledExactlyOnceWith(
+      expect.stringMatching(/cannot start safely/),
+    );
+    expect(f.explainUnsafeStart).toHaveBeenCalledOnce();
+    expect(f.app.quit).toHaveBeenCalledOnce();
+    expect(f.app.requestSingleInstanceLock).not.toHaveBeenCalled();
+    expect(f.app.enableSandbox).not.toHaveBeenCalled();
+    expect(f.createWindow).not.toHaveBeenCalled();
   });
 
   it('follows the theme setting once ready', async () => {

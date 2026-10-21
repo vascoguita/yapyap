@@ -43,11 +43,18 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libfuse2t64
-          # AppImages cannot ship a setuid sandbox helper, so Chromium needs
-          # unprivileged user namespaces, which Ubuntu restricts by default.
-          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
           chmod +x packages/*.AppImage
           echo "YAPYAP_PACKAGED_EXECUTABLE=$(ls "$PWD"/packages/*.AppImage)" >> "$GITHUB_ENV"
+      - name: AppImage explains a restricted sandbox
+        if: matrix.format == 'appimage'
+        # Ubuntu restricts unprivileged user namespaces by default, which an
+        # AppImage needs for Chromium's sandbox: YapYap must explain, not run.
+        env:
+          YAPYAP_EXPECT_UNSAFE_START: '1'
+        run: xvfb-run -a pnpm test:smoke
+      - name: Lift the user-namespace restriction
+        if: matrix.format == 'appimage'
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - run: xvfb-run -a pnpm test:smoke
 
   flatpak:
