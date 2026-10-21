@@ -15,7 +15,7 @@ import {
   shell,
   type WebContents,
 } from 'electron';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { lstatSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { release } from 'node:os';
 import { join } from 'node:path';
@@ -116,6 +116,10 @@ startApp({
     },
   },
   workAreas: () => screen.getAllDisplays().map((display) => display.workArea),
+  downloads: {
+    folder: () => realpathSync(app.getPath('downloads')),
+    taken: (path) => lstatSync(path, { throwIfNoEntry: false }) !== undefined,
+  },
   shutdown: {
     onSignal: (signal, listener) => {
       process.on(signal, listener);

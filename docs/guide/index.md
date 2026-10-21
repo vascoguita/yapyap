@@ -110,3 +110,11 @@ and on Linux image files copied in your file manager. WhatsApp cannot read
 your clipboard; it can only copy to it while you are using its window, as
 when you copy a message. YapYap itself only writes to the clipboard when you
 click one of its **Copy** buttons.
+
+## Downloads
+
+Files you download from WhatsApp go straight to your Downloads folder, and
+YapYap tells you when each one is done, or if it failed. File names are
+cleaned up so they are safe on every system: folder parts and characters
+Windows does not allow are removed, and a file is never replaced. A second
+`photo.jpg` is saved as `photo (1).jpg`.

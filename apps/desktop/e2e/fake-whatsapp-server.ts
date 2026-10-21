@@ -33,6 +33,18 @@ export async function startFakeWhatsApp(home = 'index.html'): Promise<FakeWhatsA
         .end(JSON.stringify(request.headers));
       return;
     }
+    // An attachment whose server-suggested name tests choose, hostile or not.
+    const url = new URL(request.url ?? '/', 'http://127.0.0.1');
+    if (url.pathname === '/__download') {
+      const name = url.searchParams.get('name') ?? 'file.bin';
+      response
+        .writeHead(200, {
+          'content-type': 'application/octet-stream',
+          'content-disposition': `attachment; filename*=UTF-8''${encodeURIComponent(name)}`,
+        })
+        .end('attachment body');
+      return;
+    }
     const file = resolvePath(request.url, home);
     if (file === undefined) {
       response.writeHead(404).end();

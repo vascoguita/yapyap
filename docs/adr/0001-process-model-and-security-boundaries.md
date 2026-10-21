@@ -86,6 +86,11 @@ and an ESLint restriction forbids constructing `BrowserWindow` or
   device) and `media`. `media` asks first, naming the account, and the answer
   lasts until the app quits. Chrome and plugin zones get nothing, and neither
   do web contents YapYap did not create.
+- Downloads from WhatsApp are saved straight into the real downloads folder
+  (resolved through symlinks), under a name stripped of path parts,
+  characters Windows forbids, reserved device names and leading dots. An
+  existing entry, including a planted symlink, is never replaced: the name is
+  numbered instead. File names never reach the log (#50).
 - The clipboard: WhatsApp can never read it (`clipboard-read` is not on the
   allowlist). Its sanitized write follows Chromium's rule, which allows it
   only while WhatsApp's window is focused, so copying inside WhatsApp works.
