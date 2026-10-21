@@ -39,4 +39,4 @@ Out of scope: vulnerabilities in WhatsApp itself (report them to Meta's bug
 bounty program), and third-party plugins (report them to their authors).
 
 The plugin threat model is documented in the plugin author guide on the
-[documentation site](https://vascoguita.github.io/yapyap/).
+[documentation site](https://yapyap.guita.org/).

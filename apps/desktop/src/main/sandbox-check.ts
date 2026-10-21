@@ -1,5 +1,4 @@
-export const TROUBLESHOOTING_URL =
-  'https://vascoguita.github.io/yapyap/guide/troubleshooting#sandbox';
+export const TROUBLESHOOTING_URL = 'https://yapyap.guita.org/guide/troubleshooting#sandbox';
 
 /** Also written to stderr, so it reaches people who start YapYap from a terminal. */
 export const UNSAFE_START_MESSAGE =

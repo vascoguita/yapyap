@@ -24,6 +24,9 @@
 - The Windows paste E2E test retries its paste, because Windows can refuse the
   focus a test asks for.
 
+- The docs site is served at https://yapyap.guita.org: a DNS-only Cloudflare CNAME
+  to `vascoguita.github.io`, set as the GitHub Pages custom domain.
+
 - The release-please PR stays open until M3 is complete. Merging it ships v0.1.0.
 - Build-only advisories without an upstream fix are resolved with `overrides` in
   `pnpm-workspace.yaml`, each with a comment explaining why.

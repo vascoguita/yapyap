@@ -5,7 +5,6 @@ const repository = 'https://github.com/vascoguita/yapyap';
 export default defineConfig({
   title: 'YapYap',
   description: 'A fast, private, extensible desktop client for WhatsApp Web. Unofficial.',
-  base: '/yapyap/',
   lang: 'en-US',
   cleanUrls: true,
   lastUpdated: true,
@@ -13,11 +12,8 @@ export default defineConfig({
   // ADR folders keep README.md so they also read well on GitHub.
   rewrites: { 'adr/README.md': 'adr/index.md' },
   head: [
-    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/yapyap/logo.svg' }],
-    [
-      'meta',
-      { property: 'og:image', content: 'https://vascoguita.github.io/yapyap/social-preview.png' },
-    ],
+    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' }],
+    ['meta', { property: 'og:image', content: 'https://yapyap.guita.org/social-preview.png' }],
   ],
   themeConfig: {
     logo: '/logo.svg',
