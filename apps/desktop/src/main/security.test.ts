@@ -88,7 +88,7 @@ describe('secureAllWebContents', () => {
       overrideBrowserWindowOptions: { show: false, webPreferences: rendererPreferences() },
     });
     const popup = {
-      webContents: { once: vi.fn(), on: vi.fn() },
+      webContents: { once: vi.fn(), on: vi.fn(), getURL: () => '' },
       isDestroyed: () => false,
       destroy: vi.fn(),
     };
