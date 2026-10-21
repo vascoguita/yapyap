@@ -75,7 +75,7 @@ const PICKER_PAGE: ChromePage = {
 
 const SETTINGS_PAGE: ChromePage = {
   path: 'settings.html',
-  window: { title: 'YapYap Settings', width: 640, height: 560, minWidth: 420, minHeight: 360 },
+  window: { title: 'YapYap Settings', width: 640, height: 680, minWidth: 420, minHeight: 360 },
 };
 
 interface PrivilegedScheme {

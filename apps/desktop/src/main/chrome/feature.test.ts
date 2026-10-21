@@ -169,7 +169,7 @@ describe('createChromeFeature', () => {
         autoHideMenuBar: true,
         title: 'YapYap Settings',
         width: 640,
-        height: 560,
+        height: 680,
         minWidth: 420,
         minHeight: 360,
         show: false,
