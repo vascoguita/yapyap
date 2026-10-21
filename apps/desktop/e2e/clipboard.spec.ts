@@ -28,12 +28,18 @@ async function copy(app: ElectronApplication, type: string, data: string): Promi
 /** Pastes the way Edit → Paste does, which simulated key presses cannot do on every OS. */
 async function pasteIntoComposer(app: ElectronApplication, window: Page): Promise<unknown> {
   await window.getByTestId('composer').focus();
-  const formats = await app.evaluate(async ({ clipboard, webContents }) => {
+  const formats = await app.evaluate(async ({ BrowserWindow, clipboard, webContents }) => {
     const items = await clipboard.read();
-    webContents
+    const whatsapp = webContents
       .getAllWebContents()
-      .find((contents) => contents.getURL().startsWith('http'))
-      ?.paste();
+      .find((contents) => contents.getURL().startsWith('http'));
+    // Paste goes to the natively focused frame; Windows does not hand focus to
+    // a window just because a test opened it.
+    if (whatsapp !== undefined) {
+      BrowserWindow.fromWebContents(whatsapp)?.focus();
+      whatsapp.focus();
+      whatsapp.paste();
+    }
     return items.flatMap((item) => item.types);
   });
   // Says what the clipboard held, so a platform difference is easy to spot.
