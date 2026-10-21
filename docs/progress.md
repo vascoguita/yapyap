@@ -21,6 +21,9 @@
 
 ## Notes
 
+- SonarQube Cloud analyzes every PR and `master` (ADR 0010). The job becomes a
+  required check once overall code passes the "YapYap strict" gate (#185).
+
 - Ensita supports YapYap's development and is credited in the README, the
   site footer and the About window.
 
