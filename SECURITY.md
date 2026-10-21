@@ -25,6 +25,10 @@ You can expect an acknowledgement within 7 days and a status update at least
 every 14 days until the report is resolved. We credit reporters in the
 advisory unless they prefer otherwise.
 
+Once a fix is released, the advisory is published, and the release notes in
+[CHANGELOG.md](CHANGELOG.md) and on the GitHub Release list its CVE or GHSA
+ID.
+
 ## Scope
 
 In scope:

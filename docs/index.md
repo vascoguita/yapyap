@@ -10,23 +10,33 @@ hero:
       text: Get started
       link: /guide/
     - theme: alt
+      text: Install
+      link: /guide/install
+    - theme: alt
       text: View on GitHub
       link: https://github.com/vascoguita/yapyap
 
 features:
-  - title: Multiple accounts
-    details: Every account runs in its own isolated session, with its own unread badge and quick switching.
   - title: Feels native
-    details: Native notifications, a tray or menu bar with unread counts, do-not-disturb, and themes that follow your system.
+    details: Themes that follow your system, a window that reopens where you left it, zoom, image paste and safe downloads.
   - title: Built to recover
-    details: Fix a stuck session without logging out. Crashes and failed loads show a clear recovery screen, not a blank window.
+    details: Fix a stuck session without logging out. Failed loads show a clear recovery screen, not a blank window, and a safe mode gets you past graphics problems.
   - title: Private by design
-    details: No telemetry of any kind. Logs are redacted, and crash reports never leave your machine unless you choose to send them.
-  - title: Safe plugins
-    details: Signed, sandboxed plugins with per-account permissions. Plugins can draft messages but can never send them.
-  - title: Bring your own AI
-    details: An optional writing assistant that works with local or hosted models and only ever inserts drafts for you to edit.
+    details: No telemetry of any kind. Locked-down sandboxing and permissions, no clipboard reading, and redacted local logs.
+  - title: Multiple accounts (planned)
+    details: Every account will run in its own isolated session, with its own unread badge and quick switching.
+  - title: Notifications and tray (planned)
+    details: Native notifications, a tray or menu bar with unread counts, and do-not-disturb.
+  - title: Safe plugins and your own AI (planned)
+    details: Signed, sandboxed plugins with per-account permissions, and an optional writing assistant for local or hosted models. Plugins can draft messages but never send them.
 ---
+
+::: warning Early development
+YapYap has no release yet. The first one, v0.1.0, comes with multiple
+accounts, notifications, the tray and automatic updates. Features marked
+_planned_ above are not built yet; [progress](https://github.com/vascoguita/yapyap/blob/master/docs/progress.md)
+tracks where things stand.
+:::
 
 ::: info Unofficial client
 YapYap is not affiliated with, endorsed by, or sponsored by WhatsApp or Meta.

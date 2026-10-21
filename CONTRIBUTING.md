@@ -165,6 +165,16 @@ PR open on `master` and updates it from Conventional Commits. Merging that PR
 tags `vX.Y.Z`, updates `CHANGELOG.md` and creates the GitHub Release, which
 starts the release build. Never tag by hand.
 
+Release notes are generated from commit subjects, and only `feat`, `fix`,
+`perf` and `revert` commits appear in them. A fix for a publicly known
+vulnerability uses the `security` scope and names its advisory in the
+subject, for example
+`fix(security): validate plugin manifests before parsing (GHSA-xxxx-xxxx-xxxx)`,
+so the release notes list the CVE or GHSA ID of every vulnerability the
+release fixes. If the advisory becomes public only after the release, add
+its ID to that release's entry in `CHANGELOG.md` and to the GitHub Release
+notes.
+
 The release build (`.github/workflows/release.yml`) reuses the same packaging
 (`package.yml`) and smoke tests (`smoke.yml`) as pull requests:
 

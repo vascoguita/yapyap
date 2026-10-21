@@ -40,6 +40,10 @@
   to `vascoguita.github.io`, set as the GitHub Pages custom domain. The app ID
   is `org.guita.YapYap`, which Flathub verifies at guita.org (redirected to the site).
 
+- The website marks unshipped features as planned. When a feature ships,
+  drop its "(planned)" marker on the home page and add its settings, files
+  and flags to `docs/guide/reference.md`.
+
 - The release-please PR stays open until M3 is complete. Merging it ships v0.1.0.
 - Build-only advisories without an upstream fix are resolved with `overrides` in
   `pnpm-workspace.yaml`, each with a comment explaining why.
