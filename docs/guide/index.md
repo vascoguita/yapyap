@@ -102,3 +102,11 @@ Make WhatsApp bigger or smaller with **View → Zoom In** and **Zoom Out**
 <kbd>⌘</kbd> on macOS), or hold <kbd>Ctrl</kbd> and scroll. Each step is 5%,
 from 50% to 300%. **Actual Size** (<kbd>Ctrl</kbd>+<kbd>0</kbd>) goes back to
 100%. YapYap remembers the level for next time.
+
+## Copy and paste
+
+Paste images straight into a chat: screenshots, images copied in a browser,
+and on Linux image files copied in your file manager. WhatsApp cannot read
+your clipboard; it can only copy to it while you are using its window, as
+when you copy a message. YapYap itself only writes to the clipboard when you
+click one of its **Copy** buttons.
