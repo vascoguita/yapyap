@@ -1,11 +1,13 @@
 import {
-  appendFileSync,
-  existsSync,
+  closeSync,
+  fstatSync,
   mkdirSync,
+  openSync,
   readdirSync,
   renameSync,
   statSync,
   unlinkSync,
+  writeSync,
 } from 'node:fs';
 import { join } from 'node:path';
 import { redact } from './redact.ts';
@@ -36,12 +38,18 @@ const DAY_MS = 86_400_000;
 
 const rotated = (n: number): string => `yapyap.${String(n)}.log`;
 
+function shift(from: string, to: string): void {
+  try {
+    renameSync(from, to);
+  } catch {
+    // Renaming instead of checking first leaves no gap for the file to change.
+  }
+}
+
 /** Each rename replaces its target, so the oldest file drops off the end. */
 function rotate(dir: string, maxFiles: number): void {
-  for (let n = maxFiles - 1; n >= 1; n -= 1) {
-    if (existsSync(join(dir, rotated(n))))
-      renameSync(join(dir, rotated(n)), join(dir, rotated(n + 1)));
-  }
+  for (let n = maxFiles - 1; n >= 1; n -= 1)
+    shift(join(dir, rotated(n)), join(dir, rotated(n + 1)));
   renameSync(join(dir, FILE), join(dir, rotated(1)));
 }
 
@@ -61,11 +69,24 @@ function prepare(dir: string, now: number, maxAgeMs: number): void {
   }
 }
 
+/** Sizes the file through its open descriptor, so the check and the write see the same file. */
+function openLog(dir: string, maxBytes: number, maxFiles: number): number {
+  const file = join(dir, FILE);
+  const fd = openSync(file, 'a');
+  if (fstatSync(fd).size < maxBytes) return fd;
+  closeSync(fd);
+  rotate(dir, maxFiles);
+  return openSync(file, 'a');
+}
+
 function append(dir: string, line: string, maxBytes: number, maxFiles: number): void {
   try {
-    const file = join(dir, FILE);
-    if (existsSync(file) && statSync(file).size >= maxBytes) rotate(dir, maxFiles);
-    appendFileSync(file, `${line}\n`);
+    const fd = openLog(dir, maxBytes, maxFiles);
+    try {
+      writeSync(fd, `${line}\n`);
+    } finally {
+      closeSync(fd);
+    }
   } catch {
     // A full or read-only disk must not take the app down with it.
   }
