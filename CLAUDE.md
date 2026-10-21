@@ -27,6 +27,7 @@ Use pnpm (version pinned in `package.json`) on Node.js 24 LTS.
 | Coverage (100% gate)            | `pnpm test:coverage`                                                                     |
 | E2E tests                       | `xvfb-run -a pnpm test:e2e` on Linux when available, else `pnpm test:e2e`                |
 | Mutation tests (≥ 90%)          | `pnpm test:mutation` (PR CI mutates changed in-scope files only)                         |
+| Performance benchmark           | `xvfb-run -a pnpm test:bench` (nightly; budgets in `apps/desktop/e2e/bench/`, ADR 0009)  |
 | Commit messages                 | `pnpm commitlint`                                                                        |
 | License compatibility           | `pnpm check:licenses`                                                                    |
 | Vulnerability audit             | `pnpm audit --audit-level high`                                                          |
