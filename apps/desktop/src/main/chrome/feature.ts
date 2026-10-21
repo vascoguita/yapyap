@@ -1,7 +1,12 @@
 import type { MenuItemConstructorOptions } from 'electron';
 import { CHROME_CHANNELS } from '../../shared/chrome-api.ts';
 import { buildAboutInfo, formatTechnicalDetails, type RuntimeFacts } from '../about/about-info.ts';
-import { createSourcePicker, type DesktopSource, type SourcePicker } from '../capture/picker.ts';
+import {
+  createSourcePicker,
+  type DesktopSource,
+  type SourceKind,
+  type SourcePicker,
+} from '../capture/picker.ts';
 import { changeZoom } from '../appearance/zoom.ts';
 import { buildMenuTemplate, type MenuActions } from '../menu.ts';
 import {
@@ -93,7 +98,7 @@ export interface ChromeFeatureDependencies {
   readonly restart: () => void;
   /** Asks before logging the account out; true when the user agrees. */
   readonly confirmReset: () => Promise<boolean>;
-  readonly captureSources: () => Promise<readonly DesktopSource[]>;
+  readonly captureSources: (kind: SourceKind) => Promise<readonly DesktopSource[]>;
   /** The window showing `contents`, so the picker can sit on top of it. */
   readonly windowOf: (contents: object) => WindowOptions['parent'] | null;
 }

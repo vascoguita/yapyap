@@ -241,9 +241,9 @@ describe('createChromeFeature', () => {
       const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
       void runtime.pickCaptureSource({});
       await vi.advanceTimersByTimeAsync(199);
-      expect(t.deps.captureSources).toHaveBeenCalledOnce();
+      expect(t.deps.captureSources.mock.calls).toEqual([['screen'], ['window']]);
       await vi.advanceTimersByTimeAsync(1);
-      expect(t.deps.captureSources).toHaveBeenCalledTimes(2);
+      expect(t.deps.captureSources).toHaveBeenCalledTimes(4);
     } finally {
       vi.useRealTimers();
     }

@@ -75,8 +75,8 @@ const chrome = createChromeFeature({
     app.quit();
   },
   confirmReset: confirmResetWithDialog,
-  captureSources: () =>
-    desktopCapturer.getSources({ types: ['screen', 'window'], thumbnailSize: PICKER_THUMBNAIL }),
+  captureSources: (kind) =>
+    desktopCapturer.getSources({ types: [kind], thumbnailSize: PICKER_THUMBNAIL }),
   // The picker's owner is a web contents Electron itself handed to the capture handler.
   windowOf: (contents) => BrowserWindow.fromWebContents(contents as WebContents),
 });
