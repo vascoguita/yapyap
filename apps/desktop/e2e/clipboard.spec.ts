@@ -28,13 +28,19 @@ async function copy(app: ElectronApplication, type: string, data: string): Promi
 /** Pastes the way Edit → Paste does, which simulated key presses cannot do on every OS. */
 async function pasteIntoComposer(app: ElectronApplication, window: Page): Promise<unknown> {
   await window.getByTestId('composer').focus();
-  await app.evaluate(({ webContents }) => {
+  const formats = await app.evaluate(async ({ clipboard, webContents }) => {
+    const items = await clipboard.read();
     webContents
       .getAllWebContents()
       .find((contents) => contents.getURL().startsWith('http'))
       ?.paste();
+    return items.flatMap((item) => item.types);
   });
-  await expect(window.getByTestId('paste-result')).not.toBeEmpty();
+  // Says what the clipboard held, so a platform difference is easy to spot.
+  await expect(
+    window.getByTestId('paste-result'),
+    `clipboard held ${formats.join(', ')}`,
+  ).not.toBeEmpty();
   return JSON.parse((await window.getByTestId('paste-result').textContent()) ?? 'null');
 }
 
