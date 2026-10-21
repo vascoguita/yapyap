@@ -3,7 +3,7 @@
 - **Current milestone:** M2 · Single-account shell
 - **Last merged PR:** #171 (sandbox refusal)
 - **Next issue:** #51 (media), #54 (no telemetry), #53 (performance)
-- **Open blockers:** #22 (`AUTOMATION_TOKEN`), #23, #24, #25, #26, #138 need maintainer-provided secrets or settings (pipelines skip those steps gracefully)
+- **Open blockers:** #22 (`AUTOMATION_TOKEN`), #23, #24, #25, #26 need maintainer-provided secrets or settings (pipelines skip those steps gracefully). #138 (OpenSSF Best Practices badge) needs release notes, so it passes only after v0.1.0
 
 ## Milestones
 
