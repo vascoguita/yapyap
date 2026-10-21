@@ -108,16 +108,35 @@ These settings are applied through the GitHub API and must stay in place.
 The pipelines skip steps whose secrets are missing, and print a notice in the
 job summary instead of failing.
 
-| Secret / variable                                                                          | Used for                                                                                                                             | Missing →                                                 |
-| ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------- |
-| `PLUGIN_SIGNING_KEY` (secret)                                                              | Signing first-party plugins (PKCS#8 PEM, Ed25519)                                                                                    | First-party plugins are not signed; release blocked       |
-| `PLUGIN_SIGNING_PUBLIC_KEY` (variable)                                                     | Embedded first-party trust anchor (SPKI PEM)                                                                                         | Build fails                                               |
-| `AUTOMATION_TOKEN`                                                                         | Release PRs and pinned-version PRs that trigger required checks (fine-grained token or GitHub App: contents and pull requests write) | PRs are opened, but the maintainer re-runs checks by hand |
-| `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`, `CSC_LINK`, `CSC_KEY_PASSWORD` | macOS signing and notarization                                                                                                       | Unsigned DMG, no macOS self-update                        |
-| `WIN_CSC_LINK`, `WIN_CSC_KEY_PASSWORD`                                                     | Windows Authenticode signing                                                                                                         | Unsigned installers (SmartScreen warning)                 |
-| `AUR_SSH_KEY`                                                                              | Publishing `yapyap-bin` to the AUR                                                                                                   | PKGBUILD attached to the release only                     |
+| Secret / variable                                                                          | Used for                                                                                                                                                                                 | Missing →                                                                               |
+| ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `PLUGIN_SIGNING_KEY` (secret)                                                              | Signing first-party plugins (PKCS#8 PEM, Ed25519)                                                                                                                                        | First-party plugins are not signed; release blocked                                     |
+| `PLUGIN_SIGNING_PUBLIC_KEY` (variable)                                                     | Embedded first-party trust anchor (SPKI PEM)                                                                                                                                             | Build fails                                                                             |
+| `AUTOMATION_APP_CLIENT_ID` (variable), `AUTOMATION_APP_PRIVATE_KEY` (secret)               | The YapYap automation GitHub App. Release and pinned-version workflows mint an hour-long token from it, so their PRs trigger the required checks (see [Automation app](#automation-app)) | PRs are opened with the workflow token, and the maintainer re-runs their checks by hand |
+| `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`, `CSC_LINK`, `CSC_KEY_PASSWORD` | macOS signing and notarization                                                                                                                                                           | Unsigned DMG, no macOS self-update                                                      |
+| `WIN_CSC_LINK`, `WIN_CSC_KEY_PASSWORD`                                                     | Windows Authenticode signing                                                                                                                                                             | Unsigned installers (SmartScreen warning)                                               |
+| `AUR_SSH_KEY`                                                                              | Publishing `yapyap-bin` to the AUR                                                                                                                                                       | PKGBUILD attached to the release only                                                   |
 
 Issues that need one of these are labelled `needs-maintainer`.
+
+### Automation app
+
+Pull requests opened with the workflow token never trigger workflows, so
+release-please and the pinned-versions job use a GitHub App instead. Its
+tokens expire after an hour, are limited to this repository, and its commits
+are signed by GitHub. To set it up:
+
+1. Create a private GitHub App owned by the maintainer, with webhooks off and
+   these repository permissions: Contents, Pull requests and Issues (read and
+   write). Nothing else.
+2. Install it on `vascoguita/yapyap` only.
+3. Generate a private key, store it, and delete the downloaded file:
+   `gh secret set AUTOMATION_APP_PRIVATE_KEY --repo vascoguita/yapyap < key.pem`
+4. Store the app's Client ID:
+   `gh variable set AUTOMATION_APP_CLIENT_ID --repo vascoguita/yapyap --body <client id>`
+
+To rotate the key, generate a new one, store it, then delete the old one in
+the app's settings.
 
 ## Plugin signing key rotation
 

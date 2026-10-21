@@ -22,9 +22,21 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
+      # A short-lived token from the YapYap automation GitHub App, so bot PRs
+      # trigger CI (the workflow token's PRs never do; see CONTRIBUTING).
+      - name: Mint the automation token
+        id: app-token
+        if: vars.AUTOMATION_APP_CLIENT_ID != ''
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.AUTOMATION_APP_CLIENT_ID }}
+          private-key: ${{ secrets.AUTOMATION_APP_PRIVATE_KEY }}
+          repositories: yapyap
+          permission-contents: write
+          permission-pull-requests: write
       - name: Check and propose updates
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          AUTOMATION_TOKEN: ${{ secrets.AUTOMATION_TOKEN }}
+          AUTOMATION_TOKEN: ${{ steps.app-token.outputs.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: node scripts/src/bin/check-pinned-versions.ts
