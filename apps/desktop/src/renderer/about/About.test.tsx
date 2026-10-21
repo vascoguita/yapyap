@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { AboutInfo, ChromeApi } from '../../shared/chrome-api.ts';
-import { About, LINKS } from './About.tsx';
+import { About, LINKS, SUPPORTER } from './About.tsx';
 
 const INFO: AboutInfo = {
   name: 'YapYap',
@@ -62,13 +62,17 @@ describe('About', () => {
     ).toBeTruthy();
   });
 
-  it('links to the website, source, issues and privacy policy in new windows', () => {
+  it('links to the website, source, issues and privacy policy, then the supporter, in new windows', () => {
     render(<About api={api()} />);
     const links = screen.getAllByRole('link');
-    expect(links.map((link) => [link.textContent, link.getAttribute('href')])).toEqual(
-      LINKS.map(({ label, href }) => [label, href]),
-    );
+    expect(links.map((link) => [link.textContent, link.getAttribute('href')])).toEqual([
+      ...LINKS.map(({ label, href }) => [label, href]),
+      ['Ensita', 'https://www.ensita.org/'],
+    ]);
     expect(links.every((link) => link.getAttribute('target') === '_blank')).toBe(true);
+    expect(screen.getByText(/Development supported by/).textContent).toBe(
+      `Development supported by ${SUPPORTER.name}.`,
+    );
   });
 
   it('copies the technical details and announces the result', async () => {

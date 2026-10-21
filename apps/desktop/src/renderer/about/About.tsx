@@ -9,6 +9,8 @@ export const LINKS = [
   { label: 'Privacy', href: 'https://yapyap.guita.org/privacy' },
 ] as const;
 
+export const SUPPORTER = { name: 'Ensita', href: 'https://www.ensita.org/' } as const;
+
 type Load =
   { readonly state: 'loading' | 'failed' } | { readonly state: 'ready'; readonly info: AboutInfo };
 
@@ -95,6 +97,13 @@ export function About({ api }: { readonly api: ChromeApi }): JSX.Element {
       </button>
       <p role="status">{copyStatus}</p>
       <Links />
+      <p class="supporter">
+        Development supported by{' '}
+        <a href={SUPPORTER.href} target="_blank" rel="noreferrer">
+          {SUPPORTER.name}
+        </a>
+        .
+      </p>
       <p class="disclaimer">
         YapYap is unofficial and is not affiliated with, endorsed by, or sponsored by WhatsApp or
         Meta.

@@ -21,6 +21,9 @@
 
 ## Notes
 
+- Ensita supports YapYap's development and is credited in the README, the
+  site footer and the About window.
+
 - Settings export and import (#43) live in the Settings window's Backup
   section. A new settings section must be classified in `EXPORTED_SECTIONS`
   (`settings/transfer.ts`); a test fails until it is.

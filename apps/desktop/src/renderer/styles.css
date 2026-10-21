@@ -83,6 +83,7 @@ a {
   color: var(--accent);
 }
 
+.supporter,
 .disclaimer {
   margin: 0;
   color: var(--muted);
