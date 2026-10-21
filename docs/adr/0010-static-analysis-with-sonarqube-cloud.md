@@ -18,6 +18,8 @@ analysis must run in CI.
 - **Where it runs:** the `SonarQube Cloud` job in `ci.yml`, on every pull
   request and every push to `master`. It runs `pnpm test:coverage`, then the
   official scan action pinned by commit SHA, and waits for the quality gate.
+  The action is LGPL-3.0 and runs only in CI, so the dependency review allows
+  it by name (ADR 0008, C17).
   Automatic analysis is turned off for the project. Without `SONAR_TOKEN`
   (forks, Dependabot) the job skips the analysis with a notice.
 - **Scope:** `sonar-project.properties`. Test code (unit tests, E2E specs, the
