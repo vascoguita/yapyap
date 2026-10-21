@@ -46,14 +46,19 @@ test('shares the screen the user picks, with nothing preselected', async ({ app,
     process.platform === 'win32' ? 1 : 0,
   );
   await screens.getByRole('radio').first().check();
-  await share.click();
+  // Sharing closes the picker, which can end Playwright's click before it
+  // returns; what WhatsApp received is what matters.
+  await share.click().catch(() => undefined);
   await expect(window.getByTestId('share-result')).toHaveText('shared 1 video track');
   await expect.poll(() => picker.isClosed()).toBe(true);
 });
 
 test('denies the request when the user cancels', async ({ app, window }) => {
   const picker = await requestShare(app, window);
-  await picker.getByRole('button', { name: 'Cancel' }).click();
+  await picker
+    .getByRole('button', { name: 'Cancel' })
+    .click()
+    .catch(() => undefined);
   await expect(window.getByTestId('share-result')).toHaveText('NotAllowedError');
 });
 
