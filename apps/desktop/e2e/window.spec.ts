@@ -32,7 +32,9 @@ test('reopens the window where it was left, even after SIGTERM', async ({
     BrowserWindow.getAllWindows()[0]?.setBounds(bounds);
   }, BOUNDS);
   await expect.poll(() => mainBounds(app)).toEqual(BOUNDS);
-  await exited(app, 'SIGTERM');
+  // Windows has no SIGTERM: Node's kill() there ends the process outright, so
+  // it quits normally instead.
+  await exited(app, process.platform === 'win32' ? undefined : 'SIGTERM');
   const saved = JSON.parse(await readFile(join(profile, 'window-state.json'), 'utf8')) as object;
   expect(saved).toEqual({ bounds: BOUNDS, maximized: false, fullScreen: false });
   const again = await launchApp(fakeWhatsApp.origin, profile);

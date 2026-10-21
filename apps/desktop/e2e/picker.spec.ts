@@ -60,8 +60,9 @@ test('denies the request when the user cancels', async ({ app, window }) => {
 test('denies the request when the user closes the picker with Escape', async ({ app, window }) => {
   const picker = await requestShare(app, window);
   await expect(picker.getByRole('button', { name: 'Cancel' })).toBeVisible();
-  // Only the key-down: the window closes before a key-up could reach it.
-  await picker.keyboard.down('Escape');
+  // The picker can close before Playwright finishes the key press; the
+  // request's outcome below is what matters.
+  await picker.keyboard.down('Escape').catch(() => undefined);
   await expect(window.getByTestId('share-result')).toHaveText('NotAllowedError');
 });
 
