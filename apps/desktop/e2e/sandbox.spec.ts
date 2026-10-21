@@ -15,9 +15,10 @@ test('explains instead of running when the sandbox is turned off', async ({
     expect(stderr).not.toContain('fake-whatsapp');
     expect(app.exitCode).toBeNull();
   } finally {
-    // Windows keeps the profile's files locked until the process is really gone.
+    // A modal dialog holds the UI loop that would act on SIGTERM (macOS), and
+    // Windows keeps the profile's files locked until the process is gone.
     const exited = new Promise((resolve) => app.once('exit', resolve));
-    app.kill();
+    app.kill('SIGKILL');
     await exited;
   }
 });
