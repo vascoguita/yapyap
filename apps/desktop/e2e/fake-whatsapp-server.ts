@@ -17,7 +17,9 @@ export interface FakeWhatsApp {
 
 function resolvePath(url: string | undefined, home: string): string | undefined {
   const pathname = new URL(url ?? '/', 'http://127.0.0.1').pathname;
-  const file = normalize(join(ROOT, pathname === '/' ? home : pathname));
+  // WhatsApp Web serves the app on its chat-link route too.
+  const app = pathname === '/' || pathname === '/send';
+  const file = normalize(join(ROOT, app ? home : pathname));
   return file.startsWith(ROOT + sep) ? file : undefined;
 }
 

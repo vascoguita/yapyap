@@ -46,6 +46,7 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
       listeners.set(event, listener),
     ),
     quit: vi.fn(),
+    requestSingleInstanceLock: vi.fn(() => true),
   } satisfies AppPort;
   const window = {
     webContents: web.contents,
@@ -53,6 +54,9 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     on: vi.fn(),
     setTitle: vi.fn(),
     show: vi.fn(),
+    isMinimized: vi.fn(() => false),
+    restore: vi.fn(),
+    focus: vi.fn(),
     loadURL: vi.fn(() => Promise.resolve()),
   } satisfies WindowPort;
   const createWindow = vi.fn<(options: WindowOptions) => WindowPort>(() => window);
@@ -357,6 +361,35 @@ describe('startApp', () => {
     await started;
     expect(await pickInApp(requester)).toEqual({ video: { id: 'screen:1:0', name: 'Screen' } });
     expect(f.runtime.pickCaptureSource).toHaveBeenCalledExactlyOnceWith(requester);
+  });
+
+  it('leaves the launch to the running YapYap when another one holds the lock', async () => {
+    const f = fakes();
+    f.app.requestSingleInstanceLock.mockReturnValueOnce(false);
+    await startApp(f);
+    expect(f.app.quit).toHaveBeenCalledOnce();
+    expect(f.app.whenReady).not.toHaveBeenCalled();
+    expect(f.createWindow).not.toHaveBeenCalled();
+  });
+
+  it('opens a chat link it was launched with', async () => {
+    const f = fakes({}, ['/opt/YapYap/yapyap', 'https://wa.me/351912345678']);
+    await startApp(f);
+    expect(f.window.loadURL).toHaveBeenCalledExactlyOnceWith(
+      `${WHATSAPP_ORIGIN}/send?phone=351912345678`,
+    );
+  });
+
+  it('focuses the window and opens the chat link when YapYap is launched again', async () => {
+    const f = fakes();
+    await startApp(f);
+    const secondInstance = f.listeners.get('second-instance') as unknown as (
+      event: unknown,
+      argv: readonly string[],
+    ) => void;
+    secondInstance({}, ['/opt/YapYap/yapyap', 'whatsapp://send?text=Hi']);
+    expect(f.window.focus).toHaveBeenCalledOnce();
+    expect(f.window.loadURL).toHaveBeenLastCalledWith(`${WHATSAPP_ORIGIN}/send?text=Hi`);
   });
 
   it('follows the theme setting once ready', async () => {

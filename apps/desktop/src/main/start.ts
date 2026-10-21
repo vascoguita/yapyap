@@ -23,6 +23,8 @@ import type { ViewInfo, ViewRegistry } from './views.ts';
 import type { Overlay } from './recovery/controller.ts';
 import type { RendererOptions } from './web-preferences.ts';
 import type { WindowOptions } from './windows.ts';
+import { claimSingleInstance, type LinkWindow } from './instances.ts';
+import { chatLinkInArguments } from './navigation/deep-link.ts';
 import { showWhenReady } from './show-when-ready.ts';
 import { resolveWhatsAppOrigin } from './whatsapp-origin.ts';
 
@@ -43,10 +45,19 @@ export interface AppPort {
     listener: (event: unknown, contents: GuardedContents) => void,
   ): unknown;
   on(event: 'session-created', listener: (session: GuardedSession) => void): unknown;
+  on(
+    event: 'second-instance',
+    listener: (event: unknown, argv: readonly string[]) => void,
+  ): unknown;
+  on(
+    event: 'open-url',
+    listener: (event: { preventDefault(): void }, url: string) => void,
+  ): unknown;
+  requestSingleInstanceLock(): boolean;
   quit(): void;
 }
 
-export interface WindowPort extends TitledWindow {
+export interface WindowPort extends TitledWindow, LinkWindow {
   readonly webContents: WhatsAppContents;
   once(event: 'ready-to-show', listener: () => void): unknown;
   show(): void;
@@ -152,23 +163,46 @@ function announceStartup(
   if (graphicsNotice !== undefined) deps.notify(graphicsNotice);
 }
 
+function whatsAppOrigin(
+  env: Readonly<Record<string, string | undefined>>,
+  warn: (message: string) => void,
+): string {
+  const { origin, rejectedOverride } = resolveWhatsAppOrigin(env['YAPYAP_TEST_WHATSAPP_ORIGIN']);
+  if (rejectedOverride)
+    warn('Ignoring YAPYAP_TEST_WHATSAPP_ORIGIN: only loopback http origins are allowed.');
+  return origin;
+}
+
+function watchOnline(
+  deps: Pick<StartDependencies<WindowPort>, 'isOnline' | 'onResume'>,
+  window: WindowPort,
+  reconnect: () => void,
+): void {
+  watchConnectivity({
+    isOnline: deps.isOnline,
+    onResume: deps.onResume,
+    every: setInterval,
+    schedule: setTimeout,
+    onChange: offlineTitle(window, PRODUCT_NAME),
+    reconnect,
+  });
+}
+
 export async function startApp<Window extends WindowPort>(
   deps: StartDependencies<Window>,
 ): Promise<void> {
-  const { app, createWindow, env, warn } = deps;
+  const { app, createWindow, warn } = deps;
+  const origin = whatsAppOrigin(deps.env, warn);
+  const instances = claimSingleInstance(app, origin, warn);
+  if (instances === undefined) return;
   const views: ViewRegistry = new WeakMap();
   const identity = {
     userAgent: chromeUserAgent(deps.platform, deps.chromeVersion),
     chromeVersion: deps.chromeVersion,
   };
   const picker = latePicker();
-  const capture = deps.capture(picker.pick);
-  const security = { ...deps, capture, views, identity };
+  const security = { ...deps, capture: deps.capture(picker.pick), views, identity };
   const graphics = beforeReady(deps, security);
-
-  const { origin, rejectedOverride } = resolveWhatsAppOrigin(env['YAPYAP_TEST_WHATSAPP_ORIGIN']);
-  if (rejectedOverride)
-    warn('Ignoring YAPYAP_TEST_WHATSAPP_ORIGIN: only loopback http origins are allowed.');
 
   await app.whenReady();
   secureSession(deps.defaultSession(), security);
@@ -181,15 +215,9 @@ export async function startApp<Window extends WindowPort>(
   const recovery = chrome.attachRecovery(window.webContents, origin, (renderer) =>
     deps.createOverlay(window, renderer),
   );
-  watchConnectivity({
-    isOnline: deps.isOnline,
-    onResume: deps.onResume,
-    every: setInterval,
-    schedule: setTimeout,
-    onChange: offlineTitle(window, PRODUCT_NAME),
-    reconnect: recovery.reconnect,
-  });
+  watchOnline(deps, window, recovery.reconnect);
   showWhenReady(window);
+  instances.attach(window);
   // A failed load must not end startup: the monitor shows the recovery screen.
-  await window.loadURL(origin).catch(() => undefined);
+  await window.loadURL(chatLinkInArguments(deps.argv, origin) ?? origin).catch(() => undefined);
 }

@@ -74,3 +74,11 @@ The **Account** menu has two maintenance actions:
 - **Reset Session…** logs you out and deletes WhatsApp's data on this
   computer. YapYap asks first. Your chats stay on your phone; link this
   device again to continue.
+
+## Chat links
+
+Only one YapYap runs at a time: starting it again brings the open window
+back. Clicking a `whatsapp://` link, or opening a `https://wa.me/` or
+`https://api.whatsapp.com/send` link with YapYap, opens that chat in WhatsApp,
+with any prefilled text. YapYap accepts only the phone number and the text
+from these links.

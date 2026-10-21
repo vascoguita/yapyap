@@ -69,6 +69,12 @@ and an ESLint restriction forbids constructing `BrowserWindow` or
   `shell.openExternal` (phone numbers keep only digits and a leading `+`).
   `whatsapp://send` deep links load the matching WhatsApp Web URL in the
   view. All other schemes are dropped.
+- YapYap holds a single-instance lock per profile. Chat links handed over by
+  the operating system (a second launch's command line, or macOS
+  `open-url`) are the only input taken from outside: `https://wa.me/…` and
+  `https://api.whatsapp.com/send` are rewritten as `whatsapp://send` and go
+  through the same link policy, keeping only the phone number and text.
+  Every other argument is ignored, and links are never logged (#45).
 - The one exception is an empty `about:blank` popup, which WhatsApp opens
   before setting its location. It is created hidden with the hardened
   preferences, its first navigation goes through the link policy, and it is

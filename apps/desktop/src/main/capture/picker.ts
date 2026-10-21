@@ -23,14 +23,17 @@ export interface SourcePickerDependencies {
   readonly wait: (ms: number) => Promise<void>;
 }
 
-/** desktopCapturer sometimes lists nothing for a moment, such as right after a display change. */
-const SOURCE_ATTEMPTS = 3;
-const SOURCE_RETRY_MS = 300;
+/**
+ * desktopCapturer sometimes lists nothing for a moment, such as right after a
+ * display change, so it is asked again with backoff for about three seconds.
+ */
+const SOURCE_ATTEMPTS = 5;
+const FIRST_RETRY_MS = 200;
 
 async function listSources(deps: SourcePickerDependencies): Promise<readonly DesktopSource[]> {
   let sources = await deps.getSources();
   for (let attempt = 1; attempt < SOURCE_ATTEMPTS && sources.length === 0; attempt += 1) {
-    await deps.wait(SOURCE_RETRY_MS);
+    await deps.wait(FIRST_RETRY_MS * 2 ** (attempt - 1));
     sources = await deps.getSources();
   }
   return sources;
