@@ -21,6 +21,10 @@
 
 ## Notes
 
+- The screen picker lists screens and windows in separate calls (#180),
+  because one combined call came back empty on Linux CI while screens alone
+  were listed.
+
 - The Windows paste E2E test retries its paste, because Windows can refuse the
   focus a test asks for.
 

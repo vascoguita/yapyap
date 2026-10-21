@@ -14,8 +14,10 @@ export interface PickerWindow {
   onClosed(listener: () => void): void;
 }
 
+export type SourceKind = 'screen' | 'window';
+
 export interface SourcePickerDependencies {
-  readonly getSources: () => Promise<readonly DesktopSource[]>;
+  readonly getSources: (kind: SourceKind) => Promise<readonly DesktopSource[]>;
   /** Opens the picker page in a window attached to the requesting one. */
   readonly openPicker: (owner: object) => PickerWindow;
   /** System audio can only be captured on Windows. */
@@ -30,11 +32,25 @@ export interface SourcePickerDependencies {
 const SOURCE_ATTEMPTS = 5;
 const FIRST_RETRY_MS = 200;
 
+/**
+ * Screens and windows are listed separately: on Linux, asking for both at
+ * once has returned nothing for seconds while screens alone were listed (#180).
+ * A list that fails counts as empty, so it cannot hide the other.
+ */
+async function listOnce(deps: SourcePickerDependencies): Promise<readonly DesktopSource[]> {
+  const none = (): readonly DesktopSource[] => [];
+  const [screens, windows] = await Promise.all([
+    deps.getSources('screen').catch(none),
+    deps.getSources('window').catch(none),
+  ]);
+  return [...screens, ...windows];
+}
+
 async function listSources(deps: SourcePickerDependencies): Promise<readonly DesktopSource[]> {
-  let sources = await deps.getSources();
+  let sources = await listOnce(deps);
   for (let attempt = 1; attempt < SOURCE_ATTEMPTS && sources.length === 0; attempt += 1) {
     await deps.wait(FIRST_RETRY_MS * 2 ** (attempt - 1));
-    sources = await deps.getSources();
+    sources = await listOnce(deps);
   }
   return sources;
 }

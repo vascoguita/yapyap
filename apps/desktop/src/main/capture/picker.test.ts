@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { ChromeHandler } from '../chrome/ipc.ts';
-import { createSourcePicker, type DesktopSource, type PickerWindow } from './picker.ts';
+import {
+  createSourcePicker,
+  type DesktopSource,
+  type PickerWindow,
+  type SourceKind,
+} from './picker.ts';
 
 const source = (id: string, name: string): DesktopSource => ({
   id,
@@ -35,8 +40,8 @@ function setup(offerAudio = false) {
     .fn<(owner: object) => PickerWindow>()
     .mockReturnValueOnce(windows[0] as PickerWindow)
     .mockReturnValueOnce(windows[1] as PickerWindow);
-  const getSources = vi.fn<() => Promise<readonly DesktopSource[]>>(() =>
-    Promise.resolve([SCREEN, WINDOW]),
+  const getSources = vi.fn<(kind: SourceKind) => Promise<readonly DesktopSource[]>>((kind) =>
+    Promise.resolve(kind === 'screen' ? [SCREEN] : [WINDOW]),
   );
   const wait = vi.fn(() => Promise.resolve());
   const picker = createSourcePicker({ getSources, openPicker, offerAudio, wait });
@@ -124,12 +129,35 @@ describe('createSourcePicker', () => {
     expect(t.windows[0]?.close).not.toHaveBeenCalled();
   });
 
+  it('lists screens and windows separately', async () => {
+    const t = setup();
+    void t.picker.pick({});
+    await settle();
+    expect(t.getSources.mock.calls).toEqual([['screen'], ['window']]);
+  });
+
+  it.each([
+    ['windows', 'screen', [SCREEN]],
+    ['screens', 'window', [WINDOW]],
+  ] as const)('still offers the rest when listing %s fails', async (_failing, works, offered) => {
+    const t = setup();
+    t.getSources.mockImplementation((kind) =>
+      kind === works ? Promise.resolve(offered) : Promise.reject(new Error('capturer failed')),
+    );
+    void t.picker.pick({});
+    await settle();
+    const offer = t.handler('picker:offer').handle(t.from()) as { sources: { id: string }[] };
+    expect(offer.sources.map(({ id }) => id)).toEqual(offered.map(({ id }) => id));
+    expect(t.wait).not.toHaveBeenCalled();
+  });
+
   it('asks again briefly when the system lists no sources at first', async () => {
     const t = setup();
     t.getSources.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+    t.getSources.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
     void t.picker.pick({});
     await settle();
-    expect(t.getSources).toHaveBeenCalledTimes(3);
+    expect(t.getSources).toHaveBeenCalledTimes(6);
     expect(t.wait.mock.calls).toEqual([[200], [400]]);
     const offer = t.handler('picker:offer').handle(t.from()) as { sources: unknown[] };
     expect(offer.sources).toHaveLength(2);
@@ -140,7 +168,7 @@ describe('createSourcePicker', () => {
     t.getSources.mockResolvedValue([]);
     void t.picker.pick({});
     await settle();
-    expect(t.getSources).toHaveBeenCalledTimes(5);
+    expect(t.getSources).toHaveBeenCalledTimes(10);
     expect(t.wait.mock.calls).toEqual([[200], [400], [800], [1600]]);
     expect(t.handler('picker:offer').handle(t.from())).toEqual({ sources: [], offerAudio: false });
   });
