@@ -11,16 +11,16 @@ and run it from source as described in
 
 YapYap will be available in these formats:
 
-| Platform         | Format                     | Updates                          |
-| ---------------- | -------------------------- | -------------------------------- |
-| Linux            | Flatpak (Flathub)          | Through Flatpak                  |
-| Linux            | AppImage (x86_64, aarch64) | Built-in updater                 |
-| Debian, Ubuntu   | DEB                        | Through your package manager     |
-| Fedora, openSUSE | RPM                        | Through your package manager     |
-| Arch Linux       | PKGBUILD for `yapyap-bin`  | Rebuild with each release        |
-| Windows          | Installer (x64, arm64)     | Built-in updater                 |
-| Windows          | Portable (x64, arm64)      | Notifies you of new versions     |
-| macOS            | Universal DMG              | Built-in updater (signed builds) |
+| Platform         | Format                     | Updates                      |
+| ---------------- | -------------------------- | ---------------------------- |
+| Linux            | Flatpak (Flathub)          | Through Flatpak              |
+| Linux            | AppImage (x86_64, aarch64) | Built-in updater             |
+| Debian, Ubuntu   | DEB                        | Through your package manager |
+| Fedora, openSUSE | RPM                        | Through your package manager |
+| Arch Linux       | PKGBUILD for `yapyap-bin`  | Rebuild with each release    |
+| Windows          | Installer (x64, arm64)     | Built-in updater             |
+| Windows          | Portable (x64, arm64)      | Notifies you of new versions |
+| macOS            | Universal DMG              | Notifies you of new versions |
 
 Releases are published on
 [GitHub](https://github.com/vascoguita/yapyap/releases).
@@ -28,6 +28,36 @@ Releases are published on
 On Arch Linux, download `yapyap-bin.PKGBUILD` from a release, save it as
 `PKGBUILD` in an empty folder, and run `makepkg -si` there. YapYap will be
 published to the AUR as `yapyap-bin` once AUR account registration reopens.
+
+## First launch on macOS and Windows {#unsigned}
+
+YapYap's macOS and Windows builds are not code-signed yet: signing
+certificates cost money every year, and YapYap is free. Your system warns
+you the first time you open it. Before you allow it, you can
+[check that your download is genuine](#verify-a-download).
+
+**macOS.** macOS says it cannot verify that YapYap is free of malware.
+
+1. Drag YapYap from the DMG to Applications and open it once. Close the
+   warning.
+2. Open **System Settings → Privacy & Security**, scroll down to the message
+   about YapYap, and click **Open Anyway**. Confirm with your password.
+
+From then on YapYap opens normally. If you prefer the terminal, this does the
+same:
+
+```sh
+xattr -dr com.apple.quarantine /Applications/YapYap.app
+```
+
+Unsigned macOS builds can't update themselves, so YapYap tells you when a new
+version is out instead.
+
+**Windows.** SmartScreen shows "Windows protected your PC". Click
+**More info**, then **Run anyway**. YapYap still updates itself, and checks
+each update's hash before installing it.
+
+Linux packages need none of this.
 
 ## Verify a download
 
