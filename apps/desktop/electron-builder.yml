@@ -1,4 +1,4 @@
-appId: io.github.vascoguita.YapYap
+appId: org.guita.YapYap
 productName: YapYap
 copyright: Copyright © Vasco Guita
 directories:
@@ -47,7 +47,7 @@ linux:
       Name: YapYap
       GenericName: Messaging client
       Keywords: whatsapp;chat;messaging;
-      StartupWMClass: io.github.vascoguita.YapYap
+      StartupWMClass: org.guita.YapYap
       MimeType: x-scheme-handler/whatsapp;
       Actions: SafeMode;
     # Reachable from the launcher when graphics problems stop YapYap from starting.
@@ -58,11 +58,11 @@ linux:
 deb:
   packageCategory: net
   fpm:
-    - ../../packaging/linux/io.github.vascoguita.YapYap.metainfo.xml=/usr/share/metainfo/io.github.vascoguita.YapYap.metainfo.xml
+    - ../../packaging/linux/org.guita.YapYap.metainfo.xml=/usr/share/metainfo/org.guita.YapYap.metainfo.xml
 rpm:
   packageCategory: Applications/Internet
   fpm:
-    - ../../packaging/linux/io.github.vascoguita.YapYap.metainfo.xml=/usr/share/metainfo/io.github.vascoguita.YapYap.metainfo.xml
+    - ../../packaging/linux/org.guita.YapYap.metainfo.xml=/usr/share/metainfo/org.guita.YapYap.metainfo.xml
 
 win:
   executableName: YapYap

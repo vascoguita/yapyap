@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>io.github.vascoguita.YapYap</id>
+  <id>org.guita.YapYap</id>
   <name>YapYap</name>
   <summary>Fast, private desktop client for WhatsApp Web</summary>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>MIT</project_license>
-  <developer id="io.github.vascoguita">
+  <developer id="org.guita">
     <name>Vasco Guita</name>
   </developer>
   <description>
@@ -20,12 +20,12 @@
     </p>
     <p>YapYap is unofficial and is not affiliated with, endorsed by, or sponsored by WhatsApp or Meta.</p>
   </description>
-  <launchable type="desktop-id">io.github.vascoguita.YapYap.desktop</launchable>
-  <url type="homepage">https://vascoguita.github.io/yapyap/</url>
+  <launchable type="desktop-id">org.guita.YapYap.desktop</launchable>
+  <url type="homepage">https://yapyap.guita.org/</url>
   <url type="bugtracker">https://github.com/vascoguita/yapyap/issues</url>
-  <url type="help">https://vascoguita.github.io/yapyap/guide/</url>
+  <url type="help">https://yapyap.guita.org/guide/</url>
   <url type="vcs-browser">https://github.com/vascoguita/yapyap</url>
-  <url type="contribute">https://vascoguita.github.io/yapyap/contributing</url>
+  <url type="contribute">https://yapyap.guita.org/contributing</url>
   <branding>
     <color type="primary" scheme_preference="light">#C9C3FF</color>
     <color type="primary" scheme_preference="dark">#3F2FB8</color>

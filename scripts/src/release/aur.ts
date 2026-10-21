@@ -19,7 +19,7 @@ const SOURCES = 'https://raw.githubusercontent.com/vascoguita/yapyap/v';
 const LISTS = ['license', 'depends', 'provides', 'conflicts', 'options'] as const;
 const FIELDS = {
   pkgdesc: 'Desktop client for WhatsApp Web (unofficial)',
-  url: 'https://vascoguita.github.io/yapyap/',
+  url: 'https://yapyap.guita.org/',
   license: ['MIT'],
   depends: ['alsa-lib', 'gtk3', 'libsecret', 'nss', 'xdg-utils'],
   provides: ['yapyap'],

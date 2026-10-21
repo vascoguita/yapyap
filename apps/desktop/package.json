@@ -25,9 +25,9 @@
     "vite": "8.3.4"
   },
   "productName": "YapYap",
-  "desktopName": "io.github.vascoguita.YapYap.desktop",
+  "desktopName": "org.guita.YapYap.desktop",
   "main": "./out/main/index.js",
-  "homepage": "https://vascoguita.github.io/yapyap/",
+  "homepage": "https://yapyap.guita.org/",
   "dependencies": {
     "preact": "11.0.1",
     "typebox": "1.4.2"

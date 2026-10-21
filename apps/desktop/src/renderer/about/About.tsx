@@ -3,10 +3,10 @@ import { useEffect, useState } from 'preact/hooks';
 import type { AboutInfo, ChromeApi } from '../../shared/chrome-api.ts';
 
 export const LINKS = [
-  { label: 'Website', href: 'https://vascoguita.github.io/yapyap/' },
+  { label: 'Website', href: 'https://yapyap.guita.org/' },
   { label: 'Source code', href: 'https://github.com/vascoguita/yapyap' },
   { label: 'Report a problem', href: 'https://github.com/vascoguita/yapyap/issues' },
-  { label: 'Privacy', href: 'https://vascoguita.github.io/yapyap/privacy' },
+  { label: 'Privacy', href: 'https://yapyap.guita.org/privacy' },
 ] as const;
 
 type Load =

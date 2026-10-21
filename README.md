@@ -33,7 +33,7 @@ YapYap is in early development. Follow progress on the
 
 ## Documentation
 
-https://vascoguita.github.io/yapyap/
+https://yapyap.guita.org/
 
 ## Contributing
 

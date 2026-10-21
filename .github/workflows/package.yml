@@ -46,8 +46,8 @@ jobs:
       - name: Validate desktop entry and AppStream metainfo
         if: runner.os == 'Linux'
         run: |
-          desktop-file-validate packaging/linux/io.github.vascoguita.YapYap.desktop
-          appstreamcli validate --no-net packaging/linux/io.github.vascoguita.YapYap.metainfo.xml
+          desktop-file-validate packaging/linux/org.guita.YapYap.desktop
+          appstreamcli validate --no-net packaging/linux/org.guita.YapYap.metainfo.xml
       - name: Configure code signing
         # electron-builder skips signing on pull requests but treats any defined
         # CSC_LINK, even an empty one, as a certificate path on other events, so
@@ -136,14 +136,14 @@ jobs:
           pnpm --filter @yapyap/desktop run builder --linux dir --publish never -c.extraMetadata.installChannel=flatpak
           if [ -d apps/desktop/release/linux-arm64-unpacked ]; then mv apps/desktop/release/linux-arm64-unpacked apps/desktop/release/linux-unpacked; fi
       - name: Lint the manifest
-        run: flatpak-builder-lint manifest packaging/flatpak/io.github.vascoguita.YapYap.yml
+        run: flatpak-builder-lint manifest packaging/flatpak/org.guita.YapYap.yml
       - name: Build the bundle
         run: |
           flatpak --user remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
           flatpak-builder --user --force-clean --disable-rofiles-fuse --install-deps-from=flathub \
             --state-dir="$RUNNER_TEMP/flatpak-state" --repo="$RUNNER_TEMP/repo" "$RUNNER_TEMP/build" \
-            packaging/flatpak/io.github.vascoguita.YapYap.yml
-          flatpak build-bundle "$RUNNER_TEMP/repo" "yapyap-$ARCH.flatpak" io.github.vascoguita.YapYap \
+            packaging/flatpak/org.guita.YapYap.yml
+          flatpak build-bundle "$RUNNER_TEMP/repo" "yapyap-$ARCH.flatpak" org.guita.YapYap \
             --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo
         env:
           ARCH: ${{ matrix.arch }}

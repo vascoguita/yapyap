@@ -2,7 +2,7 @@ import { compareVersions } from './versions.ts';
 
 export const NVMRC = '.nvmrc';
 export const ROOT_PACKAGE = 'package.json';
-export const FLATPAK_MANIFEST = 'packaging/flatpak/io.github.vascoguita.YapYap.yml';
+export const FLATPAK_MANIFEST = 'packaging/flatpak/org.guita.YapYap.yml';
 
 export interface FileChange {
   readonly path: string;
