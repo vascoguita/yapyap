@@ -10,7 +10,7 @@ import {
 
 const pkg = '{\n  "engines": {\n    "node": ">=24.22.0"\n  }\n}\n';
 const manifest =
-  "app-id: io.github.vascoguita.YapYap\nruntime-version: '25.08'\nbase-version: '25.08'\n";
+  "app-id: org.guita.yapyap.YapYap\nruntime-version: '25.08'\nbase-version: '25.08'\n";
 
 describe('planNode', () => {
   it('bumps .nvmrc and the engines range when a newer LTS exists', () => {

@@ -69,8 +69,8 @@ falls back to "no self-update". A pure function maps
 
 ### Desktop integration
 
-The AppStream metainfo `io.github.vascoguita.YapYap.metainfo.xml` and the
-desktop entry `io.github.vascoguita.YapYap.desktop` are validated in CI with
+The AppStream metainfo `org.guita.yapyap.YapYap.metainfo.xml` and the
+desktop entry `org.guita.yapyap.YapYap.desktop` are validated in CI with
 `appstreamcli validate` and `desktop-file-validate`. The Flatpak manifest
 follows Flathub's requirements: no `--filesystem=home`; notification, tray
 and background portals; `--talk-name=org.kde.StatusNotifierWatcher` for the
