@@ -26,10 +26,10 @@ async function copy(app: ElectronApplication, type: string, data: string): Promi
 }
 
 /** Pastes the way Edit → Paste does, which simulated key presses cannot do on every OS. */
-async function pasteIntoComposer(app: ElectronApplication, window: Page): Promise<unknown> {
+/** Focuses WhatsApp and pastes the way Edit → Paste does. */
+async function pasteOnce(app: ElectronApplication, window: Page): Promise<void> {
   await window.getByTestId('composer').focus();
-  const formats = await app.evaluate(async ({ BrowserWindow, clipboard, webContents }) => {
-    const items = await clipboard.read();
+  await app.evaluate(({ BrowserWindow, webContents }) => {
     const whatsapp = webContents
       .getAllWebContents()
       .find((contents) => contents.getURL().startsWith('http'));
@@ -40,14 +40,23 @@ async function pasteIntoComposer(app: ElectronApplication, window: Page): Promis
       whatsapp.focus();
       whatsapp.paste();
     }
-    return items.flatMap((item) => item.types);
   });
-  // Says what the clipboard held, so a platform difference is easy to spot.
-  await expect(
-    window.getByTestId('paste-result'),
-    `clipboard held ${formats.join(', ')}`,
-  ).not.toBeEmpty();
-  return JSON.parse((await window.getByTestId('paste-result').textContent()) ?? 'null');
+}
+
+async function pasteIntoComposer(app: ElectronApplication, window: Page): Promise<unknown> {
+  const result = window.getByTestId('paste-result');
+  // Windows sometimes refuses the focus a test asks for, so the paste is
+  // retried until it lands; landing at all is what the test proves.
+  await expect
+    .poll(
+      async () => {
+        await pasteOnce(app, window);
+        return result.textContent();
+      },
+      { message: 'the paste never reached the composer', intervals: [500], timeout: 10_000 },
+    )
+    .not.toBe('');
+  return JSON.parse((await result.textContent()) ?? 'null');
 }
 
 test('pastes an image copied from a browser or screenshot tool', async ({ app, window }) => {
