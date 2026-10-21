@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { buildAboutInfo, formatTechnicalDetails, readInstallChannel } from './about-info.ts';
+import {
+  buildAboutInfo,
+  formatDiagnostics,
+  formatTechnicalDetails,
+  readInstallChannel,
+  summarizeGpu,
+} from './about-info.ts';
 
 const FACTS = {
   version: '0.1.0',
@@ -67,5 +73,27 @@ describe('readInstallChannel', () => {
         throw new Error('ENOENT');
       }),
     ).toBe('development');
+  });
+});
+
+describe('summarizeGpu', () => {
+  it('lists the features that explain rendering problems, in order', () => {
+    expect(
+      summarizeGpu({ webgl: 'enabled', gpu_compositing: 'disabled_software', other: 'x' }),
+    ).toBe(
+      'gpu_compositing=disabled_software, rasterization=unknown, video_decode=unknown, webgl=enabled',
+    );
+  });
+});
+
+describe('formatDiagnostics', () => {
+  it('adds the GPU summary and recent log to the technical details', () => {
+    expect(formatDiagnostics(buildAboutInfo(FACTS), 'gpu_compositing=enabled', ['a', 'b'])).toBe(
+      `${formatTechnicalDetails(buildAboutInfo(FACTS))}\nGPU gpu_compositing=enabled\n\nRecent log:\na\nb`,
+    );
+  });
+
+  it('says when the log is empty', () => {
+    expect(formatDiagnostics(buildAboutInfo(FACTS), 'x', [])).toMatch(/Recent log:\n\(empty\)$/);
   });
 });

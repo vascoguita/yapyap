@@ -9,6 +9,7 @@ function actions() {
     clearCache: vi.fn(),
     resetSession: vi.fn(),
     zoom: vi.fn(),
+    copyDiagnostics: vi.fn(),
   };
 }
 
@@ -66,7 +67,11 @@ describe('buildMenuTemplate', () => {
       { type: 'separator' },
       { role: 'quit' },
     ]);
-    expect(items(template.at(-1))).toEqual([{ label: 'About YapYap', click: a.openAbout }]);
+    expect(items(template.at(-1))).toEqual([
+      { label: 'About YapYap', click: a.openAbout },
+      { type: 'separator' },
+      { label: 'Copy Diagnostics', click: a.copyDiagnostics },
+    ]);
     expect(template[1]).toEqual(ACCOUNT(a));
   });
 
@@ -100,7 +105,9 @@ describe('buildMenuTemplate', () => {
       'editMenu',
       '&View',
       'windowMenu',
+      'help',
     ]);
+    expect(items(rest.at(-1))).toEqual([{ label: 'Copy Diagnostics', click: a.copyDiagnostics }]);
     expect(rest[1]).toEqual(ACCOUNT(a));
   });
 });

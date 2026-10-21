@@ -35,3 +35,12 @@ Do not start YapYap with `--no-sandbox`, and do not lift the user-namespace
 restriction for your whole system. YapYap refuses to run without its
 sandbox, and lifting the restriction weakens every other app too.
 :::
+
+## Reporting a problem {#diagnostics}
+
+Choose **Help → Copy Diagnostics** and paste the result into your report. It
+holds YapYap's version and install channel, Electron and Chromium versions,
+your operating system, the graphics mode and a GPU summary, and the most
+recent log lines. Log lines are redacted before they are written: phone
+numbers, email addresses, tokens and your home folder never appear, and
+YapYap never logs message content. Read it before you share it.
