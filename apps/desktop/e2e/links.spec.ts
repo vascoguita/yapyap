@@ -14,6 +14,27 @@ async function recordExternalLinks(app: ElectronApplication): Promise<() => Prom
   return () => app.evaluate(() => (globalThis as unknown as { openedLinks: string[] }).openedLinks);
 }
 
+/** Records what every web contents created from now on does, for failure messages. */
+async function recordPopupEvents(app: ElectronApplication): Promise<() => Promise<string[]>> {
+  await app.evaluate(({ app: electronApp }) => {
+    const events: string[] = [];
+    Object.assign(globalThis, { popupEvents: events });
+    electronApp.on('web-contents-created', (_event, contents) => {
+      events.push(`created ${contents.getType()}`);
+      contents.on('did-start-navigation', ({ url, isMainFrame }) => {
+        events.push(`did-start-navigation ${url}${isMainFrame ? '' : ' (subframe)'}`);
+      });
+      contents.on('will-navigate', ({ url }) => {
+        events.push(`will-navigate ${url}`);
+      });
+      contents.on('destroyed', () => {
+        events.push('destroyed');
+      });
+    });
+  });
+  return () => app.evaluate(() => (globalThis as unknown as { popupEvents: string[] }).popupEvents);
+}
+
 const windowCount = (app: ElectronApplication) =>
   app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length);
 
@@ -55,8 +76,17 @@ test('drops links with other schemes', async ({ app, window }) => {
 
 test('follows a popup that navigates after opening, then closes it', async ({ app, window }) => {
   const opened = await recordExternalLinks(app);
+  const events = await recordPopupEvents(app);
   await window.getByTestId('popup-then-navigate').click();
-  await expect.poll(opened).toEqual(['https://example.com/from-popup']);
+  // Windows has failed this now and then (#188); say what the popup did if so.
+  await expect
+    .poll(opened)
+    .toEqual(['https://example.com/from-popup'])
+    .catch(async (error: unknown) => {
+      const popup = await window.evaluate(() => document.body.dataset['popup'] ?? 'not clicked');
+      const seen = (await events()).join(' | ');
+      throw new Error(`${String(error)}\nPopup: ${popup}\nEvents: ${seen}`);
+    });
   await expect.poll(() => windowCount(app)).toBe(1);
 });
 
