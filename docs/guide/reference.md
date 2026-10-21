@@ -40,13 +40,13 @@ Everything YapYap stores lives in one profile folder:
 
 Inside it:
 
-| Path                | What it holds                                                                   |
-| ------------------- | ------------------------------------------------------------------------------- |
-| `settings.json`     | Your settings, and `settings.json.bak`, the copy before the last change         |
-| `window-state.json` | The window's size and position, so it reopens where you left it                 |
-| `gpu-crashes.json`  | The times of recent graphics crashes, which trigger the safe graphics fallback  |
-| `logs/`             | Redacted logs: `yapyap.log` and up to four older files, deleted after 14 days   |
-| Everything else     | WhatsApp Web's own data (your login, cache and local storage), kept by Chromium |
+| Path                | What it holds                                                                                |
+| ------------------- | -------------------------------------------------------------------------------------------- |
+| `settings.json`     | Your settings, and `settings.json.bak`, the copy before the last change                      |
+| `window-state.json` | The window's size and position, so it reopens where you left it                              |
+| `gpu-crashes.json`  | The times of recent graphics crashes, which trigger the safe graphics fallback               |
+| `logs/`             | Redacted logs: this session's `yapyap.log` and up to five older files, deleted after 14 days |
+| Everything else     | WhatsApp Web's own data (your login, cache and local storage), kept by Chromium              |
 
 The [privacy page](/privacy) explains what the logs contain. Deleting the
 profile folder while YapYap is closed resets YapYap completely and logs you
