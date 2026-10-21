@@ -3,7 +3,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { measureOnce, median, type Sample } from './measure.ts';
 
-const RUNS = 5;
+const RUNS = 7;
 
 interface Budget {
   readonly coldStartMs: number;
@@ -11,12 +11,15 @@ interface Budget {
 }
 
 test('stays within the cold-start and idle-memory budgets', async ({}, testInfo) => {
-  test.setTimeout(RUNS * 60_000);
+  test.setTimeout((RUNS + 1) * 60_000);
   const budgets = JSON.parse(
     await readFile(join(import.meta.dirname, 'budgets.json'), 'utf8'),
   ) as Record<string, Budget | undefined>;
   const budget = budgets[process.platform];
   if (budget === undefined) throw new Error(`No budget for ${process.platform}`);
+  // The first launch on a runner waits for the disk cache, which says nothing
+  // about YapYap, so it warms up and is left out.
+  await measureOnce();
   const samples: Sample[] = [];
   for (let run = 0; run < RUNS; run += 1) samples.push(await measureOnce());
   const result = {
