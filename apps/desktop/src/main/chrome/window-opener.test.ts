@@ -56,6 +56,7 @@ describe('createChromeWindowOpener', () => {
     t.open();
     const [first] = t.windows;
     expect(t.createWindow).toHaveBeenCalledExactlyOnceWith({
+      autoHideMenuBar: true,
       title: 'About YapYap',
       width: 480,
       show: false,

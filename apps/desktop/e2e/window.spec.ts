@@ -45,21 +45,27 @@ test('reopens the window where it was left, even after SIGTERM', async ({
 });
 
 test('starts with the default size when the saved state is corrupt', async ({
+  app,
   fakeWhatsApp,
   profile,
 }) => {
+  // The default as this machine shows it: small screens shrink it to fit.
+  await app.firstWindow();
+  await expect.poll(() => mainBounds(app)).toBeDefined();
+  const fresh = await mainBounds(app);
+  await exited(app);
   await writeFile(join(profile, 'window-state.json'), '{"bounds":"nonsense"');
-  const app = await launchApp(fakeWhatsApp.origin, profile);
+  const again = await launchApp(fakeWhatsApp.origin, profile);
   try {
-    await app.firstWindow();
+    await again.firstWindow();
     await expect
       .poll(async () => {
-        const bounds = await mainBounds(app);
+        const bounds = await mainBounds(again);
         return bounds === undefined ? undefined : [bounds.width, bounds.height];
       })
-      .toEqual([1200, 800]);
+      .toEqual([fresh?.width, fresh?.height]);
   } finally {
-    await exited(app);
+    await exited(again);
   }
 });
 

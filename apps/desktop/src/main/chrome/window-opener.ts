@@ -32,7 +32,14 @@ export function openChromeWindow(
   page: ChromePage,
   extra: WindowOptions = {},
 ): ChromeWindowPort {
-  const window = deps.createWindow({ ...page.window, ...extra, show: false });
+  // Dialog-like windows have no use for the app menu, which Windows and Linux
+  // would otherwise draw inside each of them.
+  const window = deps.createWindow({
+    autoHideMenuBar: true,
+    ...page.window,
+    ...extra,
+    show: false,
+  });
   deps.views.set(window.webContents, { zone: 'chrome', home: CHROME_ORIGIN, label: 'YapYap' });
   showWhenReady(window);
   window.loadURL(`${CHROME_ORIGIN}/${page.path}`).catch(() => {
