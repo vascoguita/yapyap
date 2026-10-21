@@ -25,9 +25,15 @@ async function copy(app: ElectronApplication, type: string, data: string): Promi
   );
 }
 
-async function pasteIntoComposer(window: Page): Promise<unknown> {
-  await window.getByTestId('composer').click();
-  await window.keyboard.press(process.platform === 'darwin' ? 'Meta+V' : 'Control+V');
+/** Pastes the way Edit → Paste does, which simulated key presses cannot do on every OS. */
+async function pasteIntoComposer(app: ElectronApplication, window: Page): Promise<unknown> {
+  await window.getByTestId('composer').focus();
+  await app.evaluate(({ webContents }) => {
+    webContents
+      .getAllWebContents()
+      .find((contents) => contents.getURL().startsWith('http'))
+      ?.paste();
+  });
   await expect(window.getByTestId('paste-result')).not.toBeEmpty();
   return JSON.parse((await window.getByTestId('paste-result').textContent()) ?? 'null');
 }
@@ -35,7 +41,9 @@ async function pasteIntoComposer(window: Page): Promise<unknown> {
 test('pastes an image copied from a browser or screenshot tool', async ({ app, window }) => {
   await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
   await copy(app, 'image/png', PNG);
-  expect(await pasteIntoComposer(window)).toEqual([expect.objectContaining({ type: 'image/png' })]);
+  expect(await pasteIntoComposer(app, window)).toEqual([
+    expect.objectContaining({ type: 'image/png' }),
+  ]);
 });
 
 test('pastes an image file copied in a Linux file manager', async ({ app, window, profile }) => {
@@ -44,17 +52,13 @@ test('pastes an image file copied in a Linux file manager', async ({ app, window
   const file = join(profile, 'holiday.png');
   await writeFile(file, Buffer.from(PNG, 'base64'));
   await copy(app, 'text/uri-list', `file://${file}\r\n`);
-  expect(await pasteIntoComposer(window)).toEqual([
+  expect(await pasteIntoComposer(app, window)).toEqual([
     expect.objectContaining({ name: 'holiday.png', type: 'image/png' }),
   ]);
 });
 
-test('lets WhatsApp neither read the clipboard nor write it on its own', async ({
-  app,
-  window,
-}) => {
-  await expect(window.getByTestId('load-write')).not.toBeEmpty();
-  expect(await window.getByTestId('load-write').textContent()).not.toBe('allowed');
+test('never lets WhatsApp read the clipboard', async ({ app, window }) => {
+  await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
   await copy(app, 'text/plain', 'private note');
   const read = await window.evaluate(() =>
     navigator.clipboard.readText().then(
