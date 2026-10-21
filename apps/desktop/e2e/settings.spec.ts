@@ -89,7 +89,8 @@ test('opens one Settings window and closes it with Escape', async ({ app }) => {
       ?.click();
   });
   expect(app.windows().filter((page) => page.url().endsWith('/settings.html'))).toHaveLength(1);
-  // Only the key-down: the window closes before a key-up could reach it.
-  await settings.keyboard.down('Escape');
+  // Only the key-down: the window closes before a key-up could reach it, and
+  // can close before Playwright hears back about the key-down itself.
+  await settings.keyboard.down('Escape').catch(() => undefined);
   await expect.poll(() => settings.isClosed()).toBe(true);
 });
