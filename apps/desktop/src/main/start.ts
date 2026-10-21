@@ -26,6 +26,7 @@ import type { RendererOptions } from './web-preferences.ts';
 import type { WindowOptions } from './windows.ts';
 import { claimSingleInstance, type LinkWindow } from './instances.ts';
 import { chatLinkInArguments } from './navigation/deep-link.ts';
+import { refuseUnsafeStart, type UnsafeStartDependencies } from './sandbox-check.ts';
 import { quitOnShutdown, type ShutdownSources } from './shutdown.ts';
 import { showWhenReady } from './show-when-ready.ts';
 import {
@@ -100,8 +101,12 @@ export interface StartDependencies<Window extends WindowPort> {
   /** The usable area of each connected display, once the app is ready. */
   readonly workAreas: () => readonly Rect[];
   readonly shutdown: ShutdownSources;
+  /** Whether Chromium's sandbox was turned off on the command line or in the environment. */
+  readonly sandboxDisabled: boolean;
+  readonly explainUnsafeStart: UnsafeStartDependencies['explain'];
   readonly notify: (message: string) => void;
   readonly warn: (message: string) => void;
+  readonly logError: (message: string) => void;
 }
 
 /** Starts without hardware acceleration, for when graphics problems stop YapYap from starting. */
@@ -217,10 +222,29 @@ function openMainWindow<Window extends WindowPort>(deps: StartDependencies<Windo
   return window;
 }
 
+/** Never runs unsandboxed: explains why YapYap will not start, then quits. */
+function refuseWithoutSandbox<Window extends WindowPort>(
+  deps: StartDependencies<Window>,
+): Promise<void> {
+  return refuseUnsafeStart({
+    whenReady: () => deps.app.whenReady(),
+    explain: deps.explainUnsafeStart,
+    openExternal: deps.openExternal,
+    logError: deps.logError,
+    quit: () => {
+      deps.app.quit();
+    },
+  });
+}
+
 export async function startApp<Window extends WindowPort>(
   deps: StartDependencies<Window>,
 ): Promise<void> {
   const { app, warn } = deps;
+  if (deps.sandboxDisabled) {
+    await refuseWithoutSandbox(deps);
+    return;
+  }
   const origin = whatsAppOrigin(deps.env, warn);
   const instances = claimSingleInstance(app, origin, warn);
   if (instances === undefined) return;

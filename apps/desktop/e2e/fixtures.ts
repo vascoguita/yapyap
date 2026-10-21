@@ -4,7 +4,8 @@ import {
   type ElectronApplication,
   type Page,
 } from '@playwright/test';
-import { spawn } from 'node:child_process';
+import { spawn, type ChildProcessByStdio } from 'node:child_process';
+import type { Readable } from 'node:stream';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -31,6 +32,9 @@ export function launchApp(
     args: [MAIN, `--user-data-dir=${profile}`, ...args],
     // Playwright forces a light color scheme by default, which would hide YapYap's own theming.
     colorScheme: null,
+    // Playwright adds --no-sandbox unless told otherwise, and YapYap refuses
+    // to run without its sandbox; tests run with the real one.
+    chromiumSandbox: true,
     env: appEnvironment(origin),
   });
 }
@@ -39,16 +43,25 @@ export function launchApp(
  * Starts YapYap again on `profile` while the app under test runs there, as a
  * user or the OS would, and resolves with how it ended once it hands over.
  */
+/** Starts the development build as its own process, outside Playwright's control. */
+export async function spawnApp(
+  origin: string,
+  profile: string,
+  args: readonly string[],
+): Promise<ChildProcessByStdio<null, null, Readable>> {
+  const { default: executable } = (await import('electron')) as unknown as { default: string };
+  return spawn(executable, [MAIN, `--user-data-dir=${profile}`, ...args], {
+    env: appEnvironment(origin),
+    stdio: ['ignore', 'ignore', 'pipe'],
+  });
+}
+
 export async function launchAgain(
   origin: string,
   profile: string,
   args: readonly string[],
 ): Promise<{ code: number | null; signal: string | null; stderr: string }> {
-  const { default: executable } = (await import('electron')) as unknown as { default: string };
-  const second = spawn(executable, [MAIN, `--user-data-dir=${profile}`, ...args], {
-    env: appEnvironment(origin),
-    stdio: ['ignore', 'ignore', 'pipe'],
-  });
+  const second = await spawnApp(origin, profile, args);
   let stderr = '';
   second.stderr.on('data', (chunk: Buffer) => {
     stderr += chunk.toString();
