@@ -27,7 +27,18 @@ timings in PRs would flap.
   YapYap's own overhead, not WhatsApp's. One account is measured until
   multi-account (M3) adds a per-account figure.
 - **Budgets** live in `apps/desktop/e2e/bench/budgets.json`, per OS, at the
-  CI runner's median plus headroom for runner noise.
+  CI runner's median plus about 70% for time and 25% for memory, which
+  covers runner noise but not a real regression. Calibrated on 2026-10-21:
+
+  | Runner         | Cold start | Idle memory | Budget          |
+  | -------------- | ---------- | ----------- | --------------- |
+  | ubuntu-latest  | 531 ms     | 554 MB      | 900 ms, 690 MB  |
+  | windows-latest | 936 ms     | 313 MB      | 1600 ms, 390 MB |
+  | macos-latest   | 1444 ms    | 410 MB      | 2500 ms, 510 MB |
+
+  The first launch on a fresh runner takes 3–7 s while the disk cache
+  fills; the median keeps that one-off out of the comparison.
+
 - **When it runs.** Nightly on Linux, Windows and macOS runners, and on any
   PR that changes the benchmark or its budgets. A median over budget fails
   the run. Results are kept as artifacts for 30 days.

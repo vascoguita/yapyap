@@ -1,5 +1,5 @@
 {
-  "linux": { "coldStartMs": 3000, "idleMemoryMb": 900 },
-  "darwin": { "coldStartMs": 3000, "idleMemoryMb": 900 },
-  "win32": { "coldStartMs": 3000, "idleMemoryMb": 900 }
+  "linux": { "coldStartMs": 900, "idleMemoryMb": 690 },
+  "darwin": { "coldStartMs": 2500, "idleMemoryMb": 510 },
+  "win32": { "coldStartMs": 1600, "idleMemoryMb": 390 }
 }
