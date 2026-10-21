@@ -58,6 +58,18 @@ describe('createLogger', () => {
     expect(readdirSync(dir).sort()).toEqual(['yapyap.1.log', 'yapyap.log']);
   });
 
+  it('starts a fresh file at every launch, keeping earlier sessions', () => {
+    const dir = fresh();
+    createLogger({ dir, home: HOME, now: () => NOW, maxFiles: 2 }).log('info', 'first run');
+    createLogger({ dir, home: HOME, now: () => NOW, maxFiles: 2 }).log('info', 'second run');
+    createLogger({ dir, home: HOME, now: () => NOW, maxFiles: 2 }).log('info', 'third run');
+    createLogger({ dir, home: HOME, now: () => NOW, maxFiles: 2 }).log('info', 'fourth run');
+    expect(readdirSync(dir).sort()).toEqual(['yapyap.1.log', 'yapyap.2.log', 'yapyap.log']);
+    expect(readFileSync(join(dir, 'yapyap.log'), 'utf8')).toMatch(/fourth run\n$/);
+    expect(readFileSync(join(dir, 'yapyap.1.log'), 'utf8')).toMatch(/third run\n$/);
+    expect(readFileSync(join(dir, 'yapyap.2.log'), 'utf8')).toMatch(/second run\n$/);
+  });
+
   it('deletes rotated files older than the age limit at start', () => {
     const dir = fresh();
     for (const name of ['yapyap.1.log', 'yapyap.2.log', 'notes.txt'])
@@ -79,9 +91,9 @@ describe('createLogger', () => {
 
   it('stops writing, but keeps going, after a write fails', () => {
     const dir = fresh();
+    const logger = createLogger({ dir, home: HOME, now: () => NOW });
     // Appending to a folder fails on every OS.
     mkdirSync(join(dir, 'yapyap.log'));
-    const logger = createLogger({ dir, home: HOME, now: () => NOW });
     expect(() => {
       logger.log('info', 'first');
       logger.log('info', 'second');

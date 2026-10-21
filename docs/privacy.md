@@ -16,8 +16,9 @@ browser. YapYap does not read, copy or upload them.
 - **Logs stay local and are redacted.** YapYap never logs message content.
   Before a line is written, phone numbers, email addresses, tokens and your
   home folder are replaced with placeholders. Logs live in the `logs` folder
-  of YapYap's data folder, are rotated at 1 MB, keep at most five old files,
-  and are deleted after 14 days.
+  of YapYap's data folder. Each launch starts a new file, and a file is also
+  rotated at 1 MB. At most five old files are kept, and they are deleted
+  after 14 days.
 - **Crash reports are opt-in.** They are saved locally, and you review them
   before choosing to submit them.
 
