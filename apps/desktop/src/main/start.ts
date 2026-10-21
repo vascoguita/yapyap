@@ -4,6 +4,7 @@ import { offlineTitle, type TitledWindow } from './connectivity/offline-title.ts
 import { APP_ID, PRODUCT_NAME } from './identity.ts';
 import type { CaptureChoice, DisplayCapturePort, MediaType } from './permissions/session-guard.ts';
 import { followThemeSetting, type ThemePort } from './appearance/theme.ts';
+import { followZoomSetting, type ZoomableContents } from './appearance/zoom.ts';
 import { chromeUserAgent } from './identity/user-agent.ts';
 import {
   describeGraphics,
@@ -68,7 +69,7 @@ export interface AppPort {
 export interface WindowPort
   extends Omit<TitledWindow, 'on'>, LinkWindow, Omit<ManagedWindow, 'on'> {
   on: TitledWindow['on'] & ManagedWindow['on'];
-  readonly webContents: WhatsAppContents;
+  readonly webContents: WhatsAppContents & ZoomableContents;
   once(event: 'ready-to-show', listener: () => void): unknown;
   show(): void;
   loadURL(url: string): Promise<unknown>;
@@ -247,6 +248,7 @@ export async function startApp<Window extends WindowPort>(
     deps.createOverlay(window, renderer),
   );
   watchOnline(deps, window, recovery.reconnect);
+  followZoomSetting(window.webContents, deps.settings);
   showWhenReady(window);
   instances.attach(window);
   // A failed load must not end startup: the monitor shows the recovery screen.

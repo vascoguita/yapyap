@@ -3,7 +3,13 @@ import { describe, expect, it, vi } from 'vitest';
 import { buildMenuTemplate } from './menu.ts';
 
 function actions() {
-  return { openAbout: vi.fn(), openSettings: vi.fn(), clearCache: vi.fn(), resetSession: vi.fn() };
+  return {
+    openAbout: vi.fn(),
+    openSettings: vi.fn(),
+    clearCache: vi.fn(),
+    resetSession: vi.fn(),
+    zoom: vi.fn(),
+  };
 }
 
 const ACCOUNT = (a: ReturnType<typeof actions>) => ({
@@ -19,6 +25,31 @@ const items = (menu: MenuItemConstructorOptions | undefined) =>
   Array.isArray(menu?.submenu) ? menu.submenu : [];
 
 describe('buildMenuTemplate', () => {
+  it('zooms the WhatsApp view in 5% steps from the View menu', () => {
+    const a = actions();
+    const view = buildMenuTemplate('linux', a).find((menu) => menu.label === '&View');
+    const entries = items(view);
+    expect(entries.map((item) => item.role ?? item.label ?? item.type)).toEqual([
+      'reload',
+      'forceReload',
+      'toggleDevTools',
+      'separator',
+      'Actual Size',
+      'Zoom In',
+      'Zoom Out',
+      'separator',
+      'togglefullscreen',
+    ]);
+    const zoomItems = entries.filter((item) => item.accelerator !== undefined);
+    expect(zoomItems.map((item) => item.accelerator)).toEqual([
+      'CmdOrCtrl+0',
+      'CmdOrCtrl+=',
+      'CmdOrCtrl+-',
+    ]);
+    for (const item of zoomItems) (item.click as () => void)();
+    expect(a.zoom.mock.calls).toEqual([['reset'], ['in'], ['out']]);
+  });
+
   it('puts Settings in the File menu and About in the Help menu on Windows and Linux', () => {
     const a = actions();
     const template = buildMenuTemplate('linux', a);
@@ -26,7 +57,7 @@ describe('buildMenuTemplate', () => {
       '&File',
       '&Account',
       'editMenu',
-      'viewMenu',
+      '&View',
       'windowMenu',
       'help',
     ]);
@@ -67,7 +98,7 @@ describe('buildMenuTemplate', () => {
       'fileMenu',
       '&Account',
       'editMenu',
-      'viewMenu',
+      '&View',
       'windowMenu',
     ]);
     expect(rest[1]).toEqual(ACCOUNT(a));
