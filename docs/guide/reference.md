@@ -1,0 +1,103 @@
+# Reference
+
+The details behind the [user guide](/guide/): every setting, where YapYap
+keeps its files, and how to start it from the command line.
+
+## Settings
+
+Change settings in **Settings** (<kbd>Ctrl</kbd>+<kbd>,</kbd>, or
+<kbd>⌘</kbd>+<kbd>,</kbd> on macOS). They are saved in `settings.json` in
+the [profile folder](#files).
+
+| Setting                     | In the file                         | Default            | Notes                                      |
+| --------------------------- | ----------------------------------- | ------------------ | ------------------------------------------ |
+| Theme                       | `appearance.theme`                  | Same as the system | `system`, `light` or `dark`                |
+| Hide the menu bar           | `appearance.autoHideMenuBar`        | Off                | Windows and Linux; <kbd>Alt</kbd> shows it |
+| Zoom                        | `appearance.zoom`                   | 100%               | Set from the View menu; 50% to 300%        |
+| Use hardware acceleration   | `reliability.hardwareAcceleration`  | On                 | Takes effect after a restart               |
+| Use hardware video decoding | `reliability.hardwareVideoDecoding` | On                 | Takes effect after a restart               |
+
+The file also has entries for features that are not built yet. YapYap
+ignores them until those features arrive, and the settings window shows a
+setting only once YapYap acts on it.
+
+YapYap checks `settings.json` every time it starts, and never fails to start
+because of it. An invalid value goes back to its default. A damaged file is
+kept as `settings.corrupt-<time>.json`, and YapYap restores the previous copy
+(`settings.json.bak`) or, if that is damaged too, the defaults. Settings
+written by a newer version of YapYap are used but never changed.
+
+## Files
+
+Everything YapYap stores lives in one profile folder:
+
+| System  | Profile folder                              |
+| ------- | ------------------------------------------- |
+| Linux   | `~/.config/YapYap`                          |
+| Flatpak | `~/.var/app/org.guita.YapYap/config/YapYap` |
+| Windows | `%APPDATA%\YapYap`                          |
+| macOS   | `~/Library/Application Support/YapYap`      |
+
+Inside it:
+
+| Path                | What it holds                                                                   |
+| ------------------- | ------------------------------------------------------------------------------- |
+| `settings.json`     | Your settings, and `settings.json.bak`, the copy before the last change         |
+| `window-state.json` | The window's size and position, so it reopens where you left it                 |
+| `gpu-crashes.json`  | The times of recent graphics crashes, which trigger the safe graphics fallback  |
+| `logs/`             | Redacted logs: `yapyap.log` and up to four older files, deleted after 14 days   |
+| Everything else     | WhatsApp Web's own data (your login, cache and local storage), kept by Chromium |
+
+The [privacy page](/privacy) explains what the logs contain. Deleting the
+profile folder while YapYap is closed resets YapYap completely and logs you
+out of WhatsApp.
+
+## Command line
+
+| Option        | Effect                                                                                                          |
+| ------------- | --------------------------------------------------------------------------------------------------------------- |
+| `--safe-mode` | Starts without hardware acceleration, for this launch only (see [graphics problems](/guide/#graphics-problems)) |
+| A chat link   | Opens that chat, for example `yapyap "https://wa.me/15551234567?text=Hi"` (see [chat links](#chat-links))       |
+
+The executable is `yapyap` on Linux and `YapYap.exe` on Windows. On macOS,
+pass options with `open -a YapYap --args <options>`.
+
+YapYap refuses to start with Chromium's `--no-sandbox` option or the
+`ELECTRON_DISABLE_SANDBOX` environment variable, because they remove the
+protection between WhatsApp Web and your computer.
+[Troubleshooting](/guide/troubleshooting#sandbox) explains what to do if
+your system triggers this.
+
+YapYap reads no environment variables of its own. `YAPYAP_TEST_WHATSAPP_ORIGIN`
+exists only for YapYap's automated tests. It points YapYap at a local fake
+WhatsApp page and accepts only loopback `http` addresses.
+
+## Chat links
+
+YapYap registers itself for `whatsapp:` links and opens these forms in the
+matching chat:
+
+| Link                                                       | Opens                                |
+| ---------------------------------------------------------- | ------------------------------------ |
+| `whatsapp://send?phone=<number>&text=<text>`               | The chat with that number, prefilled |
+| `https://wa.me/<number>?text=<text>`                       | The chat with that number, prefilled |
+| `https://api.whatsapp.com/send?phone=<number>&text=<text>` | The chat with that number, prefilled |
+
+The phone number and the text are optional. YapYap keeps only those two
+values and drops everything else in the link. Starting YapYap while it is
+already running passes the link to the open window.
+
+## Keyboard shortcuts
+
+On macOS, use <kbd>⌘</kbd> where this table says <kbd>Ctrl</kbd>.
+
+| Shortcut                                                          | Action                      |
+| ----------------------------------------------------------------- | --------------------------- |
+| <kbd>Ctrl</kbd>+<kbd>,</kbd>                                      | Settings                    |
+| <kbd>Ctrl</kbd>+<kbd>=</kbd>                                      | Zoom in                     |
+| <kbd>Ctrl</kbd>+<kbd>-</kbd>                                      | Zoom out                    |
+| <kbd>Ctrl</kbd>+<kbd>0</kbd>                                      | Actual size                 |
+| <kbd>Ctrl</kbd>+<kbd>R</kbd>                                      | Reload WhatsApp             |
+| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd>                     | Reload, bypassing the cache |
+| <kbd>F11</kbd> (macOS: <kbd>Ctrl</kbd>+<kbd>⌘</kbd>+<kbd>F</kbd>) | Full screen                 |
+| <kbd>Alt</kbd>                                                    | Show a hidden menu bar      |

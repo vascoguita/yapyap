@@ -23,6 +23,16 @@ export default defineConfig({
       { text: 'Brand', link: '/brand' },
       { text: 'Architecture', link: '/architecture/' },
       { text: 'Contributing', link: '/contributing' },
+      {
+        text: 'Help',
+        items: [
+          { text: 'Install', link: '/guide/install' },
+          { text: 'Troubleshooting', link: '/guide/troubleshooting' },
+          { text: 'Ask a question', link: `${repository}/discussions` },
+          { text: 'Report a bug', link: `${repository}/issues/new/choose` },
+          { text: 'Report a vulnerability', link: `${repository}/security/advisories/new` },
+        ],
+      },
     ],
     sidebar: {
       '/guide/': [
@@ -32,6 +42,7 @@ export default defineConfig({
             { text: 'Getting started', link: '/guide/' },
             { text: 'Install', link: '/guide/install' },
             { text: 'Troubleshooting', link: '/guide/troubleshooting' },
+            { text: 'Reference', link: '/guide/reference' },
           ],
         },
       ],

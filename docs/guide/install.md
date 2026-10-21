@@ -1,5 +1,14 @@
 # Install
 
+::: warning No release yet
+YapYap is in early development and has not been released. The first
+release, v0.1.0, will appear on the
+[releases page](https://github.com/vascoguita/yapyap/releases), and on
+Flathub and the AUR, in the formats below. To try YapYap before then, build
+and run it from source as described in
+[Development setup](https://github.com/vascoguita/yapyap/blob/master/CONTRIBUTING.md#development-setup).
+:::
+
 YapYap will be available in these formats:
 
 | Platform         | Format                     | Updates                          |
