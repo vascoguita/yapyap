@@ -30,6 +30,12 @@ function api(overrides: Partial<ChromeApi['settings']> = {}) {
         ),
       ),
       restart: vi.fn(() => Promise.resolve()),
+      export: vi.fn(() =>
+        Promise.resolve({ outcome: 'done' as const, message: 'Settings exported.' }),
+      ),
+      import: vi.fn(() =>
+        Promise.resolve({ outcome: 'done' as const, message: 'Settings imported.' }),
+      ),
       ...overrides,
     },
     picker: { offer: vi.fn(), choose: vi.fn(), cancel: vi.fn() },
@@ -133,6 +139,69 @@ describe('Settings', () => {
     } as const;
     render(<Field field={field} snapshot={snapshot()} onChange={vi.fn()} />);
     expect(document.getElementById('general.example-hint')?.textContent).toBe('Applies at once.');
+  });
+
+  it('exports the settings and says how it went', async () => {
+    const t = api();
+    render(<Settings api={t} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Export settings…' }));
+    expect(await screen.findByText('Settings exported.')).toBeTruthy();
+    expect(t.settings.export).toHaveBeenCalledOnce();
+    expect(t.settings.get).toHaveBeenCalledOnce();
+    expect(screen.getByRole('region', { name: 'Backup' }).textContent).toContain(
+      'never includes your WhatsApp login or chats',
+    );
+  });
+
+  it('shows the imported settings once an import is done', async () => {
+    const get = vi
+      .fn<ChromeApi['settings']['get']>()
+      .mockResolvedValueOnce(snapshot())
+      .mockResolvedValueOnce(snapshot({ values: { [THEME]: 'system', [HARDWARE]: false } }));
+    const t = api({ get });
+    render(<Settings api={t} />);
+    expect((await toggle()).checked).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Import settings…' }));
+    expect(await screen.findByText('Settings imported.')).toBeTruthy();
+    await vi.waitFor(async () => {
+      expect((await toggle()).checked).toBe(false);
+    });
+    expect(get).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps the settings when an import is cancelled or rejected', async () => {
+    const t = api({
+      import: vi
+        .fn<ChromeApi['settings']['import']>()
+        .mockResolvedValueOnce({ outcome: 'cancelled', message: '' })
+        .mockResolvedValueOnce({
+          outcome: 'failed',
+          message: 'That file is not a YapYap settings file.',
+        })
+        .mockRejectedValueOnce(new Error('ipc')),
+    });
+    render(<Settings api={t} />);
+    const button = await screen.findByRole('button', { name: 'Import settings…' });
+    fireEvent.click(button);
+    await vi.waitFor(() => {
+      expect(t.settings.import).toHaveBeenCalledOnce();
+    });
+    fireEvent.click(button);
+    expect(await screen.findByText('That file is not a YapYap settings file.')).toBeTruthy();
+    fireEvent.click(button);
+    expect(await screen.findByText('Something went wrong. Try again.')).toBeTruthy();
+    expect(t.settings.get).toHaveBeenCalledOnce();
+  });
+
+  it('allows export but not import when a newer YapYap owns the settings', async () => {
+    render(<Settings api={api({ get: () => Promise.resolve(snapshot({ readOnly: true })) })} />);
+    const exporting = await screen.findByRole<HTMLButtonElement>('button', {
+      name: 'Export settings…',
+    });
+    expect(exporting.disabled).toBe(false);
+    expect(
+      screen.getByRole<HTMLButtonElement>('button', { name: 'Import settings…' }).disabled,
+    ).toBe(true);
   });
 
   it('closes on Escape only', () => {

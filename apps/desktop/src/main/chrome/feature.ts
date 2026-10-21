@@ -25,6 +25,7 @@ import { guardCrashes, type CrashableContents } from '../recovery/crash-guard.ts
 import { monitorPage, type MonitoredContents } from '../recovery/monitor.ts';
 import { settingsHandlers } from '../settings/handlers.ts';
 import type { SettingsService } from '../settings/service.ts';
+import { settingsTransferHandlers, type SettingsFiles } from '../settings/transfer-handlers.ts';
 import type { ViewRegistry } from '../views.ts';
 import type { RendererOptions } from '../web-preferences.ts';
 import type { WindowOptions } from '../windows.ts';
@@ -74,7 +75,7 @@ const PICKER_PAGE: ChromePage = {
 
 const SETTINGS_PAGE: ChromePage = {
   path: 'settings.html',
-  window: { title: 'YapYap Settings', width: 640, height: 560, minWidth: 420, minHeight: 360 },
+  window: { title: 'YapYap Settings', width: 640, height: 680, minWidth: 420, minHeight: 360 },
 };
 
 interface PrivilegedScheme {
@@ -104,6 +105,7 @@ export interface ChromeFeatureDependencies {
   readonly preloadPath: string;
   readonly readFile: (path: string) => Promise<Uint8Array>;
   readonly settings: SettingsService;
+  readonly settingsFiles: SettingsFiles;
   /** Quits and starts YapYap again, to apply settings that need a restart. */
   readonly restart: () => void;
   /** Asks before logging the account out; true when the user agrees. */
@@ -312,6 +314,7 @@ export function createChromeFeature(deps: ChromeFeatureDependencies): ChromeFeat
           ...aboutHandlers(withGraphics),
           ...recoveryHandlers(recoveries),
           ...settingsHandlers(deps.settings, deps.restart, deps.platform),
+          ...settingsTransferHandlers(deps.settings, deps.settingsFiles),
           ...picker.handlers,
         ],
         warn,

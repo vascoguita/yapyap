@@ -62,6 +62,13 @@ function setup() {
       update: vi.fn(),
       onChange: vi.fn(),
     },
+    settingsFiles: {
+      chooseExport: vi.fn(() => Promise.resolve(undefined)),
+      chooseImport: vi.fn(() => Promise.resolve(undefined)),
+      confirmImport: vi.fn(() => Promise.resolve(false)),
+      read: vi.fn(() => Promise.resolve('')),
+      write: vi.fn(() => Promise.resolve()),
+    },
     restart: vi.fn(),
     gpuStatus: () => ({ gpu_compositing: 'enabled', webgl: 'enabled_on' }),
     recentLog: () => ['2026-10-21T12:00:00.000Z warn Something happened'],
@@ -153,7 +160,7 @@ describe('createChromeFeature', () => {
     );
   });
 
-  it('opens Settings from the menu and answers its IPC calls', () => {
+  it('opens Settings from the menu and answers its IPC calls', async () => {
     const t = setup();
     t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
     t.clickSettings();
@@ -162,7 +169,7 @@ describe('createChromeFeature', () => {
         autoHideMenuBar: true,
         title: 'YapYap Settings',
         width: 640,
-        height: 560,
+        height: 680,
         minWidth: 420,
         minHeight: 360,
         show: false,
@@ -182,6 +189,9 @@ describe('createChromeFeature', () => {
     });
     t.call('settings:restart');
     expect(t.deps.restart).toHaveBeenCalledOnce();
+    await expect(t.call('settings:export')).resolves.toEqual({ outcome: 'cancelled', message: '' });
+    await expect(t.call('settings:import')).resolves.toEqual({ outcome: 'cancelled', message: '' });
+    expect(t.deps.settingsFiles.chooseExport).toHaveBeenCalledWith(t.window.webContents);
   });
 
   it('opens the screen-sharing picker over the requesting window and settles through IPC', async () => {

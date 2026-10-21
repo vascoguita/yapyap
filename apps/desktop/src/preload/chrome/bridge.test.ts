@@ -25,6 +25,8 @@ describe('createChromeBridge', () => {
     expect(await api.settings.get()).toBe(snapshot);
     expect(await api.settings.set('reliability.hardwareAcceleration', false)).toBe(snapshot);
     await api.settings.restart();
+    expect(await api.settings.export()).toBe('ignored');
+    expect(await api.settings.import()).toBe('ignored');
     expect(await api.picker.offer()).toBe('ignored');
     await api.picker.choose('screen:1:0', true);
     await api.picker.cancel();
@@ -38,6 +40,8 @@ describe('createChromeBridge', () => {
       ['settings:get'],
       ['settings:set', 'reliability.hardwareAcceleration', false],
       ['settings:restart'],
+      ['settings:export'],
+      ['settings:import'],
       ['picker:offer'],
       ['picker:choose', 'screen:1:0', true],
       ['picker:cancel'],
@@ -48,7 +52,7 @@ describe('createChromeBridge', () => {
     const api = createChromeBridge(vi.fn());
     expect(Object.keys(api)).toEqual(['about', 'recovery', 'settings', 'picker']);
     expect(Object.keys(api.picker)).toEqual(['offer', 'choose', 'cancel']);
-    expect(Object.keys(api.settings)).toEqual(['get', 'set', 'restart']);
+    expect(Object.keys(api.settings)).toEqual(['get', 'set', 'restart', 'export', 'import']);
     expect(Object.keys(api.about)).toEqual(['info', 'copyTechnicalDetails']);
     expect(Object.keys(api.recovery)).toEqual([
       'problem',

@@ -7,7 +7,9 @@ describe('settings entry', () => {
     const close = vi.spyOn(window, 'close').mockImplementation(() => undefined);
     const get = vi.fn(() => new Promise<never>(() => undefined));
     Object.defineProperty(window, 'yapyap', {
-      value: { settings: { get, set: vi.fn(), restart: vi.fn() } },
+      value: {
+        settings: { get, set: vi.fn(), restart: vi.fn(), export: vi.fn(), import: vi.fn() },
+      },
     });
     await import('./main.tsx');
     await waitFor(() => {
