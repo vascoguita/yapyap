@@ -68,6 +68,7 @@ export default defineConfig({
             { text: '0006 Settings', link: '/adr/0006-settings-schema-and-migrations' },
             { text: '0007 Git and merging', link: '/adr/0007-git-and-merge-strategy' },
             { text: '0008 Conflict log', link: '/adr/0008-requirement-conflicts' },
+            { text: '0009 Performance budgets', link: '/adr/0009-performance-budgets' },
             {
               text: '0010 Static analysis',
               link: '/adr/0010-static-analysis-with-sonarqube-cloud',

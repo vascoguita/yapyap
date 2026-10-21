@@ -14,6 +14,7 @@ ADR that supersedes the old one.
 | [0006](0006-settings-schema-and-migrations.md)        | Settings schema and migrations                     | Accepted |
 | [0007](0007-git-and-merge-strategy.md)                | Git and merge strategy                             | Accepted |
 | [0008](0008-requirement-conflicts.md)                 | Requirement conflicts and resolutions (living log) | Accepted |
+| [0009](0009-performance-budgets.md)                   | Performance budgets                                | Accepted |
 | [0010](0010-static-analysis-with-sonarqube-cloud.md)  | Static analysis with SonarQube Cloud               | Accepted |
 
 New ADRs copy [`template.md`](template.md) and take the next free number.
