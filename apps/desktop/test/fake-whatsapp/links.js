@@ -2,6 +2,8 @@
 // set afterwards, which a plain window-open handler never sees.
 document.querySelector('[data-testid="popup-then-navigate"]').addEventListener('click', () => {
   const popup = window.open('', '_blank');
+  // Lets a failing test say whether the page got a popup at all.
+  document.body.dataset.popup = popup ? 'opened' : 'refused';
   if (popup) popup.location.href = 'https://example.com/from-popup';
 });
 
