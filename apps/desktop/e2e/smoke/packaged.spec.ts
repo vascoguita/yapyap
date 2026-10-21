@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { appEnvironment } from '../app-environment.ts';
 import { startFakeWhatsApp } from '../fake-whatsapp-server.ts';
+import { expectMediaPlayback } from '../media-check.ts';
 
 const executable = process.env['YAPYAP_PACKAGED_EXECUTABLE'] ?? '';
 // Set where the package cannot get its sandbox (an AppImage on a system that
@@ -38,7 +39,7 @@ async function devToolsEndpoint(app: ChildProcess, profile: string): Promise<str
   return readEndpoint(file);
 }
 
-test('the installed package opens a window on the fake WhatsApp page', async () => {
+test('the installed package opens a window on the fake WhatsApp page and plays media', async () => {
   test.setTimeout(120_000);
   test.skip(executable === '', 'Set YAPYAP_PACKAGED_EXECUTABLE to an installed YapYap executable.');
   test.skip(expectUnsafeStart, 'This system cannot give the package its sandbox.');
@@ -69,6 +70,8 @@ test('the installed package opens a window on the fake WhatsApp page', async () 
     if (page === undefined) throw new Error('No page loaded the fake WhatsApp origin');
     await expect(page.getByTestId('fake-whatsapp')).toBeVisible();
     await expect.poll(() => page.evaluate(() => document.visibilityState)).toBe('visible');
+    // Each package format must bring its own proprietary codecs.
+    await expectMediaPlayback(page);
     await browser.close();
   } finally {
     app.kill();
