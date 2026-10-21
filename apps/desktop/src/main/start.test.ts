@@ -89,6 +89,8 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     setDevicePermissionHandler: vi.fn(),
     setDisplayMediaRequestHandler: vi.fn(),
     setUserAgent: vi.fn(),
+    setSpellCheckerEnabled: vi.fn(),
+    setSpellCheckerLanguages: vi.fn(),
     webRequest: { onBeforeSendHeaders: vi.fn() },
     on: vi.fn(),
   };
