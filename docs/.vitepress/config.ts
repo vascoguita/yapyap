@@ -77,7 +77,7 @@ export default defineConfig({
     search: { provider: 'local' },
     footer: {
       message:
-        'Released under the MIT License. YapYap is unofficial and not affiliated with WhatsApp or Meta.',
+        'Released under the MIT License. Development supported by <a href="https://www.ensita.org/">Ensita</a>. YapYap is unofficial and not affiliated with WhatsApp or Meta.',
       copyright: 'Copyright © Vasco Guita',
     },
   },

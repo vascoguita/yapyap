@@ -43,6 +43,12 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) and the
 [SUPPORT.md](SUPPORT.md), and report vulnerabilities privately as described in
 [SECURITY.md](SECURITY.md).
 
+## Supporters
+
+YapYap's development is supported by [Ensita](https://www.ensita.org/), a
+nonprofit that builds free, open-source apps that keep your data yours, and
+mentors new developers.
+
 ## License
 
 [MIT](LICENSE) © Vasco Guita
