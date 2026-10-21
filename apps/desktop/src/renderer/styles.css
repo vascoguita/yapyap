@@ -183,25 +183,18 @@ input:focus-visible {
   font-size: 0.9rem;
 }
 
-button,
-.notice {
-  transition:
-    background-color 150ms ease,
-    border-color 150ms ease;
+/* Motion only for people who have not asked their system to reduce it. */
+@media (prefers-reduced-motion: no-preference) {
+  button,
+  .notice {
+    transition:
+      background-color 150ms ease,
+      border-color 150ms ease;
+  }
 }
 
 button:hover {
   background: var(--border);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    transition-duration: 0s !important;
-    animation-duration: 0s !important;
-    scroll-behavior: auto !important;
-  }
 }
 
 main.picker {
