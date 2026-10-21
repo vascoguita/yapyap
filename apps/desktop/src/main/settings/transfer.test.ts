@@ -1,0 +1,119 @@
+import fc from 'fast-check';
+import { describe, expect, it } from 'vitest';
+import { defaultSettings } from './decode.ts';
+import { SettingsSchema, SETTINGS_VERSION } from './schema.ts';
+import {
+  EXPORTED_SECTIONS,
+  exportSettings,
+  MAX_IMPORT_BYTES,
+  readImport,
+  SETTINGS_EXPORT_FORMAT,
+} from './transfer.ts';
+
+const NOT_SETTINGS = { kind: 'rejected', reason: 'That file is not a YapYap settings file.' };
+
+const wrap = (settings: unknown): string =>
+  JSON.stringify({ format: SETTINGS_EXPORT_FORMAT, settings });
+
+describe('exportSettings', () => {
+  it('has decided, for every section of the schema, that it is safe to export', () => {
+    // A failure here means a new section: list it in EXPORTED_SECTIONS only
+    // if it holds nothing private, and otherwise keep it out of exports and
+    // keep its current values on import.
+    expect(Object.keys(SettingsSchema.properties)).toEqual(['schemaVersion', ...EXPORTED_SECTIONS]);
+  });
+
+  it('writes the settings under a format marker, readable by people', () => {
+    const settings = defaultSettings();
+    const text = exportSettings(settings);
+    expect(JSON.parse(text)).toEqual({ format: 'yapyap-settings', settings });
+    expect(text).toMatch(/^\{\n {2}"format": "yapyap-settings",\n/);
+    expect(text.endsWith('}\n')).toBe(true);
+  });
+
+  it('leaves out anything the schema does not define, whatever got into memory', () => {
+    const settings = { ...defaultSettings(), session: 'cookie=secret' };
+    const exported = JSON.parse(exportSettings(settings)) as { settings: Record<string, unknown> };
+    expect(exported.settings).toEqual(defaultSettings());
+    expect(settings.session).toBe('cookie=secret');
+  });
+});
+
+describe('readImport', () => {
+  it('reads back what was exported', () => {
+    const settings = defaultSettings();
+    settings.appearance.theme = 'dark';
+    settings.reliability.hardwareAcceleration = false;
+    expect(readImport(exportSettings(settings))).toEqual({ kind: 'ok', settings, reset: [] });
+  });
+
+  it('round-trips any valid theme, zoom and switches', () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom('system', 'light', 'dark' as const),
+        fc.double({ min: 0.5, max: 3, noNaN: true }),
+        fc.boolean(),
+        (theme, zoom, menu) => {
+          const settings = defaultSettings();
+          settings.appearance = { ...settings.appearance, theme, zoom, autoHideMenuBar: menu };
+          const result = readImport(exportSettings(settings));
+          return (
+            result.kind === 'ok' && JSON.stringify(result.settings) === JSON.stringify(settings)
+          );
+        },
+      ),
+    );
+  });
+
+  it('resets invalid values to their defaults and lists them', () => {
+    const settings = { ...defaultSettings(), appearance: { theme: 'neon', zoom: 9 } };
+    const result = readImport(wrap(settings));
+    expect(result).toEqual({
+      kind: 'ok',
+      settings: defaultSettings(),
+      reset: ['/appearance/theme', '/appearance/zoom'],
+    });
+  });
+
+  it('fills in settings the file does not have', () => {
+    expect(readImport(wrap({ schemaVersion: SETTINGS_VERSION }))).toEqual({
+      kind: 'ok',
+      settings: defaultSettings(),
+      reset: [],
+    });
+  });
+
+  it('refuses settings from a newer YapYap', () => {
+    expect(readImport(wrap({ ...defaultSettings(), schemaVersion: SETTINGS_VERSION + 1 }))).toEqual(
+      {
+        kind: 'rejected',
+        reason: 'Those settings come from a newer version of YapYap. Update YapYap to import them.',
+      },
+    );
+  });
+
+  it.each([
+    ['not JSON', '{'],
+    ['JSON that is not an object', '[]'],
+    ['null', 'null'],
+    ['a number', '5'],
+    ['a string', '"yapyap-settings"'],
+    ['a plain settings file without the marker', JSON.stringify(defaultSettings())],
+    ['another format', JSON.stringify({ format: 'other', settings: defaultSettings() })],
+    ['a marker without settings', JSON.stringify({ format: SETTINGS_EXPORT_FORMAT })],
+    ['settings that are not an object', wrap(5)],
+    ['settings without a version', wrap({ appearance: { theme: 'dark' } })],
+  ])('refuses %s', (_name, text) => {
+    expect(readImport(text)).toEqual(NOT_SETTINGS);
+  });
+
+  it('refuses a file over the size limit, counted in bytes', () => {
+    const withNote = (note: string): string =>
+      JSON.stringify({ format: SETTINGS_EXPORT_FORMAT, settings: defaultSettings(), note });
+    const room = MAX_IMPORT_BYTES - withNote('').length;
+    expect(readImport(withNote('e'.repeat(room))).kind).toBe('ok');
+    expect(readImport(withNote('e'.repeat(room + 1)))).toEqual(NOT_SETTINGS);
+    // As many characters as fit, but each takes two bytes.
+    expect(readImport(withNote('é'.repeat(room)))).toEqual(NOT_SETTINGS);
+  });
+});

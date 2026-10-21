@@ -17,7 +17,7 @@ function api(
       copyDiagnostics: vi.fn(() => Promise.resolve()),
       ...overrides,
     },
-    settings: { get: vi.fn(), set: vi.fn(), restart: vi.fn() },
+    settings: { get: vi.fn(), set: vi.fn(), restart: vi.fn(), export: vi.fn(), import: vi.fn() },
     picker: { offer: vi.fn(), choose: vi.fn(), cancel: vi.fn() },
   } satisfies ChromeApi;
 }

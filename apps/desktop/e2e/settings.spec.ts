@@ -1,5 +1,5 @@
 import type { ElectronApplication, Page } from '@playwright/test';
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { expect, test } from './fixtures.ts';
 
@@ -93,4 +93,32 @@ test('opens one Settings window and closes it with Escape', async ({ app }) => {
   // can close before Playwright hears back about the key-down itself.
   await settings.keyboard.down('Escape').catch(() => undefined);
   await expect.poll(() => settings.isClosed()).toBe(true);
+});
+
+test('exports the settings to a file and imports them back', async ({ app, profile }, testInfo) => {
+  const file = testInfo.outputPath('yapyap-settings.json');
+  // System file dialogs cannot be driven from a test, so they answer with this file.
+  await app.evaluate(({ dialog }, path) => {
+    dialog.showSaveDialog = () => Promise.resolve({ canceled: false, filePath: path });
+    dialog.showOpenDialog = () => Promise.resolve({ canceled: false, filePaths: [path] });
+    dialog.showMessageBox = () => Promise.resolve({ response: 0, checkboxChecked: false });
+  }, file);
+  const settings = await openSettings(app);
+  await settings.getByRole('button', { name: 'Export settings…' }).click();
+  await expect(settings.getByText('Settings exported.')).toBeVisible();
+  const exported = JSON.parse(await readFile(file, 'utf8')) as {
+    format: string;
+    settings: { appearance: { theme: string } };
+  };
+  expect(exported.format).toBe('yapyap-settings');
+  expect(exported.settings.appearance.theme).toBe('system');
+  exported.settings.appearance.theme = 'dark';
+  await writeFile(file, JSON.stringify(exported));
+  await settings.getByRole('button', { name: 'Import settings…' }).click();
+  await expect(settings.getByText('Settings imported.')).toBeVisible();
+  await expect(settings.getByRole('radio', { name: 'Dark' })).toBeChecked();
+  const saved = JSON.parse(await readFile(join(profile, 'settings.json'), 'utf8')) as {
+    appearance: { theme: string };
+  };
+  expect(saved.appearance.theme).toBe('dark');
 });

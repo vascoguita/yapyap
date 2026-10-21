@@ -28,6 +28,13 @@ acceleration, shows **Restart now** once you change it. Settings are saved
 the moment you change them; if the settings file is ever damaged, YapYap
 starts with the last good copy and tells you.
 
+To move your settings to another computer, or keep a copy, use **Export
+settings…** under **Backup**, then **Import settings…** on the other side.
+The file holds only your preferences, never your WhatsApp login or chats.
+YapYap checks an imported file the same way it checks its own settings, and
+asks before replacing yours. It refuses settings from a newer version of
+YapYap; update first, then import.
+
 ## Theme
 
 Choose **Light**, **Dark** or **Same as the system** under Settings →

@@ -41,11 +41,17 @@ through an export.
   safeMode), `privacy` (crashReports: off|local|ask), `advanced`
   (customCode enabled, developerMode), `plugins` (enabled, grants per
   account, pinned keys, approved hosts).
-- **Export/import**: export writes a JSON file that keeps `schemaVersion` and
-  passes through an explicit allowlist serializer. Partition names, plugin
-  secrets, cookies, pinned keys and anything under `secrets` are never
-  exported. Import runs the same migrate-and-validate pipeline and asks
-  before replacing.
+- **Export/import**: export writes
+  `{ "format": "yapyap-settings", "settings": { "schemaVersion": n, ... } }`,
+  holding only the sections in an explicit allowlist (`EXPORTED_SECTIONS` in
+  `settings/transfer.ts`), cleaned of keys the schema does not define. A
+  test fails whenever the schema gains a section the allowlist has not
+  classified. Partition names, plugin secrets, cookies, pinned keys and
+  anything under `secrets` are never exported; a section holding them stays
+  out of exports and keeps its current values on import. Import reads at
+  most 64 KiB, requires the format marker, runs the same
+  migrate-and-validate pipeline, refuses files from a newer schema, and asks
+  before replacing. It is unavailable while the settings are read-only.
 - **Secrets**: never stored in `settings.json`. Electron `safeStorage`
   ciphertext lives in `<userData>/secrets/<namespace>.bin`.
 

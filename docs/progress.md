@@ -2,7 +2,7 @@
 
 - **Current milestone:** M2 · Single-account shell
 - **Last merged PR:** #171 (sandbox refusal)
-- **Next issue:** #53 (performance), #55 (i18n), #37 (memory watchdog), #39 (crash reports)
+- **Next issue:** #53 (performance), #55 (i18n), #37 (memory watchdog), #39 (crash reports), #41 (display backend)
 - **Open blockers:** #22 (`AUTOMATION_TOKEN`), #23, #24, #25, #26 need maintainer-provided secrets or settings (pipelines skip those steps gracefully). #138 (OpenSSF Best Practices badge) needs release notes, so it passes only after v0.1.0
 
 ## Milestones
@@ -20,6 +20,10 @@
 | M8 · Docs and v1.0.0                                 | Not started |
 
 ## Notes
+
+- Settings export and import (#43) live in the Settings window's Backup
+  section. A new settings section must be classified in `EXPORTED_SECTIONS`
+  (`settings/transfer.ts`); a test fails until it is.
 
 - A popup's navigation is routed even when `will-navigate` never reports it,
   as happens on Windows: a timer checks where the popup is heading or what it

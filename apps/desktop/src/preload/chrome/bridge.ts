@@ -5,6 +5,7 @@ import {
   type PickerOffer,
   type RecoveryProblem,
   type SettingsSnapshot,
+  type TransferResult,
 } from '../../shared/chrome-api.ts';
 
 /**
@@ -33,6 +34,8 @@ export function createChromeBridge(
       set: (id, value) =>
         invoke(CHROME_CHANNELS.settingsSet, id, value) as Promise<SettingsSnapshot>,
       restart: run(CHROME_CHANNELS.settingsRestart),
+      export: () => invoke(CHROME_CHANNELS.settingsExport) as Promise<TransferResult>,
+      import: () => invoke(CHROME_CHANNELS.settingsImport) as Promise<TransferResult>,
     },
     picker: {
       offer: () => invoke(CHROME_CHANNELS.pickerOffer) as Promise<PickerOffer>,

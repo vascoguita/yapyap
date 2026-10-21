@@ -1,6 +1,6 @@
 import type { JSX } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
-import type { ChromeApi, SettingsSnapshot } from '../../shared/chrome-api.ts';
+import type { ChromeApi, SettingsSnapshot, TransferResult } from '../../shared/chrome-api.ts';
 import {
   SETTING_FIELDS,
   SETTINGS_SECTIONS,
@@ -108,16 +108,74 @@ function RestartNotice({ api }: { readonly api: ChromeApi }): JSX.Element {
   );
 }
 
+type Transfer = (operation: () => Promise<TransferResult>, onDone: () => void) => void;
+
+/** Runs an export or import and keeps what to tell the user about it. */
+function useTransfer(): readonly [string, Transfer] {
+  const [status, setStatus] = useState('');
+  const run: Transfer = (operation, onDone) => {
+    operation().then(
+      (result) => {
+        setStatus(result.message);
+        if (result.outcome === 'done') onDone();
+      },
+      () => {
+        setStatus('Something went wrong. Try again.');
+      },
+    );
+  };
+  return [status, run];
+}
+
+function Backup(props: {
+  readonly api: ChromeApi;
+  readonly readOnly: boolean;
+  readonly onImported: () => void;
+}): JSX.Element {
+  const { api, readOnly, onImported } = props;
+  const [status, run] = useTransfer();
+  return (
+    <section aria-labelledby="backup-title">
+      <h2 id="backup-title">Backup</h2>
+      <p class="hint">
+        Save your settings to a file, or bring them over from another computer. The file never
+        includes your WhatsApp login or chats.
+      </p>
+      <div class="actions">
+        <button
+          type="button"
+          onClick={() => {
+            run(api.settings.export, () => undefined);
+          }}
+        >
+          Export settings…
+        </button>
+        <button
+          type="button"
+          disabled={readOnly}
+          onClick={() => {
+            run(api.settings.import, onImported);
+          }}
+        >
+          Import settings…
+        </button>
+      </div>
+      <p role="status">{status}</p>
+    </section>
+  );
+}
+
 function useSnapshot(
   api: ChromeApi,
-): readonly [SettingsSnapshot | null | undefined, string, Change] {
+): readonly [SettingsSnapshot | null | undefined, string, Change, () => void] {
   const [snapshot, setSnapshot] = useState<SettingsSnapshot | null | undefined>(undefined);
   const [error, setError] = useState('');
-  useEffect(() => {
+  const load = (): void => {
     api.settings.get().then(setSnapshot, () => {
       setSnapshot(null);
     });
-  }, [api]);
+  };
+  useEffect(load, [api]);
   const change: Change = (id, value) => {
     api.settings.set(id, value).then(
       (next) => {
@@ -129,7 +187,7 @@ function useSnapshot(
       },
     );
   };
-  return [snapshot, error, change];
+  return [snapshot, error, change, load];
 }
 
 /** Settings is a dialog-like window, so Escape closes it. */
@@ -138,7 +196,7 @@ export function closeOnEscape(event: KeyboardEvent): void {
 }
 
 export function Settings({ api }: { readonly api: ChromeApi }): JSX.Element {
-  const [snapshot, error, change] = useSnapshot(api);
+  const [snapshot, error, change, reload] = useSnapshot(api);
   if (snapshot == null)
     return (
       <main class="settings">
@@ -156,6 +214,7 @@ export function Settings({ api }: { readonly api: ChromeApi }): JSX.Element {
       ) : null}
       {snapshot.restartPending ? <RestartNotice api={api} /> : null}
       <Sections snapshot={snapshot} onChange={change} />
+      <Backup api={api} readOnly={snapshot.readOnly} onImported={reload} />
       <p role="alert">{error}</p>
     </main>
   );

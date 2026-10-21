@@ -30,6 +30,13 @@ export interface SettingsSnapshot {
   readonly readOnly: boolean;
 }
 
+/** How an export or import ended, with what to tell the user. */
+export interface TransferResult {
+  readonly outcome: 'done' | 'cancelled' | 'failed';
+  /** Empty when there is nothing to say, as after a cancel. */
+  readonly message: string;
+}
+
 /** A screen or window the user can share, with a small preview. */
 export interface PickerSource {
   readonly id: string;
@@ -62,6 +69,8 @@ export interface ChromeApi {
     readonly get: () => Promise<SettingsSnapshot>;
     readonly set: (id: string, value: SettingValue) => Promise<SettingsSnapshot>;
     readonly restart: () => Promise<void>;
+    readonly export: () => Promise<TransferResult>;
+    readonly import: () => Promise<TransferResult>;
   };
   readonly picker: {
     readonly offer: () => Promise<PickerOffer>;
@@ -80,6 +89,8 @@ export const CHROME_CHANNELS = {
   settingsGet: 'settings:get',
   settingsSet: 'settings:set',
   settingsRestart: 'settings:restart',
+  settingsExport: 'settings:export',
+  settingsImport: 'settings:import',
   pickerOffer: 'picker:offer',
   pickerChoose: 'picker:choose',
   pickerCancel: 'picker:cancel',

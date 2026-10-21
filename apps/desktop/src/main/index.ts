@@ -22,6 +22,7 @@ import { join } from 'node:path';
 import { readInstallChannel } from './about/about-info.ts';
 import { CHROME_PARTITION, createChromeFeature } from './chrome/feature.ts';
 import { createLogger } from './logging/logger.ts';
+import { electronSettingsFiles } from './settings/transfer-dialogs.ts';
 import { openSettings } from './settings/service.ts';
 import { electronCapture } from './permissions/electron-capture.ts';
 import { askMediaWithDialog } from './permissions/media-prompt.ts';
@@ -81,6 +82,7 @@ const chrome = createChromeFeature({
   gpuStatus: () => app.getGPUFeatureStatus() as unknown as Record<string, string>,
   recentLog: () => logger.recent(),
   settings,
+  settingsFiles: electronSettingsFiles,
   restart: () => {
     app.relaunch();
     app.quit();

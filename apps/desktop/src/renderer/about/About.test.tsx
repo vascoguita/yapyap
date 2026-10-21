@@ -29,7 +29,7 @@ function api(overrides: Partial<ChromeApi['about']> = {}): ChromeApi {
       clearCache: vi.fn(),
       copyDiagnostics: vi.fn(),
     },
-    settings: { get: vi.fn(), set: vi.fn(), restart: vi.fn() },
+    settings: { get: vi.fn(), set: vi.fn(), restart: vi.fn(), export: vi.fn(), import: vi.fn() },
     picker: { offer: vi.fn(), choose: vi.fn(), cancel: vi.fn() },
   };
 }
