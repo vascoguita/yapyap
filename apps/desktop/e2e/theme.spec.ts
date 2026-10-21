@@ -51,9 +51,12 @@ for (const theme of ['light', 'dark'] as const) {
     const about = await openChrome(app, 'About YapYap', 'about.html');
     await expect(about.getByRole('heading', { name: 'YapYap' })).toBeVisible();
     // Versions change with every dependency update; the layout is what matters.
-    await expect(about).toHaveScreenshot(`about-${theme}.png`, { mask: [about.locator('dl')] });
+    // Soft, so one run reports every changed screenshot, not just the first.
+    await expect
+      .soft(about)
+      .toHaveScreenshot(`about-${theme}.png`, { mask: [about.locator('dl')] });
     const settings = await openChrome(app, 'Settings…', 'settings.html');
     await expect(settings.getByRole('group', { name: 'Theme' })).toBeVisible();
-    await expect(settings).toHaveScreenshot(`settings-${theme}.png`);
+    await expect.soft(settings).toHaveScreenshot(`settings-${theme}.png`);
   });
 }
