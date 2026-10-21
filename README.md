@@ -55,6 +55,13 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) and the
 [SUPPORT.md](SUPPORT.md), and report vulnerabilities privately as described in
 [SECURITY.md](SECURITY.md).
 
+## Support YapYap
+
+YapYap is free, with no ads and no telemetry. If it is useful to you, you can
+[sponsor its development](https://github.com/sponsors/vascoguita).
+Sponsorships go to code signing first, so YapYap installs on macOS and Windows
+without security warnings.
+
 ## Supporters
 
 YapYap's development is supported by [Ensita](https://www.ensita.org/), a

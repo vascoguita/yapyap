@@ -23,6 +23,7 @@ export default defineConfig({
       { text: 'Brand', link: '/brand' },
       { text: 'Architecture', link: '/architecture/' },
       { text: 'Contributing', link: '/contributing' },
+      { text: 'Sponsor', link: 'https://github.com/sponsors/vascoguita' },
       {
         text: 'Help',
         items: [
