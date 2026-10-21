@@ -116,6 +116,8 @@ describe('secureAllWebContents', () => {
       setDevicePermissionHandler: vi.fn(),
       setDisplayMediaRequestHandler: vi.fn(),
       setUserAgent: vi.fn(),
+      setSpellCheckerEnabled: vi.fn(),
+      setSpellCheckerLanguages: vi.fn(),
       webRequest: { onBeforeSendHeaders: vi.fn() },
     };
     t.createSession(session);
@@ -124,5 +126,22 @@ describe('secureAllWebContents', () => {
     expect(session.setDisplayMediaRequestHandler).toHaveBeenCalledWith(expect.any(Function), {
       useSystemPicker: false,
     });
+  });
+
+  it('stops every session from fetching spelling dictionaries', () => {
+    const t = setup();
+    const session = {
+      setPermissionRequestHandler: vi.fn(),
+      setPermissionCheckHandler: vi.fn(),
+      setDevicePermissionHandler: vi.fn(),
+      setDisplayMediaRequestHandler: vi.fn(),
+      setUserAgent: vi.fn(),
+      setSpellCheckerEnabled: vi.fn(),
+      setSpellCheckerLanguages: vi.fn(),
+      webRequest: { onBeforeSendHeaders: vi.fn() },
+    };
+    t.createSession(session);
+    expect(session.setSpellCheckerEnabled).toHaveBeenCalledExactlyOnceWith(false);
+    expect(session.setSpellCheckerLanguages).toHaveBeenCalledExactlyOnceWith([]);
   });
 });

@@ -28,7 +28,11 @@ export interface SecurityApp {
   on(event: 'session-created', listener: (session: GuardedSession) => void): unknown;
 }
 
-export type GuardedSession = SessionPort & IdentitySession;
+export type GuardedSession = SessionPort &
+  IdentitySession & {
+    setSpellCheckerEnabled(enabled: boolean): void;
+    setSpellCheckerLanguages(languages: string[]): void;
+  };
 
 export interface SecurityDependencies extends SessionGuardDependencies {
   readonly identity: ChromeIdentity;
@@ -38,6 +42,13 @@ export interface SecurityDependencies extends SessionGuardDependencies {
 export function secureSession(session: GuardedSession, deps: SecurityDependencies): void {
   guardSession(session, deps);
   presentAsChrome(session, deps.identity);
+  // Every window makes Chromium fetch a spelling dictionary for the UI
+  // language from a Google CDN, which reveals that language and the user's
+  // IP address. Only an empty language list stops it; disabling the
+  // spellchecker alone does not. Spell checking returns with explicit
+  // language choices in #73.
+  session.setSpellCheckerEnabled(false);
+  session.setSpellCheckerLanguages([]);
 }
 
 /**
