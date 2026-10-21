@@ -21,6 +21,9 @@
 
 ## Notes
 
+- macOS and Windows releases ship unsigned until donations (#196) fund code
+  signing (#23, #24); the install guide explains the first launch.
+
 - When the Windows popup test fails, its message lists what the popup did
   (#188), so the remaining Windows case can be diagnosed.
 
