@@ -94,3 +94,11 @@ bar** under Settings → Appearance hides the menu until you press
 <kbd>Alt</kbd>. <kbd>Ctrl</kbd>+<kbd>,</kbd> opens Settings either way. On
 macOS, closing the window keeps YapYap running, as other Mac apps do: click
 its Dock icon to bring the window back, and choose **Quit** to quit.
+
+## Zoom
+
+Make WhatsApp bigger or smaller with **View → Zoom In** and **Zoom Out**
+(<kbd>Ctrl</kbd>+<kbd>=</kbd> and <kbd>Ctrl</kbd>+<kbd>-</kbd>, or
+<kbd>⌘</kbd> on macOS), or hold <kbd>Ctrl</kbd> and scroll. Each step is 5%,
+from 50% to 300%. **Actual Size** (<kbd>Ctrl</kbd>+<kbd>0</kbd>) goes back to
+100%. YapYap remembers the level for next time.

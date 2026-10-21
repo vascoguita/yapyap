@@ -17,6 +17,7 @@ function fakeContents() {
       handlers.set(event, [...(handlers.get(event) ?? []), listener]);
     }),
     setWindowOpenHandler: vi.fn(),
+    setZoomFactor: vi.fn(),
     loadURL: vi.fn(() => Promise.resolve()),
     executeJavaScriptInIsolatedWorld: vi.fn(() => Promise.resolve()),
     reload: vi.fn(),

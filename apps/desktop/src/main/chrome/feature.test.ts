@@ -93,6 +93,7 @@ function setup() {
       (item?.click as (() => void) | undefined)?.();
     },
     handler: () => handler,
+    menu: () => menu,
   };
 }
 
@@ -297,6 +298,17 @@ describe('createChromeFeature', () => {
     t.clickAccount(0);
     await new Promise((resolve) => setTimeout(resolve));
     expect(warn).toHaveBeenCalledWith('Could not finish an account maintenance action.');
+  });
+
+  it('zooms through the settings from the View menu', () => {
+    const t = setup();
+    t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    const view = t.menu().find((menu) => menu.label === '&View');
+    const zoomIn = Array.isArray(view?.submenu)
+      ? view.submenu.find((item) => item.label === 'Zoom In')
+      : undefined;
+    (zoomIn?.click as (() => void) | undefined)?.();
+    expect(t.deps.settings.update).toHaveBeenCalledOnce();
   });
 
   it('keeps chrome storage in memory', () => {

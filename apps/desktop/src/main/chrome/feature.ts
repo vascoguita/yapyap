@@ -2,6 +2,7 @@ import type { MenuItemConstructorOptions } from 'electron';
 import { CHROME_CHANNELS } from '../../shared/chrome-api.ts';
 import { buildAboutInfo, formatTechnicalDetails, type RuntimeFacts } from '../about/about-info.ts';
 import { createSourcePicker, type DesktopSource, type SourcePicker } from '../capture/picker.ts';
+import { changeZoom } from '../appearance/zoom.ts';
 import { buildMenuTemplate, type MenuActions } from '../menu.ts';
 import {
   createRecovery,
@@ -257,6 +258,9 @@ function setMenu(
       openAbout: opener(ABOUT_PAGE),
       openSettings: opener(SETTINGS_PAGE),
       ...accountActions(deps, recoveries, warn),
+      zoom: (step) => {
+        changeZoom(deps.settings, step);
+      },
     }),
   );
 }
