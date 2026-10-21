@@ -27,6 +27,11 @@ import type { WindowOptions } from './windows.ts';
 import { claimSingleInstance, type LinkWindow } from './instances.ts';
 import { chatLinkInArguments } from './navigation/deep-link.ts';
 import { refuseUnsafeStart, type UnsafeStartDependencies } from './sandbox-check.ts';
+import {
+  guardDownloads,
+  type DownloadDependencies,
+  type DownloadingSession,
+} from './downloads/downloads.ts';
 import { quitOnShutdown, type ShutdownSources } from './shutdown.ts';
 import { showWhenReady } from './show-when-ready.ts';
 import {
@@ -80,7 +85,7 @@ export interface StartDependencies<Window extends WindowPort> {
   readonly app: AppPort;
   readonly createWindow: (options: WindowOptions) => Window;
   readonly createOverlay: (window: Window, renderer: RendererOptions) => Overlay;
-  readonly defaultSession: () => GuardedSession;
+  readonly defaultSession: () => GuardedSession & DownloadingSession;
   /** `process.versions.chrome`: the identity must match the bundled engine. */
   readonly chromeVersion: string;
   readonly platform: string;
@@ -104,6 +109,7 @@ export interface StartDependencies<Window extends WindowPort> {
   /** Whether Chromium's sandbox was turned off on the command line or in the environment. */
   readonly sandboxDisabled: boolean;
   readonly explainUnsafeStart: UnsafeStartDependencies['explain'];
+  readonly downloads: Pick<DownloadDependencies, 'folder' | 'taken'>;
   readonly notify: (message: string) => void;
   readonly warn: (message: string) => void;
   readonly logError: (message: string) => void;
@@ -262,6 +268,7 @@ export async function startApp<Window extends WindowPort>(
 
   await app.whenReady();
   secureSession(deps.defaultSession(), security);
+  guardDownloads(deps.defaultSession(), { ...deps.downloads, notify: deps.notify, warn });
   followThemeSetting(deps.nativeTheme, deps.settings);
   const chrome = deps.chrome.afterReady(views, warn, describeGraphics(graphics));
   picker.bind(chrome.pickCaptureSource);

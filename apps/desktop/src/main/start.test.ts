@@ -90,6 +90,7 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     setDisplayMediaRequestHandler: vi.fn(),
     setUserAgent: vi.fn(),
     webRequest: { onBeforeSendHeaders: vi.fn() },
+    on: vi.fn(),
   };
   const capture = {
     contentsOfFrame: vi.fn(),
@@ -140,6 +141,7 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     sandboxDisabled: false,
     explainUnsafeStart: vi.fn(() => Promise.resolve(false)),
     logError: vi.fn(),
+    downloads: { folder: () => '/home/someone/Downloads', taken: () => false },
     listeners,
   };
 }
@@ -437,6 +439,12 @@ describe('startApp', () => {
     expect(f.app.requestSingleInstanceLock).not.toHaveBeenCalled();
     expect(f.app.enableSandbox).not.toHaveBeenCalled();
     expect(f.createWindow).not.toHaveBeenCalled();
+  });
+
+  it('takes over WhatsApp downloads once ready', async () => {
+    const f = fakes();
+    await startApp(f);
+    expect(f.session.on).toHaveBeenCalledWith('will-download', expect.any(Function));
   });
 
   it('follows the theme setting once ready', async () => {
