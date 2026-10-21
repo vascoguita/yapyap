@@ -80,7 +80,7 @@ jobs:
           if [ -n "$SONAR_TOKEN" ]; then
             echo "present=true" >> "$GITHUB_OUTPUT"
           else
-            echo "::notice::SONAR_TOKEN is missing (forks and Dependabot get no secrets): skipping SonarQube Cloud analysis (see CONTRIBUTING)."
+            echo "::notice::SONAR_TOKEN is missing (pull requests from forks get no secrets): skipping SonarQube Cloud analysis (see CONTRIBUTING)."
           fi
       - name: Analyze and wait for the quality gate
         if: steps.token.outputs.present == 'true'

@@ -21,7 +21,9 @@ analysis must run in CI.
   The action is LGPL-3.0 and runs only in CI, so the dependency review allows
   it by name (ADR 0008, C17).
   Automatic analysis is turned off for the project. Without `SONAR_TOKEN`
-  (forks, Dependabot) the job skips the analysis with a notice.
+  (pull requests from forks) the job skips the analysis with a notice.
+  Dependabot has its own copy of the secret, so dependency updates are
+  analyzed too.
 - **Scope:** `sonar-project.properties`. Test code (unit tests, E2E specs, the
   fake WhatsApp page) is analyzed with test rules and kept out of duplication
   and coverage. Coverage exclusions mirror `vitest.config.ts`, so Sonar and
