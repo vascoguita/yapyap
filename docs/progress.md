@@ -21,8 +21,9 @@
 
 ## Notes
 
-- A popup navigation that starts without `will-navigate` (seen on Windows) is
-  routed through the link policy after one second (#188).
+- A popup's navigation is routed even when `will-navigate` never reports it,
+  as happens on Windows: a timer checks where the popup is heading or what it
+  shows every second, and a late `will-navigate` never routes it twice (#188).
 
 - The screen picker lists screens and windows in separate calls (#180),
   because one combined call came back empty on Linux CI while screens alone

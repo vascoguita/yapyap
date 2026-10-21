@@ -7,7 +7,7 @@ import { classifyLink, isSameOrigin } from './link-policy.ts';
  */
 export const TRANSIENT_POPUP_MS = 5000;
 
-/** How long a started popup navigation may go without will-navigate before it is routed anyway. */
+/** How often an adopted popup is checked for a navigation that will-navigate missed. */
 export const UNSEEN_NAVIGATION_MS = 1000;
 
 interface NavigationEvent {
@@ -35,6 +35,7 @@ export interface PopupWindow {
   readonly webContents: {
     once(event: 'will-navigate', listener: () => void): unknown;
     on(event: 'did-start-navigation', listener: (details: StartedNavigation) => void): unknown;
+    getURL(): string;
   };
   isDestroyed(): boolean;
   destroy(): void;
@@ -72,28 +73,43 @@ function adoptPopup(
   opener: NavigationContents,
   popup: PopupWindow,
   deps: NavigationDependencies,
+  routed: WeakSet<object>,
 ): void {
   let done = false;
+  let started: string | undefined;
   const discard = (): void => {
     done = true;
     if (!popup.isDestroyed()) popup.destroy();
   };
+  const target = (): string => started ?? (popup.isDestroyed() ? '' : popup.webContents.getURL());
+  const routeUnseen = (): void => {
+    const url = target();
+    if (done || isBlank(url)) return;
+    // A will-navigate that arrives after this must not route the link again.
+    routed.add(popup.webContents);
+    follow(opener, url, deps);
+    discard();
+  };
+  const watch = (): void => {
+    routeUnseen();
+    if (!done) deps.schedule(watch, UNSEEN_NAVIGATION_MS);
+  };
   // The popup's own navigation guard has already routed the link by now.
   popup.webContents.once('will-navigate', discard);
   // A navigation the opener starts is normally reported as will-navigate
-  // right after it starts, but on Windows sometimes never (#188). One that is
-  // still unhandled shortly after starting is routed here. Stopping or
-  // destroying a web contents inside its did-start-navigation crashes
-  // Electron, so this happens from a timer.
+  // right after it starts. On Windows it sometimes is not, or starts before
+  // these listeners exist (#188), so a timer also checks where the popup is
+  // heading or what it shows, and routes it. Stopping or destroying a web
+  // contents inside its navigation-start event crashes Electron, which is
+  // another reason this happens from a timer.
   popup.webContents.on('did-start-navigation', ({ url, isMainFrame }) => {
-    if (done || !isMainFrame || isBlank(url)) return;
-    deps.schedule(() => {
-      if (done) return;
-      follow(opener, url, deps);
-      discard();
-    }, UNSEEN_NAVIGATION_MS);
+    if (isMainFrame && !isBlank(url)) started = url;
   });
-  deps.schedule(discard, TRANSIENT_POPUP_MS);
+  deps.schedule(watch, UNSEEN_NAVIGATION_MS);
+  deps.schedule(() => {
+    routeUnseen();
+    discard();
+  }, TRANSIENT_POPUP_MS);
 }
 
 /**
@@ -103,8 +119,13 @@ function adoptPopup(
 export function createNavigationGuard(
   deps: NavigationDependencies,
 ): (contents: NavigationContents) => void {
+  const routed = new WeakSet<object>();
   return (contents) => {
     contents.on('will-navigate', (event) => {
+      if (routed.has(contents)) {
+        event.preventDefault();
+        return;
+      }
       if (!event.isMainFrame || isSameOrigin(event.url, deps.homeOf(contents))) return;
       event.preventDefault();
       follow(contents, event.url, deps);
@@ -123,7 +144,7 @@ export function createNavigationGuard(
       return { action: 'deny' };
     });
     contents.on('did-create-window', (popup) => {
-      adoptPopup(contents, popup, deps);
+      adoptPopup(contents, popup, deps, routed);
     });
   };
 }
