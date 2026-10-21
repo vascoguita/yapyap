@@ -130,17 +130,18 @@ describe('createSourcePicker', () => {
     void t.picker.pick({});
     await settle();
     expect(t.getSources).toHaveBeenCalledTimes(3);
-    expect(t.wait.mock.calls).toEqual([[300], [300]]);
+    expect(t.wait.mock.calls).toEqual([[200], [400]]);
     const offer = t.handler('picker:offer').handle(t.from()) as { sources: unknown[] };
     expect(offer.sources).toHaveLength(2);
   });
 
-  it('offers an empty list after three empty answers', async () => {
+  it('offers an empty list after five empty answers, backing off between them', async () => {
     const t = setup();
     t.getSources.mockResolvedValue([]);
     void t.picker.pick({});
     await settle();
-    expect(t.getSources).toHaveBeenCalledTimes(3);
+    expect(t.getSources).toHaveBeenCalledTimes(5);
+    expect(t.wait.mock.calls).toEqual([[200], [400], [800], [1600]]);
     expect(t.handler('picker:offer').handle(t.from())).toEqual({ sources: [], offerAudio: false });
   });
 

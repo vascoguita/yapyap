@@ -235,7 +235,7 @@ describe('createChromeFeature', () => {
       t.deps.captureSources.mockResolvedValueOnce([]);
       const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
       void runtime.pickCaptureSource({});
-      await vi.advanceTimersByTimeAsync(299);
+      await vi.advanceTimersByTimeAsync(199);
       expect(t.deps.captureSources).toHaveBeenCalledOnce();
       await vi.advanceTimersByTimeAsync(1);
       expect(t.deps.captureSources).toHaveBeenCalledTimes(2);

@@ -24,6 +24,18 @@ async function requestShare(app: ElectronApplication, window: Page): Promise<Pag
 }
 
 test('shares the screen the user picks, with nothing preselected', async ({ app, window }) => {
+  // A precondition, not a retry of the app: the virtual display must be able
+  // to capture a screen at all, which can take a moment after it starts.
+  await expect
+    .poll(
+      () =>
+        app.evaluate(async ({ desktopCapturer }) => {
+          const sources = await desktopCapturer.getSources({ types: ['screen'] });
+          return sources.length;
+        }),
+      { message: 'the display offers no screen to capture', timeout: 15_000 },
+    )
+    .toBeGreaterThan(0);
   const picker = await requestShare(app, window);
   const screens = picker.getByRole('group', { name: 'Screens' });
   await expect(screens).toBeVisible();
