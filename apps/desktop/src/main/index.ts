@@ -21,6 +21,7 @@ import { release } from 'node:os';
 import { join } from 'node:path';
 import { readInstallChannel } from './about/about-info.ts';
 import { CHROME_PARTITION, createChromeFeature } from './chrome/feature.ts';
+import { createLogger } from './logging/logger.ts';
 import { openSettings } from './settings/service.ts';
 import { electronCapture } from './permissions/electron-capture.ts';
 import { askMediaWithDialog } from './permissions/media-prompt.ts';
@@ -35,8 +36,15 @@ const PICKER_THUMBNAIL = { width: 320, height: 180 };
 const GPU_CRASH_LOG = join(app.getPath('userData'), 'gpu-crashes.json');
 const WINDOW_STATE = join(app.getPath('userData'), 'window-state.json');
 
+const logger = createLogger({
+  dir: join(app.getPath('userData'), 'logs'),
+  home: app.getPath('home'),
+  now: Date.now,
+});
+
 const warn = (message: string): void => {
   console.warn(message);
+  logger.log('warn', message);
 };
 
 const notify = (body: string): void => {
@@ -69,6 +77,9 @@ const chrome = createChromeFeature({
   rendererRoot: join(import.meta.dirname, '..', 'renderer'),
   preloadPath: join(import.meta.dirname, '..', 'preload', 'chrome.cjs'),
   readFile: (path) => readFile(path),
+  // Electron types the status as a fixed interface of string fields.
+  gpuStatus: () => app.getGPUFeatureStatus() as unknown as Record<string, string>,
+  recentLog: () => logger.recent(),
   settings,
   restart: () => {
     app.relaunch();
@@ -134,6 +145,7 @@ startApp({
   warn,
   logError: (message) => {
     console.error(message);
+    logger.log('error', message);
   },
 }).catch((error: unknown) => {
   console.error(error);

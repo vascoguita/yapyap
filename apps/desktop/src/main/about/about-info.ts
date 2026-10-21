@@ -56,3 +56,23 @@ export function readInstallChannel(readPackageJson: () => string): string {
   }
   return typeof channel === 'string' && channel !== '' ? channel : 'development';
 }
+
+/** The GPU features that explain most rendering problems, in a fixed order. */
+const GPU_FEATURES = ['gpu_compositing', 'rasterization', 'video_decode', 'webgl'] as const;
+
+export function summarizeGpu(status: Readonly<Record<string, string>>): string {
+  return GPU_FEATURES.map((feature) => `${feature}=${status[feature] ?? 'unknown'}`).join(', ');
+}
+
+/**
+ * Everything a bug report needs: the technical details, the GPU summary, and
+ * the recent log lines, which are redacted when they are written.
+ */
+export function formatDiagnostics(
+  info: AboutInfo,
+  gpu: string,
+  recentLog: readonly string[],
+): string {
+  const log = recentLog.length === 0 ? ['(empty)'] : recentLog;
+  return [formatTechnicalDetails(info), `GPU ${gpu}`, '', 'Recent log:', ...log].join('\n');
+}

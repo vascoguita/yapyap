@@ -63,6 +63,8 @@ function setup() {
       onChange: vi.fn(),
     },
     restart: vi.fn(),
+    gpuStatus: () => ({ gpu_compositing: 'enabled', webgl: 'enabled_on' }),
+    recentLog: () => ['2026-10-21T12:00:00.000Z warn Something happened'],
     confirmReset: vi.fn(() => Promise.resolve(true)),
     captureSources: vi.fn<ChromeFeatureDependencies['captureSources']>(() => Promise.resolve([])),
     windowOf: vi.fn<ChromeFeatureDependencies['windowOf']>(() => null),
@@ -309,6 +311,36 @@ describe('createChromeFeature', () => {
       : undefined;
     (zoomIn?.click as (() => void) | undefined)?.();
     expect(t.deps.settings.update).toHaveBeenCalledOnce();
+  });
+
+  it('copies diagnostics with the GPU summary and recent log from the Help menu', async () => {
+    const t = setup();
+    t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    const help = t.menu().at(-1)?.submenu;
+    const copy = Array.isArray(help)
+      ? help.find((item) => item.label === 'Copy Diagnostics')
+      : undefined;
+    (copy?.click as (() => void) | undefined)?.();
+    await new Promise((resolve) => setTimeout(resolve));
+    expect(t.deps.writeClipboard).toHaveBeenLastCalledWith(
+      expect.stringMatching(
+        /^YapYap 0\.1\.0 \(deb\)\n[\s\S]*\nGPU gpu_compositing=enabled, rasterization=unknown, video_decode=unknown, webgl=enabled_on\n\nRecent log:\n2026-10-21T12:00:00\.000Z warn Something happened$/,
+      ),
+    );
+  });
+
+  it('logs diagnostics it could not copy', async () => {
+    const t = setup();
+    const warn = vi.fn();
+    t.deps.writeClipboard.mockRejectedValueOnce(new Error('denied'));
+    t.feature.afterReady(t.views, warn, 'hardware accelerated');
+    const help = t.menu().at(-1)?.submenu;
+    const copy = Array.isArray(help)
+      ? help.find((item) => item.label === 'Copy Diagnostics')
+      : undefined;
+    (copy?.click as (() => void) | undefined)?.();
+    await new Promise((resolve) => setTimeout(resolve));
+    expect(warn).toHaveBeenCalledWith('Could not copy the diagnostics.');
   });
 
   it('keeps chrome storage in memory', () => {

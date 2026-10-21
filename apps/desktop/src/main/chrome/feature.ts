@@ -1,6 +1,12 @@
 import type { MenuItemConstructorOptions } from 'electron';
 import { CHROME_CHANNELS } from '../../shared/chrome-api.ts';
-import { buildAboutInfo, formatTechnicalDetails, type RuntimeFacts } from '../about/about-info.ts';
+import {
+  buildAboutInfo,
+  formatDiagnostics,
+  formatTechnicalDetails,
+  summarizeGpu,
+  type RuntimeFacts,
+} from '../about/about-info.ts';
 import {
   createSourcePicker,
   type DesktopSource,
@@ -87,6 +93,10 @@ export interface ChromeFeatureDependencies {
   readonly writeClipboard: (text: string) => Promise<unknown>;
   /** A system notification, for things the user should know but need not act on. */
   readonly notify: (message: string) => void;
+  /** `app.getGPUFeatureStatus()`, summarized for diagnostics. */
+  readonly gpuStatus: () => Readonly<Record<string, string>>;
+  /** The recent, already redacted log lines. */
+  readonly recentLog: () => readonly string[];
   /** Everything but the graphics mode, which is only settled at startup. */
   readonly facts: () => Omit<RuntimeFacts, 'graphics'>;
   readonly platform: string;
@@ -169,7 +179,7 @@ function recoveryAttacher(
   warn: (message: string) => void,
   recoveries: Recovery[],
 ): ChromeRuntime['attachRecovery'] {
-  const technicalDetails = () => formatTechnicalDetails(buildAboutInfo(deps.facts()));
+  const technicalDetails = () => diagnostics(deps);
   return (contents, origin, createOverlay) => {
     const recovery = createRecovery({
       contents,
@@ -242,6 +252,14 @@ function accountActions(
   };
 }
 
+function diagnostics(deps: Omit<ChromeFeatureDependencies, 'facts'> & FactsSource): string {
+  return formatDiagnostics(
+    buildAboutInfo(deps.facts()),
+    summarizeGpu(deps.gpuStatus()),
+    deps.recentLog(),
+  );
+}
+
 function chromeWindows(
   deps: ChromeFeatureDependencies,
   renderer: RendererOptions,
@@ -256,6 +274,7 @@ function setMenu(
   windows: ChromeWindowDependencies,
   recoveries: readonly Recovery[],
   warn: (message: string) => void,
+  copyDiagnostics: () => void,
 ): void {
   const opener = (page: ChromePage) => createChromeWindowOpener(windows, page);
   deps.setMenu(
@@ -266,6 +285,7 @@ function setMenu(
       zoom: (step) => {
         changeZoom(deps.settings, step);
       },
+      copyDiagnostics,
     }),
   );
 }
@@ -296,7 +316,11 @@ export function createChromeFeature(deps: ChromeFeatureDependencies): ChromeFeat
         ],
         warn,
       );
-      setMenu(deps, windows, recoveries, warn);
+      setMenu(deps, windows, recoveries, warn, () => {
+        deps.writeClipboard(diagnostics(withGraphics)).catch(() => {
+          warn('Could not copy the diagnostics.');
+        });
+      });
       return {
         attachRecovery: recoveryAttacher(withGraphics, renderer, views, warn, recoveries),
         pickCaptureSource: picker.pick,

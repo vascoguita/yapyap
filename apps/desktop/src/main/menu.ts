@@ -8,6 +8,8 @@ export interface MenuActions {
   readonly clearCache: () => void;
   readonly resetSession: () => void;
   readonly zoom: (step: ZoomStep) => void;
+  /** Copies versions, platform, GPU summary and recent redacted log lines for bug reports. */
+  readonly copyDiagnostics: () => void;
 }
 
 /** The standard View menu, with zoom in YapYap's own 5% steps, kept per account. */
@@ -63,19 +65,30 @@ function accountMenu(actions: MenuActions): MenuItemConstructorOptions {
  * YapYap's own window instead of the stock panel. Settings sits where each
  * platform expects it, on the conventional shortcut.
  */
-export function buildMenuTemplate(
-  platform: string,
+function commonItems(
   actions: MenuActions,
-): MenuItemConstructorOptions[] {
+): Record<'about' | 'settings' | 'diagnostics', MenuItemConstructorOptions> {
   const about: MenuItemConstructorOptions = {
     label: `About ${PRODUCT_NAME}`,
     click: actions.openAbout,
+  };
+  const diagnostics: MenuItemConstructorOptions = {
+    label: 'Copy Diagnostics',
+    click: actions.copyDiagnostics,
   };
   const settings: MenuItemConstructorOptions = {
     label: 'Settings…',
     accelerator: 'CmdOrCtrl+,',
     click: actions.openSettings,
   };
+  return { about, settings, diagnostics };
+}
+
+export function buildMenuTemplate(
+  platform: string,
+  actions: MenuActions,
+): MenuItemConstructorOptions[] {
+  const { about, settings, diagnostics } = commonItems(actions);
   const standard: MenuItemConstructorOptions[] = [
     { role: 'editMenu' },
     viewMenu(actions),
@@ -86,9 +99,20 @@ export function buildMenuTemplate(
       label: '&File',
       submenu: [settings, { type: 'separator' }, { role: 'quit' }],
     };
-    return [file, accountMenu(actions), ...standard, { role: 'help', submenu: [about] }];
+    return [
+      file,
+      accountMenu(actions),
+      ...standard,
+      { role: 'help', submenu: [about, { type: 'separator' }, diagnostics] },
+    ];
   }
-  return [macAppMenu(about, settings), { role: 'fileMenu' }, accountMenu(actions), ...standard];
+  return [
+    macAppMenu(about, settings),
+    { role: 'fileMenu' },
+    accountMenu(actions),
+    ...standard,
+    { role: 'help', submenu: [diagnostics] },
+  ];
 }
 
 function macAppMenu(
