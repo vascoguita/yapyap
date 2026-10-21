@@ -87,7 +87,11 @@ describe('secureAllWebContents', () => {
       action: 'allow',
       overrideBrowserWindowOptions: { show: false, webPreferences: rendererPreferences() },
     });
-    const popup = { webContents: { once: vi.fn() }, isDestroyed: () => false, destroy: vi.fn() };
+    const popup = {
+      webContents: { once: vi.fn(), on: vi.fn() },
+      isDestroyed: () => false,
+      destroy: vi.fn(),
+    };
     t.fire('did-create-window', popup);
     vi.advanceTimersByTime(TRANSIENT_POPUP_MS - 1);
     expect(popup.destroy).not.toHaveBeenCalled();

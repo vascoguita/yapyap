@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   createNavigationGuard,
   TRANSIENT_POPUP_MS,
+  UNSEEN_NAVIGATION_MS,
   type NavigationContents,
   type NavigationDependencies,
   type PopupWindow,
@@ -162,12 +163,21 @@ describe('window.open', () => {
 describe('transient popups', () => {
   function popup() {
     let navigated: () => void = () => undefined;
+    let started: (details: { url: string; isMainFrame: boolean }) => void = () => undefined;
     let destroyed = false;
     const window = {
       webContents: {
         once: vi.fn((_event: 'will-navigate', listener: () => void) => {
           navigated = listener;
         }),
+        on: vi.fn(
+          (
+            _event: 'did-start-navigation',
+            listener: (details: { url: string; isMainFrame: boolean }) => void,
+          ) => {
+            started = listener;
+          },
+        ),
       },
       isDestroyed: vi.fn(() => destroyed),
       destroy: vi.fn(() => {
@@ -178,6 +188,9 @@ describe('transient popups', () => {
       window,
       navigate: () => {
         navigated();
+      },
+      start: (url: string, isMainFrame = true) => {
+        started({ url, isMainFrame });
       },
     };
   }
@@ -191,6 +204,36 @@ describe('transient popups', () => {
     expect(p.window.destroy).toHaveBeenCalledOnce();
     t.scheduled[0]?.callback();
     expect(p.window.destroy).toHaveBeenCalledOnce();
+  });
+
+  it('routes a navigation still unhandled shortly after it starts, then discards the popup', async () => {
+    const t = setup();
+    const p = popup();
+    t.fire('did-create-window', p.window);
+    p.start('about:blank');
+    p.start('https://example.com/frame', false);
+    expect(t.scheduled.map(({ ms }) => ms)).toEqual([TRANSIENT_POPUP_MS]);
+    p.start('https://example.com/from-popup');
+    expect(t.scheduled.map(({ ms }) => ms)).toEqual([TRANSIENT_POPUP_MS, UNSEEN_NAVIGATION_MS]);
+    expect(p.window.destroy).not.toHaveBeenCalled();
+    t.scheduled[1]?.callback();
+    expect(p.window.destroy).toHaveBeenCalledOnce();
+    await settle();
+    expect(t.deps.openExternal).toHaveBeenCalledExactlyOnceWith('https://example.com/from-popup');
+    p.start('https://example.com/after');
+    expect(t.scheduled).toHaveLength(2);
+  });
+
+  it('leaves a navigation to will-navigate when it arrives in time', async () => {
+    const t = setup();
+    const p = popup();
+    t.fire('did-create-window', p.window);
+    p.start('https://example.com/from-popup');
+    p.navigate();
+    t.scheduled[1]?.callback();
+    await settle();
+    expect(p.window.destroy).toHaveBeenCalledOnce();
+    expect(t.deps.openExternal).not.toHaveBeenCalled();
   });
 
   it('discards a popup that never navigates after the timeout', () => {

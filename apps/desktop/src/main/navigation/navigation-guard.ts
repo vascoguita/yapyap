@@ -7,6 +7,9 @@ import { classifyLink, isSameOrigin } from './link-policy.ts';
  */
 export const TRANSIENT_POPUP_MS = 5000;
 
+/** How long a started popup navigation may go without will-navigate before it is routed anyway. */
+export const UNSEEN_NAVIGATION_MS = 1000;
+
 interface NavigationEvent {
   readonly url: string;
   readonly isMainFrame: boolean;
@@ -23,9 +26,15 @@ export type WindowOpenResponse =
       };
     };
 
+interface StartedNavigation {
+  readonly url: string;
+  readonly isMainFrame: boolean;
+}
+
 export interface PopupWindow {
   readonly webContents: {
     once(event: 'will-navigate', listener: () => void): unknown;
+    on(event: 'did-start-navigation', listener: (details: StartedNavigation) => void): unknown;
   };
   isDestroyed(): boolean;
   destroy(): void;
@@ -57,12 +66,33 @@ function follow(contents: NavigationContents, url: string, deps: NavigationDepen
   if (action.kind === 'deep-link') contents.loadURL(action.url).catch(report);
 }
 
-function adoptPopup(popup: PopupWindow, deps: NavigationDependencies): void {
+const isBlank = (url: string): boolean => url === 'about:blank' || url === '';
+
+function adoptPopup(
+  opener: NavigationContents,
+  popup: PopupWindow,
+  deps: NavigationDependencies,
+): void {
+  let done = false;
   const discard = (): void => {
+    done = true;
     if (!popup.isDestroyed()) popup.destroy();
   };
   // The popup's own navigation guard has already routed the link by now.
   popup.webContents.once('will-navigate', discard);
+  // A navigation the opener starts is normally reported as will-navigate
+  // right after it starts, but on Windows sometimes never (#188). One that is
+  // still unhandled shortly after starting is routed here. Stopping or
+  // destroying a web contents inside its did-start-navigation crashes
+  // Electron, so this happens from a timer.
+  popup.webContents.on('did-start-navigation', ({ url, isMainFrame }) => {
+    if (done || !isMainFrame || isBlank(url)) return;
+    deps.schedule(() => {
+      if (done) return;
+      follow(opener, url, deps);
+      discard();
+    }, UNSEEN_NAVIGATION_MS);
+  });
   deps.schedule(discard, TRANSIENT_POPUP_MS);
 }
 
@@ -85,7 +115,7 @@ export function createNavigationGuard(
         event.preventDefault();
     });
     contents.setWindowOpenHandler(({ url }) => {
-      if (url === 'about:blank' || url === '') {
+      if (isBlank(url)) {
         const webPreferences = deps.popupPreferences();
         return { action: 'allow', overrideBrowserWindowOptions: { show: false, webPreferences } };
       }
@@ -93,7 +123,7 @@ export function createNavigationGuard(
       return { action: 'deny' };
     });
     contents.on('did-create-window', (popup) => {
-      adoptPopup(popup, deps);
+      adoptPopup(contents, popup, deps);
     });
   };
 }
