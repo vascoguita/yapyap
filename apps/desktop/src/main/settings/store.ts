@@ -50,8 +50,9 @@ function fromBackup(dir: string): LoadedSettings {
 export function loadSettings(dir: string, now: number): LoadedSettings {
   const path = join(dir, SETTINGS_FILE);
   const text = readText(path);
-  if (text === undefined)
+  if (text === undefined) {
     return { settings: defaultSettings(), readOnly: false, notice: undefined };
+  }
   const decoded = decodeSettings(text);
   if (decoded.kind === 'newer') {
     return {
@@ -79,7 +80,9 @@ export function loadSettings(dir: string, now: number): LoadedSettings {
 export function saveSettings(dir: string, settings: Settings): void {
   const path = join(dir, SETTINGS_FILE);
   const temporary = `${path}.tmp`;
-  if (existsSync(path)) copyFileSync(path, join(dir, BACKUP_FILE));
+  if (existsSync(path)) {
+    copyFileSync(path, join(dir, BACKUP_FILE));
+  }
   const fd = openSync(temporary, 'w');
   try {
     writeSync(fd, `${JSON.stringify(settings, null, 2)}\n`);

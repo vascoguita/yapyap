@@ -10,8 +10,11 @@ function setup(locked = true) {
     requestSingleInstanceLock: vi.fn(() => locked),
     quit: vi.fn(),
     on: vi.fn((event: string, listener: never) => {
-      if (event === 'second-instance') secondInstance = listener;
-      else openUrl = listener;
+      if (event === 'second-instance') {
+        secondInstance = listener;
+      } else {
+        openUrl = listener;
+      }
     }),
   } satisfies InstanceApp;
   const warn = vi.fn();

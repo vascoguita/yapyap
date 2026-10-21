@@ -47,7 +47,9 @@ describe('buildMenuTemplate', () => {
       'CmdOrCtrl+=',
       'CmdOrCtrl+-',
     ]);
-    for (const item of zoomItems) (item.click as () => void)();
+    for (const item of zoomItems) {
+      (item.click as () => void)();
+    }
     expect(a.zoom.mock.calls).toEqual([['reset'], ['in'], ['out']]);
   });
 

@@ -15,8 +15,9 @@ describe('followThemeSetting', () => {
     });
     expect(nativeTheme.themeSource).toBe('system');
     const dark = defaultSettings();
-    for (const listener of listeners)
+    for (const listener of listeners) {
       listener({ ...dark, appearance: { ...dark.appearance, theme: 'dark' } });
+    }
     expect(nativeTheme.themeSource).toBe('dark');
   });
 });

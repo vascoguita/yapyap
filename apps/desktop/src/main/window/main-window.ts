@@ -52,7 +52,9 @@ export function restoreWindowState(
 
 function applyMenuBar(window: ManagedWindow, platform: string, settings: Settings): void {
   // macOS keeps its menu bar at the top of the screen, outside the window.
-  if (platform === 'darwin') return;
+  if (platform === 'darwin') {
+    return;
+  }
   const hide = settings.appearance.autoHideMenuBar;
   window.setAutoHideMenuBar(hide);
   window.setMenuBarVisibility(!hide);
@@ -82,8 +84,12 @@ export function manageMainWindow(
   state: WindowState,
   deps: MainWindowDependencies,
 ): void {
-  if (state.maximized) window.maximize();
-  if (state.fullScreen) window.setFullScreen(true);
+  if (state.maximized) {
+    window.maximize();
+  }
+  if (state.fullScreen) {
+    window.setFullScreen(true);
+  }
   applyMenuBar(window, deps.platform, deps.settings.current());
   deps.settings.onChange((settings) => {
     applyMenuBar(window, deps.platform, settings);
@@ -100,7 +106,9 @@ export function manageMainWindow(
   });
   window.on('close', (event) => {
     saveState(window, deps);
-    if (deps.platform !== 'darwin' || quitting) return;
+    if (deps.platform !== 'darwin' || quitting) {
+      return;
+    }
     event.preventDefault();
     window.hide();
   });

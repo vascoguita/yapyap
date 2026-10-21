@@ -29,7 +29,9 @@ export function optionalFileReader(
     try {
       return await read(path);
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined;
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+        return undefined;
+      }
       throw error;
     }
   };
@@ -38,7 +40,9 @@ export function optionalFileReader(
 export function jsonFetcher(fetch: Fetch): (url: string) => Promise<unknown> {
   return async (url) => {
     const response = await fetch(url);
-    if (!response.ok) throw new Error(`GET ${url} failed with ${String(response.status)}`);
+    if (!response.ok) {
+      throw new Error(`GET ${url} failed with ${String(response.status)}`);
+    }
     return response.json();
   };
 }

@@ -27,6 +27,27 @@ function fieldsFor(platform: string): readonly SettingField[] {
   return SETTING_FIELDS.filter((field) => field.platforms?.includes(platform) ?? true);
 }
 
+/** What the settings window shows, and whether a change awaits a restart. */
+function snapshotOf(
+  service: SettingsService,
+  fields: readonly SettingField[],
+  launched: Settings,
+): SettingsSnapshot {
+  const current = service.current();
+  const values: Record<string, SettingValue> = {};
+  for (const { id } of fields) {
+    values[id] = valueOf(current, id) as SettingValue;
+  }
+  return {
+    values,
+    restartPending: fields.some(
+      ({ id, restart: needsRestart }) =>
+        needsRestart && valueOf(current, id) !== valueOf(launched, id),
+    ),
+    readOnly: service.readOnly,
+  };
+}
+
 /**
  * The settings window's operations. A change is accepted only for a listed
  * field and only when the whole result still matches the schema.
@@ -38,18 +59,7 @@ export function settingsHandlers(
 ): ChromeHandler[] {
   const fields = fieldsFor(platform);
   const launched = service.current();
-  const snapshot = (): SettingsSnapshot => {
-    const current = service.current();
-    const values: Record<string, SettingValue> = {};
-    for (const { id } of fields) values[id] = valueOf(current, id) as SettingValue;
-    return {
-      values,
-      restartPending: fields.some(
-        ({ id, restart }) => restart && valueOf(current, id) !== valueOf(launched, id),
-      ),
-      readOnly: service.readOnly,
-    };
-  };
+  const snapshot = (): SettingsSnapshot => snapshotOf(service, fields, launched);
   const change = ([id, value]: readonly unknown[]): unknown =>
     withValue(service.current(), String(id), value);
   return [
@@ -63,7 +73,9 @@ export function settingsHandlers(
       handle: (_call, ...args) => {
         const next = change(args);
         // `accepts` already checked this; checking again narrows the type.
-        if (!Value.Check(SettingsSchema, next)) throw new Error('Invalid setting.');
+        if (!Value.Check(SettingsSchema, next)) {
+          throw new Error('Invalid setting.');
+        }
         service.update(() => next);
         return snapshot();
       },

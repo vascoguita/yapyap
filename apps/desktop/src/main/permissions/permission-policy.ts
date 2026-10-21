@@ -20,6 +20,8 @@ export function decidePermission(
   permission: string,
   fromHome: boolean,
 ): Decision {
-  if (zone !== 'whatsapp' || !fromHome) return 'deny';
+  if (zone !== 'whatsapp' || !fromHome) {
+    return 'deny';
+  }
   return WHATSAPP.get(permission) ?? 'deny';
 }

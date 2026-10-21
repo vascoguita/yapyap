@@ -27,7 +27,9 @@ function render(tree: Expression): string {
 }
 
 function evaluate(tree: Expression): boolean {
-  if ('license' in tree) return ALLOWED_LICENSES.has(tree.license);
+  if ('license' in tree) {
+    return ALLOWED_LICENSES.has(tree.license);
+  }
   return tree.operator === 'AND'
     ? evaluate(tree.left) && evaluate(tree.right)
     : evaluate(tree.left) || evaluate(tree.right);

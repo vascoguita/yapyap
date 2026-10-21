@@ -27,7 +27,9 @@ function setup(readOnly = false) {
   const handlers = settingsTransferHandlers(service, files);
   const find = (channel: string): ChromeHandler => {
     const handler = handlers.find((candidate) => candidate.channel === channel);
-    if (handler === undefined) throw new Error(`No handler for ${channel}`);
+    if (handler === undefined) {
+      throw new Error(`No handler for ${channel}`);
+    }
     return handler;
   };
   const owner = {};

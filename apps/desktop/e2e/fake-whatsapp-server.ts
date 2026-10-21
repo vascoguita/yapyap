@@ -67,8 +67,11 @@ export async function startFakeWhatsApp(home = 'index.html'): Promise<FakeWhatsA
     close: () =>
       new Promise<void>((resolve, reject) => {
         server.close((error) => {
-          if (error) reject(error);
-          else resolve();
+          if (error) {
+            reject(error);
+          } else {
+            resolve();
+          }
         });
       }),
   };

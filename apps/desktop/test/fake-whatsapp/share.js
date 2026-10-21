@@ -5,7 +5,9 @@ document.querySelector('[data-testid="share-screen"]').addEventListener('click',
   navigator.mediaDevices.getDisplayMedia({ video: true, audio: false }).then(
     (stream) => {
       result.textContent = `shared ${String(stream.getVideoTracks().length)} video track`;
-      for (const track of stream.getTracks()) track.stop();
+      for (const track of stream.getTracks()) {
+        track.stop();
+      }
     },
     (error) => {
       result.textContent = error.name;

@@ -31,7 +31,9 @@ export function openSettings(
       }
       settings = change(settings);
       saveSettings(dir, settings);
-      for (const listener of listeners) listener(settings);
+      for (const listener of listeners) {
+        listener(settings);
+      }
     },
     onChange: (listener) => {
       listeners.push(listener);

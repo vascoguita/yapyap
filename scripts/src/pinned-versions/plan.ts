@@ -29,7 +29,9 @@ export function planNode(
   latest: string | undefined,
 ): Plan {
   const current = nvmrc?.trim();
-  if (current === undefined || !isNewer(latest, current)) return EMPTY;
+  if (current === undefined || !isNewer(latest, current)) {
+    return EMPTY;
+  }
   return {
     files: [
       { path: NVMRC, contents: `${latest}\n` },
@@ -41,7 +43,9 @@ export function planNode(
 
 export function planFlatpak(manifest: string | undefined, latest: string | undefined): Plan {
   const current = manifest === undefined ? undefined : RUNTIME.exec(manifest)?.[2];
-  if (manifest === undefined || current === undefined || !isNewer(latest, current)) return EMPTY;
+  if (manifest === undefined || current === undefined || !isNewer(latest, current)) {
+    return EMPTY;
+  }
   const contents = manifest.replace(RUNTIME, `$1${latest}$3`).replace(BASE, `$1${latest}$3`);
   return {
     files: [{ path: FLATPAK_MANIFEST, contents }],

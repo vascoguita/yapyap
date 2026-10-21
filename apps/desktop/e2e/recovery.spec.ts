@@ -20,7 +20,9 @@ async function recoveryScreen(app: ElectronApplication): Promise<Page> {
     .context()
     .pages()
     .find((candidate) => candidate.url().endsWith('/recovery.html'));
-  if (page === undefined) throw new Error('No recovery screen');
+  if (page === undefined) {
+    throw new Error('No recovery screen');
+  }
   return page;
 }
 

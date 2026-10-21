@@ -85,7 +85,9 @@ export function createRecovery(deps: RecoveryDependencies): Recovery {
     clearCacheAndRetry: () => clearSiteCache(deps.contents).then(retry),
     resetSession: () => clearAllSiteData(deps.contents).then(retry),
     reconnect: () => {
-      if (current?.failure.kind === 'load-failed') void retry();
+      if (current?.failure.kind === 'load-failed') {
+        void retry();
+      }
     },
     copyDiagnostics: () => {
       const problem = current === undefined ? 'none' : describeFailure(current.failure);

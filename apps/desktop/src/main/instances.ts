@@ -27,9 +27,40 @@ export interface Instances {
 }
 
 function bringToFront(window: LinkWindow): void {
-  if (window.isMinimized()) window.restore();
+  if (window.isMinimized()) {
+    window.restore();
+  }
   window.show();
   window.focus();
+}
+
+/** Hands every later launch, and every macOS link event, to `open`. */
+function listenForLaunches(
+  app: InstanceApp,
+  home: string,
+  warn: (message: string) => void,
+  links: { readonly window: () => LinkWindow | undefined; readonly open: (target: string) => void },
+): void {
+  app.on('second-instance', (_event, argv) => {
+    const window = links.window();
+    if (window !== undefined) {
+      bringToFront(window);
+    }
+    const target = chatLinkInArguments(argv, home);
+    if (target !== undefined) {
+      links.open(target);
+    }
+  });
+  // macOS hands links to the running app instead of starting another one.
+  app.on('open-url', (event, url) => {
+    event.preventDefault();
+    const target = chatLinkTarget(url, home);
+    if (target === undefined) {
+      warn('Ignored a link that is not a WhatsApp chat link.');
+    } else {
+      links.open(target);
+    }
+  });
 }
 
 /**
@@ -54,22 +85,13 @@ export function claimSingleInstance(
     // A failed load is reported by the recovery monitor.
     window?.loadURL(target).catch(() => undefined);
   };
-  app.on('second-instance', (_event, argv) => {
-    if (window !== undefined) bringToFront(window);
-    const target = chatLinkInArguments(argv, home);
-    if (target !== undefined) open(target);
-  });
-  // macOS hands links to the running app instead of starting another one.
-  app.on('open-url', (event, url) => {
-    event.preventDefault();
-    const target = chatLinkTarget(url, home);
-    if (target === undefined) warn('Ignored a link that is not a WhatsApp chat link.');
-    else open(target);
-  });
+  listenForLaunches(app, home, warn, { window: () => window, open });
   return {
     attach: (attached) => {
       window = attached;
-      if (pending !== undefined) open(pending);
+      if (pending !== undefined) {
+        open(pending);
+      }
     },
   };
 }

@@ -16,12 +16,16 @@ test('stays within the cold-start and idle-memory budgets', async ({}, testInfo)
     await readFile(join(import.meta.dirname, 'budgets.json'), 'utf8'),
   ) as Record<string, Budget | undefined>;
   const budget = budgets[process.platform];
-  if (budget === undefined) throw new Error(`No budget for ${process.platform}`);
+  if (budget === undefined) {
+    throw new Error(`No budget for ${process.platform}`);
+  }
   // The first launch on a runner waits for the disk cache, which says nothing
   // about YapYap, so it warms up and is left out.
   await measureOnce();
   const samples: Sample[] = [];
-  for (let run = 0; run < RUNS; run += 1) samples.push(await measureOnce());
+  for (let run = 0; run < RUNS; run += 1) {
+    samples.push(await measureOnce());
+  }
   const result = {
     platform: process.platform,
     coldStartMs: median(samples.map((sample) => sample.coldStartMs)),

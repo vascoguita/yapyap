@@ -89,7 +89,9 @@ function pickerHandlers(
   const choose = (call: ChromeCall, id: unknown, audio: unknown): void => {
     const pick = owned(call);
     const video = pick.sources.find((source) => source.id === id);
-    if (video === undefined) throw new Error('That source was not offered.');
+    if (video === undefined) {
+      throw new Error('That source was not offered.');
+    }
     pick.settle(audio === true && offerAudio ? { video, audio: 'loopback' } : { video });
   };
   return [
@@ -117,20 +119,28 @@ function pickerHandlers(
 export function createSourcePicker(deps: SourcePickerDependencies): SourcePicker {
   let active: ActivePick | undefined;
   const owned = ({ sender }: ChromeCall): ActivePick => {
-    if (active?.window.webContents !== sender) throw new Error('No picker belongs to this window.');
+    if (active?.window.webContents !== sender) {
+      throw new Error('No picker belongs to this window.');
+    }
     return active;
   };
   return {
     pick: async (owner) => {
-      if (active !== undefined) return undefined;
+      if (active !== undefined) {
+        return undefined;
+      }
       const sources = await listSources(deps);
       return new Promise((resolve) => {
         const window = deps.openPicker(owner);
         const settle = (choice: CaptureChoice | undefined, closing = false): void => {
-          if (active?.window !== window) return;
+          if (active?.window !== window) {
+            return;
+          }
           active = undefined;
           resolve(choice);
-          if (!closing) window.close();
+          if (!closing) {
+            window.close();
+          }
         };
         active = { window, sources, settle };
         // A window that is already closing must not be closed again.

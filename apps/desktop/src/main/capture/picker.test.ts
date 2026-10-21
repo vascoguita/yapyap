@@ -47,7 +47,9 @@ function setup(offerAudio = false) {
   const picker = createSourcePicker({ getSources, openPicker, offerAudio, wait });
   const handler = (channel: string): ChromeHandler => {
     const found = picker.handlers.find((candidate) => candidate.channel === channel);
-    if (found === undefined) throw new Error(channel);
+    if (found === undefined) {
+      throw new Error(channel);
+    }
     return found;
   };
   const [first] = windows;

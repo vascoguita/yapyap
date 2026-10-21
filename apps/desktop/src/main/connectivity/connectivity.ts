@@ -17,13 +17,19 @@ export interface ConnectivityDependencies {
 
 export function watchConnectivity(deps: ConnectivityDependencies): void {
   let online = deps.isOnline();
-  if (!online) deps.onChange(false);
+  if (!online) {
+    deps.onChange(false);
+  }
   deps.every(() => {
     const now = deps.isOnline();
-    if (now === online) return;
+    if (now === online) {
+      return;
+    }
     online = now;
     deps.onChange(now);
-    if (now) deps.reconnect();
+    if (now) {
+      deps.reconnect();
+    }
   }, CONNECTIVITY_POLL_MS);
   deps.onResume(() => {
     deps.schedule(deps.reconnect, RESUME_RECONNECT_MS);

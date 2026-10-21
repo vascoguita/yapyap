@@ -4,7 +4,9 @@ document.querySelector('[data-testid="popup-then-navigate"]').addEventListener('
   const popup = window.open('', '_blank');
   // Lets a failing test say whether the page got a popup at all.
   document.body.dataset.popup = popup ? 'opened' : 'refused';
-  if (popup) popup.location.href = 'https://example.com/from-popup';
+  if (popup) {
+    popup.location.href = 'https://example.com/from-popup';
+  }
 });
 
 document.querySelector('[data-testid="popup-blank"]').addEventListener('click', () => {

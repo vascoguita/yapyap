@@ -37,7 +37,9 @@ function setup(home: string | null = HOME) {
   const guard = createNavigationGuard(deps);
   guard(contents);
   const fire = (event: string, ...args: unknown[]): void => {
-    for (const listener of handlers.get(event) ?? []) listener(...(args as never[]));
+    for (const listener of handlers.get(event) ?? []) {
+      listener(...(args as never[]));
+    }
   };
   const navigation = (url: string, isMainFrame = true) => ({
     url,
@@ -167,7 +169,9 @@ describe('transient popups', () => {
     let navigated: () => void = () => undefined;
     const handlers = new Map<string, Listener[]>();
     const emit = (event: string, arg: unknown): void => {
-      for (const listener of handlers.get(event) ?? []) listener(arg as never);
+      for (const listener of handlers.get(event) ?? []) {
+        listener(arg as never);
+      }
     };
     let destroyed = false;
     const window = {

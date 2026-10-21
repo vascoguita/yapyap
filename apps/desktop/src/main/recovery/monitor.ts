@@ -34,7 +34,9 @@ export interface MonitorDependencies {
 /** Reports load failures, unsupported-browser pages and blank pages. */
 export function monitorPage(contents: MonitoredContents, deps: MonitorDependencies): void {
   const report = (failure: Failure | undefined): void => {
-    if (failure !== undefined) deps.onFailure(failure);
+    if (failure !== undefined) {
+      deps.onFailure(failure);
+    }
   };
   contents.on('did-fail-load', (_event, code, description, _url, isMainFrame) => {
     report(loadFailure(code, description, isMainFrame));

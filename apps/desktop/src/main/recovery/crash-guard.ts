@@ -33,7 +33,9 @@ export function guardCrashes(contents: CrashableContents, deps: CrashGuardDepend
   // Each hang gets a number; recovering makes any pending restart stale.
   let hangs = 0;
   contents.on('render-process-gone', (_event, { reason }) => {
-    if (reason === 'clean-exit') return;
+    if (reason === 'clean-exit') {
+      return;
+    }
     const now = deps.now();
     reloads = reloads.filter((time) => now - time < RELOAD_WINDOW_MS);
     deps.warn(`The WhatsApp renderer ended (${reason}).`);
@@ -48,7 +50,9 @@ export function guardCrashes(contents: CrashableContents, deps: CrashGuardDepend
   contents.on('unresponsive', () => {
     const hang = ++hangs;
     deps.schedule(() => {
-      if (hang === hangs) contents.forcefullyCrashRenderer();
+      if (hang === hangs) {
+        contents.forcefullyCrashRenderer();
+      }
     }, UNRESPONSIVE_GRACE_MS);
   });
   contents.on('responsive', () => {

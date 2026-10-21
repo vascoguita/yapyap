@@ -50,8 +50,9 @@ function setup(platform = 'linux', autoHideMenuBar = false) {
     return preventDefault;
   };
   const changeSettings = (hide: boolean) => {
-    for (const listener of settingsListeners)
+    for (const listener of settingsListeners) {
       listener({ ...settings, appearance: { ...settings.appearance, autoHideMenuBar: hide } });
+    }
   };
   return { window, deps, close, appListeners, windowListeners, changeSettings };
 }

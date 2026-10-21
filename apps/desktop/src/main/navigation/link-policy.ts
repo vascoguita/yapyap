@@ -22,7 +22,9 @@ function originOf(url: URL): string {
 
 /** True when `url` belongs to `home`. Opaque origins never match, even each other. */
 export function isSameOrigin(url: string, home: string | undefined): boolean {
-  if (!URL.canParse(url)) return false;
+  if (!URL.canParse(url)) {
+    return false;
+  }
   const origin = originOf(new URL(url));
   return origin !== 'null' && origin === home;
 }
@@ -39,10 +41,16 @@ function isSendLink(url: URL, phone: string | null, text: string | null): boolea
 function deepLink(url: URL, home: string | undefined): LinkAction {
   const phone = url.searchParams.get('phone');
   const text = url.searchParams.get('text');
-  if (!isSendLink(url, phone, text) || home?.startsWith('http') !== true) return DROP;
+  if (!isSendLink(url, phone, text) || home?.startsWith('http') !== true) {
+    return DROP;
+  }
   const target = new URL('/send', home);
-  if (phone !== null) target.searchParams.set('phone', phone);
-  if (text !== null) target.searchParams.set('text', text);
+  if (phone !== null) {
+    target.searchParams.set('phone', phone);
+  }
+  if (text !== null) {
+    target.searchParams.set('text', text);
+  }
   return { kind: 'deep-link', url: target.href };
 }
 
@@ -77,8 +85,12 @@ const SCHEME_HANDLERS: Readonly<
  * whitespace the parser strips never reach the operating system.
  */
 export function classifyLink(raw: string, home: string | undefined): LinkAction {
-  if (!URL.canParse(raw)) return DROP;
-  if (isSameOrigin(raw, home)) return STAY;
+  if (!URL.canParse(raw)) {
+    return DROP;
+  }
+  if (isSameOrigin(raw, home)) {
+    return STAY;
+  }
   const url = new URL(raw);
   const handler = SCHEME_HANDLERS[url.protocol];
   return handler === undefined ? DROP : handler(url, home);

@@ -80,7 +80,9 @@ describe('Picker', () => {
     render(<Picker api={t} />);
     await screen.findByRole('group', { name: 'Screens' });
     const form = share().closest('form');
-    if (form !== null) fireEvent.submit(form);
+    if (form !== null) {
+      fireEvent.submit(form);
+    }
     expect(form).not.toBeNull();
     expect(t.picker.choose).not.toHaveBeenCalled();
   });
