@@ -46,16 +46,16 @@ function parseJson(text: string): unknown {
   }
 }
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
 /** The settings inside an export, as JSON; anything else gives '', which never decodes. */
 function settingsJson(text: string): string {
   const value = parseJson(text);
-  return typeof value === 'object' &&
-    value !== null &&
-    'format' in value &&
-    value.format === SETTINGS_EXPORT_FORMAT &&
-    'settings' in value
-    ? JSON.stringify(value.settings)
-    : '';
+  if (!isRecord(value) || value['format'] !== SETTINGS_EXPORT_FORMAT || !('settings' in value)) {
+    return '';
+  }
+  return JSON.stringify(value['settings']);
 }
 
 const NOT_SETTINGS: ImportResult = {

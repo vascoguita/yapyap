@@ -65,15 +65,15 @@ async function openUpdate({ github, base, log }: Dependencies, plan: Plan): Prom
   await github.createBranch(BRANCH, baseOid);
   const body = plan.summaries.map((line) => `- ${line}`).join('\n');
   await github.commit({
+    body,
     branch: BRANCH,
     expectedHeadOid: baseOid,
     headline: TITLE,
-    body,
     files: plan.files,
   });
   const url = await github.openPullRequest({
-    head: BRANCH,
     base,
+    head: BRANCH,
     title: TITLE,
     body: `Automated weekly check of versions Dependabot cannot track.\n\n${body}`,
   });

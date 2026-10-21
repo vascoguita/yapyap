@@ -58,7 +58,10 @@ analysis must run in CI.
 - **Exceptions:** an issue is fixed, or the rule is turned off above with a
   reason. Issues are never accepted, and the gate fails if one is. Marking a
   false positive needs a comment that explains it. Narrow per-file
-  exceptions live in `sonar-project.properties`, each with its reason.
+  exceptions live in `sonar-project.properties`, each with its reason:
+  console output and `PATH` lookups in command-line scripts, the main
+  entry's promise chain (no top-level await), and two E2E rules the
+  analyzer misreads for Playwright (assertions and conditional skips).
 - **Required check:** the job becomes required in `.github/rulesets/master.json`
   only once overall code passes the gate, so the backlog does not block
   unrelated work in the meantime.

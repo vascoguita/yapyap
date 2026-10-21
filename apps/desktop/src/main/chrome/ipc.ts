@@ -24,7 +24,7 @@ export interface ChromeHandler {
 }
 
 /** For operations that take no arguments. */
-export const NO_ARGUMENTS = (args: readonly unknown[]): boolean => args.length === 0;
+export const noArguments = (args: readonly unknown[]): boolean => args.length === 0;
 
 function fromChrome(event: IpcInvokeEvent, views: ViewRegistry): boolean {
   const frameUrl = event.senderFrame?.url ?? '';

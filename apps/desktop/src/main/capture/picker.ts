@@ -1,5 +1,5 @@
 import { CHROME_CHANNELS, type PickerOffer } from '../../shared/chrome-api.ts';
-import { NO_ARGUMENTS, type ChromeCall, type ChromeHandler } from '../chrome/ipc.ts';
+import { noArguments, type ChromeCall, type ChromeHandler } from '../chrome/ipc.ts';
 import type { CaptureChoice, CaptureSource } from '../permissions/session-guard.ts';
 
 /** A capture source as `desktopCapturer` describes it. */
@@ -46,13 +46,16 @@ async function listOnce(deps: SourcePickerDependencies): Promise<readonly Deskto
   return [...screens, ...windows];
 }
 
-async function listSources(deps: SourcePickerDependencies): Promise<readonly DesktopSource[]> {
-  let sources = await listOnce(deps);
-  for (let attempt = 1; attempt < SOURCE_ATTEMPTS && sources.length === 0; attempt += 1) {
-    await deps.wait(FIRST_RETRY_MS * 2 ** (attempt - 1));
-    sources = await listOnce(deps);
+async function listSources(
+  deps: SourcePickerDependencies,
+  attempt = 1,
+): Promise<readonly DesktopSource[]> {
+  const sources = await listOnce(deps);
+  if (sources.length > 0 || attempt >= SOURCE_ATTEMPTS) {
+    return sources;
   }
-  return sources;
+  await deps.wait(FIRST_RETRY_MS * 2 ** (attempt - 1));
+  return listSources(deps, attempt + 1);
 }
 
 interface ActivePick {
@@ -97,13 +100,13 @@ function pickerHandlers(
   return [
     {
       channel: CHROME_CHANNELS.pickerOffer,
-      accepts: NO_ARGUMENTS,
+      accepts: noArguments,
       handle: (call) => toOffer(owned(call), offerAudio),
     },
     { channel: CHROME_CHANNELS.pickerChoose, accepts: choiceArguments, handle: choose },
     {
       channel: CHROME_CHANNELS.pickerCancel,
-      accepts: NO_ARGUMENTS,
+      accepts: noArguments,
       handle: (call) => {
         owned(call).settle(undefined);
       },

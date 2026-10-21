@@ -75,9 +75,10 @@ class Parser {
   // Reading past the end yields undefined, which no allowlist contains and which
   // leaves the parser unfinished, so it needs no separate check.
   private identifier(): string | undefined {
-    const token = this.tokens[this.position++];
+    const token = this.tokens[this.position];
+    this.position += 1;
     if (OPERATORS.has(token)) {
-      throw new SyntaxError();
+      throw new SyntaxError('An operator stands where a license should be.');
     }
     return token;
   }
@@ -86,13 +87,13 @@ class Parser {
     if (this.tokens[this.position] !== token) {
       return false;
     }
-    this.position++;
+    this.position += 1;
     return true;
   }
 
   private expect(token: string): void {
     if (!this.accept(token)) {
-      throw new SyntaxError();
+      throw new SyntaxError(`Expected ${token} in the license expression.`);
     }
   }
 }

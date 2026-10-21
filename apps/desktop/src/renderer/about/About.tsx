@@ -95,14 +95,14 @@ export function About({ api }: { readonly api: ChromeApi }): JSX.Element {
       <button type="button" onClick={copy}>
         Copy technical details
       </button>
-      <p role="status">{copyStatus}</p>
+      <output>{copyStatus}</output>
       <Links />
       <p class="supporter">
         Development supported by{' '}
         <a href={SUPPORTER.href} target="_blank" rel="noreferrer">
           {SUPPORTER.name}
         </a>
-        .
+        {'.'}
       </p>
       <p class="disclaimer">
         YapYap is unofficial and is not affiliated with, endorsed by, or sponsored by WhatsApp or

@@ -51,7 +51,7 @@ export function decodeSettings(text: string): Decoded {
   }
   if (result.kind === 'newer') {
     const { settings } = normalize({ ...raw, schemaVersion: SETTINGS_VERSION });
-    return { kind: 'newer', settings, version: result.version };
+    return { settings, kind: 'newer', version: result.version };
   }
   return { kind: 'ok', ...normalize(result.settings) };
 }

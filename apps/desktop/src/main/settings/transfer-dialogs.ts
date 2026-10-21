@@ -52,10 +52,10 @@ export const electronSettingsFiles: SettingsFiles = {
     }
     // Replacing settings cannot be undone, so Cancel is the default and Escape answer.
     const { response } = await dialog.showMessageBox(window, {
+      detail,
       type: 'question',
       title: 'YapYap',
       message: 'Import these settings?',
-      detail,
       buttons: ['Import', 'Cancel'],
       defaultId: 1,
       cancelId: 1,

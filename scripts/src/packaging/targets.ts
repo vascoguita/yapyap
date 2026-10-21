@@ -22,8 +22,8 @@ function job(
   // channel it is; the update policy reads this marker at runtime (ADR 0003).
   return {
     channel,
-    args: [...platformArgs, '--publish', 'never', `-c.extraMetadata.installChannel=${channel}`],
     env,
+    args: [...platformArgs, '--publish', 'never', `-c.extraMetadata.installChannel=${channel}`],
   };
 }
 

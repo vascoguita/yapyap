@@ -41,10 +41,11 @@ const logger = createLogger({
   dir: join(app.getPath('userData'), 'logs'),
   home: app.getPath('home'),
   now: Date.now,
+  // Terminal output is redacted like the file, for people who start YapYap from one.
+  mirror: (line) => process.stderr.write(`${line}\n`),
 });
 
 const warn = (message: string): void => {
-  console.warn(message);
   logger.log('warn', message);
 };
 
@@ -55,6 +56,8 @@ const notify = (body: string): void => {
 const settings = openSettings(app.getPath('userData'), Date.now(), warn);
 
 const chrome = createChromeFeature({
+  notify,
+  settings,
   registerSchemesAsPrivileged: (schemes) => {
     protocol.registerSchemesAsPrivileged([...schemes]);
   },
@@ -65,7 +68,6 @@ const chrome = createChromeFeature({
     Menu.setApplicationMenu(Menu.buildFromTemplate(template));
   },
   writeClipboard: (text) => clipboard.writeText(text),
-  notify,
   facts: () => ({
     version: app.getVersion(),
     channel: readInstallChannel(() => readFileSync(join(app.getAppPath(), 'package.json'), 'utf8')),
@@ -81,7 +83,6 @@ const chrome = createChromeFeature({
   // Electron types the status as a fixed interface of string fields.
   gpuStatus: () => app.getGPUFeatureStatus() as unknown as Record<string, string>,
   recentLog: () => logger.recent(),
-  settings,
   settingsFiles: electronSettingsFiles,
   restart: () => {
     app.relaunch();
@@ -98,13 +99,17 @@ const chrome = createChromeFeature({
 // entry module has finished evaluating.
 startApp({
   app,
+  chrome,
+  settings,
+  nativeTheme,
+  notify,
+  warn,
   createWindow: (options) => createSecureWindow(options),
   createOverlay: (window, renderer) => createSecureOverlay(window, renderer),
   defaultSession: () => session.defaultSession,
   askMedia: askMediaWithDialog,
   capture: (pickInApp) =>
     electronCapture(process.platform, process.env, process.getSystemVersion(), pickInApp),
-  chrome,
   chromeVersion: process.versions.chrome,
   platform: process.platform,
   env: process.env,
@@ -120,8 +125,6 @@ startApp({
   onResume: (listener) => {
     powerMonitor.on('resume', listener);
   },
-  settings,
-  nativeTheme,
   windowState: {
     read: () => readFileSync(WINDOW_STATE, 'utf8'),
     write: (text) => {
@@ -143,13 +146,10 @@ startApp({
   },
   sandboxDisabled: sandboxDisabled(app.commandLine, process.env),
   explainUnsafeStart: explainUnsafeStartWithDialog,
-  notify,
-  warn,
   logError: (message) => {
-    console.error(message);
     logger.log('error', message);
   },
 }).catch((error: unknown) => {
-  console.error(error);
+  logger.log('error', `Startup failed: ${String(error)}`);
   app.exit(1);
 });

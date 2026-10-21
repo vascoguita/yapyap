@@ -2,7 +2,8 @@ import type { Failure } from './failure.ts';
 
 /** More reloads than this within the window means reloading is not helping. */
 export const MAX_RELOADS = 3;
-export const RELOAD_WINDOW_MS = 5 * 60_000;
+/** Five minutes. */
+export const RELOAD_WINDOW_MS = 300_000;
 /** How long a hung renderer gets to recover on its own before it is restarted. */
 export const UNRESPONSIVE_GRACE_MS = 30_000;
 
@@ -48,7 +49,8 @@ export function guardCrashes(contents: CrashableContents, deps: CrashGuardDepend
     deps.notify('WhatsApp stopped unexpectedly and was reloaded.');
   });
   contents.on('unresponsive', () => {
-    const hang = ++hangs;
+    hangs += 1;
+    const hang = hangs;
     deps.schedule(() => {
       if (hang === hangs) {
         contents.forcefullyCrashRenderer();

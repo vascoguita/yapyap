@@ -14,6 +14,8 @@ export interface LogOptions {
   readonly maxFiles?: number;
   /** Rotated files older than this are deleted at start. */
   readonly maxAgeMs?: number;
+  /** Also gets every line, already redacted, such as a terminal's stderr. */
+  readonly mirror?: (line: string) => void;
 }
 
 export interface Logger {
@@ -24,7 +26,8 @@ export interface Logger {
 
 const FILE = 'yapyap.log';
 const RECENT_LINES = 50;
-const DAY_MS = 86_400_000;
+/** Fourteen days. */
+const MAX_AGE_MS = 1_209_600_000;
 
 const rotated = (n: number): string => `yapyap.${String(n)}.log`;
 
@@ -57,10 +60,7 @@ function rotate(dir: string, maxFiles: number): void {
 
 function pruneOld(dir: string, now: number, maxAgeMs: number): void {
   for (const name of readdirSync(dir)) {
-    if (!/^yapyap\.\d+\.log$/.test(name)) {
-      continue;
-    }
-    if (now - statSync(join(dir, name)).mtimeMs > maxAgeMs) {
+    if (/^yapyap\.\d+\.log$/.test(name) && now - statSync(join(dir, name)).mtimeMs > maxAgeMs) {
       unlinkSync(join(dir, name));
     }
   }
@@ -103,7 +103,8 @@ function createWriter(dir: string, maxBytes: number, maxFiles: number): (line: s
  * old files by age. Logging never throws.
  */
 export function createLogger(options: LogOptions): Logger {
-  const { dir, home, now, maxBytes = 1_000_000, maxFiles = 5, maxAgeMs = 14 * DAY_MS } = options;
+  const { dir, home, now, maxBytes = 1_000_000, maxFiles = 5, maxAgeMs = MAX_AGE_MS } = options;
+  const mirror = options.mirror ?? ((): void => undefined);
   const recent: string[] = [];
   prepare(dir, now(), maxAgeMs, maxFiles);
   const write = createWriter(dir, maxBytes, maxFiles);
@@ -115,6 +116,7 @@ export function createLogger(options: LogOptions): Logger {
         recent.shift();
       }
       write(line);
+      mirror(line);
     },
     recent: () => [...recent],
   };

@@ -31,6 +31,18 @@ describe('createLogger', () => {
     ]);
   });
 
+  it('mirrors every redacted line, such as to a terminal', () => {
+    const lines: string[] = [];
+    const logger = createLogger({
+      dir: fresh(),
+      home: HOME,
+      now: () => NOW,
+      mirror: (line) => lines.push(line),
+    });
+    logger.log('error', 'Failed for maria@example.com');
+    expect(lines).toEqual(['2026-10-21T12:00:00.000Z error Failed for [email]']);
+  });
+
   it('keeps only the last 50 lines in memory', () => {
     const logger = createLogger({ dir: fresh(), home: HOME, now: () => NOW });
     for (let n = 0; n < 60; n += 1) {

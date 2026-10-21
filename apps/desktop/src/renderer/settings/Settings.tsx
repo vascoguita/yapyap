@@ -98,8 +98,8 @@ function Sections(props: {
 
 function RestartNotice({ api }: { readonly api: ChromeApi }): JSX.Element {
   return (
-    <div class="notice" role="status">
-      <p>Restart YapYap to apply your changes.</p>
+    <div class="notice">
+      <output>Restart YapYap to apply your changes.</output>
       <button
         type="button"
         onClick={() => {
@@ -166,7 +166,7 @@ function Backup(props: {
           Import settings…
         </button>
       </div>
-      <p role="status">{status}</p>
+      <output>{status}</output>
     </section>
   );
 }

@@ -21,6 +21,9 @@
 
 ## Notes
 
+- The SonarQube Cloud backlog is fixed; the few per-file exceptions, each with
+  its reason, are in `sonar-project.properties` (ADR 0010, #185).
+
 - ESLint requires braces on every block (`curly: all`), matching SonarQube
   Cloud's strict profile (#185).
 

@@ -1,4 +1,4 @@
 import { render } from 'preact';
 import { About } from './About.tsx';
 
-render(<About api={window.yapyap} />, document.body);
+render(<About api={globalThis.yapyap} />, document.body);

@@ -1,6 +1,7 @@
 /** This many GPU process crashes within a day start the next launch without acceleration. */
 export const GPU_CRASH_LIMIT = 3;
-export const GPU_CRASH_WINDOW_MS = 24 * 60 * 60_000;
+/** One day. */
+export const GPU_CRASH_WINDOW_MS = 86_400_000;
 
 /** Reads the crash log, which holds only timestamps; anything unreadable counts as empty. */
 export function readGpuCrashes(read: () => string): number[] {

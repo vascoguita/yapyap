@@ -1,11 +1,15 @@
 /** Windows refuses these as file names, with or without an extension. */
 const RESERVED = /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?$/i;
 /** Characters Windows forbids in names, which include both path separators. */
-const FORBIDDEN = new Set('<>:"/\\|?*');
+const FORBIDDEN = new Set(String.raw`<>:"/\|?*`);
+/** Code points below this are control characters, as is DELETE. */
+const FIRST_PRINTABLE = 0x20;
+const DELETE = 0x7f;
 
 const isForbidden = (character: string): boolean => {
-  const code = character.charCodeAt(0);
-  return FORBIDDEN.has(character) || code < 0x20 || code === 0x7f;
+  // Every caller passes one code point, so there is always a first one.
+  const code = Number(character.codePointAt(0));
+  return FORBIDDEN.has(character) || code < FIRST_PRINTABLE || code === DELETE;
 };
 /** Leaves room for " (99)" and stays under every common file system's limit. */
 const MAX_LENGTH = 200;
@@ -21,7 +25,22 @@ function splitExtension(name: string): { readonly stem: string; readonly extensi
 /** Cuts by code points, so an emoji is never split into a broken half. */
 const cut = (text: string, length: number): string => Array.from(text).slice(0, length).join('');
 
-const trimEnds = (name: string): string => name.replace(/^[.\s]+/, '').replace(/[.\s]+$/, '');
+const isTrimmed = (character: string | undefined): boolean =>
+  character === '.' || (character !== undefined && /^\s$/.test(character));
+
+/** Walks in from both ends instead of a regex, which backtracks on long runs. */
+function trimEnds(name: string): string {
+  const characters = Array.from(name);
+  let start = 0;
+  let end = characters.length;
+  while (start < end && isTrimmed(characters[start])) {
+    start += 1;
+  }
+  while (end > start && isTrimmed(characters[end - 1])) {
+    end -= 1;
+  }
+  return characters.slice(start, end).join('');
+}
 
 function shorten(name: string): string {
   if (Array.from(name).length <= MAX_LENGTH) {

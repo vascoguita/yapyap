@@ -22,6 +22,9 @@ interface ProbedDocument {
  * never leaves the page.
  */
 export function probePageHealth(doc: ProbedDocument): PageHealth {
+  // Declared in here: the probe runs as serialized code in another world.
+  /** html, head and body: a document with nothing in it. */
+  const BARE_DOCUMENT_ELEMENTS = 3;
   const text = doc.body === null ? '' : doc.body.innerText.trim();
   const elements = doc.body === null ? 0 : doc.body.querySelectorAll('*').length;
   // WhatsApp's "update your browser" page names Chrome and asks for an update.
@@ -29,7 +32,7 @@ export function probePageHealth(doc: ProbedDocument): PageHealth {
     /WhatsApp works with|update (?:google )?chrome|browser (?:is )?(?:not|no longer) supported/i.test(
       text,
     );
-  return { unsupported, blank: text === '' && elements < 3 };
+  return { unsupported, blank: text === '' && elements < BARE_DOCUMENT_ELEMENTS };
 }
 
 /** The probe as code for `executeJavaScriptInIsolatedWorld`. */

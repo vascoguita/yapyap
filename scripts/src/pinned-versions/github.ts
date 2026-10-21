@@ -45,8 +45,12 @@ function strings(values: unknown, key: string): string[] {
 
 type Call = (path: string, method?: string, body?: unknown) => Promise<unknown>;
 
+const HTTP_NO_CONTENT = 204;
+const HTTP_NOT_FOUND = 404;
+
 function createCall(token: string, fetch: Fetch): Call {
-  return async (path, method = 'GET', body) => {
+  return async (path, verb, body) => {
+    const method = verb ?? 'GET';
     const response = await fetch(`${API}${path}`, {
       method,
       headers: {
@@ -56,13 +60,13 @@ function createCall(token: string, fetch: Fetch): Call {
       },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
-    if (response.status === 404 && method === 'GET') {
+    if (response.status === HTTP_NOT_FOUND && method === 'GET') {
       return undefined;
     }
     if (!response.ok) {
       throw new Error(`GitHub ${method} ${path} failed with ${String(response.status)}`);
     }
-    return response.status === 204 ? undefined : response.json();
+    return response.status === HTTP_NO_CONTENT ? undefined : response.json();
   };
 }
 
@@ -102,7 +106,7 @@ function pullMethods(
   call: Call,
   repository: string,
 ): Pick<GitHubPort, 'findOpenPullRequest' | 'openPullRequest'> {
-  const owner = repository.replace(/\/.*$/, '');
+  const [owner = repository] = repository.split('/');
   return {
     findOpenPullRequest: async (branch) => {
       const pulls = await call(`/repos/${repository}/pulls?state=open&head=${owner}:${branch}`);
@@ -141,9 +145,9 @@ async function commitOnBranch(
   { branch, expectedHeadOid, headline, body, files }: CommitRequest,
 ): Promise<void> {
   const input = {
+    expectedHeadOid,
     branch: { repositoryNameWithOwner: repository, branchName: branch },
     message: { headline, body },
-    expectedHeadOid,
     fileChanges: {
       additions: files.map(({ path, contents }) => ({
         path,

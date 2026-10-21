@@ -91,7 +91,7 @@ function AudioOption(props: {
           props.onChange(event.currentTarget.checked);
         }}
       />
-      Also share system audio
+      <span>Also share system audio</span>
     </label>
   );
 }

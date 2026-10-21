@@ -5,14 +5,14 @@ import {
   type SettingField,
   type SettingValue,
 } from '../../shared/settings-fields.ts';
-import { NO_ARGUMENTS, type ChromeHandler } from '../chrome/ipc.ts';
+import { noArguments, type ChromeHandler } from '../chrome/ipc.ts';
 import { SettingsSchema, type Settings } from './schema.ts';
 import type { SettingsService } from './service.ts';
 
 /** A field ID such as `reliability.zoom` as a JSON Pointer into the settings. */
 const pointer = (id: string): string => `/${id.replace('.', '/')}`;
 
-function valueOf(settings: Settings, id: string): unknown {
+function readValue(settings: Settings, id: string): unknown {
   return Pointer.Get(settings, pointer(id));
 }
 
@@ -36,13 +36,13 @@ function snapshotOf(
   const current = service.current();
   const values: Record<string, SettingValue> = {};
   for (const { id } of fields) {
-    values[id] = valueOf(current, id) as SettingValue;
+    values[id] = readValue(current, id) as SettingValue;
   }
   return {
     values,
     restartPending: fields.some(
       ({ id, restart: needsRestart }) =>
-        needsRestart && valueOf(current, id) !== valueOf(launched, id),
+        needsRestart && readValue(current, id) !== readValue(launched, id),
     ),
     readOnly: service.readOnly,
   };
@@ -63,7 +63,7 @@ export function settingsHandlers(
   const change = ([id, value]: readonly unknown[]): unknown =>
     withValue(service.current(), String(id), value);
   return [
-    { channel: CHROME_CHANNELS.settingsGet, accepts: NO_ARGUMENTS, handle: snapshot },
+    { channel: CHROME_CHANNELS.settingsGet, accepts: noArguments, handle: snapshot },
     {
       channel: CHROME_CHANNELS.settingsSet,
       accepts: (args) =>
@@ -80,6 +80,6 @@ export function settingsHandlers(
         return snapshot();
       },
     },
-    { channel: CHROME_CHANNELS.settingsRestart, accepts: NO_ARGUMENTS, handle: restart },
+    { channel: CHROME_CHANNELS.settingsRestart, accepts: noArguments, handle: restart },
   ];
 }

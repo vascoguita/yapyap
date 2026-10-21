@@ -70,6 +70,7 @@ export function createRecovery(deps: RecoveryDependencies): Recovery {
     await deps.contents.loadURL(deps.origin).catch(() => undefined);
   };
   return {
+    retry,
     show: (failure) => {
       const overlay = current?.overlay ?? deps.createOverlay();
       deps.views.set(overlay.webContents, { zone: 'chrome', home: CHROME_ORIGIN, label: 'YapYap' });
@@ -81,7 +82,6 @@ export function createRecovery(deps: RecoveryDependencies): Recovery {
       current === undefined
         ? null
         : { kind: current.failure.kind, description: describeFailure(current.failure) },
-    retry,
     clearCacheAndRetry: () => clearSiteCache(deps.contents).then(retry),
     resetSession: () => clearAllSiteData(deps.contents).then(retry),
     reconnect: () => {
