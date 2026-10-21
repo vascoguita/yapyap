@@ -25,21 +25,15 @@ function splitExtension(name: string): { readonly stem: string; readonly extensi
 /** Cuts by code points, so an emoji is never split into a broken half. */
 const cut = (text: string, length: number): string => Array.from(text).slice(0, length).join('');
 
-const isTrimmed = (character: string | undefined): boolean =>
-  character === '.' || (character !== undefined && /^\s$/.test(character));
+const isKept = (character: string): boolean => character !== '.' && character.trim() !== '';
 
-/** Walks in from both ends instead of a regex, which backtracks on long runs. */
+/** Finds the ends instead of using a regex, which backtracks on long runs. */
 function trimEnds(name: string): string {
   const characters = Array.from(name);
-  let start = 0;
-  let end = characters.length;
-  while (start < end && isTrimmed(characters[start])) {
-    start += 1;
-  }
-  while (end > start && isTrimmed(characters[end - 1])) {
-    end -= 1;
-  }
-  return characters.slice(start, end).join('');
+  // With nothing to keep, both are -1 and the slice is empty.
+  const start = characters.findIndex(isKept);
+  const end = characters.findLastIndex(isKept);
+  return characters.slice(start, end + 1).join('');
 }
 
 function shorten(name: string): string {
