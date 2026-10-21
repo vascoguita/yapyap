@@ -21,6 +21,9 @@
 
 ## Notes
 
+- A popup navigation that starts without `will-navigate` (seen on Windows) is
+  routed through the link policy after one second (#188).
+
 - The screen picker lists screens and windows in separate calls (#180),
   because one combined call came back empty on Linux CI while screens alone
   were listed.
