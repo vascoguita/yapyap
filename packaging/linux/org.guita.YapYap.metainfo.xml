@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>org.guita.yapyap.YapYap</id>
+  <id>org.guita.YapYap</id>
   <name>YapYap</name>
   <summary>Fast, private desktop client for WhatsApp Web</summary>
   <metadata_license>CC0-1.0</metadata_license>
@@ -20,7 +20,7 @@
     </p>
     <p>YapYap is unofficial and is not affiliated with, endorsed by, or sponsored by WhatsApp or Meta.</p>
   </description>
-  <launchable type="desktop-id">org.guita.yapyap.YapYap.desktop</launchable>
+  <launchable type="desktop-id">org.guita.YapYap.desktop</launchable>
   <url type="homepage">https://yapyap.guita.org/</url>
   <url type="bugtracker">https://github.com/vascoguita/yapyap/issues</url>
   <url type="help">https://yapyap.guita.org/guide/</url>

@@ -94,7 +94,7 @@ jobs:
           #!/bin/sh
           exec flatpak run --filesystem="$HOME/smoke-tmp" \
             --env=YAPYAP_TEST_WHATSAPP_ORIGIN="$YAPYAP_TEST_WHATSAPP_ORIGIN" \
-            org.guita.yapyap.YapYap "$@"
+            org.guita.YapYap "$@"
           WRAPPER
           chmod +x "$HOME/yapyap-flatpak"
           echo "YAPYAP_PACKAGED_EXECUTABLE=$HOME/yapyap-flatpak" >> "$GITHUB_ENV"

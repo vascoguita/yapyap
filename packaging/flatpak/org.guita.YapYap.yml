@@ -1,4 +1,4 @@
-app-id: org.guita.yapyap.YapYap
+app-id: org.guita.YapYap
 runtime: org.freedesktop.Platform
 runtime-version: '26.08'
 sdk: org.freedesktop.Sdk
@@ -26,9 +26,9 @@ modules:
         path: ../../apps/desktop/release/linux-unpacked
         dest: app
       - type: file
-        path: ../linux/org.guita.yapyap.YapYap.desktop
+        path: ../linux/org.guita.YapYap.desktop
       - type: file
-        path: ../linux/org.guita.yapyap.YapYap.metainfo.xml
+        path: ../linux/org.guita.YapYap.metainfo.xml
       - type: dir
         path: ../../apps/desktop/build/icons
         dest: icons
@@ -42,7 +42,7 @@ modules:
     build-commands:
       - cp -a app /app/main
       - install -Dm755 yapyap.sh /app/bin/yapyap
-      - install -Dm644 org.guita.yapyap.YapYap.desktop /app/share/applications/org.guita.yapyap.YapYap.desktop
-      - install -Dm644 org.guita.yapyap.YapYap.metainfo.xml /app/share/metainfo/org.guita.yapyap.YapYap.metainfo.xml
-      - install -Dm644 icon.svg /app/share/icons/hicolor/scalable/apps/org.guita.yapyap.YapYap.svg
-      - for size in 16 24 32 48 64 128 256 512; do install -Dm644 icons/${size}x${size}.png /app/share/icons/hicolor/${size}x${size}/apps/org.guita.yapyap.YapYap.png; done
+      - install -Dm644 org.guita.YapYap.desktop /app/share/applications/org.guita.YapYap.desktop
+      - install -Dm644 org.guita.YapYap.metainfo.xml /app/share/metainfo/org.guita.YapYap.metainfo.xml
+      - install -Dm644 icon.svg /app/share/icons/hicolor/scalable/apps/org.guita.YapYap.svg
+      - for size in 16 24 32 48 64 128 256 512; do install -Dm644 icons/${size}x${size}.png /app/share/icons/hicolor/${size}x${size}/apps/org.guita.YapYap.png; done
