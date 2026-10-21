@@ -118,3 +118,9 @@ YapYap tells you when each one is done, or if it failed. File names are
 cleaned up so they are safe on every system: folder parts and characters
 Windows does not allow are removed, and a file is never replaced. A second
 `photo.jpg` is saved as `photo (1).jpg`.
+
+## Voice notes and videos
+
+Voice notes, videos, GIFs and status videos play with sound in every YapYap
+package, including the AppImage and Flatpak, with no extra codecs to install:
+YapYap brings the ones WhatsApp needs.
