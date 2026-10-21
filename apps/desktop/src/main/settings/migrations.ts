@@ -24,7 +24,9 @@ export function migrate(
   if (typeof version !== 'number' || !Number.isInteger(version) || version < 1) {
     return { kind: 'invalid' };
   }
-  if (version > current) return { kind: 'newer', version };
+  if (version > current) {
+    return { kind: 'newer', version };
+  }
   const migrated = migrations.slice(version - 1).reduce((result, step) => step(result), settings);
   return { kind: 'migrated', settings: { ...migrated, schemaVersion: current } };
 }

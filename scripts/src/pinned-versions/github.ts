@@ -56,9 +56,12 @@ function createCall(token: string, fetch: Fetch): Call {
       },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
-    if (response.status === 404 && method === 'GET') return undefined;
-    if (!response.ok)
+    if (response.status === 404 && method === 'GET') {
+      return undefined;
+    }
+    if (!response.ok) {
       throw new Error(`GitHub ${method} ${path} failed with ${String(response.status)}`);
+    }
     return response.status === 204 ? undefined : response.json();
   };
 }
@@ -108,7 +111,9 @@ function pullMethods(
     },
     openPullRequest: async (request) => {
       const url = record(await call(`/repos/${repository}/pulls`, 'POST', request))['html_url'];
-      if (typeof url !== 'string') throw new Error('GitHub did not return a pull request URL');
+      if (typeof url !== 'string') {
+        throw new Error('GitHub did not return a pull request URL');
+      }
       return url;
     },
   };
@@ -149,6 +154,7 @@ async function commitOnBranch(
   const result = record(
     await call('/graphql', 'POST', { query: COMMIT_MUTATION, variables: { input } }),
   );
-  if (result['errors'] !== undefined)
+  if (result['errors'] !== undefined) {
     throw new Error(`Commit failed: ${JSON.stringify(result['errors'])}`);
+  }
 }

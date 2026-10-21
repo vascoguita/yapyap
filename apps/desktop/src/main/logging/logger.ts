@@ -49,15 +49,20 @@ function rotate(dir: string, maxFiles: number): void {
   } catch {
     return;
   }
-  for (let n = maxFiles - 1; n >= 1; n -= 1)
+  for (let n = maxFiles - 1; n >= 1; n -= 1) {
     shift(join(dir, rotated(n)), join(dir, rotated(n + 1)));
+  }
   shift(join(dir, PENDING), join(dir, rotated(1)));
 }
 
 function pruneOld(dir: string, now: number, maxAgeMs: number): void {
   for (const name of readdirSync(dir)) {
-    if (!/^yapyap\.\d+\.log$/.test(name)) continue;
-    if (now - statSync(join(dir, name)).mtimeMs > maxAgeMs) unlinkSync(join(dir, name));
+    if (!/^yapyap\.\d+\.log$/.test(name)) {
+      continue;
+    }
+    if (now - statSync(join(dir, name)).mtimeMs > maxAgeMs) {
+      unlinkSync(join(dir, name));
+    }
   }
 }
 
@@ -106,7 +111,9 @@ export function createLogger(options: LogOptions): Logger {
     log: (level, message) => {
       const line = `${new Date(now()).toISOString()} ${level} ${redact(message, home)}`;
       recent.push(line);
-      if (recent.length > RECENT_LINES) recent.shift();
+      if (recent.length > RECENT_LINES) {
+        recent.shift();
+      }
       write(line);
     },
     recent: () => [...recent],

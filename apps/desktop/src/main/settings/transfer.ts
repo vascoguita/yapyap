@@ -32,7 +32,9 @@ export const EXPORTED_SECTIONS = ['general', 'appearance', 'reliability', 'priva
 export function exportSettings(settings: Settings): string {
   const clean = Value.Clean(SettingsSchema, Value.Clone(settings)) as Settings;
   const exported: Record<string, unknown> = { schemaVersion: clean.schemaVersion };
-  for (const section of EXPORTED_SECTIONS) exported[section] = clean[section];
+  for (const section of EXPORTED_SECTIONS) {
+    exported[section] = clean[section];
+  }
   return `${JSON.stringify({ format: SETTINGS_EXPORT_FORMAT, settings: exported }, null, 2)}\n`;
 }
 
@@ -63,13 +65,18 @@ const NOT_SETTINGS: ImportResult = {
 
 /** Reads an exported file through the same migrations and checks as `settings.json`. */
 export function readImport(text: string): ImportResult {
-  if (Buffer.byteLength(text) > MAX_IMPORT_BYTES) return NOT_SETTINGS;
+  if (Buffer.byteLength(text) > MAX_IMPORT_BYTES) {
+    return NOT_SETTINGS;
+  }
   const decoded = decodeSettings(settingsJson(text));
-  if (decoded.kind === 'newer')
+  if (decoded.kind === 'newer') {
     return {
       kind: 'rejected',
       reason: 'Those settings come from a newer version of YapYap. Update YapYap to import them.',
     };
-  if (decoded.kind === 'corrupt') return NOT_SETTINGS;
+  }
+  if (decoded.kind === 'corrupt') {
+    return NOT_SETTINGS;
+  }
   return decoded;
 }

@@ -28,7 +28,9 @@ function fakeContents() {
     },
   };
   const fire = (event: string, ...args: unknown[]): void => {
-    for (const listener of handlers.get(event) ?? []) listener(...(args as never[]));
+    for (const listener of handlers.get(event) ?? []) {
+      listener(...(args as never[]));
+    }
   };
   return { contents, fire };
 }

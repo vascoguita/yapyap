@@ -36,14 +36,19 @@ export function downloadTarget(
   const name = safeFileName(suggested);
   for (let copy = 0; copy <= MAX_COPIES; copy += 1) {
     const path = join(folder, copy === 0 ? name : numberedName(name, copy));
-    if (!deps.taken(path)) return path;
+    if (!deps.taken(path)) {
+      return path;
+    }
   }
   return undefined;
 }
 
 function report(deps: DownloadDependencies, name: string, state: string): void {
-  if (state === 'completed') deps.notify(`Downloaded ${name} to your Downloads folder.`);
-  else if (state === 'interrupted') deps.notify(`Could not download ${name}.`);
+  if (state === 'completed') {
+    deps.notify(`Downloaded ${name} to your Downloads folder.`);
+  } else if (state === 'interrupted') {
+    deps.notify(`Could not download ${name}.`);
+  }
 }
 
 /** A file system that refuses to be checked means asking the user instead. */

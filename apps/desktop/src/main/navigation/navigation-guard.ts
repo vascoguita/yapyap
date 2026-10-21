@@ -63,11 +63,59 @@ function follow(contents: NavigationContents, url: string, deps: NavigationDepen
   const report = (): void => {
     deps.warn(`Could not open a ${action.kind} link.`);
   };
-  if (action.kind === 'external') deps.openExternal(action.url).catch(report);
-  if (action.kind === 'deep-link') contents.loadURL(action.url).catch(report);
+  if (action.kind === 'external') {
+    deps.openExternal(action.url).catch(report);
+  }
+  if (action.kind === 'deep-link') {
+    contents.loadURL(action.url).catch(report);
+  }
 }
 
 const isBlank = (url: string): boolean => url === 'about:blank' || url === '';
+
+interface PopupRoute {
+  /** Destroys the popup; nothing routes it after this. */
+  readonly discard: () => void;
+  /** Routes where the popup is heading or what it shows, unless already handled. */
+  readonly routeUnseen: () => void;
+  readonly done: () => boolean;
+  readonly started: (url: string) => void;
+}
+
+function popupRoute(
+  opener: NavigationContents,
+  popup: PopupWindow,
+  deps: NavigationDependencies,
+  routed: WeakSet<object>,
+): PopupRoute {
+  let done = false;
+  let started: string | undefined;
+  const discard = (): void => {
+    done = true;
+    if (!popup.isDestroyed()) {
+      popup.destroy();
+    }
+  };
+  const target = (): string => started ?? (popup.isDestroyed() ? '' : popup.webContents.getURL());
+  const routeUnseen = (): void => {
+    const url = target();
+    if (done || isBlank(url)) {
+      return;
+    }
+    // A will-navigate that arrives after this must not route the link again.
+    routed.add(popup.webContents);
+    follow(opener, url, deps);
+    discard();
+  };
+  return {
+    discard,
+    routeUnseen,
+    done: () => done,
+    started: (url) => {
+      started = url;
+    },
+  };
+}
 
 function adoptPopup(
   opener: NavigationContents,
@@ -75,27 +123,15 @@ function adoptPopup(
   deps: NavigationDependencies,
   routed: WeakSet<object>,
 ): void {
-  let done = false;
-  let started: string | undefined;
-  const discard = (): void => {
-    done = true;
-    if (!popup.isDestroyed()) popup.destroy();
-  };
-  const target = (): string => started ?? (popup.isDestroyed() ? '' : popup.webContents.getURL());
-  const routeUnseen = (): void => {
-    const url = target();
-    if (done || isBlank(url)) return;
-    // A will-navigate that arrives after this must not route the link again.
-    routed.add(popup.webContents);
-    follow(opener, url, deps);
-    discard();
-  };
+  const route = popupRoute(opener, popup, deps, routed);
   const watch = (): void => {
-    routeUnseen();
-    if (!done) deps.schedule(watch, UNSEEN_NAVIGATION_MS);
+    route.routeUnseen();
+    if (!route.done()) {
+      deps.schedule(watch, UNSEEN_NAVIGATION_MS);
+    }
   };
   // The popup's own navigation guard has already routed the link by now.
-  popup.webContents.once('will-navigate', discard);
+  popup.webContents.once('will-navigate', route.discard);
   // A navigation the opener starts is normally reported as will-navigate
   // right after it starts. On Windows it sometimes is not, or starts before
   // these listeners exist (#188), so a timer also checks where the popup is
@@ -103,12 +139,14 @@ function adoptPopup(
   // contents inside its navigation-start event crashes Electron, which is
   // another reason this happens from a timer.
   popup.webContents.on('did-start-navigation', ({ url, isMainFrame }) => {
-    if (isMainFrame && !isBlank(url)) started = url;
+    if (isMainFrame && !isBlank(url)) {
+      route.started(url);
+    }
   });
   deps.schedule(watch, UNSEEN_NAVIGATION_MS);
   deps.schedule(() => {
-    routeUnseen();
-    discard();
+    route.routeUnseen();
+    route.discard();
   }, TRANSIENT_POPUP_MS);
 }
 
@@ -126,14 +164,17 @@ export function createNavigationGuard(
         event.preventDefault();
         return;
       }
-      if (!event.isMainFrame || isSameOrigin(event.url, deps.homeOf(contents))) return;
+      if (!event.isMainFrame || isSameOrigin(event.url, deps.homeOf(contents))) {
+        return;
+      }
       event.preventDefault();
       follow(contents, event.url, deps);
     });
     contents.on('will-redirect', (event) => {
       // A redirect is not a click, so it is blocked rather than opened elsewhere.
-      if (event.isMainFrame && !isSameOrigin(event.url, deps.homeOf(contents)))
+      if (event.isMainFrame && !isSameOrigin(event.url, deps.homeOf(contents))) {
         event.preventDefault();
+      }
     });
     contents.setWindowOpenHandler(({ url }) => {
       if (isBlank(url)) {

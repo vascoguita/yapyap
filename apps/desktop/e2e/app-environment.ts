@@ -7,7 +7,9 @@ const DROPPED = new Set(['ELECTRON_RUN_AS_NODE', 'WAYLAND_DISPLAY']);
 export function appEnvironment(origin: string): Record<string, string> {
   const env: Record<string, string> = {};
   for (const [key, value] of Object.entries(process.env)) {
-    if (value !== undefined && !DROPPED.has(key)) env[key] = value;
+    if (value !== undefined && !DROPPED.has(key)) {
+      env[key] = value;
+    }
   }
   return { ...env, YAPYAP_TEST_WHATSAPP_ORIGIN: origin };
 }

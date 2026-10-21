@@ -39,7 +39,9 @@ describe('resolveConfig', () => {
 describe('optionalFileReader', () => {
   it('returns file contents, undefined for missing files, and rethrows other errors', async () => {
     const read = optionalFileReader((path) => {
-      if (path === 'ok') return Promise.resolve('data');
+      if (path === 'ok') {
+        return Promise.resolve('data');
+      }
       const error = Object.assign(new Error(path), {
         code: path === 'missing' ? 'ENOENT' : 'EACCES',
       });

@@ -14,7 +14,9 @@ export interface ShowableWindow {
 export function showWhenReady(window: ShowableWindow): void {
   let shown = false;
   const showOnce = (): void => {
-    if (shown) return;
+    if (shown) {
+      return;
+    }
     shown = true;
     window.show();
   };

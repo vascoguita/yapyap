@@ -41,7 +41,9 @@ function setup() {
     appListeners.get('session-created')?.(...([session] as never[]));
   };
   const fire = (event: string, ...args: unknown[]): void => {
-    for (const listener of handlers.get(event) ?? []) listener(...(args as never[]));
+    for (const listener of handlers.get(event) ?? []) {
+      listener(...(args as never[]));
+    }
   };
   return {
     contents,

@@ -32,7 +32,9 @@ async function exportTo(
   call: ChromeCall,
 ): Promise<TransferResult> {
   const path = await files.chooseExport(call.sender);
-  if (path === undefined) return CANCELLED;
+  if (path === undefined) {
+    return CANCELLED;
+  }
   try {
     await files.write(path, exportSettings(service.current()));
     return { outcome: 'done', message: 'Settings exported.' };
@@ -47,7 +49,9 @@ async function importFrom(
   call: ChromeCall,
 ): Promise<TransferResult> {
   const path = await files.chooseImport(call.sender);
-  if (path === undefined) return CANCELLED;
+  if (path === undefined) {
+    return CANCELLED;
+  }
   let text: string;
   try {
     text = await files.read(path);
@@ -55,8 +59,12 @@ async function importFrom(
     return { outcome: 'failed', message: 'Could not read that file.' };
   }
   const result = readImport(text);
-  if (result.kind === 'rejected') return { outcome: 'failed', message: result.reason };
-  if (!(await files.confirmImport(call.sender, confirmation(result.reset)))) return CANCELLED;
+  if (result.kind === 'rejected') {
+    return { outcome: 'failed', message: result.reason };
+  }
+  if (!(await files.confirmImport(call.sender, confirmation(result.reset)))) {
+    return CANCELLED;
+  }
   service.update(() => result.settings);
   return { outcome: 'done', message: 'Settings imported.' };
 }

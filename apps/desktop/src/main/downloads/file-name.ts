@@ -24,11 +24,15 @@ const cut = (text: string, length: number): string => Array.from(text).slice(0, 
 const trimEnds = (name: string): string => name.replace(/^[.\s]+/, '').replace(/[.\s]+$/, '');
 
 function shorten(name: string): string {
-  if (Array.from(name).length <= MAX_LENGTH) return name;
+  if (Array.from(name).length <= MAX_LENGTH) {
+    return name;
+  }
   const { stem, extension } = splitExtension(name);
   const length = Array.from(extension).length;
   // An extension too long to keep is not one worth keeping intact.
-  if (length >= MAX_LENGTH / 2) return trimEnds(cut(name, MAX_LENGTH));
+  if (length >= MAX_LENGTH / 2) {
+    return trimEnds(cut(name, MAX_LENGTH));
+  }
   return trimEnds(cut(stem, MAX_LENGTH - length)) + extension;
 }
 

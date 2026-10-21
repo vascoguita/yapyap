@@ -12,7 +12,9 @@ export function compareVersions(a: string, b: string): number {
   const [left, right] = [parts(a), parts(b)];
   for (let i = 0; i < Math.max(left.length, right.length); i++) {
     const delta = (left[i] ?? 0) - (right[i] ?? 0);
-    if (delta !== 0) return delta;
+    if (delta !== 0) {
+      return delta;
+    }
   }
   return 0;
 }

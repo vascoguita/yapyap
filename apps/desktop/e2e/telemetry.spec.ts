@@ -53,7 +53,9 @@ async function recordRequests(app: ElectronApplication): Promise<void> {
       session.defaultSession,
       ...webContents.getAllWebContents().map((c) => c.session),
     ]);
-    for (const target of sessions) watch(target);
+    for (const target of sessions) {
+      watch(target);
+    }
     electronApp.on('session-created', watch);
   });
 }

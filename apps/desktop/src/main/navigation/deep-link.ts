@@ -4,15 +4,23 @@ const WA_ME_PATH = /^\/(\d{1,20})?\/?$/;
 
 function fromWaMe(url: URL, send: URL): string | undefined {
   const path = WA_ME_PATH.exec(url.pathname);
-  if (path === null) return undefined;
-  if (path[1] !== undefined) send.searchParams.set('phone', path[1]);
+  if (path === null) {
+    return undefined;
+  }
+  if (path[1] !== undefined) {
+    send.searchParams.set('phone', path[1]);
+  }
   return send.href;
 }
 
 function fromApi(url: URL, send: URL): string | undefined {
-  if (url.pathname !== '/send') return undefined;
+  if (url.pathname !== '/send') {
+    return undefined;
+  }
   const phone = url.searchParams.get('phone');
-  if (phone !== null) send.searchParams.set('phone', phone);
+  if (phone !== null) {
+    send.searchParams.set('phone', phone);
+  }
   return send.href;
 }
 
@@ -28,12 +36,18 @@ const WEB_FORMS: ReadonlyMap<string, (url: URL, send: URL) => string | undefined
  * through the same validation. Only the phone number and text survive.
  */
 function asSendLink(url: URL): string | undefined {
-  if (url.protocol === 'whatsapp:') return url.href;
+  if (url.protocol === 'whatsapp:') {
+    return url.href;
+  }
   const form = url.protocol === 'https:' ? WEB_FORMS.get(url.host) : undefined;
-  if (form === undefined) return undefined;
+  if (form === undefined) {
+    return undefined;
+  }
   const send = new URL('whatsapp://send');
   const text = url.searchParams.get('text');
-  if (text !== null) send.searchParams.set('text', text);
+  if (text !== null) {
+    send.searchParams.set('text', text);
+  }
   return form(url, send);
 }
 
@@ -51,7 +65,9 @@ export function chatLinkTarget(raw: string, home: string): string | undefined {
 export function chatLinkInArguments(argv: readonly string[], home: string): string | undefined {
   for (const argument of argv) {
     const target = chatLinkTarget(argument, home);
-    if (target !== undefined) return target;
+    if (target !== undefined) {
+      return target;
+    }
   }
   return undefined;
 }

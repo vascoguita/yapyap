@@ -26,7 +26,9 @@ function setup(readOnly = false) {
   );
   const handler = (channel: string) => {
     const found = handlers.get(channel);
-    if (found === undefined) throw new Error(`No handler for ${channel}`);
+    if (found === undefined) {
+      throw new Error(`No handler for ${channel}`);
+    }
     return found;
   };
   const call = { sender: {} };
@@ -46,15 +48,20 @@ describe('settingsHandlers', () => {
     expect(values.map(([id]) => id)).toEqual(SETTING_FIELDS.map((field) => field.id));
     SETTING_FIELDS.forEach((field, index) => {
       const value: unknown = values[index]?.[1];
-      if (field.options === undefined) expect(typeof value).toBe('boolean');
-      else expect(field.options.map((option) => option.value)).toContain(value);
+      if (field.options === undefined) {
+        expect(typeof value).toBe('boolean');
+      } else {
+        expect(field.options.map((option) => option.value)).toContain(value);
+      }
     });
   });
 
   it('accepts each option of a choice and saves it without asking for a restart', () => {
     const t = setup();
     const set = t.handler('settings:set');
-    for (const theme of ['light', 'dark', 'system']) expect(set.accepts([THEME, theme])).toBe(true);
+    for (const theme of ['light', 'dark', 'system']) {
+      expect(set.accepts([THEME, theme])).toBe(true);
+    }
     expect(set.accepts([THEME, 'sepia'])).toBe(false);
     expect(set.handle(t.call, THEME, 'dark')).toEqual(
       expect.objectContaining({ restartPending: false }),

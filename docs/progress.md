@@ -21,6 +21,9 @@
 
 ## Notes
 
+- ESLint requires braces on every block (`curly: all`), matching SonarQube
+  Cloud's strict profile (#185).
+
 - macOS and Windows releases ship unsigned until donations (#196) fund code
   signing (#23, #24); the install guide explains the first launch.
 

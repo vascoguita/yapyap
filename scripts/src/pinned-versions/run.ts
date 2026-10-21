@@ -26,7 +26,9 @@ export interface Dependencies {
 }
 
 function parseNodeIndex(index: unknown): NodeRelease[] {
-  if (!Array.isArray(index)) return [];
+  if (!Array.isArray(index)) {
+    return [];
+  }
   return index.flatMap((entry: unknown) => {
     const { version, lts } = (typeof entry === 'object' && entry !== null ? entry : {}) as Record<
       string,
@@ -54,8 +56,12 @@ async function computePlan(deps: Dependencies): Promise<Plan> {
 
 async function openUpdate({ github, base, log }: Dependencies, plan: Plan): Promise<Outcome> {
   const baseOid = await github.headOid(base);
-  if (baseOid === undefined) throw new Error(`Base branch ${base} not found`);
-  if ((await github.headOid(BRANCH)) !== undefined) await github.deleteBranch(BRANCH);
+  if (baseOid === undefined) {
+    throw new Error(`Base branch ${base} not found`);
+  }
+  if ((await github.headOid(BRANCH)) !== undefined) {
+    await github.deleteBranch(BRANCH);
+  }
   await github.createBranch(BRANCH, baseOid);
   const body = plan.summaries.map((line) => `- ${line}`).join('\n');
   await github.commit({

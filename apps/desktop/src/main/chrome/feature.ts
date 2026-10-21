@@ -158,7 +158,9 @@ function aboutHandlers(deps: FactsSource): ChromeHandler[] {
 function recoveryHandlers(recoveries: readonly Recovery[]): ChromeHandler[] {
   const of = ({ sender }: ChromeCall): Recovery => {
     const recovery = recoveries.find((candidate) => candidate.owns(sender));
-    if (recovery === undefined) throw new Error('No recovery screen belongs to this window.');
+    if (recovery === undefined) {
+      throw new Error('No recovery screen belongs to this window.');
+    }
     return recovery;
   };
   const operation = (channel: string, run: (recovery: Recovery) => unknown): ChromeHandler => ({
@@ -222,7 +224,9 @@ function sourcePicker(
       return {
         webContents: window.webContents,
         close: () => {
-          if (!window.isDestroyed()) window.close();
+          if (!window.isDestroyed()) {
+            window.close();
+          }
         },
         onClosed: (listener) => {
           window.once('closed', listener);

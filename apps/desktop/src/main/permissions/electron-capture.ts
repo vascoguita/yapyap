@@ -46,7 +46,9 @@ function choosePicker(
   env: Readonly<Record<string, string | undefined>>,
   pickInApp: (contents: object) => Promise<CaptureChoice | undefined>,
 ): DisplayCapturePort['pick'] {
-  if (!usesPortalPicker(platform, env)) return pickInApp;
+  if (!usesPortalPicker(platform, env)) {
+    return pickInApp;
+  }
   return async () => {
     const [source] = await desktopCapturer.getSources({ types: ['screen', 'window'] });
     return source === undefined ? undefined : { video: source };

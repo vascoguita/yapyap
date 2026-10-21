@@ -183,10 +183,14 @@ function announceStartup(
   deps: Pick<StartDependencies<WindowPort>, 'settings' | 'notify'>,
   graphics: Graphics,
 ): void {
-  if (deps.settings.notice !== undefined) deps.notify(deps.settings.notice);
+  if (deps.settings.notice !== undefined) {
+    deps.notify(deps.settings.notice);
+  }
   const graphicsNotice =
     graphics.reason === undefined ? undefined : GRAPHICS_NOTICES[graphics.reason];
-  if (graphicsNotice !== undefined) deps.notify(graphicsNotice);
+  if (graphicsNotice !== undefined) {
+    deps.notify(graphicsNotice);
+  }
 }
 
 function whatsAppOrigin(
@@ -194,8 +198,9 @@ function whatsAppOrigin(
   warn: (message: string) => void,
 ): string {
   const { origin, rejectedOverride } = resolveWhatsAppOrigin(env['YAPYAP_TEST_WHATSAPP_ORIGIN']);
-  if (rejectedOverride)
+  if (rejectedOverride) {
     warn('Ignoring YAPYAP_TEST_WHATSAPP_ORIGIN: only loopback http origins are allowed.');
+  }
   return origin;
 }
 
@@ -243,6 +248,23 @@ function refuseWithoutSandbox<Window extends WindowPort>(
   });
 }
 
+/** Registers WhatsApp's window and puts recovery, reconnects and zoom on it. */
+function wireMainWindow<Window extends WindowPort>(
+  deps: StartDependencies<Window>,
+  chrome: ReturnType<StartDependencies<Window>['chrome']['afterReady']>,
+  window: Window,
+  views: ViewRegistry,
+  origin: string,
+): void {
+  views.set(window.webContents, { zone: 'whatsapp', home: origin, label: 'WhatsApp' });
+  const recovery = chrome.attachRecovery(window.webContents, origin, (renderer) =>
+    deps.createOverlay(window, renderer),
+  );
+  watchOnline(deps, window, recovery.reconnect);
+  followZoomSetting(window.webContents, deps.settings);
+  showWhenReady(window);
+}
+
 export async function startApp<Window extends WindowPort>(
   deps: StartDependencies<Window>,
 ): Promise<void> {
@@ -253,7 +275,9 @@ export async function startApp<Window extends WindowPort>(
   }
   const origin = whatsAppOrigin(deps.env, warn);
   const instances = claimSingleInstance(app, origin, warn);
-  if (instances === undefined) return;
+  if (instances === undefined) {
+    return;
+  }
   quitOnShutdown(deps.shutdown, () => {
     app.quit();
   });
@@ -274,13 +298,7 @@ export async function startApp<Window extends WindowPort>(
   picker.bind(chrome.pickCaptureSource);
   announceStartup(deps, graphics);
   const window = openMainWindow(deps);
-  views.set(window.webContents, { zone: 'whatsapp', home: origin, label: 'WhatsApp' });
-  const recovery = chrome.attachRecovery(window.webContents, origin, (renderer) =>
-    deps.createOverlay(window, renderer),
-  );
-  watchOnline(deps, window, recovery.reconnect);
-  followZoomSetting(window.webContents, deps.settings);
-  showWhenReady(window);
+  wireMainWindow(deps, chrome, window, views, origin);
   instances.attach(window);
   // A failed load must not end startup: the monitor shows the recovery screen.
   await window.loadURL(chatLinkInArguments(deps.argv, origin) ?? origin).catch(() => undefined);
