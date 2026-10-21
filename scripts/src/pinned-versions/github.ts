@@ -116,7 +116,7 @@ function pullMethods(
     openPullRequest: async (request) => {
       const url = record(await call(`/repos/${repository}/pulls`, 'POST', request))['html_url'];
       if (typeof url !== 'string') {
-        throw new Error('GitHub did not return a pull request URL');
+        throw new TypeError('GitHub did not return a pull request URL');
       }
       return url;
     },
