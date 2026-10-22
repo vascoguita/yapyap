@@ -28,14 +28,14 @@ analysis must run in CI.
   fake WhatsApp page) is analyzed with test rules and kept out of duplication
   and coverage. Coverage exclusions mirror `vitest.config.ts`, so Sonar and
   Vitest agree on 100%.
-- **Quality gate "YapYap strict"** (assigned to this project only; the
-  organization default stays as it is):
-  - New code: coverage 100%, duplication 0%, A ratings for reliability,
-    security, maintainability and security review, every hotspot reviewed,
-    no new issues, no accepted issues, and A ratings for dependency
-    vulnerabilities, licensing and malware.
-  - Overall code: the same conditions, with zero issues instead of zero new
-    issues.
+- **Quality gate "Sonar way for Agentic AI"** (built in), which checks new
+  code: severity limits on new bugs, vulnerabilities, code smells and
+  dependency issues, coverage of at least 80% and duplication of at most 3%.
+  The project first cleared its backlog under a custom gate, "YapYap strict",
+  that required zero issues, 100% coverage and A ratings on new and overall
+  code. Once overall code passed it, the maintainer chose the built-in gate
+  and the custom one was deleted (2026-10-22). Vitest still enforces 100%
+  coverage (ADR 0005), so the gate's 80% is only a floor.
 - **Quality profiles "YapYap strict"**, for TypeScript, JavaScript, CSS, HTML,
   GitHub Actions, YAML, JSON, XML, secrets and text. Each inherits Sonar way
   comprehensive, so new built-in rules arrive on their own, and also
@@ -56,7 +56,7 @@ analysis must run in CI.
   and ESLint rule visitors (`Program`) must use it.
 
 - **Exceptions:** an issue is fixed, or the rule is turned off above with a
-  reason. Issues are never accepted, and the gate fails if one is. Marking a
+  reason. Issues are never accepted, even where the gate would pass. Marking a
   false positive needs a comment that explains it. Narrow per-file
   exceptions live in `sonar-project.properties`, each with its reason:
   console output and `PATH` lookups in command-line scripts, the main
@@ -64,7 +64,7 @@ analysis must run in CI.
   analyzer misreads for Playwright (assertions and conditional skips).
 - **Required check:** `SonarQube Cloud` is required in
   `.github/rulesets/master.json`. It was added only once overall code passed
-  the gate, so the backlog never blocked unrelated work. The README shows the
+  the strict gate, so the backlog never blocked unrelated work. The README shows the
   gate and the main measures as badges.
 
 ## Consequences
