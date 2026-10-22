@@ -14,6 +14,14 @@ function addDisplayBackend(settings: Raw): Raw {
     : settings;
 }
 
+/** Version 4 adds closing to the tray, off as before (#65). */
+function addCloseToTray(settings: Raw): Raw {
+  const general = settings['general'];
+  return isSection(general)
+    ? { ...settings, general: { closeToTray: false, ...general } }
+    : settings;
+}
+
 /** Version 3 keeps chats unread while YapYap is hidden, as before, unless turned off (#66). */
 function addUnreadWhileHidden(settings: Raw): Raw {
   const privacy = settings['privacy'];
@@ -30,6 +38,7 @@ function addUnreadWhileHidden(settings: Raw): Raw {
 export const MIGRATIONS: readonly ((settings: Raw) => Raw)[] = [
   addDisplayBackend,
   addUnreadWhileHidden,
+  addCloseToTray,
 ];
 
 export type MigrationResult =

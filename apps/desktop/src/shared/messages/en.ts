@@ -108,6 +108,16 @@ const catalog = {
     },
     // Keyed by setting ID; option keys are the values the settings file stores.
     fields: {
+      'general.startMinimized': {
+        label: 'Start minimized',
+        description:
+          'Open YapYap in the background, in the tray or the Dock. Starting it again shows the window.',
+      },
+      'general.closeToTray': {
+        label: 'Close to the tray',
+        description:
+          'Closing the window keeps YapYap running in the tray, so notifications keep coming. Quit from the tray or the menu.',
+      },
       'appearance.theme': {
         label: 'Theme',
         description:
@@ -150,6 +160,11 @@ const catalog = {
           'When YapYap is hidden or minimized, WhatsApp does not mark new messages in the open chat as read. Turn this off to let the open chat keep reading.',
       },
     },
+  },
+  tray: {
+    tooltip: 'YapYap',
+    show: 'Show YapYap',
+    quit: 'Quit YapYap',
   },
 } as const;
 

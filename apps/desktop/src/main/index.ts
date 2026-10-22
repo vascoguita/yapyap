@@ -5,6 +5,7 @@ import {
   desktopCapturer,
   ipcMain,
   Menu,
+  Tray,
   nativeTheme,
   net,
   Notification,
@@ -25,6 +26,7 @@ import { CHROME_PARTITION, createChromeFeature } from './chrome/feature.ts';
 import { profileCrashFiles, readPreviousLog } from './crash/crash-files.ts';
 import { reviewCrashWithDialog } from './crash-review-prompt.ts';
 import electronUpdater from 'electron-updater';
+import trayIcon from '../../build/icons/32x32.png?asset';
 import { createLogger } from './logging/logger.ts';
 import { askToInstallUpdateWithDialog } from './update-prompt.ts';
 import { readInstallEvidence } from './updates/install-evidence.ts';
@@ -44,6 +46,9 @@ const PICKER_THUMBNAIL = { width: 320, height: 180 };
 
 const GPU_CRASH_LOG = join(app.getPath('userData'), 'gpu-crashes.json');
 const WINDOW_STATE = join(app.getPath('userData'), 'window-state.json');
+
+// Holds the tray for the app's lifetime; a collected Tray disappears from the panel.
+let tray: Tray | undefined;
 
 const LOG_DIR = join(app.getPath('userData'), 'logs');
 
@@ -177,6 +182,13 @@ startApp({
   selfUpdate: {
     updater: () => electronUpdater.autoUpdater,
     askToInstall: askToInstallUpdateWithDialog,
+  },
+  tray: {
+    create: () => {
+      tray = new Tray(trayIcon);
+      return tray;
+    },
+    buildMenu: (template) => Menu.buildFromTemplate(template),
   },
   releases: {
     policy: decideUpdatePolicy(installChannel(), installEvidence()).policy,

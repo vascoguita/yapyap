@@ -144,6 +144,10 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
         askToInstall: vi.fn(() => Promise.resolve(false)),
       };
     })(),
+    tray: {
+      create: vi.fn(() => ({ setToolTip: vi.fn(), setContextMenu: vi.fn(), on: vi.fn() })),
+      buildMenu: vi.fn((template: unknown) => template),
+    },
     releases: {
       policy: 'manual' as 'manual' | 'notify' | 'self-update',
       currentVersion: '0.1.0',
@@ -526,6 +530,28 @@ describe('startApp', () => {
     await startApp(f);
     expect(f.selfUpdate.instance.checkForUpdates).toHaveBeenCalledOnce();
     expect(f.selfUpdate.instance.autoInstallOnAppQuit).toBe(false);
+  });
+
+  it('puts YapYap in the tray, whose menu quits it', async () => {
+    const f = fakes();
+    await startApp(f);
+    expect(f.tray.create).toHaveBeenCalledOnce();
+    const [template] = f.tray.buildMenu.mock.calls[0] as [{ click?: () => void }[]];
+    template[2]?.click?.();
+    expect(f.app.quit).toHaveBeenCalledOnce();
+  });
+
+  it('stays hidden when started minimized', async () => {
+    const f = fakes();
+    const settings = defaultSettings();
+    f.settings.current = () => ({
+      ...settings,
+      general: { ...settings.general, startMinimized: true },
+    });
+    await startApp(f);
+    f.listeners.get('ready-to-show')?.();
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(f.window.show).not.toHaveBeenCalled();
   });
 
   it('leaves the launch to the running YapYap when another one holds the lock', async () => {
