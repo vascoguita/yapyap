@@ -166,6 +166,14 @@ PR open on `master` and updates it from Conventional Commits. Merging that PR
 tags `vX.Y.Z`, updates `CHANGELOG.md` and creates the GitHub Release, which
 starts the release build. Never tag by hand.
 
+Until the first release is near, the release PR is paused: the
+release-please job runs only when the repository variable
+`RELEASES_ENABLED` is `true`. Every update of the release PR runs the full
+check suite, which holds runners that feature PRs wait for. To resume, run
+`gh variable set RELEASES_ENABLED --body true --repo vascoguita/yapyap`; the
+next push to `master` opens the release PR again with every change since the
+last release.
+
 Release notes are generated from commit subjects, and only `feat`, `fix`,
 `perf` and `revert` commits appear in them. A fix for a publicly known
 vulnerability uses the `security` scope and names its advisory in the
