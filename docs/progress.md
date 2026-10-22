@@ -90,6 +90,11 @@ not edit the same lines.
   because one combined call came back empty on Linux CI while screens alone
   were listed.
 
+- Beta gate (#184, first part): the release PR gets a `Beta gate` check that
+  fails until a `vX.Y.Z-beta.N` pre-release of its version has been out for
+  3 days; `Security release: <reason>` in the PR skips the wait, never the
+  beta. Cutting betas and the "Get beta updates" setting come next.
+
 - The SonarQube Cloud backlog is fixed; the few per-file exceptions, each with
   its reason, are in `sonar-project.properties` (ADR 0010, #185).
 
