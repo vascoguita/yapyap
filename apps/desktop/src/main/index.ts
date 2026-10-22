@@ -26,6 +26,8 @@ import { profileCrashFiles, readPreviousLog } from './crash/crash-files.ts';
 import { reviewCrashWithDialog } from './crash-review-prompt.ts';
 import { createLogger } from './logging/logger.ts';
 import { readInstallEvidence } from './updates/install-evidence.ts';
+import { releaseFetcher } from './updates/update-notice.ts';
+import { decideUpdatePolicy } from './updates/update-policy.ts';
 import { electronSettingsFiles } from './settings/transfer-dialogs.ts';
 import { openSettings } from './settings/service.ts';
 import { electronCapture } from './permissions/electron-capture.ts';
@@ -61,9 +63,25 @@ const notify = (body: string): void => {
 
 const settings = openSettings(app.getPath('userData'), Date.now(), warn);
 
+const installChannel = (): string =>
+  readInstallChannel(() => readFileSync(join(app.getAppPath(), 'package.json'), 'utf8'));
+
+const installEvidence = () =>
+  readInstallEvidence({
+    platform: process.platform,
+    env: process.env,
+    exists: existsSync,
+    // The executable sits in YapYap.app/Contents/MacOS.
+    codesign: () =>
+      spawnSync('/usr/bin/codesign', ['-dv', join(process.execPath, '..', '..', '..')], {
+        encoding: 'utf8',
+      }).stderr,
+  });
+
 const chrome = createChromeFeature({
   notify,
   settings,
+  installEvidence,
   registerSchemesAsPrivileged: (schemes) => {
     protocol.registerSchemesAsPrivileged([...schemes]);
   },
@@ -76,7 +94,7 @@ const chrome = createChromeFeature({
   writeClipboard: (text) => clipboard.writeText(text),
   facts: () => ({
     version: app.getVersion(),
-    channel: readInstallChannel(() => readFileSync(join(app.getAppPath(), 'package.json'), 'utf8')),
+    channel: installChannel(),
     versions: process.versions,
     platform: process.platform,
     release: release(),
@@ -89,17 +107,6 @@ const chrome = createChromeFeature({
   // Electron types the status as a fixed interface of string fields.
   gpuStatus: () => app.getGPUFeatureStatus() as unknown as Record<string, string>,
   recentLog: () => logger.recent(),
-  installEvidence: () =>
-    readInstallEvidence({
-      platform: process.platform,
-      env: process.env,
-      exists: existsSync,
-      // The executable sits in YapYap.app/Contents/MacOS.
-      codesign: () =>
-        spawnSync('/usr/bin/codesign', ['-dv', join(process.execPath, '..', '..', '..')], {
-          encoding: 'utf8',
-        }).stderr,
-    }),
   settingsFiles: electronSettingsFiles,
   restart: () => {
     app.relaunch();
@@ -165,6 +172,18 @@ startApp({
   },
   sandboxDisabled: sandboxDisabled(app.commandLine, process.env),
   explainUnsafeStart: explainUnsafeStartWithDialog,
+  releases: {
+    policy: decideUpdatePolicy(installChannel(), installEvidence()).policy,
+    currentVersion: app.getVersion(),
+    fetchJson: releaseFetcher((url, init) => net.fetch(url, init)),
+    showNotice: (body, url) => {
+      const notice = new Notification({ title: 'YapYap', body });
+      notice.on('click', () => {
+        void shell.openExternal(url);
+      });
+      notice.show();
+    },
+  },
   crashes: {
     files: profileCrashFiles(app.getPath('userData')),
     version: app.getVersion(),

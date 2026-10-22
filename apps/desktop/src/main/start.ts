@@ -14,6 +14,7 @@ import {
 } from './recovery/gpu-safe-mode.ts';
 import type { SettingsService } from './settings/service.ts';
 import { followHiddenReadsSetting, type ThrottledContents } from './privacy/hidden-reads.ts';
+import { watchForReleases, type UpdateNoticeDependencies } from './updates/update-notice.ts';
 import {
   chooseDisplayBackend,
   describeDisplayBackend,
@@ -137,6 +138,11 @@ export interface StartDependencies<Window extends WindowPort> {
   readonly appMetrics: () => readonly ProcessMemory[];
   /** Seconds since the last keyboard or mouse input. */
   readonly idleSeconds: () => number;
+  /** What tells the user about new releases, for builds that cannot update themselves. */
+  readonly releases: Pick<
+    UpdateNoticeDependencies,
+    'policy' | 'currentVersion' | 'fetchJson' | 'showNotice'
+  >;
   readonly notify: (message: string) => void;
   readonly warn: (message: string) => void;
   readonly logError: (message: string) => void;
@@ -255,9 +261,10 @@ function watchCrashes<Window extends WindowPort>(
 
 /** Tells the user about anything startup changed that they did not choose. */
 function announceStartup(
-  deps: Pick<StartDependencies<WindowPort>, 'settings' | 'notify'>,
+  deps: Pick<StartDependencies<WindowPort>, 'settings' | 'notify' | 'releases' | 'warn'>,
   graphics: Graphics,
 ): void {
+  watchForReleases({ ...deps.releases, every: setInterval, warn: deps.warn });
   if (deps.settings.notice !== undefined) {
     deps.notify(deps.settings.notice);
   }
