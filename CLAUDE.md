@@ -104,7 +104,8 @@ Update this table in the PR that adds a command.
   Commits and are **signed**. Never disable or bypass signing.
 - Every commit builds and passes tests on its own.
 - Open PRs with `gh pr create`, including `Closes #N` and test evidence.
-  Update `docs/progress.md` in every PR, and this file when it is affected.
+  Update `docs/progress.md` in every PR, adding notes in issue-number order
+  (never at the top, so PRs don't conflict), and this file when it is affected.
 - Watch checks with `gh pr checks --watch`. Fix failures with new commits.
   Never skip, weaken or disable a check or test.
 - Merge once the required checks are green with
