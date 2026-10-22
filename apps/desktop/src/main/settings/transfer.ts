@@ -1,6 +1,7 @@
 import { Value } from 'typebox/value';
 import { decodeSettings } from './decode.ts';
 import { SettingsSchema, type Settings } from './schema.ts';
+import { en } from '../../shared/messages/en.ts';
 
 /** Marks a file as exported settings, so an unrelated JSON file is never imported. */
 export const SETTINGS_EXPORT_FORMAT = 'yapyap-settings';
@@ -60,7 +61,7 @@ function settingsJson(text: string): string {
 
 const NOT_SETTINGS: ImportResult = {
   kind: 'rejected',
-  reason: 'That file is not a YapYap settings file.',
+  reason: en.settings.backup.notSettings,
 };
 
 /** Reads an exported file through the same migrations and checks as `settings.json`. */
@@ -72,7 +73,7 @@ export function readImport(text: string): ImportResult {
   if (decoded.kind === 'newer') {
     return {
       kind: 'rejected',
-      reason: 'Those settings come from a newer version of YapYap. Update YapYap to import them.',
+      reason: en.settings.backup.newer,
     };
   }
   if (decoded.kind === 'corrupt') {

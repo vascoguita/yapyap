@@ -166,10 +166,11 @@ Update this table in the PR that adds a command.
   it to `SETTING_FIELDS` in `src/shared/settings-fields.ts` in the PR that
   implements it. The `settings:set` handler accepts only listed fields and
   checks the whole result against the schema.
-- Chrome UI text, setting labels included, lives in
-  `src/shared/messages/en.ts`. Lint (`yapyap/no-literal-ui-text`) rejects
+- UI text, setting labels, menus, dialogs and notifications included, lives
+  in `src/shared/messages/en.ts`. Lint (`yapyap/no-literal-ui-text`) rejects
   literal text in renderer JSX and in `aria-label`, `title`, `placeholder`,
-  `alt` and `label`.
+  `alt` and `label`, and, in the main process, in `label`, `title`,
+  `message`, `detail`, `body` and `buttons` properties.
 - E2E tests start the app through `launchApp` in `e2e/fixtures.ts`, which
   gives each test a throwaway `--user-data-dir`. Never launch Electron in a
   spec without it, or tests write to the developer's real profile.

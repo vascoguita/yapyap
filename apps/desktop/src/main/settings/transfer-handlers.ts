@@ -2,6 +2,7 @@ import { CHROME_CHANNELS, type TransferResult } from '../../shared/chrome-api.ts
 import { noArguments, type ChromeCall, type ChromeHandler } from '../chrome/ipc.ts';
 import type { SettingsService } from './service.ts';
 import { exportSettings, readImport } from './transfer.ts';
+import { en } from '../../shared/messages/en.ts';
 
 /** The file dialogs and file access behind export and import; `owner` is the calling window's contents. */
 export interface SettingsFiles {
@@ -16,16 +17,9 @@ export interface SettingsFiles {
   readonly write: (path: string, text: string) => Promise<void>;
 }
 
-const CANCELLED: TransferResult = { outcome: 'cancelled', message: '' };
+const TEXT = en.settings.backup;
 
-function confirmation(reset: readonly string[]): string {
-  const replaced = 'Your current settings will be replaced.';
-  if (reset.length === 0) {
-    return replaced;
-  }
-  const values = reset.length === 1 ? 'value' : 'values';
-  return `${replaced} ${String(reset.length)} invalid ${values} in the file will use the default instead.`;
-}
+const CANCELLED: TransferResult = { outcome: 'cancelled', message: '' };
 
 async function exportTo(
   service: SettingsService,
@@ -38,9 +32,9 @@ async function exportTo(
   }
   try {
     await files.write(path, exportSettings(service.current()));
-    return { outcome: 'done', message: 'Settings exported.' };
+    return { outcome: 'done', message: TEXT.exported };
   } catch {
-    return { outcome: 'failed', message: 'Could not save the settings file.' };
+    return { outcome: 'failed', message: TEXT.exportFailed };
   }
 }
 
@@ -57,17 +51,17 @@ async function importFrom(
   try {
     text = await files.read(path);
   } catch {
-    return { outcome: 'failed', message: 'Could not read that file.' };
+    return { outcome: 'failed', message: TEXT.readFailed };
   }
   const result = readImport(text);
   if (result.kind === 'rejected') {
     return { outcome: 'failed', message: result.reason };
   }
-  if (!(await files.confirmImport(call.sender, confirmation(result.reset)))) {
+  if (!(await files.confirmImport(call.sender, TEXT.replaces(result.reset.length)))) {
     return CANCELLED;
   }
   service.update(() => result.settings);
-  return { outcome: 'done', message: 'Settings imported.' };
+  return { outcome: 'done', message: TEXT.imported };
 }
 
 /**

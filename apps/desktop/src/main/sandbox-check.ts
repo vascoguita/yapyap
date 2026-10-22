@@ -1,12 +1,9 @@
+import { en } from '../shared/messages/en.ts';
+
 export const TROUBLESHOOTING_URL = 'https://yapyap.guita.org/guide/troubleshooting#sandbox';
 
 /** Also written to stderr, so it reaches people who start YapYap from a terminal. */
-export const UNSAFE_START_MESSAGE = [
-  'YapYap cannot start safely: its sandbox is turned off.',
-  'On Ubuntu 24.04 and later this happens with the AppImage, because the system restricts unprivileged user namespaces.',
-  'Install the .deb, .rpm or Flatpak package instead, or allow the AppImage with an AppArmor profile.',
-  'YapYap never runs without its sandbox.',
-].join(' ');
+export const UNSAFE_START_MESSAGE = en.dialogs.unsafeStart.detail;
 
 export interface SandboxSwitches {
   hasSwitch(name: string): boolean;

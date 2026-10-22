@@ -1,6 +1,7 @@
 import type { MenuItemConstructorOptions } from 'electron';
 import type { ZoomStep } from './appearance/zoom.ts';
 import { PRODUCT_NAME } from './identity.ts';
+import { en } from '../shared/messages/en.ts';
 
 export interface MenuActions {
   readonly openAbout: () => void;
@@ -16,28 +17,28 @@ export interface MenuActions {
 /** The standard View menu, with zoom in YapYap's own 5% steps, kept per account. */
 function viewMenu(actions: MenuActions): MenuItemConstructorOptions {
   return {
-    label: '&View',
+    label: en.menu.view,
     submenu: [
       { role: 'reload' },
       { role: 'forceReload' },
       { role: 'toggleDevTools' },
       { type: 'separator' },
       {
-        label: 'Actual Size',
+        label: en.menu.actualSize,
         accelerator: 'CmdOrCtrl+0',
         click: () => {
           actions.zoom('reset');
         },
       },
       {
-        label: 'Zoom In',
+        label: en.menu.zoomIn,
         accelerator: 'CmdOrCtrl+=',
         click: () => {
           actions.zoom('in');
         },
       },
       {
-        label: 'Zoom Out',
+        label: en.menu.zoomOut,
         accelerator: 'CmdOrCtrl+-',
         click: () => {
           actions.zoom('out');
@@ -52,13 +53,13 @@ function viewMenu(actions: MenuActions): MenuItemConstructorOptions {
 /** Maintenance for the WhatsApp account, for when it misbehaves. */
 function accountMenu(actions: MenuActions): MenuItemConstructorOptions {
   return {
-    label: '&Account',
+    label: en.menu.account,
     submenu: [
-      { label: 'New Chat with Number…', click: actions.openNewChat },
+      { label: en.menu.newChat, click: actions.openNewChat },
       { type: 'separator' },
-      { label: 'Clear Cache and Reload', click: actions.clearCache },
+      { label: en.menu.clearCache, click: actions.clearCache },
       { type: 'separator' },
-      { label: 'Reset Session…', click: actions.resetSession },
+      { label: en.menu.resetSession, click: actions.resetSession },
     ],
   };
 }
@@ -72,15 +73,15 @@ function commonItems(
   actions: MenuActions,
 ): Record<'about' | 'settings' | 'diagnostics', MenuItemConstructorOptions> {
   const about: MenuItemConstructorOptions = {
-    label: `About ${PRODUCT_NAME}`,
+    label: en.menu.about(PRODUCT_NAME),
     click: actions.openAbout,
   };
   const diagnostics: MenuItemConstructorOptions = {
-    label: 'Copy Diagnostics',
+    label: en.menu.copyDiagnostics,
     click: actions.copyDiagnostics,
   };
   const settings: MenuItemConstructorOptions = {
-    label: 'Settings…',
+    label: en.menu.settings,
     accelerator: 'CmdOrCtrl+,',
     click: actions.openSettings,
   };
@@ -99,7 +100,7 @@ export function buildMenuTemplate(
   ];
   if (platform !== 'darwin') {
     const file: MenuItemConstructorOptions = {
-      label: '&File',
+      label: en.menu.file,
       submenu: [settings, { type: 'separator' }, { role: 'quit' }],
     };
     return [

@@ -28,6 +28,7 @@ import { profileCrashFiles, readPreviousLog } from './crash/crash-files.ts';
 import { reviewCrashWithDialog } from './crash-review-prompt.ts';
 import electronUpdater from 'electron-updater';
 import trayIcon from '../../build/icons/32x32.png?asset';
+import { PRODUCT_NAME } from './identity.ts';
 import { createLogger } from './logging/logger.ts';
 import { askToInstallUpdateWithDialog } from './update-prompt.ts';
 import { readInstallEvidence } from './updates/install-evidence.ts';
@@ -66,7 +67,7 @@ const warn = (message: string): void => {
 };
 
 const notify = (body: string): void => {
-  new Notification({ title: 'YapYap', body }).show();
+  new Notification({ title: PRODUCT_NAME, body }).show();
 };
 
 const settings = openSettings(app.getPath('userData'), Date.now(), warn);
@@ -201,7 +202,7 @@ startApp({
     currentVersion: app.getVersion(),
     fetchJson: releaseFetcher((url, init) => net.fetch(url, init)),
     showNotice: (body, url) => {
-      const notice = new Notification({ title: 'YapYap', body });
+      const notice = new Notification({ title: PRODUCT_NAME, body });
       notice.on('click', () => {
         void shell.openExternal(url);
       });

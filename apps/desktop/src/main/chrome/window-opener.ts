@@ -2,6 +2,7 @@ import { showWhenReady } from '../show-when-ready.ts';
 import type { ViewRegistry } from '../views.ts';
 import type { WindowOptions } from '../windows.ts';
 import { CHROME_ORIGIN } from './assets.ts';
+import { PRODUCT_NAME } from '../identity.ts';
 
 export interface ChromeWindowPort {
   readonly webContents: object;
@@ -40,7 +41,7 @@ export function openChromeWindow(
     ...extra,
     show: false,
   });
-  deps.views.set(window.webContents, { zone: 'chrome', home: CHROME_ORIGIN, label: 'YapYap' });
+  deps.views.set(window.webContents, { zone: 'chrome', home: CHROME_ORIGIN, label: PRODUCT_NAME });
   showWhenReady(window);
   window.loadURL(`${CHROME_ORIGIN}/${page.path}`).catch(() => {
     deps.warn(`Could not load ${page.path}.`);

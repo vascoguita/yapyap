@@ -1,4 +1,5 @@
 import type { UpdatePolicy } from './update-policy.ts';
+import { en } from '../../shared/messages/en.ts';
 
 /** GitHub's latest stable release; drafts and pre-releases never appear here. */
 export const LATEST_RELEASE_API = 'https://api.github.com/repos/vascoguita/yapyap/releases/latest';
@@ -101,10 +102,7 @@ export function watchForReleases(deps: UpdateNoticeDependencies): void {
       isNewer(release.version, deps.currentVersion)
     ) {
       announced = release.version;
-      deps.showNotice(
-        `YapYap ${release.version} is available. Click to open its download page.`,
-        release.url,
-      );
+      deps.showNotice(en.notices.newRelease(release.version), release.url);
     }
   };
   const run = (): void => {

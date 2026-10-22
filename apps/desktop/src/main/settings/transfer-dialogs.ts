@@ -2,8 +2,10 @@ import { BrowserWindow, dialog, type WebContents } from 'electron';
 import { open, writeFile } from 'node:fs/promises';
 import type { SettingsFiles } from './transfer-handlers.ts';
 import { MAX_IMPORT_BYTES } from './transfer.ts';
+import { en } from '../../shared/messages/en.ts';
+import { PRODUCT_NAME } from '../identity.ts';
 
-const FILTERS = [{ name: 'YapYap settings', extensions: ['json'] }];
+const FILTERS = [{ name: en.settings.backup.fileType, extensions: ['json'] }];
 
 // The owner is the settings window's own web contents, handed over by IPC.
 // Without a window there is nobody to ask, which counts as a cancel.
@@ -54,9 +56,9 @@ export const electronSettingsFiles: SettingsFiles = {
     const { response } = await dialog.showMessageBox(window, {
       detail,
       type: 'question',
-      title: 'YapYap',
-      message: 'Import these settings?',
-      buttons: ['Import', 'Cancel'],
+      title: PRODUCT_NAME,
+      message: en.settings.backup.confirm,
+      buttons: [en.settings.backup.confirmButton, en.common.cancel],
       defaultId: 1,
       cancelId: 1,
     });

@@ -23,17 +23,30 @@ const noCoverageIgnore = {
 
 const LETTER = /\p{L}/u;
 const TEXT_ATTRIBUTES = new Set(['aria-label', 'title', 'placeholder', 'alt', 'label']);
+// Options of Electron's menus, dialogs, notifications and windows that users read.
+const TEXT_PROPERTIES = new Set(['label', 'title', 'message', 'detail', 'body', 'buttons']);
 
 /**
  * The parts of a JSX node the rule reads; ESLint's own types stop short of JSX.
  * @typedef {{ type: string, value?: unknown, loc: import('eslint').AST.SourceLocation }} JsxNode
  * @typedef {JsxNode & { expression: JsxNode }} JsxContainer
  * @typedef {JsxNode & { name: { name: unknown }, value: JsxNode | JsxContainer | null }} JsxAttribute
+ * @typedef {JsxNode & { elements?: (TextNode | null)[], quasis?: { value: { raw: string } }[] }} TextNode
  */
 
 /** @param {JsxNode | null} node */
 const isText = (node) =>
   node?.type === 'Literal' && typeof node.value === 'string' && LETTER.test(node.value);
+
+/**
+ * A string or template literal with letters, alone or inside an array (dialog buttons).
+ * @param {TextNode} node
+ * @returns {boolean}
+ */
+const holdsText = (node) =>
+  isText(node) ||
+  (node.quasis ?? []).some((quasi) => LETTER.test(quasi.value.raw)) ||
+  (node.elements ?? []).some((element) => element !== null && holdsText(element));
 
 // Chrome UI text must come from the message catalog so every language gets it (#55).
 /** @type {import('eslint').Rule.RuleModule} */
@@ -70,6 +83,17 @@ const noLiteralUiText = {
         const container = /** @type {JsxContainer} */ (node);
         if (isText(container.expression)) {
           report(container);
+        }
+      },
+      Property(node) {
+        const { key, value } = node;
+        const name = key.type === 'Identifier' ? key.name : null;
+        if (
+          name !== null &&
+          TEXT_PROPERTIES.has(name) &&
+          holdsText(/** @type {TextNode} */ (value))
+        ) {
+          context.report({ node, messageId: 'literal' });
         }
       },
     };
@@ -147,8 +171,8 @@ export default defineConfig(
     },
   },
   {
-    files: ['apps/desktop/src/renderer/**/*.tsx'],
-    ignores: ['**/*.test.tsx'],
+    files: ['apps/desktop/src/renderer/**/*.tsx', 'apps/desktop/src/main/**/*.ts'],
+    ignores: ['**/*.test.tsx', '**/*.test.ts'],
     rules: { 'yapyap/no-literal-ui-text': 'error' },
   },
   {
