@@ -3,6 +3,10 @@ name: Package
 on:
   workflow_call:
     inputs:
+      scope:
+        description: full runs every format and architecture; representative, one package per system (ADR 0007)
+        type: string
+        default: full
       release:
         description: Stamp the release into the metainfo and sign with the certificates that exist
         type: boolean
@@ -19,15 +23,14 @@ jobs:
       matrix:
         include:
           - { name: linux-x64, os: ubuntu-latest }
-          - { name: linux-arm64, os: ubuntu-24.04-arm }
           - { name: windows, os: windows-latest }
           - { name: macos, os: macos-latest }
     runs-on: ${{ matrix.os }}
-    env:
+    env: &package-env
       # Never sign with whatever identity happens to be on the runner; release
       # builds sign only with the certificates passed in below.
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-    steps:
+    steps: &package-steps
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -106,8 +109,21 @@ jobs:
             apps/desktop/release/latest*.yml
           retention-days: 7
 
+  package-full:
+    name: Package (${{ matrix.name }})
+    if: inputs.scope == 'full'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: linux-arm64, os: ubuntu-24.04-arm }
+    runs-on: ${{ matrix.os }}
+    env: *package-env
+    steps: *package-steps
+
   flatpak:
     name: Flatpak (${{ matrix.arch }})
+    if: inputs.scope == 'full'
     strategy:
       fail-fast: false
       matrix:

@@ -32,32 +32,11 @@
     {
       "type": "required_status_checks",
       "parameters": {
-        "strict_required_status_checks_policy": true,
+        "strict_required_status_checks_policy": false,
         "do_not_enforce_on_create": false,
         "required_status_checks": [
           {
-            "context": "Lint and typecheck"
-          },
-          {
-            "context": "Test (ubuntu-latest)"
-          },
-          {
-            "context": "Test (windows-latest)"
-          },
-          {
-            "context": "Test (macos-latest)"
-          },
-          {
             "context": "Conventional PR title"
-          },
-          {
-            "context": "E2E (ubuntu-latest)"
-          },
-          {
-            "context": "E2E (windows-latest)"
-          },
-          {
-            "context": "E2E (macos-latest)"
           },
           {
             "context": "Analyze (javascript-typescript)"
@@ -72,76 +51,10 @@
             "context": "Dependency review"
           },
           {
-            "context": "Mutation (changed modules)"
-          },
-          {
             "context": "Docs build"
           },
           {
-            "context": "SonarQube Cloud"
-          },
-          {
-            "context": "Package / Package (linux-x64)"
-          },
-          {
-            "context": "Package / Package (linux-arm64)"
-          },
-          {
-            "context": "Package / Package (windows)"
-          },
-          {
-            "context": "Package / Package (macos)"
-          },
-          {
-            "context": "Smoke / Smoke (appimage-x64)"
-          },
-          {
-            "context": "Smoke / Smoke (appimage-arm64)"
-          },
-          {
-            "context": "Smoke / Smoke (deb-x64)"
-          },
-          {
-            "context": "Smoke / Smoke (deb-arm64)"
-          },
-          {
-            "context": "Smoke / Smoke (rpm-x64)"
-          },
-          {
-            "context": "Smoke / Smoke (rpm-arm64)"
-          },
-          {
-            "context": "Smoke / Smoke (nsis-x64)"
-          },
-          {
-            "context": "Smoke / Smoke (nsis-arm64)"
-          },
-          {
-            "context": "Smoke / Smoke (nsis-only-arm64)"
-          },
-          {
-            "context": "Smoke / Smoke (portable-x64)"
-          },
-          {
-            "context": "Smoke / Smoke (portable-arm64)"
-          },
-          {
-            "context": "Smoke / Smoke (dmg-universal)"
-          },
-          {
-            "context": "Package / Flatpak (x86_64)"
-          },
-          {
-            "context": "Package / Flatpak (aarch64)"
-          },
-          {
-            "context": "Smoke / Smoke (flatpak-x86_64)"
-          },
-          {
-            "context": "Smoke / Smoke (flatpak-aarch64)"
-          },
-          {
-            "context": "Smoke / Smoke (aur-x86_64)"
+            "context": "CI result"
           }
         ]
       }

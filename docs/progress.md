@@ -21,6 +21,13 @@
 
 ## Notes
 
+- CI is cheaper per pull request (ADR 0007): documentation-only changes skip
+  tests, E2E, mutation, Sonar and packaging; code changes package one format
+  per system; mutation runs only the tests that import the mutated files; the
+  required checks are `CI result` plus the other workflows' checks, and
+  branches need not be up to date. #210 restores the full matrix and the
+  up-to-date rule in M7.
+
 - The WhatsApp adapter reads the page view (loading, logged out, chats),
   whether a chat is open and the unread count, on demand and from a versioned
   landmark table; Copy Diagnostics shows the view (#32). An E2E test keeps

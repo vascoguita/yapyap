@@ -12,19 +12,38 @@ pull request, with `master` always green and releases fully automated.
 
 - The default branch is `master` (the maintainer's choice). Wherever project
   documents say "main branch", they mean `master`.
-- **Rulesets on `master`**: pull request required, required status checks with
-  "require branches to be up to date", signed commits required, no force
-  push, no deletion, conversation resolution required. **Ruleset on tags**
-  `v*`: no deletion, no update, creation restricted to release automation.
+- **Rulesets on `master`**: pull request required, required status checks,
+  signed commits required, no force push, no deletion, conversation
+  resolution required. **Ruleset on tags** `v*`: no deletion, no update,
+  creation restricted to release automation.
+- **Required checks**: the CI workflow reports one check, `CI result`, which
+  fails if any CI job failed or was cancelled and passes when each job
+  passed or was skipped. The checks of the other workflows (CodeQL,
+  dependency review, audit, PR title, docs build) stay required on their
+  own. A new CI job joins `CI result`'s `needs`; the ruleset does not change.
+- **What a pull request runs** (2026-10-22, to unblock CI as the
+  bottleneck): a change to documentation only (`*.md`, `docs/`, issue
+  templates) runs lint, typecheck and the docs build, and skips tests, E2E,
+  mutation, SonarQube Cloud and packaging. A code change packages and
+  smoke-tests one format per system (AppImage x64, NSIS x64, DMG); the full
+  format and architecture matrix runs when packaging inputs change (package
+  manifests, lockfile, electron-builder and Flatpak configuration, packaging
+  and release scripts and workflows) and on every push to `master`. `scripts/src/ci/changes.ts` decides, with tests. Mutation testing
+  runs on pull requests only, against the tests that import the mutated
+  files. **"Require branches to be up to date" is off for now**, so a merge
+  no longer forces every other pull request to rerun; the `master` run after
+  each merge catches the rare conflict between two pull requests. Both the
+  full matrix on every pull request and the up-to-date rule return in M7
+  (#210).
 - **Branches**: `type/short-description`, where `type` is a Conventional
   Commits type (`feat`, `fix`, `docs`, `ci`, `build`, `chore`, `refactor`,
   `test`, `perf`).
 - **Commits**: Conventional Commits, enforced by commitlint locally and in CI
   on every commit of the PR. Each commit builds and passes tests on its own.
   All commits are signed; signing is never bypassed.
-- **Semi-linear merge**: before merging, the branch is rebased onto the
-  latest `master` (and tidied if needed), force-pushed with `--force-with-lease`,
-  and re-checked. It is then merged with a **merge commit**
+- **Merging**: a branch that conflicts with `master` is rebased onto it (and
+  tidied if needed), force-pushed with `--force-with-lease`, and re-checked.
+  It is merged with a **merge commit**
   (`gh pr merge --merge --delete-branch`). GitHub signs the merge commit, and
   the branch commits keep their own signatures. Squash and rebase merging are
   disabled in repository settings, because GitHub's rebase-merge re-creates
