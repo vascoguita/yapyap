@@ -25,9 +25,13 @@ async function copy(app: ElectronApplication, type: string, data: string): Promi
   );
 }
 
-/** Pastes the way Edit → Paste does, which simulated key presses cannot do on every OS. */
-/** Focuses WhatsApp and pastes the way Edit → Paste does. */
+/**
+ * Focuses WhatsApp and pastes the way Edit → Paste does, which simulated key
+ * presses cannot do on every OS.
+ */
 async function pasteOnce(app: ElectronApplication, window: Page): Promise<void> {
+  // paste.js records what arrives; it must be listening before the paste (#188).
+  await window.waitForLoadState('load');
   await window.getByTestId('composer').focus();
   await app.evaluate(({ BrowserWindow, webContents }) => {
     const whatsapp = webContents
