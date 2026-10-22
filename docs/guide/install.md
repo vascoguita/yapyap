@@ -35,6 +35,8 @@ YapYap's macOS and Windows builds are not code-signed yet: signing
 certificates cost money every year, and YapYap is free. Your system warns
 you the first time you open it. Before you allow it, you can
 [check that your download is genuine](#verify-a-download).
+[Sponsoring YapYap](https://github.com/sponsors/vascoguita) helps pay for
+signing.
 
 **macOS.** macOS says it cannot verify that YapYap is free of malware.
 

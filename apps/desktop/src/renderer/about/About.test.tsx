@@ -62,7 +62,7 @@ describe('About', () => {
     ).toBeTruthy();
   });
 
-  it('links to the website, source, issues and privacy policy, then the supporter, in new windows', () => {
+  it('links to the website, source, issues, privacy policy and sponsorship, then the supporter, in new windows', () => {
     render(<About api={api()} />);
     const links = screen.getAllByRole('link');
     expect(links.map((link) => [link.textContent, link.getAttribute('href')])).toEqual([

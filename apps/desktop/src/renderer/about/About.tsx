@@ -7,6 +7,7 @@ export const LINKS = [
   { label: 'Source code', href: 'https://github.com/vascoguita/yapyap' },
   { label: 'Report a problem', href: 'https://github.com/vascoguita/yapyap/issues' },
   { label: 'Privacy', href: 'https://yapyap.guita.org/privacy' },
+  { label: 'Sponsor', href: 'https://github.com/sponsors/vascoguita' },
 ] as const;
 
 export const SUPPORTER = { name: 'Ensita', href: 'https://www.ensita.org/' } as const;
