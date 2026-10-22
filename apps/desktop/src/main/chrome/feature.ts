@@ -128,6 +128,8 @@ interface ChromeRuntime {
   ) => Pick<Recovery, 'reconnect'>;
   /** YapYap's screen-sharing picker, for platforms without a system one. */
   readonly pickCaptureSource: SourcePicker['pick'];
+  /** The About window's technical details, for crash reports. */
+  readonly technicalDetails: () => string;
 }
 
 export interface ChromeFeature {
@@ -314,6 +316,12 @@ function setMenu(
   );
 }
 
+/** YapYap's own pages, served from the chrome scheme. */
+function serveChromePages(deps: ChromeFeatureDependencies): void {
+  const handler = createChromeHandler(deps.rendererRoot, deps.readFile);
+  deps.chromeProtocol().handle(CHROME_SCHEME, handler);
+}
+
 export function createChromeFeature(deps: ChromeFeatureDependencies): ChromeFeature {
   const renderer = { preload: deps.preloadPath, partition: CHROME_PARTITION };
   return {
@@ -324,8 +332,7 @@ export function createChromeFeature(deps: ChromeFeatureDependencies): ChromeFeat
     },
     afterReady: (views, warn, graphics) => {
       const withGraphics = { ...deps, facts: () => ({ ...deps.facts(), graphics }) };
-      const handler = createChromeHandler(deps.rendererRoot, deps.readFile);
-      deps.chromeProtocol().handle(CHROME_SCHEME, handler);
+      serveChromePages(deps);
       const recoveries: Recovery[] = [];
       const pages: ProbedContents[] = [];
       const windows = chromeWindows(deps, renderer, views, warn);
@@ -350,6 +357,7 @@ export function createChromeFeature(deps: ChromeFeatureDependencies): ChromeFeat
       return {
         attachRecovery: recoveryAttacher(withGraphics, renderer, views, warn, recoveries, pages),
         pickCaptureSource: picker.pick,
+        technicalDetails: () => formatTechnicalDetails(buildAboutInfo(withGraphics.facts())),
       };
     },
   };

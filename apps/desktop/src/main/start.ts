@@ -24,6 +24,11 @@ import {
   type WatchedRenderer,
 } from './recovery/memory-watchdog.ts';
 import {
+  trackCrashes,
+  type CrashFiles,
+  type CrashReviewDependencies,
+} from './crash/crash-reports.ts';
+import {
   installSecurity,
   secureSession,
   type GuardedContents,
@@ -60,7 +65,10 @@ export interface AppPort {
   enableSandbox(): void;
   whenReady(): Promise<unknown>;
   setAppUserModelId(id: string): void;
-  on(event: 'window-all-closed' | 'before-quit' | 'activate', listener: () => void): unknown;
+  on(
+    event: 'window-all-closed' | 'before-quit' | 'will-quit' | 'activate',
+    listener: () => void,
+  ): unknown;
   on(
     event: 'child-process-gone',
     listener: (event: unknown, details: { readonly type: string; readonly reason: string }) => void,
@@ -131,6 +139,14 @@ export interface StartDependencies<Window extends WindowPort> {
   readonly notify: (message: string) => void;
   readonly warn: (message: string) => void;
   readonly logError: (message: string) => void;
+  readonly crashes: {
+    readonly files: CrashFiles;
+    readonly version: string;
+    /** The previous session's log lines, already redacted. */
+    readonly previousLog: () => readonly string[];
+    readonly review: CrashReviewDependencies['review'];
+    readonly writeClipboard: (text: string) => Promise<unknown>;
+  };
 }
 
 /** Starts without hardware acceleration, for when graphics problems stop YapYap from starting. */
@@ -213,6 +229,27 @@ function applyDisplayBackend<Window extends WindowPort>(
     deps.warn(display.fallback);
   }
   return display;
+}
+
+/** Starts watching for unclean exits; the returned function reports the last one once chrome is up. */
+function watchCrashes<Window extends WindowPort>(
+  deps: StartDependencies<Window>,
+): (technicalDetails: () => string) => void {
+  const report = trackCrashes({
+    files: deps.crashes.files,
+    version: deps.crashes.version,
+    now: Date.now,
+    setting: () => deps.settings.current().privacy.crashReports,
+    onQuit: (listener) => {
+      deps.app.on('will-quit', listener);
+    },
+    warn: deps.warn,
+  });
+  return (technicalDetails) => {
+    report({ ...deps.crashes, technicalDetails, openExternal: deps.openExternal }).catch(() => {
+      deps.warn('Could not offer the crash report.');
+    });
+  };
 }
 
 /** Tells the user about anything startup changed that they did not choose. */
@@ -310,6 +347,16 @@ function wireMainWindow<Window extends WindowPort>(
   showWhenReady(window);
 }
 
+/** How YapYap presents itself to WhatsApp: the bundled Chromium, as desktop Chrome. */
+function browserIdentity<Window extends WindowPort>(
+  deps: StartDependencies<Window>,
+): SecurityDependencies['identity'] {
+  return {
+    userAgent: chromeUserAgent(deps.platform, deps.chromeVersion),
+    chromeVersion: deps.chromeVersion,
+  };
+}
+
 export async function startApp<Window extends WindowPort>(
   deps: StartDependencies<Window>,
 ): Promise<void> {
@@ -326,11 +373,9 @@ export async function startApp<Window extends WindowPort>(
   quitOnShutdown(deps.shutdown, () => {
     app.quit();
   });
+  const reportCrash = watchCrashes(deps);
   const views: ViewRegistry = new WeakMap();
-  const identity = {
-    userAgent: chromeUserAgent(deps.platform, deps.chromeVersion),
-    chromeVersion: deps.chromeVersion,
-  };
+  const identity = browserIdentity(deps);
   const picker = latePicker();
   const display = applyDisplayBackend(deps);
   const capture = deps.capture(picker.pick, display.active === 'wayland');
@@ -345,6 +390,7 @@ export async function startApp<Window extends WindowPort>(
   const chrome = deps.chrome.afterReady(views, warn, rendering);
   picker.bind(chrome.pickCaptureSource);
   announceStartup(deps, graphics);
+  reportCrash(chrome.technicalDetails);
   const window = openMainWindow(deps);
   wireMainWindow(deps, chrome, window, views, origin);
   instances.attach(window);

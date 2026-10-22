@@ -184,6 +184,7 @@ describe('createChromeFeature', () => {
         'reliability.hardwareAcceleration': true,
         'reliability.displayBackend': 'auto',
         'reliability.hardwareVideoDecoding': true,
+        'privacy.crashReports': 'off',
       },
       restartPending: false,
       readOnly: false,
@@ -322,6 +323,14 @@ describe('createChromeFeature', () => {
       : undefined;
     (zoomIn?.click as (() => void) | undefined)?.();
     expect(t.deps.settings.update).toHaveBeenCalledOnce();
+  });
+
+  it('gives crash reports the About window’s technical details', () => {
+    const t = setup();
+    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    expect(runtime.technicalDetails()).toMatch(
+      /^YapYap 0\.1\.0 \(deb\)\n[\s\S]*\nGraphics hardware accelerated$/,
+    );
   });
 
   it('copies diagnostics with the GPU summary and recent log from the Help menu', async () => {
