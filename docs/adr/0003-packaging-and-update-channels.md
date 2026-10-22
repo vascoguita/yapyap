@@ -65,7 +65,9 @@ build ad hoc. Copy Diagnostics shows the policy and channel.
   `Beta gate` check that fails until the newest beta of its version has been
   published for at least **3 days**. A security fix may skip the wait, never
   the beta, by stating `Security release: <reason>` on its own line in the
-  release PR.
+  release PR. Betas come from the manual **Beta release** workflow
+  (`beta.yml`), which shares packaging, smoke tests and publishing
+  (`publish.yml`) with stable releases.
 - Every release asset is listed in `SHA256SUMS`, covered by a build provenance
   attestation (`actions/attest-build-provenance`), and accompanied by a
   CycloneDX SBOM.

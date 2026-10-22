@@ -107,6 +107,11 @@ not edit the same lines.
   3 days; `Security release: <reason>` in the PR skips the wait, never the
   beta. Cutting betas and the "Get beta updates" setting come next.
 
+- Beta releases (#184, second part): the manual **Beta release** workflow
+  numbers and creates the next `vX.Y.Z-beta.N` pre-release and runs the
+  shared package, smoke and publish workflows; `package.yml` takes the
+  version to build. The "Get beta updates" setting is still to come.
+
 - The SonarQube Cloud backlog is fixed; the few per-file exceptions, each with
   its reason, are in `sonar-project.properties` (ADR 0010, #185).
 
