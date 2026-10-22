@@ -1,0 +1,3 @@
+# Every pull request adds a note to docs/progress.md, so keep both sides'
+# lines instead of stopping a rebase on a conflict.
+docs/progress.md merge=union
