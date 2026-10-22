@@ -260,7 +260,11 @@ importers:
         specifier: 4.10.2
         version: 4.10.2
 
-  packages/sdk: {}
+  packages/sdk:
+    dependencies:
+      typebox:
+        specifier: 1.4.2
+        version: 1.4.2
 
   plugins/ai-assistant: {}
 

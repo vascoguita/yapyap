@@ -5,5 +5,16 @@
   "description": "Typed SDK for building YapYap plugins",
   "license": "MIT",
   "author": "Vasco Guita",
-  "type": "module"
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema/manifest.schema.json": "./schema/manifest.schema.json"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "schema": "node src/bin/write-schema.ts"
+  },
+  "dependencies": {
+    "typebox": "1.4.2"
+  }
 }

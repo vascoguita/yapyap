@@ -44,6 +44,7 @@ export default defineConfig({
             { text: 'Install', link: '/guide/install' },
             { text: 'Troubleshooting', link: '/guide/troubleshooting' },
             { text: 'Reference', link: '/guide/reference' },
+            { text: 'Plugin manifest', link: '/plugins/manifest' },
           ],
         },
       ],
