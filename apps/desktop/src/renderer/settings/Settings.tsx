@@ -1,12 +1,15 @@
 import type { JSX } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import type { ChromeApi, SettingsSnapshot, TransferResult } from '../../shared/chrome-api.ts';
+import { en } from '../../shared/messages/en.ts';
 import {
   SETTING_FIELDS,
   SETTINGS_SECTIONS,
   type SettingField,
   type SettingValue,
 } from '../../shared/settings-fields.ts';
+
+const text = en.settings;
 
 type Change = (id: string, value: SettingValue) => void;
 
@@ -20,7 +23,7 @@ function Hint({ field }: { readonly field: SettingField }): JSX.Element {
   return (
     <p id={`${field.id}-hint`} class="hint">
       {field.description}
-      {field.restart ? ' Takes effect after a restart.' : ''}
+      {field.restart ? ` ${text.restartNote}` : ''}
     </p>
   );
 }
@@ -99,14 +102,14 @@ function Sections(props: {
 function RestartNotice({ api }: { readonly api: ChromeApi }): JSX.Element {
   return (
     <div class="notice">
-      <output>Restart YapYap to apply your changes.</output>
+      <output>{text.restartNeeded}</output>
       <button
         type="button"
         onClick={() => {
           void api.settings.restart();
         }}
       >
-        Restart now
+        {text.restartNow}
       </button>
     </div>
   );
@@ -126,7 +129,7 @@ function useTransfer(): readonly [string, Transfer] {
         }
       },
       () => {
-        setStatus('Something went wrong. Try again.');
+        setStatus(text.backup.failed);
       },
     );
   };
@@ -142,11 +145,8 @@ function Backup(props: {
   const [status, run] = useTransfer();
   return (
     <section aria-labelledby="backup-title">
-      <h2 id="backup-title">Backup</h2>
-      <p class="hint">
-        Save your settings to a file, or bring them over from another computer. The file never
-        includes your WhatsApp login or chats.
-      </p>
+      <h2 id="backup-title">{text.backup.title}</h2>
+      <p class="hint">{text.backup.hint}</p>
       <div class="actions">
         <button
           type="button"
@@ -154,7 +154,7 @@ function Backup(props: {
             run(api.settings.export, () => undefined);
           }}
         >
-          Export settings…
+          {text.backup.export}
         </button>
         <button
           type="button"
@@ -163,7 +163,7 @@ function Backup(props: {
             run(api.settings.import, onImported);
           }}
         >
-          Import settings…
+          {text.backup.import}
         </button>
       </div>
       <output>{status}</output>
@@ -189,7 +189,7 @@ function useSnapshot(
         setSnapshot(next);
       },
       () => {
-        setError('Could not save that setting.');
+        setError(text.saveFailed);
       },
     );
   };
@@ -208,19 +208,15 @@ export function Settings({ api }: { readonly api: ChromeApi }): JSX.Element {
   if (snapshot == null) {
     return (
       <main class="settings">
-        <h1>Settings</h1>
-        <p>{snapshot === undefined ? 'Loading…' : 'Settings are unavailable.'}</p>
+        <h1>{text.title}</h1>
+        <p>{snapshot === undefined ? en.common.loading : text.unavailable}</p>
       </main>
     );
   }
   return (
     <main class="settings">
-      <h1>Settings</h1>
-      {snapshot.readOnly ? (
-        <p class="notice">
-          These settings were saved by a newer version of YapYap, so they cannot be changed here.
-        </p>
-      ) : null}
+      <h1>{text.title}</h1>
+      {snapshot.readOnly ? <p class="notice">{text.readOnly}</p> : null}
       {snapshot.restartPending ? <RestartNotice api={api} /> : null}
       <Sections snapshot={snapshot} onChange={change} />
       <Backup api={api} readOnly={snapshot.readOnly} onImported={reload} />

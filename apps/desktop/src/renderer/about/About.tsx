@@ -1,13 +1,16 @@
 import type { JSX } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import type { AboutInfo, ChromeApi } from '../../shared/chrome-api.ts';
+import { en } from '../../shared/messages/en.ts';
+
+const text = en.about;
 
 export const LINKS = [
-  { label: 'Website', href: 'https://yapyap.guita.org/' },
-  { label: 'Source code', href: 'https://github.com/vascoguita/yapyap' },
-  { label: 'Report a problem', href: 'https://github.com/vascoguita/yapyap/issues' },
-  { label: 'Privacy', href: 'https://yapyap.guita.org/privacy' },
-  { label: 'Sponsor', href: 'https://github.com/sponsors/vascoguita' },
+  { label: text.links.website, href: 'https://yapyap.guita.org/' },
+  { label: text.links.source, href: 'https://github.com/vascoguita/yapyap' },
+  { label: text.links.issues, href: 'https://github.com/vascoguita/yapyap/issues' },
+  { label: text.links.privacy, href: 'https://yapyap.guita.org/privacy' },
+  { label: text.links.sponsor, href: 'https://github.com/sponsors/vascoguita' },
 ] as const;
 
 export const SUPPORTER = { name: 'Ensita', href: 'https://www.ensita.org/' } as const;
@@ -17,13 +20,13 @@ type Load =
 
 function Details({ info }: { readonly info: AboutInfo }): JSX.Element {
   const rows: readonly (readonly [string, string])[] = [
-    ['Version', `${info.version} (${info.channel})`],
+    [text.details.version, text.versionValue(info.version, info.channel)],
     ['Electron', info.electron],
     ['Chromium', info.chromium],
     ['Node.js', info.node],
-    ['Operating system', info.os],
-    ['Graphics', info.graphics],
-    ['License', info.license],
+    [text.details.operatingSystem, info.os],
+    [text.details.graphics, info.graphics],
+    [text.details.license, info.license],
   ];
   return (
     <dl>
@@ -37,7 +40,7 @@ function Details({ info }: { readonly info: AboutInfo }): JSX.Element {
 
 function Links(): JSX.Element {
   return (
-    <nav aria-label="Links">
+    <nav aria-label={text.linksLabel}>
       <ul>
         {LINKS.map(({ label, href }) => (
           <li key={href}>
@@ -71,10 +74,10 @@ function useCopy(api: ChromeApi): readonly [string, () => void] {
   const copy = (): void => {
     api.about.copyTechnicalDetails().then(
       () => {
-        setStatus('Copied to the clipboard.');
+        setStatus(text.copied);
       },
       () => {
-        setStatus('Could not copy the details.');
+        setStatus(text.copyFailed);
       },
     );
   };
@@ -87,28 +90,25 @@ export function About({ api }: { readonly api: ChromeApi }): JSX.Element {
   return (
     <main>
       <img src="./icon.svg" alt="" width={96} height={96} />
-      <h1>YapYap</h1>
+      <h1>{text.title}</h1>
       {load.state === 'ready' ? (
         <Details info={load.info} />
       ) : (
-        <p>{load.state === 'loading' ? 'Loading…' : 'Details are unavailable.'}</p>
+        <p>{load.state === 'loading' ? en.common.loading : text.unavailable}</p>
       )}
       <button type="button" onClick={copy}>
-        Copy technical details
+        {text.copyDetails}
       </button>
       <output>{copyStatus}</output>
       <Links />
       <p class="supporter">
-        Development supported by{' '}
+        {text.supportedBy}{' '}
         <a href={SUPPORTER.href} target="_blank" rel="noreferrer">
           {SUPPORTER.name}
         </a>
         {'.'}
       </p>
-      <p class="disclaimer">
-        YapYap is unofficial and is not affiliated with, endorsed by, or sponsored by WhatsApp or
-        Meta.
-      </p>
+      <p class="disclaimer">{text.disclaimer}</p>
     </main>
   );
 }

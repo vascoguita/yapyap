@@ -1,20 +1,9 @@
 import type { JSX } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import type { ChromeApi, RecoveryProblem } from '../../shared/chrome-api.ts';
+import { en } from '../../shared/messages/en.ts';
 
-const TITLES: Readonly<Record<RecoveryProblem['kind'], string>> = {
-  unsupported: 'WhatsApp says this browser is not supported',
-  blank: 'WhatsApp did not finish loading',
-  'load-failed': 'WhatsApp could not be reached',
-  crashed: 'WhatsApp keeps stopping',
-};
-
-const ADVICE: Readonly<Record<RecoveryProblem['kind'], string>> = {
-  unsupported: 'Clearing the cache usually fixes this. If it does not, check for a YapYap update.',
-  blank: 'Try again. If the page stays blank, clearing the cache usually fixes it.',
-  'load-failed': 'Check your internet connection, then try again.',
-  crashed: 'Try again. If it keeps happening, clearing the cache usually helps.',
-};
+const text = en.recovery;
 
 function useProblem(api: ChromeApi): RecoveryProblem | null | undefined {
   const [problem, setProblem] = useState<RecoveryProblem | null | undefined>(undefined);
@@ -34,7 +23,7 @@ function useAction(): readonly [string, (action: () => Promise<void>, done: stri
         setStatus(done);
       },
       () => {
-        setStatus('That did not work. Please try again.');
+        setStatus(text.failed);
       },
     );
   };
@@ -47,36 +36,36 @@ export function Recovery({ api }: { readonly api: ChromeApi }): JSX.Element {
   const kind = problem?.kind ?? 'blank';
   return (
     <main>
-      <h1>{TITLES[kind]}</h1>
-      <p>{ADVICE[kind]}</p>
+      <h1>{text.problems[kind].title}</h1>
+      <p>{text.problems[kind].advice}</p>
       <div class="actions">
         <button
           type="button"
           onClick={() => {
-            run(api.recovery.retry, 'Retrying…');
+            run(api.recovery.retry, text.retrying);
           }}
         >
-          Try again
+          {text.retry}
         </button>
         <button
           type="button"
           onClick={() => {
-            run(api.recovery.clearCache, 'Cache cleared. Retrying…');
+            run(api.recovery.clearCache, text.cacheCleared);
           }}
         >
-          Clear cache and try again
+          {text.clearCache}
         </button>
         <button
           type="button"
           onClick={() => {
-            run(api.recovery.copyDiagnostics, 'Diagnostics copied to the clipboard.');
+            run(api.recovery.copyDiagnostics, text.diagnosticsCopied);
           }}
         >
-          Copy diagnostics
+          {text.copyDiagnostics}
         </button>
       </div>
       <output>{status}</output>
-      <p class="disclaimer">Clearing the cache keeps you logged in.</p>
+      <p class="disclaimer">{text.keepsLogin}</p>
     </main>
   );
 }

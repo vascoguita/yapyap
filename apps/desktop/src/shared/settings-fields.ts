@@ -1,12 +1,14 @@
+import { en } from './messages/en.ts';
+
 /** A value the settings window can show and change. */
 export type SettingValue = boolean | string;
 
 /** A settings file section, in the order the settings window lists them. */
 export const SETTINGS_SECTIONS = [
-  { id: 'general', title: 'General' },
-  { id: 'appearance', title: 'Appearance' },
-  { id: 'reliability', title: 'Reliability' },
-  { id: 'privacy', title: 'Privacy' },
+  { id: 'general', title: en.settings.sections.general },
+  { id: 'appearance', title: en.settings.sections.appearance },
+  { id: 'reliability', title: en.settings.sections.reliability },
+  { id: 'privacy', title: en.settings.sections.privacy },
 ] as const;
 
 type SettingsSection = (typeof SETTINGS_SECTIONS)[number]['id'];
@@ -24,74 +26,41 @@ export interface SettingField {
   readonly platforms?: readonly string[];
 }
 
+const text = en.settings.fields;
+
+/** Only IDs with catalog text compile, so a field can never lack its label. */
+function described(id: keyof typeof text): Pick<SettingField, 'id' | 'label' | 'description'> {
+  return { id, label: text[id].label, description: text[id].description };
+}
+
+/** Catalog option keys are the stored values, listed in catalog order. */
+function choices(options: Readonly<Record<string, string>>): NonNullable<SettingField['options']> {
+  return Object.entries(options).map(([value, label]) => ({ value, label }));
+}
+
 /**
  * What the settings window shows. A setting appears here only once YapYap
  * acts on it, so the window never offers a switch that does nothing.
  */
 export const SETTING_FIELDS: readonly SettingField[] = [
   {
-    id: 'appearance.theme',
-    label: 'Theme',
-    description:
-      'Applies to YapYap and to WhatsApp, as long as WhatsApp’s own theme is set to System default.',
+    ...described('appearance.theme'),
     restart: false,
-    options: [
-      { value: 'system', label: 'Same as the system' },
-      { value: 'light', label: 'Light' },
-      { value: 'dark', label: 'Dark' },
-    ],
+    options: choices(text['appearance.theme'].options),
   },
+  { ...described('appearance.autoHideMenuBar'), restart: false, platforms: ['linux', 'win32'] },
+  { ...described('reliability.hardwareAcceleration'), restart: true },
   {
-    id: 'appearance.autoHideMenuBar',
-    label: 'Hide the menu bar',
-    description: 'Press Alt to show it when you need it.',
-    restart: false,
-    platforms: ['linux', 'win32'],
-  },
-  {
-    id: 'reliability.hardwareAcceleration',
-    label: 'Use hardware acceleration',
-    description:
-      'Uses the graphics card to draw YapYap. Turn this off if the window flickers or stays blank.',
+    ...described('reliability.displayBackend'),
     restart: true,
-  },
-  {
-    id: 'reliability.displayBackend',
-    label: 'Display backend',
-    description:
-      'How YapYap talks to your display server. Try the other one if the window is blank, blurry or misplaced.',
-    restart: true,
-    options: [
-      { value: 'auto', label: 'Automatic' },
-      { value: 'wayland', label: 'Wayland' },
-      { value: 'x11', label: 'X11 (XWayland)' },
-    ],
+    options: choices(text['reliability.displayBackend'].options),
     platforms: ['linux'],
   },
+  { ...described('reliability.hardwareVideoDecoding'), restart: true },
   {
-    id: 'reliability.hardwareVideoDecoding',
-    label: 'Use hardware video decoding',
-    description:
-      'Uses the graphics card to play videos and video calls. Turn this off if video stutters or shows artifacts.',
-    restart: true,
-  },
-  {
-    id: 'privacy.crashReports',
-    label: 'Crash reports',
-    description:
-      'After YapYap closes unexpectedly, keep a redacted report on this computer. Nothing is sent unless you choose to report it on GitHub.',
+    ...described('privacy.crashReports'),
     restart: false,
-    options: [
-      { value: 'off', label: 'Off' },
-      { value: 'local', label: 'Keep a local report' },
-      { value: 'ask', label: 'Keep a report and offer to review it' },
-    ],
+    options: choices(text['privacy.crashReports'].options),
   },
-  {
-    id: 'privacy.unreadWhileHidden',
-    label: 'Keep chats unread while YapYap is hidden',
-    description:
-      'When YapYap is hidden or minimized, WhatsApp does not mark new messages in the open chat as read. Turn this off to let the open chat keep reading.',
-    restart: false,
-  },
+  { ...described('privacy.unreadWhileHidden'), restart: false },
 ];
