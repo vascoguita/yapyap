@@ -9,6 +9,7 @@ const VIDEO = 'reliability.hardwareVideoDecoding';
 const THEME = 'appearance.theme';
 const MENU_BAR = 'appearance.autoHideMenuBar';
 const BACKEND = 'reliability.displayBackend';
+const CRASH = 'privacy.crashReports';
 
 function setup(readOnly = false) {
   let settings: Settings = defaultSettings();
@@ -104,6 +105,7 @@ describe('settingsHandlers', () => {
         [HARDWARE]: true,
         [BACKEND]: 'auto',
         [VIDEO]: true,
+        [CRASH]: 'off',
       },
       restartPending: false,
       readOnly: true,
@@ -120,6 +122,7 @@ describe('settingsHandlers', () => {
         [HARDWARE]: false,
         [BACKEND]: 'auto',
         [VIDEO]: true,
+        [CRASH]: 'off',
       },
       restartPending: true,
       readOnly: false,

@@ -21,6 +21,8 @@ import { release } from 'node:os';
 import { join } from 'node:path';
 import { readInstallChannel } from './about/about-info.ts';
 import { CHROME_PARTITION, createChromeFeature } from './chrome/feature.ts';
+import { profileCrashFiles, readPreviousLog } from './crash/crash-files.ts';
+import { reviewCrashWithDialog } from './crash-review-prompt.ts';
 import { createLogger } from './logging/logger.ts';
 import { electronSettingsFiles } from './settings/transfer-dialogs.ts';
 import { openSettings } from './settings/service.ts';
@@ -37,8 +39,10 @@ const PICKER_THUMBNAIL = { width: 320, height: 180 };
 const GPU_CRASH_LOG = join(app.getPath('userData'), 'gpu-crashes.json');
 const WINDOW_STATE = join(app.getPath('userData'), 'window-state.json');
 
+const LOG_DIR = join(app.getPath('userData'), 'logs');
+
 const logger = createLogger({
-  dir: join(app.getPath('userData'), 'logs'),
+  dir: LOG_DIR,
   home: app.getPath('home'),
   now: Date.now,
   // Terminal output is redacted like the file, for people who start YapYap from one.
@@ -148,6 +152,13 @@ startApp({
   },
   sandboxDisabled: sandboxDisabled(app.commandLine, process.env),
   explainUnsafeStart: explainUnsafeStartWithDialog,
+  crashes: {
+    files: profileCrashFiles(app.getPath('userData')),
+    version: app.getVersion(),
+    previousLog: () => readPreviousLog(LOG_DIR),
+    review: reviewCrashWithDialog,
+    writeClipboard: (text) => clipboard.writeText(text),
+  },
   logError: (message) => {
     logger.log('error', message);
   },

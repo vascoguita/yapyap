@@ -21,6 +21,11 @@
 
 ## Notes
 
+- Opt-in local crash reports (#39): a session marker (`running.json`) detects
+  unclean exits; with `privacy.crashReports` on, YapYap saves a redacted text
+  report and, when set to `ask`, offers to review it and open a prefilled
+  GitHub issue. Nothing is sent automatically.
+
 - Renderer memory watchdog (#37): `reliability.memoryWatchdogMb` (file only)
   reloads the WhatsApp renderer after two minutes over the limit, but not
   while the user is busy in the window unless it passes 1.5× the limit

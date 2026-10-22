@@ -75,4 +75,16 @@ export const SETTING_FIELDS: readonly SettingField[] = [
       'Uses the graphics card to play videos and video calls. Turn this off if video stutters or shows artifacts.',
     restart: true,
   },
+  {
+    id: 'privacy.crashReports',
+    label: 'Crash reports',
+    description:
+      'After YapYap closes unexpectedly, keep a redacted report on this computer. Nothing is sent unless you choose to report it on GitHub.',
+    restart: false,
+    options: [
+      { value: 'off', label: 'Off' },
+      { value: 'local', label: 'Keep a local report' },
+      { value: 'ask', label: 'Keep a report and offer to review it' },
+    ],
+  },
 ];

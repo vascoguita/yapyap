@@ -19,8 +19,15 @@ browser. YapYap does not read, copy or upload them.
   of YapYap's data folder. Each launch starts a new file, and a file is also
   rotated at 1 MB. At most five old files are kept, and they are deleted
   after 14 days.
-- **Crash reports are opt-in.** They are saved locally, and you review them
-  before choosing to submit them.
+- **Crash reports are opt-in.** They are off unless you turn on **Crash
+  reports** in Settings → Privacy. Then, after YapYap closes unexpectedly, it
+  saves a plain-text report in its data folder (`crash-report.txt`): the
+  version, operating system and graphics details, and the end of the
+  previous session's log, which is already redacted. It never saves memory
+  dumps, which could contain messages. With **Keep a report and offer to
+  review it**, YapYap shows you the whole report at the next launch.
+  Nothing is sent: **Report on GitHub** only opens a prefilled bug report in
+  your browser, for you to read, edit and submit yourself.
 
 A complete inventory of the data YapYap stores, where it is stored, and how
 to delete it will be added here as each feature ships.

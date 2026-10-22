@@ -84,7 +84,9 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     pickCaptureSource: vi.fn<(contents: object) => Promise<CaptureChoice | undefined>>(() =>
       Promise.resolve({ video: { id: 'screen:1:0', name: 'Screen' } }),
     ),
+    technicalDetails: () => 'YapYap 0.1.0 (deb)',
   };
+  const stored = new Map<string, string>();
   const warn = vi.fn();
   const openExternal = vi.fn(() => Promise.resolve());
   const session = {
@@ -150,6 +152,22 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     explainUnsafeStart: vi.fn(() => Promise.resolve(false)),
     logError: vi.fn(),
     downloads: { folder: () => '/home/someone/Downloads', taken: () => false },
+    crashes: {
+      files: {
+        read: (name: string) => stored.get(name),
+        write: vi.fn((name: string, text: string) => stored.set(name, text)),
+        remove: (name: string) => {
+          stored.delete(name);
+        },
+      },
+      version: '0.1.0',
+      previousLog: () => ['last line'],
+      review: vi.fn<(report: string) => Promise<'report' | 'copy' | 'close'>>(() =>
+        Promise.resolve('close'),
+      ),
+      writeClipboard: vi.fn(() => Promise.resolve()),
+    },
+    stored,
     listeners,
   };
 }
@@ -449,6 +467,39 @@ describe('startApp', () => {
     expect(f.app.quit).toHaveBeenCalledOnce();
     expect(f.app.whenReady).not.toHaveBeenCalled();
     expect(f.createWindow).not.toHaveBeenCalled();
+    expect(f.crashes.files.write).not.toHaveBeenCalled();
+  });
+
+  it('marks the session as running until a clean quit', async () => {
+    const f = fakes();
+    await startApp(f);
+    expect(f.stored.get('running.json')).toMatch(/^\{"version":"0\.1\.0","startedAt":\d+\}$/);
+    f.listeners.get('will-quit')?.();
+    expect(f.stored.has('running.json')).toBe(false);
+    expect(f.crashes.review).not.toHaveBeenCalled();
+  });
+
+  it('offers to review a crash report after an unclean exit when asked to', async () => {
+    const f = fakes();
+    f.stored.set('running.json', '{"version":"0.0.9","startedAt":1000}');
+    const settings = defaultSettings();
+    f.settings.current = () => ({ ...settings, privacy: { crashReports: 'ask' } });
+    await startApp(f);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(f.crashes.review).toHaveBeenCalledExactlyOnceWith(
+      expect.stringMatching(/YapYap 0\.0\.9[\s\S]*YapYap 0\.1\.0 \(deb\)[\s\S]*last line$/),
+    );
+  });
+
+  it('logs a crash review it could not offer', async () => {
+    const f = fakes();
+    f.stored.set('running.json', '{"version":"0.0.9","startedAt":1000}');
+    const settings = defaultSettings();
+    f.settings.current = () => ({ ...settings, privacy: { crashReports: 'ask' } });
+    f.crashes.review.mockRejectedValueOnce(new Error('no display'));
+    await startApp(f);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(f.warn).toHaveBeenCalledWith('Could not offer the crash report.');
   });
 
   it('opens a chat link it was launched with', async () => {

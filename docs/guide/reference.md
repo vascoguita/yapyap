@@ -9,15 +9,16 @@ Change settings in **Settings** (<kbd>Ctrl</kbd>+<kbd>,</kbd>, or
 <kbd>⌘</kbd>+<kbd>,</kbd> on macOS). They are saved in `settings.json` in
 the [profile folder](#files).
 
-| Setting                     | In the file                         | Default            | Notes                                      |
-| --------------------------- | ----------------------------------- | ------------------ | ------------------------------------------ |
-| Theme                       | `appearance.theme`                  | Same as the system | `system`, `light` or `dark`                |
-| Hide the menu bar           | `appearance.autoHideMenuBar`        | Off                | Windows and Linux; <kbd>Alt</kbd> shows it |
-| Zoom                        | `appearance.zoom`                   | 100%               | Set from the View menu; 50% to 300%        |
-| Use hardware acceleration   | `reliability.hardwareAcceleration`  | On                 | Takes effect after a restart               |
-| Use hardware video decoding | `reliability.hardwareVideoDecoding` | On                 | Takes effect after a restart               |
-| Display backend             | `reliability.displayBackend`        | Automatic          | Linux; `auto`, `wayland` or `x11`; restart |
-| Memory limit                | `reliability.memoryWatchdogMb`      | 2048 MB            | File only; 512 to 16384; see below         |
+| Setting                     | In the file                         | Default            | Notes                                            |
+| --------------------------- | ----------------------------------- | ------------------ | ------------------------------------------------ |
+| Theme                       | `appearance.theme`                  | Same as the system | `system`, `light` or `dark`                      |
+| Hide the menu bar           | `appearance.autoHideMenuBar`        | Off                | Windows and Linux; <kbd>Alt</kbd> shows it       |
+| Zoom                        | `appearance.zoom`                   | 100%               | Set from the View menu; 50% to 300%              |
+| Use hardware acceleration   | `reliability.hardwareAcceleration`  | On                 | Takes effect after a restart                     |
+| Use hardware video decoding | `reliability.hardwareVideoDecoding` | On                 | Takes effect after a restart                     |
+| Display backend             | `reliability.displayBackend`        | Automatic          | Linux; `auto`, `wayland` or `x11`; restart       |
+| Memory limit                | `reliability.memoryWatchdogMb`      | 2048 MB            | File only; 512 to 16384; see below               |
+| Crash reports               | `privacy.crashReports`              | Off                | `off`, `local` or `ask`; see [Privacy](/privacy) |
 
 The file also has entries for features that are not built yet. YapYap
 ignores them until those features arrive, and the settings window shows a
@@ -56,6 +57,8 @@ Inside it:
 | `settings.json`     | Your settings, and `settings.json.bak`, the copy before the last change                      |
 | `window-state.json` | The window's size and position, so it reopens where you left it                              |
 | `gpu-crashes.json`  | The times of recent graphics crashes, which trigger the safe graphics fallback               |
+| `running.json`      | The version and start time of the running session; left behind only if YapYap did not quit   |
+| `crash-report.txt`  | With crash reports on, the report of the last unclean exit; a new one replaces it            |
 | `logs/`             | Redacted logs: this session's `yapyap.log` and up to five older files, deleted after 14 days |
 | Everything else     | WhatsApp Web's own data (your login, cache and local storage), kept by Chromium              |
 
