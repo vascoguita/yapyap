@@ -43,7 +43,8 @@ not edit the same lines.
 - Linux display backend (#41): `reliability.displayBackend` (settings schema
   v2, the first migration) picks Wayland or X11; `--ozone-platform` and
   `ELECTRON_OZONE_PLATFORM_HINT` win over it. Diagnostics show the backend,
-  and the portal picker follows it. CI checks both backends paint.
+  and the portal picker follows it. CI checks both backends paint, polling
+  until the window is shown and painted.
 
 - Settings export and import (#43) live in the Settings window's Backup
   section. A new settings section must be classified in `EXPORTED_SECTIONS`
