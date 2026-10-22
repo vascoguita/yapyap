@@ -72,6 +72,10 @@ export interface ChromeApi {
     readonly export: () => Promise<TransferResult>;
     readonly import: () => Promise<TransferResult>;
   };
+  readonly chat: {
+    /** Opens the chat with an international number; false when WhatsApp cannot yet. */
+    readonly openNumber: (number: string) => Promise<boolean>;
+  };
   readonly picker: {
     readonly offer: () => Promise<PickerOffer>;
     readonly choose: (id: string, audio: boolean) => Promise<void>;
@@ -94,4 +98,5 @@ export const CHROME_CHANNELS = {
   pickerOffer: 'picker:offer',
   pickerChoose: 'picker:choose',
   pickerCancel: 'picker:cancel',
+  chatOpenNumber: 'chat:open-number',
 } as const;

@@ -5,6 +5,7 @@ import { PRODUCT_NAME } from './identity.ts';
 export interface MenuActions {
   readonly openAbout: () => void;
   readonly openSettings: () => void;
+  readonly openNewChat: () => void;
   readonly clearCache: () => void;
   readonly resetSession: () => void;
   readonly zoom: (step: ZoomStep) => void;
@@ -53,6 +54,8 @@ function accountMenu(actions: MenuActions): MenuItemConstructorOptions {
   return {
     label: '&Account',
     submenu: [
+      { label: 'New Chat with Number…', click: actions.openNewChat },
+      { type: 'separator' },
       { label: 'Clear Cache and Reload', click: actions.clearCache },
       { type: 'separator' },
       { label: 'Reset Session…', click: actions.resetSession },

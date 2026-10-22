@@ -84,11 +84,14 @@ function setup() {
   } satisfies ChromeFeatureDependencies;
   const views = new WeakMap<object, ViewInfo>();
   const feature = createChromeFeature(deps);
-  const call = (channel: string, sender: object = window.webContents) =>
-    listeners.get(channel)?.({
-      sender,
-      senderFrame: { url: 'app://chrome/about.html' },
-    });
+  const call = (channel: string, sender: object = window.webContents, ...args: unknown[]) =>
+    listeners.get(channel)?.(
+      {
+        sender,
+        senderFrame: { url: 'app://chrome/about.html' },
+      },
+      ...args,
+    );
   const click = (menuIndex: number) => (): void => {
     const submenu = menu.at(menuIndex)?.submenu;
     const item = Array.isArray(submenu) ? submenu[0] : undefined;
@@ -284,8 +287,8 @@ describe('createChromeFeature', () => {
     const t = setup();
     const warn = vi.fn();
     const runtime = t.feature.afterReady(t.views, warn, 'hardware accelerated');
-    t.clickAccount(0);
     t.clickAccount(2);
+    t.clickAccount(4);
     await new Promise((resolve) => setTimeout(resolve));
     expect(t.deps.confirmReset).toHaveBeenCalledOnce();
     const session = {
@@ -301,23 +304,35 @@ describe('createChromeFeature', () => {
       session,
     };
     runtime.attachRecovery(contents, 'https://web.whatsapp.com', vi.fn());
-    t.clickAccount(0);
+    t.clickAccount(2);
     await new Promise((resolve) => setTimeout(resolve));
     expect(session.clearStorageData).toHaveBeenLastCalledWith({
       storages: ['serviceworkers', 'cachestorage'],
     });
     t.deps.confirmReset.mockResolvedValueOnce(false);
-    t.clickAccount(2);
+    t.clickAccount(4);
     await new Promise((resolve) => setTimeout(resolve));
     expect(session.clearStorageData).toHaveBeenCalledOnce();
-    t.clickAccount(2);
+    t.clickAccount(4);
     await new Promise((resolve) => setTimeout(resolve));
     expect(session.clearStorageData).toHaveBeenLastCalledWith();
     expect(contents.loadURL).toHaveBeenCalledTimes(2);
     session.clearCache.mockRejectedValueOnce(new Error('busy'));
-    t.clickAccount(0);
+    t.clickAccount(2);
     await new Promise((resolve) => setTimeout(resolve));
     expect(warn).toHaveBeenCalledWith('Could not finish an account maintenance action.');
+  });
+
+  it('opens New Chat from the Account menu and its chats in WhatsApp once there is a window', () => {
+    const t = setup();
+    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    t.clickAccount(0);
+    expect(t.window.loadURL).toHaveBeenCalledWith('app://chrome/new-chat.html');
+    expect(t.call('chat:open-number', t.window.webContents, '+44 7700 900123')).toBe(false);
+    const open = vi.fn();
+    runtime.openChatsWith(open);
+    expect(t.call('chat:open-number', t.window.webContents, '+44 7700 900123')).toBe(true);
+    expect(open).toHaveBeenCalledExactlyOnceWith('447700900123');
   });
 
   it('zooms through the settings from the View menu', () => {

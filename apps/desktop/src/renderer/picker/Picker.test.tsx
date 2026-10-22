@@ -22,6 +22,7 @@ function api(offer: () => Promise<PickerOffer> = () => Promise.resolve(OFFER)) {
     about: { info: vi.fn(), copyTechnicalDetails: vi.fn() },
     recovery: { problem: vi.fn(), retry: vi.fn(), clearCache: vi.fn(), copyDiagnostics: vi.fn() },
     settings: { get: vi.fn(), set: vi.fn(), restart: vi.fn(), export: vi.fn(), import: vi.fn() },
+    chat: { openNumber: vi.fn() },
     picker: {
       offer: vi.fn(offer),
       choose: vi.fn(() => Promise.resolve()),

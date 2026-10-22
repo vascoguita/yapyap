@@ -98,6 +98,13 @@ back. Clicking a `whatsapp://` link, or opening a `https://wa.me/` or
 with any prefilled text. YapYap accepts only the phone number and the text
 from these links.
 
+## Chat with a number
+
+To message a number that is not in your contacts, choose **Account → New
+Chat with Number…**, type the number with its country code (for example
+`+44 7700 900123` or `0044 7700 900123`) and choose **Open Chat**. WhatsApp
+opens the chat; YapYap does not save the number.
+
 ## Window and quitting
 
 YapYap reopens where you left it, at the same size, and maximized or full

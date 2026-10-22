@@ -9,6 +9,7 @@ import {
   type RuntimeFacts,
 } from '../about/about-info.ts';
 import { readPageState, type ProbedContents } from '../about/page-state.ts';
+import { newChatHandlers, type ChatTarget } from './new-chat.ts';
 import {
   decideUpdatePolicy,
   describeUpdatePolicy,
@@ -80,6 +81,18 @@ const PICKER_PAGE: ChromePage = {
   },
 };
 
+const NEW_CHAT_PAGE: ChromePage = {
+  path: 'new-chat.html',
+  window: {
+    title: 'New Chat',
+    width: 440,
+    height: 300,
+    resizable: false,
+    minimizable: false,
+    maximizable: false,
+  },
+};
+
 const SETTINGS_PAGE: ChromePage = {
   path: 'settings.html',
   window: { title: 'YapYap Settings', width: 640, height: 680, minWidth: 420, minHeight: 360 },
@@ -137,6 +150,8 @@ interface ChromeRuntime {
   readonly pickCaptureSource: SourcePicker['pick'];
   /** The About window's technical details, for crash reports. */
   readonly technicalDetails: () => string;
+  /** Where the New Chat window opens chats: WhatsApp's window, once it exists. */
+  readonly openChatsWith: (open: (phone: string) => void) => void;
 }
 
 export interface ChromeFeature {
@@ -316,6 +331,7 @@ function setMenu(
     buildMenuTemplate(deps.platform, {
       openAbout: opener(ABOUT_PAGE),
       openSettings: opener(SETTINGS_PAGE),
+      openNewChat: opener(NEW_CHAT_PAGE),
       ...accountActions(deps, recoveries, warn),
       zoom: (step) => {
         changeZoom(deps.settings, step);
@@ -329,6 +345,22 @@ function setMenu(
 function serveChromePages(deps: ChromeFeatureDependencies): void {
   const handler = createChromeHandler(deps.rendererRoot, deps.readFile);
   deps.chromeProtocol().handle(CHROME_SCHEME, handler);
+}
+
+function allHandlers(
+  deps: Omit<ChromeFeatureDependencies, 'facts'> & FactsSource,
+  recoveries: readonly Recovery[],
+  picker: SourcePicker,
+  chats: ChatTarget,
+): ChromeHandler[] {
+  return [
+    ...aboutHandlers(deps),
+    ...recoveryHandlers(recoveries),
+    ...settingsHandlers(deps.settings, deps.restart, deps.platform),
+    ...settingsTransferHandlers(deps.settings, deps.settingsFiles),
+    ...newChatHandlers(chats),
+    ...picker.handlers,
+  ];
 }
 
 export function createChromeFeature(deps: ChromeFeatureDependencies): ChromeFeature {
@@ -346,16 +378,11 @@ export function createChromeFeature(deps: ChromeFeatureDependencies): ChromeFeat
       const pages: ProbedContents[] = [];
       const windows = chromeWindows(deps, renderer, views, warn);
       const picker = sourcePicker(deps, windows);
+      const chats: ChatTarget = {};
       registerChromeHandlers(
         deps.ipc,
         views,
-        [
-          ...aboutHandlers(withGraphics),
-          ...recoveryHandlers(recoveries),
-          ...settingsHandlers(deps.settings, deps.restart, deps.platform),
-          ...settingsTransferHandlers(deps.settings, deps.settingsFiles),
-          ...picker.handlers,
-        ],
+        allHandlers(withGraphics, recoveries, picker, chats),
         warn,
       );
       setMenu(deps, windows, recoveries, warn, () => {
@@ -367,6 +394,9 @@ export function createChromeFeature(deps: ChromeFeatureDependencies): ChromeFeat
         attachRecovery: recoveryAttacher(withGraphics, renderer, views, warn, recoveries, pages),
         pickCaptureSource: picker.pick,
         technicalDetails: () => formatTechnicalDetails(buildAboutInfo(withGraphics.facts())),
+        openChatsWith: (open) => {
+          chats.open = open;
+        },
       };
     },
   };

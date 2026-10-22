@@ -85,6 +85,7 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
       Promise.resolve({ video: { id: 'screen:1:0', name: 'Screen' } }),
     ),
     technicalDetails: () => 'YapYap 0.1.0 (deb)',
+    openChatsWith: vi.fn<(open: (phone: string) => void) => void>(),
   };
   const stored = new Map<string, string>();
   const warn = vi.fn();
@@ -458,6 +459,23 @@ describe('startApp', () => {
     expect(f.warn).toHaveBeenCalledWith(
       'The WhatsApp renderer used 3000 MB, over the 2048 MB limit; reloading it.',
     );
+  });
+
+  it('opens chats from the New Chat window in the WhatsApp window, brought to the front', async () => {
+    const f = fakes();
+    await startApp(f);
+    const open = f.runtime.openChatsWith.mock.calls[0]?.[0];
+    f.window.isMinimized.mockReturnValueOnce(true);
+    open?.('447700900123');
+    expect(f.window.restore).toHaveBeenCalledOnce();
+    expect(f.window.focus).toHaveBeenCalled();
+    expect(f.window.loadURL).toHaveBeenLastCalledWith(
+      'https://web.whatsapp.com/send?phone=447700900123',
+    );
+    f.window.loadURL.mockRejectedValueOnce(new Error('ERR_INTERNET_DISCONNECTED'));
+    open?.('447700900123');
+    await vi.advanceTimersByTimeAsync(0);
+    expect(f.warn).not.toHaveBeenCalled();
   });
 
   it('leaves the launch to the running YapYap when another one holds the lock', async () => {
