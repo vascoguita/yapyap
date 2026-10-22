@@ -106,10 +106,10 @@ Update this table in the PR that adds a command.
   Update `docs/progress.md` in every PR, and this file when it is affected.
 - Watch checks with `gh pr checks --watch`. Fix failures with new commits.
   Never skip, weaken or disable a check or test.
-- Before merging, rebase onto the latest `master`, push with
-  `--force-with-lease`, and wait for green. Then
-  `gh pr merge --merge --delete-branch`. Squash and rebase merges are
-  disabled.
+- Merge once the required checks are green with
+  `gh pr merge --merge --delete-branch`. Branches need not be up to date
+  until M7 (#210); rebase onto `master` and push with `--force-with-lease`
+  only when the PR conflicts. Squash and rebase merges are disabled.
 - Releases happen only by merging the release-please PR.
 
 ## Common pitfalls
@@ -119,9 +119,12 @@ Update this table in the PR that adds a command.
 - `typescript-eslint` deprecates `tseslint.config()`. Use `defineConfig` from
   `eslint/config`.
 - Relative imports use explicit `.ts` extensions (`allowImportingTsExtensions`).
-- Adding or renaming a required CI job means updating
-  `.github/rulesets/master.json` and re-applying it (see CONTRIBUTING), or PRs
-  will wait forever for a check that never reports.
+- The CI workflow's only required check is `CI result`. A new CI job must be
+  added to its `needs`, or its failures will not block merging. A job that
+  only matters for code or packaging gets `needs: changes` and a condition on
+  `needs.changes.outputs` (ADR 0007). Required checks of other workflows
+  live in `.github/rulesets/master.json`; re-apply it after changing it (see
+  CONTRIBUTING).
 - Terminals inside VS Code export `ELECTRON_RUN_AS_NODE=1`. The E2E fixture
   strips it; strip it yourself before running `electron` by hand.
 - Electron 44 has no postinstall step. It downloads its binary on first use, so
@@ -147,8 +150,9 @@ Update this table in the PR that adds a command.
   Never set signing variables to `''`; export them only when the secret exists.
   PR checks cannot catch this, so watch the first `master` run after changing
   packaging.
-- Jobs in reusable workflows report as `<caller job> / <job>`, for example
-  `Package / Package (macos)`. Use that full name in the ruleset.
+- Package and smoke workflows take a `scope` input: `representative` runs
+  the always-on jobs, `full` adds the `*-full` jobs, which share their steps
+  through YAML anchors. Add a new format or architecture to the right half.
 - Flatpak lint exceptions live in `packaging/flatpak/lint-exceptions.json`,
   each with its reason and issue. Remove an entry as soon as its issue lands.
 - App chrome pages are served from `app://chrome/` on the in-memory

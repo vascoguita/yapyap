@@ -91,12 +91,14 @@ These settings are applied through the GitHub API and must stay in place.
 - **Actions:** the default workflow token is read-only, and workflows may open pull requests (release-please needs this). Each workflow requests only the permissions it needs.
 - **Rulesets:** stored as JSON in [`.github/rulesets/`](.github/rulesets/).
   - `master`: pull request required, merge commits only, required status
-    checks with "branch must be up to date", signed commits, no force push,
-    no deletion, conversation resolution required.
+    checks (`CI result` for the CI workflow, plus CodeQL, dependency review,
+    audit, PR title and docs build), signed commits, no force push, no
+    deletion, conversation resolution required. Branches need not be up to
+    date until M7 (#210, ADR 0007).
   - `release tags`: `v*` tags cannot be deleted, moved or updated.
 
-  After changing a ruleset file (for example when a required CI job is
-  added or renamed), apply it:
+  After changing a ruleset file (for example when a check of a workflow
+  other than CI is added or renamed), apply it:
 
   ```sh
   id=$(gh api repos/vascoguita/yapyap/rulesets --jq '.[] | select(.name=="master") | .id')

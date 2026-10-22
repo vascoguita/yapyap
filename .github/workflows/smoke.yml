@@ -2,6 +2,11 @@ name: Package smoke tests
 
 on:
   workflow_call:
+    inputs:
+      scope:
+        description: full runs every format and architecture; representative, one package per system (ADR 0007)
+        type: string
+        default: full
 
 permissions:
   contents: read
@@ -13,12 +18,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { format: deb, arch: x64, os: ubuntu-latest, artifact: packages-linux-x64 }
           - { format: appimage, arch: x64, os: ubuntu-latest, artifact: packages-linux-x64 }
-          - { format: deb, arch: arm64, os: ubuntu-24.04-arm, artifact: packages-linux-arm64 }
-          - { format: appimage, arch: arm64, os: ubuntu-24.04-arm, artifact: packages-linux-arm64 }
     runs-on: ${{ matrix.os }}
-    steps:
+    steps: &linux-steps
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -57,8 +59,22 @@ jobs:
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - run: xvfb-run -a pnpm test:smoke
 
+  linux-full:
+    name: Smoke (${{ matrix.format }}-${{ matrix.arch }})
+    if: inputs.scope == 'full'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { format: deb, arch: x64, os: ubuntu-latest, artifact: packages-linux-x64 }
+          - { format: deb, arch: arm64, os: ubuntu-24.04-arm, artifact: packages-linux-arm64 }
+          - { format: appimage, arch: arm64, os: ubuntu-24.04-arm, artifact: packages-linux-arm64 }
+    runs-on: ${{ matrix.os }}
+    steps: *linux-steps
+
   flatpak:
     name: Smoke (flatpak-${{ matrix.arch }})
+    if: inputs.scope == 'full'
     strategy:
       fail-fast: false
       matrix:
@@ -103,6 +119,7 @@ jobs:
 
   rpm:
     name: Smoke (rpm-${{ matrix.arch }})
+    if: inputs.scope == 'full'
     strategy:
       fail-fast: false
       matrix:
@@ -147,6 +164,7 @@ jobs:
 
   aur:
     name: Smoke (aur-x86_64)
+    if: inputs.scope == 'full'
     runs-on: ubuntu-latest
     container:
       image: archlinux:base-devel@sha256:0ccc8b2e55c0c26a6e501e892cc6b1cdea7cfdf77e432941320148b4dabd2bff
@@ -207,27 +225,8 @@ jobs:
       matrix:
         include:
           - { format: nsis, arch: x64, os: windows-latest, installer: 'YapYap-*-win-setup.exe' }
-          - { format: nsis, arch: arm64, os: windows-11-arm, installer: 'YapYap-*-win-setup.exe' }
-          - {
-              format: nsis-only,
-              arch: arm64,
-              os: windows-11-arm,
-              installer: 'YapYap-*-win-arm64-setup.exe',
-            }
-          - {
-              format: portable,
-              arch: x64,
-              os: windows-latest,
-              installer: 'YapYap-*-win-x64-portable.exe',
-            }
-          - {
-              format: portable,
-              arch: arm64,
-              os: windows-11-arm,
-              installer: 'YapYap-*-win-arm64-portable.exe',
-            }
     runs-on: ${{ matrix.os }}
-    steps:
+    steps: &windows-steps
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -265,6 +264,35 @@ jobs:
           $exe = Get-Item "packages\$env:INSTALLER"
           "YAPYAP_PACKAGED_EXECUTABLE=$($exe.FullName)" >> $env:GITHUB_ENV
       - run: pnpm test:smoke
+
+  windows-full:
+    name: Smoke (${{ matrix.format }}-${{ matrix.arch }})
+    if: inputs.scope == 'full'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { format: nsis, arch: arm64, os: windows-11-arm, installer: 'YapYap-*-win-setup.exe' }
+          - {
+              format: nsis-only,
+              arch: arm64,
+              os: windows-11-arm,
+              installer: 'YapYap-*-win-arm64-setup.exe',
+            }
+          - {
+              format: portable,
+              arch: x64,
+              os: windows-latest,
+              installer: 'YapYap-*-win-x64-portable.exe',
+            }
+          - {
+              format: portable,
+              arch: arm64,
+              os: windows-11-arm,
+              installer: 'YapYap-*-win-arm64-portable.exe',
+            }
+    runs-on: ${{ matrix.os }}
+    steps: *windows-steps
 
   macos:
     name: Smoke (dmg-universal)
