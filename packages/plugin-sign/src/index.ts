@@ -1,4 +1,11 @@
 export { TRUST_ANCHORS } from './anchors.ts';
+export {
+  ARCHIVE_LIMITS,
+  readPluginArchive,
+  verifyArchive,
+  type ArchiveLimits,
+  type PluginArchive,
+} from './archive.ts';
 export { digestFiles, type FileDigest } from './files.ts';
 export { matchesIntegrity } from './integrity.ts';
 export { fingerprint, readPublicKey } from './keys.ts';

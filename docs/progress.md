@@ -86,6 +86,12 @@ not edit the same lines.
   the first matches `PLUGIN_SIGNING_PUBLIC_KEY`. The installer (#91) wires
   it into the app.
 
+- Plugin archives (#91, first part): `readPluginArchive` reads a
+  `.yapyap-plugin` ZIP in memory with fflate within size and entry limits,
+  rejects unsafe paths and case collisions, and `verifyArchive` checks its
+  signature before anything is written. The consent screen and install
+  storage come next.
+
 - The screen picker lists screens and windows in separate calls (#180),
   because one combined call came back empty on Linux CI while screens alone
   were listed.

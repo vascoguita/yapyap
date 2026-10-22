@@ -58,9 +58,14 @@ path }`. Every file in the archive must appear in that list. Extra,
 
 ### Unpacking
 
-Archives are read in memory with fflate. Size and entry-count limits are
-enforced. Entry names are normalized, and any absolute path, `..` segment,
-symlink, or path that escapes the install root is rejected. Files are written
+Archives are read in memory with fflate (`readPluginArchive` in
+`packages/plugin-sign`). Limits: 20 MB archive, 512 entries, 10 MB per file
+and 50 MB unpacked in total, checked against the declared sizes and again
+against the bytes actually unpacked, since headers can lie. Entry names must be plain relative paths: absolute paths, drive letters,
+backslashes, control characters, `.`, `..` and empty segments are rejected,
+as are names that collide on case-insensitive file systems. Links are never
+created: an entry stored as a link unpacks as an ordinary file holding its
+target's name, which the signature covers. Files are written
 to `<userData>/plugins/<id>/<version>/` only after the signature verifies.
 
 ### Runtime isolation
