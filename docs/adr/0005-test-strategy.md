@@ -57,6 +57,7 @@ attacker-controlled redirect.
   | `apps/desktop/src/main/index.ts`                                       | Process entry: wires real Electron modules into tested factories. Only runnable inside Electron, and exercised by every E2E test. |
   | `apps/desktop/src/preload/*/index.ts`                                  | `contextBridge.exposeInMainWorld` calls. Each only binds an already unit-tested API object, and exercised by E2E.                 |
   | `scripts/src/bin/*.ts`                                                 | Command entry points that only read `process.env` and pass real `fetch` and `fs` into tested modules; branch-free by lint rule.   |
+  | `packages/*/src/bin/*.ts`                                              | The same for package CLIs such as `yapyap-plugin-sign`: they pass `process.argv` and real `fs` and streams into tested modules.   |
   | `**/*.d.ts`, generated `*.schema.json`                                 | No executable code                                                                                                                |
   | `**/*.test.ts`, `**/*.test.tsx`, `test/**`, `e2e/**`, `**/*.config.ts` | Test and build infrastructure                                                                                                     |
 
