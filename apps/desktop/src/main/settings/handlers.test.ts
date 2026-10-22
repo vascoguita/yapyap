@@ -8,6 +8,7 @@ const HARDWARE = 'reliability.hardwareAcceleration';
 const VIDEO = 'reliability.hardwareVideoDecoding';
 const THEME = 'appearance.theme';
 const MENU_BAR = 'appearance.autoHideMenuBar';
+const BACKEND = 'reliability.displayBackend';
 
 function setup(readOnly = false) {
   let settings: Settings = defaultSettings();
@@ -97,7 +98,13 @@ describe('settingsHandlers', () => {
     expect(get.accepts([])).toBe(true);
     expect(get.accepts([1])).toBe(false);
     expect(get.handle(t.call)).toEqual({
-      values: { [THEME]: 'system', [MENU_BAR]: false, [HARDWARE]: true, [VIDEO]: true },
+      values: {
+        [THEME]: 'system',
+        [MENU_BAR]: false,
+        [HARDWARE]: true,
+        [BACKEND]: 'auto',
+        [VIDEO]: true,
+      },
       restartPending: false,
       readOnly: true,
     });
@@ -107,7 +114,13 @@ describe('settingsHandlers', () => {
     const t = setup();
     const set = t.handler('settings:set');
     expect(set.handle(t.call, HARDWARE, false)).toEqual({
-      values: { [THEME]: 'system', [MENU_BAR]: false, [HARDWARE]: false, [VIDEO]: true },
+      values: {
+        [THEME]: 'system',
+        [MENU_BAR]: false,
+        [HARDWARE]: false,
+        [BACKEND]: 'auto',
+        [VIDEO]: true,
+      },
       restartPending: true,
       readOnly: false,
     });

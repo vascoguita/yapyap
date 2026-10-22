@@ -56,6 +56,19 @@ export const SETTING_FIELDS: readonly SettingField[] = [
     restart: true,
   },
   {
+    id: 'reliability.displayBackend',
+    label: 'Display backend',
+    description:
+      'How YapYap talks to your display server. Try the other one if the window is blank, blurry or misplaced.',
+    restart: true,
+    options: [
+      { value: 'auto', label: 'Automatic' },
+      { value: 'wayland', label: 'Wayland' },
+      { value: 'x11', label: 'X11 (XWayland)' },
+    ],
+    platforms: ['linux'],
+  },
+  {
     id: 'reliability.hardwareVideoDecoding',
     label: 'Use hardware video decoding',
     description:

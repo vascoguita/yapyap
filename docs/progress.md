@@ -21,6 +21,11 @@
 
 ## Notes
 
+- Linux display backend (#41): `reliability.displayBackend` (settings schema
+  v2, the first migration) picks Wayland or X11; `--ozone-platform` and
+  `ELECTRON_OZONE_PLATFORM_HINT` win over it. Diagnostics show the backend,
+  and the portal picker follows it. CI checks both backends paint.
+
 - CI is cheaper per pull request (ADR 0007): documentation-only changes skip
   tests, E2E, mutation, Sonar and packaging; code changes package one format
   per system; mutation runs only the tests that import the mutated files; the

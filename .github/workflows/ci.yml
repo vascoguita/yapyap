@@ -162,6 +162,21 @@ jobs:
         run: |
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
           xvfb-run -a pnpm test:e2e
+      - name: E2E (Linux, Wayland)
+        if: runner.os == 'Linux'
+        # The display check again, on a headless Weston, so the Wayland
+        # backend is tested on a real compositor too (#41). The build from the
+        # previous step is reused.
+        run: |
+          sudo apt-get install -y --no-install-recommends weston
+          export XDG_RUNTIME_DIR="$(mktemp -d)"
+          weston --backend=headless --renderer=pixman --socket=wayland-yapyap --idle-time=0 &
+          for _ in $(seq 50); do
+            [ -S "$XDG_RUNTIME_DIR/wayland-yapyap" ] && break
+            sleep 0.2
+          done
+          cd apps/desktop
+          YAPYAP_E2E_WAYLAND_DISPLAY=wayland-yapyap xvfb-run -a pnpm exec playwright test --project=e2e e2e/display.spec.ts
       - name: E2E
         if: runner.os != 'Linux'
         run: pnpm test:e2e

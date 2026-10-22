@@ -5,7 +5,7 @@ import { Type, type Static } from 'typebox';
  * it, so the schema is the only source of truth. Every value has a default,
  * which is what an invalid or missing value falls back to.
  */
-export const SETTINGS_VERSION = 1;
+export const SETTINGS_VERSION = 2;
 
 export const SettingsSchema = Type.Object(
   {
@@ -33,6 +33,10 @@ export const SettingsSchema = Type.Object(
         hardwareAcceleration: Type.Boolean({ default: true }),
         hardwareVideoDecoding: Type.Boolean({ default: true }),
         memoryWatchdogMb: Type.Integer({ minimum: 512, maximum: 16_384, default: 2048 }),
+        displayBackend: Type.Union(
+          [Type.Literal('auto'), Type.Literal('wayland'), Type.Literal('x11')],
+          { default: 'auto' },
+        ),
       },
       { default: {}, additionalProperties: false },
     ),

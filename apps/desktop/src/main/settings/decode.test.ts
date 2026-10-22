@@ -3,10 +3,15 @@ import { describe, expect, it } from 'vitest';
 import { decodeSettings, defaultSettings } from './decode.ts';
 
 const DEFAULTS = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   general: { language: 'system', startMinimized: false, autostart: false },
   appearance: { theme: 'system', zoom: 1, autoHideMenuBar: false },
-  reliability: { hardwareAcceleration: true, hardwareVideoDecoding: true, memoryWatchdogMb: 2048 },
+  reliability: {
+    hardwareAcceleration: true,
+    hardwareVideoDecoding: true,
+    memoryWatchdogMb: 2048,
+    displayBackend: 'auto',
+  },
   privacy: { crashReports: 'off' },
 };
 

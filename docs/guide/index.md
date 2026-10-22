@@ -61,6 +61,14 @@ When graphics crash three times within a day, YapYap starts the next launch
 without hardware acceleration on its own and tells you. **Copy technical
 details** in About includes the graphics mode, so bug reports show it.
 
+On Linux, YapYap runs natively on Wayland when your desktop uses it, and on
+X11 otherwise. If the window is blank, blurry or in the wrong place, try the
+other one with **Display backend** in Settings → Reliability, then restart.
+If YapYap does not start at all, run `yapyap --ozone-platform=x11` (or
+`=wayland`) once; the command line always wins over the setting. YapYap
+ignores a setting whose display server is missing and uses the automatic
+choice instead.
+
 ## Screen sharing
 
 When you share your screen in a WhatsApp call, YapYap asks what to share

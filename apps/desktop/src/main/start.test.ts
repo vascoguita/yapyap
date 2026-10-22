@@ -111,9 +111,9 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     createWindow,
     defaultSession: () => session,
     askMedia: vi.fn(() => Promise.resolve(true)),
-    capture: vi.fn<(pickInApp: (contents: object) => Promise<unknown>) => typeof capture>(
-      () => capture,
-    ),
+    capture: vi.fn<
+      (pickInApp: (contents: object) => Promise<unknown>, wayland: boolean) => typeof capture
+    >(() => capture),
     chromeVersion: '152.0.7977.167',
     platform: 'linux',
     chrome: { beforeReady: vi.fn(), afterReady: vi.fn(() => runtime) },
@@ -199,7 +199,7 @@ describe('startApp', () => {
     expect(f.chrome.afterReady).toHaveBeenCalledExactlyOnceWith(
       expect.any(WeakMap),
       f.warn,
-      'hardware accelerated',
+      'hardware accelerated, display X11 (automatic)',
     );
   });
 
@@ -347,9 +347,47 @@ describe('startApp', () => {
     expect(f.chrome.afterReady).toHaveBeenCalledWith(
       expect.anything(),
       f.warn,
-      'software rendering (turned off in settings)',
+      'software rendering (turned off in settings), display X11 (automatic)',
     );
     expect(f.notify).not.toHaveBeenCalled();
+  });
+
+  it('puts Chromium on the display backend chosen in settings, before ready', async () => {
+    const f = fakes({ WAYLAND_DISPLAY: 'wayland-0', DISPLAY: ':0' });
+    const settings = defaultSettings();
+    f.settings.current = () => ({
+      ...settings,
+      reliability: { ...settings.reliability, displayBackend: 'x11' },
+    });
+    await startApp(f);
+    expect(f.app.commandLine.appendSwitch).toHaveBeenCalledExactlyOnceWith('ozone-platform', 'x11');
+    expect(f.capture).toHaveBeenCalledExactlyOnceWith(expect.any(Function), false);
+    expect(f.chrome.afterReady).toHaveBeenCalledWith(
+      expect.anything(),
+      f.warn,
+      'hardware accelerated, display X11 (settings)',
+    );
+  });
+
+  it('uses the portal picker when Chromium runs natively on Wayland', async () => {
+    const f = fakes({ WAYLAND_DISPLAY: 'wayland-0' });
+    await startApp(f);
+    expect(f.app.commandLine.appendSwitch).not.toHaveBeenCalled();
+    expect(f.capture).toHaveBeenCalledExactlyOnceWith(expect.any(Function), true);
+  });
+
+  it('logs why a display backend chosen in settings could not be used', async () => {
+    const f = fakes({ DISPLAY: ':0' });
+    const settings = defaultSettings();
+    f.settings.current = () => ({
+      ...settings,
+      reliability: { ...settings.reliability, displayBackend: 'wayland' },
+    });
+    await startApp(f);
+    expect(f.app.commandLine.appendSwitch).not.toHaveBeenCalled();
+    expect(f.warn).toHaveBeenCalledWith(
+      'The Wayland display backend was chosen in settings, but WAYLAND_DISPLAY is not set; using the automatic choice.',
+    );
   });
 
   it('keeps hardware acceleration on by default and tells the user about repaired settings', async () => {
@@ -361,7 +399,7 @@ describe('startApp', () => {
     expect(f.chrome.afterReady).toHaveBeenCalledWith(
       expect.anything(),
       f.warn,
-      'hardware accelerated',
+      'hardware accelerated, display X11 (automatic)',
     );
     expect(f.notify).toHaveBeenCalledExactlyOnceWith(
       'Some settings were invalid and were reset to their defaults.',
