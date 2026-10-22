@@ -56,6 +56,12 @@ not edit the same lines.
   `yapyap/no-literal-ui-text` rejects literal text in renderer JSX. Menus,
   dialogs and notifications move in a later part.
 
+- Unread badge (#64): the count of unread chats in WhatsApp's title
+  (`unreadInTitle` in the adapter, read on `page-title-updated`, so no page
+  probe) becomes the Dock badge on macOS, the launcher count on Linux
+  desktops that show one, and a taskbar overlay drawn in memory on Windows
+  (`drawBadge`: a red disc with up to "9+", no image files).
+
 - Tray (#65, first part): a tray icon with Show and Quit, **Close to the
   tray** (`general.closeToTray`, settings schema v4) and **Start minimized**.
   Autostart comes next.

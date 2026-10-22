@@ -161,6 +161,10 @@ const catalog = {
       },
     },
   },
+  badge: {
+    unread: (count: number): string =>
+      count === 1 ? '1 unread chat' : `${String(count)} unread chats`,
+  },
   tray: {
     tooltip: 'YapYap',
     show: 'Show YapYap',

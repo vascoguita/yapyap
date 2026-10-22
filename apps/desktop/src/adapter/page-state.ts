@@ -70,6 +70,16 @@ export function probePageState(doc: ProbedDocument, landmarks: Landmarks): PageS
   return { view: 'chats', chatOpen: has(landmarks.conversation), unread };
 }
 
+/**
+ * The unread count in a page title, read in the main process from title
+ * changes. The probe repeats the pattern because it runs as source text in
+ * the page; a test keeps the two in step.
+ */
+export function unreadInTitle(title: string): number {
+  const count = /^\((\d{1,6})\)/.exec(title);
+  return count === null ? 0 : Number(count[1]);
+}
+
 /** The probe as code for `executeJavaScriptInIsolatedWorld`. */
 export const PAGE_STATE_PROBE = `(${probePageState.toString()})(document, ${JSON.stringify(LANDMARKS)})`;
 

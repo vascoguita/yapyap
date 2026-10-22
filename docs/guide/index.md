@@ -124,6 +124,11 @@ and **Quit YapYap**. With **Start minimized** on, YapYap opens in the
 background. Some Linux desktops have no tray; there, starting YapYap again
 always brings its window back.
 
+The number of chats with unread messages shows on YapYap's icon: as a badge
+on the Dock on macOS, over the taskbar icon on Windows, and on the launcher
+icon on Linux desktops that support counts, such as Ubuntu's dock and KDE
+Plasma.
+
 ## Zoom
 
 Make WhatsApp bigger or smaller with **View → Zoom In** and **Zoom Out**
