@@ -16,6 +16,11 @@ import type { SettingsService } from './settings/service.ts';
 import { followHiddenReadsSetting, type ThrottledContents } from './privacy/hidden-reads.ts';
 import { watchForReleases, type UpdateNoticeDependencies } from './updates/update-notice.ts';
 import {
+  startSelfUpdates,
+  type SelfUpdateDependencies,
+  type Updater,
+} from './updates/self-update.ts';
+import {
   chooseDisplayBackend,
   describeDisplayBackend,
   type DisplayBackend,
@@ -143,6 +148,12 @@ export interface StartDependencies<Window extends WindowPort> {
     UpdateNoticeDependencies,
     'policy' | 'currentVersion' | 'fetchJson' | 'showNotice'
   >;
+  /** electron-updater and the restart prompt, for builds that update themselves. */
+  readonly selfUpdate: {
+    /** Creates electron-updater's updater; called only for builds that update themselves. */
+    readonly updater: () => Updater;
+    readonly askToInstall: SelfUpdateDependencies['askToInstall'];
+  };
   readonly notify: (message: string) => void;
   readonly warn: (message: string) => void;
   readonly logError: (message: string) => void;
@@ -261,10 +272,19 @@ function watchCrashes<Window extends WindowPort>(
 
 /** Tells the user about anything startup changed that they did not choose. */
 function announceStartup(
-  deps: Pick<StartDependencies<WindowPort>, 'settings' | 'notify' | 'releases' | 'warn'>,
+  deps: Pick<
+    StartDependencies<WindowPort>,
+    'settings' | 'notify' | 'releases' | 'selfUpdate' | 'warn'
+  >,
   graphics: Graphics,
 ): void {
   watchForReleases({ ...deps.releases, every: setInterval, warn: deps.warn });
+  startSelfUpdates(deps.selfUpdate.updater, {
+    policy: deps.releases.policy,
+    askToInstall: deps.selfUpdate.askToInstall,
+    every: setInterval,
+    warn: deps.warn,
+  });
   if (deps.settings.notice !== undefined) {
     deps.notify(deps.settings.notice);
   }

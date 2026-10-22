@@ -30,6 +30,7 @@
   "main": "./out/main/index.js",
   "homepage": "https://yapyap.guita.org/",
   "dependencies": {
+    "electron-updater": "6.8.9",
     "preact": "11.0.1",
     "typebox": "1.4.2"
   }

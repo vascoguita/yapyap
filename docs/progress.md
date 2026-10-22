@@ -59,6 +59,11 @@ not edit the same lines.
   markers, a Developer ID signature) to `self-update`, `notify`, `system` or
   `manual`; Copy Diagnostics shows it. The updater (#69) will read it.
 
+- Self-updates (#69): under the `self-update` policy (AppImage, NSIS, macOS
+  with a Developer ID) electron-updater downloads stable upgrades in the
+  background, verifies their SHA-512, and installs only after the user agrees
+  to restart; pre-releases, downgrades and install-on-quit are off.
+
 - Release notices (#70): builds with the `notify` policy (portable, unsigned
   macOS) check GitHub's latest stable release at startup and daily and show
   a notification that opens the release page; nothing is downloaded, and
