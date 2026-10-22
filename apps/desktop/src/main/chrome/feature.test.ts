@@ -334,7 +334,37 @@ describe('createChromeFeature', () => {
     await new Promise((resolve) => setTimeout(resolve));
     expect(t.deps.writeClipboard).toHaveBeenLastCalledWith(
       expect.stringMatching(
-        /^YapYap 0\.1\.0 \(deb\)\n[\s\S]*\nGPU gpu_compositing=enabled, rasterization=unknown, video_decode=unknown, webgl=enabled_on\n\nRecent log:\n2026-10-21T12:00:00\.000Z warn Something happened$/,
+        /^YapYap 0\.1\.0 \(deb\)\n[\s\S]*\nGPU gpu_compositing=enabled, rasterization=unknown, video_decode=unknown, webgl=enabled_on\nWhatsApp page unavailable \(landmarks v1\)\n\nRecent log:\n2026-10-21T12:00:00\.000Z warn Something happened$/,
+      ),
+    );
+  });
+
+  it('describes the first WhatsApp view in the diagnostics', async () => {
+    const t = setup();
+    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    const contents = {
+      on: vi.fn(),
+      executeJavaScriptInIsolatedWorld: vi.fn(() =>
+        Promise.resolve({ view: 'chats', chatOpen: true, unread: 4 }),
+      ),
+      reload: vi.fn(),
+      forcefullyCrashRenderer: vi.fn(),
+      loadURL: vi.fn(() => Promise.resolve()),
+      session: {
+        clearCache: vi.fn(() => Promise.resolve()),
+        clearStorageData: vi.fn(() => Promise.resolve()),
+      },
+    };
+    runtime.attachRecovery(contents, 'https://web.whatsapp.com', vi.fn());
+    const help = t.menu().at(-1)?.submenu;
+    const copy = Array.isArray(help)
+      ? help.find((item) => item.label === 'Copy Diagnostics')
+      : undefined;
+    (copy?.click as (() => void) | undefined)?.();
+    await new Promise((resolve) => setTimeout(resolve));
+    expect(t.deps.writeClipboard).toHaveBeenLastCalledWith(
+      expect.stringContaining(
+        '\nWhatsApp view=chats, chat_open=true (landmarks v1)\n\nRecent log:',
       ),
     );
   });

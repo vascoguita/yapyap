@@ -57,7 +57,7 @@ test('opens web, mail and phone links outside the app, each exactly once', async
       'https://example.com/article?id=7#top',
       'https://example.com/same-tab',
       'mailto:someone@example.com?subject=Hi%20there',
-      'tel:+351912345678',
+      'tel:+447700900123',
     ]);
   expect(await windowCount(app)).toBe(1);
   expect(
@@ -102,5 +102,5 @@ test('discards a popup that never navigates', async ({ app, window }) => {
 
 test('handles whatsapp: links inside the app', async ({ window, fakeWhatsApp }) => {
   await window.getByTestId('link-deep').click();
-  await expect.poll(() => window.url()).toBe(`${fakeWhatsApp.origin}/send?phone=351912345678`);
+  await expect.poll(() => window.url()).toBe(`${fakeWhatsApp.origin}/send?phone=447700900123`);
 });

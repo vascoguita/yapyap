@@ -93,6 +93,12 @@ describe('formatDiagnostics', () => {
     );
   });
 
+  it('adds the WhatsApp page line after the GPU summary', () => {
+    expect(formatDiagnostics(buildAboutInfo(FACTS), 'x', ['a'], 'WhatsApp view=chats')).toBe(
+      `${formatTechnicalDetails(buildAboutInfo(FACTS))}\nGPU x\nWhatsApp view=chats\n\nRecent log:\na`,
+    );
+  });
+
   it('says when the log is empty', () => {
     expect(formatDiagnostics(buildAboutInfo(FACTS), 'x', [])).toMatch(/Recent log:\n\(empty\)$/);
   });

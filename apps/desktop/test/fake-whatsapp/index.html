@@ -5,7 +5,14 @@
     <title>WhatsApp</title>
   </head>
   <body>
-    <div id="app" data-testid="fake-whatsapp">Fake WhatsApp for automated tests</div>
+    <!-- The adapter's landmarks (src/adapter/page-state.ts), with synthetic chats. -->
+    <div id="app" data-testid="fake-whatsapp">
+      Fake WhatsApp for automated tests
+      <div id="pane-side" aria-label="Chat list">
+        <div role="row">Test Chat One</div>
+        <div role="row">Test Chat Two</div>
+      </div>
+    </div>
     <nav>
       <a
         data-testid="link-new-tab"
@@ -16,15 +23,20 @@
       >
       <a data-testid="link-same-tab" href="https://example.com/same-tab">Same tab</a>
       <a data-testid="link-mailto" href="mailto:someone@example.com?subject=Hi there">Mail</a>
-      <a data-testid="link-tel" href="tel:+351 912 345 678">Call</a>
+      <a data-testid="link-tel" href="tel:+44 7700 900123">Call</a>
       <a data-testid="link-file" href="file:///etc/passwd" target="_blank">File</a>
-      <a data-testid="link-deep" href="whatsapp://send?phone=351912345678">Chat</a>
+      <a data-testid="link-deep" href="whatsapp://send?phone=447700900123">Chat</a>
       <button data-testid="popup-then-navigate" type="button">Popup that navigates</button>
       <button data-testid="popup-blank" type="button">Popup that stays blank</button>
     </nav>
     <button data-testid="share-screen" type="button">Share screen</button>
     <output data-testid="share-result"></output>
-    <div data-testid="composer" contenteditable="true" aria-label="Type a message"></div>
+    <div id="main">
+      <header>Test Chat One</header>
+      <footer>
+        <div data-testid="composer" contenteditable="true" aria-label="Type a message"></div>
+      </footer>
+    </div>
     <output data-testid="paste-result"></output>
     <script src="/links.js"></script>
     <script src="/share.js"></script>

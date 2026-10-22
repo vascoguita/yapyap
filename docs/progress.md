@@ -21,6 +21,11 @@
 
 ## Notes
 
+- The WhatsApp adapter reads the page view (loading, logged out, chats),
+  whether a chat is open and the unread count, on demand and from a versioned
+  landmark table; Copy Diagnostics shows the view (#32). An E2E test keeps
+  typing latency under budget while the probe runs.
+
 - E2E tests that click a fake-page control wired up by a script wait for the
   page's `load` event first; the buttons render before their handlers (#188).
 

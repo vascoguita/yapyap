@@ -1,0 +1,92 @@
+/**
+ * Bump whenever a landmark below changes, so diagnostics show which table a
+ * report came from.
+ */
+export const LANDMARKS_VERSION = 1;
+
+/**
+ * Structural landmarks of WhatsApp Web: element ids and attributes that have
+ * outlived many redesigns, never its generated class names. A WhatsApp change
+ * that breaks the adapter is fixed here, and in the fake page that mirrors it.
+ */
+export const LANDMARKS = {
+  /** The root WhatsApp renders into. */
+  app: '#app',
+  /** The QR code shown while the account is logged out. */
+  loginCode: '[data-ref]',
+  /** The chat list, present once the account is logged in. */
+  chatList: '#pane-side',
+  /** The open conversation. */
+  conversation: '#main',
+} as const;
+
+type Landmarks = Readonly<Record<keyof typeof LANDMARKS, string>>;
+
+type PageView = 'unknown' | 'loading' | 'logged-out' | 'chats';
+
+const PAGE_VIEWS: ReadonlySet<unknown> = new Set<PageView>([
+  'unknown',
+  'loading',
+  'logged-out',
+  'chats',
+]);
+
+/** The most unread chats WhatsApp's title can show without overflowing. */
+const MAX_UNREAD = 999_999;
+
+export interface PageState {
+  readonly view: PageView;
+  readonly chatOpen: boolean;
+  /** Chats with unread messages, as the page title counts them. */
+  readonly unread: number;
+}
+
+interface ProbedDocument {
+  readonly title: string;
+  querySelector(selectors: string): unknown;
+}
+
+/**
+ * Runs inside the page, so it must stay self-contained: it is sent as source
+ * text, with the landmarks as an argument. It never reads page text beyond
+ * the title's leading count, and never adds observers, so typing and
+ * scrolling never wait for it. A missing landmark makes it report less, never
+ * fail.
+ */
+export function probePageState(doc: ProbedDocument, landmarks: Landmarks): PageState {
+  const has = (selector: string): boolean => doc.querySelector(selector) !== null;
+  // WhatsApp prefixes its title with the unread count, as in "(3) WhatsApp".
+  const count = /^\((\d{1,6})\)/.exec(doc.title);
+  const unread = count === null ? 0 : Number(count[1]);
+  if (!has(landmarks.app)) {
+    return { view: 'unknown', chatOpen: false, unread };
+  }
+  if (has(landmarks.loginCode)) {
+    return { view: 'logged-out', chatOpen: false, unread: 0 };
+  }
+  if (!has(landmarks.chatList)) {
+    return { view: 'loading', chatOpen: false, unread };
+  }
+  return { view: 'chats', chatOpen: has(landmarks.conversation), unread };
+}
+
+/** The probe as code for `executeJavaScriptInIsolatedWorld`. */
+export const PAGE_STATE_PROBE = `(${probePageState.toString()})(document, ${JSON.stringify(LANDMARKS)})`;
+
+function isUnreadCount(value: unknown): value is number {
+  return Number.isInteger(value) && (value as number) >= 0 && (value as number) <= MAX_UNREAD;
+}
+
+/** Accepts only the exact shape the probe returns. */
+export function parsePageState(value: unknown): PageState | undefined {
+  const { view, chatOpen, unread } = Object(value) as Record<string, unknown>;
+  const valid = PAGE_VIEWS.has(view) && typeof chatOpen === 'boolean' && isUnreadCount(unread);
+  return valid ? { chatOpen, unread, view: view as PageView } : undefined;
+}
+
+/** One line for diagnostics. It leaves out the unread count, which is account activity. */
+export function describePageState(state: PageState | undefined): string {
+  return state === undefined
+    ? `WhatsApp page unavailable (landmarks v${String(LANDMARKS_VERSION)})`
+    : `WhatsApp view=${state.view}, chat_open=${String(state.chatOpen)} (landmarks v${String(LANDMARKS_VERSION)})`;
+}

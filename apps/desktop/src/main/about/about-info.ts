@@ -65,14 +65,20 @@ export function summarizeGpu(status: Readonly<Record<string, string>>): string {
 }
 
 /**
- * Everything a bug report needs: the technical details, the GPU summary, and
- * the recent log lines, which are redacted when they are written.
+ * Everything a bug report needs: the technical details, the GPU summary, what
+ * the WhatsApp page shows when it can be read, and the recent log lines,
+ * which are redacted when they are written.
  */
 export function formatDiagnostics(
   info: AboutInfo,
   gpu: string,
   recentLog: readonly string[],
+  page?: string,
 ): string {
   const log = recentLog.length === 0 ? ['(empty)'] : recentLog;
-  return [formatTechnicalDetails(info), `GPU ${gpu}`, '', 'Recent log:', ...log].join('\n');
+  const details = [formatTechnicalDetails(info), `GPU ${gpu}`];
+  if (page !== undefined) {
+    details.push(page);
+  }
+  return [...details, '', 'Recent log:', ...log].join('\n');
 }

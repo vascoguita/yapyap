@@ -9,12 +9,12 @@ test('a second launch hands its chat link to the running window and exits', asyn
   await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
   const second = await launchAgain(fakeWhatsApp.origin, profile, [
     '--evil-flag',
-    'https://wa.me/351912345678?text=Hi',
+    'https://wa.me/447700900123?text=Hi',
   ]);
   expect(second, second.stderr).toEqual(expect.objectContaining({ code: 0, signal: null }));
   await expect
     .poll(() => window.url())
-    .toBe(`${fakeWhatsApp.origin}/send?phone=351912345678&text=Hi`);
+    .toBe(`${fakeWhatsApp.origin}/send?phone=447700900123&text=Hi`);
   expect(app.windows()).toHaveLength(1);
 });
 

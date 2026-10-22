@@ -28,10 +28,12 @@ coverage numbers mean something, and must never touch real WhatsApp.
 ### Fake WhatsApp
 
 `apps/desktop/test/fake-whatsapp/` is a local static site that reproduces the
-DOM landmarks the adapter relies on. It is built from **recorded, anonymized
+DOM landmarks the adapter relies on. It is built from **anonymized
 HTML fixtures**: names, numbers, avatars and message text are replaced by
-synthetic values, and a fixture linter rejects anything that looks like a
-phone number or a real profile image URL. It also has scripted states
+synthetic values, and a fixture linter (`src/adapter/fixtures.test.ts`)
+rejects anything that looks like a phone number or a remote profile image.
+The only phone numbers allowed are in Ofcom's range reserved for fiction,
++44 7700 900000 to 900999, which no one can own. It also has scripted states
 (logged-out QR, chat list, unread, "update your browser", offline). The real
 WhatsApp origin is never loaded in tests.
 
