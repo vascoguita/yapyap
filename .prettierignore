@@ -7,3 +7,6 @@ reports/
 docs/.vitepress/cache/
 docs/.vitepress/dist/
 docs/api/
+# Generated from the SDK's TypeBox schema; a test keeps them identical to it.
+packages/sdk/schema/
+docs/public/schema/

@@ -63,6 +63,11 @@ not edit the same lines.
   number is parsed by `src/shared/phone-number.ts` in the window and again in
   main, then opened as WhatsApp's own chat link. Nothing is stored.
 
+- Plugin SDK (#88): `@yapyap/plugin-sdk` defines the manifest as a TypeBox
+  schema (the published `manifest.schema.json` is generated from it and
+  tested to match) and the typed host API, one interface per capability. The
+  docs site documents the manifest at `/plugins/manifest`.
+
 - Plugin signing (#89): `packages/plugin-sign` signs and verifies unpacked
   plugin folders as ADR 0004 specifies (canonical JSON of the manifest and
   file digests, Ed25519, fingerprints of the raw key). Tests use keys made in

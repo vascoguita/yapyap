@@ -1,0 +1,23 @@
+export {
+  definePlugin,
+  type ActiveChat,
+  type ChatApi,
+  type ChatMessage,
+  type CommandsApi,
+  type ComposerApi,
+  type NotificationsApi,
+  type Plugin,
+  type PluginError,
+  type PluginErrorKind,
+  type PluginHost,
+  type SecretsApi,
+  type StorageApi,
+  type UnreadChat,
+} from './api.ts';
+export {
+  CAPABILITIES,
+  MANIFEST_SCHEMA_ID,
+  ManifestSchema,
+  type Capability,
+  type Manifest,
+} from './manifest.ts';
