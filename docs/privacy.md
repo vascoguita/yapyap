@@ -7,8 +7,10 @@ browser. YapYap does not read, copy or upload them.
 - **No telemetry.** YapYap collects no analytics, usage statistics or
   identifiers of any kind. An automated test runs a whole session behind a
   proxy that refuses and records every request leaving your computer, and
-  fails if there is even one. Self-updating builds will also contact their
-  update server, which the test will allow once updates ship. The Windows
+  fails if there is even one. The AppImage, the Windows installer and signed
+  macOS builds update themselves: once at startup and then daily they read
+  the latest release's metadata from GitHub, download a newer version in the
+  background, verify it, and install it only when you agree to restart. The Windows
   portable build and unsigned macOS builds, which cannot update themselves,
   ask GitHub for the latest release once a day (a plain request to
   `api.github.com`, with nothing about you in it) and tell you when there is

@@ -128,8 +128,24 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     openExternal,
     isOnline: vi.fn(() => true),
     gpuCrashLog: { read: () => '[]', write: vi.fn() },
+    selfUpdate: (() => {
+      const instance = {
+        autoDownload: false,
+        autoInstallOnAppQuit: true,
+        allowPrerelease: false,
+        allowDowngrade: false,
+        checkForUpdates: vi.fn(() => Promise.resolve()),
+        on: vi.fn(),
+        quitAndInstall: vi.fn(),
+      };
+      return {
+        instance,
+        updater: vi.fn(() => instance),
+        askToInstall: vi.fn(() => Promise.resolve(false)),
+      };
+    })(),
     releases: {
-      policy: 'manual' as 'manual' | 'notify',
+      policy: 'manual' as 'manual' | 'notify' | 'self-update',
       currentVersion: '0.1.0',
       fetchJson: vi.fn(() =>
         Promise.resolve({ tag_name: 'v0.2.0', draft: false, prerelease: false }),
@@ -499,6 +515,17 @@ describe('startApp', () => {
       expect.stringContaining('YapYap 0.2.0 is available'),
       'https://github.com/vascoguita/yapyap/releases/tag/v0.2.0',
     );
+  });
+
+  it('starts self-updates only for builds that can update themselves', async () => {
+    const quiet = fakes();
+    await startApp(quiet);
+    expect(quiet.selfUpdate.updater).not.toHaveBeenCalled();
+    const f = fakes();
+    f.releases.policy = 'self-update';
+    await startApp(f);
+    expect(f.selfUpdate.instance.checkForUpdates).toHaveBeenCalledOnce();
+    expect(f.selfUpdate.instance.autoInstallOnAppQuit).toBe(false);
   });
 
   it('leaves the launch to the running YapYap when another one holds the lock', async () => {

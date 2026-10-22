@@ -24,7 +24,9 @@ import { readInstallChannel } from './about/about-info.ts';
 import { CHROME_PARTITION, createChromeFeature } from './chrome/feature.ts';
 import { profileCrashFiles, readPreviousLog } from './crash/crash-files.ts';
 import { reviewCrashWithDialog } from './crash-review-prompt.ts';
+import electronUpdater from 'electron-updater';
 import { createLogger } from './logging/logger.ts';
+import { askToInstallUpdateWithDialog } from './update-prompt.ts';
 import { readInstallEvidence } from './updates/install-evidence.ts';
 import { releaseFetcher } from './updates/update-notice.ts';
 import { decideUpdatePolicy } from './updates/update-policy.ts';
@@ -172,6 +174,10 @@ startApp({
   },
   sandboxDisabled: sandboxDisabled(app.commandLine, process.env),
   explainUnsafeStart: explainUnsafeStartWithDialog,
+  selfUpdate: {
+    updater: () => electronUpdater.autoUpdater,
+    askToInstall: askToInstallUpdateWithDialog,
+  },
   releases: {
     policy: decideUpdatePolicy(installChannel(), installEvidence()).policy,
     currentVersion: app.getVersion(),
