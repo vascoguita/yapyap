@@ -4,6 +4,9 @@ import { expect, test } from './fixtures.ts';
 test.skip(process.platform === 'darwin', 'macOS uses its own system picker');
 
 async function requestShare(app: ElectronApplication, window: Page): Promise<Page> {
+  // The share button renders before share.js wires it up; a slow runner could
+  // click first, and no picker would ever open (#188).
+  await window.waitForLoadState('load');
   await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
   // Screen sharing is offered only to a focused window, and a virtual display
   // without a window manager focuses nothing on its own.
