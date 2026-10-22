@@ -295,8 +295,10 @@ function announceStartup(
   >,
   graphics: Graphics,
 ): void {
-  watchForReleases({ ...deps.releases, every: setInterval, warn: deps.warn });
+  const betas = (): boolean => deps.settings.current().general.betaUpdates;
+  watchForReleases({ ...deps.releases, betas, every: setInterval, warn: deps.warn });
   startSelfUpdates(deps.selfUpdate.updater, {
+    betas,
     policy: deps.releases.policy,
     askToInstall: deps.selfUpdate.askToInstall,
     every: setInterval,

@@ -80,3 +80,8 @@ export function isDeveloperIdSigned(codesignOutput: string): boolean {
 export function describeUpdatePolicy(decision: UpdateDecision): string {
   return `Updates ${decision.policy} (${decision.channel})`;
 }
+
+/** Settings that do nothing under `policy`: only builds that check for releases offer betas. */
+export function settingsIgnoredBy(policy: UpdatePolicy): readonly string[] {
+  return policy === 'self-update' || policy === 'notify' ? [] : ['general.betaUpdates'];
+}

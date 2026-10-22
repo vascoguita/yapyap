@@ -151,6 +151,11 @@ const catalog = {
         label: 'Start at login',
         description: 'Start YapYap when you log in to this computer.',
       },
+      'general.betaUpdates': {
+        label: 'Get beta updates',
+        description:
+          'Try each version a few days before its release and help find problems. Betas can be less stable; turning this off waits for the next release rather than going back.',
+      },
       'general.closeToTray': {
         label: 'Close to the tray',
         description:

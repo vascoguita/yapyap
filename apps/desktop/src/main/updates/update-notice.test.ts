@@ -3,7 +3,9 @@ import {
   isNewer,
   LATEST_RELEASE_API,
   NOTICE_INTERVAL_MS,
+  newestRelease,
   parseLatestRelease,
+  RECENT_RELEASES_API,
   releaseFetcher,
   watchForReleases,
 } from './update-notice.ts';
@@ -63,6 +65,47 @@ describe('parseLatestRelease', () => {
   });
 });
 
+describe('newestRelease', () => {
+  const entry = (tag: string, prerelease: boolean, draft = false) => ({
+    tag_name: tag,
+    prerelease,
+    draft,
+  });
+
+  it('picks the newest release, betas included, whatever the order', () => {
+    expect(
+      newestRelease([
+        entry('v0.1.0', false),
+        entry('v0.2.0-beta.2', true),
+        entry('v0.1.1', false),
+        entry('v0.2.0-beta.1', true),
+      ])?.version,
+    ).toBe('0.2.0-beta.2');
+  });
+
+  it('prefers a release over its own betas', () => {
+    expect(newestRelease([entry('v0.2.0-beta.3', true), entry('v0.2.0', false)])?.version).toBe(
+      '0.2.0',
+    );
+  });
+
+  it('skips drafts and tags that lie about being a beta', () => {
+    expect(
+      newestRelease([
+        entry('v0.9.0', false, true),
+        entry('v0.8.0-beta.1', false),
+        entry('v0.7.0', true),
+        entry('v0.1.0', false),
+      ])?.version,
+    ).toBe('0.1.0');
+  });
+
+  it('finds nothing in anything but a list', () => {
+    expect(newestRelease({ message: 'Not Found' })).toBeUndefined();
+    expect(newestRelease([])).toBeUndefined();
+  });
+});
+
 describe('releaseFetcher', () => {
   it('asks GitHub for JSON and returns it', async () => {
     const fetch = vi.fn(() => Promise.resolve(Response.json({ tag_name: 'v1.0.0' })));
@@ -81,10 +124,15 @@ describe('releaseFetcher', () => {
 });
 
 describe('watchForReleases', () => {
-  function setup(policy: 'notify' | 'self-update' | 'system' | 'manual', answers: unknown[]) {
+  function setup(
+    policy: 'notify' | 'self-update' | 'system' | 'manual',
+    answers: unknown[],
+    betas = false,
+  ) {
     let tick: (() => void) | undefined;
     const deps = {
       policy,
+      betas: () => betas,
       currentVersion: '0.1.0',
       fetchJson: vi.fn(() => {
         const answer = answers.shift();
@@ -139,6 +187,20 @@ describe('watchForReleases', () => {
     await flush();
     expect(t.deps.showNotice).not.toHaveBeenCalled();
     expect(t.deps.warn).not.toHaveBeenCalled();
+  });
+
+  it('tells a beta tester about the newest beta from the list of recent releases', async () => {
+    const t = setup(
+      'notify',
+      [[release('v0.1.1'), { tag_name: 'v0.2.0-beta.1', draft: false, prerelease: true }]],
+      true,
+    );
+    await flush();
+    expect(t.deps.fetchJson).toHaveBeenCalledWith(RECENT_RELEASES_API);
+    expect(t.deps.showNotice).toHaveBeenCalledWith(
+      expect.stringContaining('0.2.0-beta.1'),
+      'https://github.com/vascoguita/yapyap/releases/tag/v0.2.0-beta.1',
+    );
   });
 
   it('logs a failed check and keeps checking', async () => {

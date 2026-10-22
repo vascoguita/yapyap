@@ -72,6 +72,25 @@ sha256sum --check --ignore-missing SHA256SUMS
 gh attestation verify YapYap-0.1.0-linux-x86_64.AppImage --repo vascoguita/yapyap
 ```
 
+## Beta versions {#betas}
+
+Every release is first published as a beta, at least three days ahead, so
+testers can catch problems before everyone gets the update. Betas are
+pre-releases on the
+[releases page](https://github.com/vascoguita/yapyap/releases), tagged like
+`v0.2.0-beta.1`, and are built, tested and signed like releases.
+
+- **AppImage, Windows installer and portable, macOS:** turn on **Get beta
+  updates** under Settings → General. YapYap then offers or announces each
+  beta as it does releases. Turning it off never goes back to an older
+  version: you keep the beta until the next release.
+- **Flatpak, DEB, RPM and Arch Linux:** these get updates from your system,
+  so the setting isn't there. Download the beta's package from its
+  pre-release and install it by hand; the next release replaces it.
+
+Found a problem? [Open an issue](https://github.com/vascoguita/yapyap/issues/new/choose)
+and paste **Help → Copy Diagnostics**, which names the beta you run.
+
 ## Flatpak permissions
 
 The Flatpak runs in a sandbox with only the access it needs:

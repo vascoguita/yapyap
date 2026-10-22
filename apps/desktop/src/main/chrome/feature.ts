@@ -137,6 +137,8 @@ export interface ChromeFeatureDependencies {
   readonly settings: SettingsService;
   /** Carries changes of these fields out in the system before saving them. */
   readonly settingEffects: Readonly<Record<string, SettingEffect>>;
+  /** Settings this build ignores, so the settings window leaves them out. */
+  readonly hiddenSettings: readonly string[];
   readonly settingsFiles: SettingsFiles;
   /** Quits and starts YapYap again, to apply settings that need a restart. */
   readonly restart: () => void;
@@ -366,7 +368,13 @@ function allHandlers(
   return [
     ...aboutHandlers(deps),
     ...recoveryHandlers(recoveries),
-    ...settingsHandlers(deps.settings, deps.restart, deps.platform, deps.settingEffects),
+    ...settingsHandlers(
+      deps.settings,
+      deps.restart,
+      deps.platform,
+      deps.settingEffects,
+      deps.hiddenSettings,
+    ),
     ...settingsTransferHandlers(deps.settings, deps.settingsFiles),
     ...newChatHandlers(chats),
     ...picker.handlers,

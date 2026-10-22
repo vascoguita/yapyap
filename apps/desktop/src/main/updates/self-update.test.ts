@@ -21,6 +21,7 @@ function fakeUpdater(check: () => Promise<unknown> = () => Promise.resolve()) {
 function deps(policy: 'self-update' | 'notify' | 'system' | 'manual', agree = true) {
   return {
     policy,
+    betas: vi.fn(() => false),
     askToInstall: vi.fn(() => Promise.resolve(agree)),
     every: vi.fn(),
     warn: vi.fn(),
@@ -57,6 +58,18 @@ describe('startSelfUpdates', () => {
     expect(d.every).toHaveBeenCalledExactlyOnceWith(expect.any(Function), NOTICE_INTERVAL_MS);
     (d.every.mock.calls[0]?.[0] as () => void)();
     expect(updater.checkForUpdates).toHaveBeenCalledTimes(2);
+  });
+
+  it('offers betas only while the user asks for them, checked before each download', () => {
+    const updater = fakeUpdater();
+    const d = deps('self-update');
+    d.betas.mockReturnValue(true);
+    startSelfUpdates(() => updater, d);
+    expect(updater.allowPrerelease).toBe(true);
+    d.betas.mockReturnValue(false);
+    (d.every.mock.calls[0]?.[0] as () => void)();
+    expect(updater.allowPrerelease).toBe(false);
+    expect(updater.allowDowngrade).toBe(false);
   });
 
   it('installs a downloaded update only after the user agrees to restart', async () => {

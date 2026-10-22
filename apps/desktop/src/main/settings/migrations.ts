@@ -30,6 +30,14 @@ function addUnreadWhileHidden(settings: Raw): Raw {
     : settings;
 }
 
+/** Version 5 adds beta updates, off so only testers who ask get them (#184). */
+function addBetaUpdates(settings: Raw): Raw {
+  const general = settings['general'];
+  return isSection(general)
+    ? { ...settings, general: { betaUpdates: false, ...general } }
+    : settings;
+}
+
 /**
  * `MIGRATIONS[n]` turns a version n+1 file into version n+2. They are pure,
  * forward-only, and each has its own test; a test also checks that there is
@@ -39,6 +47,7 @@ export const MIGRATIONS: readonly ((settings: Raw) => Raw)[] = [
   addDisplayBackend,
   addUnreadWhileHidden,
   addCloseToTray,
+  addBetaUpdates,
 ];
 
 export type MigrationResult =

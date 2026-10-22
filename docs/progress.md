@@ -148,12 +148,20 @@ not edit the same lines.
 - Beta gate (#184, first part): the release PR gets a `Beta gate` check that
   fails until a `vX.Y.Z-beta.N` pre-release of its version has been out for
   3 days; `Security release: <reason>` in the PR skips the wait, never the
-  beta. Cutting betas and the "Get beta updates" setting come next.
+  beta.
 
 - Beta releases (#184, second part): the manual **Beta release** workflow
   numbers and creates the next `vX.Y.Z-beta.N` pre-release and runs the
   shared package, smoke and publish workflows; `package.yml` takes the
-  version to build. The "Get beta updates" setting is still to come.
+  version to build.
+
+- Beta updates (#184, third part): **Get beta updates**
+  (`general.betaUpdates`, settings schema v5) makes self-updating builds set
+  electron-updater's `allowPrerelease` before each check, and notify builds
+  read the recent releases list instead of `/releases/latest`. Turning it
+  off never downgrades. The setting is hidden where the system updates
+  YapYap (`settingsIgnoredBy`, passed to `settingsHandlers`). Beta tester
+  docs are in the install guide. Shipping v0.1.0 after a beta remains.
 
 - The SonarQube Cloud backlog is fixed; the few per-file exceptions, each with
   its reason, are in `sonar-project.properties` (ADR 0010, #185).

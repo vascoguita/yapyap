@@ -43,7 +43,7 @@ import { createLogger } from './logging/logger.ts';
 import { askToInstallUpdateWithDialog } from './update-prompt.ts';
 import { readInstallEvidence } from './updates/install-evidence.ts';
 import { releaseFetcher } from './updates/update-notice.ts';
-import { decideUpdatePolicy } from './updates/update-policy.ts';
+import { decideUpdatePolicy, settingsIgnoredBy } from './updates/update-policy.ts';
 import { electronSettingsFiles } from './settings/transfer-dialogs.ts';
 import { openSettings } from './settings/service.ts';
 import { electronCapture } from './permissions/electron-capture.ts';
@@ -97,6 +97,8 @@ const installEvidence = () =>
       }).stderr,
   });
 
+const updatePolicy = decideUpdatePolicy(installChannel(), installEvidence()).policy;
+
 const autostart = chooseAutostart({
   platform: process.platform,
   flatpak: existsSync('/.flatpak-info'),
@@ -126,6 +128,7 @@ const chrome = createChromeFeature({
   settings,
   installEvidence,
   settingEffects: { 'general.autostart': applyAutostart(autostart, warn) },
+  hiddenSettings: settingsIgnoredBy(updatePolicy),
   registerSchemesAsPrivileged: (schemes) => {
     protocol.registerSchemesAsPrivileged([...schemes]);
   },
@@ -234,7 +237,7 @@ startApp({
     buildMenu: (template) => Menu.buildFromTemplate(template),
   },
   releases: {
-    policy: decideUpdatePolicy(installChannel(), installEvidence()).policy,
+    policy: updatePolicy,
     currentVersion: app.getVersion(),
     fetchJson: releaseFetcher((url, init) => net.fetch(url, init)),
     showNotice: (body, url) => {

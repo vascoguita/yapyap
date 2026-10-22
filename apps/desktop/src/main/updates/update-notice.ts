@@ -3,6 +3,9 @@ import { en } from '../../shared/messages/en.ts';
 
 /** GitHub's latest stable release; drafts and pre-releases never appear here. */
 export const LATEST_RELEASE_API = 'https://api.github.com/repos/vascoguita/yapyap/releases/latest';
+/** The newest releases, betas included, for testers who asked for them (#184). */
+export const RECENT_RELEASES_API =
+  'https://api.github.com/repos/vascoguita/yapyap/releases?per_page=20';
 /** Once a day is enough to learn about a release without polling GitHub. */
 export const NOTICE_INTERVAL_MS = 86_400_000;
 
@@ -48,17 +51,40 @@ export interface ReleaseNotice {
   readonly url: string;
 }
 
-/** Reads GitHub's answer, trusting only a plain stable version tag. */
-export function parseLatestRelease(value: unknown): ReleaseNotice | undefined {
+/**
+ * Reads one release from GitHub's answer, trusting only a plain version tag,
+ * and a beta tag only when `betas` is on.
+ */
+function parseRelease(value: unknown, betas: boolean): ReleaseNotice | undefined {
   const { tag_name: tag, draft, prerelease } = Object(value) as Record<string, unknown>;
-  if (typeof tag !== 'string' || draft !== false || prerelease !== false) {
+  if (typeof tag !== 'string' || draft !== false || typeof prerelease !== 'boolean') {
     return undefined;
   }
   const version = tag.replace(/^v/, '');
   const parsed = parseVersion(version);
-  return parsed === undefined || parsed.prerelease
-    ? undefined
-    : { version, url: `${RELEASE_PAGE}v${version}` };
+  if (parsed?.prerelease !== prerelease || (prerelease && !betas)) {
+    return undefined;
+  }
+  return { version, url: `${RELEASE_PAGE}v${version}` };
+}
+
+/** Reads GitHub's latest release, which must be stable. */
+export function parseLatestRelease(value: unknown): ReleaseNotice | undefined {
+  return parseRelease(value, false);
+}
+
+/** The newest release in GitHub's list of recent ones, betas included. */
+export function newestRelease(value: unknown): ReleaseNotice | undefined {
+  const releases = Array.isArray(value) ? (value as unknown[]) : [];
+  return releases
+    .map((release) => parseRelease(release, true))
+    .reduce<ReleaseNotice | undefined>(
+      (newest, release) =>
+        release !== undefined && (newest === undefined || isNewer(release.version, newest.version))
+          ? release
+          : newest,
+      undefined,
+    );
 }
 
 /** Fetches JSON, treating any status but success as a failure. */
@@ -78,6 +104,8 @@ export interface UpdateNoticeDependencies {
   readonly policy: UpdatePolicy;
   readonly currentVersion: string;
   readonly fetchJson: (url: string) => Promise<unknown>;
+  /** Whether the user asked for betas; read at every check, so a change applies at once. */
+  readonly betas: () => boolean;
   readonly every: (callback: () => void, ms: number) => unknown;
   /** Tells the user, offering the release page; never downloads anything. */
   readonly showNotice: (message: string, url: string) => void;
@@ -95,7 +123,9 @@ export function watchForReleases(deps: UpdateNoticeDependencies): void {
   }
   let announced: string | undefined;
   const check = async (): Promise<void> => {
-    const release = parseLatestRelease(await deps.fetchJson(LATEST_RELEASE_API));
+    const release = deps.betas()
+      ? newestRelease(await deps.fetchJson(RECENT_RELEASES_API))
+      : parseLatestRelease(await deps.fetchJson(LATEST_RELEASE_API));
     if (
       release !== undefined &&
       release.version !== announced &&
