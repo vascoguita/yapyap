@@ -21,6 +21,61 @@ const noCoverageIgnore = {
   },
 };
 
+const LETTER = /\p{L}/u;
+const TEXT_ATTRIBUTES = new Set(['aria-label', 'title', 'placeholder', 'alt', 'label']);
+
+/**
+ * The parts of a JSX node the rule reads; ESLint's own types stop short of JSX.
+ * @typedef {{ type: string, value?: unknown, loc: import('eslint').AST.SourceLocation }} JsxNode
+ * @typedef {JsxNode & { expression: JsxNode }} JsxContainer
+ * @typedef {JsxNode & { name: { name: unknown }, value: JsxNode | JsxContainer | null }} JsxAttribute
+ */
+
+/** @param {JsxNode | null} node */
+const isText = (node) =>
+  node?.type === 'Literal' && typeof node.value === 'string' && LETTER.test(node.value);
+
+// Chrome UI text must come from the message catalog so every language gets it (#55).
+/** @type {import('eslint').Rule.RuleModule} */
+const noLiteralUiText = {
+  meta: {
+    type: 'problem',
+    messages: { literal: 'Take UI text from the message catalog (src/shared/messages/).' },
+  },
+  create(context) {
+    /** @param {JsxNode} node */
+    const report = (node) => {
+      context.report({ loc: node.loc, messageId: 'literal' });
+    };
+    // ESLint types listener arguments as plain ESTree nodes, which exclude JSX.
+    return {
+      /** @param {unknown} node */
+      JSXText(node) {
+        const text = /** @type {JsxNode} */ (node);
+        if (typeof text.value === 'string' && LETTER.test(text.value)) {
+          report(text);
+        }
+      },
+      /** @param {unknown} node */
+      JSXAttribute(node) {
+        const attribute = /** @type {JsxAttribute} */ (node);
+        const { name, value } = attribute;
+        const literal = value !== null && 'expression' in value ? value.expression : value;
+        if (typeof name.name === 'string' && TEXT_ATTRIBUTES.has(name.name) && isText(literal)) {
+          report(attribute);
+        }
+      },
+      /** @param {unknown} node */
+      'JSXElement > JSXExpressionContainer'(node) {
+        const container = /** @type {JsxContainer} */ (node);
+        if (isText(container.expression)) {
+          report(container);
+        }
+      },
+    };
+  },
+};
+
 export default defineConfig(
   {
     ignores: [
@@ -43,7 +98,11 @@ export default defineConfig(
     languageOptions: {
       parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname },
     },
-    plugins: { yapyap: { rules: { 'no-coverage-ignore': noCoverageIgnore } } },
+    plugins: {
+      yapyap: {
+        rules: { 'no-coverage-ignore': noCoverageIgnore, 'no-literal-ui-text': noLiteralUiText },
+      },
+    },
     linterOptions: { reportUnusedDisableDirectives: 'error' },
     rules: {
       'yapyap/no-coverage-ignore': 'error',
@@ -86,6 +145,11 @@ export default defineConfig(
         })),
       ],
     },
+  },
+  {
+    files: ['apps/desktop/src/renderer/**/*.tsx'],
+    ignores: ['**/*.test.tsx'],
+    rules: { 'yapyap/no-literal-ui-text': 'error' },
   },
   {
     files: ['**/*.test.ts', '**/*.test.tsx', '**/*.spec.ts', '**/test/**/*.ts', '**/e2e/**/*.ts'],

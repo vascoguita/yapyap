@@ -1,7 +1,10 @@
 import type { JSX } from 'preact';
 import { useCallback, useState } from 'preact/hooks';
 import type { ChromeApi } from '../../shared/chrome-api.ts';
+import { en } from '../../shared/messages/en.ts';
 import { parseInternationalNumber } from '../../shared/phone-number.ts';
+
+const text = en.newChat;
 
 function NumberField(props: {
   readonly value: string;
@@ -9,12 +12,12 @@ function NumberField(props: {
 }): JSX.Element {
   return (
     <div class="field">
-      <label htmlFor="number">Phone number, with the country code</label>
+      <label htmlFor="number">{text.numberLabel}</label>
       <input
         id="number"
         type="tel"
         autocomplete="off"
-        placeholder="+44 7700 900123"
+        placeholder={text.numberPlaceholder}
         value={props.value}
         aria-describedby="number-hint"
         onInput={(event) => {
@@ -22,7 +25,7 @@ function NumberField(props: {
         }}
       />
       <p id="number-hint" class="hint">
-        Start with + or 00 and the country code. YapYap does not save the number.
+        {text.numberHint}
       </p>
     </div>
   );
@@ -37,10 +40,10 @@ function Actions({ canOpen }: { readonly canOpen: boolean }): JSX.Element {
           window.close();
         }}
       >
-        Cancel
+        {en.common.cancel}
       </button>
       <button type="submit" disabled={!canOpen}>
-        Open Chat
+        {text.open}
       </button>
     </div>
   );
@@ -70,10 +73,10 @@ export function NewChat({ api }: { readonly api: ChromeApi }): JSX.Element {
   };
   return (
     <main class="new-chat">
-      <h1>New chat</h1>
+      <h1>{text.title}</h1>
       <form onSubmit={submit}>
         <NumberField value={number} onChange={change} />
-        {failed ? <output>WhatsApp is not ready to open the chat. Try again.</output> : null}
+        {failed ? <output>{text.notReady}</output> : null}
         <Actions canOpen={valid} />
       </form>
     </main>

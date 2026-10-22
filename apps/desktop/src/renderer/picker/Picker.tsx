@@ -1,10 +1,13 @@
 import type { JSX } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import type { ChromeApi, PickerOffer, PickerSource } from '../../shared/chrome-api.ts';
+import { en } from '../../shared/messages/en.ts';
+
+const text = en.picker;
 
 const GROUPS = [
-  { kind: 'screen', title: 'Screens' },
-  { kind: 'window', title: 'Windows' },
+  { kind: 'screen', title: text.screens },
+  { kind: 'window', title: text.windows },
 ] as const;
 
 /** Escape cancels, like closing the window. */
@@ -45,7 +48,7 @@ function Sources(props: {
   readonly onSelect: (id: string) => void;
 }): JSX.Element[] {
   if (props.offer.sources.length === 0) {
-    return [<p key="none">No screens or windows can be shared right now.</p>];
+    return [<p key="none">{text.noSources}</p>];
   }
   return GROUPS.flatMap(({ kind, title }) => {
     const sources = props.offer.sources.filter((source) => source.kind === kind);
@@ -91,7 +94,7 @@ function AudioOption(props: {
           props.onChange(event.currentTarget.checked);
         }}
       />
-      <span>Also share system audio</span>
+      <span>{text.audio}</span>
     </label>
   );
 }
@@ -118,10 +121,10 @@ function Choices(props: { readonly api: ChromeApi; readonly offer: PickerOffer }
             void api.picker.cancel();
           }}
         >
-          Cancel
+          {en.common.cancel}
         </button>
         <button type="submit" disabled={selected === undefined}>
-          Share
+          {text.share}
         </button>
       </div>
     </form>
@@ -132,9 +135,9 @@ export function Picker({ api }: { readonly api: ChromeApi }): JSX.Element {
   const offer = useOffer(api);
   return (
     <main class="picker">
-      <h1>Choose what to share</h1>
+      <h1>{text.title}</h1>
       {offer == null ? (
-        <p>{offer === undefined ? 'Loading…' : 'Nothing can be shared right now.'}</p>
+        <p>{offer === undefined ? en.common.loading : text.nothing}</p>
       ) : (
         <Choices api={api} offer={offer} />
       )}

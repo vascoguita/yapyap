@@ -49,6 +49,12 @@ not edit the same lines.
   section. A new settings section must be classified in `EXPORTED_SECTIONS`
   (`settings/transfer.ts`); a test fails until it is.
 
+- Message catalogs (#55, part 1): every string the chrome windows show,
+  including setting labels, lives in `src/shared/messages/en.ts`. Other
+  languages will be typed as `Messages`, so a missing key fails to compile;
+  `yapyap/no-literal-ui-text` rejects literal text in renderer JSX. Menus,
+  dialogs and notifications move in a later part.
+
 - Chats stay unread while hidden (#66): `privacy.unreadWhileHidden` (settings
   schema v3) keeps background throttling on, so a hidden or minimized
   window's page reports itself hidden; verified on real Wayland and X11
