@@ -50,7 +50,9 @@ function overlap(a: Rect, b: Rect): { width: number; height: number } {
  */
 export function boundsOnScreen(state: WindowState, workAreas: readonly Rect[]): Rect | undefined {
   const { bounds } = state;
-  if (bounds === undefined) return undefined;
+  if (bounds === undefined) {
+    return undefined;
+  }
   const visible = workAreas.some((area) => {
     const shared = overlap(bounds, area);
     return shared.width >= MIN_VISIBLE && shared.height >= MIN_VISIBLE;

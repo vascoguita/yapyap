@@ -22,8 +22,8 @@ function job(
   // channel it is; the update policy reads this marker at runtime (ADR 0003).
   return {
     channel,
-    args: [...platformArgs, '--publish', 'never', `-c.extraMetadata.installChannel=${channel}`],
     env,
+    args: [...platformArgs, '--publish', 'never', `-c.extraMetadata.installChannel=${channel}`],
   };
 }
 
@@ -31,7 +31,9 @@ function job(
 export function buildJobs(platform: string, arch: string): BuildJob[] {
   if (platform === 'linux') {
     const archFlag = LINUX_ARCH[arch];
-    if (archFlag === undefined) throw new Error(`Unsupported Linux architecture: ${arch}`);
+    if (archFlag === undefined) {
+      throw new Error(`Unsupported Linux architecture: ${arch}`);
+    }
     return [
       job('appimage', ['--linux', 'AppImage', archFlag]),
       job('deb', ['--linux', 'deb', archFlag]),
@@ -44,7 +46,9 @@ export function buildJobs(platform: string, arch: string): BuildJob[] {
       job('portable', ['--win', 'portable', '--x64', '--arm64'], WINDOWS_ENV),
     ];
   }
-  if (platform === 'darwin') return [job('dmg', ['--mac', 'dmg', 'zip', '--universal'])];
+  if (platform === 'darwin') {
+    return [job('dmg', ['--mac', 'dmg', 'zip', '--universal'])];
+  }
   throw new Error(`Unsupported platform: ${platform}`);
 }
 

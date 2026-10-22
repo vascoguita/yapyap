@@ -51,6 +51,8 @@ export function installWebContentsGuards<Contents>(
   guards: readonly ((contents: Contents) => void)[],
 ): void {
   app.on('web-contents-created', (_event, contents) => {
-    for (const guard of guards) guard(contents);
+    for (const guard of guards) {
+      guard(contents);
+    }
   });
 }

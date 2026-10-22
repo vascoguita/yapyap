@@ -40,7 +40,9 @@ describe('latestNodeLts properties', () => {
         expect(lts.filter((v) => picked !== undefined && compareVersions(v, picked) > 0)).toEqual(
           [],
         );
-        if (picked !== undefined) expect(lts).toContain(picked);
+        if (picked !== undefined) {
+          expect(lts).toContain(picked);
+        }
       }),
     );
   });

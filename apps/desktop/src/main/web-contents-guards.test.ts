@@ -39,7 +39,9 @@ describe('preventWebviews', () => {
     const { contents, listeners } = fakeContents();
     preventWebviews(contents);
     const event = { preventDefault: vi.fn() };
-    for (const listener of listeners) listener(event);
+    for (const listener of listeners) {
+      listener(event);
+    }
     expect(contents.on).toHaveBeenCalledWith('will-attach-webview', expect.any(Function));
     expect(event.preventDefault).toHaveBeenCalledOnce();
   });
@@ -54,7 +56,9 @@ describe('installWebContentsGuards', () => {
     const [first, second] = [fakeContents().contents, fakeContents().contents];
     create(first);
     create(second);
-    for (const guard of guards) expect(guard.mock.calls).toEqual([[first], [second]]);
+    for (const guard of guards) {
+      expect(guard.mock.calls).toEqual([[first], [second]]);
+    }
   });
 });
 

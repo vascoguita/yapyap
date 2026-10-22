@@ -15,9 +15,11 @@ export function usesPortalPicker(
   return platform === 'linux' && (env['WAYLAND_DISPLAY'] ?? '') !== '';
 }
 
-/** macOS 15 added a system picker for screen sharing; older versions need YapYap's. */
+/** The macOS version that added a system picker for screen sharing; older versions need YapYap's. */
+const SYSTEM_PICKER_MACOS = 15;
+
 export function hasSystemPicker(platform: string, systemVersion: string): boolean {
-  return platform === 'darwin' && Number.parseInt(systemVersion, 10) >= 15;
+  return platform === 'darwin' && Number.parseInt(systemVersion, 10) >= SYSTEM_PICKER_MACOS;
 }
 
 // The session hands back the frames and web contents Electron gave it, so
@@ -46,7 +48,9 @@ function choosePicker(
   env: Readonly<Record<string, string | undefined>>,
   pickInApp: (contents: object) => Promise<CaptureChoice | undefined>,
 ): DisplayCapturePort['pick'] {
-  if (!usesPortalPicker(platform, env)) return pickInApp;
+  if (!usesPortalPicker(platform, env)) {
+    return pickInApp;
+  }
   return async () => {
     const [source] = await desktopCapturer.getSources({ types: ['screen', 'window'] });
     return source === undefined ? undefined : { video: source };

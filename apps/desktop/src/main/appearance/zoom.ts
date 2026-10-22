@@ -12,7 +12,9 @@ const MAX = 3;
  * Rounding to whole steps keeps repeated steps from drifting.
  */
 export function stepZoom(current: number, step: ZoomStep): number {
-  if (step === 'reset') return 1;
+  if (step === 'reset') {
+    return 1;
+  }
   const steps = Math.round(current / STEP) + (step === 'in' ? 1 : -1);
   return Math.min(MAX, Math.max(MIN, Math.round(steps * STEP * 100) / 100));
 }

@@ -63,6 +63,16 @@ button {
   font: inherit;
 }
 
+a {
+  color: var(--accent);
+}
+
+/* Status messages render like the paragraphs they replaced. */
+output {
+  display: block;
+  margin-block: 1em;
+}
+
 button:focus-visible,
 a:focus-visible {
   outline: 2px solid var(--accent);
@@ -77,10 +87,6 @@ ul {
   margin: 0;
   padding: 0;
   list-style: none;
-}
-
-a {
-  color: var(--accent);
 }
 
 .supporter,
@@ -153,7 +159,7 @@ section > .actions {
   border-radius: 6px;
 }
 
-.notice p {
+.notice output {
   margin: 0;
 }
 

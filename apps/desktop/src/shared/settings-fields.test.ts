@@ -6,6 +6,8 @@ describe('SETTING_FIELDS', () => {
     const ids = SETTING_FIELDS.map((field) => field.id);
     expect(new Set(ids).size).toBe(ids.length);
     const sections = new Set<string>(SETTINGS_SECTIONS.map((section) => section.id));
-    for (const id of ids) expect(sections.has(id.split('.')[0] ?? '')).toBe(true);
+    for (const id of ids) {
+      expect(sections.has(id.split('.')[0] ?? '')).toBe(true);
+    }
   });
 });

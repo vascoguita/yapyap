@@ -61,7 +61,9 @@ describe('guardCrashes', () => {
 
   it('stops reloading during a crash loop and shows the recovery screen', () => {
     const t = setup();
-    for (let i = 0; i < MAX_RELOADS; i++) t.crash();
+    for (let i = 0; i < MAX_RELOADS; i++) {
+      t.crash();
+    }
     expect(t.contents.reload).toHaveBeenCalledTimes(MAX_RELOADS);
     t.crash();
     expect(t.contents.reload).toHaveBeenCalledTimes(MAX_RELOADS);
@@ -70,7 +72,9 @@ describe('guardCrashes', () => {
 
   it('forgets crashes older than the window', () => {
     const t = setup();
-    for (let i = 0; i < MAX_RELOADS; i++) t.crash();
+    for (let i = 0; i < MAX_RELOADS; i++) {
+      t.crash();
+    }
     t.advance(RELOAD_WINDOW_MS);
     t.crash();
     expect(t.contents.reload).toHaveBeenCalledTimes(MAX_RELOADS + 1);

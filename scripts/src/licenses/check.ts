@@ -66,26 +66,35 @@ class Parser {
     }
     const license = this.identifier();
     // An exception can only widen what the base license permits, so judge the base.
-    if (this.accept('WITH')) this.identifier();
+    if (this.accept('WITH')) {
+      this.identifier();
+    }
     return ALLOWED_LICENSES.has(license);
   }
 
   // Reading past the end yields undefined, which no allowlist contains and which
   // leaves the parser unfinished, so it needs no separate check.
   private identifier(): string | undefined {
-    const token = this.tokens[this.position++];
-    if (OPERATORS.has(token)) throw new SyntaxError();
+    const token = this.tokens[this.position];
+    this.position += 1;
+    if (OPERATORS.has(token)) {
+      throw new SyntaxError('An operator stands where a license should be.');
+    }
     return token;
   }
 
   private accept(token: string): boolean {
-    if (this.tokens[this.position] !== token) return false;
-    this.position++;
+    if (this.tokens[this.position] !== token) {
+      return false;
+    }
+    this.position += 1;
     return true;
   }
 
   private expect(token: string): void {
-    if (!this.accept(token)) throw new SyntaxError();
+    if (!this.accept(token)) {
+      throw new SyntaxError(`Expected ${token} in the license expression.`);
+    }
   }
 }
 
@@ -129,7 +138,9 @@ export function findViolations(report: unknown): Violation[] {
 }
 
 export function formatReport(violations: readonly Violation[]): string {
-  if (violations.length === 0) return 'All dependency licenses are compatible with MIT.';
+  if (violations.length === 0) {
+    return 'All dependency licenses are compatible with MIT.';
+  }
   const lines = violations.map(
     ({ name, versions, license }) => `  ${name}@${versions.join(',')}: ${license}`,
   );

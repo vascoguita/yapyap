@@ -75,7 +75,7 @@ export function Recovery({ api }: { readonly api: ChromeApi }): JSX.Element {
           Copy diagnostics
         </button>
       </div>
-      <p role="status">{status}</p>
+      <output>{status}</output>
       <p class="disclaimer">Clearing the cache keeps you logged in.</p>
     </main>
   );

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { ViewInfo } from '../views.ts';
 import {
-  NO_ARGUMENTS,
+  noArguments,
   registerChromeHandlers,
   type IpcInvokeEvent,
   type IpcMainPort,
@@ -27,7 +27,7 @@ function setup() {
   } satisfies IpcMainPort;
   const handle = vi.fn((call: { sender: object }, ...args: unknown[]) => ({ call, echoed: args }));
   const warn = vi.fn();
-  registerChromeHandlers(ipc, views, [{ channel: 'test:op', accepts: NO_ARGUMENTS, handle }], warn);
+  registerChromeHandlers(ipc, views, [{ channel: 'test:op', accepts: noArguments, handle }], warn);
   const call = (sender: object, frameUrl: string | null, ...args: unknown[]) =>
     listeners.get('test:op')?.(
       { sender, senderFrame: frameUrl === null ? null : { url: frameUrl } },
@@ -60,9 +60,9 @@ describe('registerChromeHandlers', () => {
   });
 });
 
-describe('NO_ARGUMENTS', () => {
+describe('noArguments', () => {
   it('accepts only an empty argument list', () => {
-    expect(NO_ARGUMENTS([])).toBe(true);
-    expect(NO_ARGUMENTS([undefined])).toBe(false);
+    expect(noArguments([])).toBe(true);
+    expect(noArguments([undefined])).toBe(false);
   });
 });

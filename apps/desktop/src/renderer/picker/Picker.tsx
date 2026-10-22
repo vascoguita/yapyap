@@ -10,7 +10,9 @@ const GROUPS = [
 /** Escape cancels, like closing the window. */
 export function cancelOnEscape(api: ChromeApi): (event: KeyboardEvent) => void {
   return (event) => {
-    if (event.key === 'Escape') void api.picker.cancel();
+    if (event.key === 'Escape') {
+      void api.picker.cancel();
+    }
   };
 }
 
@@ -42,11 +44,14 @@ function Sources(props: {
   readonly selected: string | undefined;
   readonly onSelect: (id: string) => void;
 }): JSX.Element[] {
-  if (props.offer.sources.length === 0)
+  if (props.offer.sources.length === 0) {
     return [<p key="none">No screens or windows can be shared right now.</p>];
+  }
   return GROUPS.flatMap(({ kind, title }) => {
     const sources = props.offer.sources.filter((source) => source.kind === kind);
-    if (sources.length === 0) return [];
+    if (sources.length === 0) {
+      return [];
+    }
     return [
       <fieldset key={kind} class="sources">
         <legend>{title}</legend>
@@ -73,6 +78,24 @@ function useOffer(api: ChromeApi): PickerOffer | null | undefined {
   return offer;
 }
 
+function AudioOption(props: {
+  readonly checked: boolean;
+  readonly onChange: (checked: boolean) => void;
+}): JSX.Element {
+  return (
+    <label class="audio">
+      <input
+        type="checkbox"
+        checked={props.checked}
+        onChange={(event) => {
+          props.onChange(event.currentTarget.checked);
+        }}
+      />
+      <span>Also share system audio</span>
+    </label>
+  );
+}
+
 function Choices(props: { readonly api: ChromeApi; readonly offer: PickerOffer }): JSX.Element {
   const { api, offer } = props;
   const [selected, setSelected] = useState<string | undefined>(undefined);
@@ -81,22 +104,13 @@ function Choices(props: { readonly api: ChromeApi; readonly offer: PickerOffer }
     <form
       onSubmit={(event) => {
         event.preventDefault();
-        if (selected !== undefined) void api.picker.choose(selected, audio);
+        if (selected !== undefined) {
+          void api.picker.choose(selected, audio);
+        }
       }}
     >
       <Sources offer={offer} selected={selected} onSelect={setSelected} />
-      {offer.offerAudio ? (
-        <label class="audio">
-          <input
-            type="checkbox"
-            checked={audio}
-            onChange={(event) => {
-              setAudio(event.currentTarget.checked);
-            }}
-          />
-          Also share system audio
-        </label>
-      ) : null}
+      {offer.offerAudio ? <AudioOption checked={audio} onChange={setAudio} /> : null}
       <div class="actions">
         <button
           type="button"

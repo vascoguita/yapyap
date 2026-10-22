@@ -105,7 +105,7 @@ describe('electronSettingsFiles', () => {
   it('reads only one byte past the limit of a huge file', async () => {
     const path = join(dir, 'huge.json');
     writeFileSync(path, 'x'.repeat(MAX_IMPORT_BYTES * 3));
-    expect((await files.read(path)).length).toBe(MAX_IMPORT_BYTES + 1);
+    expect(await files.read(path)).toHaveLength(MAX_IMPORT_BYTES + 1);
   });
 
   it('fails to read a file that does not exist', async () => {

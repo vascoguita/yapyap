@@ -1,5 +1,5 @@
 import { CHROME_CHANNELS, type TransferResult } from '../../shared/chrome-api.ts';
-import { NO_ARGUMENTS, type ChromeCall, type ChromeHandler } from '../chrome/ipc.ts';
+import { noArguments, type ChromeCall, type ChromeHandler } from '../chrome/ipc.ts';
 import type { SettingsService } from './service.ts';
 import { exportSettings, readImport } from './transfer.ts';
 
@@ -19,11 +19,12 @@ export interface SettingsFiles {
 const CANCELLED: TransferResult = { outcome: 'cancelled', message: '' };
 
 function confirmation(reset: readonly string[]): string {
-  const invalid =
-    reset.length > 0
-      ? ` ${String(reset.length)} invalid ${reset.length === 1 ? 'value' : 'values'} in the file will use the default instead.`
-      : '';
-  return `Your current settings will be replaced.${invalid}`;
+  const replaced = 'Your current settings will be replaced.';
+  if (reset.length === 0) {
+    return replaced;
+  }
+  const values = reset.length === 1 ? 'value' : 'values';
+  return `${replaced} ${String(reset.length)} invalid ${values} in the file will use the default instead.`;
 }
 
 async function exportTo(
@@ -32,7 +33,9 @@ async function exportTo(
   call: ChromeCall,
 ): Promise<TransferResult> {
   const path = await files.chooseExport(call.sender);
-  if (path === undefined) return CANCELLED;
+  if (path === undefined) {
+    return CANCELLED;
+  }
   try {
     await files.write(path, exportSettings(service.current()));
     return { outcome: 'done', message: 'Settings exported.' };
@@ -47,7 +50,9 @@ async function importFrom(
   call: ChromeCall,
 ): Promise<TransferResult> {
   const path = await files.chooseImport(call.sender);
-  if (path === undefined) return CANCELLED;
+  if (path === undefined) {
+    return CANCELLED;
+  }
   let text: string;
   try {
     text = await files.read(path);
@@ -55,8 +60,12 @@ async function importFrom(
     return { outcome: 'failed', message: 'Could not read that file.' };
   }
   const result = readImport(text);
-  if (result.kind === 'rejected') return { outcome: 'failed', message: result.reason };
-  if (!(await files.confirmImport(call.sender, confirmation(result.reset)))) return CANCELLED;
+  if (result.kind === 'rejected') {
+    return { outcome: 'failed', message: result.reason };
+  }
+  if (!(await files.confirmImport(call.sender, confirmation(result.reset)))) {
+    return CANCELLED;
+  }
   service.update(() => result.settings);
   return { outcome: 'done', message: 'Settings imported.' };
 }
@@ -72,12 +81,12 @@ export function settingsTransferHandlers(
   return [
     {
       channel: CHROME_CHANNELS.settingsExport,
-      accepts: NO_ARGUMENTS,
+      accepts: noArguments,
       handle: (call) => exportTo(service, files, call),
     },
     {
       channel: CHROME_CHANNELS.settingsImport,
-      accepts: (args) => NO_ARGUMENTS(args) && !service.readOnly,
+      accepts: (args) => noArguments(args) && !service.readOnly,
       handle: (call) => importFrom(service, files, call),
     },
   ];

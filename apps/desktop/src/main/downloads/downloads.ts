@@ -36,14 +36,24 @@ export function downloadTarget(
   const name = safeFileName(suggested);
   for (let copy = 0; copy <= MAX_COPIES; copy += 1) {
     const path = join(folder, copy === 0 ? name : numberedName(name, copy));
-    if (!deps.taken(path)) return path;
+    if (!deps.taken(path)) {
+      return path;
+    }
   }
   return undefined;
 }
 
+/** What to tell the user per final state; a cancel is the user's own doing. */
+const REPORTS: ReadonlyMap<string, (name: string) => string> = new Map([
+  ['completed', (name: string) => `Downloaded ${name} to your Downloads folder.`],
+  ['interrupted', (name: string) => `Could not download ${name}.`],
+]);
+
 function report(deps: DownloadDependencies, name: string, state: string): void {
-  if (state === 'completed') deps.notify(`Downloaded ${name} to your Downloads folder.`);
-  else if (state === 'interrupted') deps.notify(`Could not download ${name}.`);
+  const message = REPORTS.get(state);
+  if (message !== undefined) {
+    deps.notify(message(name));
+  }
 }
 
 /** A file system that refuses to be checked means asking the user instead. */

@@ -31,7 +31,7 @@ import type { RendererOptions } from '../web-preferences.ts';
 import type { WindowOptions } from '../windows.ts';
 import { CHROME_SCHEME, createChromeHandler } from './assets.ts';
 import {
-  NO_ARGUMENTS,
+  noArguments,
   registerChromeHandlers,
   type ChromeCall,
   type ChromeHandler,
@@ -146,10 +146,10 @@ type FactsSource = Pick<ChromeFeatureDependencies, 'writeClipboard'> & {
 function aboutHandlers(deps: FactsSource): ChromeHandler[] {
   const info = () => buildAboutInfo(deps.facts());
   return [
-    { channel: CHROME_CHANNELS.aboutInfo, accepts: NO_ARGUMENTS, handle: info },
+    { channel: CHROME_CHANNELS.aboutInfo, accepts: noArguments, handle: info },
     {
       channel: CHROME_CHANNELS.copyTechnicalDetails,
-      accepts: NO_ARGUMENTS,
+      accepts: noArguments,
       handle: () => deps.writeClipboard(formatTechnicalDetails(info())),
     },
   ];
@@ -158,12 +158,14 @@ function aboutHandlers(deps: FactsSource): ChromeHandler[] {
 function recoveryHandlers(recoveries: readonly Recovery[]): ChromeHandler[] {
   const of = ({ sender }: ChromeCall): Recovery => {
     const recovery = recoveries.find((candidate) => candidate.owns(sender));
-    if (recovery === undefined) throw new Error('No recovery screen belongs to this window.');
+    if (recovery === undefined) {
+      throw new Error('No recovery screen belongs to this window.');
+    }
     return recovery;
   };
   const operation = (channel: string, run: (recovery: Recovery) => unknown): ChromeHandler => ({
     channel,
-    accepts: NO_ARGUMENTS,
+    accepts: noArguments,
     handle: (call) => run(of(call)),
   });
   return [
@@ -186,11 +188,11 @@ function recoveryAttacher(
     const recovery = createRecovery({
       contents,
       origin,
-      createOverlay: () => createOverlay(renderer),
       views,
-      writeClipboard: deps.writeClipboard,
       technicalDetails,
       warn,
+      createOverlay: () => createOverlay(renderer),
+      writeClipboard: deps.writeClipboard,
     });
     recoveries.push(recovery);
     monitorPage(contents, { onFailure: recovery.show, schedule: setTimeout, warn });
@@ -222,7 +224,9 @@ function sourcePicker(
       return {
         webContents: window.webContents,
         close: () => {
-          if (!window.isDestroyed()) window.close();
+          if (!window.isDestroyed()) {
+            window.close();
+          }
         },
         onClosed: (listener) => {
           window.once('closed', listener);

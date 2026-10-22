@@ -39,7 +39,9 @@ test('shares the screen the user picks, with nothing preselected', async ({ app,
   const picker = await requestShare(app, window);
   const screens = picker.getByRole('group', { name: 'Screens' });
   await expect(screens).toBeVisible();
-  for (const radio of await picker.getByRole('radio').all()) await expect(radio).not.toBeChecked();
+  for (const radio of await picker.getByRole('radio').all()) {
+    await expect(radio).not.toBeChecked();
+  }
   const share = picker.getByRole('button', { name: 'Share' });
   await expect(share).toBeDisabled();
   await expect(picker.getByRole('checkbox', { name: 'Also share system audio' })).toHaveCount(

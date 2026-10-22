@@ -42,12 +42,16 @@ function normalize(raw: Record<string, unknown>): { settings: Settings; reset: s
  */
 export function decodeSettings(text: string): Decoded {
   const raw = parse(text);
-  if (raw === undefined) return { kind: 'corrupt' };
+  if (raw === undefined) {
+    return { kind: 'corrupt' };
+  }
   const result = migrate(raw);
-  if (result.kind === 'invalid') return { kind: 'corrupt' };
+  if (result.kind === 'invalid') {
+    return { kind: 'corrupt' };
+  }
   if (result.kind === 'newer') {
     const { settings } = normalize({ ...raw, schemaVersion: SETTINGS_VERSION });
-    return { kind: 'newer', settings, version: result.version };
+    return { settings, kind: 'newer', version: result.version };
   }
   return { kind: 'ok', ...normalize(result.settings) };
 }

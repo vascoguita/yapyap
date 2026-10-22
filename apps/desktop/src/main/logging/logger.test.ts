@@ -31,9 +31,23 @@ describe('createLogger', () => {
     ]);
   });
 
+  it('mirrors every redacted line, such as to a terminal', () => {
+    const lines: string[] = [];
+    const logger = createLogger({
+      dir: fresh(),
+      home: HOME,
+      now: () => NOW,
+      mirror: (line) => lines.push(line),
+    });
+    logger.log('error', 'Failed for maria@example.com');
+    expect(lines).toEqual(['2026-10-21T12:00:00.000Z error Failed for [email]']);
+  });
+
   it('keeps only the last 50 lines in memory', () => {
     const logger = createLogger({ dir: fresh(), home: HOME, now: () => NOW });
-    for (let n = 0; n < 60; n += 1) logger.log('info', `line ${String(n)}`);
+    for (let n = 0; n < 60; n += 1) {
+      logger.log('info', `line ${String(n)}`);
+    }
     const recent = logger.recent();
     expect(recent).toHaveLength(50);
     expect(recent[0]).toMatch(/line 10$/);
@@ -42,7 +56,9 @@ describe('createLogger', () => {
   it('rotates by size and keeps a bounded number of files', () => {
     const dir = fresh();
     const logger = createLogger({ dir, home: HOME, now: () => NOW, maxBytes: 60, maxFiles: 2 });
-    for (let n = 0; n < 8; n += 1) logger.log('info', `entry number ${String(n)}`);
+    for (let n = 0; n < 8; n += 1) {
+      logger.log('info', `entry number ${String(n)}`);
+    }
     expect(readdirSync(dir).sort()).toEqual(['yapyap.1.log', 'yapyap.2.log', 'yapyap.log']);
     expect(readFileSync(join(dir, 'yapyap.log'), 'utf8')).toMatch(/entry number 7\n$/);
     expect(readFileSync(join(dir, 'yapyap.1.log'), 'utf8')).toMatch(/entry number 5\n$/);
@@ -72,8 +88,9 @@ describe('createLogger', () => {
 
   it('deletes rotated files older than the age limit at start', () => {
     const dir = fresh();
-    for (const name of ['yapyap.1.log', 'yapyap.2.log', 'notes.txt'])
+    for (const name of ['yapyap.1.log', 'yapyap.2.log', 'notes.txt']) {
       writeFileSync(join(dir, name), 'x');
+    }
     const old = (NOW - 15 * 86_400_000) / 1000;
     utimesSync(join(dir, 'yapyap.2.log'), old, old);
     utimesSync(join(dir, 'notes.txt'), old, old);

@@ -46,7 +46,9 @@ function fakeSettings() {
     },
     update: vi.fn((change: (current: Settings) => Settings) => {
       settings = change(settings);
-      for (const listener of listeners) listener(settings);
+      for (const listener of listeners) {
+        listener(settings);
+      }
     }),
   };
 }

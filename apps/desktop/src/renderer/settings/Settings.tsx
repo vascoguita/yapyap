@@ -51,7 +51,9 @@ function Choice(props: FieldProps & { readonly options: NonNullable<SettingField
 
 export function Field(props: FieldProps): JSX.Element {
   const { field, snapshot, onChange } = props;
-  if (field.options !== undefined) return <Choice {...props} options={field.options} />;
+  if (field.options !== undefined) {
+    return <Choice {...props} options={field.options} />;
+  }
   const hint = `${field.id}-hint`;
   return (
     <div class="field">
@@ -80,7 +82,9 @@ function Sections(props: {
     const fields = SETTING_FIELDS.filter(
       (field) => field.id.startsWith(`${id}.`) && field.id in props.snapshot.values,
     );
-    if (fields.length === 0) return [];
+    if (fields.length === 0) {
+      return [];
+    }
     return [
       <section key={id} aria-labelledby={`${id}-title`}>
         <h2 id={`${id}-title`}>{title}</h2>
@@ -94,8 +98,8 @@ function Sections(props: {
 
 function RestartNotice({ api }: { readonly api: ChromeApi }): JSX.Element {
   return (
-    <div class="notice" role="status">
-      <p>Restart YapYap to apply your changes.</p>
+    <div class="notice">
+      <output>Restart YapYap to apply your changes.</output>
       <button
         type="button"
         onClick={() => {
@@ -117,7 +121,9 @@ function useTransfer(): readonly [string, Transfer] {
     operation().then(
       (result) => {
         setStatus(result.message);
-        if (result.outcome === 'done') onDone();
+        if (result.outcome === 'done') {
+          onDone();
+        }
       },
       () => {
         setStatus('Something went wrong. Try again.');
@@ -160,7 +166,7 @@ function Backup(props: {
           Import settings…
         </button>
       </div>
-      <p role="status">{status}</p>
+      <output>{status}</output>
     </section>
   );
 }
@@ -192,18 +198,21 @@ function useSnapshot(
 
 /** Settings is a dialog-like window, so Escape closes it. */
 export function closeOnEscape(event: KeyboardEvent): void {
-  if (event.key === 'Escape') window.close();
+  if (event.key === 'Escape') {
+    window.close();
+  }
 }
 
 export function Settings({ api }: { readonly api: ChromeApi }): JSX.Element {
   const [snapshot, error, change, reload] = useSnapshot(api);
-  if (snapshot == null)
+  if (snapshot == null) {
     return (
       <main class="settings">
         <h1>Settings</h1>
         <p>{snapshot === undefined ? 'Loading…' : 'Settings are unavailable.'}</p>
       </main>
     );
+  }
   return (
     <main class="settings">
       <h1>Settings</h1>

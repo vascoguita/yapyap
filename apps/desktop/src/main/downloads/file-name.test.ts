@@ -32,6 +32,18 @@ describe('safeFileName', () => {
     expect(safeFileName(suggested)).toBe(safe);
   });
 
+  it('leaves a name within the limit alone, even a space before its extension', () => {
+    expect(safeFileName('notes .txt')).toBe('notes .txt');
+    const atLimit = `${'a'.repeat(195)} .txt`;
+    expect(Array.from(atLimit)).toHaveLength(200);
+    expect(safeFileName(atLimit)).toBe(atLimit);
+  });
+
+  it('trims dots and spaces from both ends, and gives up on a name of only those', () => {
+    expect(safeFileName('. .report.pdf. .')).toBe('report.pdf');
+    expect(safeFileName(' . . ')).toBe('download');
+  });
+
   it('shortens long names but keeps the extension', () => {
     const name = safeFileName(`${'a'.repeat(300)}.pdf`);
     expect(Array.from(name)).toHaveLength(200);

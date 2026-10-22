@@ -8,7 +8,9 @@ function fakeFetch(routes: Route[]) {
     const method = init?.method ?? 'GET';
     const path = url.replace('https://api.github.com', '');
     const route = routes.find(([m, p]) => m === method && p === path);
-    if (route === undefined) throw new Error(`Unexpected ${method} ${path}`);
+    if (route === undefined) {
+      throw new Error(`Unexpected ${method} ${path}`);
+    }
     const [, , status, body] = route;
     return Promise.resolve(
       new Response(body === undefined ? null : JSON.stringify(body), { status }),
@@ -20,7 +22,9 @@ const REPO = 'vascoguita/yapyap';
 
 function sentBody(fetch: ReturnType<typeof fakeFetch>, call = 0): unknown {
   const body = fetch.mock.calls[call]?.[1]?.body;
-  if (typeof body !== 'string') throw new Error('expected a JSON request body');
+  if (typeof body !== 'string') {
+    throw new Error('expected a JSON request body');
+  }
   return JSON.parse(body);
 }
 

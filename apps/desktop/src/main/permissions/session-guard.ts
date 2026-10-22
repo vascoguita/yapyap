@@ -99,9 +99,15 @@ async function askOnce(
   mediaTypes: readonly MediaType[],
 ): Promise<boolean> {
   const pending = mediaTypes.filter((type) => !grants.has(grantKey(view, type)));
-  if (pending.length === 0) return true;
+  if (pending.length === 0) {
+    return true;
+  }
   const allowed = await deps.askMedia(view, pending);
-  if (allowed) for (const type of pending) grants.add(grantKey(view, type));
+  if (allowed) {
+    for (const type of pending) {
+      grants.add(grantKey(view, type));
+    }
+  }
   return allowed;
 }
 
@@ -111,7 +117,9 @@ async function askOnce(
  */
 function routeExternal(deps: SessionGuardDependencies, view: ViewInfo | undefined, url = ''): void {
   const action = classifyLink(url, view?.home);
-  if (action.kind !== 'external') return;
+  if (action.kind !== 'external') {
+    return;
+  }
   deps.openExternal(action.url).catch(() => {
     deps.warn('Could not open an external link.');
   });
@@ -132,12 +140,20 @@ async function allowScreenCapture(
 ): Promise<boolean> {
   const { capture } = deps;
   const view = viewOf(deps, contents);
-  if (contents === null || view?.zone !== 'whatsapp' || !fromHome) return false;
-  if (!capture.isVisibleAndFocused(contents)) return false;
-  if (capture.pick === undefined) return capture.useSystemPicker;
+  if (contents === null || view?.zone !== 'whatsapp' || !fromHome) {
+    return false;
+  }
+  if (!capture.isVisibleAndFocused(contents)) {
+    return false;
+  }
+  if (capture.pick === undefined) {
+    return capture.useSystemPicker;
+  }
   shares.delete(contents);
   const choice = await capture.pick(contents);
-  if (choice !== undefined) shares.set(contents, choice);
+  if (choice !== undefined) {
+    shares.set(contents, choice);
+  }
   return choice !== undefined;
 }
 
@@ -155,10 +171,13 @@ function answer(
   const view = viewOf(deps, contents);
   const fromHome = isSameOrigin(details.requestingUrl ?? '', view?.home);
   const mediaTypes = details.mediaTypes ?? [];
-  if (isScreenCapture(permission, mediaTypes))
+  if (isScreenCapture(permission, mediaTypes)) {
     return allowScreenCapture(deps, shares, contents, fromHome);
+  }
   const decision = decidePermission(view?.zone, permission, fromHome);
-  if (decision !== 'ask' || view === undefined) return Promise.resolve(decision === 'allow');
+  if (decision !== 'ask' || view === undefined) {
+    return Promise.resolve(decision === 'allow');
+  }
   return askOnce(deps, grants, view, mediaTypes);
 }
 
@@ -189,7 +208,9 @@ function checkHandler(deps: SessionGuardDependencies, grants: Grants) {
   ): boolean => {
     const view = viewOf(deps, contents);
     const decision = decidePermission(view?.zone, permission, requestingOrigin === view?.home);
-    if (decision !== 'ask' || view === undefined) return decision === 'allow';
+    if (decision !== 'ask' || view === undefined) {
+      return decision === 'allow';
+    }
     return grants.has(grantKey(view, details.mediaType ?? 'unknown'));
   };
 }

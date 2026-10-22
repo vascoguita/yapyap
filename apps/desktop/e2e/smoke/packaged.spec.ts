@@ -67,7 +67,9 @@ test('the installed package opens a window on the fake WhatsApp page and plays m
       .contexts()
       .flatMap((context) => context.pages())
       .find((candidate) => candidate.url().startsWith(fake.origin));
-    if (page === undefined) throw new Error('No page loaded the fake WhatsApp origin');
+    if (page === undefined) {
+      throw new Error('No page loaded the fake WhatsApp origin');
+    }
     await expect(page.getByTestId('fake-whatsapp')).toBeVisible();
     await expect.poll(() => page.evaluate(() => document.visibilityState)).toBe('visible');
     // Each package format must bring its own proprietary codecs.

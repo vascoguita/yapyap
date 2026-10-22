@@ -16,7 +16,9 @@ function isBareOrigin(url: URL): boolean {
 }
 
 function parseLoopbackOrigin(candidate: string): string | undefined {
-  if (!URL.canParse(candidate)) return undefined;
+  if (!URL.canParse(candidate)) {
+    return undefined;
+  }
   const url = new URL(candidate);
   // Only plain-HTTP loopback is accepted so that a tampered environment can at
   // worst point YapYap at the user's own machine, never at a remote host.

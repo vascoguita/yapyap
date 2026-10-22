@@ -25,7 +25,9 @@ async function readPrefix(path: string): Promise<string> {
 export const electronSettingsFiles: SettingsFiles = {
   chooseExport: async (owner) => {
     const window = windowOf(owner);
-    if (window === null) return undefined;
+    if (window === null) {
+      return undefined;
+    }
     const { canceled, filePath } = await dialog.showSaveDialog(window, {
       defaultPath: 'yapyap-settings.json',
       filters: FILTERS,
@@ -34,7 +36,9 @@ export const electronSettingsFiles: SettingsFiles = {
   },
   chooseImport: async (owner) => {
     const window = windowOf(owner);
-    if (window === null) return undefined;
+    if (window === null) {
+      return undefined;
+    }
     const { canceled, filePaths } = await dialog.showOpenDialog(window, {
       filters: FILTERS,
       properties: ['openFile'],
@@ -43,13 +47,15 @@ export const electronSettingsFiles: SettingsFiles = {
   },
   confirmImport: async (owner, detail) => {
     const window = windowOf(owner);
-    if (window === null) return false;
+    if (window === null) {
+      return false;
+    }
     // Replacing settings cannot be undone, so Cancel is the default and Escape answer.
     const { response } = await dialog.showMessageBox(window, {
+      detail,
       type: 'question',
       title: 'YapYap',
       message: 'Import these settings?',
-      detail,
       buttons: ['Import', 'Cancel'],
       defaultId: 1,
       cancelId: 1,

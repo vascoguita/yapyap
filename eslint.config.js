@@ -48,6 +48,8 @@ export default defineConfig(
     rules: {
       'yapyap/no-coverage-ignore': 'error',
       complexity: ['error', 8],
+      // Braces on every block, as SonarQube Cloud's strict profile requires (ADR 0010).
+      curly: ['error', 'all'],
       'max-lines-per-function': ['error', { max: 40, skipBlankLines: true, skipComments: true }],
       'no-warning-comments': [
         'error',

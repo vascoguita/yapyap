@@ -3,7 +3,7 @@
 - **Current milestone:** M2 · Single-account shell
 - **Last merged PR:** #171 (sandbox refusal)
 - **Next issue:** #53 (performance), #55 (i18n), #37 (memory watchdog), #39 (crash reports), #41 (display backend)
-- **Open blockers:** #22 (automation GitHub App), #23, #24, #25, #26 need maintainer-provided secrets or settings (pipelines skip those steps gracefully). #138 (OpenSSF Best Practices badge) needs release notes, so it passes only after v0.1.0
+- **Open blockers:** #22 (automation GitHub App), #23, #24, #25 need maintainer-provided secrets or settings (pipelines skip those steps gracefully). #138 (OpenSSF Best Practices badge) needs release notes, so it passes only after v0.1.0
 
 ## Milestones
 
@@ -20,6 +20,12 @@
 | M8 · Docs and v1.0.0                                 | Not started |
 
 ## Notes
+
+- The SonarQube Cloud backlog is fixed; the few per-file exceptions, each with
+  its reason, are in `sonar-project.properties` (ADR 0010, #185).
+
+- ESLint requires braces on every block (`curly: all`), matching SonarQube
+  Cloud's strict profile (#185).
 
 - macOS and Windows releases ship unsigned until donations (#196) fund code
   signing (#23, #24); the install guide explains the first launch.

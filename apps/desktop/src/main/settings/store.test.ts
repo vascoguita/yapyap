@@ -70,7 +70,9 @@ describe('loadSettings', () => {
   ])('falls back to defaults with %s', (_, backup) => {
     const dir = fresh();
     writeFileSync(join(dir, SETTINGS_FILE), 'garbage');
-    if (backup !== undefined) writeFileSync(join(dir, 'settings.json.bak'), backup);
+    if (backup !== undefined) {
+      writeFileSync(join(dir, 'settings.json.bak'), backup);
+    }
     expect(loadSettings(dir, 7)).toEqual({
       settings: defaultSettings(),
       readOnly: false,

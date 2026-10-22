@@ -45,7 +45,9 @@ function decodePath(pathname: string): string | undefined {
  */
 export function resolveChromeAsset(url: string, root: string): ChromeAsset | undefined {
   const pathname = isSameOrigin(url, CHROME_ORIGIN) ? decodePath(new URL(url).pathname) : undefined;
-  if (pathname === undefined) return undefined;
+  if (pathname === undefined) {
+    return undefined;
+  }
   const path = normalize(join(root, pathname));
   const contentType = CONTENT_TYPES.get(extname(path));
   const inside = path.startsWith(normalize(root) + sep);
@@ -59,9 +61,13 @@ export function createChromeHandler(
 ): (request: { readonly url: string }) => Promise<Response> {
   return async ({ url }) => {
     const asset = resolveChromeAsset(url, root);
-    if (asset === undefined) return new Response(null, { status: 404 });
+    if (asset === undefined) {
+      return new Response(null, { status: 404 });
+    }
     const body = await readFile(asset.path).catch(() => undefined);
-    if (body === undefined) return new Response(null, { status: 404 });
+    if (body === undefined) {
+      return new Response(null, { status: 404 });
+    }
     return new Response(body, {
       headers: {
         'content-type': asset.contentType,

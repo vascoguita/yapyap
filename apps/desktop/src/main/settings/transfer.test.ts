@@ -56,10 +56,7 @@ describe('readImport', () => {
         (theme, zoom, menu) => {
           const settings = defaultSettings();
           settings.appearance = { ...settings.appearance, theme, zoom, autoHideMenuBar: menu };
-          const result = readImport(exportSettings(settings));
-          return (
-            result.kind === 'ok' && JSON.stringify(result.settings) === JSON.stringify(settings)
-          );
+          expect(readImport(exportSettings(settings))).toEqual({ kind: 'ok', settings, reset: [] });
         },
       ),
     );

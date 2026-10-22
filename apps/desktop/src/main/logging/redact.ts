@@ -7,8 +7,9 @@ const RULES: readonly (readonly [RegExp, string])[] = [
   // Bearer and basic credentials, and key=value secrets in URLs or messages.
   [/\b(bearer|basic)\s+[\w.~+/=-]+/gi, '$1 [token]'],
   [/\b(token|key|secret|password|passwd|auth|session|sig|signature)=[^\s&;,]+/gi, '$1=[token]'],
-  // The local part allows every character RFC 5322 does.
-  [/[^\s@<>()[\],;:"\\]+@[\w-]+(?:\.[\w-]+)+/g, '[email]'],
+  // The local part allows every character RFC 5322 does. RFC 5321's length
+  // limits keep the pattern linear on long lines without an @.
+  [/[^\s@<>()[\],;:"\\]{1,64}@[\w-]{1,63}(?:\.[\w-]{1,63})+/g, '[email]'],
   // Long runs of letters and digits look like keys or session identifiers.
   [/\b(?=[A-Za-z0-9_-]*\d)(?=[A-Za-z0-9_-]*[A-Za-z])[A-Za-z0-9_-]{32,}\b/g, '[token]'],
   // Phone numbers: seven or more digits with a leading + or bracket, and
@@ -17,13 +18,14 @@ const RULES: readonly (readonly [RegExp, string])[] = [
   [/[+(]?\d(?:[\s()-]{0,2}\d){6,}/g, '[phone]'],
 ];
 
-function escape(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 }
 
 /** `home` is replaced with `~` first, so user names in paths never appear. */
 export function redact(line: string, home: string): string {
-  const withoutHome = home.length > 1 ? line.replace(new RegExp(escape(home), 'g'), '~') : line;
+  const withoutHome =
+    home.length > 1 ? line.replace(new RegExp(escapeRegExp(home), 'g'), '~') : line;
   return RULES.reduce(
     (text, [pattern, replacement]) => text.replace(pattern, replacement),
     withoutHome,

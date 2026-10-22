@@ -18,15 +18,22 @@ export function loadFailure(
 }
 
 export function healthFailure(health: PageHealth | undefined): Failure | undefined {
-  if (health?.unsupported === true) return { kind: 'unsupported' };
+  if (health?.unsupported === true) {
+    return { kind: 'unsupported' };
+  }
   return health?.blank === true ? { kind: 'blank' } : undefined;
 }
 
 /** For diagnostics: Chromium error names only, never URLs. */
 export function describeFailure(failure: Failure): string {
-  if (failure.kind === 'unsupported')
+  if (failure.kind === 'unsupported') {
     return 'WhatsApp reported that this browser is not supported.';
-  if (failure.kind === 'blank') return 'WhatsApp loaded a blank page.';
-  if (failure.kind === 'crashed') return 'WhatsApp kept stopping unexpectedly.';
+  }
+  if (failure.kind === 'blank') {
+    return 'WhatsApp loaded a blank page.';
+  }
+  if (failure.kind === 'crashed') {
+    return 'WhatsApp kept stopping unexpectedly.';
+  }
   return `WhatsApp could not load (${failure.description}, ${String(failure.code)}).`;
 }

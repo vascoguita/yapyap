@@ -1,6 +1,7 @@
 /** This many GPU process crashes within a day start the next launch without acceleration. */
 export const GPU_CRASH_LIMIT = 3;
-export const GPU_CRASH_WINDOW_MS = 24 * 60 * 60_000;
+/** One day. */
+export const GPU_CRASH_WINDOW_MS = 86_400_000;
 
 /** Reads the crash log, which holds only timestamps; anything unreadable counts as empty. */
 export function readGpuCrashes(read: () => string): number[] {
@@ -48,9 +49,12 @@ export function chooseGraphics(
   crashes: readonly number[],
   now: number,
 ): Graphics {
-  if (safeMode) return { acceleration: false, videoDecoding: false, reason: 'safe-mode' };
-  if (needsSafeGraphics(crashes, now))
+  if (safeMode) {
+    return { acceleration: false, videoDecoding: false, reason: 'safe-mode' };
+  }
+  if (needsSafeGraphics(crashes, now)) {
     return { acceleration: false, videoDecoding: false, reason: 'gpu-crashes' };
+  }
   const acceleration = preferences.hardwareAcceleration;
   const videoDecoding = acceleration && preferences.hardwareVideoDecoding;
   return { acceleration, videoDecoding, reason: videoDecoding ? undefined : 'settings' };
@@ -64,8 +68,12 @@ const SOFTWARE_BECAUSE: Readonly<Record<GraphicsReason, string>> = {
 
 /** One line for diagnostics. */
 export function describeGraphics(graphics: Graphics): string {
-  if (graphics.reason === undefined) return 'hardware accelerated';
-  if (graphics.acceleration) return 'hardware accelerated, software video decoding';
+  if (graphics.reason === undefined) {
+    return 'hardware accelerated';
+  }
+  if (graphics.acceleration) {
+    return 'hardware accelerated, software video decoding';
+  }
   return SOFTWARE_BECAUSE[graphics.reason];
 }
 
@@ -99,12 +107,19 @@ export function guardGpu(app: GpuApp, deps: GpuGuardDependencies): Graphics {
     readGpuCrashes(deps.readLog),
     deps.now(),
   );
-  if (!graphics.acceleration) app.disableHardwareAcceleration();
-  if (!graphics.videoDecoding) app.commandLine.appendSwitch('disable-accelerated-video-decode');
-  if (graphics.reason === 'gpu-crashes')
+  if (!graphics.acceleration) {
+    app.disableHardwareAcceleration();
+  }
+  if (!graphics.videoDecoding) {
+    app.commandLine.appendSwitch('disable-accelerated-video-decode');
+  }
+  if (graphics.reason === 'gpu-crashes') {
     deps.warn('The GPU process crashed repeatedly; hardware acceleration is off for this run.');
+  }
   app.on('child-process-gone', (_event, { type, reason }) => {
-    if (type !== 'GPU' || reason === 'clean-exit') return;
+    if (type !== 'GPU' || reason === 'clean-exit') {
+      return;
+    }
     try {
       deps.writeLog(JSON.stringify(withGpuCrash(readGpuCrashes(deps.readLog), deps.now())));
     } catch {
