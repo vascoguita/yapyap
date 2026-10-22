@@ -1,5 +1,5 @@
 import type { ElectronApplication, Page } from '@playwright/test';
-import { expect, launchApp, test } from './fixtures.ts';
+import { closeApp, expect, launchApp, test } from './fixtures.ts';
 
 /** The display backend diagnostics name: Linux CI runs on its virtual X11 display. */
 const DISPLAY = process.platform === 'linux' ? 'X11 \\(automatic\\)' : 'native';
@@ -35,6 +35,6 @@ test('starts without hardware acceleration with --safe-mode', async ({ fakeWhats
     const status = await app.evaluate(({ app: electronApp }) => electronApp.getGPUFeatureStatus());
     expect(status.gpu_compositing).toMatch(/^disabled/);
   } finally {
-    await app.close();
+    await closeApp(app);
   }
 });

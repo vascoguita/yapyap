@@ -144,6 +144,10 @@ not edit the same lines.
   branches need not be up to date. #210 restores the full matrix and the
   up-to-date rule in M7.
 
+- E2E teardown reports a hanging quit (#223): if YapYap does not quit within
+  30 s, the fixture kills it and fails with the windows it had and its last
+  log lines, instead of an unexplained 60-second teardown timeout.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).

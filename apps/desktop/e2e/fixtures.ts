@@ -19,16 +19,71 @@ interface Options {
   fakePage: string;
 }
 
+/** How long a quit may take before the test reports what kept YapYap open (#223). */
+const QUIT_TIMEOUT_MS = 30_000;
+const LOG_LINES = 40;
+const LOGS = new WeakMap<ElectronApplication, string[]>();
+
+/** The app's last log lines; the logger mirrors every line to stderr, already redacted. */
+function recentLog(app: ElectronApplication): string[] {
+  const lines: string[] = [];
+  app.process().stderr?.on('data', (chunk: Buffer) => {
+    lines.push(
+      ...chunk
+        .toString()
+        .split('\n')
+        .filter((line) => line !== ''),
+    );
+    lines.splice(0, Math.max(0, lines.length - LOG_LINES));
+  });
+  return lines;
+}
+
+/**
+ * Quits the app, and if it hangs, kills it and fails with the windows it had
+ * and its last log lines rather than an unexplained teardown timeout (#223).
+ */
+export async function closeApp(app: ElectronApplication): Promise<void> {
+  const log = LOGS.get(app) ?? [];
+  const windows = await app
+    .evaluate(({ BrowserWindow }) =>
+      BrowserWindow.getAllWindows().map(
+        (window) => `${window.webContents.getURL()} visible=${String(window.isVisible())}`,
+      ),
+    )
+    .catch(() => ['(could not list windows)']);
+  let timer: NodeJS.Timeout | undefined;
+  const timedOut = new Promise<'timeout'>((resolve) => {
+    timer = setTimeout(() => {
+      resolve('timeout');
+    }, QUIT_TIMEOUT_MS);
+  });
+  const result = await Promise.race([app.close().then(() => 'closed' as const), timedOut]);
+  clearTimeout(timer);
+  if (result === 'timeout') {
+    app.process().kill('SIGKILL');
+    throw new Error(
+      [
+        `YapYap did not quit within ${String(QUIT_TIMEOUT_MS / 1000)} s (#223).`,
+        'Windows before closing:',
+        ...windows,
+        'Last log lines:',
+        ...log,
+      ].join('\n'),
+    );
+  }
+}
+
 /**
  * Starts the development build on a throwaway profile, so tests never touch
  * the developer's own settings or each other's.
  */
-export function launchApp(
+export async function launchApp(
   origin: string,
   profile: string,
   args: readonly string[] = [],
 ): Promise<ElectronApplication> {
-  return electron.launch({
+  const app = await electron.launch({
     args: [MAIN, `--user-data-dir=${profile}`, ...args],
     // Playwright forces a light color scheme by default, which would hide YapYap's own theming.
     colorScheme: null,
@@ -37,6 +92,8 @@ export function launchApp(
     chromiumSandbox: true,
     env: appEnvironment(origin),
   });
+  LOGS.set(app, recentLog(app));
+  return app;
 }
 
 /**
@@ -96,7 +153,7 @@ export const test = base.extend<Fixtures & Options>({
   app: async ({ fakeWhatsApp, profile }, use) => {
     const app = await launchApp(fakeWhatsApp.origin, profile);
     await use(app);
-    await app.close();
+    await closeApp(app);
   },
   window: async ({ app }, use) => {
     await use(await app.firstWindow());
