@@ -1,0 +1,77 @@
+name: Beta release
+
+# Cuts the next vX.Y.Z-beta.N pre-release of a coming stable version (#184).
+# A stable release then waits for the beta gate on its release PR.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: The stable version this beta leads to, such as 0.1.0
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+# Shares the release group, so a beta and a stable release never publish at once.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    name: Create the beta pre-release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.next.outputs.tag }}
+      version: ${{ steps.next.outputs.version }}
+    steps:
+      - name: Number the next beta and create its pre-release
+        id: next
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::$VERSION is not a stable version such as 0.1.0."
+            exit 1
+          fi
+          if gh release view "v$VERSION" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "::error::v$VERSION is already released; betas come before a stable release."
+            exit 1
+          fi
+          last=$(gh release list --repo "$GITHUB_REPOSITORY" --limit 1000 --json tagName --jq '.[].tagName' \
+            | grep -E "^v${VERSION//./\\.}-beta\.[0-9]+$" | sed -E 's/.*-beta\.//' | sort -n | tail -1)
+          beta="$VERSION-beta.$(( ${last:-0} + 1 ))"
+          gh release create "v$beta" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --prerelease --title "v$beta" --generate-notes
+          echo "version=$beta" >> "$GITHUB_OUTPUT"
+          echo "tag=v$beta" >> "$GITHUB_OUTPUT"
+
+  package:
+    name: Package
+    needs: tag
+    uses: ./.github/workflows/package.yml
+    with:
+      release: true
+      version: ${{ needs.tag.outputs.version }}
+    secrets: inherit
+
+  smoke:
+    name: Smoke
+    needs: package
+    uses: ./.github/workflows/smoke.yml
+
+  publish:
+    name: Publish
+    needs: [tag, smoke]
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    uses: ./.github/workflows/publish.yml
+    with:
+      tag: ${{ needs.tag.outputs.tag }}

@@ -171,6 +171,13 @@ version has been published for at least 3 days. For a security fix, add a
 line `Security release: <reason, such as the advisory ID>` to the release PR
 body to skip the wait; a beta is still required.
 
+To cut a beta, run the **Beta release** workflow with the coming stable
+version, from the Actions tab or with
+`gh workflow run beta.yml --repo vascoguita/yapyap -f version=0.1.0`. It
+numbers the next `vX.Y.Z-beta.N`, creates the GitHub pre-release from the
+current `master`, and packages, smoke-tests and publishes it exactly like a
+stable release (`publish.yml` is shared), except that betas skip the AUR.
+
 [release-please](https://github.com/googleapis/release-please) keeps a release
 PR open on `master` and updates it from Conventional Commits. Merging that PR
 tags `vX.Y.Z`, updates `CHANGELOG.md` and creates the GitHub Release, which
