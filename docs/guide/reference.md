@@ -17,6 +17,7 @@ the [profile folder](#files).
 | Use hardware acceleration   | `reliability.hardwareAcceleration`  | On                 | Takes effect after a restart               |
 | Use hardware video decoding | `reliability.hardwareVideoDecoding` | On                 | Takes effect after a restart               |
 | Display backend             | `reliability.displayBackend`        | Automatic          | Linux; `auto`, `wayland` or `x11`; restart |
+| Memory limit                | `reliability.memoryWatchdogMb`      | 2048 MB            | File only; 512 to 16384; see below         |
 
 The file also has entries for features that are not built yet. YapYap
 ignores them until those features arrive, and the settings window shows a
@@ -27,6 +28,15 @@ because of it. An invalid value goes back to its default. A damaged file is
 kept as `settings.corrupt-<time>.json`, and YapYap restores the previous copy
 (`settings.json.bak`) or, if that is damaged too, the defaults. Settings
 written by a newer version of YapYap are used but never changed.
+
+### Memory limit
+
+When WhatsApp keeps using more memory than `reliability.memoryWatchdogMb`
+for two minutes, YapYap reloads it, which keeps you logged in and frees the
+memory the page has piled up. It waits while you are typing or reading in
+the window, so a draft is never cut off; only WhatsApp using more than one
+and a half times the limit reloads regardless. The log notes the size and
+the limit, nothing else.
 
 ## Files
 

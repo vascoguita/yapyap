@@ -122,6 +122,8 @@ startApp({
       writeFileSync(GPU_CRASH_LOG, text);
     },
   },
+  appMetrics: () => app.getAppMetrics(),
+  idleSeconds: () => powerMonitor.getSystemIdleTime(),
   onResume: (listener) => {
     powerMonitor.on('resume', listener);
   },
