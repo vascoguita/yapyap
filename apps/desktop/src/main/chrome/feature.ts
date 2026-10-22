@@ -10,6 +10,11 @@ import {
 } from '../about/about-info.ts';
 import { readPageState, type ProbedContents } from '../about/page-state.ts';
 import {
+  decideUpdatePolicy,
+  describeUpdatePolicy,
+  type InstallEvidence,
+} from '../updates/update-policy.ts';
+import {
   createSourcePicker,
   type DesktopSource,
   type SourceKind,
@@ -98,6 +103,8 @@ export interface ChromeFeatureDependencies {
   readonly notify: (message: string) => void;
   /** `app.getGPUFeatureStatus()`, summarized for diagnostics. */
   readonly gpuStatus: () => Readonly<Record<string, string>>;
+  /** What YapYap observes about how it was installed, for the update policy. */
+  readonly installEvidence: () => InstallEvidence;
   /** The recent, already redacted log lines. */
   readonly recentLog: () => readonly string[];
   /** Everything but the graphics mode, which is only settled at startup. */
@@ -268,11 +275,13 @@ function diagnostics(
   deps: Omit<ChromeFeatureDependencies, 'facts'> & FactsSource,
   page?: string,
 ): string {
+  const info = buildAboutInfo(deps.facts());
+  const updates = decideUpdatePolicy(info.channel, deps.installEvidence());
+  const runtime = [`GPU ${summarizeGpu(deps.gpuStatus())}`, describeUpdatePolicy(updates)];
   return formatDiagnostics(
-    buildAboutInfo(deps.facts()),
-    summarizeGpu(deps.gpuStatus()),
+    info,
+    page === undefined ? runtime : [...runtime, page],
     deps.recentLog(),
-    page,
   );
 }
 

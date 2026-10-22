@@ -88,18 +88,22 @@ describe('summarizeGpu', () => {
 
 describe('formatDiagnostics', () => {
   it('adds the GPU summary and recent log to the technical details', () => {
-    expect(formatDiagnostics(buildAboutInfo(FACTS), 'gpu_compositing=enabled', ['a', 'b'])).toBe(
+    expect(
+      formatDiagnostics(buildAboutInfo(FACTS), ['GPU gpu_compositing=enabled'], ['a', 'b']),
+    ).toBe(
       `${formatTechnicalDetails(buildAboutInfo(FACTS))}\nGPU gpu_compositing=enabled\n\nRecent log:\na\nb`,
     );
   });
 
   it('adds the WhatsApp page line after the GPU summary', () => {
-    expect(formatDiagnostics(buildAboutInfo(FACTS), 'x', ['a'], 'WhatsApp view=chats')).toBe(
+    expect(formatDiagnostics(buildAboutInfo(FACTS), ['GPU x', 'WhatsApp view=chats'], ['a'])).toBe(
       `${formatTechnicalDetails(buildAboutInfo(FACTS))}\nGPU x\nWhatsApp view=chats\n\nRecent log:\na`,
     );
   });
 
   it('says when the log is empty', () => {
-    expect(formatDiagnostics(buildAboutInfo(FACTS), 'x', [])).toMatch(/Recent log:\n\(empty\)$/);
+    expect(formatDiagnostics(buildAboutInfo(FACTS), ['GPU x'], [])).toMatch(
+      /Recent log:\n\(empty\)$/,
+    );
   });
 });

@@ -72,6 +72,12 @@ function setup() {
     restart: vi.fn(),
     gpuStatus: () => ({ gpu_compositing: 'enabled', webgl: 'enabled_on' }),
     recentLog: () => ['2026-10-21T12:00:00.000Z warn Something happened'],
+    installEvidence: () => ({
+      platform: 'linux',
+      env: {},
+      flatpakInfo: false,
+      developerIdSigned: false,
+    }),
     confirmReset: vi.fn(() => Promise.resolve(true)),
     captureSources: vi.fn<ChromeFeatureDependencies['captureSources']>(() => Promise.resolve([])),
     windowOf: vi.fn<ChromeFeatureDependencies['windowOf']>(() => null),
@@ -344,7 +350,7 @@ describe('createChromeFeature', () => {
     await new Promise((resolve) => setTimeout(resolve));
     expect(t.deps.writeClipboard).toHaveBeenLastCalledWith(
       expect.stringMatching(
-        /^YapYap 0\.1\.0 \(deb\)\n[\s\S]*\nGPU gpu_compositing=enabled, rasterization=unknown, video_decode=unknown, webgl=enabled_on\nWhatsApp page unavailable \(landmarks v1\)\n\nRecent log:\n2026-10-21T12:00:00\.000Z warn Something happened$/,
+        /^YapYap 0\.1\.0 \(deb\)\n[\s\S]*\nGPU gpu_compositing=enabled, rasterization=unknown, video_decode=unknown, webgl=enabled_on\nUpdates system \(deb\)\nWhatsApp page unavailable \(landmarks v1\)\n\nRecent log:\n2026-10-21T12:00:00\.000Z warn Something happened$/,
       ),
     );
   });

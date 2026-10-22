@@ -21,6 +21,11 @@
 
 ## Notes
 
+- Update policy (#68): `decideUpdatePolicy` maps the stamped install channel
+  and runtime evidence (`APPIMAGE`, `PORTABLE_EXECUTABLE_DIR`, Flatpak
+  markers, a Developer ID signature) to `self-update`, `notify`, `system` or
+  `manual`; Copy Diagnostics shows it. The updater (#69) will read it.
+
 - Opt-in local crash reports (#39): a session marker (`running.json`) detects
   unclean exits; with `privacy.crashReports` on, YapYap saves a redacted text
   report and, when set to `ask`, offers to review it and open a prefilled
