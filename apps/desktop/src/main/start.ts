@@ -56,6 +56,8 @@ import {
 } from './downloads/downloads.ts';
 import { quitOnShutdown, type ShutdownSources } from './shutdown.ts';
 import { showWhenReady } from './show-when-ready.ts';
+import type { BadgeDrawing } from './badge/badge-image.ts';
+import { followUnreadCount, unreadBadge } from './badge/unread-badge.ts';
 import { setUpTray, type TrayDependencies, type TrayPort } from './tray.ts';
 import {
   manageMainWindow,
@@ -103,6 +105,8 @@ export interface WindowPort
   on: TitledWindow['on'] & ManagedWindow['on'];
   readonly webContents: WhatsAppContents & ZoomableContents & WatchedRenderer & ThrottledContents;
   isFocused(): boolean;
+  /** The Windows taskbar overlay, an image from `badge.createImage`. */
+  setOverlayIcon(overlay: object | null, description: string): void;
   once(event: 'ready-to-show', listener: () => void): unknown;
   show(): void;
   loadURL(url: string): Promise<unknown>;
@@ -154,6 +158,10 @@ export interface StartDependencies<Window extends WindowPort> {
     /** Creates electron-updater's updater; called only for builds that update themselves. */
     readonly updater: () => Updater;
     readonly askToInstall: SelfUpdateDependencies['askToInstall'];
+  };
+  readonly badge: {
+    readonly setBadgeCount: (count: number) => boolean;
+    readonly createImage: (drawing: BadgeDrawing) => object;
   };
   readonly tray: {
     /** Creates the tray icon; the caller keeps it alive. */
@@ -357,6 +365,18 @@ function refuseWithoutSandbox<Window extends WindowPort>(
 }
 
 /** Registers WhatsApp's window and puts recovery, reconnects and zoom on it. */
+function showUnreadCount<Window extends WindowPort>(
+  deps: Pick<StartDependencies<Window>, 'badge' | 'platform'>,
+  window: Window,
+): void {
+  const badge = unreadBadge({
+    ...deps.badge,
+    platform: deps.platform,
+    setOverlayIcon: window.setOverlayIcon.bind(window),
+  });
+  followUnreadCount(window, badge);
+}
+
 function wireMainWindow<Window extends WindowPort>(
   deps: StartDependencies<Window>,
   chrome: ReturnType<StartDependencies<Window>['chrome']['afterReady']>,
@@ -386,6 +406,7 @@ function wireMainWindow<Window extends WindowPort>(
   });
   followZoomSetting(window.webContents, deps.settings);
   followHiddenReadsSetting(window.webContents, deps.settings);
+  showUnreadCount(deps, window);
   setUpTray(deps.tray.create(), window, {
     buildMenu: deps.tray.buildMenu,
     quit: () => {

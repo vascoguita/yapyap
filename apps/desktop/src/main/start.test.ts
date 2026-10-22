@@ -71,6 +71,7 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     isFullScreen: vi.fn(() => false),
     setAutoHideMenuBar: vi.fn(),
     setMenuBarVisibility: vi.fn(),
+    setOverlayIcon: vi.fn(),
     loadURL: vi.fn(() => Promise.resolve()),
   } satisfies WindowPort;
   const createWindow = vi.fn<(options: WindowOptions) => WindowPort>(() => window);
@@ -144,6 +145,10 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
         askToInstall: vi.fn(() => Promise.resolve(false)),
       };
     })(),
+    badge: {
+      setBadgeCount: vi.fn(() => true),
+      createImage: vi.fn(() => ({})),
+    },
     tray: {
       create: vi.fn(() => ({ setToolTip: vi.fn(), setContextMenu: vi.fn(), on: vi.fn() })),
       buildMenu: vi.fn((template: unknown) => template),
@@ -539,6 +544,20 @@ describe('startApp', () => {
     const [template] = f.tray.buildMenu.mock.calls[0] as [{ click?: () => void }[]];
     template[2]?.click?.();
     expect(f.app.quit).toHaveBeenCalledOnce();
+  });
+
+  it('shows the unread count from the page title as the app badge', async () => {
+    const f = fakes();
+    await startApp(f);
+    for (const [event, listener] of f.window.on.mock.calls as [string, unknown][]) {
+      if (event === 'page-title-updated') {
+        (listener as (event: { preventDefault(): void }, title: string) => void)(
+          { preventDefault: vi.fn() },
+          '(3) WhatsApp',
+        );
+      }
+    }
+    expect(f.badge.setBadgeCount).toHaveBeenCalledWith(3);
   });
 
   it('stays hidden when started minimized', async () => {

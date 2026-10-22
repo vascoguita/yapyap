@@ -1,5 +1,6 @@
 /** @vitest-environment happy-dom */
 import { runInNewContext } from 'node:vm';
+import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import {
   describePageState,
@@ -8,6 +9,7 @@ import {
   PAGE_STATE_PROBE,
   parsePageState,
   probePageState,
+  unreadInTitle,
 } from './page-state.ts';
 
 function page(html: string, title = 'WhatsApp'): Document {
@@ -17,6 +19,28 @@ function page(html: string, title = 'WhatsApp'): Document {
 }
 
 const CHATS = '<div id="app"><div id="pane-side"></div></div>';
+
+describe('unreadInTitle', () => {
+  it('reads the leading count, and nothing else', () => {
+    expect(
+      ['(3) WhatsApp', 'WhatsApp', 'WhatsApp (3)', '(1234567) WhatsApp'].map(unreadInTitle),
+    ).toEqual([3, 0, 0, 0]);
+  });
+
+  it('agrees with the page probe, which repeats its pattern', () => {
+    const titles = fc.oneof(
+      fc.string(),
+      fc.tuple(fc.nat(), fc.string()).map(([count, rest]) => `(${String(count)})${rest}`),
+    );
+    fc.assert(
+      fc.property(titles, (title) => {
+        // Title change events carry `document.title`, whitespace already collapsed.
+        const doc = page(CHATS, title);
+        expect(unreadInTitle(doc.title)).toBe(probePageState(doc, LANDMARKS).unread);
+      }),
+    );
+  });
+});
 
 describe('probePageState', () => {
   it('reports the chat list with no chat open', () => {

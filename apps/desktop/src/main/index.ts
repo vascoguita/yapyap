@@ -6,6 +6,7 @@ import {
   ipcMain,
   Menu,
   Tray,
+  nativeImage,
   nativeTheme,
   net,
   Notification,
@@ -182,6 +183,11 @@ startApp({
   selfUpdate: {
     updater: () => electronUpdater.autoUpdater,
     askToInstall: askToInstallUpdateWithDialog,
+  },
+  badge: {
+    setBadgeCount: (count) => app.setBadgeCount(count),
+    createImage: ({ bitmap, width, height, scaleFactor }) =>
+      nativeImage.createFromBitmap(bitmap, { width, height, scaleFactor }),
   },
   tray: {
     create: () => {
