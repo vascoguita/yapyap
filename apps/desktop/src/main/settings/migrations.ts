@@ -2,11 +2,23 @@ import { SETTINGS_VERSION } from './schema.ts';
 
 type Raw = Record<string, unknown>;
 
+function isSection(value: unknown): value is Raw {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 /** Version 2 adds the Linux display backend choice (#41). */
 function addDisplayBackend(settings: Raw): Raw {
   const reliability = settings['reliability'];
-  return typeof reliability === 'object' && reliability !== null && !Array.isArray(reliability)
+  return isSection(reliability)
     ? { ...settings, reliability: { displayBackend: 'auto', ...reliability } }
+    : settings;
+}
+
+/** Version 3 keeps chats unread while YapYap is hidden, as before, unless turned off (#66). */
+function addUnreadWhileHidden(settings: Raw): Raw {
+  const privacy = settings['privacy'];
+  return isSection(privacy)
+    ? { ...settings, privacy: { unreadWhileHidden: true, ...privacy } }
     : settings;
 }
 
@@ -15,7 +27,10 @@ function addDisplayBackend(settings: Raw): Raw {
  * forward-only, and each has its own test; a test also checks that there is
  * exactly one migration per version step.
  */
-export const MIGRATIONS: readonly ((settings: Raw) => Raw)[] = [addDisplayBackend];
+export const MIGRATIONS: readonly ((settings: Raw) => Raw)[] = [
+  addDisplayBackend,
+  addUnreadWhileHidden,
+];
 
 export type MigrationResult =
   | { readonly kind: 'migrated'; readonly settings: Raw }

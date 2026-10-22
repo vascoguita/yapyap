@@ -10,6 +10,7 @@ const THEME = 'appearance.theme';
 const MENU_BAR = 'appearance.autoHideMenuBar';
 const BACKEND = 'reliability.displayBackend';
 const CRASH = 'privacy.crashReports';
+const UNREAD = 'privacy.unreadWhileHidden';
 
 function setup(readOnly = false) {
   let settings: Settings = defaultSettings();
@@ -106,6 +107,7 @@ describe('settingsHandlers', () => {
         [BACKEND]: 'auto',
         [VIDEO]: true,
         [CRASH]: 'off',
+        [UNREAD]: true,
       },
       restartPending: false,
       readOnly: true,
@@ -123,6 +125,7 @@ describe('settingsHandlers', () => {
         [BACKEND]: 'auto',
         [VIDEO]: true,
         [CRASH]: 'off',
+        [UNREAD]: true,
       },
       restartPending: true,
       readOnly: false,

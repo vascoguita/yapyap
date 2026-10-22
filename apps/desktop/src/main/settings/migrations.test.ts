@@ -51,6 +51,31 @@ describe('migrate', () => {
   });
 });
 
+describe('version 2 to 3', () => {
+  const toVersion3 = MIGRATIONS[1];
+
+  it('keeps chats unread while hidden and keeps the other privacy settings', () => {
+    expect(toVersion3?.({ schemaVersion: 2, privacy: { crashReports: 'ask' } })).toEqual({
+      schemaVersion: 2,
+      privacy: { unreadWhileHidden: true, crashReports: 'ask' },
+    });
+  });
+
+  it('keeps a choice that is already there', () => {
+    expect(toVersion3?.({ privacy: { unreadWhileHidden: false } })).toEqual({
+      privacy: { unreadWhileHidden: false },
+    });
+  });
+
+  it.each([undefined, null, 'on', [true]])(
+    'leaves a privacy section of %j for validation to reset',
+    (privacy) => {
+      const settings = { schemaVersion: 2, privacy };
+      expect(toVersion3?.(settings)).toBe(settings);
+    },
+  );
+});
+
 describe('version 1 to 2', () => {
   const [toVersion2] = MIGRATIONS;
 

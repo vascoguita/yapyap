@@ -26,6 +26,10 @@
   file digests, Ed25519, fingerprints of the raw key). Tests use keys made in
   memory per run. Signing first-party plugins in CI waits for the first real
   plugin (#101).
+- Chats stay unread while hidden (#66): `privacy.unreadWhileHidden` (settings
+  schema v3) keeps background throttling on, so a hidden or minimized
+  window's page reports itself hidden; verified on real Wayland and X11
+  sessions, since Playwright keeps the pages it drives active.
 
 - Update policy (#68): `decideUpdatePolicy` maps the stamped install channel
   and runtime evidence (`APPIMAGE`, `PORTABLE_EXECUTABLE_DIR`, Flatpak

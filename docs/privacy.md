@@ -19,6 +19,10 @@ browser. YapYap does not read, copy or upload them.
   of YapYap's data folder. Each launch starts a new file, and a file is also
   rotated at 1 MB. At most five old files are kept, and they are deleted
   after 14 days.
+- **Chats stay unread while YapYap is hidden.** When YapYap is hidden or
+  minimized, WhatsApp sees its page as hidden and does not mark new messages
+  in the open chat as read. Turn off **Keep chats unread while YapYap is
+  hidden** in Settings → Privacy if you prefer the open chat to keep reading.
 - **Crash reports are opt-in.** They are off unless you turn on **Crash
   reports** in Settings → Privacy. Then, after YapYap closes unexpectedly, it
   saves a plain-text report in its data folder (`crash-report.txt`): the

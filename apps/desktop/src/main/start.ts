@@ -13,6 +13,7 @@ import {
   type GraphicsReason,
 } from './recovery/gpu-safe-mode.ts';
 import type { SettingsService } from './settings/service.ts';
+import { followHiddenReadsSetting, type ThrottledContents } from './privacy/hidden-reads.ts';
 import {
   chooseDisplayBackend,
   describeDisplayBackend,
@@ -93,7 +94,7 @@ export interface AppPort {
 export interface WindowPort
   extends Omit<TitledWindow, 'on'>, LinkWindow, Omit<ManagedWindow, 'on'> {
   on: TitledWindow['on'] & ManagedWindow['on'];
-  readonly webContents: WhatsAppContents & ZoomableContents & WatchedRenderer;
+  readonly webContents: WhatsAppContents & ZoomableContents & WatchedRenderer & ThrottledContents;
   isFocused(): boolean;
   once(event: 'ready-to-show', listener: () => void): unknown;
   show(): void;
@@ -351,6 +352,7 @@ function wireMainWindow<Window extends WindowPort>(
     window.loadURL(target.href).catch(() => undefined);
   });
   followZoomSetting(window.webContents, deps.settings);
+  followHiddenReadsSetting(window.webContents, deps.settings);
   showWhenReady(window);
 }
 
