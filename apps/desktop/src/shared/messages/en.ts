@@ -13,6 +13,8 @@ const catalog = {
   common: {
     loading: 'Loading…',
     cancel: 'Cancel',
+    close: 'Close',
+    whatsApp: 'WhatsApp',
   },
   about: {
     title: 'YapYap',
@@ -105,6 +107,31 @@ const catalog = {
       export: 'Export settings…',
       import: 'Import settings…',
       failed: 'Something went wrong. Try again.',
+      fileType: 'YapYap settings',
+      exported: 'Settings exported.',
+      exportFailed: 'Could not save the settings file.',
+      readFailed: 'Could not read that file.',
+      notSettings: 'That file is not a YapYap settings file.',
+      newer: 'Those settings come from a newer version of YapYap. Update YapYap to import them.',
+      confirm: 'Import these settings?',
+      confirmButton: 'Import',
+      replaces: (invalid: number): string => {
+        const replaced = 'Your current settings will be replaced.';
+        if (invalid === 0) {
+          return replaced;
+        }
+        const values = invalid === 1 ? 'value' : 'values';
+        return `${replaced} ${String(invalid)} invalid ${values} in the file will use the default instead.`;
+      },
+      imported: 'Settings imported.',
+    },
+    // Shown once at startup when YapYap had to change how it loaded the settings file.
+    loadNotices: {
+      restored: 'Your settings file was damaged, so YapYap restored the last good copy.',
+      defaults: 'Your settings file was damaged, so YapYap started with default settings.',
+      newer:
+        'Your settings come from a newer version of YapYap, so this version will not change them.',
+      reset: 'Some settings were invalid and were reset to their defaults.',
     },
     // Keyed by setting ID; option keys are the values the settings file stores.
     fields: {
@@ -166,10 +193,81 @@ const catalog = {
     show: 'Show YapYap',
     quit: 'Quit YapYap',
   },
+  // `&` marks the access key on Windows and Linux; macOS ignores it.
+  menu: {
+    file: '&File',
+    view: '&View',
+    account: '&Account',
+    actualSize: 'Actual Size',
+    zoomIn: 'Zoom In',
+    zoomOut: 'Zoom Out',
+    newChat: 'New Chat with Number…',
+    clearCache: 'Clear Cache and Reload',
+    resetSession: 'Reset Session…',
+    about: (product: string): string => `About ${product}`,
+    settings: 'Settings…',
+    copyDiagnostics: 'Copy Diagnostics',
+  },
+  windows: {
+    about: (product: string): string => `About ${product}`,
+    settings: (product: string): string => `${product} Settings`,
+    picker: 'Share your screen',
+    newChat: 'New Chat',
+    offline: (pageTitle: string): string => `${pageTitle} (offline)`,
+  },
+  dialogs: {
+    resetSession: {
+      message: 'Reset this WhatsApp session?',
+      detail:
+        'This logs you out and deletes WhatsApp’s data on this computer. Your chats stay on your phone. To use WhatsApp here again, link this device again.',
+      confirm: 'Reset Session',
+    },
+    unsafeStart: {
+      message: 'YapYap cannot start safely on this system',
+      detail:
+        'YapYap cannot start safely: its sandbox is turned off. On Ubuntu 24.04 and later ' +
+        'this happens with the AppImage, because the system restricts unprivileged user ' +
+        'namespaces. Install the .deb, .rpm or Flatpak package instead, or allow the AppImage ' +
+        'with an AppArmor profile. YapYap never runs without its sandbox.',
+      guide: 'Open Troubleshooting Guide',
+    },
+    crashReview: {
+      message: 'YapYap closed unexpectedly last time',
+      detail: (report: string): string =>
+        `This report was saved on this computer and has not been sent anywhere. Report on GitHub opens a prefilled bug report for you to review and submit.\n\n${report}`,
+      report: 'Report on GitHub…',
+      copy: 'Copy Report',
+    },
+    installUpdate: {
+      message: (version: string): string => `YapYap ${version} is ready to install`,
+      detail:
+        'It was downloaded and verified. Restart YapYap to install it now, or keep working and install it later.',
+      install: 'Restart and Install',
+      later: 'Later',
+    },
+    media: {
+      devices: { audio: 'microphone', video: 'camera' },
+      request: (account: string, devices: readonly string[]): string =>
+        `${account} wants to use your ${devices.join(' and ')}.`,
+      detail: 'YapYap remembers your answer until you quit.',
+      allow: 'Allow',
+      deny: 'Deny',
+    },
+  },
+  notices: {
+    safeMode: 'YapYap started in safe mode, without hardware acceleration.',
+    gpuCrashes:
+      'Graphics kept crashing, so YapYap started without hardware acceleration this time.',
+    whatsAppReloaded: 'WhatsApp stopped unexpectedly and was reloaded.',
+    newRelease: (version: string): string =>
+      `YapYap ${version} is available. Click to open its download page.`,
+    downloaded: (name: string): string => `Downloaded ${name} to your Downloads folder.`,
+    downloadFailed: (name: string): string => `Could not download ${name}.`,
+  },
 } as const;
 
 /** The shape every message catalog has; a missing key is a compile error. */
 export type Messages = Widen<typeof catalog>;
 
-/** The English text of YapYap's own windows. */
+/** The English text of YapYap's own windows, menus, dialogs and notifications. */
 export const en: Messages = catalog;

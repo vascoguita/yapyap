@@ -1,5 +1,9 @@
 import { dialog } from 'electron';
+import { en } from '../shared/messages/en.ts';
+import { PRODUCT_NAME } from './identity.ts';
 import type { CrashReviewChoice } from './crash/crash-reports.ts';
+
+const TEXT = en.dialogs.crashReview;
 
 const CHOICES: readonly CrashReviewChoice[] = ['report', 'copy', 'close'];
 
@@ -7,10 +11,10 @@ const CHOICES: readonly CrashReviewChoice[] = ['report', 'copy', 'close'];
 export async function reviewCrashWithDialog(report: string): Promise<CrashReviewChoice> {
   const { response } = await dialog.showMessageBox({
     type: 'info',
-    title: 'YapYap',
-    message: 'YapYap closed unexpectedly last time',
-    detail: `This report was saved on this computer and has not been sent anywhere. Report on GitHub opens a prefilled bug report for you to review and submit.\n\n${report}`,
-    buttons: ['Report on GitHub…', 'Copy Report', 'Close'],
+    title: PRODUCT_NAME,
+    message: TEXT.message,
+    detail: TEXT.detail(report),
+    buttons: [TEXT.report, TEXT.copy, en.common.close],
     defaultId: 2,
     cancelId: 2,
   });

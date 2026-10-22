@@ -52,6 +52,8 @@ import {
   type ChromeWindowDependencies,
   type ChromeWindowPort,
 } from './window-opener.ts';
+import { en } from '../../shared/messages/en.ts';
+import { PRODUCT_NAME } from '../identity.ts';
 
 /** In memory only: app chrome never shares storage with WhatsApp or keeps any. */
 export const CHROME_PARTITION = 'yapyap-chrome';
@@ -59,7 +61,7 @@ export const CHROME_PARTITION = 'yapyap-chrome';
 const ABOUT_PAGE: ChromePage = {
   path: 'about.html',
   window: {
-    title: 'About YapYap',
+    title: en.windows.about(PRODUCT_NAME),
     width: 480,
     height: 640,
     resizable: false,
@@ -71,7 +73,7 @@ const ABOUT_PAGE: ChromePage = {
 const PICKER_PAGE: ChromePage = {
   path: 'picker.html',
   window: {
-    title: 'Share your screen',
+    title: en.windows.picker,
     width: 760,
     height: 580,
     minWidth: 480,
@@ -84,7 +86,7 @@ const PICKER_PAGE: ChromePage = {
 const NEW_CHAT_PAGE: ChromePage = {
   path: 'new-chat.html',
   window: {
-    title: 'New Chat',
+    title: en.windows.newChat,
     width: 440,
     height: 300,
     resizable: false,
@@ -95,7 +97,13 @@ const NEW_CHAT_PAGE: ChromePage = {
 
 const SETTINGS_PAGE: ChromePage = {
   path: 'settings.html',
-  window: { title: 'YapYap Settings', width: 640, height: 680, minWidth: 420, minHeight: 360 },
+  window: {
+    title: en.windows.settings(PRODUCT_NAME),
+    width: 640,
+    height: 680,
+    minWidth: 420,
+    minHeight: 360,
+  },
 };
 
 interface PrivilegedScheme {

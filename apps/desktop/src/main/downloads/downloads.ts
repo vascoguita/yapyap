@@ -1,5 +1,6 @@
 import { basename, join } from 'node:path';
 import { numberedName, safeFileName } from './file-name.ts';
+import { en } from '../../shared/messages/en.ts';
 
 export interface DownloadItem {
   getFilename(): string;
@@ -45,8 +46,8 @@ export function downloadTarget(
 
 /** What to tell the user per final state; a cancel is the user's own doing. */
 const REPORTS: ReadonlyMap<string, (name: string) => string> = new Map([
-  ['completed', (name: string) => `Downloaded ${name} to your Downloads folder.`],
-  ['interrupted', (name: string) => `Could not download ${name}.`],
+  ['completed', en.notices.downloaded],
+  ['interrupted', en.notices.downloadFailed],
 ]);
 
 function report(deps: DownloadDependencies, name: string, state: string): void {

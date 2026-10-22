@@ -2,6 +2,7 @@ import type { RecoveryProblem } from '../../shared/chrome-api.ts';
 import { CHROME_ORIGIN } from '../chrome/assets.ts';
 import type { ViewRegistry } from '../views.ts';
 import { describeFailure, type Failure } from './failure.ts';
+import { PRODUCT_NAME } from '../identity.ts';
 
 /** A chrome view laid over a window's content; `remove` also closes it. */
 export interface Overlay {
@@ -43,6 +44,8 @@ export interface Recovery {
   readonly reconnect: () => void;
 }
 
+const OVERLAY_VIEW = { zone: 'chrome', home: CHROME_ORIGIN, label: PRODUCT_NAME } as const;
+
 /** Keeps cookies, IndexedDB and local storage, so the user stays logged in. */
 async function clearSiteCache(contents: RecoverableContents): Promise<void> {
   await contents.session.clearCache();
@@ -73,7 +76,7 @@ export function createRecovery(deps: RecoveryDependencies): Recovery {
     retry,
     show: (failure) => {
       const overlay = current?.overlay ?? deps.createOverlay();
-      deps.views.set(overlay.webContents, { zone: 'chrome', home: CHROME_ORIGIN, label: 'YapYap' });
+      deps.views.set(overlay.webContents, OVERLAY_VIEW);
       current = { overlay, failure };
       load(overlay);
     },

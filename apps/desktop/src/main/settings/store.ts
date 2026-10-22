@@ -11,6 +11,7 @@ import {
 import { join } from 'node:path';
 import { decodeSettings, defaultSettings } from './decode.ts';
 import type { Settings } from './schema.ts';
+import { en } from '../../shared/messages/en.ts';
 
 export const SETTINGS_FILE = 'settings.json';
 const BACKUP_FILE = 'settings.json.bak';
@@ -34,12 +35,12 @@ function fromBackup(dir: string): LoadedSettings {
     ? {
         settings: decoded.settings,
         readOnly: false,
-        notice: 'Your settings file was damaged, so YapYap restored the last good copy.',
+        notice: en.settings.loadNotices.restored,
       }
     : {
         settings: defaultSettings(),
         readOnly: false,
-        notice: 'Your settings file was damaged, so YapYap started with default settings.',
+        notice: en.settings.loadNotices.defaults,
       };
 }
 
@@ -58,15 +59,11 @@ export function loadSettings(dir: string, now: number): LoadedSettings {
     return {
       settings: decoded.settings,
       readOnly: true,
-      notice:
-        'Your settings come from a newer version of YapYap, so this version will not change them.',
+      notice: en.settings.loadNotices.newer,
     };
   }
   if (decoded.kind === 'ok') {
-    const notice =
-      decoded.reset.length > 0
-        ? 'Some settings were invalid and were reset to their defaults.'
-        : undefined;
+    const notice = decoded.reset.length > 0 ? en.settings.loadNotices.reset : undefined;
     return { settings: decoded.settings, readOnly: false, notice };
   }
   renameSync(path, join(dir, `settings.corrupt-${String(now)}.json`));

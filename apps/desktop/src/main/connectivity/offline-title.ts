@@ -1,3 +1,5 @@
+import { en } from '../../shared/messages/en.ts';
+
 export interface TitledWindow {
   on(
     event: 'page-title-updated',
@@ -17,7 +19,7 @@ export function offlineTitle(
   let pageTitle = initialTitle;
   let online = true;
   const apply = (): void => {
-    window.setTitle(online ? pageTitle : `${pageTitle} (offline)`);
+    window.setTitle(online ? pageTitle : en.windows.offline(pageTitle));
   };
   window.on('page-title-updated', (event, title) => {
     event.preventDefault();

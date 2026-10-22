@@ -53,8 +53,16 @@ not edit the same lines.
 - Message catalogs (#55, part 1): every string the chrome windows show,
   including setting labels, lives in `src/shared/messages/en.ts`. Other
   languages will be typed as `Messages`, so a missing key fails to compile;
-  `yapyap/no-literal-ui-text` rejects literal text in renderer JSX. Menus,
-  dialogs and notifications move in a later part.
+  `yapyap/no-literal-ui-text` rejects literal text in renderer JSX.
+
+- Message catalogs (#55, part 2): the main process takes its menus, dialogs,
+  notifications, window titles and settings notices from the same catalog
+  (`menu`, `windows`, `dialogs`, `notices`, `settings.backup` and
+  `settings.loadNotices`). The product name stays data from `identity.ts`,
+  passed to formatters. Log lines and the diagnostics and crash report text
+  stay English, since they go into bug reports. Lint now also rejects
+  literal text in the main process's `label`, `title`, `message`, `detail`,
+  `body` and `buttons` properties.
 
 - Tray (#65, first part): a tray icon with Show and Quit, **Close to the
   tray** (`general.closeToTray`, settings schema v4) and **Start minimized**.

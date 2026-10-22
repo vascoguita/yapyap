@@ -1,4 +1,5 @@
 import type { Failure } from './failure.ts';
+import { en } from '../../shared/messages/en.ts';
 
 /** More reloads than this within the window means reloading is not helping. */
 export const MAX_RELOADS = 3;
@@ -46,7 +47,7 @@ export function guardCrashes(contents: CrashableContents, deps: CrashGuardDepend
     }
     reloads.push(now);
     contents.reload();
-    deps.notify('WhatsApp stopped unexpectedly and was reloaded.');
+    deps.notify(en.notices.whatsAppReloaded);
   });
   contents.on('unresponsive', () => {
     hangs += 1;

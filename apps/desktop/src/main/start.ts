@@ -65,6 +65,7 @@ import {
 } from './window/main-window.ts';
 import type { Rect } from './window/window-state.ts';
 import { resolveWhatsAppOrigin } from './whatsapp-origin.ts';
+import { en } from '../shared/messages/en.ts';
 
 export interface AppPort {
   disableHardwareAcceleration(): void;
@@ -178,9 +179,8 @@ const SAFE_MODE_FLAG = '--safe-mode';
 
 /** A fallback the user did not choose in settings is worth telling them about. */
 const GRAPHICS_NOTICES: Readonly<Record<GraphicsReason, string | undefined>> = {
-  'safe-mode': 'YapYap started in safe mode, without hardware acceleration.',
-  'gpu-crashes':
-    'Graphics kept crashing, so YapYap started without hardware acceleration this time.',
+  'safe-mode': en.notices.safeMode,
+  'gpu-crashes': en.notices.gpuCrashes,
   settings: undefined,
 };
 
@@ -364,7 +364,7 @@ function wireMainWindow<Window extends WindowPort>(
   views: ViewRegistry,
   origin: string,
 ): void {
-  views.set(window.webContents, { zone: 'whatsapp', home: origin, label: 'WhatsApp' });
+  views.set(window.webContents, { zone: 'whatsapp', home: origin, label: en.common.whatsApp });
   const recovery = chrome.attachRecovery(window.webContents, origin, (renderer) =>
     deps.createOverlay(window, renderer),
   );
