@@ -1,4 +1,5 @@
 import type { MenuItemConstructorOptions } from 'electron';
+import { describePageState } from '../../adapter/page-state.ts';
 import { CHROME_CHANNELS } from '../../shared/chrome-api.ts';
 import {
   buildAboutInfo,
@@ -7,6 +8,7 @@ import {
   summarizeGpu,
   type RuntimeFacts,
 } from '../about/about-info.ts';
+import { readPageState, type ProbedContents } from '../about/page-state.ts';
 import {
   createSourcePicker,
   type DesktopSource,
@@ -182,9 +184,11 @@ function recoveryAttacher(
   views: ViewRegistry,
   warn: (message: string) => void,
   recoveries: Recovery[],
+  pages: ProbedContents[],
 ): ChromeRuntime['attachRecovery'] {
   const technicalDetails = () => diagnostics(deps);
   return (contents, origin, createOverlay) => {
+    pages.push(contents);
     const recovery = createRecovery({
       contents,
       origin,
@@ -258,12 +262,26 @@ function accountActions(
   };
 }
 
-function diagnostics(deps: Omit<ChromeFeatureDependencies, 'facts'> & FactsSource): string {
+function diagnostics(
+  deps: Omit<ChromeFeatureDependencies, 'facts'> & FactsSource,
+  page?: string,
+): string {
   return formatDiagnostics(
     buildAboutInfo(deps.facts()),
     summarizeGpu(deps.gpuStatus()),
     deps.recentLog(),
+    page,
   );
+}
+
+/** The first WhatsApp view is the one diagnostics describe until accounts arrive. */
+async function writeDiagnostics(
+  deps: Omit<ChromeFeatureDependencies, 'facts'> & FactsSource,
+  pages: readonly ProbedContents[],
+): Promise<unknown> {
+  const page = pages[0];
+  const state = page === undefined ? undefined : await readPageState(page);
+  return deps.writeClipboard(diagnostics(deps, describePageState(state)));
 }
 
 function chromeWindows(
@@ -309,6 +327,7 @@ export function createChromeFeature(deps: ChromeFeatureDependencies): ChromeFeat
       const handler = createChromeHandler(deps.rendererRoot, deps.readFile);
       deps.chromeProtocol().handle(CHROME_SCHEME, handler);
       const recoveries: Recovery[] = [];
+      const pages: ProbedContents[] = [];
       const windows = chromeWindows(deps, renderer, views, warn);
       const picker = sourcePicker(deps, windows);
       registerChromeHandlers(
@@ -324,12 +343,12 @@ export function createChromeFeature(deps: ChromeFeatureDependencies): ChromeFeat
         warn,
       );
       setMenu(deps, windows, recoveries, warn, () => {
-        deps.writeClipboard(diagnostics(withGraphics)).catch(() => {
+        writeDiagnostics(withGraphics, pages).catch(() => {
           warn('Could not copy the diagnostics.');
         });
       });
       return {
-        attachRecovery: recoveryAttacher(withGraphics, renderer, views, warn, recoveries),
+        attachRecovery: recoveryAttacher(withGraphics, renderer, views, warn, recoveries, pages),
         pickCaptureSource: picker.pick,
       };
     },

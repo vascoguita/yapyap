@@ -186,7 +186,11 @@ Update this table in the PR that adds a command.
   AppArmor profile grants them to terminals inside it.
 - Code that inspects WhatsApp's page lives in `src/adapter/` and runs in the
   adapter's isolated world (`ADAPTER_WORLD_ID`). Probes return plain flags,
-  never page text, which can contain chats.
+  never page text, which can contain chats. They run on demand and never add
+  observers. Selectors live only in `LANDMARKS` (`src/adapter/page-state.ts`):
+  change one together with the fake page, and bump `LANDMARKS_VERSION`.
+- Phone numbers in fixtures and E2E tests come from Ofcom's fictional range
+  (`+44 7700 900xxx`); the fixture linter rejects any other.
 - Never let a rejected `loadURL` end startup. Load failures are reported by
   the recovery monitor (`src/main/recovery/`), which shows the recovery
   screen.
