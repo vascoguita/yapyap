@@ -21,6 +21,10 @@
 
 ## Notes
 
+- The release PR is paused until the first release is near: release-please
+  runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
+  Releases).
+
 - The SonarQube Cloud backlog is fixed; the few per-file exceptions, each with
   its reason, are in `sonar-project.properties` (ADR 0010, #185).
 
