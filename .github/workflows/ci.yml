@@ -176,7 +176,7 @@ jobs:
             sleep 0.2
           done
           cd apps/desktop
-          YAPYAP_E2E_WAYLAND_DISPLAY=wayland-yapyap xvfb-run -a pnpm exec playwright test --project e2e e2e/display.spec.ts
+          YAPYAP_E2E_WAYLAND_DISPLAY=wayland-yapyap xvfb-run -a pnpm exec playwright test --project=e2e e2e/display.spec.ts
       - name: E2E
         if: runner.os != 'Linux'
         run: pnpm test:e2e
