@@ -11,6 +11,7 @@ describe('createChromeBridge', () => {
       'recovery:problem': problem,
       'settings:get': snapshot,
       'settings:set': snapshot,
+      'chat:open-number': true,
     };
     const invoke = vi.fn<(channel: string, ...args: unknown[]) => Promise<unknown>>((channel) =>
       Promise.resolve(answers[channel] ?? 'ignored'),
@@ -30,6 +31,7 @@ describe('createChromeBridge', () => {
     expect(await api.picker.offer()).toBe('ignored');
     await api.picker.choose('screen:1:0', true);
     await api.picker.cancel();
+    expect(await api.chat.openNumber('+44 7700 900123')).toBe(true);
     expect(invoke.mock.calls).toEqual([
       ['about:info'],
       ['about:copy-technical-details'],
@@ -45,12 +47,14 @@ describe('createChromeBridge', () => {
       ['picker:offer'],
       ['picker:choose', 'screen:1:0', true],
       ['picker:cancel'],
+      ['chat:open-number', '+44 7700 900123'],
     ]);
   });
 
   it('exposes nothing but the listed operations', () => {
     const api = createChromeBridge(vi.fn());
-    expect(Object.keys(api)).toEqual(['about', 'recovery', 'settings', 'picker']);
+    expect(Object.keys(api)).toEqual(['about', 'recovery', 'settings', 'chat', 'picker']);
+    expect(Object.keys(api.chat)).toEqual(['openNumber']);
     expect(Object.keys(api.picker)).toEqual(['offer', 'choose', 'cancel']);
     expect(Object.keys(api.settings)).toEqual(['get', 'set', 'restart', 'export', 'import']);
     expect(Object.keys(api.about)).toEqual(['info', 'copyTechnicalDetails']);

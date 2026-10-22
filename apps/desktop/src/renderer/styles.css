@@ -273,3 +273,35 @@ main.picker .actions {
 button:disabled {
   opacity: 0.5;
 }
+
+main.new-chat {
+  align-items: stretch;
+  text-align: left;
+}
+
+main.new-chat form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+main.new-chat .field {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  text-align: left;
+}
+
+main.new-chat input {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+main.new-chat .actions {
+  justify-content: flex-end;
+}

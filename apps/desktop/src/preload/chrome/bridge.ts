@@ -37,6 +37,9 @@ export function createChromeBridge(
       export: () => invoke(CHROME_CHANNELS.settingsExport) as Promise<TransferResult>,
       import: () => invoke(CHROME_CHANNELS.settingsImport) as Promise<TransferResult>,
     },
+    chat: {
+      openNumber: (number) => invoke(CHROME_CHANNELS.chatOpenNumber, number) as Promise<boolean>,
+    },
     picker: {
       offer: () => invoke(CHROME_CHANNELS.pickerOffer) as Promise<PickerOffer>,
       choose: async (id, audio) => {

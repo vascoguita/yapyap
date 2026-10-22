@@ -39,7 +39,7 @@ import type { ViewInfo, ViewRegistry } from './views.ts';
 import type { Overlay } from './recovery/controller.ts';
 import type { RendererOptions } from './web-preferences.ts';
 import type { WindowOptions } from './windows.ts';
-import { claimSingleInstance, type LinkWindow } from './instances.ts';
+import { bringToFront, claimSingleInstance, type LinkWindow } from './instances.ts';
 import { chatLinkInArguments } from './navigation/deep-link.ts';
 import { refuseUnsafeStart, type UnsafeStartDependencies } from './sandbox-check.ts';
 import {
@@ -342,6 +342,13 @@ function wireMainWindow<Window extends WindowPort>(
     idleSeconds: deps.idleSeconds,
     every: setInterval,
     warn: deps.warn,
+  });
+  chrome.openChatsWith((phone) => {
+    const target = new URL('/send', origin);
+    target.searchParams.set('phone', phone);
+    bringToFront(window);
+    // A failed load is reported by the recovery monitor.
+    window.loadURL(target.href).catch(() => undefined);
   });
   followZoomSetting(window.webContents, deps.settings);
   showWhenReady(window);

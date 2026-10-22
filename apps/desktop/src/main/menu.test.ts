@@ -6,6 +6,7 @@ function actions() {
   return {
     openAbout: vi.fn(),
     openSettings: vi.fn(),
+    openNewChat: vi.fn(),
     clearCache: vi.fn(),
     resetSession: vi.fn(),
     zoom: vi.fn(),
@@ -16,6 +17,8 @@ function actions() {
 const ACCOUNT = (a: ReturnType<typeof actions>) => ({
   label: '&Account',
   submenu: [
+    { label: 'New Chat with Number…', click: a.openNewChat },
+    { type: 'separator' },
     { label: 'Clear Cache and Reload', click: a.clearCache },
     { type: 'separator' },
     { label: 'Reset Session…', click: a.resetSession },

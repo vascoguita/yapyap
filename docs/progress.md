@@ -30,6 +30,9 @@
   unclean exits; with `privacy.crashReports` on, YapYap saves a redacted text
   report and, when set to `ask`, offers to review it and open a prefilled
   GitHub issue. Nothing is sent automatically.
+- Account → New Chat with Number… (#80) opens a small chrome window; the
+  number is parsed by `src/shared/phone-number.ts` in the window and again in
+  main, then opened as WhatsApp's own chat link. Nothing is stored.
 
 - Renderer memory watchdog (#37): `reliability.memoryWatchdogMb` (file only)
   reloads the WhatsApp renderer after two minutes over the limit, but not

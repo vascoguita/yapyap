@@ -21,6 +21,7 @@ export default defineConfig({
           recovery: resolve(import.meta.dirname, 'src/renderer/recovery.html'),
           settings: resolve(import.meta.dirname, 'src/renderer/settings.html'),
           picker: resolve(import.meta.dirname, 'src/renderer/picker.html'),
+          'new-chat': resolve(import.meta.dirname, 'src/renderer/new-chat.html'),
         },
       },
     },
