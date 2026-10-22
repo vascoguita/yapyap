@@ -36,16 +36,19 @@ path }`. Every file in the archive must appear in that list. Extra,
 - The key **fingerprint** is the SHA-256 of the raw 32-byte public key, shown
   as colon-grouped hex.
 - **First-party trust anchors** are an array of SPKI PEM public keys compiled
-  into the app. The first is the repository variable
-  `PLUGIN_SIGNING_PUBLIC_KEY`. A first-party plugin must be signed by an
-  anchor. CI signs first-party plugins with the `PLUGIN_SIGNING_KEY` secret.
+  into the app (`TRUST_ANCHORS` in `packages/plugin-sign/src/anchors.ts`).
+  The first is the repository variable `PLUGIN_SIGNING_PUBLIC_KEY`, and CI
+  fails if they differ. A first-party plugin, meaning any plugin ID under
+  `org.guita.yapyap.`, must be signed by an anchor; nobody else can publish
+  under that prefix. CI signs first-party plugins with the `PLUGIN_SIGNING_KEY` secret.
   To rotate the key, ship the new anchor in a release, sign with the new key
   from the next release, then remove the old anchor one release later
   (documented in CONTRIBUTING).
 - **Third-party** plugins use trust on first use. At install, the user sees
   the author, the fingerprint, and every requested capability and network
-  host. On consent, the key is pinned to the plugin ID. An update signed by a
-  different key is rejected.
+  host. On consent, the key is pinned to the plugin ID (a `plugin-pins.json`
+  of IDs and key fingerprints). An update signed by a different key is
+  rejected. `decideTrust` in `packages/plugin-sign` makes these decisions.
 - **URL installs** require a pinned `sha256-<base64>` integrity value next to
   the URL. A mismatch aborts before anything is unpacked.
 - **Unsigned** plugins load only in Developer Mode, with a persistent
