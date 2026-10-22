@@ -194,6 +194,7 @@ describe('createChromeFeature', () => {
         'reliability.displayBackend': 'auto',
         'reliability.hardwareVideoDecoding': true,
         'privacy.crashReports': 'off',
+        'privacy.unreadWhileHidden': true,
       },
       restartPending: false,
       readOnly: false,

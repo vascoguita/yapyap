@@ -87,4 +87,11 @@ export const SETTING_FIELDS: readonly SettingField[] = [
       { value: 'ask', label: 'Keep a report and offer to review it' },
     ],
   },
+  {
+    id: 'privacy.unreadWhileHidden',
+    label: 'Keep chats unread while YapYap is hidden',
+    description:
+      'When YapYap is hidden or minimized, WhatsApp does not mark new messages in the open chat as read. Turn this off to let the open chat keep reading.',
+    restart: false,
+  },
 ];

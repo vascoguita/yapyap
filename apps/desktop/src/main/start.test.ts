@@ -23,6 +23,7 @@ function fakeContents() {
     reload: vi.fn(),
     forcefullyCrashRenderer: vi.fn(),
     getOSProcessId: () => 4242,
+    setBackgroundThrottling: vi.fn(),
     session: {
       clearCache: vi.fn(() => Promise.resolve()),
       clearStorageData: vi.fn(() => Promise.resolve()),
@@ -501,7 +502,10 @@ describe('startApp', () => {
     const f = fakes();
     f.stored.set('running.json', '{"version":"0.0.9","startedAt":1000}');
     const settings = defaultSettings();
-    f.settings.current = () => ({ ...settings, privacy: { crashReports: 'ask' } });
+    f.settings.current = () => ({
+      ...settings,
+      privacy: { ...settings.privacy, crashReports: 'ask' },
+    });
     await startApp(f);
     await vi.advanceTimersByTimeAsync(1);
     expect(f.crashes.review).toHaveBeenCalledExactlyOnceWith(
@@ -513,7 +517,10 @@ describe('startApp', () => {
     const f = fakes();
     f.stored.set('running.json', '{"version":"0.0.9","startedAt":1000}');
     const settings = defaultSettings();
-    f.settings.current = () => ({ ...settings, privacy: { crashReports: 'ask' } });
+    f.settings.current = () => ({
+      ...settings,
+      privacy: { ...settings.privacy, crashReports: 'ask' },
+    });
     f.crashes.review.mockRejectedValueOnce(new Error('no display'));
     await startApp(f);
     await vi.advanceTimersByTimeAsync(1);
