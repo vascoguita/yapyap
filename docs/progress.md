@@ -59,6 +59,11 @@ not edit the same lines.
   markers, a Developer ID signature) to `self-update`, `notify`, `system` or
   `manual`; Copy Diagnostics shows it. The updater (#69) will read it.
 
+- Release notices (#70): builds with the `notify` policy (portable, unsigned
+  macOS) check GitHub's latest stable release at startup and daily and show
+  a notification that opens the release page; nothing is downloaded, and
+  other policies never make the request.
+
 - Account → New Chat with Number… (#80) opens a small chrome window; the
   number is parsed by `src/shared/phone-number.ts` in the window and again in
   main, then opened as WhatsApp's own chat link. Nothing is stored.

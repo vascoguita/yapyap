@@ -8,7 +8,11 @@ browser. YapYap does not read, copy or upload them.
   identifiers of any kind. An automated test runs a whole session behind a
   proxy that refuses and records every request leaving your computer, and
   fails if there is even one. Self-updating builds will also contact their
-  update server, which the test will allow once updates ship.
+  update server, which the test will allow once updates ship. The Windows
+  portable build and unsigned macOS builds, which cannot update themselves,
+  ask GitHub for the latest release once a day (a plain request to
+  `api.github.com`, with nothing about you in it) and tell you when there is
+  a new one; installs from Flatpak, DEB, RPM and the AUR never ask.
 - **No hidden downloads.** Chromium normally fetches a spelling dictionary
   from Google whenever a window opens, which tells Google your language and
   your IP address. YapYap stops that, so spell checking is off until you

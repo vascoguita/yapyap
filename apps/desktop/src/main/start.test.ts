@@ -128,6 +128,14 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     openExternal,
     isOnline: vi.fn(() => true),
     gpuCrashLog: { read: () => '[]', write: vi.fn() },
+    releases: {
+      policy: 'manual' as 'manual' | 'notify',
+      currentVersion: '0.1.0',
+      fetchJson: vi.fn(() =>
+        Promise.resolve({ tag_name: 'v0.2.0', draft: false, prerelease: false }),
+      ),
+      showNotice: vi.fn(),
+    },
     appMetrics: vi.fn(() => [{ pid: 4242, memory: { workingSetSize: 100 * 1024 } }]),
     idleSeconds: () => 600,
     settings: {
@@ -477,6 +485,20 @@ describe('startApp', () => {
     open?.('447700900123');
     await vi.advanceTimersByTimeAsync(0);
     expect(f.warn).not.toHaveBeenCalled();
+  });
+
+  it('tells a portable build about a new release, and other builds never ask', async () => {
+    const quiet = fakes();
+    await startApp(quiet);
+    expect(quiet.releases.fetchJson).not.toHaveBeenCalled();
+    const f = fakes();
+    f.releases.policy = 'notify';
+    await startApp(f);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(f.releases.showNotice).toHaveBeenCalledExactlyOnceWith(
+      expect.stringContaining('YapYap 0.2.0 is available'),
+      'https://github.com/vascoguita/yapyap/releases/tag/v0.2.0',
+    );
   });
 
   it('leaves the launch to the running YapYap when another one holds the lock', async () => {
