@@ -59,8 +59,12 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) and the
 
 YapYap is free, with no ads and no telemetry. If it is useful to you, you can
 [sponsor its development](https://github.com/sponsors/vascoguita).
-Sponsorships go to code signing first, so YapYap installs on macOS and Windows
-without security warnings.
+Sponsorships pay for what building YapYap costs:
+
+- **Development tools:** a Claude subscription for AI-assisted development.
+  A higher plan means fewer pauses when the usage limit runs out.
+- **Code signing:** certificates for macOS and Windows, so YapYap installs
+  without security warnings.
 
 ## Supporters
 
