@@ -149,11 +149,13 @@ To rotate the key without breaking installed plugins:
 1. Generate a new Ed25519 key pair offline:
    `openssl genpkey -algorithm ed25519 -out new.pem`, then
    `openssl pkey -in new.pem -pubout`. Never commit or log the private key.
-2. Add the new public key to the embedded trust anchors (keep the old one) and
-   ship that in a release.
+2. Add the new public key to `TRUST_ANCHORS` in
+   `packages/plugin-sign/src/anchors.ts` (keep the old one) and ship that in
+   a release.
 3. In a later release, update the `PLUGIN_SIGNING_KEY` secret and the
-   `PLUGIN_SIGNING_PUBLIC_KEY` variable, and sign first-party plugins with the
-   new key.
+   `PLUGIN_SIGNING_PUBLIC_KEY` variable, move the new key to the front of
+   `TRUST_ANCHORS` (CI checks that the variable is the first anchor), and
+   sign first-party plugins with the new key.
 4. One release after that, remove the old public key from the anchors.
 
 ## Reporting bugs and security issues

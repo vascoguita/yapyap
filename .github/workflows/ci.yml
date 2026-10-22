@@ -52,6 +52,10 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm typecheck
+      - name: The embedded plugin trust anchor matches PLUGIN_SIGNING_PUBLIC_KEY
+        env:
+          PLUGIN_SIGNING_PUBLIC_KEY: ${{ vars.PLUGIN_SIGNING_PUBLIC_KEY }}
+        run: node scripts/src/bin/check-trust-anchor.ts
       - name: Commit messages
         if: github.event_name == 'pull_request'
         env:

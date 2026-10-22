@@ -69,6 +69,13 @@ not edit the same lines.
   memory per run. Signing first-party plugins in CI waits for the first real
   plugin (#101).
 
+- Plugin trust (#90): `packages/plugin-sign` now decides trust (`decideTrust`:
+  first-party IDs need an embedded anchor, third-party keys are pinned on
+  first install, other keys are rejected), checks URL-install integrity and
+  reads and writes pins. The anchors live in `src/anchors.ts`, and CI checks
+  the first matches `PLUGIN_SIGNING_PUBLIC_KEY`. The installer (#91) wires
+  it into the app.
+
 - The screen picker lists screens and windows in separate calls (#180),
   because one combined call came back empty on Linux CI while screens alone
   were listed.
