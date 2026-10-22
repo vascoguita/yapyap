@@ -4,7 +4,7 @@ import {
   type ElectronApplication,
   type Page,
 } from '@playwright/test';
-import { spawn, type ChildProcessByStdio } from 'node:child_process';
+import { spawn, spawnSync, type ChildProcessByStdio } from 'node:child_process';
 import type { Readable } from 'node:stream';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -40,6 +40,33 @@ function recentLog(app: ElectronApplication): string[] {
 }
 
 /**
+ * Where each thread of a hung YapYap was, and its helper processes, attached
+ * to the report. Only macOS has hung so far, and `sample` ships with it (#223).
+ */
+async function attachHungState(app: ElectronApplication): Promise<void> {
+  const pid = app.process().pid;
+  if (process.platform !== 'darwin' || pid === undefined) {
+    return;
+  }
+  const run = (command: string, args: string[]): string => {
+    const result = spawnSync(command, args, { encoding: 'utf8', timeout: 30_000 });
+    return `$ ${command} ${args.join(' ')}\n${result.stdout}${result.stderr}`;
+  };
+  const helpers = run('/bin/ps', ['-A', '-o', 'pid,ppid,stat,etime,comm'])
+    .split('\n')
+    .filter((line) => line.trim().split(/\s+/)[1] === String(pid))
+    .join('\n');
+  await base.info().attach('hung-at-quit.txt', {
+    body: [
+      `Helper processes of ${String(pid)}:`,
+      helpers,
+      run('/usr/bin/sample', [String(pid), '3']),
+    ].join('\n'),
+    contentType: 'text/plain',
+  });
+}
+
+/**
  * Quits the app, and if it hangs, kills it and fails with the windows it had
  * and its last log lines rather than an unexplained teardown timeout (#223).
  */
@@ -61,6 +88,7 @@ export async function closeApp(app: ElectronApplication): Promise<void> {
   const result = await Promise.race([app.close().then(() => 'closed' as const), timedOut]);
   clearTimeout(timer);
   if (result === 'timeout') {
+    await attachHungState(app);
     app.process().kill('SIGKILL');
     throw new Error(
       [

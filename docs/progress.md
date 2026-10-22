@@ -157,7 +157,11 @@ not edit the same lines.
 
 - E2E teardown reports a hanging quit (#223): if YapYap does not quit within
   30 s, the fixture kills it and fails with the windows it had and its last
-  log lines, instead of an unexplained 60-second teardown timeout.
+  log lines, instead of an unexplained 60-second teardown timeout. On macOS
+  it also attaches `hung-at-quit.txt` to the report: a `sample` of every
+  thread and the helper processes. So far it hung in specs with throttling
+  on and off, with one visible WhatsApp window, after Playwright asked the
+  app to quit.
 
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
