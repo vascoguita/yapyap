@@ -33,8 +33,9 @@
 - When the Windows popup test fails, its message lists what the popup did
   (#188), so the remaining Windows case can be diagnosed.
 
-- SonarQube Cloud analyzes every PR and `master` (ADR 0010). The job becomes a
-  required check once overall code passes the "YapYap strict" gate (#185).
+- SonarQube Cloud analyzes every PR and `master` (ADR 0010). Overall code
+  passes the "YapYap strict" gate, so `SonarQube Cloud` is a required check
+  and the README shows its badges (#185).
 
 - Ensita supports YapYap's development and is credited in the README, the
   site footer and the About window.

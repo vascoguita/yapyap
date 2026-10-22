@@ -78,6 +78,9 @@
             "context": "Docs build"
           },
           {
+            "context": "SonarQube Cloud"
+          },
+          {
             "context": "Package / Package (linux-x64)"
           },
           {
