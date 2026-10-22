@@ -21,6 +21,11 @@
 
 ## Notes
 
+- Renderer memory watchdog (#37): `reliability.memoryWatchdogMb` (file only)
+  reloads the WhatsApp renderer after two minutes over the limit, but not
+  while the user is busy in the window unless it passes 1.5× the limit
+  (ADR 0008, C19).
+
 - Linux display backend (#41): `reliability.displayBackend` (settings schema
   v2, the first migration) picks Wayland or X11; `--ozone-platform` and
   `ELECTRON_OZONE_PLATFORM_HINT` win over it. Diagnostics show the backend,

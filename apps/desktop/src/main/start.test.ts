@@ -22,6 +22,7 @@ function fakeContents() {
     executeJavaScriptInIsolatedWorld: vi.fn(() => Promise.resolve()),
     reload: vi.fn(),
     forcefullyCrashRenderer: vi.fn(),
+    getOSProcessId: () => 4242,
     session: {
       clearCache: vi.fn(() => Promise.resolve()),
       clearStorageData: vi.fn(() => Promise.resolve()),
@@ -58,6 +59,7 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     setTitle: vi.fn(),
     show: vi.fn(),
     isMinimized: vi.fn(() => false),
+    isFocused: vi.fn(() => false),
     restore: vi.fn(),
     focus: vi.fn(),
     hide: vi.fn(),
@@ -122,6 +124,8 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     openExternal,
     isOnline: vi.fn(() => true),
     gpuCrashLog: { read: () => '[]', write: vi.fn() },
+    appMetrics: vi.fn(() => [{ pid: 4242, memory: { workingSetSize: 100 * 1024 } }]),
+    idleSeconds: () => 600,
     settings: {
       current: () => defaultSettings(),
       notice: undefined as string | undefined,
@@ -425,6 +429,17 @@ describe('startApp', () => {
     await started;
     expect(await pickInApp(requester)).toEqual({ video: { id: 'screen:1:0', name: 'Screen' } });
     expect(f.runtime.pickCaptureSource).toHaveBeenCalledExactlyOnceWith(requester);
+  });
+
+  it('reloads the WhatsApp window when it keeps using more memory than the setting allows', async () => {
+    const f = fakes();
+    await startApp(f);
+    f.appMetrics.mockReturnValue([{ pid: 4242, memory: { workingSetSize: 3000 * 1024 } }]);
+    await vi.advanceTimersByTimeAsync(120_000);
+    expect(f.web.contents.reload).toHaveBeenCalledOnce();
+    expect(f.warn).toHaveBeenCalledWith(
+      'The WhatsApp renderer used 3000 MB, over the 2048 MB limit; reloading it.',
+    );
   });
 
   it('leaves the launch to the running YapYap when another one holds the lock', async () => {

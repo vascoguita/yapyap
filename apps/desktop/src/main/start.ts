@@ -19,6 +19,11 @@ import {
   type DisplayBackend,
 } from './display/backend.ts';
 import {
+  watchMemory,
+  type ProcessMemory,
+  type WatchedRenderer,
+} from './recovery/memory-watchdog.ts';
+import {
   installSecurity,
   secureSession,
   type GuardedContents,
@@ -80,7 +85,8 @@ export interface AppPort {
 export interface WindowPort
   extends Omit<TitledWindow, 'on'>, LinkWindow, Omit<ManagedWindow, 'on'> {
   on: TitledWindow['on'] & ManagedWindow['on'];
-  readonly webContents: WhatsAppContents & ZoomableContents;
+  readonly webContents: WhatsAppContents & ZoomableContents & WatchedRenderer;
+  isFocused(): boolean;
   once(event: 'ready-to-show', listener: () => void): unknown;
   show(): void;
   loadURL(url: string): Promise<unknown>;
@@ -118,6 +124,10 @@ export interface StartDependencies<Window extends WindowPort> {
   readonly sandboxDisabled: boolean;
   readonly explainUnsafeStart: UnsafeStartDependencies['explain'];
   readonly downloads: Pick<DownloadDependencies, 'folder' | 'taken'>;
+  /** `app.getAppMetrics()`: memory per process, for the memory watchdog. */
+  readonly appMetrics: () => readonly ProcessMemory[];
+  /** Seconds since the last keyboard or mouse input. */
+  readonly idleSeconds: () => number;
   readonly notify: (message: string) => void;
   readonly warn: (message: string) => void;
   readonly logError: (message: string) => void;
@@ -288,6 +298,14 @@ function wireMainWindow<Window extends WindowPort>(
     deps.createOverlay(window, renderer),
   );
   watchOnline(deps, window, recovery.reconnect);
+  watchMemory(window.webContents, {
+    metrics: deps.appMetrics,
+    limitMb: () => deps.settings.current().reliability.memoryWatchdogMb,
+    focused: () => window.isFocused(),
+    idleSeconds: deps.idleSeconds,
+    every: setInterval,
+    warn: deps.warn,
+  });
   followZoomSetting(window.webContents, deps.settings);
   showWhenReady(window);
 }
