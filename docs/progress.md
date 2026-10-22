@@ -26,6 +26,8 @@
 
 - Sponsorships go through GitHub Sponsors (`.github/FUNDING.yml`), linked from
   the README, the site navigation, the install guide and the About window (#196).
+  They pay for the Claude subscription used to develop YapYap and for code
+  signing (README, Support YapYap).
 
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
