@@ -77,8 +77,11 @@ test('drops links with other schemes', async ({ app, window }) => {
 test('follows a popup that navigates after opening, then closes it', async ({ app, window }) => {
   const opened = await recordExternalLinks(app);
   const events = await recordPopupEvents(app);
+  // The buttons render before links.js adds their click handlers; a slow
+  // runner could click first, so the page never opened a popup (#188).
+  await window.waitForLoadState('load');
   await window.getByTestId('popup-then-navigate').click();
-  // Windows has failed this now and then (#188); say what the popup did if so.
+  // If this fails again, say what the popup did.
   await expect
     .poll(opened)
     .toEqual(['https://example.com/from-popup'])
@@ -91,6 +94,7 @@ test('follows a popup that navigates after opening, then closes it', async ({ ap
 });
 
 test('discards a popup that never navigates', async ({ app, window }) => {
+  await window.waitForLoadState('load');
   await window.getByTestId('popup-blank').click();
   await expect.poll(() => windowCount(app), { timeout: 15_000 }).toBe(1);
   await expect(window.getByTestId('fake-whatsapp')).toBeVisible();

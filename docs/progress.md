@@ -21,6 +21,9 @@
 
 ## Notes
 
+- E2E tests that click a fake-page control wired up by a script wait for the
+  page's `load` event first; the buttons render before their handlers (#188).
+
 - Sponsorships go through GitHub Sponsors (`.github/FUNDING.yml`), linked from
   the README, the site navigation, the install guide and the About window (#196).
 
