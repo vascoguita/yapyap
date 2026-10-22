@@ -8,6 +8,18 @@
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/15759/badge)](https://www.bestpractices.dev/projects/15759)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
+[![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=vascoguita_yapyap&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=vascoguita_yapyap)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=vascoguita_yapyap&metric=coverage)](https://sonarcloud.io/summary/new_code?id=vascoguita_yapyap)
+[![Reliability](https://sonarcloud.io/api/project_badges/measure?project=vascoguita_yapyap&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=vascoguita_yapyap)
+[![Security](https://sonarcloud.io/api/project_badges/measure?project=vascoguita_yapyap&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=vascoguita_yapyap)
+[![Maintainability](https://sonarcloud.io/api/project_badges/measure?project=vascoguita_yapyap&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=vascoguita_yapyap)
+[![Duplicated lines](https://sonarcloud.io/api/project_badges/measure?project=vascoguita_yapyap&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=vascoguita_yapyap)
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=vascoguita_yapyap&metric=bugs)](https://sonarcloud.io/summary/new_code?id=vascoguita_yapyap)
+[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=vascoguita_yapyap&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=vascoguita_yapyap)
+[![Code smells](https://sonarcloud.io/api/project_badges/measure?project=vascoguita_yapyap&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=vascoguita_yapyap)
+[![Technical debt](https://sonarcloud.io/api/project_badges/measure?project=vascoguita_yapyap&metric=sqale_index)](https://sonarcloud.io/summary/new_code?id=vascoguita_yapyap)
+[![Lines of code](https://sonarcloud.io/api/project_badges/measure?project=vascoguita_yapyap&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=vascoguita_yapyap)
+
 A fast, private, extensible desktop client for WhatsApp Web, for Linux,
 Windows and macOS.
 

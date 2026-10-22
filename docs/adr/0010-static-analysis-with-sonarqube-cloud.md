@@ -62,9 +62,10 @@ analysis must run in CI.
   console output and `PATH` lookups in command-line scripts, the main
   entry's promise chain (no top-level await), and two E2E rules the
   analyzer misreads for Playwright (assertions and conditional skips).
-- **Required check:** the job becomes required in `.github/rulesets/master.json`
-  only once overall code passes the gate, so the backlog does not block
-  unrelated work in the meantime.
+- **Required check:** `SonarQube Cloud` is required in
+  `.github/rulesets/master.json`. It was added only once overall code passed
+  the gate, so the backlog never blocked unrelated work. The README shows the
+  gate and the main measures as badges.
 
 ## Consequences
 
