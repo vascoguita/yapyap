@@ -30,6 +30,7 @@ describe('settingsHandlers with settings that apply at once', () => {
       values: { 'general.startMinimized': true, 'reliability.hardwareAcceleration': true },
       restartPending: false,
       readOnly: false,
+      problems: {},
     });
     expect(set?.handle(call, 'reliability.hardwareAcceleration', false)).toEqual(
       expect.objectContaining({ restartPending: true }),

@@ -31,7 +31,7 @@ import {
 } from '../recovery/controller.ts';
 import { guardCrashes, type CrashableContents } from '../recovery/crash-guard.ts';
 import { monitorPage, type MonitoredContents } from '../recovery/monitor.ts';
-import { settingsHandlers } from '../settings/handlers.ts';
+import { settingsHandlers, type SettingEffect } from '../settings/handlers.ts';
 import type { SettingsService } from '../settings/service.ts';
 import { settingsTransferHandlers, type SettingsFiles } from '../settings/transfer-handlers.ts';
 import type { ViewRegistry } from '../views.ts';
@@ -135,6 +135,8 @@ export interface ChromeFeatureDependencies {
   readonly preloadPath: string;
   readonly readFile: (path: string) => Promise<Uint8Array>;
   readonly settings: SettingsService;
+  /** Carries changes of these fields out in the system before saving them. */
+  readonly settingEffects: Readonly<Record<string, SettingEffect>>;
   readonly settingsFiles: SettingsFiles;
   /** Quits and starts YapYap again, to apply settings that need a restart. */
   readonly restart: () => void;
@@ -364,7 +366,7 @@ function allHandlers(
   return [
     ...aboutHandlers(deps),
     ...recoveryHandlers(recoveries),
-    ...settingsHandlers(deps.settings, deps.restart, deps.platform),
+    ...settingsHandlers(deps.settings, deps.restart, deps.platform, deps.settingEffects),
     ...settingsTransferHandlers(deps.settings, deps.settingsFiles),
     ...newChatHandlers(chats),
     ...picker.handlers,

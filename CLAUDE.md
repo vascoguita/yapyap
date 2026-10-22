@@ -165,7 +165,10 @@ Update this table in the PR that adds a command.
 - A setting appears in the settings window only once YapYap acts on it: add
   it to `SETTING_FIELDS` in `src/shared/settings-fields.ts` in the PR that
   implements it. The `settings:set` handler accepts only listed fields and
-  checks the whole result against the schema.
+  checks the whole result against the schema. A setting that changes the
+  system, such as login items, goes through a `SettingEffect`
+  (`settingEffects` of `createChromeFeature`), which runs before saving and
+  returns the text Settings shows when the system refuses.
 - UI text, setting labels, menus, dialogs and notifications included, lives
   in `src/shared/messages/en.ts`. Lint (`yapyap/no-literal-ui-text`) rejects
   literal text in renderer JSX and in `aria-label`, `title`, `placeholder`,

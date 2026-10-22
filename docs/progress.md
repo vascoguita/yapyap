@@ -72,7 +72,15 @@ not edit the same lines.
 
 - Tray (#65, first part): a tray icon with Show and Quit, **Close to the
   tray** (`general.closeToTray`, settings schema v4) and **Start minimized**.
-  Autostart comes next.
+
+- Start at login (#65, second part): `general.autostart` uses login items on
+  Windows and macOS and an XDG autostart entry on Linux (the AppImage's own
+  path, not its mount). The setting follows the system at startup, since
+  users can remove login items there. A change runs as a setting effect
+  (`settingsHandlers`) before it is saved; when the system refuses, the
+  setting stays as it was and Settings explains why under it. Flatpak needs
+  the Background portal (#234). E2E runs keep autostart entries in the
+  throwaway profile through `XDG_CONFIG_HOME`.
 
 - Chats stay unread while hidden (#66): `privacy.unreadWhileHidden` (settings
   schema v3) keeps background throttling on, so a hidden or minimized

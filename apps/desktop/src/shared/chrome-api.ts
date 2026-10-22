@@ -28,6 +28,8 @@ export interface SettingsSnapshot {
   readonly restartPending: boolean;
   /** The settings belong to a newer YapYap, so changes cannot be saved. */
   readonly readOnly: boolean;
+  /** Why the last change of a field did not take effect, keyed by field ID. */
+  readonly problems: Readonly<Record<string, string>>;
 }
 
 /** How an export or import ended, with what to tell the user. */

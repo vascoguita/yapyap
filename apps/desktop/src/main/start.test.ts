@@ -149,6 +149,7 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
       setBadgeCount: vi.fn(() => true),
       createImage: vi.fn(() => ({})),
     },
+    autostart: { enabled: vi.fn(() => false), enable: vi.fn(), disable: vi.fn() },
     tray: {
       create: vi.fn(() => ({ setToolTip: vi.fn(), setContextMenu: vi.fn(), on: vi.fn() })),
       buildMenu: vi.fn((template: unknown) => template),

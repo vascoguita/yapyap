@@ -118,7 +118,7 @@ export async function launchApp(
     // Playwright adds --no-sandbox unless told otherwise, and YapYap refuses
     // to run without its sandbox; tests run with the real one.
     chromiumSandbox: true,
-    env: appEnvironment(origin),
+    env: appEnvironment(origin, profile),
   });
   LOGS.set(app, recentLog(app));
   return app;
@@ -136,7 +136,7 @@ export async function spawnApp(
 ): Promise<ChildProcessByStdio<null, null, Readable>> {
   const { default: executable } = (await import('electron')) as unknown as { default: string };
   return spawn(executable, [MAIN, `--user-data-dir=${profile}`, ...args], {
-    env: appEnvironment(origin),
+    env: appEnvironment(origin, profile),
     stdio: ['ignore', 'ignore', 'pipe'],
   });
 }

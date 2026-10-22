@@ -133,12 +133,23 @@ const catalog = {
         'Your settings come from a newer version of YapYap, so this version will not change them.',
       reset: 'Some settings were invalid and were reset to their defaults.',
     },
+    // Why a change did not take effect, shown under its setting.
+    problems: {
+      autostartFailed:
+        'Your system did not let YapYap start at login. Check the login or startup items in your system settings.',
+      autostartUnsupported:
+        'This package cannot start YapYap at login yet. Add YapYap to the startup applications in your system settings instead.',
+    },
     // Keyed by setting ID; option keys are the values the settings file stores.
     fields: {
       'general.startMinimized': {
         label: 'Start minimized',
         description:
           'Open YapYap in the background, in the tray or the Dock. Starting it again shows the window.',
+      },
+      'general.autostart': {
+        label: 'Start at login',
+        description: 'Start YapYap when you log in to this computer.',
       },
       'general.closeToTray': {
         label: 'Close to the tray',

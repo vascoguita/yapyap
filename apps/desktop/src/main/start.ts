@@ -59,6 +59,7 @@ import { showWhenReady } from './show-when-ready.ts';
 import type { BadgeDrawing } from './badge/badge-image.ts';
 import { followUnreadCount, unreadBadge } from './badge/unread-badge.ts';
 import { setUpTray, type TrayDependencies, type TrayPort } from './tray.ts';
+import { syncAutostartSetting, type AutostartPort } from './autostart/autostart.ts';
 import {
   manageMainWindow,
   restoreWindowState,
@@ -164,6 +165,8 @@ export interface StartDependencies<Window extends WindowPort> {
     readonly setBadgeCount: (count: number) => boolean;
     readonly createImage: (drawing: BadgeDrawing) => object;
   };
+  /** Login items; the setting follows them at startup. */
+  readonly autostart: AutostartPort;
   readonly tray: {
     /** Creates the tray icon; the caller keeps it alive. */
     readonly create: () => TrayPort;
@@ -455,6 +458,7 @@ export async function startApp<Window extends WindowPort>(
   secureSession(deps.defaultSession(), security);
   guardDownloads(deps.defaultSession(), { ...deps.downloads, notify: deps.notify, warn });
   followThemeSetting(deps.nativeTheme, deps.settings);
+  syncAutostartSetting(deps.autostart, deps.settings, warn);
   const rendering = `${describeGraphics(graphics)}, display ${describeDisplayBackend(display)}`;
   const chrome = deps.chrome.afterReady(views, warn, rendering);
   picker.bind(chrome.pickCaptureSource);

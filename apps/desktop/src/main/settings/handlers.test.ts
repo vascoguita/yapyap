@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { SETTING_FIELDS } from '../../shared/settings-fields.ts';
 import { defaultSettings } from './decode.ts';
-import { settingsHandlers } from './handlers.ts';
+import { settingsHandlers, type SettingEffect } from './handlers.ts';
 import type { Settings } from './schema.ts';
 
 const HARDWARE = 'reliability.hardwareAcceleration';
@@ -13,8 +13,9 @@ const CRASH = 'privacy.crashReports';
 const UNREAD = 'privacy.unreadWhileHidden';
 const START_MINIMIZED = 'general.startMinimized';
 const CLOSE_TO_TRAY = 'general.closeToTray';
+const AUTOSTART = 'general.autostart';
 
-function setup(readOnly = false) {
+function setup(readOnly = false, effects: Readonly<Record<string, SettingEffect>> = {}) {
   let settings: Settings = defaultSettings();
   const service = {
     current: () => settings,
@@ -27,7 +28,10 @@ function setup(readOnly = false) {
   };
   const restart = vi.fn();
   const handlers = new Map(
-    settingsHandlers(service, restart, 'linux').map((handler) => [handler.channel, handler]),
+    settingsHandlers(service, restart, 'linux', effects).map((handler) => [
+      handler.channel,
+      handler,
+    ]),
   );
   const handler = (channel: string) => {
     const found = handlers.get(channel);
@@ -110,12 +114,38 @@ describe('settingsHandlers', () => {
         [VIDEO]: true,
         [CRASH]: 'off',
         [UNREAD]: true,
+        [AUTOSTART]: false,
         [START_MINIMIZED]: false,
         [CLOSE_TO_TRAY]: false,
       },
       restartPending: false,
       readOnly: true,
+      problems: {},
     });
+  });
+
+  it('saves a change only once its effect took hold, and says why when not', () => {
+    const effect = vi.fn<SettingEffect>(() => 'The system refused.');
+    const t = setup(false, { [AUTOSTART]: effect });
+    const set = t.handler('settings:set');
+    expect(set.handle(t.call, AUTOSTART, true)).toMatchObject({
+      values: { [AUTOSTART]: false },
+      problems: { [AUTOSTART]: 'The system refused.' },
+    });
+    expect(effect).toHaveBeenCalledWith(true);
+    expect(t.service.update).not.toHaveBeenCalled();
+    effect.mockReturnValue(undefined);
+    expect(set.handle(t.call, AUTOSTART, true)).toMatchObject({
+      values: { [AUTOSTART]: true },
+      problems: {},
+    });
+  });
+
+  it('leaves the system alone when a newer YapYap owns the settings', () => {
+    const effect = vi.fn<SettingEffect>(() => undefined);
+    const t = setup(true, { [AUTOSTART]: effect });
+    t.handler('settings:set').handle(t.call, AUTOSTART, true);
+    expect(effect).not.toHaveBeenCalled();
   });
 
   it('saves a change and asks for a restart until the launch value is back', () => {
@@ -130,11 +160,13 @@ describe('settingsHandlers', () => {
         [VIDEO]: true,
         [CRASH]: 'off',
         [UNREAD]: true,
+        [AUTOSTART]: false,
         [START_MINIMIZED]: false,
         [CLOSE_TO_TRAY]: false,
       },
       restartPending: true,
       readOnly: false,
+      problems: {},
     });
     expect(t.settings().reliability.hardwareAcceleration).toBe(false);
     expect(t.settings().reliability.memoryWatchdogMb).toBe(2048);
