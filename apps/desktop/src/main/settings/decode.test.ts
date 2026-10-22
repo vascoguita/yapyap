@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { decodeSettings, defaultSettings } from './decode.ts';
 
 const DEFAULTS = {
-  schemaVersion: 3,
-  general: { language: 'system', startMinimized: false, autostart: false },
+  schemaVersion: 4,
+  general: { language: 'system', startMinimized: false, autostart: false, closeToTray: false },
   appearance: { theme: 'system', zoom: 1, autoHideMenuBar: false },
   reliability: {
     hardwareAcceleration: true,

@@ -11,6 +11,8 @@ const MENU_BAR = 'appearance.autoHideMenuBar';
 const BACKEND = 'reliability.displayBackend';
 const CRASH = 'privacy.crashReports';
 const UNREAD = 'privacy.unreadWhileHidden';
+const START_MINIMIZED = 'general.startMinimized';
+const CLOSE_TO_TRAY = 'general.closeToTray';
 
 function setup(readOnly = false) {
   let settings: Settings = defaultSettings();
@@ -108,6 +110,8 @@ describe('settingsHandlers', () => {
         [VIDEO]: true,
         [CRASH]: 'off',
         [UNREAD]: true,
+        [START_MINIMIZED]: false,
+        [CLOSE_TO_TRAY]: false,
       },
       restartPending: false,
       readOnly: true,
@@ -126,6 +130,8 @@ describe('settingsHandlers', () => {
         [VIDEO]: true,
         [CRASH]: 'off',
         [UNREAD]: true,
+        [START_MINIMIZED]: false,
+        [CLOSE_TO_TRAY]: false,
       },
       restartPending: true,
       readOnly: false,

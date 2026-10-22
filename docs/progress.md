@@ -56,6 +56,10 @@ not edit the same lines.
   `yapyap/no-literal-ui-text` rejects literal text in renderer JSX. Menus,
   dialogs and notifications move in a later part.
 
+- Tray (#65, first part): a tray icon with Show and Quit, **Close to the
+  tray** (`general.closeToTray`, settings schema v4) and **Start minimized**.
+  Autostart comes next.
+
 - Chats stay unread while hidden (#66): `privacy.unreadWhileHidden` (settings
   schema v3) keeps background throttling on, so a hidden or minimized
   window's page reports itself hidden; verified on real Wayland and X11

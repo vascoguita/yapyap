@@ -51,6 +51,31 @@ describe('migrate', () => {
   });
 });
 
+describe('version 3 to 4', () => {
+  const toVersion4 = MIGRATIONS[2];
+
+  it('adds closing to the tray, off, and keeps the other general settings', () => {
+    expect(toVersion4?.({ schemaVersion: 3, general: { startMinimized: true } })).toEqual({
+      schemaVersion: 3,
+      general: { closeToTray: false, startMinimized: true },
+    });
+  });
+
+  it('keeps a choice that is already there', () => {
+    expect(toVersion4?.({ general: { closeToTray: true } })).toEqual({
+      general: { closeToTray: true },
+    });
+  });
+
+  it.each([undefined, null, 'on', [true]])(
+    'leaves a general section of %j for validation to reset',
+    (general) => {
+      const settings = { schemaVersion: 3, general };
+      expect(toVersion4?.(settings)).toBe(settings);
+    },
+  );
+});
+
 describe('version 2 to 3', () => {
   const toVersion3 = MIGRATIONS[1];
 

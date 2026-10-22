@@ -111,11 +111,18 @@ YapYap reopens where you left it, at the same size, and maximized or full
 screen if it was. If that spot is on a monitor that is no longer connected,
 it opens at its default size instead.
 
-On Windows and Linux, closing the window quits YapYap, and **Hide the menu
-bar** under Settings → Appearance hides the menu until you press
-<kbd>Alt</kbd>. <kbd>Ctrl</kbd>+<kbd>,</kbd> opens Settings either way. On
-macOS, closing the window keeps YapYap running, as other Mac apps do: click
-its Dock icon to bring the window back, and choose **Quit** to quit.
+On Windows and Linux, closing the window quits YapYap, unless you turn on
+**Close to the tray** under Settings → General: then YapYap keeps running in
+the tray, and notifications keep coming. **Hide the menu bar** under
+Settings → Appearance hides the menu until you press <kbd>Alt</kbd>.
+<kbd>Ctrl</kbd>+<kbd>,</kbd> opens Settings either way. On macOS, closing
+the window keeps YapYap running, as other Mac apps do: click its Dock icon
+to bring the window back, and choose **Quit** to quit.
+
+YapYap's tray icon shows the window again, and its menu has **Show YapYap**
+and **Quit YapYap**. With **Start minimized** on, YapYap opens in the
+background. Some Linux desktops have no tray; there, starting YapYap again
+always brings its window back.
 
 ## Zoom
 

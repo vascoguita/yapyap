@@ -26,7 +26,9 @@ export interface Instances {
   readonly attach: (window: LinkWindow) => void;
 }
 
-export function bringToFront(window: LinkWindow): void {
+export function bringToFront(
+  window: Pick<LinkWindow, 'isMinimized' | 'restore' | 'show' | 'focus'>,
+): void {
   if (window.isMinimized()) {
     window.restore();
   }

@@ -76,8 +76,8 @@ function saveState(window: ManagedWindow, deps: MainWindowDependencies): void {
 /**
  * Restores the window's maximized and full-screen state, follows the menu
  * bar setting, and saves the window's state whenever it closes. On macOS,
- * closing the window hides it until the Dock icon is clicked, and only Quit
- * really closes it.
+ * and elsewhere with "Close to the tray" on, closing the window hides it
+ * until the Dock or tray brings it back, and only Quit really closes it.
  */
 export function manageMainWindow(
   window: ManagedWindow,
@@ -106,7 +106,8 @@ export function manageMainWindow(
   });
   window.on('close', (event) => {
     saveState(window, deps);
-    if (deps.platform !== 'darwin' || quitting) {
+    const keepRunning = deps.platform === 'darwin' || deps.settings.current().general.closeToTray;
+    if (quitting || !keepRunning) {
       return;
     }
     event.preventDefault();

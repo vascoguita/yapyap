@@ -11,6 +11,8 @@ the [profile folder](#files).
 
 | Setting                        | In the file                         | Default            | Notes                                                           |
 | ------------------------------ | ----------------------------------- | ------------------ | --------------------------------------------------------------- |
+| Start minimized                | `general.startMinimized`            | Off                | Opens in the tray or the Dock                                   |
+| Close to the tray              | `general.closeToTray`               | Off                | Windows and Linux; macOS always keeps running                   |
 | Theme                          | `appearance.theme`                  | Same as the system | `system`, `light` or `dark`                                     |
 | Hide the menu bar              | `appearance.autoHideMenuBar`        | Off                | Windows and Linux; <kbd>Alt</kbd> shows it                      |
 | Zoom                           | `appearance.zoom`                   | 100%               | Set from the View menu; 50% to 300%                             |

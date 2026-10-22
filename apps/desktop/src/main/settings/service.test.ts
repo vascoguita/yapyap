@@ -25,7 +25,12 @@ describe('openSettings', () => {
     const saved = JSON.parse(readFileSync(join(dir, 'settings.json'), 'utf8')) as {
       general: object;
     };
-    expect(saved.general).toEqual({ language: 'system', startMinimized: false, autostart: true });
+    expect(saved.general).toEqual({
+      language: 'system',
+      startMinimized: false,
+      autostart: true,
+      closeToTray: false,
+    });
   });
 
   it('never overwrites settings from a newer version', () => {

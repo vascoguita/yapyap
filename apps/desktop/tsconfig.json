@@ -1,7 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "types": ["node"]
+    "types": ["node", "electron-vite/node"]
   },
   "include": ["src/**/*.ts", "test/**/*.ts", "*.config.ts"],
   "exclude": ["src/renderer/**", "src/adapter/**/*.test.ts"]

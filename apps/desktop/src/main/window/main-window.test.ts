@@ -6,7 +6,7 @@ import { manageMainWindow, restoreWindowState, type ManagedWindow } from './main
 const SCREEN = { x: 0, y: 0, width: 1920, height: 1040 };
 const BOUNDS = { x: 100, y: 80, width: 1000, height: 700 };
 
-function setup(platform = 'linux', autoHideMenuBar = false) {
+function setup(platform = 'linux', autoHideMenuBar = false, closeToTray = false) {
   const windowListeners = new Map<string, (event: { preventDefault(): void }) => void>();
   const appListeners = new Map<string, () => void>();
   const settingsListeners: ((settings: Settings) => void)[] = [];
@@ -32,6 +32,7 @@ function setup(platform = 'linux', autoHideMenuBar = false) {
       current: () => ({
         ...settings,
         appearance: { ...settings.appearance, autoHideMenuBar },
+        general: { ...settings.general, closeToTray },
       }),
       onChange: (listener: (settings: Settings) => void) => {
         settingsListeners.push(listener);
@@ -130,6 +131,15 @@ describe('manageMainWindow', () => {
     expect(t.close()).not.toHaveBeenCalled();
     expect(t.window.hide).toHaveBeenCalledOnce();
     expect(t.deps.store.write).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps running in the tray when the window closes, if the setting says so', () => {
+    const t = setup('linux', false, true);
+    manageMainWindow(t.window, { maximized: false, fullScreen: false }, t.deps);
+    expect(t.close()).toHaveBeenCalledOnce();
+    expect(t.window.hide).toHaveBeenCalledOnce();
+    t.appListeners.get('before-quit')?.();
+    expect(t.close()).not.toHaveBeenCalled();
   });
 
   it('follows the menu bar setting live outside macOS', () => {

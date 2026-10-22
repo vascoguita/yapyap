@@ -56,6 +56,7 @@ import {
 } from './downloads/downloads.ts';
 import { quitOnShutdown, type ShutdownSources } from './shutdown.ts';
 import { showWhenReady } from './show-when-ready.ts';
+import { setUpTray, type TrayDependencies, type TrayPort } from './tray.ts';
 import {
   manageMainWindow,
   restoreWindowState,
@@ -153,6 +154,11 @@ export interface StartDependencies<Window extends WindowPort> {
     /** Creates electron-updater's updater; called only for builds that update themselves. */
     readonly updater: () => Updater;
     readonly askToInstall: SelfUpdateDependencies['askToInstall'];
+  };
+  readonly tray: {
+    /** Creates the tray icon; the caller keeps it alive. */
+    readonly create: () => TrayPort;
+    readonly buildMenu: TrayDependencies['buildMenu'];
   };
   readonly notify: (message: string) => void;
   readonly warn: (message: string) => void;
@@ -380,7 +386,13 @@ function wireMainWindow<Window extends WindowPort>(
   });
   followZoomSetting(window.webContents, deps.settings);
   followHiddenReadsSetting(window.webContents, deps.settings);
-  showWhenReady(window);
+  setUpTray(deps.tray.create(), window, {
+    buildMenu: deps.tray.buildMenu,
+    quit: () => {
+      deps.app.quit();
+    },
+  });
+  showWhenReady(window, deps.settings.current().general.startMinimized);
 }
 
 /** How YapYap presents itself to WhatsApp: the bundled Chromium, as desktop Chrome. */

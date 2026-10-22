@@ -10,8 +10,15 @@ export interface ShowableWindow {
   show(): void;
 }
 
-/** Shows the window once it has rendered, or after a short wait at the latest. */
-export function showWhenReady(window: ShowableWindow): void {
+/**
+ * Shows the window once it has rendered, or after a short wait at the latest.
+ * Started minimized, it stays hidden until the tray, the Dock or a second
+ * launch shows it.
+ */
+export function showWhenReady(window: ShowableWindow, startMinimized = false): void {
+  if (startMinimized) {
+    return;
+  }
   let shown = false;
   const showOnce = (): void => {
     if (shown) {
