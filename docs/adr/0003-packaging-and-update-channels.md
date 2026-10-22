@@ -38,14 +38,19 @@ evidence: `FLATPAK_ID` and `/.flatpak-info` for Flatpak, `APPIMAGE` for
 AppImage, `PORTABLE_EXECUTABLE_DIR` for portable, and the code-signing status
 on macOS. The updater only starts when **both** the build marker and the
 runtime evidence agree on a self-updating channel. Any mismatch
-falls back to "no self-update". A pure function maps
-`(marker, evidence) → policy`, with tests for every combination.
+falls back to `manual`: no update checks at all. A pure function maps
+`(marker, evidence) → policy`, with tests for every combination
+(`src/main/updates/update-policy.ts`). The AUR package is repackaged from
+the DEB, so it carries the `deb` marker; both are `system`. "Signed" on
+macOS means a Developer ID signature, because electron-builder signs every
+build ad hoc. Copy Diagnostics shows the policy and channel.
 
 | Policy        | Behavior                                                                                                     |
 | ------------- | ------------------------------------------------------------------------------------------------------------ |
 | `self-update` | electron-updater checks GitHub Releases, downloads, verifies and installs on restart with the user's consent |
 | `notify`      | Portable build: checks the GitHub Releases API, shows "new version available" with a link, never downloads   |
 | `system`      | Flatpak, DEB, RPM, AUR: no update checks. "About" says updates come from the system package manager.         |
+| `manual`      | Development builds and any marker the evidence contradicts: no update checks; the user updates by hand       |
 
 ### Verification
 

@@ -15,7 +15,8 @@ import {
   shell,
   type WebContents,
 } from 'electron';
-import { lstatSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { existsSync, lstatSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { release } from 'node:os';
 import { join } from 'node:path';
@@ -24,6 +25,7 @@ import { CHROME_PARTITION, createChromeFeature } from './chrome/feature.ts';
 import { profileCrashFiles, readPreviousLog } from './crash/crash-files.ts';
 import { reviewCrashWithDialog } from './crash-review-prompt.ts';
 import { createLogger } from './logging/logger.ts';
+import { readInstallEvidence } from './updates/install-evidence.ts';
 import { electronSettingsFiles } from './settings/transfer-dialogs.ts';
 import { openSettings } from './settings/service.ts';
 import { electronCapture } from './permissions/electron-capture.ts';
@@ -87,6 +89,17 @@ const chrome = createChromeFeature({
   // Electron types the status as a fixed interface of string fields.
   gpuStatus: () => app.getGPUFeatureStatus() as unknown as Record<string, string>,
   recentLog: () => logger.recent(),
+  installEvidence: () =>
+    readInstallEvidence({
+      platform: process.platform,
+      env: process.env,
+      exists: existsSync,
+      // The executable sits in YapYap.app/Contents/MacOS.
+      codesign: () =>
+        spawnSync('/usr/bin/codesign', ['-dv', join(process.execPath, '..', '..', '..')], {
+          encoding: 'utf8',
+        }).stderr,
+    }),
   settingsFiles: electronSettingsFiles,
   restart: () => {
     app.relaunch();
