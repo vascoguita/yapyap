@@ -108,8 +108,8 @@ startApp({
   createOverlay: (window, renderer) => createSecureOverlay(window, renderer),
   defaultSession: () => session.defaultSession,
   askMedia: askMediaWithDialog,
-  capture: (pickInApp) =>
-    electronCapture(process.platform, process.env, process.getSystemVersion(), pickInApp),
+  capture: (pickInApp, wayland) =>
+    electronCapture(process.platform, wayland, process.getSystemVersion(), pickInApp),
   chromeVersion: process.versions.chrome,
   platform: process.platform,
   env: process.env,

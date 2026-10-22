@@ -15,14 +15,11 @@ vi.mock('electron', () => ({
 const { electronCapture, hasSystemPicker, usesPortalPicker } =
   await import('./electron-capture.ts');
 
-const WAYLAND = { WAYLAND_DISPLAY: 'wayland-0' };
-
 describe('usesPortalPicker', () => {
-  it('is true only for Linux sessions with a Wayland display', () => {
-    expect(usesPortalPicker('linux', WAYLAND)).toBe(true);
-    expect(usesPortalPicker('linux', { WAYLAND_DISPLAY: '' })).toBe(false);
-    expect(usesPortalPicker('linux', {})).toBe(false);
-    expect(usesPortalPicker('win32', WAYLAND)).toBe(false);
+  it('is true only on Linux with Chromium running natively on Wayland', () => {
+    expect(usesPortalPicker('linux', true)).toBe(true);
+    expect(usesPortalPicker('linux', false)).toBe(false);
+    expect(usesPortalPicker('win32', true)).toBe(false);
   });
 });
 
@@ -44,7 +41,7 @@ describe('electronCapture', () => {
     const contents = {};
     const frame = {};
     electron.fromFrame.mockReturnValueOnce(contents);
-    expect(electronCapture('linux', {}, '7.0.0', vi.fn()).contentsOfFrame(frame)).toBe(contents);
+    expect(electronCapture('linux', false, '7.0.0', vi.fn()).contentsOfFrame(frame)).toBe(contents);
     expect(electron.fromFrame).toHaveBeenCalledWith(frame);
   });
 
@@ -56,7 +53,7 @@ describe('electronCapture', () => {
   ])('reports whether the window is visible and focused (%#)', (window, expected) => {
     const contents = {};
     electron.fromWebContents.mockReturnValueOnce(window);
-    expect(electronCapture('linux', {}, '7.0.0', vi.fn()).isVisibleAndFocused(contents)).toBe(
+    expect(electronCapture('linux', false, '7.0.0', vi.fn()).isVisibleAndFocused(contents)).toBe(
       expected,
     );
     expect(electron.fromWebContents).toHaveBeenCalledWith(contents);
@@ -66,7 +63,7 @@ describe('electronCapture', () => {
     const source = { id: 'screen:1:0', name: 'Screen' };
     electron.getSources.mockResolvedValueOnce([source]).mockResolvedValueOnce([]);
     const pickInApp = vi.fn();
-    const pick = electronCapture('linux', WAYLAND, '7.0.0', pickInApp).pick;
+    const pick = electronCapture('linux', true, '7.0.0', pickInApp).pick;
     expect(await pick?.({})).toEqual({ video: source });
     expect(await pick?.({})).toBeUndefined();
     expect(electron.getSources).toHaveBeenCalledWith({ types: ['screen', 'window'] });
@@ -74,19 +71,18 @@ describe('electronCapture', () => {
   });
 
   it.each([
-    ['win32', {}, '10.0.26100'],
-    ['linux', {}, '7.0.0'],
-    ['linux', { WAYLAND_DISPLAY: '' }, '7.0.0'],
-    ['darwin', {}, '14.7.1'],
-  ])('uses YapYap’s own picker on %s %j %s', (platform, env, version) => {
+    ['win32', false, '10.0.26100'],
+    ['linux', false, '7.0.0'],
+    ['darwin', false, '14.7.1'],
+  ])('uses YapYap’s own picker on %s (Wayland: %s) %s', (platform, wayland, version) => {
     const pickInApp = vi.fn();
-    const capture = electronCapture(platform, env, version, pickInApp);
+    const capture = electronCapture(platform, wayland, version, pickInApp);
     expect(capture.pick).toBe(pickInApp);
     expect(capture.useSystemPicker).toBe(false);
   });
 
   it('leaves picking to the system on macOS 15 and later', () => {
-    const capture = electronCapture('darwin', {}, '15.1.0', vi.fn());
+    const capture = electronCapture('darwin', false, '15.1.0', vi.fn());
     expect(capture.pick).toBeUndefined();
     expect(capture.useSystemPicker).toBe(true);
   });

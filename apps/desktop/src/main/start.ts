@@ -14,6 +14,11 @@ import {
 } from './recovery/gpu-safe-mode.ts';
 import type { SettingsService } from './settings/service.ts';
 import {
+  chooseDisplayBackend,
+  describeDisplayBackend,
+  type DisplayBackend,
+} from './display/backend.ts';
+import {
   installSecurity,
   secureSession,
   type GuardedContents,
@@ -45,7 +50,7 @@ import { resolveWhatsAppOrigin } from './whatsapp-origin.ts';
 
 export interface AppPort {
   disableHardwareAcceleration(): void;
-  readonly commandLine: { appendSwitch(name: string): void };
+  readonly commandLine: { appendSwitch(name: string, value?: string): void };
   userAgentFallback: string;
   enableSandbox(): void;
   whenReady(): Promise<unknown>;
@@ -90,8 +95,11 @@ export interface StartDependencies<Window extends WindowPort> {
   readonly chromeVersion: string;
   readonly platform: string;
   readonly askMedia: (view: ViewInfo, mediaTypes: readonly MediaType[]) => Promise<boolean>;
-  /** Builds screen capture around YapYap's own picker, which only exists once chrome is ready. */
-  readonly capture: (pickInApp: PickInApp) => DisplayCapturePort;
+  /**
+   * Builds screen capture around YapYap's own picker, which only exists once
+   * chrome is ready. `wayland` says whether Chromium runs natively on Wayland.
+   */
+  readonly capture: (pickInApp: PickInApp, wayland: boolean) => DisplayCapturePort;
   readonly chrome: ChromeFeature;
   readonly env: Readonly<Record<string, string | undefined>>;
   /** The command line, for `--safe-mode`. */
@@ -176,6 +184,25 @@ function beforeReady<Window extends WindowPort>(
     app.quit();
   });
   return graphics;
+}
+
+/** Chromium reads the display backend only before the app is ready. */
+function applyDisplayBackend<Window extends WindowPort>(
+  deps: StartDependencies<Window>,
+): DisplayBackend {
+  const display = chooseDisplayBackend({
+    platform: deps.platform,
+    setting: deps.settings.current().reliability.displayBackend,
+    argv: deps.argv,
+    env: deps.env,
+  });
+  if (display.ozonePlatform !== undefined) {
+    deps.app.commandLine.appendSwitch('ozone-platform', display.ozonePlatform);
+  }
+  if (display.fallback !== undefined) {
+    deps.warn(display.fallback);
+  }
+  return display;
 }
 
 /** Tells the user about anything startup changed that they did not choose. */
@@ -287,14 +314,17 @@ export async function startApp<Window extends WindowPort>(
     chromeVersion: deps.chromeVersion,
   };
   const picker = latePicker();
-  const security = { ...deps, capture: deps.capture(picker.pick), views, identity };
+  const display = applyDisplayBackend(deps);
+  const capture = deps.capture(picker.pick, display.active === 'wayland');
+  const security = { ...deps, capture, views, identity };
   const graphics = beforeReady(deps, security);
 
   await app.whenReady();
   secureSession(deps.defaultSession(), security);
   guardDownloads(deps.defaultSession(), { ...deps.downloads, notify: deps.notify, warn });
   followThemeSetting(deps.nativeTheme, deps.settings);
-  const chrome = deps.chrome.afterReady(views, warn, describeGraphics(graphics));
+  const rendering = `${describeGraphics(graphics)}, display ${describeDisplayBackend(display)}`;
+  const chrome = deps.chrome.afterReady(views, warn, rendering);
   picker.bind(chrome.pickCaptureSource);
   announceStartup(deps, graphics);
   const window = openMainWindow(deps);

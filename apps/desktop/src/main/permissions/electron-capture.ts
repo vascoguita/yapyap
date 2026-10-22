@@ -7,12 +7,12 @@ import {
 } from 'electron';
 import type { CaptureChoice, DisplayCapturePort } from './session-guard.ts';
 
-/** Chromium uses the xdg-desktop-portal picker when running natively on Wayland. */
-export function usesPortalPicker(
-  platform: string,
-  env: Readonly<Record<string, string | undefined>>,
-): boolean {
-  return platform === 'linux' && (env['WAYLAND_DISPLAY'] ?? '') !== '';
+/**
+ * Chromium uses the xdg-desktop-portal picker when running natively on
+ * Wayland; under XWayland it captures through X11 like any X11 session.
+ */
+export function usesPortalPicker(platform: string, wayland: boolean): boolean {
+  return platform === 'linux' && wayland;
 }
 
 /** The macOS version that added a system picker for screen sharing; older versions need YapYap's. */
@@ -26,7 +26,7 @@ export function hasSystemPicker(platform: string, systemVersion: string): boolea
 // narrowing them back to Electron's types is safe.
 export function electronCapture(
   platform: string,
-  env: Readonly<Record<string, string | undefined>>,
+  wayland: boolean,
   systemVersion: string,
   pickInApp: (contents: object) => Promise<CaptureChoice | undefined>,
 ): DisplayCapturePort {
@@ -37,7 +37,7 @@ export function electronCapture(
       const window = BrowserWindow.fromWebContents(contents as WebContents);
       return window !== null && window.isVisible() && window.isFocused();
     },
-    pick: systemPicker ? undefined : choosePicker(platform, env, pickInApp),
+    pick: systemPicker ? undefined : choosePicker(platform, wayland, pickInApp),
     useSystemPicker: systemPicker,
   };
 }
@@ -45,10 +45,10 @@ export function electronCapture(
 /** Wayland has the portal's picker; Windows, X11 and older macOS use YapYap's. */
 function choosePicker(
   platform: string,
-  env: Readonly<Record<string, string | undefined>>,
+  wayland: boolean,
   pickInApp: (contents: object) => Promise<CaptureChoice | undefined>,
 ): DisplayCapturePort['pick'] {
-  if (!usesPortalPicker(platform, env)) {
+  if (!usesPortalPicker(platform, wayland)) {
     return pickInApp;
   }
   return async () => {

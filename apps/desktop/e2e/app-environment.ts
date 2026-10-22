@@ -4,6 +4,9 @@
 // display instead of the virtual X11 one CI uses.
 const DROPPED = new Set(['ELECTRON_RUN_AS_NODE', 'WAYLAND_DISPLAY']);
 
+/** CI sets this to a headless Wayland compositor's socket to test the Wayland backend (#41). */
+const WAYLAND_UNDER_TEST = 'YAPYAP_E2E_WAYLAND_DISPLAY';
+
 export function appEnvironment(origin: string): Record<string, string> {
   const env: Record<string, string> = {};
   for (const [key, value] of Object.entries(process.env)) {
@@ -11,5 +14,15 @@ export function appEnvironment(origin: string): Record<string, string> {
       env[key] = value;
     }
   }
-  return { ...env, YAPYAP_TEST_WHATSAPP_ORIGIN: origin };
+  const wayland = process.env[WAYLAND_UNDER_TEST] ?? '';
+  return {
+    ...env,
+    ...(wayland === '' ? {} : { WAYLAND_DISPLAY: wayland }),
+    YAPYAP_TEST_WHATSAPP_ORIGIN: origin,
+  };
+}
+
+/** The backend tests expect the app to pick on its own. */
+export function expectedLinuxBackend(): 'Wayland' | 'X11' {
+  return (process.env[WAYLAND_UNDER_TEST] ?? '') === '' ? 'X11' : 'Wayland';
 }

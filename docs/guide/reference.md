@@ -16,6 +16,7 @@ the [profile folder](#files).
 | Zoom                        | `appearance.zoom`                   | 100%               | Set from the View menu; 50% to 300%        |
 | Use hardware acceleration   | `reliability.hardwareAcceleration`  | On                 | Takes effect after a restart               |
 | Use hardware video decoding | `reliability.hardwareVideoDecoding` | On                 | Takes effect after a restart               |
+| Display backend             | `reliability.displayBackend`        | Automatic          | Linux; `auto`, `wayland` or `x11`; restart |
 
 The file also has entries for features that are not built yet. YapYap
 ignores them until those features arrive, and the settings window shows a
@@ -54,10 +55,11 @@ out of WhatsApp.
 
 ## Command line
 
-| Option        | Effect                                                                                                          |
-| ------------- | --------------------------------------------------------------------------------------------------------------- |
-| `--safe-mode` | Starts without hardware acceleration, for this launch only (see [graphics problems](/guide/#graphics-problems)) |
-| A chat link   | Opens that chat, for example `yapyap "https://wa.me/15551234567?text=Hi"` (see [chat links](#chat-links))       |
+| Option                               | Effect                                                                                                          |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| `--safe-mode`                        | Starts without hardware acceleration, for this launch only (see [graphics problems](/guide/#graphics-problems)) |
+| `--ozone-platform=wayland` or `=x11` | Linux: uses that display backend for this launch, over the setting and `ELECTRON_OZONE_PLATFORM_HINT`           |
+| A chat link                          | Opens that chat, for example `yapyap "https://wa.me/15551234567?text=Hi"` (see [chat links](#chat-links))       |
 
 The executable is `yapyap` on Linux and `YapYap.exe` on Windows. On macOS,
 pass options with `open -a YapYap --args <options>`.

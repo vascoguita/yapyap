@@ -50,3 +50,30 @@ describe('migrate', () => {
     });
   });
 });
+
+describe('version 1 to 2', () => {
+  const [toVersion2] = MIGRATIONS;
+
+  it('adds the automatic display backend and keeps the other reliability settings', () => {
+    expect(
+      toVersion2?.({ schemaVersion: 1, reliability: { hardwareAcceleration: false } }),
+    ).toEqual({
+      schemaVersion: 1,
+      reliability: { displayBackend: 'auto', hardwareAcceleration: false },
+    });
+  });
+
+  it('keeps a display backend that is already there', () => {
+    expect(toVersion2?.({ reliability: { displayBackend: 'x11' } })).toEqual({
+      reliability: { displayBackend: 'x11' },
+    });
+  });
+
+  it.each([undefined, null, 'fast', ['x11']])(
+    'leaves a reliability section of %j for validation to reset',
+    (reliability) => {
+      const settings = { schemaVersion: 1, reliability };
+      expect(toVersion2?.(settings)).toBe(settings);
+    },
+  );
+});

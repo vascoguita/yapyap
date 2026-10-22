@@ -2,12 +2,20 @@ import { SETTINGS_VERSION } from './schema.ts';
 
 type Raw = Record<string, unknown>;
 
+/** Version 2 adds the Linux display backend choice (#41). */
+function addDisplayBackend(settings: Raw): Raw {
+  const reliability = settings['reliability'];
+  return typeof reliability === 'object' && reliability !== null && !Array.isArray(reliability)
+    ? { ...settings, reliability: { displayBackend: 'auto', ...reliability } }
+    : settings;
+}
+
 /**
  * `MIGRATIONS[n]` turns a version n+1 file into version n+2. They are pure,
  * forward-only, and each has its own test; a test also checks that there is
  * exactly one migration per version step.
  */
-export const MIGRATIONS: readonly ((settings: Raw) => Raw)[] = [];
+export const MIGRATIONS: readonly ((settings: Raw) => Raw)[] = [addDisplayBackend];
 
 export type MigrationResult =
   | { readonly kind: 'migrated'; readonly settings: Raw }

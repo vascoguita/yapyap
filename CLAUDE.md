@@ -177,7 +177,8 @@ Update this table in the PR that adds a command.
   without a user pick; see `allowScreenCapture` in
   `src/main/permissions/session-guard.ts` and ADR 0001.
 - E2E runs drop `WAYLAND_DISPLAY` so local runs use the virtual X11 display
-  like CI. Under it no window manager focuses windows, so tests that need a
+  like CI. `YAPYAP_E2E_WAYLAND_DISPLAY` passes a compositor socket through
+  instead; CI runs `display.spec.ts` that way on a headless Weston. Under it no window manager focuses windows, so tests that need a
   focused window focus it and poll `isFocused()`.
 - In E2E tests, `BrowserWindow.getAllWindows()` has no stable order once a
   chrome window is open. Find WhatsApp's window by its URL, never by index.
