@@ -27,7 +27,7 @@ export default defineConfig(
       '**/node_modules/',
       '**/out/',
       '**/dist/',
-      '**/release/',
+      'apps/*/release/',
       'coverage/',
       'reports/',
       '.stryker-tmp/',

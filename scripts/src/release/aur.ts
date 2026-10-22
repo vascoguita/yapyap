@@ -34,13 +34,19 @@ const FILE_NAME = /^[\w.-]+$/;
 
 function validate(release: AurRelease): void {
   // makepkg versions cannot contain '-', so pre-releases never reach the AUR.
-  if (!VERSION.test(release.version)) throw new Error(`Not an AUR version: ${release.version}`);
+  if (!VERSION.test(release.version)) {
+    throw new Error(`Not an AUR version: ${release.version}`);
+  }
   const checksums = [release.licenseSha256, ...ARCHES.map((arch) => release.debs[arch].sha256)];
   for (const checksum of checksums) {
-    if (!SHA256.test(checksum)) throw new Error(`Not a SHA-256 checksum: ${checksum}`);
+    if (!SHA256.test(checksum)) {
+      throw new Error(`Not a SHA-256 checksum: ${checksum}`);
+    }
   }
   for (const { fileName } of ARCHES.map((arch) => release.debs[arch])) {
-    if (!FILE_NAME.test(fileName)) throw new Error(`Unsafe file name: ${fileName}`);
+    if (!FILE_NAME.test(fileName)) {
+      throw new Error(`Unsafe file name: ${fileName}`);
+    }
   }
 }
 

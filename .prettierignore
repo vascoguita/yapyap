@@ -2,7 +2,7 @@ pnpm-lock.yaml
 CHANGELOG.md
 coverage/
 out/
-release/
+apps/*/release/
 reports/
 docs/.vitepress/cache/
 docs/.vitepress/dist/

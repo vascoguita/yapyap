@@ -7,9 +7,15 @@ const RELEASES = 'https://github.com/vascoguita/yapyap/releases/tag/v';
  * Flathub require. Stamping the same version twice leaves the file unchanged.
  */
 export function stampRelease(metainfo: string, version: string, date: string): string {
-  if (!VERSION.test(version)) throw new Error(`Not a release version: ${version}`);
-  if (!DATE.test(date)) throw new Error(`Not an ISO date: ${date}`);
-  if (metainfo.includes(`<release version="${version}"`)) return metainfo;
+  if (!VERSION.test(version)) {
+    throw new Error(`Not a release version: ${version}`);
+  }
+  if (!DATE.test(date)) {
+    throw new Error(`Not an ISO date: ${date}`);
+  }
+  if (metainfo.includes(`<release version="${version}"`)) {
+    return metainfo;
+  }
   const entry = [
     `    <release version="${version}" date="${date}">`,
     `      <url type="details">${RELEASES}${version}</url>`,
@@ -18,6 +24,8 @@ export function stampRelease(metainfo: string, version: string, date: string): s
   if (metainfo.includes('<releases/>')) {
     return metainfo.replace('<releases/>', `<releases>\n${entry}\n  </releases>`);
   }
-  if (metainfo.includes('<releases>')) return metainfo.replace('<releases>', `<releases>\n${entry}`);
+  if (metainfo.includes('<releases>')) {
+    return metainfo.replace('<releases>', `<releases>\n${entry}`);
+  }
   throw new Error('The metainfo has no <releases> element');
 }
