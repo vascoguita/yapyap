@@ -1,6 +1,6 @@
 import type { ElectronApplication, Page } from '@playwright/test';
 import { startFakeWhatsApp } from './fake-whatsapp-server.ts';
-import { expect, launchApp, test } from './fixtures.ts';
+import { closeApp, expect, launchApp, test } from './fixtures.ts';
 
 /** The recovery screen is a view laid over the WhatsApp window, not a window of its own. */
 async function recoveryScreen(app: ElectronApplication): Promise<Page> {
@@ -67,6 +67,6 @@ test('shows the recovery screen when WhatsApp cannot be reached, and retries', a
     await expect.poll(() => screen.isClosed()).toBe(true);
     await recoveryScreen(app);
   } finally {
-    await app.close();
+    await closeApp(app);
   }
 });

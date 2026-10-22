@@ -1,7 +1,7 @@
 import type { ElectronApplication } from '@playwright/test';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { expect, launchApp, test } from './fixtures.ts';
+import { closeApp, expect, launchApp, test } from './fixtures.ts';
 
 /**
  * A proxy that refuses everything and remembers where it was asked to go.
@@ -97,7 +97,7 @@ test('talks to nothing but WhatsApp during a session', async ({ fakeWhatsApp, pr
       ),
     );
   } finally {
-    await app.close();
+    await closeApp(app);
     await trap.close();
   }
 });
