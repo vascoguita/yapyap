@@ -105,8 +105,19 @@ not edit the same lines.
 - Plugin archives (#91, first part): `readPluginArchive` reads a
   `.yapyap-plugin` ZIP in memory with fflate within size and entry limits,
   rejects unsafe paths and case collisions, and `verifyArchive` checks its
-  signature before anything is written. The consent screen and install
-  storage come next.
+  signature before anything is written. Install storage and update approvals
+  follow in the second part.
+
+- Plugin installs (#91, second part): `apps/desktop/src/main/plugins/` checks
+  the manifest against the SDK schema, decides each install with
+  `decideTrust` (unsigned plugins only in Developer Mode, recorded as
+  developer plugins), and builds the request the consent screen will show:
+  author, key fingerprint, capabilities and hosts. Updates that add a
+  capability or host need re-approval; dropped grants never do. Approved
+  files are staged in a fresh folder and renamed into
+  `<userData>/plugins/<id>/<version>/`, and grants and pinned keys live in one
+  atomically written `.plugins.json`. The consent screen and the Developer
+  Mode badge come with the plugin runtime UI.
 
 - The screen picker lists screens and windows in separate calls (#180),
   because one combined call came back empty on Linux CI while screens alone

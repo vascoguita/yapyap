@@ -8,6 +8,7 @@ describe('the plugin-sign library', () => {
       'FIRST_PARTY_PREFIX',
       'TRUST_ANCHORS',
       'anchorFingerprints',
+      'compareCodeUnits',
       'decideTrust',
       'digestFiles',
       'fingerprint',

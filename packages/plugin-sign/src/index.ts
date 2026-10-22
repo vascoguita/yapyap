@@ -1,4 +1,5 @@
 export { TRUST_ANCHORS } from './anchors.ts';
+export { compareCodeUnits } from './canonical.ts';
 export {
   ARCHIVE_LIMITS,
   readPluginArchive,
