@@ -5,5 +5,14 @@
   "description": "Ed25519 signing and verification CLI for YapYap plugins",
   "license": "MIT",
   "author": "Vasco Guita",
-  "type": "module"
+  "type": "module",
+  "bin": {
+    "yapyap-plugin-sign": "src/bin/yapyap-plugin-sign.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "fast-check": "4.10.2"
+  }
 }

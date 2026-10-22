@@ -24,6 +24,7 @@ export default defineConfig({
         'apps/desktop/src/main/index.ts',
         'apps/desktop/src/preload/*/index.ts',
         'scripts/src/bin/**',
+        'packages/*/src/bin/**',
       ],
       thresholds: { lines: 100, branches: 100, functions: 100, statements: 100 },
       reporter: ['text', 'json-summary', 'lcov'],

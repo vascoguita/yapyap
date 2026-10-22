@@ -21,6 +21,12 @@
 
 ## Notes
 
+- Plugin signing (#89): `packages/plugin-sign` signs and verifies unpacked
+  plugin folders as ADR 0004 specifies (canonical JSON of the manifest and
+  file digests, Ed25519, fingerprints of the raw key). Tests use keys made in
+  memory per run. Signing first-party plugins in CI waits for the first real
+  plugin (#101).
+
 - Update policy (#68): `decideUpdatePolicy` maps the stamped install channel
   and runtime evidence (`APPIMAGE`, `PORTABLE_EXECUTABLE_DIR`, Flatpak
   markers, a Developer ID signature) to `self-update`, `notify`, `system` or
