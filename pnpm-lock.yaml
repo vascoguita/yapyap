@@ -232,6 +232,12 @@ importers:
       '@testing-library/preact':
         specifier: 3.2.4
         version: 3.2.4(preact@11.0.1)
+      '@yapyap/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
+      '@yapyap/plugin-sign':
+        specifier: workspace:*
+        version: link:../../packages/plugin-sign
       electron:
         specifier: 44.9.0
         version: 44.9.0(supports-color@7.2.0)
@@ -244,6 +250,9 @@ importers:
       fast-check:
         specifier: 4.10.2
         version: 4.10.2
+      fflate:
+        specifier: 0.8.3
+        version: 0.8.3
       happy-dom:
         specifier: 21.0.3
         version: 21.0.3

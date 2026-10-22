@@ -46,8 +46,8 @@ path }`. Every file in the archive must appear in that list. Extra,
   (documented in CONTRIBUTING).
 - **Third-party** plugins use trust on first use. At install, the user sees
   the author, the fingerprint, and every requested capability and network
-  host. On consent, the key is pinned to the plugin ID (a `plugin-pins.json`
-  of IDs and key fingerprints). An update signed by a different key is
+  host. On consent, the key is pinned to the plugin ID (its fingerprint is
+  stored with the plugin's grants in `<userData>/plugins/.plugins.json`). An update signed by a different key is
   rejected. `decideTrust` in `packages/plugin-sign` makes these decisions.
 - **URL installs** require a pinned `sha256-<base64>` integrity value next to
   the URL. A mismatch aborts before anything is unpacked.
