@@ -57,8 +57,15 @@ build ad hoc. Copy Diagnostics shows the policy and channel.
 - electron-updater verifies the SHA-512 of each artifact against `latest*.yml`.
 - On Windows it verifies the Authenticode publisher (`publisherName`) when
   the build is signed. On macOS Squirrel.Mac verifies the code signature.
-- Update metadata is served only over HTTPS from GitHub Releases. Pre-release
-  channels are not offered, and downgrades are refused.
+- Update metadata is served only over HTTPS from GitHub Releases. Downgrades
+  are refused, and pre-releases reach only users who opt in to beta updates
+  (#184).
+- **Betas before every stable release (#184):** each `vX.Y.Z` follows at
+  least one `vX.Y.Z-beta.N` GitHub pre-release. The release PR carries a
+  `Beta gate` check that fails until the newest beta of its version has been
+  published for at least **3 days**. A security fix may skip the wait, never
+  the beta, by stating `Security release: <reason>` on its own line in the
+  release PR.
 - Every release asset is listed in `SHA256SUMS`, covered by a build provenance
   attestation (`actions/attest-build-provenance`), and accompanied by a
   CycloneDX SBOM.

@@ -165,6 +165,12 @@ described in [SECURITY.md](SECURITY.md).
 
 ## Releases
 
+Every stable release follows a beta (ADR 0003, #184). The release PR's
+`Beta gate` check fails until a `vX.Y.Z-beta.N` pre-release of the same
+version has been published for at least 3 days. For a security fix, add a
+line `Security release: <reason, such as the advisory ID>` to the release PR
+body to skip the wait; a beta is still required.
+
 [release-please](https://github.com/googleapis/release-please) keeps a release
 PR open on `master` and updates it from Conventional Commits. Merging that PR
 tags `vX.Y.Z`, updates `CHANGELOG.md` and creates the GitHub Release, which
