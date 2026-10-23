@@ -308,9 +308,13 @@ not edit the same lines.
   test started and left running, because it failed or timed out first, is
   killed when the test ends, so none outlives a run on a developer's desktop. On macOS
   it also attaches `hung-at-quit.txt` to the report: a `sample` of every
-  thread and the helper processes. So far it hung in specs with throttling
-  on and off, with one visible WhatsApp window, after Playwright asked the
-  app to quit.
+  thread and the helper processes. The sample showed Electron's modal error
+  box for an uncaught error, raised by account views firing at a window that
+  had closed; closing view pages with their window and logging process
+  errors (#242) fixed it, and no macOS run has hung since. `quit.spec.ts`
+  now quits as a user does, with a call window, the sidebar, Accounts and
+  Settings open, and fails on every OS if YapYap is still running 15 s
+  later.
 
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
