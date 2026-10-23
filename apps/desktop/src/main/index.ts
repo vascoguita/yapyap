@@ -31,6 +31,7 @@ import { readFile } from 'node:fs/promises';
 import { homedir, release } from 'node:os';
 import { join } from 'node:path';
 import { readInstallChannel } from './about/about-info.ts';
+import { loadAccounts } from './accounts/accounts-file.ts';
 import { applyAutostart, chooseAutostart } from './autostart/autostart.ts';
 import { xdgAutostart } from './autostart/xdg-autostart.ts';
 import { CHROME_PARTITION, createChromeFeature } from './chrome/feature.ts';
@@ -173,9 +174,11 @@ startApp({
   nativeTheme,
   notify,
   warn,
-  createWindow: (options) => createSecureWindow(options),
+  createWindow: (options, renderer) => createSecureWindow(options, renderer),
   createOverlay: (window, renderer) => createSecureOverlay(window, renderer),
   defaultSession: () => session.defaultSession,
+  sessionOf: (partition) => session.fromPartition(partition),
+  accounts: loadAccounts(app.getPath('userData')),
   askMedia: askMediaWithDialog,
   capture: (pickInApp, wayland) =>
     electronCapture(process.platform, wayland, process.getSystemVersion(), pickInApp),

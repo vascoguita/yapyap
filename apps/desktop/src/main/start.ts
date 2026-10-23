@@ -45,6 +45,7 @@ import {
 import type { ViewInfo, ViewRegistry } from './views.ts';
 import type { Overlay } from './recovery/controller.ts';
 import type { RendererOptions } from './web-preferences.ts';
+import { partitionOf, type Accounts } from './accounts/accounts.ts';
 import type { WindowOptions } from './windows.ts';
 import { bringToFront, claimSingleInstance, type LinkWindow } from './instances.ts';
 import { chatLinkInArguments } from './navigation/deep-link.ts';
@@ -116,9 +117,13 @@ export interface WindowPort
 
 export interface StartDependencies<Window extends WindowPort> {
   readonly app: AppPort;
-  readonly createWindow: (options: WindowOptions) => Window;
+  readonly createWindow: (options: WindowOptions, renderer: RendererOptions) => Window;
   readonly createOverlay: (window: Window, renderer: RendererOptions) => Overlay;
-  readonly defaultSession: () => GuardedSession & DownloadingSession;
+  /** Nothing loads in the default session, but it is guarded all the same. */
+  readonly defaultSession: () => GuardedSession;
+  /** The session behind a partition, such as an account's (ADR 0001). */
+  readonly sessionOf: (partition: string) => GuardedSession & DownloadingSession;
+  readonly accounts: Accounts;
   /** `process.versions.chrome`: the identity must match the bundled engine. */
   readonly chromeVersion: string;
   readonly platform: string;
@@ -338,10 +343,27 @@ function watchOnline(
   });
 }
 
+/**
+ * Guards the default session, where nothing should load, and the active
+ * account's, where WhatsApp runs and downloads.
+ */
+function guardSessions<Window extends WindowPort>(
+  deps: StartDependencies<Window>,
+  security: Parameters<typeof secureSession>[1],
+): void {
+  secureSession(deps.defaultSession(), security);
+  const account = deps.sessionOf(partitionOf({ id: deps.accounts.active }));
+  secureSession(account, security);
+  guardDownloads(account, { ...deps.downloads, notify: deps.notify, warn: deps.warn });
+}
+
 /** Opens the WhatsApp window where the user left it. */
 function openMainWindow<Window extends WindowPort>(deps: StartDependencies<Window>): Window {
   const { state, bounds } = restoreWindowState(deps.windowState, deps.workAreas());
-  const window = deps.createWindow({ ...MAIN_WINDOW, ...bounds });
+  const window = deps.createWindow(
+    { ...MAIN_WINDOW, ...bounds },
+    { partition: partitionOf({ id: deps.accounts.active }) },
+  );
   manageMainWindow(window, state, {
     store: deps.windowState,
     platform: deps.platform,
@@ -455,8 +477,7 @@ export async function startApp<Window extends WindowPort>(
   const graphics = beforeReady(deps, security);
 
   await app.whenReady();
-  secureSession(deps.defaultSession(), security);
-  guardDownloads(deps.defaultSession(), { ...deps.downloads, notify: deps.notify, warn });
+  guardSessions(deps, security);
   followThemeSetting(deps.nativeTheme, deps.settings);
   syncAutostartSetting(deps.autostart, deps.settings, warn);
   const rendering = `${describeGraphics(graphics)}, display ${describeDisplayBackend(display)}`;
