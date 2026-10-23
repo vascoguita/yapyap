@@ -16,7 +16,8 @@ describe('createChromeBridge', () => {
     const invoke = vi.fn<(channel: string, ...args: unknown[]) => Promise<unknown>>((channel) =>
       Promise.resolve(answers[channel] ?? 'ignored'),
     );
-    const api = createChromeBridge(invoke);
+    const listen = vi.fn();
+    const api = createChromeBridge(invoke, listen);
     expect(await api.about.info()).toBe(info);
     await api.about.copyTechnicalDetails();
     expect(await api.recovery.problem()).toBe(problem);
@@ -36,6 +37,12 @@ describe('createChromeBridge', () => {
     const change = { name: 'Work', color: 'blue', enabled: true, muted: false };
     expect(await api.accounts.save('a', change)).toBe('ignored');
     expect(await api.accounts.remove('a')).toBe('ignored');
+    expect(await api.sidebar.state()).toBe('ignored');
+    await api.sidebar.switchTo('a');
+    await api.sidebar.setCompact(true);
+    const listener = vi.fn();
+    api.sidebar.onState(listener);
+    expect(listen).toHaveBeenCalledWith(listener);
     expect(invoke.mock.calls).toEqual([
       ['about:info'],
       ['about:copy-technical-details'],
@@ -55,19 +62,24 @@ describe('createChromeBridge', () => {
       ['accounts:list'],
       ['accounts:save', 'a', { name: 'Work', color: 'blue', enabled: true, muted: false }],
       ['accounts:remove', 'a'],
+      ['sidebar:state'],
+      ['sidebar:switch', 'a'],
+      ['sidebar:set-compact', true],
     ]);
   });
 
   it('exposes nothing but the listed operations', () => {
-    const api = createChromeBridge(vi.fn());
+    const api = createChromeBridge(vi.fn(), vi.fn());
     expect(Object.keys(api)).toEqual([
       'about',
       'recovery',
       'settings',
       'chat',
       'accounts',
+      'sidebar',
       'picker',
     ]);
+    expect(Object.keys(api.sidebar)).toEqual(['state', 'switchTo', 'setCompact', 'onState']);
     expect(Object.keys(api.chat)).toEqual(['openNumber']);
     expect(Object.keys(api.accounts)).toEqual(['list', 'save', 'remove']);
     expect(Object.keys(api.picker)).toEqual(['offer', 'choose', 'cancel']);

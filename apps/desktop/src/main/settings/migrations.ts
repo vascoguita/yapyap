@@ -57,6 +57,14 @@ function addDoNotDisturb(settings: Raw): Raw {
     : settings;
 }
 
+/** Version 8 adds the compact account sidebar, off so names show (#57). */
+function addCompactSidebar(settings: Raw): Raw {
+  const appearance = settings['appearance'];
+  return isSection(appearance)
+    ? { ...settings, appearance: { compactSidebar: false, ...appearance } }
+    : settings;
+}
+
 /**
  * `MIGRATIONS[n]` turns a version n+1 file into version n+2. They are pure,
  * forward-only, and each has its own test; a test also checks that there is
@@ -69,6 +77,7 @@ export const MIGRATIONS: readonly ((settings: Raw) => Raw)[] = [
   addBetaUpdates,
   addNotificationPrivacy,
   addDoNotDisturb,
+  addCompactSidebar,
 ];
 
 export type MigrationResult =

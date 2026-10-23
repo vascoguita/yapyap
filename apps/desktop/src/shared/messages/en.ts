@@ -9,6 +9,12 @@ type Widen<T> = T extends string
     ? (...args: A) => R
     : { readonly [K in keyof T]: Widen<T[K]> };
 
+/** The largest count a badge shows in full; two digits fit it. */
+const MAX_BADGE = 99;
+
+const unreadChats = (count: number): string =>
+  count === 1 ? '1 unread chat' : `${String(count)} unread chats`;
+
 const catalog = {
   common: {
     loading: 'Loading…',
@@ -176,6 +182,11 @@ const catalog = {
         label: 'Hide the menu bar',
         description: 'Press Alt to show it when you need it.',
       },
+      'appearance.compactSidebar': {
+        label: 'Compact account sidebar',
+        description:
+          'Show only the color and initial of each account in the sidebar, which appears when several accounts run.',
+      },
       'reliability.hardwareAcceleration': {
         label: 'Use hardware acceleration',
         description:
@@ -255,6 +266,19 @@ const catalog = {
       keep: 'Keep Editing',
     },
   },
+  sidebar: {
+    label: 'Accounts',
+    /** An account's button: its name, then what the badge and marks show. */
+    account: (name: string, unread: number, muted: boolean): string =>
+      [name, muted ? 'muted' : '', !muted && unread > 0 ? unreadChats(unread) : '']
+        .filter((part) => part !== '')
+        .join(', '),
+    badge: (unread: number): string =>
+      unread > MAX_BADGE ? `${String(MAX_BADGE)}+` : String(unread),
+    compact: 'Show only avatars',
+    full: 'Show account names',
+    doNotDisturb: 'Do not disturb',
+  },
   notifications: {
     /** With several accounts, the account a notification comes from heads it. */
     titled: (account: string, title: string): string => `${account}: ${title}`,
@@ -262,13 +286,11 @@ const catalog = {
     hiddenText: 'New message',
   },
   badge: {
-    unread: (count: number): string =>
-      count === 1 ? '1 unread chat' : `${String(count)} unread chats`,
+    unread: (count: number): string => unreadChats(count),
   },
   tray: {
     tooltip: 'YapYap',
-    unread: (count: number): string =>
-      count === 1 ? 'YapYap: 1 unread chat' : `YapYap: ${String(count)} unread chats`,
+    unread: (count: number): string => `YapYap: ${unreadChats(count)}`,
     show: 'Show YapYap',
     hide: 'Hide YapYap',
     settings: 'Settings…',

@@ -22,7 +22,7 @@ vi.mock('electron', () => ({
   },
 }));
 
-const { createAccountHost, createSecureWindow } = await import('./windows.ts');
+const { createAccountHost, createSecureWindow, createSidebarView } = await import('./windows.ts');
 
 describe('createSecureWindow', () => {
   beforeEach(() => {
@@ -87,6 +87,35 @@ describe('createAccountHost', () => {
 
   beforeEach(() => {
     constructed.length = 0;
+  });
+
+  it('docks the sidebar on the left, leaving the rest to the account, and takes it away', () => {
+    const f = fakeWindow();
+    const host = createAccountHost(f.window as never, {});
+    host.show();
+    const sidebar = createSidebarView(f.window as never, { preload: '/p.cjs' });
+    sidebar.setWidth(220);
+    sidebar.setWidth(64);
+    const [page, bar] = f.children;
+    if (page === undefined || bar === undefined) {
+      throw new Error('Both views should be in the window.');
+    }
+    expect(f.children).toHaveLength(2);
+    expect(bar.webContents).toBe(sidebar.webContents);
+    expect(bar.setBounds).toHaveBeenLastCalledWith({ x: 0, y: 0, width: 64, height: 600 });
+    expect(page.setBounds).toHaveBeenLastCalledWith({ x: 64, y: 0, width: 736, height: 600 });
+    f.resize(40, 500);
+    expect(bar.setBounds).toHaveBeenLastCalledWith({ x: 0, y: 0, width: 64, height: 500 });
+    expect(page.setBounds).toHaveBeenLastCalledWith({ x: 40, y: 0, width: 0, height: 500 });
+    sidebar.setWidth(0);
+    sidebar.setWidth(0);
+    expect(f.children).toEqual([page]);
+    expect(page.setBounds).toHaveBeenLastCalledWith({ x: 0, y: 0, width: 40, height: 500 });
+    f.window.getContentSize.mockReturnValueOnce([]);
+    sidebar.setWidth(10);
+    expect(bar.setBounds).toHaveBeenLastCalledWith({ x: 0, y: 0, width: 10, height: 0 });
+    f.close();
+    expect(bar.webContents.close).toHaveBeenCalledOnce();
   });
 
   it('creates the account’s page hardened, in its partition, and hidden', () => {

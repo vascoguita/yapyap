@@ -96,7 +96,7 @@ notifications at all.
 stops all notifications and silences the sounds of accounts that are not on
 screen, such as message tones and ringtones. To silence one account, use
 **Mute This Account** in the Account menu or turn on **Mute this account** in
-the Accounts window; the tray marks muted accounts. The account on screen
+the Accounts window; the tray and the sidebar mark muted accounts. The account on screen
 keeps its sound either way, so the voice messages and videos you play still
 work. Unread counts keep updating, and chats you mute in WhatsApp itself
 never notify.
@@ -112,6 +112,10 @@ cache and storage; nothing is shared between them.
   <kbd>Ctrl</kbd>+<kbd>1</kbd> to <kbd>Ctrl</kbd>+<kbd>9</kbd>
   (<kbd>⌘</kbd> on macOS) to switch by position. Switching never reloads an
   account.
+- With two or more accounts running, a sidebar on the left lists them with
+  their unread chats; click one to switch. Its arrow button, or **Compact
+  account sidebar** in Settings → Appearance, shrinks it to avatars only.
+  Muted accounts show a crossed-out speaker instead of a count.
 - Every account keeps running in the background, so its messages keep
   arriving. The window title shows the account you see, and the unread count
   on YapYap's icon adds up all of them.

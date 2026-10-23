@@ -8,6 +8,7 @@ const HARDWARE = 'reliability.hardwareAcceleration';
 const VIDEO = 'reliability.hardwareVideoDecoding';
 const THEME = 'appearance.theme';
 const MENU_BAR = 'appearance.autoHideMenuBar';
+const COMPACT = 'appearance.compactSidebar';
 const BACKEND = 'reliability.displayBackend';
 const CRASH = 'privacy.crashReports';
 const UNREAD = 'privacy.unreadWhileHidden';
@@ -113,6 +114,7 @@ describe('settingsHandlers', () => {
       values: {
         [THEME]: 'system',
         [MENU_BAR]: false,
+        [COMPACT]: false,
         [HARDWARE]: true,
         [BACKEND]: 'auto',
         [VIDEO]: true,
@@ -182,6 +184,7 @@ describe('settingsHandlers', () => {
       values: {
         [THEME]: 'system',
         [MENU_BAR]: false,
+        [COMPACT]: false,
         [HARDWARE]: false,
         [BACKEND]: 'auto',
         [VIDEO]: true,

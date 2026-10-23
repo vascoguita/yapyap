@@ -55,6 +55,25 @@ export interface PickerOffer {
   readonly offerAudio: boolean;
 }
 
+/** An account as the sidebar shows it. */
+export interface SidebarAccount {
+  readonly id: string;
+  readonly name: string;
+  readonly color: string;
+  /** Unread chats, from WhatsApp's title; a muted account shows none. */
+  readonly unread: number;
+  readonly muted: boolean;
+  readonly active: boolean;
+}
+
+/** What the sidebar shows: the running accounts and how to lay them out. */
+export interface SidebarState {
+  readonly accounts: readonly SidebarAccount[];
+  /** Avatars only, in a narrow strip. */
+  readonly compact: boolean;
+  readonly doNotDisturb: boolean;
+}
+
 /** The API the chrome preload exposes as `window.yapyap`, one function per operation. */
 export interface ChromeApi {
   readonly about: {
@@ -84,6 +103,13 @@ export interface ChromeApi {
     readonly save: (id: string, change: AccountChange) => Promise<AccountList | null>;
     /** Asks the user first, so the list may come back unchanged. */
     readonly remove: (id: string) => Promise<AccountList>;
+  };
+  readonly sidebar: {
+    readonly state: () => Promise<SidebarState>;
+    readonly switchTo: (id: string) => Promise<void>;
+    readonly setCompact: (compact: boolean) => Promise<void>;
+    /** YapYap sends the new state whenever it changes; the page never asks what to listen to. */
+    readonly onState: (listener: (state: SidebarState) => void) => void;
   };
   readonly picker: {
     readonly offer: () => Promise<PickerOffer>;
@@ -139,4 +165,10 @@ export const CHROME_CHANNELS = {
   accountsList: 'accounts:list',
   accountsSave: 'accounts:save',
   accountsRemove: 'accounts:remove',
+  sidebarState: 'sidebar:state',
+  sidebarSwitch: 'sidebar:switch',
+  sidebarSetCompact: 'sidebar:set-compact',
 } as const;
+
+/** The one channel YapYap sends on, from the main process to the sidebar. */
+export const SIDEBAR_STATE_EVENT = 'sidebar:state-changed';

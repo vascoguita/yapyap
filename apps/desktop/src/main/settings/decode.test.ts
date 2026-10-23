@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { decodeSettings, defaultSettings } from './decode.ts';
 
 const DEFAULTS = {
-  schemaVersion: 7,
+  schemaVersion: 8,
   general: {
     language: 'system',
     startMinimized: false,
@@ -12,7 +12,7 @@ const DEFAULTS = {
     betaUpdates: false,
     doNotDisturb: false,
   },
-  appearance: { theme: 'system', zoom: 1, autoHideMenuBar: false },
+  appearance: { theme: 'system', zoom: 1, autoHideMenuBar: false, compactSidebar: false },
   reliability: {
     hardwareAcceleration: true,
     hardwareVideoDecoding: true,
@@ -37,7 +37,7 @@ describe('decodeSettings', () => {
   it('reads a valid file unchanged', () => {
     const settings = {
       ...DEFAULTS,
-      appearance: { theme: 'dark', zoom: 1.25, autoHideMenuBar: true },
+      appearance: { theme: 'dark', zoom: 1.25, autoHideMenuBar: true, compactSidebar: true },
     };
     expect(decodeSettings(JSON.stringify(settings))).toEqual({ kind: 'ok', settings, reset: [] });
   });
@@ -71,11 +71,11 @@ describe('decodeSettings', () => {
   });
 
   it('reads what it understands of a newer file and marks it', () => {
-    const appearance = { theme: 'light', zoom: 2, autoHideMenuBar: false };
+    const appearance = { theme: 'light', zoom: 2, autoHideMenuBar: false, compactSidebar: false };
     const decoded = decodeSettings(
-      JSON.stringify({ ...DEFAULTS, appearance, schemaVersion: 8, future: true }),
+      JSON.stringify({ ...DEFAULTS, appearance, schemaVersion: 9, future: true }),
     );
-    expect(decoded).toEqual({ kind: 'newer', settings: { ...DEFAULTS, appearance }, version: 8 });
+    expect(decoded).toEqual({ kind: 'newer', settings: { ...DEFAULTS, appearance }, version: 9 });
   });
 
   it('accepts every option of each choice', () => {
@@ -83,7 +83,7 @@ describe('decodeSettings', () => {
       for (const crashReports of ['off', 'local', 'ask']) {
         const settings = {
           ...DEFAULTS,
-          appearance: { theme, zoom: 1, autoHideMenuBar: false },
+          appearance: { theme, zoom: 1, autoHideMenuBar: false, compactSidebar: false },
           privacy: {
             crashReports,
             unreadWhileHidden: true,

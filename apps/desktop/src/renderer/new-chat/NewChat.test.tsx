@@ -19,6 +19,7 @@ function api(opened: boolean) {
       openNumber: vi.fn<(number: string) => Promise<boolean>>(() => Promise.resolve(opened)),
     },
     accounts: { list: vi.fn(), save: vi.fn(), remove: vi.fn() },
+    sidebar: { state: vi.fn(), switchTo: vi.fn(), setCompact: vi.fn(), onState: vi.fn() },
     picker: { offer: vi.fn(), choose: vi.fn(), cancel: vi.fn() },
   } satisfies ChromeApi;
 }

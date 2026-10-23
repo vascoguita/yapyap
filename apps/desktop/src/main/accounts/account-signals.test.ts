@@ -22,6 +22,9 @@ describe('accountSignals', () => {
     t.signals.pageTitle('b', '(3) WhatsApp');
     t.signals.forget('a');
     expect(t.deps.showUnread.mock.calls).toEqual([[2], [5], [3]]);
+    expect([t.signals.unreadOf('a'), t.signals.unreadOf('b'), t.signals.unreadOf('c')]).toEqual([
+      0, 3, 0,
+    ]);
   });
 
   it('marks the title while offline and restores it when back online', () => {
