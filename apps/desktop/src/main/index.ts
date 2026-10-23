@@ -190,6 +190,12 @@ startApp({
   defaultSession: () => session.defaultSession,
   sessionOf: (partition) => session.fromPartition(partition),
   accounts: loadAccounts(app.getPath('userData')),
+  whatsAppPreload: join(import.meta.dirname, '..', 'preload', 'whatsapp.cjs'),
+  notifications: {
+    create: (options) => new Notification({ ...options, icon: trayIcon }),
+    isSupported: () => Notification.isSupported(),
+  },
+  ipc: ipcMain,
   saveAccounts: (accounts) => {
     saveAccounts(app.getPath('userData'), accounts);
   },

@@ -236,6 +236,10 @@ const catalog = {
       keep: 'Keep Editing',
     },
   },
+  notifications: {
+    /** With several accounts, the account a notification comes from heads it. */
+    titled: (account: string, title: string): string => `${account}: ${title}`,
+  },
   badge: {
     unread: (count: number): string =>
       count === 1 ? '1 unread chat' : `${String(count)} unread chats`,

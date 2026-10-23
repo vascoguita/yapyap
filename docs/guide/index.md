@@ -79,6 +79,16 @@ audio**. On Wayland and macOS 15 and later, your system's own picker asks
 instead. Cancelling, closing the picker or pressing <kbd>Esc</kbd> shares
 nothing.
 
+## Notifications
+
+New messages show up as your system's notifications, whichever account they
+arrive in. With several accounts, each notification starts with the
+account's name. Clicking one brings YapYap forward, switches to that account
+and opens the chat. Notifications disappear when you read the chat, here or
+on your phone, and when YapYap quits. WhatsApp's own notification settings,
+such as sounds, still apply. YapYap shows its own icon rather than contact
+photos, and the text of a notification never leaves your computer.
+
 ## Accounts
 
 YapYap can run several WhatsApp accounts side by side, such as a personal

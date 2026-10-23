@@ -75,6 +75,10 @@ export default defineConfig({
               text: '0010 Static analysis',
               link: '/adr/0010-static-analysis-with-sonarqube-cloud',
             },
+            {
+              text: '0011 Notifications',
+              link: '/adr/0011-whatsapp-notifications',
+            },
           ],
         },
       ],

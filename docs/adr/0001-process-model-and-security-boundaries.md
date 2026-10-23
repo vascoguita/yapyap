@@ -54,6 +54,8 @@ and an ESLint restriction forbids constructing `BrowserWindow` or
   content.
 - The WhatsApp adapter sends only plain data objects (unread count,
   notification fields, active-chat metadata). It never sends DOM nodes or HTML.
+- WhatsApp's views have one preload, for notifications only, whose design is
+  in ADR 0011.
 
 ### Navigation, windows and permissions
 
