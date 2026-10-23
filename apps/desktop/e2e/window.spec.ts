@@ -1,7 +1,7 @@
 import type { ElectronApplication } from '@playwright/test';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { expect, launchApp, test } from './fixtures.ts';
+import { expect, launchApp, test, whatsAppPage } from './fixtures.ts';
 
 const BOUNDS = { x: 60, y: 40, width: 900, height: 640 };
 
@@ -27,7 +27,7 @@ test('reopens the window where it was left, even after SIGTERM', async ({
   fakeWhatsApp,
   profile,
 }) => {
-  await app.firstWindow();
+  await whatsAppPage(app);
   await app.evaluate(({ BrowserWindow }, bounds) => {
     BrowserWindow.getAllWindows()[0]?.setBounds(bounds);
   }, BOUNDS);
@@ -39,7 +39,7 @@ test('reopens the window where it was left, even after SIGTERM', async ({
   expect(saved).toEqual({ bounds: BOUNDS, maximized: false, fullScreen: false });
   const again = await launchApp(fakeWhatsApp.origin, profile);
   try {
-    await again.firstWindow();
+    await whatsAppPage(again);
     await expect.poll(() => mainBounds(again)).toEqual(BOUNDS);
   } finally {
     await exited(again);
@@ -52,14 +52,14 @@ test('starts with the default size when the saved state is corrupt', async ({
   profile,
 }) => {
   // The default as this machine shows it: small screens shrink it to fit.
-  await app.firstWindow();
+  await whatsAppPage(app);
   await expect.poll(() => mainBounds(app)).toBeDefined();
   const fresh = await mainBounds(app);
   await exited(app);
   await writeFile(join(profile, 'window-state.json'), '{"bounds":"nonsense"');
   const again = await launchApp(fakeWhatsApp.origin, profile);
   try {
-    await again.firstWindow();
+    await whatsAppPage(again);
     await expect
       .poll(async () => {
         const bounds = await mainBounds(again);
@@ -73,14 +73,17 @@ test('starts with the default size when the saved state is corrupt', async ({
 
 test('hides the menu bar when the setting says so', async ({ app }) => {
   test.skip(process.platform === 'darwin', 'macOS keeps its menu bar outside the window');
-  await app.firstWindow();
+  await whatsAppPage(app);
   // Settings opens a second window, so find WhatsApp's by what it shows.
   const autoHidden = () =>
-    app.evaluate(({ BrowserWindow }) =>
-      BrowserWindow.getAllWindows()
-        .find((window) => window.webContents.getURL().startsWith('http'))
-        ?.isMenuBarAutoHide(),
-    );
+    app.evaluate(({ BrowserWindow, webContents }) => {
+      const page = webContents
+        .getAllWebContents()
+        .find((contents) => contents.getURL().startsWith('http'));
+      return page === undefined
+        ? undefined
+        : BrowserWindow.fromWebContents(page)?.isMenuBarAutoHide();
+    });
   expect(await autoHidden()).toBe(false);
   const opened = app.waitForEvent('window');
   await app.evaluate(({ Menu }) => {

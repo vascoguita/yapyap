@@ -1,15 +1,15 @@
 import { describe, expect, it, vi } from 'vitest';
-import { offlineTitle, type TitledWindow } from './offline-title.ts';
+import { offlineTitle, type TitledPage, type TitledWindow } from './offline-title.ts';
 
 function setup() {
   let pageTitle: (event: { preventDefault(): void }, title: string) => void = () => undefined;
-  const window = {
+  const window = { setTitle: vi.fn() } satisfies TitledWindow;
+  const page = {
     on: vi.fn((_event: 'page-title-updated', listener: typeof pageTitle) => {
       pageTitle = listener;
     }),
-    setTitle: vi.fn(),
-  } satisfies TitledWindow;
-  const setOnline = offlineTitle(window, 'YapYap');
+  } satisfies TitledPage;
+  const setOnline = offlineTitle(window, page, 'YapYap');
   return {
     window,
     setOnline,
@@ -29,9 +29,9 @@ describe('offlineTitle', () => {
     expect(t.window.setTitle.mock.calls).toEqual([['YapYap (offline)'], ['YapYap']]);
   });
 
-  it('keeps following the page title, with the mark while offline', () => {
+  it('shows the page’s title on the window, with the mark while offline', () => {
     const t = setup();
-    expect(t.updateTitle('(2) WhatsApp').preventDefault).toHaveBeenCalledOnce();
+    t.updateTitle('(2) WhatsApp');
     t.setOnline(false);
     t.updateTitle('(3) WhatsApp');
     expect(t.window.setTitle.mock.calls).toEqual([

@@ -193,8 +193,12 @@ Update this table in the PR that adds a command.
   like CI. `YAPYAP_E2E_WAYLAND_DISPLAY` passes a compositor socket through
   instead; CI runs `display.spec.ts` that way on a headless Weston. Under it no window manager focuses windows, so tests that need a
   focused window focus it and poll `isFocused()`.
-- In E2E tests, `BrowserWindow.getAllWindows()` has no stable order once a
-  chrome window is open. Find WhatsApp's window by its URL, never by index.
+- WhatsApp runs in an account view inside the main window, whose own page
+  stays empty. In E2E tests, get its page with `whatsAppPage(app)` from
+  `e2e/fixtures.ts` and its web contents with
+  `webContents.getAllWebContents()` by URL; `BrowserWindow.fromWebContents`
+  gives its window. `BrowserWindow.getAllWindows()` has no stable order once
+  a chrome window is open, so never pick a window by index.
 - WhatsApp never runs in the default session: each account has its own
   `persist:account-<uuid>` partition (`partitionOf`, ADR 0001), listed in
   `accounts.json`. Per-session guards such as downloads go on the account's

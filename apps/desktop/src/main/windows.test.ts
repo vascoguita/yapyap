@@ -22,7 +22,7 @@ vi.mock('electron', () => ({
   },
 }));
 
-const { createSecureOverlay, createSecureWindow } = await import('./windows.ts');
+const { createAccountView, createSecureOverlay, createSecureWindow } = await import('./windows.ts');
 
 describe('createSecureWindow', () => {
   beforeEach(() => {
@@ -102,5 +102,36 @@ describe('createSecureOverlay', () => {
       [{ setBounds: ReturnType<typeof vi.fn> }],
     ];
     expect(view.setBounds).toHaveBeenCalledWith({ x: 0, y: 0, width: 0, height: 0 });
+  });
+});
+
+describe('createAccountView', () => {
+  beforeEach(() => {
+    constructed.length = 0;
+  });
+
+  it('puts a hardened view beneath every other view, filling the window', () => {
+    let closed: (() => void) | undefined;
+    const window = {
+      contentView: { addChildView: vi.fn(), removeChildView: vi.fn() },
+      getContentSize: vi.fn(() => [800, 600]),
+      on: vi.fn(),
+      off: vi.fn(),
+      once: vi.fn((_event: 'closed', listener: () => void) => {
+        closed = listener;
+      }),
+    };
+    const contents = createAccountView(window as never, { partition: 'persist:account-a' });
+    expect(constructed).toStrictEqual([
+      { webPreferences: rendererPreferences({ partition: 'persist:account-a' }) },
+    ]);
+    const [[view, index]] = window.contentView.addChildView.mock.calls as [
+      [{ setBounds: ReturnType<typeof vi.fn>; webContents: object }, number],
+    ];
+    expect(index).toBe(0);
+    expect(view.setBounds).toHaveBeenCalledWith({ x: 0, y: 0, width: 800, height: 600 });
+    expect(contents).toBe(view.webContents);
+    closed?.();
+    expect((view.webContents as { close: ReturnType<typeof vi.fn> }).close).toHaveBeenCalledOnce();
   });
 });

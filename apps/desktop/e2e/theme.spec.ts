@@ -1,8 +1,8 @@
 import type { ElectronApplication, Page } from '@playwright/test';
-import { expect, test } from './fixtures.ts';
+import { expect, test, whatsAppPage } from './fixtures.ts';
 
 async function openChrome(app: ElectronApplication, label: string, page: string): Promise<Page> {
-  await app.firstWindow();
+  await whatsAppPage(app);
   const opened = app.waitForEvent('window');
   await app.evaluate(({ Menu }, wanted) => {
     Menu.getApplicationMenu()
@@ -44,7 +44,7 @@ test('turns transitions off for people who prefer reduced motion', async ({ app 
 for (const theme of ['light', 'dark'] as const) {
   test(`app chrome looks right in the ${theme} theme`, async ({ app }) => {
     // Startup applies the saved theme just before the first window; set ours after it.
-    await app.firstWindow();
+    await whatsAppPage(app);
     await app.evaluate(({ nativeTheme }, source) => {
       nativeTheme.themeSource = source;
     }, theme);

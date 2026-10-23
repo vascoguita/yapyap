@@ -41,6 +41,7 @@ import electronUpdater from 'electron-updater';
 import trayIcon from '../../build/icons/32x32.png?asset';
 import { PRODUCT_NAME } from './identity.ts';
 import { createLogger } from './logging/logger.ts';
+import { logProcessErrors } from './process-errors.ts';
 import { askToInstallUpdateWithDialog } from './update-prompt.ts';
 import { readInstallEvidence } from './updates/install-evidence.ts';
 import { releaseFetcher } from './updates/update-notice.ts';
@@ -53,7 +54,7 @@ import { sandboxDisabled } from './sandbox-check.ts';
 import { confirmResetWithDialog } from './session-reset-prompt.ts';
 import { explainUnsafeStartWithDialog } from './unsafe-start-prompt.ts';
 import { startApp } from './start.ts';
-import { createSecureOverlay, createSecureWindow } from './windows.ts';
+import { createAccountView, createSecureOverlay, createSecureWindow } from './windows.ts';
 
 const PICKER_THUMBNAIL = { width: 320, height: 180 };
 
@@ -71,6 +72,10 @@ const logger = createLogger({
   now: Date.now,
   // Terminal output is redacted like the file, for people who start YapYap from one.
   mirror: (line) => process.stderr.write(`${line}\n`),
+});
+
+logProcessErrors(process, (message) => {
+  logger.log('error', message);
 });
 
 const warn = (message: string): void => {
@@ -177,7 +182,8 @@ startApp({
   nativeTheme,
   notify,
   warn,
-  createWindow: (options, renderer) => createSecureWindow(options, renderer),
+  createWindow: (options) => createSecureWindow(options),
+  createAccountView: (window, renderer) => createAccountView(window, renderer),
   createOverlay: (window, renderer) => createSecureOverlay(window, renderer),
   defaultSession: () => session.defaultSession,
   sessionOf: (partition) => session.fromPartition(partition),

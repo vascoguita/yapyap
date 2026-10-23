@@ -64,3 +64,15 @@ test('presents itself to WhatsApp as the bundled Chromium in desktop Chrome form
   expect(seen.headers['user-agent']).toBe(seen.userAgent);
   expect(seen.headers['sec-ch-ua']).toContain(`"Google Chrome";v="${major}"`);
 });
+
+test('hands keyboard focus to WhatsApp when its window is focused', async ({ app, window }) => {
+  await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
+  await expect
+    .poll(() =>
+      app.evaluate(({ BrowserWindow, webContents }) => {
+        BrowserWindow.getAllWindows()[0]?.focus();
+        return webContents.getFocusedWebContents()?.getURL();
+      }),
+    )
+    .toMatch(/^http:\/\/127\.0\.0\.1:\d+\//);
+});

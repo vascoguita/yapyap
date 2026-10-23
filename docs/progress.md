@@ -64,6 +64,16 @@ not edit the same lines.
   literal text in the main process's `label`, `title`, `message`, `detail`,
   `body` and `buttons` properties.
 
+- Account views (#56, second part): WhatsApp runs in a `WebContentsView`
+  (`createAccountView`) beneath any overlay, in the account's partition; the
+  main window's own page stays empty. Its title, unread count, readiness to
+  show (`dom-ready`), focus (`focusPageWithWindow`) and chat links come from
+  the view's page. E2E tests find it with `whatsAppPage`. A closed window
+  closes its view's page, which Electron would otherwise leave running, and
+  uncaught main-process errors are logged (`logProcessErrors`) instead of
+  shown in Electron's modal box, which blocked quitting (#223). Several accounts
+  come next.
+
 - Accounts (#56, first part): `accounts.json` lists the accounts (UUID,
   name, color, enabled, active), checked against a schema; a missing or
   damaged file is rebuilt from the `Partitions/account-<uuid>` folders, so no

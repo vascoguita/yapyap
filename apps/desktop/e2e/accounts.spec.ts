@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { closeApp, expect, launchApp, test } from './fixtures.ts';
+import { closeApp, expect, launchApp, test, whatsAppPage } from './fixtures.ts';
 
 /** Where the WhatsApp page's session keeps its data on disk. */
 const storagePath = (app: Awaited<ReturnType<typeof launchApp>>) =>
@@ -18,7 +18,7 @@ test('keeps the account’s WhatsApp session in its own partition across restart
   const first = await launchApp(fakeWhatsApp.origin, profile);
   let id: string;
   try {
-    const page = await first.firstWindow();
+    const page = await whatsAppPage(first);
     await expect(page.getByTestId('fake-whatsapp')).toBeVisible();
     const saved = JSON.parse(await readFile(join(profile, 'accounts.json'), 'utf8')) as {
       active: string;
@@ -36,7 +36,7 @@ test('keeps the account’s WhatsApp session in its own partition across restart
   }
   const second = await launchApp(fakeWhatsApp.origin, profile);
   try {
-    const page = await second.firstWindow();
+    const page = await whatsAppPage(second);
     await expect(page.getByTestId('fake-whatsapp')).toBeVisible();
     expect(await page.evaluate(() => localStorage.getItem('yapyap-e2e'))).toBe('kept');
     const again = JSON.parse(await readFile(join(profile, 'accounts.json'), 'utf8')) as {

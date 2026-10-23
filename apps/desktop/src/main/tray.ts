@@ -18,11 +18,7 @@ export interface TrayDependencies {
  * started minimized or closed to the tray. Some Linux desktops never deliver
  * clicks on the icon itself, so the menu offers the same action.
  */
-export function setUpTray(
-  tray: TrayPort,
-  window: Pick<LinkWindow, 'isMinimized' | 'restore' | 'show' | 'focus'>,
-  deps: TrayDependencies,
-): void {
+export function setUpTray(tray: TrayPort, window: LinkWindow, deps: TrayDependencies): void {
   const show = (): void => {
     bringToFront(window);
   };

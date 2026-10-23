@@ -1,7 +1,7 @@
 import type { ElectronApplication } from '@playwright/test';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { closeApp, expect, launchApp, test } from './fixtures.ts';
+import { closeApp, expect, launchApp, test, whatsAppPage } from './fixtures.ts';
 
 /**
  * A proxy that refuses everything and remembers where it was asked to go.
@@ -87,7 +87,7 @@ test('talks to nothing but WhatsApp during a session', async ({ fakeWhatsApp, pr
   const app = await launchApp(fakeWhatsApp.origin, profile, [`--proxy-server=${trap.origin}`]);
   try {
     await recordRequests(app);
-    const window = await app.firstWindow();
+    const window = await whatsAppPage(app);
     await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
     await window.reload();
     await expect(window.getByTestId('fake-whatsapp')).toBeVisible();

@@ -18,17 +18,22 @@ export interface LinkWindow {
   restore(): void;
   show(): void;
   focus(): void;
+}
+
+/** The WhatsApp that opens chat links. */
+export interface LinkPage {
   loadURL(url: string): Promise<unknown>;
 }
 
 export interface Instances {
-  /** Hands chat links to the WhatsApp window, including any that arrived before it. */
-  readonly attach: (window: LinkWindow) => void;
+  /**
+   * Hands chat links to WhatsApp, including any that arrived before it,
+   * and brings its window to the front for later launches.
+   */
+  readonly attach: (window: LinkWindow, page: LinkPage) => void;
 }
 
-export function bringToFront(
-  window: Pick<LinkWindow, 'isMinimized' | 'restore' | 'show' | 'focus'>,
-): void {
+export function bringToFront(window: LinkWindow): void {
   if (window.isMinimized()) {
     window.restore();
   }
@@ -81,16 +86,18 @@ export function claimSingleInstance(
     return undefined;
   }
   let window: LinkWindow | undefined;
+  let page: LinkPage | undefined;
   let pending: string | undefined;
   const open = (target: string): void => {
-    pending = window === undefined ? target : undefined;
+    pending = page === undefined ? target : undefined;
     // A failed load is reported by the recovery monitor.
-    window?.loadURL(target).catch(() => undefined);
+    page?.loadURL(target).catch(() => undefined);
   };
   listenForLaunches(app, home, warn, { window: () => window, open });
   return {
-    attach: (attached) => {
-      window = attached;
+    attach: (attachedWindow, attachedPage) => {
+      window = attachedWindow;
+      page = attachedPage;
       if (pending !== undefined) {
         open(pending);
       }
