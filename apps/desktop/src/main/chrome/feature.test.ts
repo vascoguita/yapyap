@@ -253,6 +253,24 @@ describe('createChromeFeature', () => {
     expect(t.window.close).toHaveBeenCalledOnce();
   });
 
+  it('offers to share system audio only on Windows, where Chromium can capture it', async () => {
+    const t = setup();
+    const windows = { ...t.deps, platform: 'win32' };
+    t.deps.captureSources.mockResolvedValueOnce([
+      { id: 'screen:1:0', name: 'Screen', thumbnail: { toDataURL: () => 'data:' } },
+    ]);
+    const runtime = createChromeFeature(windows).afterReady(
+      t.views,
+      vi.fn(),
+      'hardware accelerated',
+    );
+    const choice = runtime.pickCaptureSource({});
+    await new Promise((resolve) => setTimeout(resolve));
+    expect(t.call('picker:offer')).toHaveProperty('offerAudio', true);
+    t.call('picker:cancel');
+    expect(await choice).toBeUndefined();
+  });
+
   it('never closes a picker window that is already destroyed', async () => {
     const t = setup();
     t.deps.captureSources.mockResolvedValueOnce([
@@ -302,6 +320,8 @@ describe('createChromeFeature', () => {
     t.clickAccount('Reset Session…');
     await new Promise((resolve) => setTimeout(resolve));
     expect(t.deps.confirmReset).toHaveBeenCalledOnce();
+    // Before WhatsApp loaded, there is no session to act on, and nothing goes wrong.
+    expect(warn).not.toHaveBeenCalled();
     const session = {
       clearCache: vi.fn(() => Promise.resolve()),
       clearStorageData: vi.fn(() => Promise.resolve()),
@@ -379,12 +399,40 @@ describe('createChromeFeature', () => {
     expect(warn).toHaveBeenCalledWith('Could not finish an account maintenance action.');
   });
 
-  it('opens the Accounts window from the Account menu', () => {
+  it('opens the Accounts window from the Account menu, listing the current accounts', () => {
     const t = setup();
-    t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
     t.clickAccount('Manage Accounts…');
     expect(t.window.loadURL).toHaveBeenCalledWith('app://chrome/accounts.html');
     expect(t.call('accounts:list')).toHaveProperty('accounts', []);
+    const entries = [{ id: 'a', name: 'Personal', color: 'green', enabled: true, active: true }];
+    runtime.setAccountMenu({
+      entries,
+      activeContents: () => ({}),
+      switchTo: vi.fn(),
+      add: vi.fn(),
+      update: vi.fn(() => true),
+      remove: vi.fn(() => Promise.resolve(true)),
+    });
+    expect(t.call('accounts:list')).toHaveProperty('accounts', entries);
+  });
+
+  it('asks nothing when no account is on screen to remove', () => {
+    const t = setup();
+    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    runtime.setAccountMenu({
+      entries: [
+        { id: 'a', name: 'Personal', color: 'green', enabled: true, active: false },
+        { id: 'b', name: 'Work', color: 'blue', enabled: true, active: false },
+      ],
+      activeContents: () => ({}),
+      switchTo: vi.fn(),
+      add: vi.fn(),
+      update: vi.fn(() => true),
+      remove: vi.fn(() => Promise.resolve(true)),
+    });
+    t.clickAccount('Remove Account…');
+    expect(t.deps.confirmRemoveAccount).not.toHaveBeenCalled();
   });
 
   it('opens New Chat from the Account menu and its chats in WhatsApp once there is a window', () => {

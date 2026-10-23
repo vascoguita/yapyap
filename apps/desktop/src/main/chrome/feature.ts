@@ -182,6 +182,7 @@ interface ChromeRuntime {
   readonly openChatsWith: (open: (phone: string) => void) => void;
   /** Lists the accounts in the Account menu, whose actions apply to the active one. */
   readonly setAccountMenu: (menu: AccountMenu) => void;
+  readonly openSettings: () => void;
 }
 
 /** The accounts as the menu and the Accounts window need them. */
@@ -382,25 +383,37 @@ function chromeWindows(
  * Sets the application menu now, without accounts, and again whenever the
  * accounts change; returns how to give it the accounts.
  */
+/** YapYap's own windows, one each: opening one again focuses it. */
+type ChromeOpeners = Pick<
+  MenuActions,
+  'openAccounts' | 'openAbout' | 'openSettings' | 'openNewChat'
+>;
+
+function chromeOpeners(windows: ChromeWindowDependencies): ChromeOpeners {
+  const opener = (page: ChromePage) => createChromeWindowOpener(windows, page);
+  return {
+    openAccounts: opener(ACCOUNTS_PAGE),
+    openAbout: opener(ABOUT_PAGE),
+    openSettings: opener(SETTINGS_PAGE),
+    openNewChat: opener(NEW_CHAT_PAGE),
+  };
+}
+
 function accountMenuSetter(
   deps: ChromeFeatureDependencies,
-  windows: ChromeWindowDependencies,
+  openers: ChromeOpeners,
   recoveries: ReadonlyMap<object, Recovery>,
   accounts: AccountsSlot,
   warn: (message: string) => void,
   copyDiagnostics: () => void,
 ): (menu: AccountMenu) => void {
-  const opener = (page: ChromePage) => createChromeWindowOpener(windows, page);
   const set = (menu: AccountMenu | undefined): void => {
     deps.setMenu(
       buildMenuTemplate(deps.platform, {
         accounts: menu?.entries ?? [],
         switchAccount: menu?.switchTo ?? ignore,
         addAccount: menu?.add ?? ignore,
-        openAccounts: opener(ACCOUNTS_PAGE),
-        openAbout: opener(ABOUT_PAGE),
-        openSettings: opener(SETTINGS_PAGE),
-        openNewChat: opener(NEW_CHAT_PAGE),
+        ...openers,
         ...accountActions(deps, recoveries, menu, warn),
         zoom: (step) => {
           changeZoom(deps.settings, step);
@@ -446,6 +459,42 @@ function allHandlers(
   ];
 }
 
+/** Sets up YapYap's own pages, their operations and the menu once the app is ready. */
+function startChrome(
+  deps: ChromeFeatureDependencies,
+  renderer: RendererOptions,
+  views: ViewRegistry,
+  warn: (message: string) => void,
+  graphics: string,
+): ChromeRuntime {
+  const withGraphics = { ...deps, facts: () => ({ ...deps.facts(), graphics }) };
+  serveChromePages(deps);
+  const recoveries = new Map<object, Recovery>();
+  const pages: ProbedContents[] = [];
+  const windows = chromeWindows(deps, renderer, views, warn);
+  const picker = sourcePicker(deps, windows);
+  const chats: ChatTarget = {};
+  const accounts: AccountsSlot = {};
+  const handlers = allHandlers(withGraphics, recoveries, picker, chats, accounts);
+  registerChromeHandlers(deps.ipc, views, handlers, warn);
+  const openers = chromeOpeners(windows);
+  const copyDiagnostics = (): void => {
+    writeDiagnostics(withGraphics, pages).catch(() => {
+      warn('Could not copy the diagnostics.');
+    });
+  };
+  return {
+    attachRecovery: recoveryAttacher(withGraphics, renderer, views, warn, recoveries, pages),
+    pickCaptureSource: picker.pick,
+    technicalDetails: () => formatTechnicalDetails(buildAboutInfo(withGraphics.facts())),
+    openChatsWith: (open) => {
+      chats.open = open;
+    },
+    setAccountMenu: accountMenuSetter(deps, openers, recoveries, accounts, warn, copyDiagnostics),
+    openSettings: openers.openSettings,
+  };
+}
+
 export function createChromeFeature(deps: ChromeFeatureDependencies): ChromeFeature {
   const renderer = { preload: deps.preloadPath, partition: CHROME_PARTITION };
   return {
@@ -454,35 +503,6 @@ export function createChromeFeature(deps: ChromeFeatureDependencies): ChromeFeat
         { scheme: CHROME_SCHEME, privileges: { standard: true, secure: true } },
       ]);
     },
-    afterReady: (views, warn, graphics) => {
-      const withGraphics = { ...deps, facts: () => ({ ...deps.facts(), graphics }) };
-      serveChromePages(deps);
-      const recoveries = new Map<object, Recovery>();
-      const pages: ProbedContents[] = [];
-      const windows = chromeWindows(deps, renderer, views, warn);
-      const picker = sourcePicker(deps, windows);
-      const chats: ChatTarget = {};
-      const accounts: AccountsSlot = {};
-      registerChromeHandlers(
-        deps.ipc,
-        views,
-        allHandlers(withGraphics, recoveries, picker, chats, accounts),
-        warn,
-      );
-      const setAccountMenu = accountMenuSetter(deps, windows, recoveries, accounts, warn, () => {
-        writeDiagnostics(withGraphics, pages).catch(() => {
-          warn('Could not copy the diagnostics.');
-        });
-      });
-      return {
-        attachRecovery: recoveryAttacher(withGraphics, renderer, views, warn, recoveries, pages),
-        pickCaptureSource: picker.pick,
-        technicalDetails: () => formatTechnicalDetails(buildAboutInfo(withGraphics.facts())),
-        openChatsWith: (open) => {
-          chats.open = open;
-        },
-        setAccountMenu,
-      };
-    },
+    afterReady: (views, warn, graphics) => startChrome(deps, renderer, views, warn, graphics),
   };
 }
