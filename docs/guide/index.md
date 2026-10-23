@@ -85,6 +85,11 @@ audio**. On Wayland and macOS 15 and later, your system's own picker asks
 instead. Cancelling, closing the picker or pressing <kbd>Esc</kbd> shares
 nothing.
 
+While you share, YapYap shows it: the tray menu starts with **Stop Sharing
+Screen**, its tooltip says you are sharing, and with several accounts the
+sidebar marks the sharing account with a red **Sharing** button. Either one
+stops the share at once.
+
 ## Notifications
 
 New messages show up as your system's notifications, whichever account they

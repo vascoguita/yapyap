@@ -48,6 +48,19 @@ notifications in the main process.
   also mute the page's audio, which carries WhatsApp's message tones and
   ringtones, except for the account on screen (ADR 0008, C20).
 
+## Screen shares (#161)
+
+The same preload installs a second stand-in, for screen capture. It wraps
+`getDisplayMedia`, and `getUserMedia` when it asks for Chromium's legacy
+desktop source, and reports only a random ID when a share starts and when
+its last video track has ended (checked twice a second while it runs,
+since stopping a track fires no event). The stream never leaves the page.
+The main process hears these reports only from a WhatsApp page or call
+window of an account, on WhatsApp's origin, and the tray and the sidebar
+show each running share with a Stop action, which asks the page to stop
+the share's tracks. A page that goes away takes its shares with it. Call
+windows get the WhatsApp preload too, so both stand-ins run there.
+
 ## Consequences
 
 - YapYap now owns how notifications look and behave, which do-not-disturb,

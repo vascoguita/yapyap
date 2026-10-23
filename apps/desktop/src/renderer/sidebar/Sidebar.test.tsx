@@ -6,10 +6,26 @@ import { Sidebar } from './Sidebar.tsx';
 
 const STATE: SidebarState = {
   accounts: [
-    { id: 'a', name: 'personal', color: 'green', unread: 3, muted: false, active: false },
-    { id: 'b', name: 'Work', color: 'blue', unread: 0, muted: false, active: true },
-    { id: 'c', name: 'Shop', color: 'red', unread: 0, muted: true, active: false },
-    { id: 'd', name: 'Club', color: 'teal', unread: 120, muted: false, active: false },
+    {
+      id: 'a',
+      name: 'personal',
+      color: 'green',
+      unread: 3,
+      muted: false,
+      active: false,
+      sharing: false,
+    },
+    { id: 'b', name: 'Work', color: 'blue', unread: 0, muted: false, active: true, sharing: false },
+    { id: 'c', name: 'Shop', color: 'red', unread: 0, muted: true, active: false, sharing: false },
+    {
+      id: 'd',
+      name: 'Club',
+      color: 'teal',
+      unread: 120,
+      muted: false,
+      active: false,
+      sharing: false,
+    },
   ],
   compact: false,
   doNotDisturb: false,
@@ -21,6 +37,7 @@ function setup(state: () => Promise<SidebarState | null> = () => Promise.resolve
     state: vi.fn(state),
     switchTo: vi.fn(() => Promise.resolve()),
     setCompact: vi.fn(() => Promise.resolve()),
+    stopSharing: vi.fn(() => Promise.resolve()),
     onState: vi.fn((listener: (next: SidebarState) => void) => {
       push = listener;
     }),
@@ -53,6 +70,22 @@ describe('Sidebar', () => {
       'CClub99+',
     );
     expect(screen.queryByText('Do not disturb')).toBeNull();
+  });
+
+  it('shows a running share beside its account, with a way to stop it', async () => {
+    const t = setup();
+    await screen.findByRole('button', { name: 'Work' });
+    expect(screen.queryByRole('button', { name: /Stop sharing/ })).toBeNull();
+    const sharing = STATE.accounts.map((account) => ({ ...account, sharing: account.id === 'b' }));
+    t.push({ ...STATE, accounts: sharing });
+    const stop = screen.getByRole('button', { name: 'Stop sharing your screen in Work' });
+    expect(stop.textContent).toBe('Sharing');
+    fireEvent.click(stop);
+    expect(t.sidebar.stopSharing).toHaveBeenCalledWith('b');
+    t.push({ ...STATE, accounts: sharing, compact: true });
+    expect(
+      screen.getByRole('button', { name: 'Stop sharing your screen in Work' }).textContent,
+    ).toBe('');
   });
 
   it('switches to the account clicked', async () => {

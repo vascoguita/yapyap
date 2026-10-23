@@ -8,6 +8,8 @@ export interface ViewInfo {
   readonly home: string;
   /** How permission prompts name the view, such as the account name. */
   readonly label: string;
+  /** The account a WhatsApp view or window belongs to. */
+  readonly account?: string;
 }
 
 /** Keyed by web contents, so entries disappear with the views they describe. */

@@ -32,6 +32,9 @@ function sidebarBridge(invoke: Invoke, listen: Listen): ChromeApi['sidebar'] {
     setCompact: async (compact) => {
       await invoke(CHROME_CHANNELS.sidebarSetCompact, compact);
     },
+    stopSharing: async (id) => {
+      await invoke(CHROME_CHANNELS.sidebarStopSharing, id);
+    },
     onState: listen,
   };
 }

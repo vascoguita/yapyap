@@ -56,7 +56,8 @@ export interface NavigationDependencies {
   /** The origin a web contents was created for; undefined for popups and DevTools. */
   readonly homeOf: (contents: NavigationContents) => string | undefined;
   readonly openExternal: (url: string) => Promise<unknown>;
-  readonly popupPreferences: () => WebPreferences;
+  /** A popup's preferences, which depend on the view that opens it. */
+  readonly popupPreferences: (opener: NavigationContents) => WebPreferences;
   /** Gives a popup its opener's zone and home, so its own guard treats it like the opener. */
   readonly inherit: (popup: object, opener: NavigationContents) => void;
   readonly warn: (message: string) => void;
@@ -222,7 +223,7 @@ export function createNavigationGuard(
     contents.setWindowOpenHandler(({ url }) => {
       // WhatsApp opens its own pages, such as calls, in windows of their own.
       if (isBlank(url) || isSameOrigin(url, deps.homeOf(contents))) {
-        const webPreferences = deps.popupPreferences();
+        const webPreferences = deps.popupPreferences(contents);
         return { action: 'allow', overrideBrowserWindowOptions: { show: false, webPreferences } };
       }
       follow(contents, url, deps);

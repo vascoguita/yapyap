@@ -5,7 +5,17 @@ import { describe, expect, it, vi } from 'vitest';
 describe('sidebar entry', () => {
   it('renders the account sidebar', async () => {
     const state = {
-      accounts: [{ id: 'a', name: 'Work', color: 'blue', unread: 0, muted: false, active: true }],
+      accounts: [
+        {
+          id: 'a',
+          name: 'Work',
+          color: 'blue',
+          unread: 0,
+          muted: false,
+          active: true,
+          sharing: false,
+        },
+      ],
       compact: false,
       doNotDisturb: false,
     };

@@ -33,7 +33,16 @@ function setup() {
   };
   const askMedia = vi.fn(() => Promise.resolve(false));
   const identity = { userAgent: 'Chrome UA', chromeVersion: '152.0.7977.167' };
-  installSecurity(app, { views, openExternal, warn: vi.fn(), askMedia, capture, identity });
+  const whatsAppPreload = '/app/preload/whatsapp.cjs';
+  installSecurity(app, {
+    views,
+    openExternal,
+    warn: vi.fn(),
+    askMedia,
+    capture,
+    identity,
+    whatsAppPreload,
+  });
   appListeners.get('web-contents-created')?.(...([{}, contents as GuardedContents] as never[]));
   const createContents = (other: object): void => {
     appListeners.get('web-contents-created')?.(...([{}, other] as never[]));
@@ -87,9 +96,13 @@ describe('secureAllWebContents', () => {
 
   it('gives transient popups the hardened preferences and discards them on a timer', () => {
     const t = setup();
+    // WhatsApp's windows get its preload too, so its notifications work in calls.
     expect(t.open('about:blank')).toEqual({
       action: 'allow',
-      overrideBrowserWindowOptions: { show: false, webPreferences: rendererPreferences() },
+      overrideBrowserWindowOptions: {
+        show: false,
+        webPreferences: rendererPreferences({ preload: '/app/preload/whatsapp.cjs' }),
+      },
     });
     const popup = {
       webContents: { once: vi.fn(), on: vi.fn(), getURL: () => '' },
@@ -122,6 +135,11 @@ describe('secureAllWebContents', () => {
     };
     created?.(...([popup] as never[]));
     expect(t.views.get(popup.webContents)).toBeUndefined();
+    const [opened] = stranger.setWindowOpenHandler.mock.calls.at(-1) ?? [];
+    expect(opened?.({ url: 'about:blank' })).toEqual({
+      action: 'allow',
+      overrideBrowserWindowOptions: { show: false, webPreferences: rendererPreferences({}) },
+    });
   });
 
   it('treats web contents YapYap did not create as having no home', () => {

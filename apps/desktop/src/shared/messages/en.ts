@@ -287,6 +287,8 @@ const catalog = {
     badge: (unread: number): string =>
       unread > MAX_BADGE ? `${String(MAX_BADGE)}+` : String(unread),
     compact: 'Show only avatars',
+    sharing: 'Sharing',
+    stopSharing: (name: string): string => `Stop sharing your screen in ${name}`,
     full: 'Show account names',
     doNotDisturb: 'Do not disturb',
   },
@@ -306,6 +308,8 @@ const catalog = {
     hide: 'Hide YapYap',
     settings: 'Settings…',
     doNotDisturb: 'Do Not Disturb',
+    sharing: 'YapYap: sharing your screen',
+    stopSharing: (account: string): string => `Stop Sharing Screen (${account})`,
     mutedAccount: (name: string): string => `${name} (muted)`,
     quit: 'Quit YapYap',
   },

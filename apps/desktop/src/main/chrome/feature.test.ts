@@ -419,7 +419,14 @@ describe('createChromeFeature', () => {
       preload: '/app/preload/chrome.cjs',
       partition: 'yapyap-chrome',
     });
-    const entry = { name: 'A', color: 'green', unread: 0, muted: false, active: true };
+    const entry = {
+      name: 'A',
+      color: 'green',
+      unread: 0,
+      muted: false,
+      active: true,
+      sharing: false,
+    };
     const state = {
       accounts: [
         { ...entry, id: 'a' },
@@ -428,7 +435,7 @@ describe('createChromeFeature', () => {
       compact: false,
       doNotDisturb: false,
     };
-    show({ state, switchTo: vi.fn() });
+    show({ state, switchTo: vi.fn(), stopSharing: vi.fn() });
     expect(port.setWidth).toHaveBeenCalledWith(220);
     expect(t.call('sidebar:state', port.webContents)).toBe(state);
   });

@@ -121,6 +121,8 @@ and an ESLint restriction forbids constructing `BrowserWindow` or
   - It is accepted only from a WhatsApp frame (an account view or that
     account's call window) on its own origin whose window is visible and
     focused. Requests from hidden accounts, chrome or plugins are rejected.
+  - While a share runs, the tray and the account's sidebar entry show it,
+    with a Stop action, until it ends, however it ends (#161, ADR 0011).
   - The source is always chosen by the user, never preselected. On macOS 15+
     this uses the system picker (`useSystemPicker: true`), and the request is
     granted for the OS picker to handle. On Linux Wayland it uses the

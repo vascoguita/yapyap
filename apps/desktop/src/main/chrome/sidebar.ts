@@ -26,6 +26,7 @@ export interface SidebarPort {
 export interface SidebarSource {
   readonly state: SidebarState;
   readonly switchTo: (id: string) => void;
+  readonly stopSharing: (id: string) => void;
 }
 
 /** The sidebar once it is attached; holds what it last showed. */
@@ -74,6 +75,8 @@ export function sidebarHandlers(
 ): ChromeHandler[] {
   const listed = (id: unknown): id is string =>
     slot.current?.state.accounts.some((account) => account.id === id) === true;
+  const sharing = (id: unknown): id is string =>
+    slot.current?.state.accounts.some((account) => account.id === id && account.sharing) === true;
   return [
     {
       channel: CHROME_CHANNELS.sidebarState,
@@ -85,6 +88,13 @@ export function sidebarHandlers(
       accepts: ([id, ...rest]) => rest.length === 0 && listed(id),
       handle: (_call, id) => {
         slot.current?.switchTo(id as string);
+      },
+    },
+    {
+      channel: CHROME_CHANNELS.sidebarStopSharing,
+      accepts: ([id, ...rest]) => rest.length === 0 && sharing(id),
+      handle: (_call, id) => {
+        slot.current?.stopSharing(id as string);
       },
     },
     {
