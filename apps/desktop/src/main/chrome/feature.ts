@@ -123,6 +123,19 @@ const ACCOUNTS_PAGE: ChromePage = {
   },
 };
 
+const WELCOME_PAGE: ChromePage = {
+  path: 'welcome.html',
+  window: {
+    title: en.windows.welcome,
+    width: 560,
+    height: 640,
+    minWidth: 420,
+    minHeight: 420,
+    minimizable: false,
+    maximizable: false,
+  },
+};
+
 const SETTINGS_PAGE: ChromePage = {
   path: 'settings.html',
   window: {
@@ -198,6 +211,8 @@ interface ChromeRuntime {
   /** Lists the accounts in the Account menu, whose actions apply to the active one. */
   readonly setAccountMenu: (menu: AccountMenu) => void;
   readonly openSettings: () => void;
+  /** The first launch's welcome (#84). */
+  readonly openWelcome: () => void;
   /** Docks the account sidebar; returns how to show it the accounts. */
   readonly attachSidebar: (
     create: (renderer: RendererOptions) => SidebarPort,
@@ -563,6 +578,7 @@ function startChrome(
     },
     setAccountMenu: accountMenuSetter(deps, openers, recoveries, accounts, warn, copyDiagnostics),
     openSettings: openers.openSettings,
+    openWelcome: createChromeWindowOpener(windows, WELCOME_PAGE),
     attachSidebar: (create) => attachSidebar(create(renderer), views, sidebar, warn),
   };
 }

@@ -1012,6 +1012,21 @@ async function openWindow<Window extends WindowPort>(
   await Promise.all(running.opened().map(({ page }) => page.loaded));
 }
 
+/**
+ * The first launch opens the welcome over WhatsApp, and saves the default
+ * settings, so the welcome never opens again (#84).
+ */
+function welcomeOnFirstRun<Window extends WindowPort>(
+  deps: StartDependencies<Window>,
+  chrome: ReturnType<StartDependencies<Window>['chrome']['afterReady']>,
+): void {
+  if (!deps.settings.firstRun) {
+    return;
+  }
+  deps.settings.update((settings) => settings);
+  chrome.openWelcome();
+}
+
 /** How YapYap presents itself to WhatsApp: the bundled Chromium, as desktop Chrome. */
 function browserIdentity<Window extends WindowPort>(
   deps: StartDependencies<Window>,
@@ -1057,4 +1072,5 @@ export async function startApp<Window extends WindowPort>(
   announceStartup(deps, graphics);
   reportCrash(chrome.technicalDetails);
   await openWindow(deps, chrome, security, instances, origin);
+  welcomeOnFirstRun(deps, chrome);
 }

@@ -6,7 +6,7 @@ import {
 } from '@playwright/test';
 import { spawn, spawnSync, type ChildProcessByStdio } from 'node:child_process';
 import type { Readable } from 'node:stream';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { appEnvironment } from './app-environment.ts';
@@ -138,7 +138,15 @@ export async function launchApp(
   origin: string,
   profile: string,
   args: readonly string[] = [],
+  { firstRun = false }: { readonly firstRun?: boolean } = {},
 ): Promise<ElectronApplication> {
+  // Every test profile is new, which YapYap would greet with its welcome
+  // window (#84); a settings file marks it as used, unless the test wants that.
+  if (!firstRun) {
+    await writeFile(join(profile, 'settings.json'), '{"schemaVersion":1}\n', { flag: 'wx' }).catch(
+      () => undefined,
+    );
+  }
   const app = await electron.launch({
     args: [MAIN, `--user-data-dir=${profile}`, ...args],
     // Playwright forces a light color scheme by default, which would hide YapYap's own theming.

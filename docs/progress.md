@@ -236,6 +236,14 @@ not edit the same lines.
   Chromium's background throttling, which `privacy.unreadWhileHidden` keeps
   on (reference guide).
 
+- First-run welcome (#84): when no settings file exists, YapYap opens a
+  short welcome (`welcome.html`) after its window, and saves the defaults so
+  it never opens again. It reuses the Settings window's fields and checked
+  operations for the theme, closing to the tray, starting at login and
+  notification privacy, notes that YapYap is in English for now, and closes
+  with Escape. E2E profiles get a settings file at launch, so only the
+  welcome test sees a first run.
+
 - Privacy screen (#85): `createPrivacyScreen` blurs every account's
   WhatsApp with inserted CSS that also takes clicks away, so it needs no
   knowledge of WhatsApp's page. It comes on from the tray or View → Privacy

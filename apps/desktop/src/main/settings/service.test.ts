@@ -35,6 +35,14 @@ describe('openSettings', () => {
     });
   });
 
+  it('knows the first launch, and that every later one is not', () => {
+    const dir = fresh();
+    const first = openSettings(dir, 1, vi.fn());
+    expect(first.firstRun).toBe(true);
+    first.update((current) => current);
+    expect(openSettings(dir, 2, vi.fn()).firstRun).toBe(false);
+  });
+
   it('never overwrites settings from a newer version', () => {
     const dir = fresh();
     writeFileSync(join(dir, 'settings.json'), '{"schemaVersion":99}');

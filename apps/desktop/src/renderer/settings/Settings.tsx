@@ -175,7 +175,7 @@ function Backup(props: {
   );
 }
 
-function useSnapshot(
+export function useSnapshot(
   api: ChromeApi,
 ): readonly [SettingsSnapshot | null | undefined, string, Change, () => void] {
   const [snapshot, setSnapshot] = useState<SettingsSnapshot | null | undefined>(undefined);

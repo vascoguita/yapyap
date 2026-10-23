@@ -16,6 +16,14 @@ installers for every supported platform. Follow progress on the
 [project board](https://github.com/users/vascoguita/projects/5).
 :::
 
+## First launch
+
+The first time YapYap starts, a short welcome asks for the choices most
+people make at once: the theme, whether closing the window keeps YapYap in
+the tray, starting at login, and how much notifications show. Each choice
+applies as you make it; press <kbd>Esc</kbd> or **Start Using YapYap** when
+you are done. Everything it asks is also in Settings.
+
 ## Settings
 
 Open **File → Settings…** (on macOS, **YapYap → Settings…**), or press

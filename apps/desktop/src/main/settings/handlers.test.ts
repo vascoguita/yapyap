@@ -34,6 +34,7 @@ function setup(readOnly = false, effects: Readonly<Record<string, SettingEffect>
     current: () => settings,
     notice: undefined,
     readOnly,
+    firstRun: false,
     update: vi.fn((change: (current: Settings) => Settings) => {
       settings = change(settings);
     }),
@@ -96,6 +97,7 @@ describe('settingsHandlers', () => {
       current: defaultSettings,
       notice: undefined,
       readOnly: false,
+      firstRun: false,
       update: vi.fn(),
       onChange: vi.fn(),
     };
@@ -173,6 +175,7 @@ describe('settingsHandlers', () => {
       current: () => settings,
       notice: undefined,
       readOnly: false,
+      firstRun: false,
       update: vi.fn((change: (current: Settings) => Settings) => {
         settings = change(settings);
       }),

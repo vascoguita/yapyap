@@ -115,6 +115,7 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     openChatsWith: vi.fn<(open: (phone: string) => void) => void>(),
     setAccountMenu: vi.fn<(menu: AccountMenu) => void>(),
     openSettings: vi.fn(),
+    openWelcome: vi.fn(),
     sidebar: vi.fn<(source: SidebarSource) => void>(),
     attachSidebar: vi.fn((create: (renderer: object) => unknown) => {
       create({ preload: '/app/preload/chrome.cjs' });
@@ -276,6 +277,7 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
       current: () => defaultSettings(),
       notice: undefined as string | undefined,
       readOnly: false,
+      firstRun: false,
       update: vi.fn(),
       onChange: vi.fn(),
     },
@@ -650,6 +652,19 @@ describe('startApp', () => {
     await startApp(f);
     expect(f.selfUpdate.instance.checkForUpdates).toHaveBeenCalledOnce();
     expect(f.selfUpdate.instance.autoInstallOnAppQuit).toBe(false);
+  });
+
+  it('opens the welcome on the first launch only, saving the defaults so it stays away', async () => {
+    const later = fakes();
+    await startApp(later);
+    expect(later.runtime.openWelcome).not.toHaveBeenCalled();
+    const first = fakes();
+    first.settings.firstRun = true;
+    await startApp(first);
+    expect(first.runtime.openWelcome).toHaveBeenCalledOnce();
+    const [change] = first.settings.update.mock.calls.at(-1) as [(settings: unknown) => unknown];
+    const settings = defaultSettings();
+    expect(change(settings)).toBe(settings);
   });
 
   it('puts YapYap in the tray, keeping its menu and count up to date', async () => {

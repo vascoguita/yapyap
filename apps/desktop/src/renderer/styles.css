@@ -105,7 +105,8 @@ ul {
   gap: 8px;
 }
 
-main.settings {
+main.settings,
+main.welcome {
   align-items: stretch;
   max-width: 560px;
   margin: 0 auto;
@@ -717,4 +718,8 @@ main.accounts .permissions dl {
 
 main.accounts .forget {
   align-self: flex-start;
+}
+
+main.welcome .actions {
+  justify-content: flex-end;
 }
