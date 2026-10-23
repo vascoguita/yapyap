@@ -73,6 +73,17 @@ not edit the same lines.
   uncaught main-process errors are logged (`logProcessErrors`) instead of
   shown in Electron's modal box, which blocked quitting (#223). Several accounts
   come next.
+  the view's page. E2E tests find it with `whatsAppPage`.
+
+- Several accounts (#56, third part): every enabled account loads in its own
+  view and partition (`runAccounts`, `createAccountHost`), and only the
+  active one is attached, with its recovery screen; a hidden account's page
+  counts as hidden, so it marks nothing read. The Account menu lists them
+  (Ctrl/Cmd+1–9), adds one, and removes the active one after asking: its
+  views close, its data is cleared, and its folder goes at the next start.
+  The window title follows the active account and the badge sums all
+  (`accountSignals`). Screen capture requires the page to be the one shown.
+  Naming, colors and disabling come with #58, the sidebar with #57.
 
 - Accounts (#56, first part): `accounts.json` lists the accounts (UUID,
   name, color, enabled, active), checked against a schema; a missing or

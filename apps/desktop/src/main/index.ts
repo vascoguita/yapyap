@@ -18,6 +18,7 @@ import {
   type WebContents,
 } from 'electron';
 import { spawnSync } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import {
   existsSync,
   lstatSync,
@@ -31,7 +32,7 @@ import { readFile } from 'node:fs/promises';
 import { homedir, release } from 'node:os';
 import { join } from 'node:path';
 import { readInstallChannel } from './about/about-info.ts';
-import { loadAccounts } from './accounts/accounts-file.ts';
+import { loadAccounts, saveAccounts } from './accounts/accounts-file.ts';
 import { applyAutostart, chooseAutostart } from './autostart/autostart.ts';
 import { xdgAutostart } from './autostart/xdg-autostart.ts';
 import { CHROME_PARTITION, createChromeFeature } from './chrome/feature.ts';
@@ -52,9 +53,10 @@ import { electronCapture } from './permissions/electron-capture.ts';
 import { askMediaWithDialog } from './permissions/media-prompt.ts';
 import { sandboxDisabled } from './sandbox-check.ts';
 import { confirmResetWithDialog } from './session-reset-prompt.ts';
+import { confirmRemoveAccountWithDialog } from './account-removal-prompt.ts';
 import { explainUnsafeStartWithDialog } from './unsafe-start-prompt.ts';
 import { startApp } from './start.ts';
-import { createAccountView, createSecureOverlay, createSecureWindow } from './windows.ts';
+import { createAccountHost, createSecureWindow } from './windows.ts';
 
 const PICKER_THUMBNAIL = { width: 320, height: 180 };
 
@@ -166,6 +168,7 @@ const chrome = createChromeFeature({
     app.quit();
   },
   confirmReset: confirmResetWithDialog,
+  confirmRemoveAccount: confirmRemoveAccountWithDialog,
   captureSources: (kind) =>
     desktopCapturer.getSources({ types: [kind], thumbnailSize: PICKER_THUMBNAIL }),
   // The picker's owner is a web contents Electron itself handed to the capture handler.
@@ -183,11 +186,14 @@ startApp({
   notify,
   warn,
   createWindow: (options) => createSecureWindow(options),
-  createAccountView: (window, renderer) => createAccountView(window, renderer),
-  createOverlay: (window, renderer) => createSecureOverlay(window, renderer),
+  createAccountHost: (window, renderer) => createAccountHost(window, renderer),
   defaultSession: () => session.defaultSession,
   sessionOf: (partition) => session.fromPartition(partition),
   accounts: loadAccounts(app.getPath('userData')),
+  saveAccounts: (accounts) => {
+    saveAccounts(app.getPath('userData'), accounts);
+  },
+  newAccountId: randomUUID,
   askMedia: askMediaWithDialog,
   capture: (pickInApp, wayland) =>
     electronCapture(process.platform, wayland, process.getSystemVersion(), pickInApp),

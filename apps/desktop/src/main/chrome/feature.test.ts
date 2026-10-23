@@ -81,6 +81,7 @@ function setup() {
       developerIdSigned: false,
     }),
     confirmReset: vi.fn(() => Promise.resolve(true)),
+    confirmRemoveAccount: vi.fn(() => Promise.resolve(true)),
     captureSources: vi.fn<ChromeFeatureDependencies['captureSources']>(() => Promise.resolve([])),
     windowOf: vi.fn<ChromeFeatureDependencies['windowOf']>(() => null),
   } satisfies ChromeFeatureDependencies;
@@ -107,9 +108,11 @@ function setup() {
     call,
     clickAbout: click(-1),
     clickSettings: click(0),
-    clickAccount: (index: number) => {
+    clickAccount: (label: string) => {
       const submenu = menu[1]?.submenu;
-      const item = Array.isArray(submenu) ? submenu[index] : undefined;
+      const item = Array.isArray(submenu)
+        ? submenu.find((candidate) => candidate.label === label)
+        : undefined;
       (item?.click as (() => void) | undefined)?.();
     },
     handler: () => handler,
@@ -295,8 +298,8 @@ describe('createChromeFeature', () => {
     const t = setup();
     const warn = vi.fn();
     const runtime = t.feature.afterReady(t.views, warn, 'hardware accelerated');
-    t.clickAccount(2);
-    t.clickAccount(4);
+    t.clickAccount('Clear Cache and Reload');
+    t.clickAccount('Reset Session…');
     await new Promise((resolve) => setTimeout(resolve));
     expect(t.deps.confirmReset).toHaveBeenCalledOnce();
     const session = {
@@ -312,21 +315,64 @@ describe('createChromeFeature', () => {
       session,
     };
     runtime.attachRecovery(contents, 'https://web.whatsapp.com', vi.fn());
-    t.clickAccount(2);
+    runtime.setAccountMenu({
+      entries: [{ id: 'a', name: 'WhatsApp', active: true }],
+      activeContents: () => contents,
+      switchTo: vi.fn(),
+      add: vi.fn(),
+      remove: vi.fn(),
+    });
+    t.clickAccount('Clear Cache and Reload');
     await new Promise((resolve) => setTimeout(resolve));
     expect(session.clearStorageData).toHaveBeenLastCalledWith({
       storages: ['serviceworkers', 'cachestorage'],
     });
     t.deps.confirmReset.mockResolvedValueOnce(false);
-    t.clickAccount(4);
+    t.clickAccount('Reset Session…');
     await new Promise((resolve) => setTimeout(resolve));
     expect(session.clearStorageData).toHaveBeenCalledOnce();
-    t.clickAccount(4);
+    t.clickAccount('Reset Session…');
     await new Promise((resolve) => setTimeout(resolve));
     expect(session.clearStorageData).toHaveBeenLastCalledWith();
     expect(contents.loadURL).toHaveBeenCalledTimes(2);
     session.clearCache.mockRejectedValueOnce(new Error('busy'));
-    t.clickAccount(2);
+    t.clickAccount('Clear Cache and Reload');
+    await new Promise((resolve) => setTimeout(resolve));
+    expect(warn).toHaveBeenCalledWith('Could not finish an account maintenance action.');
+  });
+
+  it('lists the accounts, and removes the active one once the user agrees', async () => {
+    const t = setup();
+    const warn = vi.fn();
+    const runtime = t.feature.afterReady(t.views, warn, 'hardware accelerated');
+    t.clickAccount('Add Account');
+    t.clickAccount('Remove Account…');
+    expect(t.deps.confirmRemoveAccount).not.toHaveBeenCalled();
+    const menu = {
+      entries: [
+        { id: 'a', name: 'Personal', active: false },
+        { id: 'b', name: 'Work', active: true },
+      ],
+      activeContents: () => ({}),
+      switchTo: vi.fn(),
+      add: vi.fn(),
+      remove: vi.fn(),
+    };
+    runtime.setAccountMenu(menu);
+    t.clickAccount('Personal');
+    expect(menu.switchTo).toHaveBeenCalledWith('a');
+    t.clickAccount('Add Account');
+    expect(menu.add).toHaveBeenCalledOnce();
+    t.deps.confirmRemoveAccount.mockResolvedValueOnce(false);
+    t.clickAccount('Remove Account…');
+    await new Promise((resolve) => setTimeout(resolve));
+    expect(menu.remove).not.toHaveBeenCalled();
+    t.clickAccount('Remove Account…');
+    await new Promise((resolve) => setTimeout(resolve));
+    expect(t.deps.confirmRemoveAccount).toHaveBeenLastCalledWith('Work');
+    expect(menu.remove).toHaveBeenCalledExactlyOnceWith('b');
+    t.deps.confirmRemoveAccount.mockRejectedValueOnce(new Error('no dialog'));
+    t.clickAccount('Remove Account…');
     await new Promise((resolve) => setTimeout(resolve));
     expect(warn).toHaveBeenCalledWith('Could not finish an account maintenance action.');
   });
@@ -334,7 +380,7 @@ describe('createChromeFeature', () => {
   it('opens New Chat from the Account menu and its chats in WhatsApp once there is a window', () => {
     const t = setup();
     const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
-    t.clickAccount(0);
+    t.clickAccount('New Chat with Number…');
     expect(t.window.loadURL).toHaveBeenCalledWith('app://chrome/new-chat.html');
     expect(t.call('chat:open-number', t.window.webContents, '+44 7700 900123')).toBe(false);
     const open = vi.fn();

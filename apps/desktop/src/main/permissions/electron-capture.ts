@@ -35,11 +35,26 @@ export function electronCapture(
     contentsOfFrame: (frame) => webContents.fromFrame(frame as WebFrameMain),
     isVisibleAndFocused: (contents) => {
       const window = BrowserWindow.fromWebContents(contents as WebContents);
-      return window !== null && window.isVisible() && window.isFocused();
+      return (
+        window !== null && isShownIn(window, contents) && window.isVisible() && window.isFocused()
+      );
     },
     pick: systemPicker ? undefined : choosePicker(platform, wayland, pickInApp),
     useSystemPicker: systemPicker,
   };
+}
+
+/**
+ * A hidden account's page still names the main window as its own once its
+ * view has been taken out, so only a page the window shows counts (#56).
+ */
+function isShownIn(window: BrowserWindow, contents: object): boolean {
+  return (
+    window.webContents === contents ||
+    window.contentView.children.some(
+      (view) => 'webContents' in view && view.webContents === contents,
+    )
+  );
 }
 
 /** Wayland has the portal's picker; Windows, X11 and older macOS use YapYap's. */

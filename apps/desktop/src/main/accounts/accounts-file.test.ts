@@ -1,4 +1,12 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -35,6 +43,16 @@ describe('loadAccounts', () => {
     writeFileSync(join(dir, ACCOUNTS_FILE), 'not json');
     expect(loadAccounts(dir, () => C).accounts.map((account) => account.id)).toEqual([A]);
     expect(readFileSync(join(dir, ACCOUNTS_FILE), 'utf8')).toContain(A);
+  });
+
+  it('deletes the folders of removed accounts at the next start', () => {
+    const dir = profile();
+    const accounts = loadAccounts(dir, () => C);
+    mkdirSync(join(dir, 'Partitions', `account-${A}`, 'Local Storage'), { recursive: true });
+    mkdirSync(join(dir, 'Partitions', `account-${C}`), { recursive: true });
+    expect(loadAccounts(dir, () => A)).toEqual(accounts);
+    expect(existsSync(join(dir, 'Partitions', `account-${A}`))).toBe(false);
+    expect(existsSync(join(dir, 'Partitions', `account-${C}`))).toBe(true);
   });
 
   it('leaves a valid file untouched', () => {

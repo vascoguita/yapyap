@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { APP_ID } from './identity.ts';
 import { SHOW_FALLBACK_MS } from './show-when-ready.ts';
 import { startApp, type AppPort, type WindowPort } from './start.ts';
+import type { Accounts } from './accounts/accounts.ts';
+import type { AccountMenu } from './chrome/feature.ts';
 import type { CaptureChoice } from './permissions/session-guard.ts';
 import { defaultSettings } from './settings/decode.ts';
 import { WHATSAPP_ORIGIN } from './whatsapp-origin.ts';
@@ -10,6 +12,8 @@ import type { WindowOptions } from './windows.ts';
 type Listener = (...args: never[]) => void;
 
 const ACCOUNT = '0b6c3f0e-58a4-4a39-9a43-6f0c1c1f6a01';
+const SECOND = '7d2e9b1c-3f4a-4c5d-8e6f-1a2b3c4d5e6f';
+const THIRD = '0f0e0d0c-0b0a-4908-8706-050403020100';
 
 /** A web contents whose listeners the test can fire by event name. */
 function fakeContents() {
@@ -91,7 +95,30 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     ),
     technicalDetails: () => 'YapYap 0.1.0 (deb)',
     openChatsWith: vi.fn<(open: (phone: string) => void) => void>(),
+    setAccountMenu: vi.fn<(menu: AccountMenu) => void>(),
   };
+  // The first account's page is `web`, so single-account tests read it directly.
+  const hosts: {
+    page: ReturnType<typeof fakeContents>;
+    webContents: ReturnType<typeof fakeContents>['contents'];
+    show: ReturnType<typeof vi.fn>;
+    hide: ReturnType<typeof vi.fn>;
+    close: ReturnType<typeof vi.fn>;
+    createOverlay: ReturnType<typeof vi.fn>;
+  }[] = [];
+  const createAccountHost = vi.fn(() => {
+    const page = hosts.length === 0 ? web : fakeContents();
+    const host = {
+      page,
+      webContents: page.contents,
+      show: vi.fn(),
+      hide: vi.fn(),
+      close: vi.fn(),
+      createOverlay: vi.fn(),
+    };
+    hosts.push(host);
+    return host;
+  });
   const stored = new Map<string, string>();
   const warn = vi.fn();
   const openExternal = vi.fn(() => Promise.resolve());
@@ -105,6 +132,8 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     setSpellCheckerLanguages: vi.fn(),
     webRequest: { onBeforeSendHeaders: vi.fn() },
     on: vi.fn(),
+    clearStorageData: vi.fn(() => Promise.resolve()),
+    clearCache: vi.fn(() => Promise.resolve()),
   });
   const session = fakeSession();
   const accountSession = fakeSession();
@@ -121,7 +150,10 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     web,
     session,
     createWindow,
-    createAccountView: vi.fn(() => web.contents),
+    createAccountHost,
+    hosts,
+    saveAccounts: vi.fn(),
+    newAccountId: () => SECOND,
     defaultSession: () => session,
     sessionOf: vi.fn(() => accountSession),
     accountSession,
@@ -137,7 +169,6 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     chromeVersion: '152.0.7977.167',
     platform: 'linux',
     chrome: { beforeReady: vi.fn(), afterReady: vi.fn(() => runtime) },
-    createOverlay: vi.fn(),
     warn,
     openExternal,
     isOnline: vi.fn(() => true),
@@ -285,8 +316,7 @@ describe('startApp', () => {
     const [[, , createOverlay]] = f.runtime.attachRecovery.mock.calls as [
       [unknown, unknown, (renderer: object) => unknown],
     ];
-    createOverlay({ preload: '/p.cjs' });
-    expect(f.createOverlay).toHaveBeenCalledExactlyOnceWith(f.window, { preload: '/p.cjs' });
+    expect(createOverlay).toBe(f.hosts[0]?.createOverlay);
   });
 
   it('presents the bundled Chromium as desktop Chrome everywhere', async () => {
@@ -575,10 +605,117 @@ describe('startApp', () => {
     expect(f.window.setTitle).toHaveBeenLastCalledWith('(3) WhatsApp');
   });
 
+  describe('with two accounts', () => {
+    function twoAccounts(argv: readonly string[] = []) {
+      const f = fakes({}, argv);
+      const accounts: Accounts = {
+        version: 1,
+        accounts: [
+          { id: ACCOUNT, name: 'Personal', color: 'green', enabled: true },
+          { id: SECOND, name: 'Work', color: 'blue', enabled: true },
+        ],
+        active: SECOND,
+      };
+      return { ...f, accounts, newAccountId: () => THIRD };
+    }
+    const menu = (f: ReturnType<typeof twoAccounts>): AccountMenu => {
+      const [last] = f.runtime.setAccountMenu.mock.calls.at(-1) ?? [];
+      if (last === undefined) {
+        throw new Error('No account menu was set.');
+      }
+      return last;
+    };
+
+    it('loads both in the background, shows the active one and lists them', async () => {
+      const f = twoAccounts(['/opt/YapYap/yapyap', 'https://wa.me/447700900123']);
+      await startApp(f);
+      const [personal, work] = f.hosts;
+      expect(personal?.show).not.toHaveBeenCalled();
+      expect(work?.show).toHaveBeenCalledOnce();
+      expect(personal?.webContents.loadURL).toHaveBeenCalledWith(WHATSAPP_ORIGIN);
+      expect(work?.webContents.loadURL).toHaveBeenCalledWith(
+        `${WHATSAPP_ORIGIN}/send?phone=447700900123`,
+      );
+      expect(menu(f).entries).toEqual([
+        { id: ACCOUNT, name: 'Personal', active: false },
+        { id: SECOND, name: 'Work', active: true },
+      ]);
+      expect(menu(f).activeContents()).toBe(work?.webContents);
+    });
+
+    it('titles the window after the active account and counts every account’s unread chats', async () => {
+      const f = twoAccounts();
+      await startApp(f);
+      const [personal, work] = f.hosts;
+      personal?.page.fire('page-title-updated', {}, '(2) WhatsApp');
+      work?.page.fire('page-title-updated', {}, '(1) WhatsApp');
+      expect(f.window.setTitle).toHaveBeenLastCalledWith('(1) WhatsApp');
+      expect(f.badge.setBadgeCount).toHaveBeenLastCalledWith(3);
+      menu(f).switchTo(ACCOUNT);
+      expect(f.window.setTitle).toHaveBeenLastCalledWith('(2) WhatsApp');
+      expect(work?.hide).toHaveBeenCalledOnce();
+      expect(f.saveAccounts).toHaveBeenCalledWith(expect.objectContaining({ active: ACCOUNT }));
+    });
+
+    it('sends chat links and focus to the active account', async () => {
+      const f = twoAccounts();
+      await startApp(f);
+      const [[open]] = f.runtime.openChatsWith.mock.calls as [[(phone: string) => void]];
+      open('447700900123');
+      const work = f.hosts[1]?.webContents;
+      expect(work?.loadURL).toHaveBeenLastCalledWith(`${WHATSAPP_ORIGIN}/send?phone=447700900123`);
+      const focused = f.window.on.mock.calls.find(([event]) => event === 'focus');
+      (focused?.[1] as (() => void) | undefined)?.();
+      expect(work?.focus).toHaveBeenCalledOnce();
+    });
+
+    it('reconnects every account when the system wakes', async () => {
+      vi.useFakeTimers();
+      const f = twoAccounts();
+      const reconnects = [vi.fn(), vi.fn()];
+      for (const reconnect of reconnects) {
+        f.runtime.attachRecovery.mockReturnValueOnce({ reconnect });
+      }
+      f.isOnline.mockReturnValue(false);
+      await startApp(f);
+      const [[resume]] = f.onResume.mock.calls as [[() => void]];
+      resume();
+      vi.runOnlyPendingTimers();
+      expect(reconnects[0]).toHaveBeenCalled();
+      expect(reconnects[1]).toHaveBeenCalled();
+    });
+
+    it('adds an account in its own session and shows it', async () => {
+      const f = twoAccounts();
+      await startApp(f);
+      menu(f).add();
+      expect(f.createAccountHost).toHaveBeenLastCalledWith(f.window, {
+        partition: `persist:account-${THIRD}`,
+      });
+      expect(f.hosts[2]?.show).toHaveBeenCalledOnce();
+      expect(f.hosts[2]?.webContents.loadURL).toHaveBeenCalledWith(WHATSAPP_ORIGIN);
+    });
+
+    it('removes an account: closes it and deletes its data, warning if that fails', async () => {
+      const f = twoAccounts();
+      await startApp(f);
+      menu(f).remove(ACCOUNT);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(f.hosts[0]?.close).toHaveBeenCalledOnce();
+      expect(f.accountSession.clearStorageData).toHaveBeenCalledOnce();
+      expect(f.accountSession.clearCache).toHaveBeenCalledOnce();
+      f.accountSession.clearStorageData.mockRejectedValueOnce(new Error('busy'));
+      menu(f).add();
+      menu(f).remove(SECOND);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(f.warn).toHaveBeenCalledWith('Could not delete the data of a removed account.');
+    });
+  });
+
   it('opens WhatsApp in the active account’s own session', async () => {
     const f = fakes();
     await startApp(f);
-    expect(f.createAccountView).toHaveBeenCalledWith(f.window, {
+    expect(f.createAccountHost).toHaveBeenCalledWith(f.window, {
       partition: `persist:account-${ACCOUNT}`,
     });
     expect(f.sessionOf).toHaveBeenCalledWith(`persist:account-${ACCOUNT}`);

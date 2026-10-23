@@ -1,7 +1,7 @@
 import type { ElectronApplication } from '@playwright/test';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { expect, launchApp, test, whatsAppPage } from './fixtures.ts';
+import { closeApp, expect, launchApp, test, whatsAppPage } from './fixtures.ts';
 
 const BOUNDS = { x: 60, y: 40, width: 900, height: 640 };
 
@@ -42,7 +42,7 @@ test('reopens the window where it was left, even after SIGTERM', async ({
     await whatsAppPage(again);
     await expect.poll(() => mainBounds(again)).toEqual(BOUNDS);
   } finally {
-    await exited(again);
+    await closeApp(again);
   }
 });
 
@@ -67,7 +67,7 @@ test('starts with the default size when the saved state is corrupt', async ({
       })
       .toEqual([fresh?.width, fresh?.height]);
   } finally {
-    await exited(again);
+    await closeApp(again);
   }
 });
 

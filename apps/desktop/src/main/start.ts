@@ -1,6 +1,5 @@
-import type { ChromeFeature, WhatsAppContents } from './chrome/feature.ts';
+import type { AccountMenu, ChromeFeature, WhatsAppContents } from './chrome/feature.ts';
 import { watchConnectivity } from './connectivity/connectivity.ts';
-import { offlineTitle, type TitledPage, type TitledWindow } from './connectivity/offline-title.ts';
 import { APP_ID, PRODUCT_NAME } from './identity.ts';
 import type { CaptureChoice, DisplayCapturePort, MediaType } from './permissions/session-guard.ts';
 import { followThemeSetting, type ThemePort } from './appearance/theme.ts';
@@ -45,9 +44,11 @@ import {
 import type { ViewInfo, ViewRegistry } from './views.ts';
 import type { Overlay } from './recovery/controller.ts';
 import type { RendererOptions } from './web-preferences.ts';
-import { partitionOf, type Accounts } from './accounts/accounts.ts';
+import { accountSignals, type AccountSignals } from './accounts/account-signals.ts';
+import { partitionOf, type Account, type Accounts } from './accounts/accounts.ts';
+import { runAccounts, type AccountPage, type RunningAccounts } from './accounts/running.ts';
 import type { WindowOptions } from './windows.ts';
-import { bringToFront, claimSingleInstance, type LinkWindow } from './instances.ts';
+import { bringToFront, claimSingleInstance, type LinkPage, type LinkWindow } from './instances.ts';
 import { chatLinkInArguments } from './navigation/deep-link.ts';
 import { refuseUnsafeStart, type UnsafeStartDependencies } from './sandbox-check.ts';
 import {
@@ -63,7 +64,7 @@ import {
   type FocusableWindow,
 } from './window/focus-page.ts';
 import type { BadgeDrawing } from './badge/badge-image.ts';
-import { followUnreadCount, unreadBadge } from './badge/unread-badge.ts';
+import { unreadBadge } from './badge/unread-badge.ts';
 import { setUpTray, type TrayDependencies, type TrayPort } from './tray.ts';
 import { syncAutostartSetting, type AutostartPort } from './autostart/autostart.ts';
 import {
@@ -113,14 +114,28 @@ type AccountContents = WhatsAppContents &
   ZoomableContents &
   WatchedRenderer &
   ThrottledContents &
-  TitledPage &
   ReadyPage &
   FocusablePage & {
     loadURL(url: string): Promise<unknown>;
+    on(event: 'page-title-updated', listener: (event: unknown, title: string) => void): unknown;
   };
 
-export interface WindowPort extends TitledWindow, LinkWindow, Omit<ManagedWindow, 'on'> {
+/** An account's views in the main window, from `createAccountHost`. */
+interface AccountHostPort extends AccountPage {
+  readonly webContents: AccountContents;
+  readonly createOverlay: (renderer: RendererOptions) => Overlay;
+}
+
+/** What deleting a removed account's WhatsApp data needs. */
+interface ClearableSession {
+  clearStorageData(): Promise<void>;
+  clearCache(): Promise<void>;
+}
+
+export interface WindowPort extends LinkWindow, Omit<ManagedWindow, 'on'> {
   on: ManagedWindow['on'] & FocusableWindow['on'];
+  /** Shows the active account's page title, as a browser would. */
+  setTitle(title: string): void;
   isFocused(): boolean;
   /** The Windows taskbar overlay, an image from `badge.createImage`. */
   setOverlayIcon(overlay: object | null, description: string): void;
@@ -131,14 +146,15 @@ export interface WindowPort extends TitledWindow, LinkWindow, Omit<ManagedWindow
 export interface StartDependencies<Window extends WindowPort> {
   readonly app: AppPort;
   readonly createWindow: (options: WindowOptions) => Window;
-  /** Adds an account's view to the window, beneath any overlay. */
-  readonly createAccountView: (window: Window, renderer: RendererOptions) => AccountContents;
-  readonly createOverlay: (window: Window, renderer: RendererOptions) => Overlay;
+  /** An account's views in the window, hidden until it is the active one. */
+  readonly createAccountHost: (window: Window, renderer: RendererOptions) => AccountHostPort;
   /** Nothing loads in the default session, but it is guarded all the same. */
   readonly defaultSession: () => GuardedSession;
   /** The session behind a partition, such as an account's (ADR 0001). */
-  readonly sessionOf: (partition: string) => GuardedSession & DownloadingSession;
+  readonly sessionOf: (partition: string) => GuardedSession & DownloadingSession & ClearableSession;
   readonly accounts: Accounts;
+  readonly saveAccounts: (accounts: Accounts) => void;
+  readonly newAccountId: () => string;
   /** `process.versions.chrome`: the identity must match the bundled engine. */
   readonly chromeVersion: string;
   readonly platform: string;
@@ -345,44 +361,24 @@ function whatsAppOrigin(
   return origin;
 }
 
-function watchOnline(
-  deps: Pick<StartDependencies<WindowPort>, 'isOnline' | 'onResume'>,
-  { window, contents }: MainWindow<WindowPort>,
-  reconnect: () => void,
-): void {
-  watchConnectivity({
-    isOnline: deps.isOnline,
-    onResume: deps.onResume,
-    every: setInterval,
-    schedule: setTimeout,
-    onChange: offlineTitle(window, contents, PRODUCT_NAME),
-    reconnect,
-  });
-}
-
 /**
- * Guards the default session, where nothing should load, and the active
- * account's, where WhatsApp runs and downloads.
+ * Each account's session gets YapYap's guards and download handling (the
+ * `session-created` hook also secures it, before anything loads there).
  */
-function guardSessions<Window extends WindowPort>(
+function guardAccountSession<Window extends WindowPort>(
   deps: StartDependencies<Window>,
   security: Parameters<typeof secureSession>[1],
+  account: Account,
 ): void {
-  secureSession(deps.defaultSession(), security);
-  const account = deps.sessionOf(partitionOf({ id: deps.accounts.active }));
-  secureSession(account, security);
-  guardDownloads(account, { ...deps.downloads, notify: deps.notify, warn: deps.warn });
+  const session = deps.sessionOf(partitionOf(account));
+  secureSession(session, security);
+  guardDownloads(session, { ...deps.downloads, notify: deps.notify, warn: deps.warn });
 }
 
-/** Opens the WhatsApp window where the user left it. */
-function openMainWindow<Window extends WindowPort>(
-  deps: StartDependencies<Window>,
-): { readonly window: Window; readonly contents: AccountContents } {
+/** Opens the main window where the user left it. */
+function openMainWindow<Window extends WindowPort>(deps: StartDependencies<Window>): Window {
   const { state, bounds } = restoreWindowState(deps.windowState, deps.workAreas());
   const window = deps.createWindow({ ...MAIN_WINDOW, ...bounds });
-  const contents = deps.createAccountView(window, {
-    partition: partitionOf({ id: deps.accounts.active }),
-  });
   manageMainWindow(window, state, {
     store: deps.windowState,
     platform: deps.platform,
@@ -390,7 +386,7 @@ function openMainWindow<Window extends WindowPort>(
     app: deps.app,
     warn: deps.warn,
   });
-  return { window, contents };
+  return window;
 }
 
 /** Never runs unsandboxed: explains why YapYap will not start, then quits. */
@@ -408,38 +404,32 @@ function refuseWithoutSandbox<Window extends WindowPort>(
   });
 }
 
-/** Registers WhatsApp's window and puts recovery, reconnects and zoom on it. */
-function showUnreadCount<Window extends WindowPort>(
-  deps: Pick<StartDependencies<Window>, 'badge' | 'platform'>,
-  { window, contents }: MainWindow<Window>,
-): void {
-  const badge = unreadBadge({
-    ...deps.badge,
-    platform: deps.platform,
-    setOverlayIcon: window.setOverlayIcon.bind(window),
-  });
-  followUnreadCount(contents, badge);
-}
-
-/** The main window and the WhatsApp it shows. */
-interface MainWindow<Window extends WindowPort> {
-  readonly window: Window;
+/** An open account's views, and how to bring its WhatsApp back after an outage. */
+interface OpenedAccount extends AccountPage {
   readonly contents: AccountContents;
+  readonly reconnect: () => void;
 }
 
-/** Everything that watches or serves one account's WhatsApp. */
-function wireAccount<Window extends WindowPort>(
-  deps: StartDependencies<Window>,
-  chrome: ReturnType<StartDependencies<Window>['chrome']['afterReady']>,
-  { window, contents }: MainWindow<Window>,
-  views: ViewRegistry,
-  origin: string,
-): void {
-  views.set(contents, { zone: 'whatsapp', home: origin, label: en.common.whatsApp });
-  const recovery = chrome.attachRecovery(contents, origin, (renderer) =>
-    deps.createOverlay(window, renderer),
-  );
-  watchOnline(deps, { window, contents }, recovery.reconnect);
+interface AccountWiring<Window extends WindowPort> {
+  readonly deps: StartDependencies<Window>;
+  readonly chrome: ReturnType<StartDependencies<Window>['chrome']['afterReady']>;
+  readonly security: Parameters<typeof secureSession>[1];
+  readonly window: Window;
+  readonly signals: AccountSignals;
+  readonly origin: string;
+}
+
+/** Opens an account's views, hidden, and everything that watches or serves its WhatsApp. */
+function openAccount<Window extends WindowPort>(
+  wiring: AccountWiring<Window>,
+  account: Account,
+): OpenedAccount {
+  const { deps, chrome, window, signals, origin } = wiring;
+  guardAccountSession(deps, wiring.security, account);
+  const host = deps.createAccountHost(window, { partition: partitionOf(account) });
+  const contents = host.webContents;
+  wiring.security.views.set(contents, { zone: 'whatsapp', home: origin, label: account.name });
+  const recovery = chrome.attachRecovery(contents, origin, host.createOverlay);
   watchMemory(contents, {
     metrics: deps.appMetrics,
     limitMb: () => deps.settings.current().reliability.memoryWatchdogMb,
@@ -448,34 +438,159 @@ function wireAccount<Window extends WindowPort>(
     every: setInterval,
     warn: deps.warn,
   });
+  followZoomSetting(contents, deps.settings);
+  followHiddenReadsSetting(contents, deps.settings);
+  contents.on('page-title-updated', (_event, title) => {
+    signals.pageTitle(account.id, title);
+  });
+  return { ...host, contents, reconnect: recovery.reconnect };
+}
+
+/** Deletes a removed account's WhatsApp data; its folder goes at the next start. */
+async function forgetAccount<Window extends WindowPort>(
+  deps: StartDependencies<Window>,
+  signals: AccountSignals,
+  account: Account,
+): Promise<void> {
+  signals.forget(account.id);
+  const session = deps.sessionOf(partitionOf(account));
+  await session.clearStorageData();
+  await session.clearCache();
+}
+
+/** A failed page load needs no handling here: the recovery monitor reports it. */
+const reportedElsewhere = (): undefined => undefined;
+
+/** What the Account menu shows and does. */
+function accountMenu(
+  running: RunningAccounts<OpenedAccount>,
+  origin: string,
+  warn: (message: string) => void,
+): AccountMenu {
+  const active = running.active().account.id;
+  return {
+    entries: running.opened().map(({ account }) => ({
+      id: account.id,
+      name: account.name,
+      active: account.id === active,
+    })),
+    activeContents: () => running.active().page.contents,
+    switchTo: running.switchTo,
+    add: () => {
+      running.add();
+      // A failed load is reported by the recovery monitor.
+      running.active().page.contents.loadURL(origin).catch(reportedElsewhere);
+    },
+    remove: (id) => {
+      running.remove(id).catch(() => {
+        warn('Could not delete the data of a removed account.');
+      });
+    },
+  };
+}
+
+/** The window's title and the app badge, from every account's page title. */
+function windowSignals<Window extends WindowPort>(
+  deps: Pick<StartDependencies<Window>, 'badge' | 'platform'>,
+  window: Window,
+): AccountSignals {
+  return accountSignals({
+    setTitle: (title) => {
+      window.setTitle(title);
+    },
+    showUnread: unreadBadge({
+      ...deps.badge,
+      platform: deps.platform,
+      setOverlayIcon: window.setOverlayIcon.bind(window),
+    }),
+    initialTitle: PRODUCT_NAME,
+  });
+}
+
+/** Every enabled account, in its own view of the main window; the active one shows. */
+function openAccounts<Window extends WindowPort>(
+  wiring: Omit<AccountWiring<Window>, 'signals'>,
+): RunningAccounts<OpenedAccount> {
+  const { deps, chrome, window } = wiring;
+  const signals = windowSignals(deps, window);
+  const changed = (): void => {
+    signals.activate(running.active().account.id);
+    chrome.setAccountMenu(accountMenu(running, wiring.origin, deps.warn));
+  };
+  const running = runAccounts({
+    accounts: deps.accounts,
+    open: (account) => openAccount({ ...wiring, signals }, account),
+    save: deps.saveAccounts,
+    forget: (account) => forgetAccount(deps, signals, account),
+    newId: deps.newAccountId,
+    onChange: changed,
+  });
+  changed();
+  watchConnectivity({
+    isOnline: deps.isOnline,
+    onResume: deps.onResume,
+    every: setInterval,
+    schedule: setTimeout,
+    onChange: signals.setOnline,
+    reconnect: () => {
+      for (const { page } of running.opened()) {
+        page.reconnect();
+      }
+    },
+  });
+  return running;
+}
+
+/** The window-wide parts: chat links, focus, the tray, and showing the window. */
+function wireMainWindow<Window extends WindowPort>(
+  deps: StartDependencies<Window>,
+  chrome: ReturnType<StartDependencies<Window>['chrome']['afterReady']>,
+  window: Window,
+  running: RunningAccounts<OpenedAccount>,
+  origin: string,
+): LinkPage {
+  const activePage = (): AccountContents => running.active().page.contents;
+  const page: LinkPage = { loadURL: (url) => activePage().loadURL(url) };
   chrome.openChatsWith((phone) => {
     const target = new URL('/send', origin);
     target.searchParams.set('phone', phone);
     bringToFront(window);
     // A failed load is reported by the recovery monitor.
-    contents.loadURL(target.href).catch(() => undefined);
+    page.loadURL(target.href).catch(() => undefined);
   });
-  followZoomSetting(contents, deps.settings);
-  followHiddenReadsSetting(contents, deps.settings);
-  focusPageWithWindow(window, contents);
-}
-
-function wireMainWindow<Window extends WindowPort>(
-  deps: StartDependencies<Window>,
-  chrome: ReturnType<StartDependencies<Window>['chrome']['afterReady']>,
-  main: MainWindow<Window>,
-  views: ViewRegistry,
-  origin: string,
-): void {
-  wireAccount(deps, chrome, main, views, origin);
-  showUnreadCount(deps, main);
-  setUpTray(deps.tray.create(), main.window, {
+  focusPageWithWindow(window, {
+    focus: () => {
+      activePage().focus();
+    },
+  });
+  setUpTray(deps.tray.create(), window, {
     buildMenu: deps.tray.buildMenu,
     quit: () => {
       deps.app.quit();
     },
   });
-  showWhenReady(main.window, deps.settings.current().general.startMinimized, main.contents);
+  showWhenReady(window, deps.settings.current().general.startMinimized, activePage());
+  return page;
+}
+
+/**
+ * Loads WhatsApp in every open account; a chat link from the command line
+ * opens in the active one.
+ */
+async function loadWhatsApp(
+  running: RunningAccounts<OpenedAccount>,
+  link: string | undefined,
+  origin: string,
+): Promise<void> {
+  const active = running.active().page;
+  // A failed load must not end startup: the monitor shows the recovery screen.
+  await Promise.all(
+    running
+      .opened()
+      .map(({ page }) =>
+        page.contents.loadURL(page === active ? (link ?? origin) : origin).catch(reportedElsewhere),
+      ),
+  );
 }
 
 /** How YapYap presents itself to WhatsApp: the bundled Chromium, as desktop Chrome. */
@@ -514,7 +629,7 @@ export async function startApp<Window extends WindowPort>(
   const graphics = beforeReady(deps, security);
 
   await app.whenReady();
-  guardSessions(deps, security);
+  secureSession(deps.defaultSession(), security);
   followThemeSetting(deps.nativeTheme, deps.settings);
   syncAutostartSetting(deps.autostart, deps.settings, warn);
   const rendering = `${describeGraphics(graphics)}, display ${describeDisplayBackend(display)}`;
@@ -522,9 +637,8 @@ export async function startApp<Window extends WindowPort>(
   picker.bind(chrome.pickCaptureSource);
   announceStartup(deps, graphics);
   reportCrash(chrome.technicalDetails);
-  const { window, contents } = openMainWindow(deps);
-  wireMainWindow(deps, chrome, { window, contents }, views, origin);
-  instances.attach(window, contents);
-  // A failed load must not end startup: the monitor shows the recovery screen.
-  await contents.loadURL(chatLinkInArguments(deps.argv, origin) ?? origin).catch(() => undefined);
+  const window = openMainWindow(deps);
+  const running = openAccounts({ deps, chrome, security, window, origin });
+  instances.attach(window, wireMainWindow(deps, chrome, window, running, origin));
+  await loadWhatsApp(running, chatLinkInArguments(deps.argv, origin), origin);
 }

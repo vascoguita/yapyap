@@ -22,7 +22,7 @@ import {
   type SourcePicker,
 } from '../capture/picker.ts';
 import { changeZoom } from '../appearance/zoom.ts';
-import { buildMenuTemplate, type MenuActions } from '../menu.ts';
+import { buildMenuTemplate, type AccountEntry, type MenuActions } from '../menu.ts';
 import {
   createRecovery,
   type Overlay,
@@ -144,6 +144,8 @@ export interface ChromeFeatureDependencies {
   readonly restart: () => void;
   /** Asks before logging the account out; true when the user agrees. */
   readonly confirmReset: () => Promise<boolean>;
+  /** Asks before removing the account named `name`; true when the user agrees. */
+  readonly confirmRemoveAccount: (name: string) => Promise<boolean>;
   readonly captureSources: (kind: SourceKind) => Promise<readonly DesktopSource[]>;
   /** The window showing `contents`, so the picker can sit on top of it. */
   readonly windowOf: (contents: object) => WindowOptions['parent'] | null;
@@ -164,7 +166,29 @@ interface ChromeRuntime {
   readonly technicalDetails: () => string;
   /** Where the New Chat window opens chats: WhatsApp's window, once it exists. */
   readonly openChatsWith: (open: (phone: string) => void) => void;
+  /** Lists the accounts in the Account menu, whose actions apply to the active one. */
+  readonly setAccountMenu: (menu: AccountMenu) => void;
 }
+
+/** The accounts as the menu needs them. */
+export interface AccountMenu {
+  readonly entries: readonly AccountEntry[];
+  /** The active account's WhatsApp, which Clear Cache and Reset Session act on. */
+  readonly activeContents: () => object;
+  readonly switchTo: (id: string) => void;
+  readonly add: () => void;
+  readonly remove: (id: string) => void;
+}
+
+/** Until the accounts are open, the menu lists none and its account actions do nothing. */
+const ignore = (): void => undefined;
+const NO_ACCOUNTS: AccountMenu = {
+  entries: [],
+  activeContents: () => ({}),
+  switchTo: ignore,
+  add: ignore,
+  remove: ignore,
+};
 
 export interface ChromeFeature {
   /** Must run before the app is ready, when custom schemes can still be registered. */
@@ -193,9 +217,9 @@ function aboutHandlers(deps: FactsSource): ChromeHandler[] {
   ];
 }
 
-function recoveryHandlers(recoveries: readonly Recovery[]): ChromeHandler[] {
+function recoveryHandlers(recoveries: ReadonlyMap<object, Recovery>): ChromeHandler[] {
   const of = ({ sender }: ChromeCall): Recovery => {
-    const recovery = recoveries.find((candidate) => candidate.owns(sender));
+    const recovery = [...recoveries.values()].find((candidate) => candidate.owns(sender));
     if (recovery === undefined) {
       throw new Error('No recovery screen belongs to this window.');
     }
@@ -219,7 +243,7 @@ function recoveryAttacher(
   renderer: RendererOptions,
   views: ViewRegistry,
   warn: (message: string) => void,
-  recoveries: Recovery[],
+  recoveries: Map<object, Recovery>,
   pages: ProbedContents[],
 ): ChromeRuntime['attachRecovery'] {
   const technicalDetails = () => diagnostics(deps);
@@ -234,7 +258,7 @@ function recoveryAttacher(
       createOverlay: () => createOverlay(renderer),
       writeClipboard: deps.writeClipboard,
     });
-    recoveries.push(recovery);
+    recoveries.set(contents, recovery);
     monitorPage(contents, { onFailure: recovery.show, schedule: setTimeout, warn });
     guardCrashes(contents, {
       now: Date.now,
@@ -279,20 +303,36 @@ function sourcePicker(
 /** Acts on the WhatsApp view; there is one per window until accounts arrive. */
 function accountActions(
   deps: ChromeFeatureDependencies,
-  recoveries: readonly Recovery[],
+  recoveries: ReadonlyMap<object, Recovery>,
+  menu: AccountMenu,
   warn: (message: string) => void,
-): Pick<MenuActions, 'clearCache' | 'resetSession'> {
+): Pick<MenuActions, 'clearCache' | 'resetSession' | 'removeAccount'> {
   const failed = (): void => {
     warn('Could not finish an account maintenance action.');
   };
+  const active = (): Recovery | undefined => recoveries.get(menu.activeContents());
   return {
     clearCache: () => {
-      recoveries[0]?.clearCacheAndRetry().catch(failed);
+      active()?.clearCacheAndRetry().catch(failed);
     },
     resetSession: () => {
       deps
         .confirmReset()
-        .then((confirmed) => (confirmed ? recoveries[0]?.resetSession() : undefined))
+        .then((confirmed) => (confirmed ? active()?.resetSession() : undefined))
+        .catch(failed);
+    },
+    removeAccount: () => {
+      const entry = menu.entries.find((candidate) => candidate.active);
+      if (entry === undefined) {
+        return;
+      }
+      deps
+        .confirmRemoveAccount(entry.name)
+        .then((confirmed) => {
+          if (confirmed) {
+            menu.remove(entry.id);
+          }
+        })
         .catch(failed);
     },
   };
@@ -331,26 +371,37 @@ function chromeWindows(
   return { createWindow: (options) => deps.createWindow(options, renderer), views, warn };
 }
 
-function setMenu(
+/**
+ * Sets the application menu now, without accounts, and again whenever the
+ * accounts change; returns how to give it the accounts.
+ */
+function accountMenuSetter(
   deps: ChromeFeatureDependencies,
   windows: ChromeWindowDependencies,
-  recoveries: readonly Recovery[],
+  recoveries: ReadonlyMap<object, Recovery>,
   warn: (message: string) => void,
   copyDiagnostics: () => void,
-): void {
+): (menu: AccountMenu) => void {
   const opener = (page: ChromePage) => createChromeWindowOpener(windows, page);
-  deps.setMenu(
-    buildMenuTemplate(deps.platform, {
-      openAbout: opener(ABOUT_PAGE),
-      openSettings: opener(SETTINGS_PAGE),
-      openNewChat: opener(NEW_CHAT_PAGE),
-      ...accountActions(deps, recoveries, warn),
-      zoom: (step) => {
-        changeZoom(deps.settings, step);
-      },
-      copyDiagnostics,
-    }),
-  );
+  const set = (menu: AccountMenu): void => {
+    deps.setMenu(
+      buildMenuTemplate(deps.platform, {
+        accounts: menu.entries,
+        switchAccount: menu.switchTo,
+        addAccount: menu.add,
+        openAbout: opener(ABOUT_PAGE),
+        openSettings: opener(SETTINGS_PAGE),
+        openNewChat: opener(NEW_CHAT_PAGE),
+        ...accountActions(deps, recoveries, menu, warn),
+        zoom: (step) => {
+          changeZoom(deps.settings, step);
+        },
+        copyDiagnostics,
+      }),
+    );
+  };
+  set(NO_ACCOUNTS);
+  return set;
 }
 
 /** YapYap's own pages, served from the chrome scheme. */
@@ -361,7 +412,7 @@ function serveChromePages(deps: ChromeFeatureDependencies): void {
 
 function allHandlers(
   deps: Omit<ChromeFeatureDependencies, 'facts'> & FactsSource,
-  recoveries: readonly Recovery[],
+  recoveries: ReadonlyMap<object, Recovery>,
   picker: SourcePicker,
   chats: ChatTarget,
 ): ChromeHandler[] {
@@ -392,7 +443,7 @@ export function createChromeFeature(deps: ChromeFeatureDependencies): ChromeFeat
     afterReady: (views, warn, graphics) => {
       const withGraphics = { ...deps, facts: () => ({ ...deps.facts(), graphics }) };
       serveChromePages(deps);
-      const recoveries: Recovery[] = [];
+      const recoveries = new Map<object, Recovery>();
       const pages: ProbedContents[] = [];
       const windows = chromeWindows(deps, renderer, views, warn);
       const picker = sourcePicker(deps, windows);
@@ -403,7 +454,7 @@ export function createChromeFeature(deps: ChromeFeatureDependencies): ChromeFeat
         allHandlers(withGraphics, recoveries, picker, chats),
         warn,
       );
-      setMenu(deps, windows, recoveries, warn, () => {
+      const setAccountMenu = accountMenuSetter(deps, windows, recoveries, warn, () => {
         writeDiagnostics(withGraphics, pages).catch(() => {
           warn('Could not copy the diagnostics.');
         });
@@ -415,6 +466,7 @@ export function createChromeFeature(deps: ChromeFeatureDependencies): ChromeFeat
         openChatsWith: (open) => {
           chats.open = open;
         },
+        setAccountMenu,
       };
     },
   };

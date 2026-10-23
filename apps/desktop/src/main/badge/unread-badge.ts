@@ -1,4 +1,3 @@
-import { unreadInTitle } from '../../adapter/page-state.ts';
 import { en } from '../../shared/messages/en.ts';
 import { drawBadge, type BadgeDrawing } from './badge-image.ts';
 
@@ -32,15 +31,4 @@ export function unreadBadge<Image>(deps: BadgeDependencies<Image>): (count: numb
       count === 0 ? '' : en.badge.unread(count),
     );
   };
-}
-
-export interface CountedWindow {
-  on(event: 'page-title-updated', listener: (event: unknown, title: string) => void): unknown;
-}
-
-/** WhatsApp keeps its unread count in the page title, so no page probe is needed. */
-export function followUnreadCount(window: CountedWindow, show: (count: number) => void): void {
-  window.on('page-title-updated', (_event, title) => {
-    show(unreadInTitle(title));
-  });
 }

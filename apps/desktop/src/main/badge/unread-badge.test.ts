@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { followUnreadCount, unreadBadge } from './unread-badge.ts';
+import { unreadBadge } from './unread-badge.ts';
 
 function badge(platform: string) {
   const deps = {
@@ -39,21 +39,5 @@ describe('unreadBadge', () => {
     show(2);
     show(2);
     expect(deps.setBadgeCount.mock.calls).toEqual([[2]]);
-  });
-});
-
-describe('followUnreadCount', () => {
-  it('reads the count from each new page title', () => {
-    let listener: ((event: unknown, title: string) => void) | undefined;
-    const window = {
-      on: vi.fn((_event: 'page-title-updated', handler: typeof listener) => {
-        listener = handler;
-      }),
-    };
-    const show = vi.fn();
-    followUnreadCount(window, show);
-    listener?.({}, '(7) WhatsApp');
-    listener?.({}, 'WhatsApp');
-    expect(show.mock.calls).toEqual([[7], [0]]);
   });
 });
