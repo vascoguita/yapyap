@@ -19,6 +19,7 @@ function setup(platform = 'linux', minimized = false) {
     setToolTip: vi.fn(),
     setContextMenu: vi.fn(),
     setTitle: vi.fn(),
+    setImage: vi.fn(),
     on: vi.fn((_event: 'click', listener: () => void) => {
       click = listener;
     }),

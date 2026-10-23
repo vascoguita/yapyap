@@ -51,6 +51,31 @@ describe('migrate', () => {
   });
 });
 
+describe('version 8 to 9', () => {
+  const toVersion9 = MIGRATIONS[7];
+
+  it('keeps the app icon in the tray, and the other appearance settings', () => {
+    expect(toVersion9?.({ schemaVersion: 8, appearance: { theme: 'dark' } })).toEqual({
+      schemaVersion: 8,
+      appearance: { trayIcon: 'color', theme: 'dark' },
+    });
+  });
+
+  it('keeps a choice that is already there', () => {
+    expect(toVersion9?.({ appearance: { trayIcon: 'auto' } })).toEqual({
+      appearance: { trayIcon: 'auto' },
+    });
+  });
+
+  it.each([undefined, null, 'on', [true]])(
+    'leaves an appearance section of %j for validation to reset',
+    (appearance) => {
+      const settings = { schemaVersion: 8, appearance };
+      expect(toVersion9?.(settings)).toBe(settings);
+    },
+  );
+});
+
 describe('version 7 to 8', () => {
   const toVersion8 = MIGRATIONS[6];
 

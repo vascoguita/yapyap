@@ -56,6 +56,7 @@ import { confirmResetWithDialog } from './session-reset-prompt.ts';
 import { confirmRemoveAccountWithDialog } from './account-removal-prompt.ts';
 import { explainUnsafeStartWithDialog } from './unsafe-start-prompt.ts';
 import { startApp } from './start.ts';
+import { trayImage } from './tray/tray-icon.ts';
 import { createAccountHost, createSecureWindow, createSidebarView } from './windows.ts';
 
 const PICKER_THUMBNAIL = { width: 320, height: 180 };
@@ -257,6 +258,16 @@ startApp({
       return tray;
     },
     buildMenu: (template) => Menu.buildFromTemplate(template),
+    image: (choice) =>
+      trayImage(
+        choice,
+        {
+          fromPath: (path) => nativeImage.createFromPath(path),
+          fromBitmap: (bitmap, size) => nativeImage.createFromBitmap(bitmap, size),
+        },
+        trayIcon,
+      ),
+    scheme: nativeTheme,
   },
   releases: {
     policy: updatePolicy,

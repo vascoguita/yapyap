@@ -9,6 +9,7 @@ const VIDEO = 'reliability.hardwareVideoDecoding';
 const THEME = 'appearance.theme';
 const MENU_BAR = 'appearance.autoHideMenuBar';
 const COMPACT = 'appearance.compactSidebar';
+const TRAY_ICON = 'appearance.trayIcon';
 const BACKEND = 'reliability.displayBackend';
 const CRASH = 'privacy.crashReports';
 const UNREAD = 'privacy.unreadWhileHidden';
@@ -115,6 +116,7 @@ describe('settingsHandlers', () => {
         [THEME]: 'system',
         [MENU_BAR]: false,
         [COMPACT]: false,
+        [TRAY_ICON]: 'color',
         [HARDWARE]: true,
         [BACKEND]: 'auto',
         [VIDEO]: true,
@@ -185,6 +187,7 @@ describe('settingsHandlers', () => {
         [THEME]: 'system',
         [MENU_BAR]: false,
         [COMPACT]: false,
+        [TRAY_ICON]: 'color',
         [HARDWARE]: false,
         [BACKEND]: 'auto',
         [VIDEO]: true,

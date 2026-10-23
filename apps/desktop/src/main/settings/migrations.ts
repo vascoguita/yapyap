@@ -65,6 +65,14 @@ function addCompactSidebar(settings: Raw): Raw {
     : settings;
 }
 
+/** Version 9 adds the tray icon style, keeping the app icon as before (#63). */
+function addTrayIcon(settings: Raw): Raw {
+  const appearance = settings['appearance'];
+  return isSection(appearance)
+    ? { ...settings, appearance: { trayIcon: 'color', ...appearance } }
+    : settings;
+}
+
 /**
  * `MIGRATIONS[n]` turns a version n+1 file into version n+2. They are pure,
  * forward-only, and each has its own test; a test also checks that there is
@@ -78,6 +86,7 @@ export const MIGRATIONS: readonly ((settings: Raw) => Raw)[] = [
   addNotificationPrivacy,
   addDoNotDisturb,
   addCompactSidebar,
+  addTrayIcon,
 ];
 
 export type MigrationResult =

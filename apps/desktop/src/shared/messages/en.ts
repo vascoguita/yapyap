@@ -182,6 +182,17 @@ const catalog = {
         label: 'Hide the menu bar',
         description: 'Press Alt to show it when you need it.',
       },
+      'appearance.trayIcon': {
+        label: 'Tray icon',
+        description:
+          'A one-color icon matches the other icons in your panel or menu bar. Automatic picks the shade that stands out against it.',
+        options: {
+          color: 'App icon',
+          auto: 'One color, automatic',
+          light: 'One color, light',
+          dark: 'One color, dark',
+        },
+      },
       'appearance.compactSidebar': {
         label: 'Compact account sidebar',
         description:

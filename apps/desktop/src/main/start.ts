@@ -82,7 +82,12 @@ import {
 } from './window/focus-page.ts';
 import type { BadgeDrawing } from './badge/badge-image.ts';
 import { unreadBadge } from './badge/unread-badge.ts';
-import { setUpTray, type TrayDependencies, type TrayPort } from './tray.ts';
+import { setUpTray, type TrayDependencies, type TrayPort } from './tray/tray.ts';
+import {
+  followTrayIconSetting,
+  type SchemeSource,
+  type TrayIconDependencies,
+} from './tray/tray-icon.ts';
 import { syncAutostartSetting, type AutostartPort } from './autostart/autostart.ts';
 import {
   manageMainWindow,
@@ -238,6 +243,8 @@ export interface StartDependencies<Window extends WindowPort> {
     /** Creates the tray icon; the caller keeps it alive. */
     readonly create: () => TrayPort;
     readonly buildMenu: TrayDependencies['buildMenu'];
+    readonly image: TrayIconDependencies['image'];
+    readonly scheme: SchemeSource;
   };
   readonly notify: (message: string) => void;
   readonly warn: (message: string) => void;
@@ -627,7 +634,9 @@ function accountsTray<Window extends WindowPort>(
   visibility: Visibility,
 ): { readonly refresh: () => void; readonly setUnread: (unread: number) => void } {
   let unread = 0;
-  const update = setUpTray(deps.tray.create(), window, {
+  const port = deps.tray.create();
+  followTrayIconSetting(port, { ...deps.tray, platform: deps.platform, settings: deps.settings });
+  const update = setUpTray(port, window, {
     platform: deps.platform,
     buildMenu: deps.tray.buildMenu,
     switchAccount: (id) => {

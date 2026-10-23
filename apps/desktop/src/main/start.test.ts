@@ -249,8 +249,15 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
         setContextMenu: vi.fn(),
         setTitle: vi.fn(),
         on: vi.fn(),
+        setImage: vi.fn(),
       })),
       buildMenu: vi.fn((template: unknown) => template),
+      image: vi.fn((choice: string) => `image:${choice}`),
+      scheme: {
+        shouldUseDarkColors: true,
+        shouldUseDarkColorsForSystemIntegratedUI: false,
+        on: vi.fn(),
+      },
     },
     releases: {
       policy: 'manual' as 'manual' | 'notify' | 'self-update',
@@ -646,6 +653,8 @@ describe('startApp', () => {
     const f = fakes();
     await startApp(f);
     expect(f.tray.create).toHaveBeenCalledOnce();
+    const icon = f.tray.create.mock.results[0]?.value as { setImage: ReturnType<typeof vi.fn> };
+    expect(icon.setImage).toHaveBeenCalledWith('image:color');
     const tray = f.tray.create.mock.results[0]?.value as {
       setToolTip: ReturnType<typeof vi.fn>;
     };
