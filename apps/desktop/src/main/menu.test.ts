@@ -21,6 +21,8 @@ function actions(accounts: AccountSummary[] = []) {
     clearCache: vi.fn(),
     resetSession: vi.fn(),
     zoom: vi.fn(),
+    privacyScreen: false,
+    togglePrivacyScreen: vi.fn(),
     copyDiagnostics: vi.fn(),
   };
 }
@@ -93,6 +95,18 @@ describe('buildMenuTemplate', () => {
     );
   });
 
+  it('turns the privacy screen on and off from the View menu', () => {
+    const a = { ...actions(), privacyScreen: true };
+    const view = buildMenuTemplate('linux', a).find((menu) => menu.label === '&View');
+    const screen = items(view).find((item) => item.label === 'Privacy Screen');
+    expect(screen).toMatchObject({
+      type: 'checkbox',
+      checked: true,
+      accelerator: 'CmdOrCtrl+Shift+H',
+    });
+    expect(screen?.click).toBe(a.togglePrivacyScreen);
+  });
+
   it('zooms the WhatsApp view in 5% steps from the View menu', () => {
     const a = actions();
     const view = buildMenuTemplate('linux', a).find((menu) => menu.label === '&View');
@@ -106,9 +120,10 @@ describe('buildMenuTemplate', () => {
       'Zoom In',
       'Zoom Out',
       'separator',
+      'Privacy Screen',
       'togglefullscreen',
     ]);
-    const zoomItems = entries.filter((item) => item.accelerator !== undefined);
+    const zoomItems = entries.slice(4, 7);
     expect(zoomItems.map((item) => item.accelerator)).toEqual([
       'CmdOrCtrl+0',
       'CmdOrCtrl+=',

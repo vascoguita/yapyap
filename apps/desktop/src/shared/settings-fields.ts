@@ -78,5 +78,7 @@ export const SETTING_FIELDS: readonly SettingField[] = [
   { ...described('privacy.unreadWhileHidden'), restart: false },
   { ...described('privacy.notificationSender'), restart: false },
   { ...described('privacy.notificationText'), restart: false },
+  { ...described('privacy.blurWhenUnfocused'), restart: false },
+  { ...described('privacy.blurWhenIdle'), restart: false },
   { ...described('plugins.developerMode'), restart: false },
 ];

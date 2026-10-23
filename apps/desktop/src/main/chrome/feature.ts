@@ -210,6 +210,8 @@ export interface AccountMenu extends AccountManager {
   readonly activeContents: () => object;
   readonly switchTo: (id: string) => void;
   readonly add: () => void;
+  readonly privacyScreen: boolean;
+  readonly togglePrivacyScreen: () => void;
 }
 
 /** Until the accounts are open, their menu items do nothing. */
@@ -440,6 +442,31 @@ function chromeOpeners(windows: ChromeWindowDependencies, plugins: PluginChrome)
   };
 }
 
+/** The accounts and the privacy screen, which do nothing until the accounts are open. */
+function menuAccounts(
+  menu: AccountMenu | undefined,
+): Pick<
+  MenuActions,
+  'accounts' | 'switchAccount' | 'addAccount' | 'privacyScreen' | 'togglePrivacyScreen'
+> {
+  if (menu === undefined) {
+    return {
+      accounts: [],
+      switchAccount: ignore,
+      addAccount: ignore,
+      privacyScreen: false,
+      togglePrivacyScreen: ignore,
+    };
+  }
+  return {
+    accounts: menu.entries,
+    switchAccount: menu.switchTo,
+    addAccount: menu.add,
+    privacyScreen: menu.privacyScreen,
+    togglePrivacyScreen: menu.togglePrivacyScreen,
+  };
+}
+
 function accountMenuSetter(
   deps: ChromeFeatureDependencies,
   openers: ChromeOpeners,
@@ -451,9 +478,7 @@ function accountMenuSetter(
   const set = (menu: AccountMenu | undefined): void => {
     deps.setMenu(
       buildMenuTemplate(deps.platform, {
-        accounts: menu?.entries ?? [],
-        switchAccount: menu?.switchTo ?? ignore,
-        addAccount: menu?.add ?? ignore,
+        ...menuAccounts(menu),
         ...openers,
         ...accountActions(deps, recoveries, menu, warn),
         ...quietActions(deps.settings, menu),

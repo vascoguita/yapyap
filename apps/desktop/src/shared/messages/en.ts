@@ -240,6 +240,16 @@ const catalog = {
         description:
           'Turn this off to show “New message” instead. The text then never reaches your system’s notifications.',
       },
+      'privacy.blurWhenUnfocused': {
+        label: 'Blur WhatsApp when YapYap is not in front',
+        description:
+          'Hides your chats whenever another window is in front of YapYap. Click YapYap to see them again.',
+      },
+      'privacy.blurWhenIdle': {
+        label: 'Blur WhatsApp when you are away',
+        description:
+          'Hides your chats after five minutes without using your computer, until you are back.',
+      },
       'privacy.unreadWhileHidden': {
         label: 'Keep chats unread while YapYap is hidden',
         description:
@@ -362,6 +372,7 @@ const catalog = {
     hide: 'Hide YapYap',
     settings: 'Settings…',
     doNotDisturb: 'Do Not Disturb',
+    privacyScreen: 'Privacy Screen',
     sharing: 'YapYap: sharing your screen',
     stopSharing: (account: string): string => `Stop Sharing Screen (${account})`,
     mutedAccount: (name: string): string => `${name} (muted)`,
@@ -373,6 +384,7 @@ const catalog = {
     view: '&View',
     account: '&Account',
     actualSize: 'Actual Size',
+    privacyScreen: 'Privacy Screen',
     zoomIn: 'Zoom In',
     zoomOut: 'Zoom Out',
     newChat: 'New Chat with Number…',

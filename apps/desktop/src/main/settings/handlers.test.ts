@@ -11,6 +11,8 @@ const MENU_BAR = 'appearance.autoHideMenuBar';
 const COMPACT = 'appearance.compactSidebar';
 const TRAY_ICON = 'appearance.trayIcon';
 const DEVELOPER = 'plugins.developerMode';
+const BLUR_UNFOCUSED = 'privacy.blurWhenUnfocused';
+const BLUR_IDLE = 'privacy.blurWhenIdle';
 const BACKEND = 'reliability.displayBackend';
 const CRASH = 'privacy.crashReports';
 const UNREAD = 'privacy.unreadWhileHidden';
@@ -125,6 +127,8 @@ describe('settingsHandlers', () => {
         [UNREAD]: true,
         [SENDER]: true,
         [TEXT]: true,
+        [BLUR_UNFOCUSED]: false,
+        [BLUR_IDLE]: false,
         [DEVELOPER]: false,
         [AUTOSTART]: false,
         [START_MINIMIZED]: false,
@@ -197,6 +201,8 @@ describe('settingsHandlers', () => {
         [UNREAD]: true,
         [SENDER]: true,
         [TEXT]: true,
+        [BLUR_UNFOCUSED]: false,
+        [BLUR_IDLE]: false,
         [DEVELOPER]: false,
         [AUTOSTART]: false,
         [START_MINIMIZED]: false,

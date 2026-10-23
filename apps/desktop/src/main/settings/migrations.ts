@@ -84,6 +84,14 @@ function addPlugins(settings: Raw): Raw {
     : settings;
 }
 
+/** Version 11 adds the automatic privacy screen, off as before (#85). */
+function addPrivacyScreen(settings: Raw): Raw {
+  const privacy = settings['privacy'];
+  return isSection(privacy)
+    ? { ...settings, privacy: { blurWhenUnfocused: false, blurWhenIdle: false, ...privacy } }
+    : settings;
+}
+
 /**
  * `MIGRATIONS[n]` turns a version n+1 file into version n+2. They are pure,
  * forward-only, and each has its own test; a test also checks that there is
@@ -99,6 +107,7 @@ export const MIGRATIONS: readonly ((settings: Raw) => Raw)[] = [
   addCompactSidebar,
   addTrayIcon,
   addPlugins,
+  addPrivacyScreen,
 ];
 
 export type MigrationResult =

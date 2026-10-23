@@ -23,6 +23,7 @@ export interface TrayDependencies {
   readonly openSettings: () => void;
   readonly setDoNotDisturb: (on: boolean) => void;
   readonly stopSharing: (account: string) => void;
+  readonly togglePrivacyScreen: () => void;
   readonly quit: () => void;
 }
 
@@ -34,6 +35,7 @@ export interface TrayState {
   readonly doNotDisturb: boolean;
   /** Accounts sharing a screen or window, which the tray must always show (#161). */
   readonly sharing: readonly string[];
+  readonly privacyScreen: boolean;
 }
 
 /** The running accounts, when there is a choice; picking one shows it. */
@@ -77,6 +79,26 @@ function sharingItems(state: TrayState, deps: TrayDependencies): MenuItemConstru
   ];
 }
 
+/** Do not disturb and the privacy screen, each showing whether it is on. */
+function switchItems(state: TrayState, deps: TrayDependencies): MenuItemConstructorOptions[] {
+  return [
+    {
+      label: en.tray.doNotDisturb,
+      type: 'checkbox',
+      checked: state.doNotDisturb,
+      click: () => {
+        deps.setDoNotDisturb(!state.doNotDisturb);
+      },
+    },
+    {
+      label: en.tray.privacyScreen,
+      type: 'checkbox',
+      checked: state.privacyScreen,
+      click: deps.togglePrivacyScreen,
+    },
+  ];
+}
+
 function menuOf(
   state: TrayState,
   window: TrayWindow,
@@ -100,14 +122,7 @@ function menuOf(
     toggle,
     ...accountItems(state, window, deps),
     { type: 'separator' },
-    {
-      label: en.tray.doNotDisturb,
-      type: 'checkbox',
-      checked: state.doNotDisturb,
-      click: () => {
-        deps.setDoNotDisturb(!state.doNotDisturb);
-      },
-    },
+    ...switchItems(state, deps),
     { label: en.tray.settings, click: deps.openSettings },
     { type: 'separator' },
     { label: en.tray.quit, click: deps.quit },
