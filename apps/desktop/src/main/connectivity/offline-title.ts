@@ -1,11 +1,15 @@
 import { en } from '../../shared/messages/en.ts';
 
 export interface TitledWindow {
+  setTitle(title: string): void;
+}
+
+/** The web contents whose page title the window shows. */
+export interface TitledPage {
   on(
     event: 'page-title-updated',
     listener: (event: { preventDefault(): void }, title: string) => void,
   ): unknown;
-  setTitle(title: string): void;
 }
 
 /**
@@ -14,6 +18,7 @@ export interface TitledWindow {
  */
 export function offlineTitle(
   window: TitledWindow,
+  page: TitledPage,
   initialTitle: string,
 ): (online: boolean) => void {
   let pageTitle = initialTitle;
@@ -21,8 +26,7 @@ export function offlineTitle(
   const apply = (): void => {
     window.setTitle(online ? pageTitle : en.windows.offline(pageTitle));
   };
-  window.on('page-title-updated', (event, title) => {
-    event.preventDefault();
+  page.on('page-title-updated', (_event, title) => {
     pageTitle = title;
     apply();
   });

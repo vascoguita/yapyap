@@ -1,10 +1,10 @@
 import type { ElectronApplication, Page } from '@playwright/test';
-import { expect, test } from './fixtures.ts';
+import { expect, test, whatsAppPage } from './fixtures.ts';
 
 async function openAbout(app: ElectronApplication): Promise<Page> {
   // The WhatsApp window must exist first so the next window event is About's;
   // that event can fire while the new page is still about:blank.
-  await app.firstWindow();
+  await whatsAppPage(app);
   const opened = app.waitForEvent('window');
   await app.evaluate(({ Menu }) => {
     const item = Menu.getApplicationMenu()

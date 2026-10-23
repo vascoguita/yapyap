@@ -72,6 +72,26 @@ async function attachHungState(app: ElectronApplication): Promise<void> {
   });
 }
 
+const PAGE_TIMEOUT_MS = 30_000;
+
+/**
+ * The page of the active account's WhatsApp. It runs in a view inside the
+ * main window, whose own page stays blank (#56), so it is found by its URL.
+ */
+export async function whatsAppPage(app: ElectronApplication): Promise<Page> {
+  const deadline = Date.now() + PAGE_TIMEOUT_MS;
+  for (;;) {
+    const page = app.windows().find((candidate) => candidate.url().startsWith('http'));
+    if (page !== undefined) {
+      return page;
+    }
+    if (Date.now() > deadline) {
+      throw new Error('WhatsApp never opened.');
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+}
+
 /**
  * Quits the app, and if it hangs, kills it and fails with the windows it had
  * and its last log lines rather than an unexplained teardown timeout (#223).
@@ -79,10 +99,12 @@ async function attachHungState(app: ElectronApplication): Promise<void> {
 export async function closeApp(app: ElectronApplication): Promise<void> {
   const log = LOGS.get(app) ?? [];
   const windows = await app
-    .evaluate(({ BrowserWindow }) =>
-      BrowserWindow.getAllWindows().map(
-        (window) => `${window.webContents.getURL()} visible=${String(window.isVisible())}`,
-      ),
+    .evaluate(({ BrowserWindow, webContents }) =>
+      webContents.getAllWebContents().map((contents) => {
+        const window = BrowserWindow.fromWebContents(contents);
+        const shown = window === null ? 'no window' : `visible=${String(window.isVisible())}`;
+        return `${contents.getURL()} ${shown}`;
+      }),
     )
     .catch(() => ['(could not list windows)']);
   let timer: NodeJS.Timeout | undefined;
@@ -99,7 +121,7 @@ export async function closeApp(app: ElectronApplication): Promise<void> {
     throw new Error(
       [
         `YapYap did not quit within ${String(QUIT_TIMEOUT_MS / 1000)} s (#223).`,
-        'Windows before closing:',
+        'Pages before closing:',
         ...windows,
         'Last log lines:',
         ...log,
@@ -203,7 +225,7 @@ export const test = base.extend<Fixtures & Options & { leftovers: undefined }>({
     await closeApp(app);
   },
   window: async ({ app }, use) => {
-    await use(await app.firstWindow());
+    await use(await whatsAppPage(app));
   },
 });
 

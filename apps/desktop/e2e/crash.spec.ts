@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { expect, launchApp, test } from './fixtures.ts';
+import { expect, launchApp, test, whatsAppPage } from './fixtures.ts';
 
 test('saves a local crash report after an unclean exit, and clears the mark on quit', async ({
   fakeWhatsApp,
@@ -26,7 +26,7 @@ test('saves a local crash report after an unclean exit, and clears the mark on q
       /^YapYap closed unexpectedly\.\nPrevious session: YapYap 0\.0\.9,[\s\S]*\nwarn The last thing that happened$/,
     );
   expect(existsSync(join(profile, 'running.json'))).toBe(true);
-  await expect((await app.firstWindow()).getByTestId('fake-whatsapp')).toBeVisible();
+  await expect((await whatsAppPage(app)).getByTestId('fake-whatsapp')).toBeVisible();
   // Quit as a user does; Playwright's own close skips Electron's quit events.
   const closed = app.waitForEvent('close');
   // The app exits before it can answer, so the evaluation itself fails.

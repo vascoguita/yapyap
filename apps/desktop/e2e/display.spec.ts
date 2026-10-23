@@ -18,11 +18,15 @@ test('draws the WhatsApp page on the display backend it reports', async ({ app, 
   // The window is shown and painted a moment after the page's DOM is ready, so poll.
   await expect
     .poll(() =>
-      app.evaluate(async ({ BrowserWindow }) => {
-        const shown = BrowserWindow.getAllWindows().find(
-          (candidate) => candidate.isVisible() && candidate.webContents.getURL().startsWith('http'),
-        );
-        const bitmap = (await shown?.webContents.capturePage())?.toBitmap() ?? Buffer.alloc(0);
+      app.evaluate(async ({ BrowserWindow, webContents }) => {
+        const shown = webContents
+          .getAllWebContents()
+          .find(
+            (candidate) =>
+              candidate.getURL().startsWith('http') &&
+              BrowserWindow.fromWebContents(candidate)?.isVisible() === true,
+          );
+        const bitmap = (await shown?.capturePage())?.toBitmap() ?? Buffer.alloc(0);
         const seen = new Set<number>();
         for (let offset = 0; offset + 4 <= bitmap.length; offset += 4) {
           seen.add(bitmap.readUInt32LE(offset));

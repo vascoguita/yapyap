@@ -9,15 +9,18 @@ import type { WindowOptions } from './windows.ts';
 
 type Listener = (...args: never[]) => void;
 
-/** A web contents whose listeners the test can fire by event name. */
-
 const ACCOUNT = '0b6c3f0e-58a4-4a39-9a43-6f0c1c1f6a01';
+
+/** A web contents whose listeners the test can fire by event name. */
 function fakeContents() {
   const handlers = new Map<string, Listener[]>();
+  const listen = (event: string, listener: Listener): void => {
+    handlers.set(event, [...(handlers.get(event) ?? []), listener]);
+  };
   const contents = {
-    on: vi.fn((event: string, listener: Listener) => {
-      handlers.set(event, [...(handlers.get(event) ?? []), listener]);
-    }),
+    on: vi.fn(listen),
+    once: vi.fn(listen),
+    focus: vi.fn(),
     setWindowOpenHandler: vi.fn(),
     setZoomFactor: vi.fn(),
     loadURL: vi.fn(() => Promise.resolve()),
@@ -56,7 +59,6 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     requestSingleInstanceLock: vi.fn(() => true),
   } satisfies AppPort;
   const window = {
-    webContents: web.contents,
     once: vi.fn((event: string, listener: () => void) => listeners.set(event, listener)),
     on: vi.fn(),
     setTitle: vi.fn(),
@@ -74,7 +76,6 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     setAutoHideMenuBar: vi.fn(),
     setMenuBarVisibility: vi.fn(),
     setOverlayIcon: vi.fn(),
-    loadURL: vi.fn(() => Promise.resolve()),
   } satisfies WindowPort;
   const createWindow = vi.fn<(options: WindowOptions) => WindowPort>(() => window);
   const runtime = {
@@ -120,6 +121,7 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     web,
     session,
     createWindow,
+    createAccountView: vi.fn(() => web.contents),
     defaultSession: () => session,
     sessionOf: vi.fn(() => accountSession),
     accountSession,
@@ -233,13 +235,10 @@ describe('startApp', () => {
     await startApp(f);
 
     expect(f.app.setAppUserModelId).toHaveBeenCalledWith(APP_ID);
-    expect(f.createWindow).toHaveBeenCalledWith(
-      expect.objectContaining({ show: false }),
-      expect.anything(),
-    );
-    expect(f.window.loadURL).toHaveBeenCalledWith(WHATSAPP_ORIGIN);
+    expect(f.createWindow).toHaveBeenCalledWith(expect.objectContaining({ show: false }));
+    expect(f.web.contents.loadURL).toHaveBeenCalledWith(WHATSAPP_ORIGIN);
     expect(f.window.show).not.toHaveBeenCalled();
-    f.listeners.get('ready-to-show')?.();
+    f.web.fire('dom-ready');
     expect(f.window.show).toHaveBeenCalledOnce();
     expect(f.warn).not.toHaveBeenCalled();
   });
@@ -351,21 +350,28 @@ describe('startApp', () => {
     expect(f.openExternal).toHaveBeenCalledExactlyOnceWith('https://example.com/');
   });
 
-  it('shows the window after a fallback delay when ready-to-show never fires, exactly once', async () => {
+  it('shows the window when WhatsApp failed to load, so recovery can be seen', async () => {
+    const f = fakes();
+    await startApp(f);
+    f.web.fire('did-fail-load');
+    expect(f.window.show).toHaveBeenCalledOnce();
+  });
+
+  it('shows the window after a fallback delay when the page never gets ready, exactly once', async () => {
     const f = fakes();
     await startApp(f);
     vi.advanceTimersByTime(SHOW_FALLBACK_MS - 1);
     expect(f.window.show).not.toHaveBeenCalled();
     vi.advanceTimersByTime(1);
     expect(f.window.show).toHaveBeenCalledOnce();
-    f.listeners.get('ready-to-show')?.();
+    f.web.fire('dom-ready');
     expect(f.window.show).toHaveBeenCalledOnce();
   });
 
-  it('does not show the window twice when ready-to-show fires before the fallback', async () => {
+  it('does not show the window twice when the page gets ready before the fallback', async () => {
     const f = fakes();
     await startApp(f);
-    f.listeners.get('ready-to-show')?.();
+    f.web.fire('dom-ready');
     vi.advanceTimersByTime(SHOW_FALLBACK_MS);
     expect(f.window.show).toHaveBeenCalledOnce();
   });
@@ -518,10 +524,10 @@ describe('startApp', () => {
     open?.('447700900123');
     expect(f.window.restore).toHaveBeenCalledOnce();
     expect(f.window.focus).toHaveBeenCalled();
-    expect(f.window.loadURL).toHaveBeenLastCalledWith(
+    expect(f.web.contents.loadURL).toHaveBeenLastCalledWith(
       'https://web.whatsapp.com/send?phone=447700900123',
     );
-    f.window.loadURL.mockRejectedValueOnce(new Error('ERR_INTERNET_DISCONNECTED'));
+    f.web.contents.loadURL.mockRejectedValueOnce(new Error('ERR_INTERNET_DISCONNECTED'));
     open?.('447700900123');
     await vi.advanceTimersByTimeAsync(0);
     expect(f.warn).not.toHaveBeenCalled();
@@ -564,21 +570,15 @@ describe('startApp', () => {
   it('shows the unread count from the page title as the app badge', async () => {
     const f = fakes();
     await startApp(f);
-    for (const [event, listener] of f.window.on.mock.calls as [string, unknown][]) {
-      if (event === 'page-title-updated') {
-        (listener as (event: { preventDefault(): void }, title: string) => void)(
-          { preventDefault: vi.fn() },
-          '(3) WhatsApp',
-        );
-      }
-    }
+    f.web.fire('page-title-updated', { preventDefault: vi.fn() }, '(3) WhatsApp');
     expect(f.badge.setBadgeCount).toHaveBeenCalledWith(3);
+    expect(f.window.setTitle).toHaveBeenLastCalledWith('(3) WhatsApp');
   });
 
   it('opens WhatsApp in the active account’s own session', async () => {
     const f = fakes();
     await startApp(f);
-    expect(f.createWindow).toHaveBeenCalledWith(expect.anything(), {
+    expect(f.createAccountView).toHaveBeenCalledWith(f.window, {
       partition: `persist:account-${ACCOUNT}`,
     });
     expect(f.sessionOf).toHaveBeenCalledWith(`persist:account-${ACCOUNT}`);
@@ -592,7 +592,7 @@ describe('startApp', () => {
       general: { ...settings.general, startMinimized: true },
     });
     await startApp(f);
-    f.listeners.get('ready-to-show')?.();
+    f.web.fire('dom-ready');
     await vi.advanceTimersByTimeAsync(5000);
     expect(f.window.show).not.toHaveBeenCalled();
   });
@@ -648,7 +648,7 @@ describe('startApp', () => {
   it('opens a chat link it was launched with', async () => {
     const f = fakes({}, ['/opt/YapYap/yapyap', 'https://wa.me/351912345678']);
     await startApp(f);
-    expect(f.window.loadURL).toHaveBeenCalledExactlyOnceWith(
+    expect(f.web.contents.loadURL).toHaveBeenCalledExactlyOnceWith(
       `${WHATSAPP_ORIGIN}/send?phone=351912345678`,
     );
   });
@@ -662,7 +662,7 @@ describe('startApp', () => {
     ) => void;
     secondInstance({}, ['/opt/YapYap/yapyap', 'whatsapp://send?text=Hi']);
     expect(f.window.focus).toHaveBeenCalledOnce();
-    expect(f.window.loadURL).toHaveBeenLastCalledWith(`${WHATSAPP_ORIGIN}/send?text=Hi`);
+    expect(f.web.contents.loadURL).toHaveBeenLastCalledWith(`${WHATSAPP_ORIGIN}/send?text=Hi`);
   });
 
   it('reopens the window where it was left and quits on termination signals', async () => {
@@ -672,7 +672,7 @@ describe('startApp', () => {
       JSON.stringify({ bounds, maximized: true, fullScreen: false }),
     );
     await startApp(f);
-    expect(f.createWindow).toHaveBeenCalledWith(expect.objectContaining(bounds), expect.anything());
+    expect(f.createWindow).toHaveBeenCalledWith(expect.objectContaining(bounds));
     expect(f.window.maximize).toHaveBeenCalledOnce();
     const [[, quitOnSignal]] = f.shutdown.onSignal.mock.calls as unknown as [[string, () => void]];
     quitOnSignal();
@@ -731,21 +731,21 @@ describe('startApp', () => {
 
   it('keeps running when WhatsApp fails to load, leaving it to the recovery screen', async () => {
     const f = fakes();
-    f.window.loadURL.mockRejectedValueOnce(new Error('ERR_CONNECTION_REFUSED'));
+    f.web.contents.loadURL.mockRejectedValueOnce(new Error('ERR_CONNECTION_REFUSED'));
     await expect(startApp(f)).resolves.toBeUndefined();
   });
 
   it('loads a loopback test origin when one is configured', async () => {
     const f = fakes({ YAPYAP_TEST_WHATSAPP_ORIGIN: 'http://127.0.0.1:4321' });
     await startApp(f);
-    expect(f.window.loadURL).toHaveBeenCalledWith('http://127.0.0.1:4321');
+    expect(f.web.contents.loadURL).toHaveBeenCalledWith('http://127.0.0.1:4321');
     expect(f.warn).not.toHaveBeenCalled();
   });
 
   it('warns and loads the real origin when the test origin is not loopback', async () => {
     const f = fakes({ YAPYAP_TEST_WHATSAPP_ORIGIN: 'https://evil.example' });
     await startApp(f);
-    expect(f.window.loadURL).toHaveBeenCalledWith(WHATSAPP_ORIGIN);
+    expect(f.web.contents.loadURL).toHaveBeenCalledWith(WHATSAPP_ORIGIN);
     expect(f.warn).toHaveBeenCalledWith(expect.stringContaining('only loopback'));
   });
 });

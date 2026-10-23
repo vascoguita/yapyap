@@ -1,11 +1,11 @@
 import type { ElectronApplication, Page } from '@playwright/test';
-import { closeApp, expect, launchApp, test } from './fixtures.ts';
+import { closeApp, expect, launchApp, test, whatsAppPage } from './fixtures.ts';
 
 /** The display backend diagnostics name: Linux CI runs on its virtual X11 display. */
 const DISPLAY = process.platform === 'linux' ? 'X11 \\(automatic\\)' : 'native';
 
 async function technicalDetails(app: ElectronApplication): Promise<string> {
-  await app.firstWindow();
+  await whatsAppPage(app);
   const opened = app.waitForEvent('window');
   await app.evaluate(({ Menu }) => {
     Menu.getApplicationMenu()

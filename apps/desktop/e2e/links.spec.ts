@@ -61,8 +61,11 @@ test('opens web, mail and phone links outside the app, each exactly once', async
     ]);
   expect(await windowCount(app)).toBe(1);
   expect(
-    await app.evaluate(({ BrowserWindow }) =>
-      BrowserWindow.getAllWindows()[0]?.webContents.getURL(),
+    await app.evaluate(({ webContents }) =>
+      webContents
+        .getAllWebContents()
+        .find((contents) => contents.getURL().startsWith('http'))
+        ?.getURL(),
     ),
   ).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/$/);
 });

@@ -1,11 +1,11 @@
 import type { ElectronApplication, Page } from '@playwright/test';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { expect, test } from './fixtures.ts';
+import { expect, test, whatsAppPage } from './fixtures.ts';
 
 async function openSettings(app: ElectronApplication): Promise<Page> {
   // The WhatsApp window must exist first so the next window event is Settings'.
-  await app.firstWindow();
+  await whatsAppPage(app);
   const opened = app.waitForEvent('window');
   await app.evaluate(({ Menu }) => {
     const item = Menu.getApplicationMenu()
@@ -26,7 +26,7 @@ async function savedHardwareAcceleration(profile: string): Promise<unknown> {
 
 test('puts Settings in the menu on the conventional shortcut', async ({ app }) => {
   // The menu is set just before the WhatsApp window is created.
-  await app.firstWindow();
+  await whatsAppPage(app);
   const accelerator = await app.evaluate(
     ({ Menu }) =>
       Menu.getApplicationMenu()

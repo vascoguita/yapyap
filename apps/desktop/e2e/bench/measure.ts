@@ -3,7 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { startFakeWhatsApp } from '../fake-whatsapp-server.ts';
-import { launchApp } from '../fixtures.ts';
+import { launchApp, whatsAppPage } from '../fixtures.ts';
 
 export interface Sample {
   /** From starting the process to WhatsApp's page being visible. */
@@ -29,7 +29,7 @@ export async function measureOnce(): Promise<Sample> {
   const started = performance.now();
   const app = await launchApp(fake.origin, profile);
   try {
-    const window = await app.firstWindow();
+    const window = await whatsAppPage(app);
     await window.getByTestId('fake-whatsapp').waitFor({ state: 'visible' });
     const coldStartMs = Math.round(performance.now() - started);
     await new Promise((resolve) => setTimeout(resolve, SETTLE_MS));

@@ -1,14 +1,15 @@
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { ElectronApplication } from '@playwright/test';
-import { closeApp, expect, launchApp, test } from './fixtures.ts';
+import { closeApp, expect, launchApp, test, whatsAppPage } from './fixtures.ts';
 
 const whatsApp = (app: ElectronApplication) =>
-  app.evaluate(({ BrowserWindow }) => {
-    const window = BrowserWindow.getAllWindows().find((candidate) =>
-      candidate.webContents.getURL().startsWith('http'),
-    );
-    return window === undefined ? 'gone' : `visible=${String(window.isVisible())}`;
+  app.evaluate(({ BrowserWindow, webContents }) => {
+    const page = webContents
+      .getAllWebContents()
+      .find((candidate) => candidate.getURL().startsWith('http'));
+    const window = page === undefined ? null : BrowserWindow.fromWebContents(page);
+    return window === null ? 'gone' : `visible=${String(window.isVisible())}`;
   });
 
 async function launchWith(origin: string, profile: string, general: object) {
@@ -24,11 +25,10 @@ test('keeps running hidden when the window closes, with Close to the tray on', a
 }) => {
   const app = await launchWith(fakeWhatsApp.origin, profile, { closeToTray: true });
   try {
-    await expect((await app.firstWindow()).getByTestId('fake-whatsapp')).toBeVisible();
+    await expect((await whatsAppPage(app)).getByTestId('fake-whatsapp')).toBeVisible();
     await app.evaluate(({ BrowserWindow }) => {
-      BrowserWindow.getAllWindows()
-        .find((candidate) => candidate.webContents.getURL().startsWith('http'))
-        ?.close();
+      // The main window is the only one open.
+      BrowserWindow.getAllWindows()[0]?.close();
     });
     await expect.poll(() => whatsApp(app)).toBe('visible=false');
   } finally {
@@ -39,7 +39,7 @@ test('keeps running hidden when the window closes, with Close to the tray on', a
 test('starts hidden when Start minimized is on', async ({ fakeWhatsApp, profile }) => {
   const app = await launchWith(fakeWhatsApp.origin, profile, { startMinimized: true });
   try {
-    const window = await app.firstWindow();
+    const window = await whatsAppPage(app);
     await window.waitForLoadState('load');
     // Longer than the fallback that shows a window which never reports ready.
     await window.waitForTimeout(3500);

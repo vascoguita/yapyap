@@ -53,9 +53,9 @@ test('typing stays fast while the adapter reads the page', async ({ app, window 
   });
   // The probe runs far more often here than YapYap ever runs it.
   await app.evaluate(
-    ({ BrowserWindow }, probe) => {
-      const contents = BrowserWindow.getAllWindows()
-        .map((candidate) => candidate.webContents)
+    ({ webContents }, probe) => {
+      const contents = webContents
+        .getAllWebContents()
         .find((candidate) => candidate.getURL().startsWith('http://127.0.0.1'));
       const timer = setInterval(() => {
         void contents?.executeJavaScriptInIsolatedWorld(probe.world, [{ code: probe.code }]);

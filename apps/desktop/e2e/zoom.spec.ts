@@ -1,13 +1,14 @@
 import type { ElectronApplication } from '@playwright/test';
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { expect, launchApp, test } from './fixtures.ts';
+import { expect, launchApp, test, whatsAppPage } from './fixtures.ts';
 
 const whatsAppZoom = (app: ElectronApplication) =>
-  app.evaluate(({ BrowserWindow }) =>
-    BrowserWindow.getAllWindows()
-      .find((window) => window.webContents.getURL().startsWith('http'))
-      ?.webContents.getZoomFactor(),
+  app.evaluate(({ webContents }) =>
+    webContents
+      .getAllWebContents()
+      .find((contents) => contents.getURL().startsWith('http'))
+      ?.getZoomFactor(),
   );
 
 async function clickView(app: ElectronApplication, label: string): Promise<void> {
@@ -44,7 +45,7 @@ test('zooms in 5% steps and keeps the level for the next launch', async ({
   await quit(app);
   const again = await launchApp(fakeWhatsApp.origin, profile);
   try {
-    await expect((await again.firstWindow()).getByTestId('fake-whatsapp')).toBeVisible();
+    await expect((await whatsAppPage(again)).getByTestId('fake-whatsapp')).toBeVisible();
     await expect.poll(() => whatsAppZoom(again)).toBeCloseTo(1.05);
     await clickView(again, 'Actual Size');
     await expect.poll(() => whatsAppZoom(again)).toBeCloseTo(1);
@@ -60,7 +61,7 @@ test('starts at 100% when the stored zoom is invalid', async ({ fakeWhatsApp, pr
   );
   const app = await launchApp(fakeWhatsApp.origin, profile);
   try {
-    await expect((await app.firstWindow()).getByTestId('fake-whatsapp')).toBeVisible();
+    await expect((await whatsAppPage(app)).getByTestId('fake-whatsapp')).toBeVisible();
     await expect.poll(() => whatsAppZoom(app)).toBeCloseTo(1);
   } finally {
     await quit(app);
