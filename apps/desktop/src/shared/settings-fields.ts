@@ -90,6 +90,16 @@ export const SETTING_FIELDS: readonly SettingField[] = [
   },
   { ...described('reliability.hardwareVideoDecoding'), restart: true },
   {
+    ...described('reliability.diskCacheMb'),
+    restart: true,
+    options: choices(text['reliability.diskCacheMb'].options),
+  },
+  {
+    ...described('reliability.jsHeapMb'),
+    restart: true,
+    options: choices(text['reliability.jsHeapMb'].options),
+  },
+  {
     ...described('privacy.crashReports'),
     restart: false,
     options: choices(text['privacy.crashReports'].options),

@@ -10,6 +10,8 @@ const THEME = 'appearance.theme';
 const MENU_BAR = 'appearance.autoHideMenuBar';
 const COMPACT = 'appearance.compactSidebar';
 const ZOOM = 'appearance.zoom';
+const DISK_CACHE = 'reliability.diskCacheMb';
+const JS_HEAP = 'reliability.jsHeapMb';
 const PINCH = 'appearance.pinchZoom';
 const TRAY_ICON = 'appearance.trayIcon';
 const DEVELOPER = 'plugins.developerMode';
@@ -127,6 +129,8 @@ describe('settingsHandlers', () => {
         [HARDWARE]: true,
         [BACKEND]: 'auto',
         [VIDEO]: true,
+        [DISK_CACHE]: 'auto',
+        [JS_HEAP]: 'auto',
         [CRASH]: 'off',
         [UNREAD]: true,
         [SENDER]: true,
@@ -203,6 +207,8 @@ describe('settingsHandlers', () => {
         [HARDWARE]: false,
         [BACKEND]: 'auto',
         [VIDEO]: true,
+        [DISK_CACHE]: 'auto',
+        [JS_HEAP]: 'auto',
         [CRASH]: 'off',
         [UNREAD]: true,
         [SENDER]: true,

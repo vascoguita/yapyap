@@ -100,6 +100,14 @@ function addPinchZoom(settings: Raw): Raw {
     : settings;
 }
 
+/** Version 13 adds the disk cache and memory limits, automatic as before (#83). */
+function addResourceLimits(settings: Raw): Raw {
+  const reliability = settings['reliability'];
+  return isSection(reliability)
+    ? { ...settings, reliability: { diskCacheMb: 'auto', jsHeapMb: 'auto', ...reliability } }
+    : settings;
+}
+
 /**
  * `MIGRATIONS[n]` turns a version n+1 file into version n+2. They are pure,
  * forward-only, and each has its own test; a test also checks that there is
@@ -117,6 +125,7 @@ export const MIGRATIONS: readonly ((settings: Raw) => Raw)[] = [
   addPlugins,
   addPrivacyScreen,
   addPinchZoom,
+  addResourceLimits,
 ];
 
 export type MigrationResult =

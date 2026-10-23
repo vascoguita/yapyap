@@ -15,6 +15,7 @@ import {
 } from './recovery/gpu-safe-mode.ts';
 import type { SettingsService } from './settings/service.ts';
 import { trackVisibility, type Visibility } from './window/visibility.ts';
+import { applyResourceLimits } from './reliability/resource-limits.ts';
 import { trackShares, type ScreenShares, type ShareIpc } from './capture/shares.ts';
 import {
   createPrivacyScreen,
@@ -323,6 +324,7 @@ function beforeReady<Window extends WindowPort>(
     warn,
   });
   installSecurity(app, security);
+  applyResourceLimits(app.commandLine, deps.settings.current().reliability);
   deps.chrome.beforeReady();
   // Windows groups notifications and taskbar entries by this ID.
   app.setAppUserModelId(APP_ID);

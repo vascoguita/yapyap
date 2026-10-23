@@ -221,6 +221,14 @@ not edit the same lines.
   by pinch or Ctrl with the wheel, which arrive as `zoom-changed`; the View
   menu still zooms.
 
+- Cache and memory options (#83): `reliability.diskCacheMb` and
+  `reliability.jsHeapMb` (settings schema v13) set Chromium's disk cache
+  size and each page's JavaScript memory limit at launch
+  (`applyResourceLimits`). Invalid values fall back to automatic, which
+  leaves Chromium's own choice. Hidden accounts are already throttled by
+  Chromium's background throttling, which `privacy.unreadWhileHidden` keeps
+  on (reference guide).
+
 - Privacy screen (#85): `createPrivacyScreen` blurs every account's
   WhatsApp with inserted CSS that also takes clicks away, so it needs no
   knowledge of WhatsApp's page. It comes on from the tray or View → Privacy

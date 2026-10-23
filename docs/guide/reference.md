@@ -25,6 +25,8 @@ the [profile folder](#files).
 | Use hardware acceleration          | `reliability.hardwareAcceleration`  | On                 | Takes effect after a restart                                                  |
 | Use hardware video decoding        | `reliability.hardwareVideoDecoding` | On                 | Takes effect after a restart                                                  |
 | Display backend                    | `reliability.displayBackend`        | Automatic          | Linux; `auto`, `wayland` or `x11`; restart                                    |
+| Disk cache size                    | `reliability.diskCacheMb`           | Automatic          | `auto`, `128`, `256`, `512` or `1024` MB; takes effect after a restart        |
+| Memory limit per page              | `reliability.jsHeapMb`              | Automatic          | `auto`, `2048`, `4096` or `8192` MB of script memory; after a restart         |
 | Memory limit                       | `reliability.memoryWatchdogMb`      | 2048 MB            | File only; 512 to 16384; see below                                            |
 | Crash reports                      | `privacy.crashReports`              | Off                | `off`, `local` or `ask`; see [Privacy](/privacy)                              |
 | Keep chats unread while hidden     | `privacy.unreadWhileHidden`         | On                 | WhatsApp marks nothing read while YapYap is hidden or minimized               |
@@ -52,6 +54,13 @@ memory the page has piled up. It waits while you are typing or reading in
 the window, so a draft is never cut off; only WhatsApp using more than one
 and a half times the limit reloads regardless. The log notes the size and
 the limit, nothing else.
+
+### Saving CPU in hidden accounts
+
+Accounts you are not looking at are throttled by Chromium, so their timers
+run less often and they use little CPU. The same throttling keeps chats
+unread while YapYap is hidden; turning off **Keep chats unread while
+hidden** turns it off too, for every account.
 
 ## Files
 
