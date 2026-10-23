@@ -32,10 +32,34 @@ function Mark({ account }: { readonly account: SidebarAccount }): JSX.Element | 
   ) : null;
 }
 
+/** A running share, always in sight, with the one action it needs: stop. */
+function StopSharing(props: {
+  readonly account: SidebarAccount;
+  readonly compact: boolean;
+  readonly onStop: (id: string) => void;
+}): JSX.Element {
+  const label = text.stopSharing(props.account.name);
+  return (
+    <button
+      type="button"
+      class="sharing"
+      aria-label={label}
+      title={label}
+      onClick={() => {
+        props.onStop(props.account.id);
+      }}
+    >
+      <span class="dot" aria-hidden="true" />
+      {props.compact ? null : text.sharing}
+    </button>
+  );
+}
+
 function AccountButton(props: {
   readonly account: SidebarAccount;
   readonly compact: boolean;
   readonly onSwitch: (id: string) => void;
+  readonly onStop: (id: string) => void;
 }): JSX.Element {
   const { account, compact } = props;
   const label = text.account(account.name, account.unread, account.muted);
@@ -56,6 +80,9 @@ function AccountButton(props: {
         {compact ? null : <span class="name">{account.name}</span>}
         <Mark account={account} />
       </button>
+      {account.sharing ? (
+        <StopSharing account={account} compact={compact} onStop={props.onStop} />
+      ) : null}
     </li>
   );
 }
@@ -115,6 +142,12 @@ export function Sidebar({ api }: { readonly api: ChromeApi }): JSX.Element | nul
     },
     [api],
   );
+  const stopSharing = useCallback(
+    (id: string): void => {
+      void api.sidebar.stopSharing(id);
+    },
+    [api],
+  );
   if (state === null) {
     return null;
   }
@@ -127,6 +160,7 @@ export function Sidebar({ api }: { readonly api: ChromeApi }): JSX.Element | nul
             account={account}
             compact={state.compact}
             onSwitch={switchTo}
+            onStop={stopSharing}
           />
         ))}
       </ul>

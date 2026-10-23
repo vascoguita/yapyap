@@ -866,14 +866,54 @@ describe('startApp', () => {
       }
       expect(last.state).toEqual({
         accounts: [
-          { id: ACCOUNT, name: 'Personal', color: 'green', muted: false, unread: 2, active: false },
-          { id: SECOND, name: 'Work', color: 'blue', muted: true, unread: 0, active: true },
+          {
+            id: ACCOUNT,
+            name: 'Personal',
+            color: 'green',
+            muted: false,
+            unread: 2,
+            active: false,
+            sharing: false,
+          },
+          {
+            id: SECOND,
+            name: 'Work',
+            color: 'blue',
+            muted: true,
+            unread: 0,
+            active: true,
+            sharing: false,
+          },
         ],
         compact: false,
         doNotDisturb: false,
       });
       last.switchTo(ACCOUNT);
       expect(f.hosts[0]?.show).toHaveBeenCalledOnce();
+    });
+
+    it('shows a screen share in the tray and the sidebar, and stops it from either', async () => {
+      const f = twoAccounts();
+      await startApp(f);
+      const [, workHost] = f.hosts;
+      if (workHost === undefined) {
+        throw new Error('Two accounts are expected.');
+      }
+      const work = workHost.webContents;
+      const fromWork = { sender: work, senderFrame: { url: `${WHATSAPP_ORIGIN}/` } };
+      const report = (channel: string) => f.ipcListeners.get(`whatsapp:share-${channel}`);
+      const trayMenu = () =>
+        (f.tray.buildMenu.mock.calls.at(-1)?.[0] ?? []) as { label?: string; click?: () => void }[];
+      const sidebarSharing = () =>
+        f.runtime.sidebar.mock.calls.at(-1)?.[0].state.accounts.map((entry) => entry.sharing);
+      report('started')?.(fromWork, '1');
+      const [stop] = trayMenu();
+      expect(stop?.label).toBe('Stop Sharing Screen (Work)');
+      expect(sidebarSharing()).toEqual([false, true]);
+      (stop?.click as () => void)();
+      expect(work.send).toHaveBeenCalledWith('whatsapp:share-stop', '1');
+      report('ended')?.(fromWork, '1');
+      expect(trayMenu()[0]?.label).toBe('Hide YapYap');
     });
 
     it('silences a muted account, and mutes its sound while it is out of sight', async () => {

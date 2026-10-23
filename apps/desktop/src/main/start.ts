@@ -15,6 +15,7 @@ import {
 } from './recovery/gpu-safe-mode.ts';
 import type { SettingsService } from './settings/service.ts';
 import { trackVisibility, type Visibility } from './window/visibility.ts';
+import { trackShares, type ScreenShares, type ShareIpc } from './capture/shares.ts';
 import { isSilenced, quietAudio, setDoNotDisturb, type AudioPage } from './notifications/quiet.ts';
 import { followHiddenReadsSetting, type ThrottledContents } from './privacy/hidden-reads.ts';
 import { watchForReleases, type UpdateNoticeDependencies } from './updates/update-notice.ts';
@@ -190,7 +191,7 @@ export interface StartDependencies<Window extends WindowPort> {
   /** The preload of WhatsApp's views, which hands its notifications to YapYap (ADR 0011). */
   readonly whatsAppPreload: string;
   readonly notifications: Pick<NotifierDependencies, 'create' | 'isSupported'>;
-  readonly ipc: NotificationIpc;
+  readonly ipc: NotificationIpc & ShareIpc;
   /** `process.versions.chrome`: the identity must match the bundled engine. */
   readonly chromeVersion: string;
   readonly platform: string;
@@ -516,21 +517,12 @@ function notifyFor<Window extends WindowPort>(
   return notifier;
 }
 
-/** Opens an account's views, hidden, and everything that watches or serves its WhatsApp. */
-function openAccount<Window extends WindowPort>(
-  wiring: AccountWiring<Window>,
+/** Its memory, its zoom and hidden reads, and its title, which carries the unread count. */
+function watchAccountPage<Window extends WindowPort>(
+  { deps, window, signals }: AccountWiring<Window>,
+  contents: AccountContents,
   account: Account,
-): OpenedAccount {
-  const { deps, chrome, window, signals, origin } = wiring;
-  guardAccountSession(deps, wiring.security, account);
-  const host = deps.createAccountHost(window, {
-    partition: partitionOf(account),
-    preload: deps.whatsAppPreload,
-  });
-  const contents = host.webContents;
-  const notifier = notifyFor(wiring, account, contents);
-  wiring.security.views.set(contents, { zone: 'whatsapp', home: origin, label: account.name });
-  const recovery = chrome.attachRecovery(contents, origin, host.createOverlay);
+): void {
   watchMemory(contents, {
     metrics: deps.appMetrics,
     limitMb: () => deps.settings.current().reliability.memoryWatchdogMb,
@@ -544,6 +536,30 @@ function openAccount<Window extends WindowPort>(
   contents.on('page-title-updated', (_event, title) => {
     signals.pageTitle(account.id, title);
   });
+}
+
+/** Opens an account's views, hidden, and everything that watches or serves its WhatsApp. */
+function openAccount<Window extends WindowPort>(
+  wiring: AccountWiring<Window>,
+  account: Account,
+): OpenedAccount {
+  const { deps, chrome, window, origin } = wiring;
+  guardAccountSession(deps, wiring.security, account);
+  const host = deps.createAccountHost(window, {
+    partition: partitionOf(account),
+    preload: deps.whatsAppPreload,
+  });
+  const contents = host.webContents;
+  const notifier = notifyFor(wiring, account, contents);
+  const view = {
+    zone: 'whatsapp',
+    home: origin,
+    label: account.name,
+    account: account.id,
+  } as const;
+  wiring.security.views.set(contents, view);
+  const recovery = chrome.attachRecovery(contents, origin, host.createOverlay);
+  watchAccountPage(wiring, contents, account);
   // A failed load is reported by the recovery monitor.
   const loaded = contents
     .loadURL(wiring.firstUrl(account))
@@ -628,15 +644,14 @@ function windowSignals<Window extends WindowPort>(
  * whether the window is out of sight. Returns how to refresh it and how to
  * give it a new unread count.
  */
-function accountsTray<Window extends WindowPort>(
-  { deps, chrome, window }: Omit<AccountWiring<Window>, 'signals' | 'running'>,
+/** What the tray menu does. */
+function trayActions<Window extends WindowPort>(
+  deps: StartDependencies<Window>,
+  chrome: AccountWiring<Window>['chrome'],
   running: () => RunningAccounts<OpenedAccount>,
-  visibility: Visibility,
-): { readonly refresh: () => void; readonly setUnread: (unread: number) => void } {
-  let unread = 0;
-  const port = deps.tray.create();
-  followTrayIconSetting(port, { ...deps.tray, platform: deps.platform, settings: deps.settings });
-  const update = setUpTray(port, window, {
+  shares: ScreenShares,
+): TrayDependencies {
+  return {
     platform: deps.platform,
     buildMenu: deps.tray.buildMenu,
     switchAccount: (id) => {
@@ -646,16 +661,30 @@ function accountsTray<Window extends WindowPort>(
     setDoNotDisturb: (on) => {
       setDoNotDisturb(deps.settings, on);
     },
+    stopSharing: shares.stop,
     quit: () => {
       deps.app.quit();
     },
-  });
+  };
+}
+
+function accountsTray<Window extends WindowPort>(
+  { deps, chrome, window }: Omit<AccountWiring<Window>, 'signals' | 'running'>,
+  running: () => RunningAccounts<OpenedAccount>,
+  visibility: Visibility,
+  shares: ScreenShares,
+): { readonly refresh: () => void; readonly setUnread: (unread: number) => void } {
+  let unread = 0;
+  const port = deps.tray.create();
+  followTrayIconSetting(port, { ...deps.tray, platform: deps.platform, settings: deps.settings });
+  const update = setUpTray(port, window, trayActions(deps, chrome, running, shares));
   const refresh = (): void => {
     update({
       unread,
       accounts: summaries(running()),
       windowShown: visibility.visible(),
       doNotDisturb: deps.settings.current().general.doNotDisturb,
+      sharing: [...shares.sharing()],
     });
   };
   return {
@@ -685,10 +714,12 @@ function sidebarSource<Window extends WindowPort>(
   deps: StartDependencies<Window>,
   running: RunningAccounts<OpenedAccount>,
   signals: AccountSignals,
+  shares: ScreenShares,
 ): SidebarSource {
   const { appearance, general } = deps.settings.current();
   const open = new Set(running.opened().map(({ account }) => account.id));
   const active = running.active().account.id;
+  const sharing = shares.sharing();
   const accounts = running
     .list()
     .filter((account) => open.has(account.id))
@@ -699,11 +730,55 @@ function sidebarSource<Window extends WindowPort>(
       muted,
       unread: muted ? 0 : signals.unreadOf(id),
       active: id === active,
+      sharing: sharing.has(id),
     }));
   return {
     state: { accounts, compact: appearance.compactSidebar, doNotDisturb: general.doNotDisturb },
     switchTo: running.switchTo,
+    stopSharing: shares.stop,
   };
+}
+
+interface AccountIndicators {
+  readonly visibility: Visibility;
+  /** Shows the accounts, their shares and do not disturb anew. */
+  readonly refresh: () => void;
+  readonly setUnread: (total: number) => void;
+}
+
+/**
+ * What shows the accounts outside their pages: the tray and the sidebar,
+ * with their unread counts and running screen shares (#161).
+ */
+function accountIndicators<Window extends WindowPort>(
+  wiring: Omit<AccountWiring<Window>, 'signals' | 'running'>,
+  running: () => RunningAccounts<OpenedAccount>,
+  signals: () => AccountSignals,
+): AccountIndicators {
+  const { deps, chrome, window } = wiring;
+  const shares = trackShares(deps.ipc, {
+    accountOf: (sender) => wiring.security.views.get(sender)?.account,
+    origin: wiring.origin,
+    onChange: () => {
+      refresh();
+    },
+    warn: deps.warn,
+  });
+  const visibility = trackVisibility(window, () => {
+    tray.refresh();
+    keepQuiet(deps, running(), visibility);
+  });
+  const tray = accountsTray(wiring, running, visibility, shares);
+  const sidebar = chrome.attachSidebar((renderer) => deps.createSidebar(window, renderer));
+  const refresh = (): void => {
+    tray.refresh();
+    sidebar(sidebarSource(deps, running(), signals(), shares));
+  };
+  const setUnread = (total: number): void => {
+    tray.setUnread(total);
+    refresh();
+  };
+  return { visibility, refresh, setUnread };
 }
 
 /** Every enabled account, in its own view of the main window; the active one shows. */
@@ -711,25 +786,17 @@ function openAccounts<Window extends WindowPort>(
   wiring: Omit<AccountWiring<Window>, 'signals' | 'running'>,
 ): RunningAccounts<OpenedAccount> {
   const { deps, chrome, window } = wiring;
-  const visibility = trackVisibility(window, () => {
-    tray.refresh();
-    keepQuiet(deps, running, visibility);
-  });
-  const tray = accountsTray(wiring, () => running, visibility);
-  const sidebar = chrome.attachSidebar((renderer) => deps.createSidebar(window, renderer));
-  const showSidebar = (): void => {
-    sidebar(sidebarSource(deps, running, signals));
-  };
-  const signals = windowSignals(deps, window, (total) => {
-    tray.setUnread(total);
-    showSidebar();
-  });
+  const indicators = accountIndicators(
+    wiring,
+    () => running,
+    () => signals,
+  );
+  const signals: AccountSignals = windowSignals(deps, window, indicators.setUnread);
   const changed = (): void => {
     signals.activate(running.active().account.id);
     chrome.setAccountMenu(accountMenu(running, deps.warn));
-    tray.refresh();
-    keepQuiet(deps, running, visibility);
-    showSidebar();
+    indicators.refresh();
+    keepQuiet(deps, running, indicators.visibility);
   };
   const running: RunningAccounts<OpenedAccount> = runAccounts({
     accounts: deps.accounts,

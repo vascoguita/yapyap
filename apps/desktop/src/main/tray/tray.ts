@@ -22,6 +22,7 @@ export interface TrayDependencies {
   readonly switchAccount: (id: string) => void;
   readonly openSettings: () => void;
   readonly setDoNotDisturb: (on: boolean) => void;
+  readonly stopSharing: (account: string) => void;
   readonly quit: () => void;
 }
 
@@ -31,6 +32,8 @@ export interface TrayState {
   readonly unread: number;
   readonly windowShown: boolean;
   readonly doNotDisturb: boolean;
+  /** Accounts sharing a screen or window, which the tray must always show (#161). */
+  readonly sharing: readonly string[];
 }
 
 /** The running accounts, when there is a choice; picking one shows it. */
@@ -57,6 +60,23 @@ function accountItems(
   ];
 }
 
+/** A way to stop each running share, first in the menu, so it is never hidden. */
+function sharingItems(state: TrayState, deps: TrayDependencies): MenuItemConstructorOptions[] {
+  const sharing = state.accounts.filter((account) => state.sharing.includes(account.id));
+  if (sharing.length === 0) {
+    return [];
+  }
+  return [
+    ...sharing.map((account) => ({
+      label: en.tray.stopSharing(account.name),
+      click: () => {
+        deps.stopSharing(account.id);
+      },
+    })),
+    { type: 'separator' as const },
+  ];
+}
+
 function menuOf(
   state: TrayState,
   window: TrayWindow,
@@ -76,6 +96,7 @@ function menuOf(
         },
       };
   return [
+    ...sharingItems(state, deps),
     toggle,
     ...accountItems(state, window, deps),
     { type: 'separator' },
@@ -91,6 +112,13 @@ function menuOf(
     { type: 'separator' },
     { label: en.tray.quit, click: deps.quit },
   ];
+}
+
+function tooltipOf(state: TrayState): string {
+  if (state.sharing.length > 0) {
+    return en.tray.sharing;
+  }
+  return state.unread > 0 ? en.tray.unread(state.unread) : en.tray.tooltip;
 }
 
 /**
@@ -111,7 +139,7 @@ export function setUpTray(
     });
   }
   return (state) => {
-    tray.setToolTip(state.unread > 0 ? en.tray.unread(state.unread) : en.tray.tooltip);
+    tray.setToolTip(tooltipOf(state));
     if (deps.platform === 'darwin') {
       tray.setTitle(state.unread > 0 ? String(state.unread) : '');
     }

@@ -549,3 +549,40 @@ body.sidebar .layout:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: -2px;
 }
+
+/* A running share stays in sight: a red dot that pulses, unless motion is reduced. */
+body.sidebar .sharing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 2px;
+  padding: 4px 8px;
+  border: 1px solid var(--danger);
+  border-radius: 8px;
+  background: none;
+  color: var(--danger);
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+body.sidebar .sharing .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--danger);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  body.sidebar .sharing .dot {
+    animation: sharing 1.6s ease-in-out infinite;
+  }
+}
+
+@keyframes sharing {
+  50% {
+    opacity: 0.3;
+  }
+}

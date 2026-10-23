@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createNotificationBridge } from './bridge.ts';
+import { createNotificationBridge, createShareBridge } from './bridge.ts';
 
 describe('createNotificationBridge', () => {
   it('sends each operation on its own fixed channel', () => {
@@ -28,5 +28,30 @@ describe('createNotificationBridge', () => {
     deliver?.({}, '7');
     deliver?.({}, { id: '7' });
     expect(listener.mock.calls).toEqual([['7']]);
+  });
+});
+
+describe('createShareBridge', () => {
+  it('reports shares on fixed channels, and passes on stop requests by ID only', () => {
+    let deliver: ((event: unknown, ...args: unknown[]) => void) | undefined;
+    const ipc = {
+      send: vi.fn(),
+      on: vi.fn((_channel: string, listener: typeof deliver) => {
+        deliver = listener;
+      }),
+    };
+    const bridge = createShareBridge(ipc);
+    bridge.started('1');
+    bridge.ended('1');
+    expect(ipc.send.mock.calls).toEqual([
+      ['whatsapp:share-started', '1'],
+      ['whatsapp:share-ended', '1'],
+    ]);
+    const listener = vi.fn();
+    bridge.onStop(listener);
+    expect(ipc.on).toHaveBeenCalledWith('whatsapp:share-stop', expect.any(Function));
+    deliver?.({}, '1');
+    deliver?.({}, 1);
+    expect(listener.mock.calls).toEqual([['1']]);
   });
 });

@@ -64,6 +64,8 @@ export interface SidebarAccount {
   readonly unread: number;
   readonly muted: boolean;
   readonly active: boolean;
+  /** Sharing a screen or window right now, which the sidebar always shows (#161). */
+  readonly sharing: boolean;
 }
 
 /** What the sidebar shows: the running accounts and how to lay them out. */
@@ -108,6 +110,7 @@ export interface ChromeApi {
     readonly state: () => Promise<SidebarState>;
     readonly switchTo: (id: string) => Promise<void>;
     readonly setCompact: (compact: boolean) => Promise<void>;
+    readonly stopSharing: (id: string) => Promise<void>;
     /** YapYap sends the new state whenever it changes; the page never asks what to listen to. */
     readonly onState: (listener: (state: SidebarState) => void) => void;
   };
@@ -168,6 +171,7 @@ export const CHROME_CHANNELS = {
   sidebarState: 'sidebar:state',
   sidebarSwitch: 'sidebar:switch',
   sidebarSetCompact: 'sidebar:set-compact',
+  sidebarStopSharing: 'sidebar:stop-sharing',
 } as const;
 
 /** The one channel YapYap sends on, from the main process to the sidebar. */

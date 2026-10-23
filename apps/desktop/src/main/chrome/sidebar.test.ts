@@ -12,11 +12,13 @@ const account = (id: string): SidebarAccount => ({
   unread: 0,
   muted: false,
   active: id === 'a',
+  sharing: id === 'b',
 });
 
 const source = (ids: string[], compact = false) => ({
   state: { accounts: ids.map(account), compact, doNotDisturb: false },
   switchTo: vi.fn(),
+  stopSharing: vi.fn(),
 });
 
 function setup(load: () => Promise<unknown> = () => Promise.resolve()) {
@@ -100,6 +102,19 @@ describe('sidebarHandlers', () => {
     expect(switchTo.accepts(['b', 'extra'])).toBe(false);
     switchTo.handle(t.call, 'b');
     expect(current.switchTo).toHaveBeenCalledWith('b');
+  });
+
+  it('stops a share only for a listed account that is sharing', () => {
+    const t = handlers();
+    const stop = t.handler('sidebar:stop-sharing');
+    expect(stop.accepts(['b'])).toBe(false);
+    const current = source(['a', 'b']);
+    t.slot.current = current;
+    expect(stop.accepts(['b'])).toBe(true);
+    expect(stop.accepts(['a'])).toBe(false);
+    expect(stop.accepts(['b', 'extra'])).toBe(false);
+    stop.handle(t.call, 'b');
+    expect(current.stopSharing).toHaveBeenCalledWith('b');
   });
 
   it('stores the layout in the settings', () => {

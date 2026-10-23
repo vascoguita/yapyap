@@ -1,4 +1,5 @@
 import { NOTIFICATION_CHANNELS, type NotificationBridge } from '../../shared/notification-api.ts';
+import { SHARE_CHANNELS, type ShareBridge } from '../../shared/share-api.ts';
 
 export interface PreloadIpc {
   send(channel: string, ...args: unknown[]): void;
@@ -19,6 +20,25 @@ export function createNotificationBridge(ipc: PreloadIpc): NotificationBridge {
     },
     onClick: (listener) => {
       ipc.on(NOTIFICATION_CHANNELS.click, (_event, id) => {
+        if (typeof id === 'string') {
+          listener(id);
+        }
+      });
+    },
+  };
+}
+
+/** The page's side of screen shares: start, end and stop, on fixed channels (#161). */
+export function createShareBridge(ipc: PreloadIpc): ShareBridge {
+  return {
+    started: (id) => {
+      ipc.send(SHARE_CHANNELS.started, id);
+    },
+    ended: (id) => {
+      ipc.send(SHARE_CHANNELS.ended, id);
+    },
+    onStop: (listener) => {
+      ipc.on(SHARE_CHANNELS.stop, (_event, id) => {
         if (typeof id === 'string') {
           listener(id);
         }

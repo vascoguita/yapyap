@@ -32,7 +32,13 @@ function api(overrides: Partial<ChromeApi['about']> = {}): ChromeApi {
     settings: { get: vi.fn(), set: vi.fn(), restart: vi.fn(), export: vi.fn(), import: vi.fn() },
     chat: { openNumber: vi.fn() },
     accounts: { list: vi.fn(), save: vi.fn(), remove: vi.fn() },
-    sidebar: { state: vi.fn(), switchTo: vi.fn(), setCompact: vi.fn(), onState: vi.fn() },
+    sidebar: {
+      state: vi.fn(),
+      switchTo: vi.fn(),
+      setCompact: vi.fn(),
+      stopSharing: vi.fn(),
+      onState: vi.fn(),
+    },
     picker: { offer: vi.fn(), choose: vi.fn(), cancel: vi.fn() },
   };
 }

@@ -36,6 +36,8 @@ export type GuardedSession = SessionPort &
 
 export interface SecurityDependencies extends SessionGuardDependencies {
   readonly identity: ChromeIdentity;
+  /** WhatsApp's own preload, which its windows get as well as its views (ADR 0011). */
+  readonly whatsAppPreload: string;
 }
 
 /** Applies the permission policy and the Chrome identity to one session. */
@@ -60,7 +62,10 @@ export function installSecurity(app: SecurityApp, deps: SecurityDependencies): v
   const navigation = createNavigationGuard({
     homeOf: (contents) => deps.views.get(contents)?.home,
     openExternal: deps.openExternal,
-    popupPreferences: () => rendererPreferences(),
+    popupPreferences: (opener) =>
+      rendererPreferences(
+        deps.views.get(opener)?.zone === 'whatsapp' ? { preload: deps.whatsAppPreload } : {},
+      ),
     inherit: (popup, opener) => {
       const info = deps.views.get(opener);
       if (info !== undefined) {

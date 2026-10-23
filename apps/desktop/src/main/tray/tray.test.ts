@@ -37,6 +37,7 @@ function setup(platform = 'linux', minimized = false) {
     switchAccount: vi.fn(),
     openSettings: vi.fn(),
     setDoNotDisturb: vi.fn(),
+    stopSharing: vi.fn(),
     quit: vi.fn(),
   };
   const update = setUpTray(tray, window, deps);
@@ -54,6 +55,7 @@ const state = (overrides: Partial<TrayState> = {}): TrayState => ({
   unread: 0,
   windowShown: false,
   doNotDisturb: false,
+  sharing: [],
   ...overrides,
 });
 
@@ -103,6 +105,21 @@ describe('setUpTray', () => {
     expect(on.find((entry) => entry.label === 'Do Not Disturb')?.checked).toBe(true);
     t.item(on, 'Do Not Disturb')();
     expect(t.deps.setDoNotDisturb).toHaveBeenLastCalledWith(false);
+  });
+
+  it('shows a running share first, with a way to stop it, until it ends', () => {
+    const t = setup();
+    const template = t.menu(state({ accounts: [PERSONAL, WORK], sharing: ['b'] }));
+    expect(template.slice(0, 2)).toEqual([
+      expect.objectContaining({ label: 'Stop Sharing Screen (Work)' }),
+      { type: 'separator' },
+    ]);
+    expect(t.tray.setToolTip).toHaveBeenLastCalledWith('YapYap: sharing your screen');
+    t.item(template, 'Stop Sharing Screen (Work)')();
+    expect(t.deps.stopSharing).toHaveBeenCalledWith('b');
+    const ended = t.menu(state({ accounts: [PERSONAL, WORK], unread: 2 }));
+    expect(ended[0]?.label).toBe('Show YapYap');
+    expect(t.tray.setToolTip).toHaveBeenLastCalledWith('YapYap: 2 unread chats');
   });
 
   it('hides the window when it is shown', () => {

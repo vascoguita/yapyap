@@ -243,6 +243,16 @@ not edit the same lines.
   atomically written `.plugins.json`. The consent screen and the Developer
   Mode badge come with the plugin runtime UI.
 
+- Screen-sharing indicator (#161): the WhatsApp preload's second stand-in
+  (`installShareShim`, ADR 0011) reports when a screen share starts and
+  ends, by a random ID only, and stops one when YapYap asks. The main
+  process tracks shares per account (`trackShares`, which hears only
+  WhatsApp pages and call windows of an account; views now carry their
+  account, which call windows inherit), and the tray (a Stop Sharing Screen
+  entry first in its menu, and its tooltip) and the sidebar (a Sharing
+  button beside the account) show each one until it ends. Call windows now
+  get the WhatsApp preload, so both stand-ins run in calls.
+
 - The screen picker lists screens and windows in separate calls (#180),
   because one combined call came back empty on Linux CI while screens alone
   were listed.
