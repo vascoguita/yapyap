@@ -9,20 +9,21 @@ Change settings in **Settings** (<kbd>Ctrl</kbd>+<kbd>,</kbd>, or
 <kbd>⌘</kbd>+<kbd>,</kbd> on macOS). They are saved in `settings.json` in
 the [profile folder](#files).
 
-| Setting                        | In the file                         | Default            | Notes                                                           |
-| ------------------------------ | ----------------------------------- | ------------------ | --------------------------------------------------------------- |
-| Start at login                 | `general.autostart`                 | Off                | Follows the system's login items; not yet in Flatpak (#234)     |
-| Start minimized                | `general.startMinimized`            | Off                | Opens in the tray or the Dock                                   |
-| Close to the tray              | `general.closeToTray`               | Off                | Windows and Linux; macOS always keeps running                   |
-| Theme                          | `appearance.theme`                  | Same as the system | `system`, `light` or `dark`                                     |
-| Hide the menu bar              | `appearance.autoHideMenuBar`        | Off                | Windows and Linux; <kbd>Alt</kbd> shows it                      |
-| Zoom                           | `appearance.zoom`                   | 100%               | Set from the View menu; 50% to 300%                             |
-| Use hardware acceleration      | `reliability.hardwareAcceleration`  | On                 | Takes effect after a restart                                    |
-| Use hardware video decoding    | `reliability.hardwareVideoDecoding` | On                 | Takes effect after a restart                                    |
-| Display backend                | `reliability.displayBackend`        | Automatic          | Linux; `auto`, `wayland` or `x11`; restart                      |
-| Memory limit                   | `reliability.memoryWatchdogMb`      | 2048 MB            | File only; 512 to 16384; see below                              |
-| Crash reports                  | `privacy.crashReports`              | Off                | `off`, `local` or `ask`; see [Privacy](/privacy)                |
-| Keep chats unread while hidden | `privacy.unreadWhileHidden`         | On                 | WhatsApp marks nothing read while YapYap is hidden or minimized |
+| Setting                        | In the file                         | Default            | Notes                                                                         |
+| ------------------------------ | ----------------------------------- | ------------------ | ----------------------------------------------------------------------------- |
+| Start at login                 | `general.autostart`                 | Off                | Follows the system's login items; not yet in Flatpak (#234)                   |
+| Start minimized                | `general.startMinimized`            | Off                | Opens in the tray or the Dock                                                 |
+| Get beta updates               | `general.betaUpdates`               | Off                | Only in builds that update or announce updates; see [betas](install.md#betas) |
+| Close to the tray              | `general.closeToTray`               | Off                | Windows and Linux; macOS always keeps running                                 |
+| Theme                          | `appearance.theme`                  | Same as the system | `system`, `light` or `dark`                                                   |
+| Hide the menu bar              | `appearance.autoHideMenuBar`        | Off                | Windows and Linux; <kbd>Alt</kbd> shows it                                    |
+| Zoom                           | `appearance.zoom`                   | 100%               | Set from the View menu; 50% to 300%                                           |
+| Use hardware acceleration      | `reliability.hardwareAcceleration`  | On                 | Takes effect after a restart                                                  |
+| Use hardware video decoding    | `reliability.hardwareVideoDecoding` | On                 | Takes effect after a restart                                                  |
+| Display backend                | `reliability.displayBackend`        | Automatic          | Linux; `auto`, `wayland` or `x11`; restart                                    |
+| Memory limit                   | `reliability.memoryWatchdogMb`      | 2048 MB            | File only; 512 to 16384; see below                                            |
+| Crash reports                  | `privacy.crashReports`              | Off                | `off`, `local` or `ask`; see [Privacy](/privacy)                              |
+| Keep chats unread while hidden | `privacy.unreadWhileHidden`         | On                 | WhatsApp marks nothing read while YapYap is hidden or minimized               |
 
 The file also has entries for features that are not built yet. YapYap
 ignores them until those features arrive, and the settings window shows a

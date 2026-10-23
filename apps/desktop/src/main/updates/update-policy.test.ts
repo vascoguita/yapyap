@@ -3,6 +3,7 @@ import {
   decideUpdatePolicy,
   describeUpdatePolicy,
   isDeveloperIdSigned,
+  settingsIgnoredBy,
   type InstallEvidence,
   type UpdatePolicy,
 } from './update-policy.ts';
@@ -117,5 +118,14 @@ describe('isDeveloperIdSigned', () => {
 describe('describeUpdatePolicy', () => {
   it('names the policy and the channel', () => {
     expect(describeUpdatePolicy({ channel: 'deb', policy: 'system' })).toBe('Updates system (deb)');
+  });
+});
+
+describe('settingsIgnoredBy', () => {
+  it('offers betas only to builds that check for releases', () => {
+    expect(settingsIgnoredBy('self-update')).toEqual([]);
+    expect(settingsIgnoredBy('notify')).toEqual([]);
+    expect(settingsIgnoredBy('system')).toEqual(['general.betaUpdates']);
+    expect(settingsIgnoredBy('manual')).toEqual(['general.betaUpdates']);
   });
 });

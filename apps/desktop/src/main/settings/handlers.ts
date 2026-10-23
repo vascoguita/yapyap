@@ -22,9 +22,11 @@ function withValue(settings: Settings, id: string, value: unknown): unknown {
   return next;
 }
 
-/** The fields that do something on `platform`. */
-function fieldsFor(platform: string): readonly SettingField[] {
-  return SETTING_FIELDS.filter((field) => field.platforms?.includes(platform) ?? true);
+/** The fields that do something on `platform` and in this build. */
+function fieldsFor(platform: string, hidden: readonly string[]): readonly SettingField[] {
+  return SETTING_FIELDS.filter(
+    (field) => (field.platforms?.includes(platform) ?? true) && !hidden.includes(field.id),
+  );
 }
 
 /**
@@ -57,16 +59,41 @@ function snapshotOf(
 }
 
 /**
+ * Runs the field's effect, if it has one, and saves the change only when the
+ * system took it; otherwise `problems` says why under the field.
+ */
+function saveUnlessRefused(
+  service: SettingsService,
+  effects: Readonly<Record<string, SettingEffect>>,
+  problems: Map<string, string>,
+  id: string,
+  value: unknown,
+  next: Settings,
+): void {
+  // A newer YapYap owns the file, so the system must not change either.
+  const problem = service.readOnly ? undefined : effects[id]?.(value);
+  if (problem === undefined) {
+    problems.delete(id);
+    service.update(() => next);
+  } else {
+    problems.set(id, problem);
+  }
+}
+
+/**
  * The settings window's operations. A change is accepted only for a listed
- * field and only when the whole result still matches the schema.
+ * field and only when the whole result still matches the schema. `hidden`
+ * lists fields this build ignores, such as beta updates where the system
+ * updates YapYap.
  */
 export function settingsHandlers(
   service: SettingsService,
   restart: () => void,
   platform: string,
   effects: Readonly<Record<string, SettingEffect>> = {},
+  hidden: readonly string[] = [],
 ): ChromeHandler[] {
-  const fields = fieldsFor(platform);
+  const fields = fieldsFor(platform, hidden);
   const launched = service.current();
   const problems = new Map<string, string>();
   const snapshot = (): SettingsSnapshot =>
@@ -87,15 +114,7 @@ export function settingsHandlers(
         if (!Value.Check(SettingsSchema, next)) {
           throw new Error('Invalid setting.');
         }
-        const id = String(args[0]);
-        // A newer YapYap owns the file, so the system must not change either.
-        const problem = service.readOnly ? undefined : effects[id]?.(args[1]);
-        if (problem === undefined) {
-          problems.delete(id);
-          service.update(() => next);
-        } else {
-          problems.set(id, problem);
-        }
+        saveUnlessRefused(service, effects, problems, String(args[0]), args[1], next);
         return snapshot();
       },
     },

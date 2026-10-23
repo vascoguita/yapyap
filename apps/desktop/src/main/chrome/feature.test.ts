@@ -63,6 +63,7 @@ function setup() {
       onChange: vi.fn(),
     },
     settingEffects: {},
+    hiddenSettings: [],
     settingsFiles: {
       chooseExport: vi.fn(() => Promise.resolve(undefined)),
       chooseImport: vi.fn(() => Promise.resolve(undefined)),
@@ -198,6 +199,7 @@ describe('createChromeFeature', () => {
         'privacy.unreadWhileHidden': true,
         'general.autostart': false,
         'general.startMinimized': false,
+        'general.betaUpdates': false,
         'general.closeToTray': false,
       },
       restartPending: false,

@@ -14,6 +14,7 @@ const UNREAD = 'privacy.unreadWhileHidden';
 const START_MINIMIZED = 'general.startMinimized';
 const CLOSE_TO_TRAY = 'general.closeToTray';
 const AUTOSTART = 'general.autostart';
+const BETA = 'general.betaUpdates';
 
 function setup(readOnly = false, effects: Readonly<Record<string, SettingEffect>> = {}) {
   let settings: Settings = defaultSettings();
@@ -116,6 +117,7 @@ describe('settingsHandlers', () => {
         [UNREAD]: true,
         [AUTOSTART]: false,
         [START_MINIMIZED]: false,
+        [BETA]: false,
         [CLOSE_TO_TRAY]: false,
       },
       restartPending: false,
@@ -141,6 +143,25 @@ describe('settingsHandlers', () => {
     });
   });
 
+  it('leaves out and refuses the settings this build ignores', () => {
+    let settings: Settings = defaultSettings();
+    const service = {
+      current: () => settings,
+      notice: undefined,
+      readOnly: false,
+      update: vi.fn((change: (current: Settings) => Settings) => {
+        settings = change(settings);
+      }),
+      onChange: vi.fn(),
+    };
+    const [get, set] = settingsHandlers(service, vi.fn(), 'linux', {}, [BETA]);
+    expect(get?.handle({ sender: {} })).toHaveProperty(
+      'values',
+      expect.not.objectContaining({ [BETA]: false }),
+    );
+    expect(set?.accepts([BETA, true])).toBe(false);
+  });
+
   it('leaves the system alone when a newer YapYap owns the settings', () => {
     const effect = vi.fn<SettingEffect>(() => undefined);
     const t = setup(true, { [AUTOSTART]: effect });
@@ -162,6 +183,7 @@ describe('settingsHandlers', () => {
         [UNREAD]: true,
         [AUTOSTART]: false,
         [START_MINIMIZED]: false,
+        [BETA]: false,
         [CLOSE_TO_TRAY]: false,
       },
       restartPending: true,

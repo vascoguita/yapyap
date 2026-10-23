@@ -30,6 +30,7 @@ describe('openSettings', () => {
       startMinimized: false,
       autostart: true,
       closeToTray: false,
+      betaUpdates: false,
     });
   });
 

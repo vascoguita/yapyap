@@ -51,6 +51,31 @@ describe('migrate', () => {
   });
 });
 
+describe('version 4 to 5', () => {
+  const toVersion5 = MIGRATIONS[3];
+
+  it('adds beta updates, off, and keeps the other general settings', () => {
+    expect(toVersion5?.({ schemaVersion: 4, general: { closeToTray: true } })).toEqual({
+      schemaVersion: 4,
+      general: { betaUpdates: false, closeToTray: true },
+    });
+  });
+
+  it('keeps a choice that is already there', () => {
+    expect(toVersion5?.({ general: { betaUpdates: true } })).toEqual({
+      general: { betaUpdates: true },
+    });
+  });
+
+  it.each([undefined, null, 'on', [true]])(
+    'leaves a general section of %j for validation to reset',
+    (general) => {
+      const settings = { schemaVersion: 4, general };
+      expect(toVersion5?.(settings)).toBe(settings);
+    },
+  );
+});
+
 describe('version 3 to 4', () => {
   const toVersion4 = MIGRATIONS[2];
 
