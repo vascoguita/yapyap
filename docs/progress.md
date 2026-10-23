@@ -93,6 +93,15 @@ not edit the same lines.
   the default session loads nothing. `writeTextAtomically` is shared with
   the settings store. Several accounts and their views come next.
 
+- Account management (#58): the Accounts window (`accounts.html`, Account →
+  Manage Accounts…) renames, recolors, turns off and removes accounts. Edits
+  are a draft until saved, and Escape or picking another account asks before
+  discarding one. The main process checks every change again
+  (`accountsHandlers`) and asks before removing. Turning an account off
+  closes its views and keeps its data; turning it on opens and loads it
+  (`runAccounts().update`). Accounts that are off are left out of the menu.
+  The color stands in for an avatar until profile photos (#87).
+
 - Unread badge (#64): the count of unread chats in WhatsApp's title
   (`unreadInTitle` in the adapter, read on `page-title-updated`, so no page
   probe) becomes the Dock badge on macOS, the launcher count on Linux

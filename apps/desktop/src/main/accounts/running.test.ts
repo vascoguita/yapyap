@@ -120,11 +120,68 @@ describe('runAccounts', () => {
     expect(t.running.list()).toEqual([two.accounts[1]]);
   });
 
-  it('keeps the last open account, and ignores accounts that are not open', async () => {
+  it('keeps the last open account, and ignores accounts it does not know', async () => {
     const t = setup({ ...two, accounts: [account(A, 'Personal')], active: A });
-    await t.running.remove(A);
-    await t.running.remove(C);
+    expect(await t.running.remove(A)).toBe(false);
+    expect(await t.running.remove(C)).toBe(false);
     expect(t.deps.forget).not.toHaveBeenCalled();
     expect(t.page(A)?.close).not.toHaveBeenCalled();
+  });
+
+  it('removes an account that is off, which has no views', async () => {
+    const off = account(B, 'Work', false);
+    const t = setup({ ...two, accounts: [account(A, 'Personal'), off], active: A });
+    expect(await t.running.remove(B)).toBe(true);
+    expect(t.deps.forget).toHaveBeenCalledWith(off);
+    expect(t.running.list().map((entry) => entry.id)).toEqual([A]);
+  });
+});
+
+describe('update', () => {
+  it('renames and recolors an account, on screen or not', () => {
+    const t = setup(two);
+    expect(t.running.update(B, { name: 'Office', color: 'teal', enabled: true })).toBe(true);
+    expect(t.running.update(A, { name: 'Home', color: 'red', enabled: true })).toBe(true);
+    expect(t.running.active().account).toEqual({
+      id: B,
+      name: 'Office',
+      color: 'teal',
+      enabled: true,
+    });
+    expect(t.running.opened().map((entry) => entry.account.name)).toEqual(['Home', 'Office']);
+    expect(t.deps.open).toHaveBeenCalledTimes(2);
+    expect(t.deps.save).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        accounts: [expect.objectContaining({ name: 'Home' }), expect.anything()],
+      }),
+    );
+  });
+
+  it('turns the active account off: shows another, closes its views and keeps its data', () => {
+    const t = setup(two);
+    expect(t.running.update(B, { name: 'Work', color: 'green', enabled: false })).toBe(true);
+    expect(t.running.active().account.id).toBe(A);
+    expect(t.page(B)?.close).toHaveBeenCalledOnce();
+    expect(t.deps.forget).not.toHaveBeenCalled();
+    expect(t.running.list()[1]?.enabled).toBe(false);
+  });
+
+  it('turns an account back on by opening it again, hidden', () => {
+    const t = setup({
+      ...two,
+      accounts: [account(A, 'Personal'), account(B, 'Work', false)],
+      active: A,
+    });
+    expect(t.running.update(B, { name: 'Work', color: 'green', enabled: true })).toBe(true);
+    expect(t.deps.open).toHaveBeenCalledTimes(2);
+    expect(t.page(B)?.show).not.toHaveBeenCalled();
+    expect(t.running.opened()).toHaveLength(2);
+  });
+
+  it('refuses to turn off the last open account, or to change one it does not know', () => {
+    const t = setup({ ...two, accounts: [account(A, 'Personal')], active: A });
+    expect(t.running.update(A, { name: 'Personal', color: 'green', enabled: false })).toBe(false);
+    expect(t.running.update(C, { name: 'Nobody', color: 'green', enabled: true })).toBe(false);
+    expect(t.deps.save).not.toHaveBeenCalled();
   });
 });

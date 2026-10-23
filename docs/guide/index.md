@@ -93,9 +93,15 @@ cache and storage; nothing is shared between them.
 - Every account keeps running in the background, so its messages keep
   arriving. The window title shows the account you see, and the unread count
   on YapYap's icon adds up all of them.
-- **Account → Remove Account…** removes the account you see, after asking.
-  It logs that account out and deletes its WhatsApp data on this computer;
-  its chats stay on the phone. The last account cannot be removed.
+- **Account → Manage Accounts…** renames an account, gives it a color, or
+  turns it off. Changes apply when you choose **Save**; <kbd>Esc</kbd> closes
+  the window, asking first if you changed something. An account that is off
+  keeps its login and data but receives no messages until you turn it on
+  again. At least one account keeps running.
+- **Remove Account…**, in the Account menu or the Accounts window, removes
+  an account after asking. It logs that account out and deletes its
+  WhatsApp data on this computer; its chats stay on the phone. The last
+  running account cannot be removed.
 
 Each account uses one of WhatsApp's linked-device slots for its number.
 

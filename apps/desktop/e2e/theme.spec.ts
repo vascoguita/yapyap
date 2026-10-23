@@ -58,5 +58,8 @@ for (const theme of ['light', 'dark'] as const) {
     const settings = await openChrome(app, 'Settings…', 'settings.html');
     await expect(settings.getByRole('group', { name: 'Theme' })).toBeVisible();
     await expect.soft(settings).toHaveScreenshot(`settings-${theme}.png`);
+    const accounts = await openChrome(app, 'Manage Accounts…', 'accounts.html');
+    await expect(accounts.getByLabel('Name')).toHaveValue('WhatsApp');
+    await expect.soft(accounts).toHaveScreenshot(`accounts-${theme}.png`);
   });
 }

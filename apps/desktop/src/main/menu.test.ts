@@ -1,12 +1,14 @@
 import type { MenuItemConstructorOptions } from 'electron';
 import { describe, expect, it, vi } from 'vitest';
+import type { AccountSummary } from '../shared/chrome-api.ts';
 import { buildMenuTemplate } from './menu.ts';
 
-function actions(accounts: { id: string; name: string; active: boolean }[] = []) {
+function actions(accounts: AccountSummary[] = []) {
   return {
     accounts,
     switchAccount: vi.fn(),
     addAccount: vi.fn(),
+    openAccounts: vi.fn(),
     removeAccount: vi.fn(),
     openAbout: vi.fn(),
     openSettings: vi.fn(),
@@ -23,6 +25,7 @@ const ACCOUNT = (a: ReturnType<typeof actions>) => ({
   submenu: [
     { type: 'separator' },
     { label: 'Add Account', click: a.addAccount },
+    { label: 'Manage Accounts…', click: a.openAccounts },
     { label: 'Remove Account…', enabled: false, click: a.removeAccount },
     { type: 'separator' },
     { label: 'New Chat with Number…', click: a.openNewChat },
@@ -41,8 +44,11 @@ describe('buildMenuTemplate', () => {
     const accounts = Array.from({ length: 10 }, (_, index) => ({
       id: `id-${String(index)}`,
       name: `Account ${String(index + 1)}`,
+      color: 'green',
+      enabled: true,
       active: index === 1,
     }));
+    accounts.push({ id: 'off', name: 'Switched off', color: 'red', enabled: false, active: false });
     const a = actions(accounts);
     const menu = buildMenuTemplate('linux', a).find((entry) => entry.label === '&Account');
     const entries = items(menu);
@@ -57,6 +63,7 @@ describe('buildMenuTemplate', () => {
     ]);
     expect(entries[8]).toHaveProperty('accelerator', 'CmdOrCtrl+9');
     expect(entries[9]).not.toHaveProperty('accelerator');
+    expect(entries.find((entry) => entry.label === 'Switched off')).toBeUndefined();
     entries[0]?.click?.(undefined as never, undefined, undefined as never);
     expect(a.switchAccount).toHaveBeenCalledWith('id-0');
     expect(entries.find((entry) => entry.label === 'Remove Account…')).toHaveProperty(

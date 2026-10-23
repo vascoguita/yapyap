@@ -107,3 +107,48 @@ test('adds, switches and removes accounts, each in its own session', async ({
   };
   expect(saved.accounts).toHaveLength(1);
 });
+
+test('renames an account and turns another off from the Accounts window', async ({
+  app,
+  window,
+  profile,
+}) => {
+  await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
+  await clickAccountMenu(app, 'Add Account');
+  await expect.poll(async () => (await accountPages(app)).length).toBe(2);
+  await clickAccountMenu(app, 'Manage Accounts…');
+  // Adding the account also opened a page, so find the window by its address.
+  await expect
+    .poll(() => app.windows().some((page) => page.url() === 'app://chrome/accounts.html'))
+    .toBe(true);
+  const manage = app.windows().find((page) => page.url() === 'app://chrome/accounts.html');
+  if (manage === undefined) {
+    throw new Error('The Accounts window did not open.');
+  }
+  // The window opens on the account on screen: the one just added.
+  await expect(manage.getByLabel('Name')).toHaveValue('WhatsApp 2');
+  await manage.getByLabel('Name').fill('Work');
+  await manage.getByLabel('Run this account').uncheck();
+  await manage.getByRole('button', { name: 'Save' }).click();
+  await expect.poll(async () => (await accountPages(app)).length).toBe(1);
+  await manage.getByRole('button', { name: /^WhatsApp/ }).click();
+  await manage.getByLabel('Name').fill('Personal');
+  await manage.getByRole('button', { name: 'Save' }).click();
+  await manage.getByLabel('Run this account').uncheck();
+  await manage.getByRole('button', { name: 'Save' }).click();
+  await expect(manage.getByRole('alert')).toContainText('must keep running');
+  const saved = JSON.parse(await readFile(join(profile, 'accounts.json'), 'utf8')) as {
+    accounts: { name: string; enabled: boolean }[];
+  };
+  expect(saved.accounts.map(({ name, enabled }) => [name, enabled])).toEqual([
+    ['Personal', true],
+    ['Work', false],
+  ]);
+  const menuLabels = await app.evaluate(({ Menu }) =>
+    Menu.getApplicationMenu()?.items.flatMap((menu) =>
+      (menu.submenu?.items ?? []).map((entry) => entry.label),
+    ),
+  );
+  expect(menuLabels).toContain('Personal');
+  expect(menuLabels).not.toContain('Work');
+});

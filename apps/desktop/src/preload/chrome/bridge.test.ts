@@ -32,6 +32,10 @@ describe('createChromeBridge', () => {
     await api.picker.choose('screen:1:0', true);
     await api.picker.cancel();
     expect(await api.chat.openNumber('+44 7700 900123')).toBe(true);
+    expect(await api.accounts.list()).toBe('ignored');
+    const change = { name: 'Work', color: 'blue', enabled: true };
+    expect(await api.accounts.save('a', change)).toBe('ignored');
+    expect(await api.accounts.remove('a')).toBe('ignored');
     expect(invoke.mock.calls).toEqual([
       ['about:info'],
       ['about:copy-technical-details'],
@@ -48,13 +52,24 @@ describe('createChromeBridge', () => {
       ['picker:choose', 'screen:1:0', true],
       ['picker:cancel'],
       ['chat:open-number', '+44 7700 900123'],
+      ['accounts:list'],
+      ['accounts:save', 'a', { name: 'Work', color: 'blue', enabled: true }],
+      ['accounts:remove', 'a'],
     ]);
   });
 
   it('exposes nothing but the listed operations', () => {
     const api = createChromeBridge(vi.fn());
-    expect(Object.keys(api)).toEqual(['about', 'recovery', 'settings', 'chat', 'picker']);
+    expect(Object.keys(api)).toEqual([
+      'about',
+      'recovery',
+      'settings',
+      'chat',
+      'accounts',
+      'picker',
+    ]);
     expect(Object.keys(api.chat)).toEqual(['openNumber']);
+    expect(Object.keys(api.accounts)).toEqual(['list', 'save', 'remove']);
     expect(Object.keys(api.picker)).toEqual(['offer', 'choose', 'cancel']);
     expect(Object.keys(api.settings)).toEqual(['get', 'set', 'restart', 'export', 'import']);
     expect(Object.keys(api.about)).toEqual(['info', 'copyTechnicalDetails']);

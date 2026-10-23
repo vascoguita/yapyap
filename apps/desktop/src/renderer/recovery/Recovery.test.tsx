@@ -19,6 +19,7 @@ function api(
     },
     settings: { get: vi.fn(), set: vi.fn(), restart: vi.fn(), export: vi.fn(), import: vi.fn() },
     chat: { openNumber: vi.fn() },
+    accounts: { list: vi.fn(), save: vi.fn(), remove: vi.fn() },
     picker: { offer: vi.fn(), choose: vi.fn(), cancel: vi.fn() },
   } satisfies ChromeApi;
 }

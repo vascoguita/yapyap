@@ -313,3 +313,105 @@ main.new-chat input {
 main.new-chat .actions {
   justify-content: flex-end;
 }
+
+main.accounts {
+  align-items: stretch;
+  max-width: 560px;
+  margin: 0 auto;
+  text-align: left;
+}
+
+.account-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.account-list button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+}
+
+.account-list button[aria-pressed='true'] {
+  border-color: var(--accent);
+  outline: 1px solid var(--accent);
+}
+
+.account-list .hint {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+main.accounts > .hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* Mid tones that read on light and dark surfaces alike. */
+.swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+.swatch-green {
+  background: #2e9d5b;
+}
+
+.swatch-blue {
+  background: #2f74c0;
+}
+
+.swatch-purple {
+  background: #7a4fc4;
+}
+
+.swatch-orange {
+  background: #d9822b;
+}
+
+.swatch-red {
+  background: #c8433b;
+}
+
+.swatch-teal {
+  background: #1f9a97;
+}
+
+main.accounts .editor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+main.accounts #name {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+main.accounts .actions {
+  justify-content: flex-end;
+}
