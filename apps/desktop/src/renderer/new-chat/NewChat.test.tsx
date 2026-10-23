@@ -18,7 +18,13 @@ function api(opened: boolean) {
     chat: {
       openNumber: vi.fn<(number: string) => Promise<boolean>>(() => Promise.resolve(opened)),
     },
-    accounts: { list: vi.fn(), save: vi.fn(), remove: vi.fn() },
+    accounts: {
+      list: vi.fn(),
+      save: vi.fn(),
+      remove: vi.fn(),
+      permissions: vi.fn(),
+      forgetPermissions: vi.fn(),
+    },
     sidebar: {
       state: vi.fn(),
       switchTo: vi.fn(),

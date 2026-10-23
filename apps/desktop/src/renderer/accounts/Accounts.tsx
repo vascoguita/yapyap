@@ -220,6 +220,46 @@ function EditorActions(props: {
   );
 }
 
+/** What the account may use, and the one answer the user can take back (#77). */
+function Permissions({ api, id }: { readonly api: ChromeApi; readonly id: string }) {
+  const [allowed, setAllowed] = useState<readonly string[] | null>(null);
+  useEffect(() => {
+    api.accounts.permissions(id).then(setAllowed, () => {
+      setAllowed(null);
+    });
+  }, [api, id]);
+  if (allowed === null) {
+    return null;
+  }
+  const device = (type: string): string =>
+    allowed.includes(type) ? text.permissions.allowed : text.permissions.asks;
+  return (
+    <section class="permissions" aria-labelledby="permissions-title">
+      <h2 id="permissions-title">{text.permissions.title}</h2>
+      <dl>
+        <dt>{text.permissions.camera}</dt>
+        <dd>{device('video')}</dd>
+        <dt>{text.permissions.microphone}</dt>
+        <dd>{device('audio')}</dd>
+        <dt>{text.permissions.notifications}</dt>
+        <dd>{text.permissions.notificationsState}</dd>
+        <dt>{text.permissions.screen}</dt>
+        <dd>{text.permissions.screenState}</dd>
+      </dl>
+      <button
+        type="button"
+        class="forget"
+        disabled={allowed.length === 0}
+        onClick={() => {
+          api.accounts.forgetPermissions(id).then(setAllowed, () => undefined);
+        }}
+      >
+        {text.permissions.forget}
+      </button>
+    </section>
+  );
+}
+
 function DiscardPrompt({ onSettle }: { readonly onSettle: (discard: boolean) => void }) {
   return (
     <div class="notice" role="alertdialog" aria-labelledby="discard-message">
@@ -438,6 +478,7 @@ export function Accounts({ api }: { readonly api: ChromeApi }): JSX.Element {
         onRevert={state.revert}
         onRemove={actions.remove}
       />
+      <Permissions key={account.id} api={api} id={account.id} />
       <p role="alert">{actions.error}</p>
     </main>
   );

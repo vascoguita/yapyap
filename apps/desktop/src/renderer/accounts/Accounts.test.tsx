@@ -19,6 +19,8 @@ function api(list: () => Promise<AccountList> = () => Promise.resolve(LIST)) {
     list: vi.fn(list),
     save: vi.fn<ChromeApi['accounts']['save']>(() => Promise.resolve(LIST)),
     remove: vi.fn<ChromeApi['accounts']['remove']>(() => Promise.resolve(LIST)),
+    permissions: vi.fn<ChromeApi['accounts']['permissions']>(() => Promise.resolve(['video'])),
+    forgetPermissions: vi.fn<ChromeApi['accounts']['forgetPermissions']>(() => Promise.resolve([])),
   };
   const fake = {
     about: { info: vi.fn(), copyTechnicalDetails: vi.fn() },
@@ -157,5 +159,49 @@ describe('Accounts', () => {
     t.accounts.remove.mockRejectedValueOnce(new Error('no'));
     fireEvent.click(button('Remove Account…'));
     await screen.findByText('Could not save the account. Try again.');
+  });
+
+  it('shows what the account may use, and asks again for camera and microphone when told', async () => {
+    const t = await shown();
+    expect(await screen.findByText('Permissions')).toBeTruthy();
+    const states = [...document.querySelectorAll('.permissions dd')].map((dd) => dd.textContent);
+    expect(states).toEqual([
+      'Allowed until YapYap quits',
+      'Asks first',
+      'Allowed; mute the account to silence them',
+      'Asks every time',
+    ]);
+    fireEvent.click(button('Ask Again for Camera and Microphone'));
+    expect(t.accounts.forgetPermissions).toHaveBeenCalledWith('b');
+    await waitFor(() => {
+      expect(button('Ask Again for Camera and Microphone').disabled).toBe(true);
+    });
+  });
+
+  it('keeps showing the permissions when forgetting them fails', async () => {
+    const t = await shown();
+    t.accounts.forgetPermissions.mockRejectedValueOnce(new Error('gone'));
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Ask Again for Camera and Microphone' }),
+    );
+    await waitFor(() => {
+      expect(t.accounts.forgetPermissions).toHaveBeenCalled();
+    });
+    expect(screen.getByText('Allowed until YapYap quits')).toBeTruthy();
+  });
+
+  it('leaves permissions out for an account that is off, or when they cannot be read', async () => {
+    const t = await shown();
+    t.accounts.permissions.mockResolvedValueOnce(null);
+    fireEvent.click(button('Old Off'));
+    await waitFor(() => {
+      expect(screen.queryByText('Permissions')).toBeNull();
+    });
+    t.accounts.permissions.mockRejectedValueOnce(new Error('gone'));
+    fireEvent.click(button('Work On screen'));
+    await waitFor(() => {
+      expect(t.accounts.permissions).toHaveBeenLastCalledWith('b');
+    });
+    expect(screen.queryByText('Permissions')).toBeNull();
   });
 });

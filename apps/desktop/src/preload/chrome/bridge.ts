@@ -22,6 +22,10 @@ function accountsBridge(invoke: Invoke): ChromeApi['accounts'] {
     save: (id, change) =>
       invoke(CHROME_CHANNELS.accountsSave, id, change) as Promise<AccountList | null>,
     remove: (id) => invoke(CHROME_CHANNELS.accountsRemove, id) as Promise<AccountList>,
+    permissions: (id) =>
+      invoke(CHROME_CHANNELS.accountsPermissions, id) as Promise<readonly string[] | null>,
+    forgetPermissions: (id) =>
+      invoke(CHROME_CHANNELS.accountsForgetPermissions, id) as Promise<readonly string[] | null>,
   };
 }
 
