@@ -38,7 +38,12 @@ sandbox, and lifting the restriction weakens every other app too.
 
 ## Reporting a problem {#diagnostics}
 
-Choose **Help → Copy Diagnostics** and paste the result into your report. It
+Choose **Help → Report a Problem…**, describe what went wrong, and read
+what the report includes. **Copy and Open GitHub** copies the report and
+opens GitHub's bug form in your browser with it filled in; YapYap itself
+sends nothing, and you can edit everything before you submit it.
+
+To share the details elsewhere, choose **Help → Copy Diagnostics**. It
 holds YapYap's version and install channel, Electron and Chromium versions,
 your operating system, the graphics mode and a GPU summary, and the most
 recent log lines. Log lines are redacted before they are written: phone

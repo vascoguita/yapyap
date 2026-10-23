@@ -27,6 +27,7 @@ function api(platform: string) {
     },
     plugins: { list: vi.fn(), consent: vi.fn(), answer: vi.fn() },
     picker: { offer: vi.fn(), choose: vi.fn(), cancel: vi.fn() },
+    report: { diagnostics: vi.fn(), open: vi.fn() },
     shortcuts: {
       list: vi.fn(() => Promise.resolve({ platform, shortcuts: shortcutsFor(platform) })),
     },

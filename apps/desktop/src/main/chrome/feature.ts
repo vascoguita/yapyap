@@ -25,6 +25,7 @@ import {
 import { changeZoom } from '../appearance/zoom.ts';
 import { buildMenuTemplate, type MenuActions } from '../menu.ts';
 import { accountsHandlers, type AccountManager } from './accounts.ts';
+import { problemReportHandlers } from './problem-report.ts';
 import {
   createPluginChrome,
   type PluginChrome,
@@ -149,6 +150,18 @@ const WELCOME_PAGE: ChromePage = {
   },
 };
 
+const REPORT_PAGE: ChromePage = {
+  path: 'report.html',
+  window: {
+    title: en.windows.report,
+    width: 600,
+    height: 640,
+    minWidth: 440,
+    minHeight: 420,
+    minimizable: false,
+  },
+};
+
 const SETTINGS_PAGE: ChromePage = {
   path: 'settings.html',
   window: {
@@ -174,6 +187,8 @@ export interface ChromeFeatureDependencies {
   readonly createWindow: (options: WindowOptions, renderer: RendererOptions) => ChromeWindowPort;
   readonly setMenu: (template: MenuItemConstructorOptions[]) => void;
   readonly writeClipboard: (text: string) => Promise<unknown>;
+  /** Opens a web page in the user's browser, such as GitHub's bug form. */
+  readonly openExternal: (url: string) => Promise<unknown>;
   /** A system notification, for things the user should know but need not act on. */
   readonly notify: (message: string) => void;
   /** `app.getGPUFeatureStatus()`, summarized for diagnostics. */
@@ -430,13 +445,32 @@ function diagnostics(
 }
 
 /** The first WhatsApp view is the one diagnostics describe until accounts arrive. */
+async function currentDiagnostics(
+  deps: Omit<ChromeFeatureDependencies, 'facts'> & FactsSource,
+  pages: readonly ProbedContents[],
+): Promise<string> {
+  const page = pages[0];
+  const state = page === undefined ? undefined : await readPageState(page);
+  return diagnostics(deps, describePageState(state));
+}
+
+/** Report a Problem's operations, describing the WhatsApp views open now. */
+function reportHandlers(
+  deps: Omit<ChromeFeatureDependencies, 'facts'> & FactsSource,
+  pages: readonly ProbedContents[],
+): ChromeHandler[] {
+  return problemReportHandlers({
+    diagnostics: () => currentDiagnostics(deps, pages),
+    writeClipboard: deps.writeClipboard,
+    openExternal: deps.openExternal,
+  });
+}
+
 async function writeDiagnostics(
   deps: Omit<ChromeFeatureDependencies, 'facts'> & FactsSource,
   pages: readonly ProbedContents[],
 ): Promise<unknown> {
-  const page = pages[0];
-  const state = page === undefined ? undefined : await readPageState(page);
-  return deps.writeClipboard(diagnostics(deps, describePageState(state)));
+  return deps.writeClipboard(await currentDiagnostics(deps, pages));
 }
 
 function chromeWindows(
@@ -462,6 +496,7 @@ type ChromeOpeners = Pick<
   | 'openPlugins'
   | 'installPlugin'
   | 'openShortcuts'
+  | 'openReport'
 >;
 
 function chromeOpeners(windows: ChromeWindowDependencies, plugins: PluginChrome): ChromeOpeners {
@@ -473,6 +508,7 @@ function chromeOpeners(windows: ChromeWindowDependencies, plugins: PluginChrome)
     openNewChat: opener(NEW_CHAT_PAGE),
     openShortcuts: opener(SHORTCUTS_PAGE),
     openPlugins: plugins.openPlugins,
+    openReport: opener(REPORT_PAGE),
     installPlugin: plugins.install,
   };
 }
@@ -587,7 +623,8 @@ function startChrome(
   const sidebar: SidebarSlot = {};
   const plugins = createPluginChrome(deps.plugins, deps.settings, windows);
   const handlers = allHandlers(withGraphics, recoveries, picker, chats, accounts, sidebar);
-  registerChromeHandlers(deps.ipc, views, [...handlers, ...plugins.handlers], warn);
+  const report = reportHandlers(withGraphics, pages);
+  registerChromeHandlers(deps.ipc, views, [...handlers, ...plugins.handlers, ...report], warn);
   const openers = chromeOpeners(windows, plugins);
   const copyDiagnostics = (): void => {
     writeDiagnostics(withGraphics, pages).catch(() => {

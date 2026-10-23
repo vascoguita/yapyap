@@ -300,6 +300,23 @@ const catalog = {
       'YapYap shows WhatsApp’s notifications as your system’s own. The first time, your system may ask whether YapYap may show them.',
     start: 'Start Using YapYap',
   },
+  report: {
+    /** GitHub issue titles; the user can still change them before submitting. */
+    issueTitle: 'Problem report',
+    crashTitle: 'YapYap closed unexpectedly',
+    crashWhatHappened: 'YapYap closed unexpectedly. I was …',
+    title: 'Report a Problem',
+    intro:
+      'Describe what went wrong. YapYap sends nothing: it copies the report and opens GitHub in your browser, where you can edit it before you submit it.',
+    description: 'What happened?',
+    placeholder: 'What you did, what you expected and what happened instead',
+    diagnostics: 'What the report includes',
+    diagnosticsHint:
+      'Versions, your system, graphics and the end of YapYap’s log, with phone numbers and other personal details removed. Never your messages.',
+    open: 'Copy and Open GitHub',
+    opened: 'The report is on your clipboard, and GitHub is open in your browser.',
+    failed: 'Could not open GitHub. Copy Diagnostics from the Help menu instead.',
+  },
   accounts: {
     defaultName: (position: number): string =>
       position === 1 ? 'WhatsApp' : `WhatsApp ${String(position)}`,
@@ -487,6 +504,7 @@ const catalog = {
     shortcuts: 'Keyboard Shortcuts…',
     edit: '&Edit',
     window: '&Window',
+    reportProblem: 'Report a Problem…',
   },
   windows: {
     about: (product: string): string => `About ${product}`,
@@ -498,6 +516,7 @@ const catalog = {
     shortcuts: 'Keyboard Shortcuts',
     pluginConsent: 'Install Plugin',
     welcome: 'Welcome',
+    report: 'Report a Problem',
     offline: (pageTitle: string): string => `${pageTitle} (offline)`,
   },
   dialogs: {

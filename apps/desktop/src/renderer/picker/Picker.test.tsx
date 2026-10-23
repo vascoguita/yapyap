@@ -38,6 +38,7 @@ function api(offer: () => Promise<PickerOffer> = () => Promise.resolve(OFFER)) {
       onState: vi.fn(),
     },
     plugins: { list: vi.fn(), consent: vi.fn(), answer: vi.fn() },
+    report: { diagnostics: vi.fn(), open: vi.fn() },
     picker: {
       offer: vi.fn(offer),
       choose: vi.fn(() => Promise.resolve()),

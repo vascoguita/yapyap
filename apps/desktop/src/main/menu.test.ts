@@ -25,6 +25,7 @@ function actions(accounts: AccountSummary[] = []) {
     togglePrivacyScreen: vi.fn(),
     copyDiagnostics: vi.fn(),
     openShortcuts: vi.fn(),
+    openReport: vi.fn(),
   };
 }
 
@@ -158,6 +159,7 @@ describe('buildMenuTemplate', () => {
       { label: 'About YapYap', click: a.openAbout },
       { type: 'separator' },
       { label: 'Keyboard Shortcuts…', accelerator: 'CmdOrCtrl+/', click: a.openShortcuts },
+      { label: 'Report a Problem…', click: a.openReport },
       { label: 'Copy Diagnostics', click: a.copyDiagnostics },
     ]);
     expect(template[1]).toEqual(ACCOUNT(a));
@@ -229,6 +231,7 @@ describe('buildMenuTemplate', () => {
     ]);
     expect(items(rest.at(-1))).toEqual([
       { label: 'Keyboard Shortcuts…', accelerator: 'CmdOrCtrl+/', click: a.openShortcuts },
+      { label: 'Report a Problem…', click: a.openReport },
       { label: 'Copy Diagnostics', click: a.copyDiagnostics },
     ]);
     expect(rest[1]).toEqual(ACCOUNT(a));
