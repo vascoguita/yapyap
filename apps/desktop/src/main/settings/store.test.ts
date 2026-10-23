@@ -8,7 +8,13 @@ import { loadSettings, saveSettings, SETTINGS_FILE } from './store.ts';
 const fresh = () => mkdtempSync(join(tmpdir(), 'yapyap-settings-'));
 const custom = () => ({
   ...defaultSettings(),
-  appearance: { theme: 'dark' as const, zoom: 1.5, autoHideMenuBar: false, compactSidebar: false },
+  appearance: {
+    theme: 'dark' as const,
+    zoom: 1.5,
+    autoHideMenuBar: false,
+    compactSidebar: false,
+    trayIcon: 'color' as const,
+  },
 });
 
 describe('loadSettings', () => {
@@ -40,7 +46,7 @@ describe('loadSettings', () => {
 
   it('opens a newer file read-only and says so', () => {
     const dir = fresh();
-    writeFileSync(join(dir, SETTINGS_FILE), '{"schemaVersion":9}');
+    writeFileSync(join(dir, SETTINGS_FILE), '{"schemaVersion":99}');
     expect(loadSettings(dir, 1)).toEqual({
       settings: defaultSettings(),
       readOnly: true,
@@ -66,7 +72,7 @@ describe('loadSettings', () => {
   it.each([
     ['no backup', undefined],
     ['a damaged backup', 'garbage'],
-    ['a newer backup', '{"schemaVersion":9}'],
+    ['a newer backup', '{"schemaVersion":99}'],
   ])('falls back to defaults with %s', (_, backup) => {
     const dir = fresh();
     writeFileSync(join(dir, SETTINGS_FILE), 'garbage');
@@ -91,7 +97,7 @@ describe('saveSettings', () => {
       defaultSettings(),
     );
     expect(readFileSync(join(dir, SETTINGS_FILE), 'utf8')).toMatch(
-      /^\{\n {2}"schemaVersion": 8,[\s\S]*\}\n$/,
+      /^\{\n {2}"schemaVersion": 9,[\s\S]*\}\n$/,
     );
     expect(readdirSync(dir).sort()).toEqual(['settings.json', 'settings.json.bak']);
   });

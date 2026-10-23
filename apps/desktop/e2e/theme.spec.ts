@@ -20,10 +20,10 @@ const prefersDark = (page: Page) =>
 
 test('switches YapYap and WhatsApp between themes live', async ({ app, window }) => {
   const settings = await openChrome(app, 'Settings…', 'settings.html');
-  await settings.getByRole('radio', { name: 'Dark' }).check();
+  await settings.getByRole('radio', { name: 'Dark', exact: true }).check();
   await expect.poll(() => prefersDark(window)).toBe(true);
   await expect.poll(() => prefersDark(settings)).toBe(true);
-  await settings.getByRole('radio', { name: 'Light' }).check();
+  await settings.getByRole('radio', { name: 'Light', exact: true }).check();
   await expect.poll(() => prefersDark(window)).toBe(false);
   expect(await app.evaluate(({ nativeTheme }) => nativeTheme.themeSource)).toBe('light');
 });

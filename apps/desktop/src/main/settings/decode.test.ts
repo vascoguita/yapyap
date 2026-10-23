@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { decodeSettings, defaultSettings } from './decode.ts';
 
 const DEFAULTS = {
-  schemaVersion: 8,
+  schemaVersion: 9,
   general: {
     language: 'system',
     startMinimized: false,
@@ -12,7 +12,13 @@ const DEFAULTS = {
     betaUpdates: false,
     doNotDisturb: false,
   },
-  appearance: { theme: 'system', zoom: 1, autoHideMenuBar: false, compactSidebar: false },
+  appearance: {
+    theme: 'system',
+    zoom: 1,
+    autoHideMenuBar: false,
+    compactSidebar: false,
+    trayIcon: 'color',
+  },
   reliability: {
     hardwareAcceleration: true,
     hardwareVideoDecoding: true,
@@ -37,7 +43,13 @@ describe('decodeSettings', () => {
   it('reads a valid file unchanged', () => {
     const settings = {
       ...DEFAULTS,
-      appearance: { theme: 'dark', zoom: 1.25, autoHideMenuBar: true, compactSidebar: true },
+      appearance: {
+        theme: 'dark',
+        zoom: 1.25,
+        autoHideMenuBar: true,
+        compactSidebar: true,
+        trayIcon: 'auto',
+      },
     };
     expect(decodeSettings(JSON.stringify(settings))).toEqual({ kind: 'ok', settings, reset: [] });
   });
@@ -71,11 +83,17 @@ describe('decodeSettings', () => {
   });
 
   it('reads what it understands of a newer file and marks it', () => {
-    const appearance = { theme: 'light', zoom: 2, autoHideMenuBar: false, compactSidebar: false };
+    const appearance = {
+      theme: 'light',
+      zoom: 2,
+      autoHideMenuBar: false,
+      compactSidebar: false,
+      trayIcon: 'color',
+    };
     const decoded = decodeSettings(
-      JSON.stringify({ ...DEFAULTS, appearance, schemaVersion: 9, future: true }),
+      JSON.stringify({ ...DEFAULTS, appearance, schemaVersion: 10, future: true }),
     );
-    expect(decoded).toEqual({ kind: 'newer', settings: { ...DEFAULTS, appearance }, version: 9 });
+    expect(decoded).toEqual({ kind: 'newer', settings: { ...DEFAULTS, appearance }, version: 10 });
   });
 
   it('accepts every option of each choice', () => {
@@ -83,7 +101,13 @@ describe('decodeSettings', () => {
       for (const crashReports of ['off', 'local', 'ask']) {
         const settings = {
           ...DEFAULTS,
-          appearance: { theme, zoom: 1, autoHideMenuBar: false, compactSidebar: false },
+          appearance: {
+            theme,
+            zoom: 1,
+            autoHideMenuBar: false,
+            compactSidebar: false,
+            trayIcon: 'color',
+          },
           privacy: {
             crashReports,
             unreadWhileHidden: true,

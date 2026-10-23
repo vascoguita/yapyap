@@ -179,6 +179,20 @@ on macOS the number also appears next to the icon. With **Start minimized** on, 
 background. Some Linux desktops have no tray; there, starting YapYap again
 always brings its window back.
 
+**Tray icon** under Settings → Appearance swaps the colorful app icon for a
+one-color one that matches the other icons of your panel. **Automatic**
+picks a light or dark shade to stand out against the panel, following your
+color scheme (on Windows, the taskbar's own setting). On macOS every
+one-color choice becomes a menu bar template, which macOS colors itself.
+
+On Linux the tray uses the StatusNotifierItem standard, which KDE Plasma,
+Xfce, Cinnamon and most other desktops show on both Wayland and X11. GNOME
+shows it only with the **AppIndicator and KStatusNotifierItem Support**
+extension, which Ubuntu installs by default; on other GNOME systems,
+install it from your distribution or extensions.gnome.org. CI tests the
+tray menu's logic and that YapYap starts with a tray on Linux, but not how a
+panel draws the icon, which is checked by hand before each release.
+
 The number of chats with unread messages shows on YapYap's icon: as a badge
 on the Dock on macOS, over the taskbar icon on Windows, and on the launcher
 icon on Linux desktops that support counts, such as Ubuntu's dock and KDE

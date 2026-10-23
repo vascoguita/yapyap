@@ -116,7 +116,7 @@ test('exports the settings to a file and imports them back', async ({ app, profi
   await writeFile(file, JSON.stringify(exported));
   await settings.getByRole('button', { name: 'Import settings…' }).click();
   await expect(settings.getByText('Settings imported.')).toBeVisible();
-  await expect(settings.getByRole('radio', { name: 'Dark' })).toBeChecked();
+  await expect(settings.getByRole('radio', { name: 'Dark', exact: true })).toBeChecked();
   const saved = JSON.parse(await readFile(join(profile, 'settings.json'), 'utf8')) as {
     appearance: { theme: string };
   };

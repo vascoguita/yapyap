@@ -196,6 +196,7 @@ describe('createChromeFeature', () => {
         'appearance.theme': 'system',
         'appearance.autoHideMenuBar': false,
         'appearance.compactSidebar': false,
+        'appearance.trayIcon': 'color',
         'reliability.hardwareAcceleration': true,
         'reliability.displayBackend': 'auto',
         'reliability.hardwareVideoDecoding': true,

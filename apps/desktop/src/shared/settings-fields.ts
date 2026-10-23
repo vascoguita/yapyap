@@ -56,6 +56,11 @@ export const SETTING_FIELDS: readonly SettingField[] = [
   },
   { ...described('appearance.autoHideMenuBar'), restart: false, platforms: ['linux', 'win32'] },
   { ...described('appearance.compactSidebar'), restart: false },
+  {
+    ...described('appearance.trayIcon'),
+    restart: false,
+    options: choices(text['appearance.trayIcon'].options),
+  },
   { ...described('reliability.hardwareAcceleration'), restart: true },
   {
     ...described('reliability.displayBackend'),

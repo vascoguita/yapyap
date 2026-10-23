@@ -1,7 +1,7 @@
 import type { MenuItemConstructorOptions } from 'electron';
-import type { AccountSummary } from '../shared/chrome-api.ts';
-import { en } from '../shared/messages/en.ts';
-import { bringToFront, type LinkWindow } from './instances.ts';
+import type { AccountSummary } from '../../shared/chrome-api.ts';
+import { en } from '../../shared/messages/en.ts';
+import { bringToFront, type LinkWindow } from '../instances.ts';
 
 export interface TrayPort {
   setToolTip(text: string): void;
@@ -9,6 +9,7 @@ export interface TrayPort {
   /** Text beside the icon; only the macOS menu bar shows it. */
   setTitle(title: string): void;
   on(event: 'click', listener: () => void): unknown;
+  setImage(image: unknown): void;
 }
 
 export interface TrayWindow extends LinkWindow {

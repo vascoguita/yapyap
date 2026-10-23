@@ -147,8 +147,16 @@ not edit the same lines.
   Settings and quits; its tooltip, and the macOS menu bar title, show the
   unread count of every account. On macOS a click opens the menu, as menu
   bar items do. Chrome windows now share one opener each, so a rebuilt menu
-  or the tray never opens a second copy. A symbolic icon that follows the
-  system theme is still to come.
+  or the tray never opens a second copy.
+
+- Symbolic tray icon (#63, second part): `appearance.trayIcon` (settings
+  schema v9) keeps the app icon (`color`, the default) or shows a one-color
+  silhouette of it, drawn at run time (`drawSymbolicIcon`), in a light or
+  dark shade or `auto`matically: the shade that stands out against the
+  panel, from `nativeTheme` (the taskbar's own setting on Windows). On macOS
+  every one-color choice is a template image. The icon follows setting and
+  scheme changes live (`followTrayIconSetting`). GNOME needs the
+  AppIndicator extension; panels themselves are checked by hand (guide).
 
 - Unread badge (#64): the count of unread chats in WhatsApp's title
   (`unreadInTitle` in the adapter, read on `page-title-updated`, so no page

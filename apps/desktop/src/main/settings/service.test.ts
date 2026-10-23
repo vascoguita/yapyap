@@ -37,7 +37,7 @@ describe('openSettings', () => {
 
   it('never overwrites settings from a newer version', () => {
     const dir = fresh();
-    writeFileSync(join(dir, 'settings.json'), '{"schemaVersion":9}');
+    writeFileSync(join(dir, 'settings.json'), '{"schemaVersion":99}');
     const warn = vi.fn();
     const settings = openSettings(dir, 1, warn);
     expect(settings.readOnly).toBe(true);
@@ -47,7 +47,7 @@ describe('openSettings', () => {
       ...current,
       general: { ...current.general, autostart: true },
     }));
-    expect(readFileSync(join(dir, 'settings.json'), 'utf8')).toBe('{"schemaVersion":9}');
+    expect(readFileSync(join(dir, 'settings.json'), 'utf8')).toBe('{"schemaVersion":99}');
     expect(settings.current().general.autostart).toBe(false);
     expect(listener).not.toHaveBeenCalled();
     expect(warn).toHaveBeenCalledExactlyOnceWith(
