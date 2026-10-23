@@ -124,6 +124,13 @@ not edit the same lines.
   the page, removing the account or quitting withdraws them. The fake page
   shows notifications through the Web API (`notify.js`).
 
+- Notification replies (#60): on macOS and Windows notifications offer an
+  inline reply (`hasReply`). A reply opens its chat as a click does, then
+  `draftReply` focuses WhatsApp's message box through the adapter's new
+  `composer` landmark (`FOCUS_COMPOSER`, landmarks v2) and types the reply
+  with `insertText`, unsent: the user sends it (ADR 0008, C22). Linux keeps
+  opening the chat on a click.
+
 - Do not disturb and per-account mute (#61): `general.doNotDisturb`
   (settings schema v7) and an optional `muted` flag per account in
   `accounts.json` (old files stay valid) silence notifications in

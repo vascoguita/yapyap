@@ -12,6 +12,7 @@ async function recordNotifications(app: ElectronApplication): Promise<void> {
     Object.assign(globalThis, {
       shownNotifications: shown,
       clickLatestNotification: () => recorded.at(-1)?.emit('click'),
+      replyToLatestNotification: (reply: string) => recorded.at(-1)?.emit('reply', { reply }),
     });
     // CI runners have no notification service, and recording needs none.
     Notification.isSupported = () => true;
@@ -132,4 +133,22 @@ test('do not disturb drops notifications, and mutes WhatsApp while it is out of 
   // Notifications arrive in order, so only the second appearing proves the first was dropped.
   await window.getByTestId('notify').click();
   await expect.poll(() => shown(app)).toHaveLength(1);
+});
+
+test('puts a reply typed in a notification into the chat’s message box, unsent', async ({
+  app,
+  window,
+}) => {
+  await recordNotifications(app);
+  await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
+  await window.waitForLoadState('load');
+  await window.getByTestId('notify').click();
+  await expect.poll(async () => (await shown(app)).length).toBe(1);
+  await app.evaluate(() => {
+    (
+      globalThis as unknown as { replyToLatestNotification: (reply: string) => void }
+    ).replyToLatestNotification('On my way');
+  });
+  await expect(window.getByTestId('notify-result')).toHaveText('clicked');
+  await expect(window.getByTestId('composer')).toHaveText('On my way');
 });

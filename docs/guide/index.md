@@ -99,7 +99,10 @@ and opens the chat. Notifications disappear when you read the chat, here or
 on your phone, and when YapYap quits. WhatsApp's own notification settings,
 such as sounds, still apply. YapYap shows its own icon rather than contact
 photos, and the text of a notification never leaves your computer. Under
-Settings → Privacy you can hide who wrote and what they wrote, for example
+On macOS and Windows you can reply from a notification: YapYap opens the
+chat and puts your reply in the message box, where you check it and press
+<kbd>Enter</kbd> to send it. On Linux, clicking a notification opens the
+chat. Under Settings → Privacy you can hide who wrote and what they wrote, for example
 when others can see your screen; hidden text never reaches the system's
 notifications at all.
 

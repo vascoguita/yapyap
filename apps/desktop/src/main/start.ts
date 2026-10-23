@@ -57,8 +57,10 @@ import { listenForNotifications, type NotificationIpc } from './notifications/no
 import {
   accountNotifier,
   type AccountNotifier,
+  type NotifierAccount,
   type NotifierDependencies,
 } from './notifications/notifier.ts';
+import { draftReply, supportsInlineReply, type ReplyContents } from './notifications/reply.ts';
 import type { WindowOptions } from './windows.ts';
 import {
   bringToFront,
@@ -138,6 +140,7 @@ type AccountContents = WhatsAppContents &
   WatchedRenderer &
   ThrottledContents &
   AudioPage &
+  ReplyContents &
   ReadyPage &
   FocusablePage & {
     loadURL(url: string): Promise<unknown>;
@@ -478,15 +481,50 @@ function headingOf(running: RunningAccounts<OpenedAccount>, id: string): string 
 }
 
 /**
- * Shows an account's WhatsApp notifications; a click brings its window
- * forward, switches to it and lets WhatsApp open the chat.
+ * What an account's notifications do: a click brings its window forward,
+ * switches to it and lets WhatsApp open the chat; a reply does the same,
+ * then waits in the chat's message box for the user to send it (#60).
+ */
+function notifierAccount<Window extends WindowPort>(
+  { deps, window, running }: AccountWiring<Window>,
+  account: Account,
+  contents: AccountContents,
+): NotifierAccount {
+  const open = (id: string): void => {
+    bringToFront(window);
+    running().switchTo(account.id);
+    contents.send(NOTIFICATION_CHANNELS.click, id);
+  };
+  return {
+    heading: () => headingOf(running(), account.id),
+    silenced: () => {
+      const { doNotDisturb } = deps.settings.current().general;
+      return running()
+        .list()
+        .some((entry) => entry.id === account.id && isSilenced(doNotDisturb, entry));
+    },
+    onClick: open,
+    onReply: (id, text) => {
+      open(id);
+      const wait = (ms: number) =>
+        new Promise<void>((resolve) => {
+          setTimeout(resolve, ms);
+        });
+      void draftReply(contents, text, { wait, warn: deps.warn });
+    },
+  };
+}
+
+/**
+ * Shows an account's WhatsApp notifications, and finds them by the page
+ * that showed them.
  */
 function notifyFor<Window extends WindowPort>(
   wiring: AccountWiring<Window>,
   account: Account,
   contents: AccountContents,
 ): AccountNotifier {
-  const { deps, window, running } = wiring;
+  const { deps } = wiring;
   const notifier = accountNotifier(
     {
       ...deps.notifications,
@@ -494,23 +532,11 @@ function notifyFor<Window extends WindowPort>(
         const { notificationSender, notificationText } = deps.settings.current().privacy;
         return { sender: notificationSender, text: notificationText };
       },
+      inlineReply: supportsInlineReply(deps.platform),
       now: Date.now,
       warn: deps.warn,
     },
-    {
-      heading: () => headingOf(running(), account.id),
-      silenced: () => {
-        const { doNotDisturb } = deps.settings.current().general;
-        return running()
-          .list()
-          .some((entry) => entry.id === account.id && isSilenced(doNotDisturb, entry));
-      },
-      onClick: (id) => {
-        bringToFront(window);
-        running().switchTo(account.id);
-        contents.send(NOTIFICATION_CHANNELS.click, id);
-      },
-    },
+    notifierAccount(wiring, account, contents),
   );
   wiring.notifiers.byPage.set(contents, notifier);
   wiring.notifiers.all.add(notifier);

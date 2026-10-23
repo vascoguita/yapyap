@@ -30,13 +30,14 @@ function fakeContents() {
     setWindowOpenHandler: vi.fn(),
     setZoomFactor: vi.fn(),
     loadURL: vi.fn(() => Promise.resolve()),
-    executeJavaScriptInIsolatedWorld: vi.fn(() => Promise.resolve()),
+    executeJavaScriptInIsolatedWorld: vi.fn((): Promise<unknown> => Promise.resolve()),
     reload: vi.fn(),
     send: vi.fn(),
     forcefullyCrashRenderer: vi.fn(),
     getOSProcessId: () => 4242,
     setBackgroundThrottling: vi.fn(),
     setAudioMuted: vi.fn(),
+    insertText: vi.fn(() => Promise.resolve()),
     session: {
       clearCache: vi.fn(() => Promise.resolve()),
       clearStorageData: vi.fn(() => Promise.resolve()),
@@ -807,6 +808,31 @@ describe('startApp', () => {
       expect(personal.send).toHaveBeenCalledWith('whatsapp:notification-click', '1');
       f.ipcListeners.get('whatsapp:notification-close')?.(fromPersonal, '1');
       expect(native.close).toHaveBeenCalledOnce();
+    });
+
+    it('puts a reply typed in a notification into the chat’s message box, unsent', async () => {
+      const f = twoAccounts();
+      await startApp(f);
+      const personal = f.hosts[0]?.webContents;
+      f.ipcListeners.get('whatsapp:notification-show')?.(
+        { sender: personal, senderFrame: { url: `${WHATSAPP_ORIGIN}/` } },
+        { id: '1', title: 'Alice', body: 'Hi' },
+      );
+      const native = f.natives[0];
+      if (native === undefined || personal === undefined) {
+        throw new Error('No notification was shown.');
+      }
+      personal.executeJavaScriptInIsolatedWorld.mockResolvedValue(true);
+      const [, reply] = native.on.mock.calls.find(([event]) => event === 'reply') as [
+        string,
+        (details: { reply: string }) => void,
+      ];
+      reply({ reply: 'On my way' });
+      expect(f.hosts[0]?.show).toHaveBeenCalledOnce();
+      expect(personal.send).toHaveBeenCalledWith('whatsapp:notification-click', '1');
+      expect(personal.insertText).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(400);
+      expect(personal.insertText).toHaveBeenCalledExactlyOnceWith('On my way');
     });
 
     it('withdraws a removed account’s notifications, and everyone’s when quitting', async () => {

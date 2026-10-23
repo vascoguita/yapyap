@@ -48,6 +48,17 @@ notifications in the main process.
   also mute the page's audio, which carries WhatsApp's message tones and
   ringtones, except for the account on screen (ADR 0008, C20).
 
+## Replies (#60)
+
+On macOS and Windows, notifications offer an inline reply. A reply does
+what a click does (brings the window forward, switches to the account and
+lets WhatsApp open the chat), then waits up to about three seconds for
+WhatsApp's message box, focuses it through the adapter (`FOCUS_COMPOSER`,
+which reports only whether it found the box) and types the reply there
+with `insertText`. YapYap never sends it: the user sees the chat it is in
+and sends it themselves (ADR 0008, C22). The reply is message content, so
+it is never logged. Linux has no inline reply, so a click opens the chat.
+
 ## Screen shares (#161)
 
 The same preload installs a second stand-in, for screen capture. It wraps
