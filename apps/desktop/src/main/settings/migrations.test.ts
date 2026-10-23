@@ -51,6 +51,25 @@ describe('migrate', () => {
   });
 });
 
+describe('version 10 to 11', () => {
+  const toVersion11 = MIGRATIONS[9];
+
+  it('adds the automatic privacy screen, off, and keeps the other privacy settings', () => {
+    expect(toVersion11?.({ schemaVersion: 10, privacy: { crashReports: 'ask' } })).toEqual({
+      schemaVersion: 10,
+      privacy: { blurWhenUnfocused: false, blurWhenIdle: false, crashReports: 'ask' },
+    });
+  });
+
+  it('keeps choices that are already there, and leaves a broken section to validation', () => {
+    expect(toVersion11?.({ privacy: { blurWhenIdle: true } })).toEqual({
+      privacy: { blurWhenUnfocused: false, blurWhenIdle: true },
+    });
+    const settings = { schemaVersion: 10, privacy: 'on' };
+    expect(toVersion11?.(settings)).toBe(settings);
+  });
+});
+
 describe('version 9 to 10', () => {
   const toVersion10 = MIGRATIONS[8];
 

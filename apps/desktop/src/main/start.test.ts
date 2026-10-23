@@ -38,6 +38,8 @@ function fakeContents() {
     setBackgroundThrottling: vi.fn(),
     setAudioMuted: vi.fn(),
     insertText: vi.fn(() => Promise.resolve()),
+    insertCSS: vi.fn(() => Promise.resolve('privacy')),
+    removeInsertedCSS: vi.fn(() => Promise.resolve()),
     session: {
       clearCache: vi.fn(() => Promise.resolve()),
       clearStorageData: vi.fn(() => Promise.resolve()),
@@ -916,6 +918,25 @@ describe('startApp', () => {
       });
       last.switchTo(ACCOUNT);
       expect(f.hosts[0]?.show).toHaveBeenCalledOnce();
+    });
+
+    it('covers every account with the privacy screen from the tray, and the menu follows', async () => {
+      const f = twoAccounts();
+      await startApp(f);
+      const trayItem = (label: string) =>
+        (
+          (f.tray.buildMenu.mock.calls.at(-1)?.[0] ?? []) as {
+            label?: string;
+            click?: () => void;
+          }[]
+        ).find((entry) => entry.label === label);
+      (trayItem('Privacy Screen')?.click as () => void)();
+      for (const host of f.hosts) {
+        expect(host.page.contents.insertCSS).toHaveBeenCalledWith(expect.stringContaining('blur('));
+      }
+      expect(trayItem('Privacy Screen')).toMatchObject({ checked: true });
+      const [menu] = f.runtime.setAccountMenu.mock.calls.at(-1) ?? [];
+      expect(menu?.privacyScreen).toBe(true);
     });
 
     it('shows a screen share in the tray and the sidebar, and stops it from either', async () => {

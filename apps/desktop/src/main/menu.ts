@@ -27,11 +27,29 @@ export interface MenuActions {
   readonly clearCache: () => void;
   readonly resetSession: () => void;
   readonly zoom: (step: ZoomStep) => void;
+  readonly privacyScreen: boolean;
+  readonly togglePrivacyScreen: () => void;
   /** Copies versions, platform, GPU summary and recent redacted log lines for bug reports. */
   readonly copyDiagnostics: () => void;
 }
 
-/** The standard View menu, with zoom in YapYap's own 5% steps, kept per account. */
+/** Zoom in YapYap's own 5% steps, kept per account. */
+function zoomItems(actions: MenuActions): MenuItemConstructorOptions[] {
+  const step = (label: string, accelerator: string, zoom: ZoomStep) => ({
+    label,
+    accelerator,
+    click: () => {
+      actions.zoom(zoom);
+    },
+  });
+  return [
+    step(en.menu.actualSize, 'CmdOrCtrl+0', 'reset'),
+    step(en.menu.zoomIn, 'CmdOrCtrl+=', 'in'),
+    step(en.menu.zoomOut, 'CmdOrCtrl+-', 'out'),
+  ];
+}
+
+/** The standard View menu, with YapYap's zoom and its privacy screen. */
 function viewMenu(actions: MenuActions): MenuItemConstructorOptions {
   return {
     label: en.menu.view,
@@ -40,28 +58,15 @@ function viewMenu(actions: MenuActions): MenuItemConstructorOptions {
       { role: 'forceReload' },
       { role: 'toggleDevTools' },
       { type: 'separator' },
-      {
-        label: en.menu.actualSize,
-        accelerator: 'CmdOrCtrl+0',
-        click: () => {
-          actions.zoom('reset');
-        },
-      },
-      {
-        label: en.menu.zoomIn,
-        accelerator: 'CmdOrCtrl+=',
-        click: () => {
-          actions.zoom('in');
-        },
-      },
-      {
-        label: en.menu.zoomOut,
-        accelerator: 'CmdOrCtrl+-',
-        click: () => {
-          actions.zoom('out');
-        },
-      },
+      ...zoomItems(actions),
       { type: 'separator' },
+      {
+        label: en.menu.privacyScreen,
+        type: 'checkbox',
+        checked: actions.privacyScreen,
+        accelerator: 'CmdOrCtrl+Shift+H',
+        click: actions.togglePrivacyScreen,
+      },
       { role: 'togglefullscreen' },
     ],
   };

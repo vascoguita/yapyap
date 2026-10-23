@@ -211,6 +211,8 @@ describe('createChromeFeature', () => {
         'privacy.unreadWhileHidden': true,
         'privacy.notificationSender': true,
         'privacy.notificationText': true,
+        'privacy.blurWhenUnfocused': false,
+        'privacy.blurWhenIdle': false,
         'plugins.developerMode': false,
         'general.autostart': false,
         'general.startMinimized': false,
@@ -355,6 +357,8 @@ describe('createChromeFeature', () => {
       activeContents: () => contents,
       switchTo: vi.fn(),
       add: vi.fn(),
+      privacyScreen: false,
+      togglePrivacyScreen: vi.fn(),
       update: vi.fn(() => true),
       remove: vi.fn(() => Promise.resolve(true)),
     });
@@ -392,6 +396,8 @@ describe('createChromeFeature', () => {
       activeContents: () => ({}),
       switchTo: vi.fn(),
       add: vi.fn(),
+      privacyScreen: false,
+      togglePrivacyScreen: vi.fn(),
       update: vi.fn(() => true),
       remove: vi.fn(() => Promise.resolve(true)),
     };
@@ -462,6 +468,8 @@ describe('createChromeFeature', () => {
       activeContents: () => ({}),
       switchTo: vi.fn(),
       add: vi.fn(),
+      privacyScreen: false,
+      togglePrivacyScreen: vi.fn(),
       update: vi.fn(() => true),
       remove: vi.fn(() => Promise.resolve(true)),
     });
@@ -479,6 +487,8 @@ describe('createChromeFeature', () => {
       activeContents: () => ({}),
       switchTo: vi.fn(),
       add: vi.fn(),
+      privacyScreen: false,
+      togglePrivacyScreen: vi.fn(),
       update: vi.fn(() => true),
       remove: vi.fn(() => Promise.resolve(true)),
     });
@@ -498,6 +508,8 @@ describe('createChromeFeature', () => {
       activeContents: () => ({}),
       switchTo: vi.fn(),
       add: vi.fn(),
+      privacyScreen: false,
+      togglePrivacyScreen: vi.fn(),
       update: vi.fn(() => true),
       remove: vi.fn(() => Promise.resolve(true)),
     };

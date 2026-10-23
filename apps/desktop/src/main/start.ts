@@ -16,6 +16,11 @@ import {
 import type { SettingsService } from './settings/service.ts';
 import { trackVisibility, type Visibility } from './window/visibility.ts';
 import { trackShares, type ScreenShares, type ShareIpc } from './capture/shares.ts';
+import {
+  createPrivacyScreen,
+  type CoverablePage,
+  type PrivacyScreen,
+} from './privacy/privacy-screen.ts';
 import { isSilenced, quietAudio, setDoNotDisturb, type AudioPage } from './notifications/quiet.ts';
 import { followHiddenReadsSetting, type ThrottledContents } from './privacy/hidden-reads.ts';
 import { watchForReleases, type UpdateNoticeDependencies } from './updates/update-notice.ts';
@@ -141,6 +146,7 @@ type AccountContents = WhatsAppContents &
   ThrottledContents &
   AudioPage &
   ReplyContents &
+  CoverablePage &
   ReadyPage &
   FocusablePage & {
     loadURL(url: string): Promise<unknown>;
@@ -166,7 +172,8 @@ export interface WindowPort extends LinkWindow, Omit<ManagedWindow, 'on'> {
     ((event: 'show', listener: () => void) => unknown) &
     ((event: 'hide', listener: () => void) => unknown) &
     ((event: 'minimize', listener: () => void) => unknown) &
-    ((event: 'restore', listener: () => void) => unknown);
+    ((event: 'restore', listener: () => void) => unknown) &
+    ((event: 'blur', listener: () => void) => unknown);
   isVisible(): boolean;
   /** Shows the active account's page title, as a browser would. */
   setTitle(title: string): void;
@@ -627,8 +634,11 @@ function summaries(running: RunningAccounts<OpenedAccount>): AccountSummary[] {
 function accountMenu(
   running: RunningAccounts<OpenedAccount>,
   warn: (message: string) => void,
+  privacy: PrivacyScreen,
 ): AccountMenu {
   return {
+    privacyScreen: privacy.covered(),
+    togglePrivacyScreen: privacy.toggle,
     entries: summaries(running),
     activeContents: () => running.active().page.contents,
     switchTo: running.switchTo,
@@ -671,11 +681,17 @@ function windowSignals<Window extends WindowPort>(
  * give it a new unread count.
  */
 /** What the tray menu does. */
+/** What the tray and the menu show besides the accounts: shares and the privacy screen. */
+interface Screens {
+  readonly shares: ScreenShares;
+  readonly privacy: PrivacyScreen;
+}
+
 function trayActions<Window extends WindowPort>(
   deps: StartDependencies<Window>,
   chrome: AccountWiring<Window>['chrome'],
   running: () => RunningAccounts<OpenedAccount>,
-  shares: ScreenShares,
+  { shares, privacy }: Screens,
 ): TrayDependencies {
   return {
     platform: deps.platform,
@@ -688,6 +704,7 @@ function trayActions<Window extends WindowPort>(
       setDoNotDisturb(deps.settings, on);
     },
     stopSharing: shares.stop,
+    togglePrivacyScreen: privacy.toggle,
     quit: () => {
       deps.app.quit();
     },
@@ -698,19 +715,20 @@ function accountsTray<Window extends WindowPort>(
   { deps, chrome, window }: Omit<AccountWiring<Window>, 'signals' | 'running'>,
   running: () => RunningAccounts<OpenedAccount>,
   visibility: Visibility,
-  shares: ScreenShares,
+  screens: Screens,
 ): { readonly refresh: () => void; readonly setUnread: (unread: number) => void } {
   let unread = 0;
   const port = deps.tray.create();
   followTrayIconSetting(port, { ...deps.tray, platform: deps.platform, settings: deps.settings });
-  const update = setUpTray(port, window, trayActions(deps, chrome, running, shares));
+  const update = setUpTray(port, window, trayActions(deps, chrome, running, screens));
   const refresh = (): void => {
     update({
       unread,
       accounts: summaries(running()),
       windowShown: visibility.visible(),
       doNotDisturb: deps.settings.current().general.doNotDisturb,
-      sharing: [...shares.sharing()],
+      sharing: [...screens.shares.sharing()],
+      privacyScreen: screens.privacy.covered(),
     });
   };
   return {
@@ -770,6 +788,7 @@ interface AccountIndicators {
   /** Shows the accounts, their shares and do not disturb anew. */
   readonly refresh: () => void;
   readonly setUnread: (total: number) => void;
+  readonly privacy: PrivacyScreen;
 }
 
 /**
@@ -780,8 +799,13 @@ function accountIndicators<Window extends WindowPort>(
   wiring: Omit<AccountWiring<Window>, 'signals' | 'running'>,
   running: () => RunningAccounts<OpenedAccount>,
   signals: () => AccountSignals,
+  menuChanged: () => void,
 ): AccountIndicators {
   const { deps, chrome, window } = wiring;
+  const privacy = privacyScreenOf(deps, window, running, () => {
+    refresh();
+    menuChanged();
+  });
   const shares = trackShares(deps.ipc, {
     accountOf: (sender) => wiring.security.views.get(sender)?.account,
     origin: wiring.origin,
@@ -794,7 +818,7 @@ function accountIndicators<Window extends WindowPort>(
     tray.refresh();
     keepQuiet(deps, running(), visibility);
   });
-  const tray = accountsTray(wiring, running, visibility, shares);
+  const tray = accountsTray(wiring, running, visibility, { shares, privacy });
   const sidebar = chrome.attachSidebar((renderer) => deps.createSidebar(window, renderer));
   const refresh = (): void => {
     tray.refresh();
@@ -804,7 +828,30 @@ function accountIndicators<Window extends WindowPort>(
     tray.setUnread(total);
     refresh();
   };
-  return { visibility, refresh, setUnread };
+  return { visibility, refresh, setUnread, privacy };
+}
+
+/** The privacy screen over every account's WhatsApp, which looks again on focus changes. */
+function privacyScreenOf<Window extends WindowPort>(
+  deps: StartDependencies<Window>,
+  window: Window,
+  running: () => RunningAccounts<OpenedAccount>,
+  onChange: () => void,
+): PrivacyScreen {
+  const privacy = createPrivacyScreen({
+    settings: deps.settings,
+    pages: () =>
+      running()
+        .opened()
+        .map(({ page }) => page.contents),
+    focused: () => window.isFocused(),
+    idleSeconds: deps.idleSeconds,
+    every: setInterval,
+    onChange,
+  });
+  window.on('focus', privacy.update);
+  window.on('blur', privacy.update);
+  return privacy;
 }
 
 /** Every enabled account, in its own view of the main window; the active one shows. */
@@ -812,15 +859,19 @@ function openAccounts<Window extends WindowPort>(
   wiring: Omit<AccountWiring<Window>, 'signals' | 'running'>,
 ): RunningAccounts<OpenedAccount> {
   const { deps, chrome, window } = wiring;
+  const menuChanged = (): void => {
+    chrome.setAccountMenu(accountMenu(running, deps.warn, indicators.privacy));
+  };
   const indicators = accountIndicators(
     wiring,
     () => running,
     () => signals,
+    menuChanged,
   );
   const signals: AccountSignals = windowSignals(deps, window, indicators.setUnread);
   const changed = (): void => {
     signals.activate(running.active().account.id);
-    chrome.setAccountMenu(accountMenu(running, deps.warn));
+    menuChanged();
     indicators.refresh();
     keepQuiet(deps, running, indicators.visibility);
   };

@@ -38,6 +38,7 @@ function setup(platform = 'linux', minimized = false) {
     openSettings: vi.fn(),
     setDoNotDisturb: vi.fn(),
     stopSharing: vi.fn(),
+    togglePrivacyScreen: vi.fn(),
     quit: vi.fn(),
   };
   const update = setUpTray(tray, window, deps);
@@ -56,6 +57,7 @@ const state = (overrides: Partial<TrayState> = {}): TrayState => ({
   windowShown: false,
   doNotDisturb: false,
   sharing: [],
+  privacyScreen: false,
   ...overrides,
 });
 
@@ -80,6 +82,7 @@ describe('setUpTray', () => {
       'Show YapYap',
       'separator',
       'Do Not Disturb',
+      'Privacy Screen',
       'Settings…',
       'separator',
       'Quit YapYap',
@@ -120,6 +123,16 @@ describe('setUpTray', () => {
     const ended = t.menu(state({ accounts: [PERSONAL, WORK], unread: 2 }));
     expect(ended[0]?.label).toBe('Show YapYap');
     expect(t.tray.setToolTip).toHaveBeenLastCalledWith('YapYap: 2 unread chats');
+  });
+
+  it('turns the privacy screen on and off, showing whether it is on', () => {
+    const t = setup();
+    const off = t.menu(state());
+    expect(off.find((entry) => entry.label === 'Privacy Screen')?.checked).toBe(false);
+    t.item(off, 'Privacy Screen')();
+    expect(t.deps.togglePrivacyScreen).toHaveBeenCalledOnce();
+    const on = t.menu(state({ privacyScreen: true }));
+    expect(on.find((entry) => entry.label === 'Privacy Screen')?.checked).toBe(true);
   });
 
   it('hides the window when it is shown', () => {

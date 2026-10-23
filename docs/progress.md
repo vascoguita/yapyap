@@ -215,6 +215,14 @@ not edit the same lines.
   number is parsed by `src/shared/phone-number.ts` in the window and again in
   main, then opened as WhatsApp's own chat link. Nothing is stored.
 
+- Privacy screen (#85): `createPrivacyScreen` blurs every account's
+  WhatsApp with inserted CSS that also takes clicks away, so it needs no
+  knowledge of WhatsApp's page. It comes on from the tray or View → Privacy
+  Screen (Ctrl/Cmd+Shift+H) until switched off, and, with
+  `privacy.blurWhenUnfocused` or `privacy.blurWhenIdle` (settings schema
+  v11), while the window is out of focus or the computer has been idle for
+  five minutes. New accounts are covered as they open.
+
 - Plugin SDK (#88): `@yapyap/plugin-sdk` defines the manifest as a TypeBox
   schema (the published `manifest.schema.json` is generated from it and
   tested to match) and the typed host API, one interface per capability. The

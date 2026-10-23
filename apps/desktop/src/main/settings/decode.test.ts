@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { decodeSettings, defaultSettings } from './decode.ts';
 
 const DEFAULTS = {
-  schemaVersion: 10,
+  schemaVersion: 11,
   general: {
     language: 'system',
     startMinimized: false,
@@ -30,6 +30,8 @@ const DEFAULTS = {
     unreadWhileHidden: true,
     notificationSender: true,
     notificationText: true,
+    blurWhenUnfocused: false,
+    blurWhenIdle: false,
   },
   plugins: { developerMode: false },
 };
@@ -92,9 +94,9 @@ describe('decodeSettings', () => {
       trayIcon: 'color',
     };
     const decoded = decodeSettings(
-      JSON.stringify({ ...DEFAULTS, appearance, schemaVersion: 11, future: true }),
+      JSON.stringify({ ...DEFAULTS, appearance, schemaVersion: 12, future: true }),
     );
-    expect(decoded).toEqual({ kind: 'newer', settings: { ...DEFAULTS, appearance }, version: 11 });
+    expect(decoded).toEqual({ kind: 'newer', settings: { ...DEFAULTS, appearance }, version: 12 });
   });
 
   it('accepts every option of each choice', () => {
@@ -114,6 +116,8 @@ describe('decodeSettings', () => {
             unreadWhileHidden: true,
             notificationSender: true,
             notificationText: true,
+            blurWhenUnfocused: false,
+            blurWhenIdle: false,
           },
         };
         expect(decodeSettings(JSON.stringify(settings))).toEqual({

@@ -239,6 +239,16 @@ system's login items, so removing YapYap there turns the setting off too.
 The Flatpak package cannot do this yet; add YapYap to your desktop's
 startup applications instead.
 
+## Privacy screen
+
+The privacy screen blurs WhatsApp so people nearby cannot read your chats.
+Turn it on and off from the tray menu, or with **View → Privacy Screen**
+(<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd>, <kbd>⌘</kbd> on macOS).
+While it is on, nothing behind it can be clicked. Under Settings → Privacy
+it can also come on by itself: whenever another window is in front of
+YapYap, until you click YapYap again, or after five minutes away from your
+computer, until you are back.
+
 ## Zoom
 
 Make WhatsApp bigger or smaller with **View → Zoom In** and **Zoom Out**
