@@ -297,6 +297,7 @@ const catalog = {
     titled: (account: string, title: string): string => `${account}: ${title}`,
     hiddenSender: 'WhatsApp',
     hiddenText: 'New message',
+    replyPlaceholder: 'Reply',
   },
   badge: {
     unread: (count: number): string => unreadChats(count),

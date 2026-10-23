@@ -7,31 +7,41 @@ function setup(heading?: string) {
     show: ReturnType<typeof vi.fn>;
     close: ReturnType<typeof vi.fn>;
     click: () => void;
+    reply: (text: string) => void;
   }[] = [];
   let time = 0;
   const deps = {
     create: vi.fn((options: NativeOptions) => {
-      let click = (): void => undefined;
+      const listeners = new Map<string, (details?: { reply: string }) => void>();
       const native = {
         options,
         show: vi.fn(),
         close: vi.fn(),
-        on: vi.fn((_event: 'click', listener: () => void) => {
-          click = listener;
+        on: vi.fn((event: string, listener: (details?: { reply: string }) => void) => {
+          listeners.set(event, listener);
         }),
         click: () => {
-          click();
+          listeners.get('click')?.();
+        },
+        reply: (text: string) => {
+          listeners.get('reply')?.({ reply: text });
         },
       };
       natives.push(native);
       return native;
     }),
     isSupported: vi.fn(() => true),
+    inlineReply: false,
     privacy: vi.fn(() => ({ sender: true, text: true })),
     now: () => time,
     warn: vi.fn(),
   };
-  const account = { heading: () => heading, silenced: vi.fn(() => false), onClick: vi.fn() };
+  const account = {
+    heading: () => heading,
+    silenced: vi.fn(() => false),
+    onClick: vi.fn(),
+    onReply: vi.fn(),
+  };
   return {
     deps,
     account,
@@ -81,6 +91,21 @@ describe('accountNotifier', () => {
     t.notifier.show(request('later'));
     expect(t.deps.create).toHaveBeenCalledOnce();
     expect(t.deps.warn).not.toHaveBeenCalled();
+  });
+
+  it('offers an inline reply where the system has one, and passes the reply on', () => {
+    const t = setup();
+    const replying = accountNotifier({ ...t.deps, inlineReply: true }, t.account);
+    replying.show(request('3'));
+    expect(t.natives[0]?.options).toEqual({
+      title: 'Alice',
+      body: 'Hi',
+      silent: false,
+      hasReply: true,
+      replyPlaceholder: 'Reply',
+    });
+    t.natives[0]?.reply('On my way');
+    expect(t.account.onReply).toHaveBeenCalledWith('3', 'On my way');
   });
 
   it('tells the account which notification was clicked', () => {

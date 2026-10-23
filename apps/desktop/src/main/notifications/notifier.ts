@@ -5,12 +5,16 @@ interface NativeNotification {
   show(): void;
   close(): void;
   on(event: 'click', listener: () => void): unknown;
+  on(event: 'reply', listener: (details: { readonly reply: string }) => void): unknown;
 }
 
 export interface NativeOptions {
   readonly title: string;
   readonly body: string;
   readonly silent: boolean;
+  /** An inline reply field, where the system offers one (macOS and Windows). */
+  readonly hasReply?: boolean;
+  readonly replyPlaceholder?: string;
 }
 
 /** What a notification may reveal (#62); read for each notification. */
@@ -23,6 +27,8 @@ export interface NotifierDependencies {
   readonly create: (options: NativeOptions) => NativeNotification;
   readonly privacy: () => NotificationPrivacy;
   readonly isSupported: () => boolean;
+  /** Whether the system's notifications take an inline reply (#60). */
+  readonly inlineReply: boolean;
   readonly now: () => number;
   readonly warn: (message: string) => void;
 }
@@ -33,6 +39,8 @@ export interface NotifierAccount {
   /** Do not disturb is on, or the account is muted (#61). */
   readonly silenced: () => boolean;
   readonly onClick: (id: string) => void;
+  /** The text is message content: it goes to WhatsApp's message box and nowhere else. */
+  readonly onReply: (id: string, text: string) => void;
 }
 
 /** What a WhatsApp page may do with its notifications (ADR 0011). */
@@ -146,9 +154,15 @@ function display(
   const heading = account.heading();
   const title = heading === undefined ? sender : en.notifications.titled(heading, sender);
   const body = privacy.text ? notification.body : en.notifications.hiddenText;
-  const native = deps.create({ title, body, silent: notification.silent });
+  const reply = deps.inlineReply
+    ? { hasReply: true, replyPlaceholder: en.notifications.replyPlaceholder }
+    : {};
+  const native = deps.create({ title, body, silent: notification.silent, ...reply });
   native.on('click', () => {
     account.onClick(notification.id);
+  });
+  native.on('reply', ({ reply: text }) => {
+    account.onReply(notification.id, text);
   });
   shown.set(notification.id, { native, tag: notification.tag });
   native.show();

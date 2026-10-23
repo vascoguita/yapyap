@@ -14,6 +14,6 @@ test('copies diagnostics with the GPU summary and recent log from the Help menu'
   await expect
     .poll(() => app.evaluate(({ clipboard }) => clipboard.readText()))
     .toMatch(
-      /^YapYap \S+ \(development\)\n[\s\S]*\nGPU gpu_compositing=\S+, .*\nUpdates manual \(development\)\nWhatsApp view=chats, chat_open=true \(landmarks v1\)\n\nRecent log:\n/,
+      /^YapYap \S+ \(development\)\n[\s\S]*\nGPU gpu_compositing=\S+, .*\nUpdates manual \(development\)\nWhatsApp view=chats, chat_open=true \(landmarks v2\)\n\nRecent log:\n/,
     );
 });
