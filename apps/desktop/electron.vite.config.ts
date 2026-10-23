@@ -2,7 +2,14 @@ import { resolve } from 'node:path';
 import { defineConfig } from 'electron-vite';
 
 export default defineConfig({
-  main: {},
+  main: {
+    resolve: {
+      // fflate's Node build declares its own `require`, which clashes with the
+      // one the bundle defines. Plugin archives use only its synchronous
+      // functions, which the browser build has without worker threads.
+      alias: [{ find: /^fflate$/, replacement: 'fflate/browser' }],
+    },
+  },
   preload: {
     build: {
       rollupOptions: {
@@ -27,6 +34,8 @@ export default defineConfig({
           'new-chat': resolve(import.meta.dirname, 'src/renderer/new-chat.html'),
           accounts: resolve(import.meta.dirname, 'src/renderer/accounts.html'),
           sidebar: resolve(import.meta.dirname, 'src/renderer/sidebar.html'),
+          plugins: resolve(import.meta.dirname, 'src/renderer/plugins.html'),
+          'plugin-consent': resolve(import.meta.dirname, 'src/renderer/plugin-consent.html'),
         },
       },
     },

@@ -10,6 +10,7 @@ const THEME = 'appearance.theme';
 const MENU_BAR = 'appearance.autoHideMenuBar';
 const COMPACT = 'appearance.compactSidebar';
 const TRAY_ICON = 'appearance.trayIcon';
+const DEVELOPER = 'plugins.developerMode';
 const BACKEND = 'reliability.displayBackend';
 const CRASH = 'privacy.crashReports';
 const UNREAD = 'privacy.unreadWhileHidden';
@@ -124,6 +125,7 @@ describe('settingsHandlers', () => {
         [UNREAD]: true,
         [SENDER]: true,
         [TEXT]: true,
+        [DEVELOPER]: false,
         [AUTOSTART]: false,
         [START_MINIMIZED]: false,
         [BETA]: false,
@@ -195,6 +197,7 @@ describe('settingsHandlers', () => {
         [UNREAD]: true,
         [SENDER]: true,
         [TEXT]: true,
+        [DEVELOPER]: false,
         [AUTOSTART]: false,
         [START_MINIMIZED]: false,
         [BETA]: false,

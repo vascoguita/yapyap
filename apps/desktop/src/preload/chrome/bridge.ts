@@ -4,6 +4,8 @@ import {
   type AccountList,
   type ChromeApi,
   type PickerOffer,
+  type PluginConsent,
+  type PluginList,
   type RecoveryProblem,
   type SettingsSnapshot,
   type SidebarState,
@@ -39,6 +41,16 @@ function sidebarBridge(invoke: Invoke, listen: Listen): ChromeApi['sidebar'] {
   };
 }
 
+function pluginsBridge(invoke: Invoke): ChromeApi['plugins'] {
+  return {
+    list: () => invoke(CHROME_CHANNELS.pluginsList) as Promise<PluginList>,
+    consent: () => invoke(CHROME_CHANNELS.pluginsConsent) as Promise<PluginConsent>,
+    answer: async (install, acknowledged) => {
+      await invoke(CHROME_CHANNELS.pluginsAnswer, install, acknowledged);
+    },
+  };
+}
+
 /**
  * Builds the chrome API from a single invoke function. Each operation has its
  * own fixed channel, so the page can never choose what it calls.
@@ -71,6 +83,7 @@ export function createChromeBridge(invoke: Invoke, listen: Listen): ChromeApi {
     },
     accounts: accountsBridge(invoke),
     sidebar: sidebarBridge(invoke, listen),
+    plugins: pluginsBridge(invoke),
     picker: {
       offer: () => invoke(CHROME_CHANNELS.pickerOffer) as Promise<PickerOffer>,
       choose: async (id, audio) => {

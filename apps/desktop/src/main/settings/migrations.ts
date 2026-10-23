@@ -74,6 +74,17 @@ function addTrayIcon(settings: Raw): Raw {
 }
 
 /**
+ * Version 10 adds the plugins section, with Developer Mode off (#91). Older
+ * files have no such section, so validation gives it its defaults.
+ */
+function addPlugins(settings: Raw): Raw {
+  const plugins = settings['plugins'];
+  return isSection(plugins)
+    ? { ...settings, plugins: { developerMode: false, ...plugins } }
+    : settings;
+}
+
+/**
  * `MIGRATIONS[n]` turns a version n+1 file into version n+2. They are pure,
  * forward-only, and each has its own test; a test also checks that there is
  * exactly one migration per version step.
@@ -87,6 +98,7 @@ export const MIGRATIONS: readonly ((settings: Raw) => Raw)[] = [
   addDoNotDisturb,
   addCompactSidebar,
   addTrayIcon,
+  addPlugins,
 ];
 
 export type MigrationResult =

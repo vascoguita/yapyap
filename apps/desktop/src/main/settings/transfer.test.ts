@@ -8,6 +8,8 @@ import {
   MAX_IMPORT_BYTES,
   readImport,
   SETTINGS_EXPORT_FORMAT,
+  keepLocal,
+  LOCAL_SECTIONS,
 } from './transfer.ts';
 
 const NOT_SETTINGS = { kind: 'rejected', reason: 'That file is not a YapYap settings file.' };
@@ -20,13 +22,19 @@ describe('exportSettings', () => {
     // A failure here means a new section: list it in EXPORTED_SECTIONS only
     // if it holds nothing private, and otherwise keep it out of exports and
     // keep its current values on import.
-    expect(Object.keys(SettingsSchema.properties)).toEqual(['schemaVersion', ...EXPORTED_SECTIONS]);
+    expect(Object.keys(SettingsSchema.properties)).toEqual([
+      'schemaVersion',
+      ...EXPORTED_SECTIONS,
+      ...LOCAL_SECTIONS,
+    ]);
   });
 
   it('writes the settings under a format marker, readable by people', () => {
     const settings = defaultSettings();
     const text = exportSettings(settings);
-    expect(JSON.parse(text)).toEqual({ format: 'yapyap-settings', settings });
+    const { plugins, ...exported } = settings;
+    expect(plugins).toEqual({ developerMode: false });
+    expect(JSON.parse(text)).toEqual({ format: 'yapyap-settings', settings: exported });
     expect(text).toMatch(/^\{\n {2}"format": "yapyap-settings",\n/);
     expect(text.endsWith('}\n')).toBe(true);
   });
@@ -34,7 +42,9 @@ describe('exportSettings', () => {
   it('leaves out anything the schema does not define, whatever got into memory', () => {
     const settings = { ...defaultSettings(), session: 'cookie=secret' };
     const exported = JSON.parse(exportSettings(settings)) as { settings: Record<string, unknown> };
-    expect(exported.settings).toEqual(defaultSettings());
+    const { plugins, ...expected } = defaultSettings();
+    expect(plugins).toBeDefined();
+    expect(exported.settings).toEqual(expected);
     expect(settings.session).toBe('cookie=secret');
   });
 });
@@ -112,5 +122,18 @@ describe('readImport', () => {
     expect(readImport(withNote('e'.repeat(room + 1)))).toEqual(NOT_SETTINGS);
     // As many characters as fit, but each takes two bytes.
     expect(readImport(withNote('é'.repeat(room)))).toEqual(NOT_SETTINGS);
+  });
+});
+
+describe('keepLocal', () => {
+  it('keeps Developer Mode as it is, whatever the imported file says', () => {
+    const current = { ...defaultSettings(), plugins: { developerMode: true } };
+    const imported = {
+      ...defaultSettings(),
+      general: { ...defaultSettings().general, autostart: true },
+      plugins: { developerMode: false },
+    };
+    expect(keepLocal(imported, current)).toEqual({ ...imported, plugins: { developerMode: true } });
+    expect(keepLocal(current, imported).plugins).toEqual({ developerMode: false });
   });
 });

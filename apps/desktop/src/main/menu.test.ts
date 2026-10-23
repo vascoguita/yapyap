@@ -15,6 +15,8 @@ function actions(accounts: AccountSummary[] = []) {
     setMuted: vi.fn(),
     openAbout: vi.fn(),
     openSettings: vi.fn(),
+    openPlugins: vi.fn(),
+    installPlugin: vi.fn(),
     openNewChat: vi.fn(),
     clearCache: vi.fn(),
     resetSession: vi.fn(),
@@ -131,6 +133,8 @@ describe('buildMenuTemplate', () => {
     ]);
     expect(items(template[0])).toEqual([
       { label: 'Settings…', accelerator: 'CmdOrCtrl+,', click: a.openSettings },
+      { label: 'Plugins…', click: a.openPlugins },
+      { label: 'Install Plugin…', click: a.installPlugin },
       { type: 'separator' },
       { role: 'quit' },
     ]);
@@ -167,7 +171,7 @@ describe('buildMenuTemplate', () => {
     expect(on.setMuted).toHaveBeenCalledWith(false);
   });
 
-  it('puts About and Settings in the app menu on macOS', () => {
+  it('puts About, Settings and Plugins in the app menu on macOS', () => {
     const a = actions();
     const [appMenu, ...rest] = buildMenuTemplate('darwin', a);
     expect(appMenu?.label).toBe('YapYap');
@@ -178,9 +182,15 @@ describe('buildMenuTemplate', () => {
       accelerator: 'CmdOrCtrl+,',
       click: a.openSettings,
     });
+    expect(entries.slice(3, 5)).toEqual([
+      { label: 'Plugins…', click: a.openPlugins },
+      { label: 'Install Plugin…', click: a.installPlugin },
+    ]);
     expect(entries.map((item) => item.role ?? item.type)).toEqual([
       undefined,
       'separator',
+      undefined,
+      undefined,
       undefined,
       'separator',
       'services',

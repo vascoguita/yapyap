@@ -56,6 +56,8 @@ import { confirmResetWithDialog } from './session-reset-prompt.ts';
 import { confirmRemoveAccountWithDialog } from './account-removal-prompt.ts';
 import { explainUnsafeStartWithDialog } from './unsafe-start-prompt.ts';
 import { startApp } from './start.ts';
+import { anchorFingerprints, TRUST_ANCHORS } from '@yapyap/plugin-sign';
+import { electronPluginDialogs } from './plugins/plugin-dialogs.ts';
 import { trayImage } from './tray/tray-icon.ts';
 import { createAccountHost, createSecureWindow, createSidebarView } from './windows.ts';
 
@@ -164,6 +166,11 @@ const chrome = createChromeFeature({
   gpuStatus: () => app.getGPUFeatureStatus() as unknown as Record<string, string>,
   recentLog: () => logger.recent(),
   settingsFiles: electronSettingsFiles,
+  plugins: {
+    ...electronPluginDialogs,
+    root: join(app.getPath('userData'), 'plugins'),
+    anchors: anchorFingerprints(TRUST_ANCHORS),
+  },
   restart: () => {
     app.relaunch();
     app.quit();

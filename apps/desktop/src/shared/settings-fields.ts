@@ -9,6 +9,7 @@ export const SETTINGS_SECTIONS = [
   { id: 'appearance', title: en.settings.sections.appearance },
   { id: 'reliability', title: en.settings.sections.reliability },
   { id: 'privacy', title: en.settings.sections.privacy },
+  { id: 'plugins', title: en.settings.sections.plugins },
 ] as const;
 
 type SettingsSection = (typeof SETTINGS_SECTIONS)[number]['id'];
@@ -77,4 +78,5 @@ export const SETTING_FIELDS: readonly SettingField[] = [
   { ...described('privacy.unreadWhileHidden'), restart: false },
   { ...described('privacy.notificationSender'), restart: false },
   { ...described('privacy.notificationText'), restart: false },
+  { ...described('plugins.developerMode'), restart: false },
 ];

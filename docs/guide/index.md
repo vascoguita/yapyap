@@ -112,6 +112,27 @@ keeps its sound either way, so the voice messages and videos you play still
 work. Unread counts keep updating, and chats you mute in WhatsApp itself
 never notify.
 
+## Plugins
+
+Plugins add features to YapYap. Each runs in its own sandbox and can do
+only what you allow when you install it.
+
+- **Install Plugin…** (in the File menu, or the YapYap menu on macOS) opens
+  a `.yapyap-plugin` file. YapYap checks its signature and contents first,
+  then shows who made it, which key signed it, and everything it asks to
+  do. Nothing is installed until you agree.
+- Plugins by other authors work too, but YapYap has not reviewed them: you
+  install them at your own risk, and **Install** stays off until you tick
+  that you understand. YapYap remembers the author's key, and refuses an
+  update signed by a different one.
+- An update that asks for more than before shows what is new and asks
+  again; one that asks for nothing new installs without asking.
+- **Plugins…** lists what is installed, marking plugins by other authors as
+  **Third-party** and plugins nobody signed as **Unsigned**.
+- **Developer Mode** (Settings → Plugins) lets you install unsigned plugins
+  while you write your own. YapYap warns while it is on. It is never part
+  of an exported settings file.
+
 ## Accounts
 
 YapYap can run several WhatsApp accounts side by side, such as a personal

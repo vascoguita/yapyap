@@ -28,6 +28,7 @@ the [profile folder](#files).
 | Crash reports                      | `privacy.crashReports`              | Off                | `off`, `local` or `ask`; see [Privacy](/privacy)                              |
 | Keep chats unread while hidden     | `privacy.unreadWhileHidden`         | On                 | WhatsApp marks nothing read while YapYap is hidden or minimized               |
 | Show who wrote in notifications    | `privacy.notificationSender`        | On                 | Off shows “WhatsApp” instead                                                  |
+| Developer Mode                     | `plugins.developerMode`             | Off                | Installs unsigned plugins; never exported or imported                         |
 | Show message text in notifications | `privacy.notificationText`          | On                 | Off shows “New message”; the text never reaches the system                    |
 
 The file also has entries for features that are not built yet. YapYap

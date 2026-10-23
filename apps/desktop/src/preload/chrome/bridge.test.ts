@@ -41,6 +41,9 @@ describe('createChromeBridge', () => {
     await api.sidebar.switchTo('a');
     await api.sidebar.setCompact(true);
     await api.sidebar.stopSharing('a');
+    expect(await api.plugins.list()).toBe('ignored');
+    expect(await api.plugins.consent()).toBe('ignored');
+    await api.plugins.answer(true, false);
     const listener = vi.fn();
     api.sidebar.onState(listener);
     expect(listen).toHaveBeenCalledWith(listener);
@@ -67,6 +70,9 @@ describe('createChromeBridge', () => {
       ['sidebar:switch', 'a'],
       ['sidebar:set-compact', true],
       ['sidebar:stop-sharing', 'a'],
+      ['plugins:list'],
+      ['plugins:consent'],
+      ['plugins:answer', true, false],
     ]);
   });
 
@@ -79,6 +85,7 @@ describe('createChromeBridge', () => {
       'chat',
       'accounts',
       'sidebar',
+      'plugins',
       'picker',
     ]);
     expect(Object.keys(api.sidebar)).toEqual([
@@ -88,6 +95,7 @@ describe('createChromeBridge', () => {
       'stopSharing',
       'onState',
     ]);
+    expect(Object.keys(api.plugins)).toEqual(['list', 'consent', 'answer']);
     expect(Object.keys(api.chat)).toEqual(['openNumber']);
     expect(Object.keys(api.accounts)).toEqual(['list', 'save', 'remove']);
     expect(Object.keys(api.picker)).toEqual(['offer', 'choose', 'cancel']);

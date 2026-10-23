@@ -33,6 +33,7 @@ function api(list: () => Promise<AccountList> = () => Promise.resolve(LIST)) {
       stopSharing: vi.fn(),
       onState: vi.fn(),
     },
+    plugins: { list: vi.fn(), consent: vi.fn(), answer: vi.fn() },
     picker: { offer: vi.fn(), choose: vi.fn(), cancel: vi.fn() },
   } satisfies ChromeApi;
   return { fake, accounts };
