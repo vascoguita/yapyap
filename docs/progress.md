@@ -356,6 +356,10 @@ not edit the same lines.
   Settings open, and fails on every OS if YapYap is still running 15 s
   later.
 
+- Electron is pinned to 44.9.3 (#262), which fixes GHSA-jr5w-w6x2-84p9
+  (compromised eMudhra intermediate certificates) and lets the audit pass.
+  Electron 45 is a new major version and comes in its own change.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).
