@@ -202,7 +202,9 @@ not edit the same lines.
 
 - E2E teardown reports a hanging quit (#223): if YapYap does not quit within
   30 s, the fixture kills it and fails with the windows it had and its last
-  log lines, instead of an unexplained 60-second teardown timeout. On macOS
+  log lines, instead of an unexplained 60-second teardown timeout. Any app a
+  test started and left running, because it failed or timed out first, is
+  killed when the test ends, so none outlives a run on a developer's desktop. On macOS
   it also attaches `hung-at-quit.txt` to the report: a `sample` of every
   thread and the helper processes. So far it hung in specs with throttling
   on and off, with one visible WhatsApp window, after Playwright asked the

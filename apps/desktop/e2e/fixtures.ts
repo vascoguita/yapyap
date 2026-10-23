@@ -23,6 +23,12 @@ interface Options {
 const QUIT_TIMEOUT_MS = 30_000;
 const LOG_LINES = 40;
 const LOGS = new WeakMap<ElectronApplication, string[]>();
+/**
+ * Every app a test started and that still runs. A test that fails or times
+ * out before quitting its app would otherwise leave it running, and on a
+ * developer's desktop its tray icon and dialogs outlive the test.
+ */
+const LAUNCHED = new Set<ElectronApplication>();
 
 /** The app's last log lines; the logger mirrors every line to stderr, already redacted. */
 function recentLog(app: ElectronApplication): string[] {
@@ -121,6 +127,8 @@ export async function launchApp(
     env: appEnvironment(origin, profile),
   });
   LOGS.set(app, recentLog(app));
+  LAUNCHED.add(app);
+  app.process().once('exit', () => LAUNCHED.delete(app));
   return app;
 }
 
@@ -166,7 +174,18 @@ interface Fixtures {
   window: Page;
 }
 
-export const test = base.extend<Fixtures & Options>({
+export const test = base.extend<Fixtures & Options & { leftovers: undefined }>({
+  // Set up first, so it is torn down last, after the fixtures that quit apps properly.
+  leftovers: [
+    async ({}, use) => {
+      await use(undefined);
+      for (const app of LAUNCHED) {
+        app.process().kill('SIGKILL');
+      }
+      LAUNCHED.clear();
+    },
+    { auto: true },
+  ],
   fakePage: ['index.html', { option: true }],
   fakeWhatsApp: async ({ fakePage }, use) => {
     const server = await startFakeWhatsApp(fakePage);

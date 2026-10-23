@@ -28,8 +28,10 @@ By participating you agree to the [Code of Conduct](CODE_OF_CONDUCT.md).
 ## Development setup
 
 You need Node.js 24 LTS and pnpm (version pinned in `package.json`, enable it
-with `corepack enable`). On Linux, `xvfb-run` keeps E2E test windows off your
-desktop.
+with `corepack enable`). On Linux, run E2E tests as
+`dbus-run-session -- xvfb-run -a pnpm test:e2e`: `xvfb-run` keeps their
+windows off your desktop, and a private session bus keeps their tray icons
+and notifications off it too.
 
 ```sh
 pnpm install            # install (frozen lockfile in CI)
@@ -38,7 +40,7 @@ pnpm lint               # ESLint + Prettier check + knip
 pnpm typecheck          # tsc across the workspace
 pnpm test               # unit + integration tests
 pnpm test:coverage      # tests with the 100% coverage gate
-pnpm test:e2e           # Playwright E2E (uses xvfb-run on Linux when available)
+pnpm test:e2e           # Playwright E2E (on Linux, wrap it as described above)
 pnpm test:mutation      # Stryker mutation testing
 pnpm build              # build every package
 pnpm package            # build installers for the current OS
