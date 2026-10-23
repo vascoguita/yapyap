@@ -51,6 +51,31 @@ describe('migrate', () => {
   });
 });
 
+describe('version 5 to 6', () => {
+  const toVersion6 = MIGRATIONS[4];
+
+  it('shows the sender and text in notifications, as before, and keeps the rest', () => {
+    expect(toVersion6?.({ schemaVersion: 5, privacy: { crashReports: 'ask' } })).toEqual({
+      schemaVersion: 5,
+      privacy: { notificationSender: true, notificationText: true, crashReports: 'ask' },
+    });
+  });
+
+  it('keeps choices that are already there', () => {
+    expect(toVersion6?.({ privacy: { notificationText: false } })).toEqual({
+      privacy: { notificationSender: true, notificationText: false },
+    });
+  });
+
+  it.each([undefined, null, 'on', [true]])(
+    'leaves a privacy section of %j for validation to reset',
+    (privacy) => {
+      const settings = { schemaVersion: 5, privacy };
+      expect(toVersion6?.(settings)).toBe(settings);
+    },
+  );
+});
+
 describe('version 4 to 5', () => {
   const toVersion5 = MIGRATIONS[3];
 

@@ -13,8 +13,15 @@ export interface NativeOptions {
   readonly silent: boolean;
 }
 
+/** What a notification may reveal (#62); read for each notification. */
+interface NotificationPrivacy {
+  readonly sender: boolean;
+  readonly text: boolean;
+}
+
 export interface NotifierDependencies {
   readonly create: (options: NativeOptions) => NativeNotification;
+  readonly privacy: () => NotificationPrivacy;
   readonly isSupported: () => boolean;
   readonly now: () => number;
   readonly warn: (message: string) => void;
@@ -119,12 +126,12 @@ function display(
       shown.delete(id);
     }
   }
+  const privacy = deps.privacy();
+  const sender = privacy.sender ? notification.title : en.notifications.hiddenSender;
   const heading = account.heading();
-  const title =
-    heading === undefined
-      ? notification.title
-      : en.notifications.titled(heading, notification.title);
-  const native = deps.create({ title, body: notification.body, silent: notification.silent });
+  const title = heading === undefined ? sender : en.notifications.titled(heading, sender);
+  const body = privacy.text ? notification.body : en.notifications.hiddenText;
+  const native = deps.create({ title, body, silent: notification.silent });
   native.on('click', () => {
     account.onClick(notification.id);
   });

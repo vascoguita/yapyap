@@ -200,6 +200,8 @@ describe('createChromeFeature', () => {
         'reliability.hardwareVideoDecoding': true,
         'privacy.crashReports': 'off',
         'privacy.unreadWhileHidden': true,
+        'privacy.notificationSender': true,
+        'privacy.notificationText': true,
         'general.autostart': false,
         'general.startMinimized': false,
         'general.betaUpdates': false,

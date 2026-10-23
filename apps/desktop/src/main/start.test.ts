@@ -674,6 +674,25 @@ describe('startApp', () => {
     expect(f.natives[0]?.options.title).toBe('Alice');
   });
 
+  it('keeps hidden notification details from the system, as the privacy settings say', async () => {
+    const f = fakes();
+    const settings = defaultSettings();
+    f.settings.current = () => ({
+      ...settings,
+      privacy: { ...settings.privacy, notificationSender: false, notificationText: false },
+    });
+    await startApp(f);
+    f.ipcListeners.get('whatsapp:notification-show')?.(
+      { sender: f.web.contents, senderFrame: { url: `${WHATSAPP_ORIGIN}/` } },
+      { id: '1', title: 'Alice', body: 'Hi' },
+    );
+    expect(f.natives[0]?.options).toEqual({
+      title: 'WhatsApp',
+      body: 'New message',
+      silent: false,
+    });
+  });
+
   describe('with two accounts', () => {
     function twoAccounts(argv: readonly string[] = []) {
       const f = fakes({}, argv);

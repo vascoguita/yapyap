@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { decodeSettings, defaultSettings } from './decode.ts';
 
 const DEFAULTS = {
-  schemaVersion: 5,
+  schemaVersion: 6,
   general: {
     language: 'system',
     startMinimized: false,
@@ -18,7 +18,12 @@ const DEFAULTS = {
     memoryWatchdogMb: 2048,
     displayBackend: 'auto',
   },
-  privacy: { crashReports: 'off', unreadWhileHidden: true },
+  privacy: {
+    crashReports: 'off',
+    unreadWhileHidden: true,
+    notificationSender: true,
+    notificationText: true,
+  },
 };
 
 describe('defaultSettings', () => {
@@ -78,7 +83,12 @@ describe('decodeSettings', () => {
         const settings = {
           ...DEFAULTS,
           appearance: { theme, zoom: 1, autoHideMenuBar: false },
-          privacy: { crashReports, unreadWhileHidden: true },
+          privacy: {
+            crashReports,
+            unreadWhileHidden: true,
+            notificationSender: true,
+            notificationText: true,
+          },
         };
         expect(decodeSettings(JSON.stringify(settings))).toEqual({
           kind: 'ok',

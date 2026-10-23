@@ -197,6 +197,16 @@ const catalog = {
           ask: 'Keep a report and offer to review it',
         },
       },
+      'privacy.notificationSender': {
+        label: 'Show who wrote in notifications',
+        description:
+          'Turn this off to show “WhatsApp” instead of the contact or group, for example when others can see your screen.',
+      },
+      'privacy.notificationText': {
+        label: 'Show message text in notifications',
+        description:
+          'Turn this off to show “New message” instead. The text then never reaches your system’s notifications.',
+      },
       'privacy.unreadWhileHidden': {
         label: 'Keep chats unread while YapYap is hidden',
         description:
@@ -239,6 +249,8 @@ const catalog = {
   notifications: {
     /** With several accounts, the account a notification comes from heads it. */
     titled: (account: string, title: string): string => `${account}: ${title}`,
+    hiddenSender: 'WhatsApp',
+    hiddenText: 'New message',
   },
   badge: {
     unread: (count: number): string =>

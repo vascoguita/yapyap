@@ -5,7 +5,7 @@ import { Type, type Static } from 'typebox';
  * it, so the schema is the only source of truth. Every value has a default,
  * which is what an invalid or missing value falls back to.
  */
-export const SETTINGS_VERSION = 5;
+export const SETTINGS_VERSION = 6;
 
 export const SettingsSchema = Type.Object(
   {
@@ -51,6 +51,8 @@ export const SettingsSchema = Type.Object(
           },
         ),
         unreadWhileHidden: Type.Boolean({ default: true }),
+        notificationSender: Type.Boolean({ default: true }),
+        notificationText: Type.Boolean({ default: true }),
       },
       { default: {}, additionalProperties: false },
     ),

@@ -87,7 +87,10 @@ account's name. Clicking one brings YapYap forward, switches to that account
 and opens the chat. Notifications disappear when you read the chat, here or
 on your phone, and when YapYap quits. WhatsApp's own notification settings,
 such as sounds, still apply. YapYap shows its own icon rather than contact
-photos, and the text of a notification never leaves your computer.
+photos, and the text of a notification never leaves your computer. Under
+Settings → Privacy you can hide who wrote and what they wrote, for example
+when others can see your screen; hidden text never reaches the system's
+notifications at all.
 
 ## Accounts
 
