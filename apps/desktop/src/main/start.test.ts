@@ -10,6 +10,8 @@ import type { WindowOptions } from './windows.ts';
 type Listener = (...args: never[]) => void;
 
 /** A web contents whose listeners the test can fire by event name. */
+
+const ACCOUNT = '0b6c3f0e-58a4-4a39-9a43-6f0c1c1f6a01';
 function fakeContents() {
   const handlers = new Map<string, Listener[]>();
   const contents = {
@@ -92,7 +94,7 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
   const stored = new Map<string, string>();
   const warn = vi.fn();
   const openExternal = vi.fn(() => Promise.resolve());
-  const session = {
+  const fakeSession = () => ({
     setPermissionRequestHandler: vi.fn(),
     setPermissionCheckHandler: vi.fn(),
     setDevicePermissionHandler: vi.fn(),
@@ -102,7 +104,9 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     setSpellCheckerLanguages: vi.fn(),
     webRequest: { onBeforeSendHeaders: vi.fn() },
     on: vi.fn(),
-  };
+  });
+  const session = fakeSession();
+  const accountSession = fakeSession();
   const capture = {
     contentsOfFrame: vi.fn(),
     isVisibleAndFocused: vi.fn(() => true),
@@ -117,6 +121,13 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     session,
     createWindow,
     defaultSession: () => session,
+    sessionOf: vi.fn(() => accountSession),
+    accountSession,
+    accounts: {
+      version: 1 as const,
+      accounts: [{ id: ACCOUNT, name: 'WhatsApp', color: 'green' as const, enabled: true }],
+      active: ACCOUNT,
+    },
     askMedia: vi.fn(() => Promise.resolve(true)),
     capture: vi.fn<
       (pickInApp: (contents: object) => Promise<unknown>, wayland: boolean) => typeof capture
@@ -222,7 +233,10 @@ describe('startApp', () => {
     await startApp(f);
 
     expect(f.app.setAppUserModelId).toHaveBeenCalledWith(APP_ID);
-    expect(f.createWindow).toHaveBeenCalledWith(expect.objectContaining({ show: false }));
+    expect(f.createWindow).toHaveBeenCalledWith(
+      expect.objectContaining({ show: false }),
+      expect.anything(),
+    );
     expect(f.window.loadURL).toHaveBeenCalledWith(WHATSAPP_ORIGIN);
     expect(f.window.show).not.toHaveBeenCalled();
     f.listeners.get('ready-to-show')?.();
@@ -561,6 +575,15 @@ describe('startApp', () => {
     expect(f.badge.setBadgeCount).toHaveBeenCalledWith(3);
   });
 
+  it('opens WhatsApp in the active account’s own session', async () => {
+    const f = fakes();
+    await startApp(f);
+    expect(f.createWindow).toHaveBeenCalledWith(expect.anything(), {
+      partition: `persist:account-${ACCOUNT}`,
+    });
+    expect(f.sessionOf).toHaveBeenCalledWith(`persist:account-${ACCOUNT}`);
+  });
+
   it('stays hidden when started minimized', async () => {
     const f = fakes();
     const settings = defaultSettings();
@@ -649,7 +672,7 @@ describe('startApp', () => {
       JSON.stringify({ bounds, maximized: true, fullScreen: false }),
     );
     await startApp(f);
-    expect(f.createWindow).toHaveBeenCalledWith(expect.objectContaining(bounds));
+    expect(f.createWindow).toHaveBeenCalledWith(expect.objectContaining(bounds), expect.anything());
     expect(f.window.maximize).toHaveBeenCalledOnce();
     const [[, quitOnSignal]] = f.shutdown.onSignal.mock.calls as unknown as [[string, () => void]];
     quitOnSignal();
@@ -669,10 +692,11 @@ describe('startApp', () => {
     expect(f.createWindow).not.toHaveBeenCalled();
   });
 
-  it('takes over WhatsApp downloads once ready', async () => {
+  it('takes over WhatsApp downloads in the account’s session once ready', async () => {
     const f = fakes();
     await startApp(f);
-    expect(f.session.on).toHaveBeenCalledWith('will-download', expect.any(Function));
+    expect(f.accountSession.on).toHaveBeenCalledWith('will-download', expect.any(Function));
+    expect(f.session.on).not.toHaveBeenCalledWith('will-download', expect.any(Function));
   });
 
   it('follows the theme setting once ready', async () => {

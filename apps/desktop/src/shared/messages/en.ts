@@ -204,6 +204,10 @@ const catalog = {
       },
     },
   },
+  accounts: {
+    defaultName: (position: number): string =>
+      position === 1 ? 'WhatsApp' : `WhatsApp ${String(position)}`,
+  },
   badge: {
     unread: (count: number): string =>
       count === 1 ? '1 unread chat' : `${String(count)} unread chats`,

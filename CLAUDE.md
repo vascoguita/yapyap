@@ -192,6 +192,10 @@ Update this table in the PR that adds a command.
   focused window focus it and poll `isFocused()`.
 - In E2E tests, `BrowserWindow.getAllWindows()` has no stable order once a
   chrome window is open. Find WhatsApp's window by its URL, never by index.
+- WhatsApp never runs in the default session: each account has its own
+  `persist:account-<uuid>` partition (`partitionOf`, ADR 0001), listed in
+  `accounts.json`. Per-session guards such as downloads go on the account's
+  session; in E2E tests, reach it through the WhatsApp page's web contents.
 - Window geometry lives in `window-state.json`, not in settings: it is state,
   not a preference, and must never trigger a settings migration.
 - YapYap refuses to start with `--no-sandbox` or `ELECTRON_DISABLE_SANDBOX`.

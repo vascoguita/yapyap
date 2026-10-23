@@ -64,6 +64,14 @@ not edit the same lines.
   literal text in the main process's `label`, `title`, `message`, `detail`,
   `body` and `buttons` properties.
 
+- Accounts (#56, first part): `accounts.json` lists the accounts (UUID,
+  name, color, enabled, active), checked against a schema; a missing or
+  damaged file is rebuilt from the `Partitions/account-<uuid>` folders, so no
+  one is logged out by a bad file. WhatsApp runs in the active account's
+  persistent partition, whose session gets the security and download guards;
+  the default session loads nothing. `writeTextAtomically` is shared with
+  the settings store. Several accounts and their views come next.
+
 - Unread badge (#64): the count of unread chats in WhatsApp's title
   (`unreadInTitle` in the adapter, read on `page-title-updated`, so no page
   probe) becomes the Dock badge on macOS, the launcher count on Linux

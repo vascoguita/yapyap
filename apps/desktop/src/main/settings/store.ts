@@ -1,14 +1,6 @@
-import {
-  closeSync,
-  copyFileSync,
-  existsSync,
-  fsyncSync,
-  openSync,
-  readFileSync,
-  renameSync,
-  writeSync,
-} from 'node:fs';
+import { copyFileSync, existsSync, readFileSync, renameSync } from 'node:fs';
 import { join } from 'node:path';
+import { writeTextAtomically } from '../atomic-write.ts';
 import { decodeSettings, defaultSettings } from './decode.ts';
 import type { Settings } from './schema.ts';
 import { en } from '../../shared/messages/en.ts';
@@ -76,16 +68,8 @@ export function loadSettings(dir: string, now: number): LoadedSettings {
  */
 export function saveSettings(dir: string, settings: Settings): void {
   const path = join(dir, SETTINGS_FILE);
-  const temporary = `${path}.tmp`;
   if (existsSync(path)) {
     copyFileSync(path, join(dir, BACKUP_FILE));
   }
-  const fd = openSync(temporary, 'w');
-  try {
-    writeSync(fd, `${JSON.stringify(settings, null, 2)}\n`);
-    fsyncSync(fd);
-  } finally {
-    closeSync(fd);
-  }
-  renameSync(temporary, path);
+  writeTextAtomically(path, `${JSON.stringify(settings, null, 2)}\n`);
 }

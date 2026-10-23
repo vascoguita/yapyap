@@ -41,7 +41,13 @@ async function recordRequests(app: ElectronApplication): Promise<void> {
   await app.evaluate(({ app: electronApp, session, webContents }) => {
     const seen: string[] = [];
     Object.assign(globalThis, { seenRequests: seen });
+    // A session takes one listener, and an account's may exist before any page uses it.
+    const watched = new Set<Electron.Session>();
     const watch = (target: Electron.Session) => {
+      if (watched.has(target)) {
+        return;
+      }
+      watched.add(target);
       target.webRequest.onCompleted((details) => {
         const url = new URL(details.url);
         seen.push(
@@ -57,6 +63,9 @@ async function recordRequests(app: ElectronApplication): Promise<void> {
       watch(target);
     }
     electronApp.on('session-created', watch);
+    electronApp.on('web-contents-created', (_event, contents) => {
+      watch(contents.session);
+    });
   });
 }
 
