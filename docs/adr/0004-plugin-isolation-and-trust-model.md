@@ -49,10 +49,21 @@ path }`. Every file in the archive must appear in that list. Extra,
   host. On consent, the key is pinned to the plugin ID (its fingerprint is
   stored with the plugin's grants in `<userData>/plugins/.plugins.json`). An update signed by a different key is
   rejected. `decideTrust` in `packages/plugin-sign` makes these decisions.
+- Third-party plugins are fully supported, but YapYap does not review them.
+  Their consent window says plainly that YapYap has not reviewed the plugin
+  and that the user installs it at their own risk, and **Install** stays
+  disabled until the user ticks an acknowledgement. The main process
+  enforces this too: it refuses a third-party or unsigned install whose
+  answer lacks the acknowledgement, whatever the page sends. The Plugins
+  window keeps marking such plugins as "Third-party" or "Unsigned", so they
+  never pass for YapYap's own.
 - **URL installs** require a pinned `sha256-<base64>` integrity value next to
   the URL. A mismatch aborts before anything is unpacked.
-- **Unsigned** plugins load only in Developer Mode, with a persistent
-  "Unsigned" badge in the chrome.
+- **Unsigned** plugins load only in Developer Mode (`plugins.developerMode`),
+  with a persistent "Unsigned" badge in the chrome, and the Plugins window
+  warns while Developer Mode is on. Developer Mode is never exported with
+  the settings or changed by an import (ADR 0006), so a file someone hands
+  the user cannot turn it on.
 - An update that adds capabilities or hosts is staged and does not activate
   until the user re-approves.
 

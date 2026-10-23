@@ -21,6 +21,8 @@ export interface MenuActions {
   readonly setMuted: (muted: boolean) => void;
   readonly openAbout: () => void;
   readonly openSettings: () => void;
+  readonly openPlugins: () => void;
+  readonly installPlugin: () => void;
   readonly openNewChat: () => void;
   readonly clearCache: () => void;
   readonly resetSession: () => void;
@@ -157,6 +159,14 @@ function commonItems(
   return { about, settings, diagnostics };
 }
 
+/** Plugins sit beside Settings, as Settings is where Developer Mode lives. */
+function pluginItems(actions: MenuActions): MenuItemConstructorOptions[] {
+  return [
+    { label: en.menu.plugins, click: actions.openPlugins },
+    { label: en.menu.installPlugin, click: actions.installPlugin },
+  ];
+}
+
 export function buildMenuTemplate(
   platform: string,
   actions: MenuActions,
@@ -170,7 +180,7 @@ export function buildMenuTemplate(
   if (platform !== 'darwin') {
     const file: MenuItemConstructorOptions = {
       label: en.menu.file,
-      submenu: [settings, { type: 'separator' }, { role: 'quit' }],
+      submenu: [settings, ...pluginItems(actions), { type: 'separator' }, { role: 'quit' }],
     };
     return [
       file,
@@ -180,7 +190,7 @@ export function buildMenuTemplate(
     ];
   }
   return [
-    macAppMenu(about, settings),
+    macAppMenu(about, [settings, ...pluginItems(actions)]),
     { role: 'fileMenu' },
     accountMenu(actions),
     ...standard,
@@ -190,14 +200,14 @@ export function buildMenuTemplate(
 
 function macAppMenu(
   about: MenuItemConstructorOptions,
-  settings: MenuItemConstructorOptions,
+  settings: MenuItemConstructorOptions[],
 ): MenuItemConstructorOptions {
   return {
     label: PRODUCT_NAME,
     submenu: [
       about,
       { type: 'separator' },
-      settings,
+      ...settings,
       { type: 'separator' },
       { role: 'services' },
       { type: 'separator' },

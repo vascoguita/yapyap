@@ -51,6 +51,25 @@ describe('migrate', () => {
   });
 });
 
+describe('version 9 to 10', () => {
+  const toVersion10 = MIGRATIONS[8];
+
+  it('turns Developer Mode off in a plugins section, and leaves a missing one to validation', () => {
+    expect(toVersion10?.({ schemaVersion: 9, plugins: {} })).toEqual({
+      schemaVersion: 9,
+      plugins: { developerMode: false },
+    });
+    const settings = { schemaVersion: 9 };
+    expect(toVersion10?.(settings)).toBe(settings);
+  });
+
+  it('keeps a choice that is already there', () => {
+    expect(toVersion10?.({ plugins: { developerMode: true } })).toEqual({
+      plugins: { developerMode: true },
+    });
+  });
+});
+
 describe('version 8 to 9', () => {
   const toVersion9 = MIGRATIONS[7];
 

@@ -26,6 +26,22 @@ export type ImportResult =
 export const EXPORTED_SECTIONS = ['general', 'appearance', 'reliability', 'privacy'] as const;
 
 /**
+ * Sections that stay with this installation: never exported, and kept as
+ * they are on import. A file someone hands the user must not be able to
+ * turn on Developer Mode, which installs plugins nobody signed.
+ */
+export const LOCAL_SECTIONS = ['plugins'] as const;
+
+/** Imported settings, with this installation's own sections left as they are. */
+export function keepLocal(imported: Settings, current: Settings): Settings {
+  const merged: Record<string, unknown> = { ...imported };
+  for (const section of LOCAL_SECTIONS) {
+    merged[section] = current[section];
+  }
+  return merged as Settings;
+}
+
+/**
  * Exports the allowlisted sections, cleaned of anything the schema does not
  * define. Sessions and cookies live in Chromium's profile and secrets in
  * `safeStorage`, so they are never in the settings to begin with.

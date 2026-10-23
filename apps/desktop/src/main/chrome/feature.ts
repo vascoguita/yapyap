@@ -25,6 +25,11 @@ import { changeZoom } from '../appearance/zoom.ts';
 import { buildMenuTemplate, type MenuActions } from '../menu.ts';
 import { accountsHandlers, type AccountManager } from './accounts.ts';
 import {
+  createPluginChrome,
+  type PluginChrome,
+  type PluginChromeDependencies,
+} from '../plugins/plugin-chrome.ts';
+import {
   attachSidebar,
   sidebarHandlers,
   type SidebarPort,
@@ -169,6 +174,7 @@ export interface ChromeFeatureDependencies {
   readonly confirmReset: () => Promise<boolean>;
   /** Asks before removing the account named `name`; true when the user agrees. */
   readonly confirmRemoveAccount: (name: string) => Promise<boolean>;
+  readonly plugins: PluginChromeDependencies;
   readonly captureSources: (kind: SourceKind) => Promise<readonly DesktopSource[]>;
   /** The window showing `contents`, so the picker can sit on top of it. */
   readonly windowOf: (contents: object) => WindowOptions['parent'] | null;
@@ -419,16 +425,18 @@ function chromeWindows(
 /** YapYap's own windows, one each: opening one again focuses it. */
 type ChromeOpeners = Pick<
   MenuActions,
-  'openAccounts' | 'openAbout' | 'openSettings' | 'openNewChat'
+  'openAccounts' | 'openAbout' | 'openSettings' | 'openNewChat' | 'openPlugins' | 'installPlugin'
 >;
 
-function chromeOpeners(windows: ChromeWindowDependencies): ChromeOpeners {
+function chromeOpeners(windows: ChromeWindowDependencies, plugins: PluginChrome): ChromeOpeners {
   const opener = (page: ChromePage) => createChromeWindowOpener(windows, page);
   return {
     openAccounts: opener(ACCOUNTS_PAGE),
     openAbout: opener(ABOUT_PAGE),
     openSettings: opener(SETTINGS_PAGE),
     openNewChat: opener(NEW_CHAT_PAGE),
+    openPlugins: plugins.openPlugins,
+    installPlugin: plugins.install,
   };
 }
 
@@ -512,9 +520,10 @@ function startChrome(
   const chats: ChatTarget = {};
   const accounts: AccountsSlot = {};
   const sidebar: SidebarSlot = {};
+  const plugins = createPluginChrome(deps.plugins, deps.settings, windows);
   const handlers = allHandlers(withGraphics, recoveries, picker, chats, accounts, sidebar);
-  registerChromeHandlers(deps.ipc, views, handlers, warn);
-  const openers = chromeOpeners(windows);
+  registerChromeHandlers(deps.ipc, views, [...handlers, ...plugins.handlers], warn);
+  const openers = chromeOpeners(windows, plugins);
   const copyDiagnostics = (): void => {
     writeDiagnostics(withGraphics, pages).catch(() => {
       warn('Could not copy the diagnostics.');

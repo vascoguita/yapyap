@@ -106,6 +106,7 @@ const catalog = {
       appearance: 'Appearance',
       reliability: 'Reliability',
       privacy: 'Privacy',
+      plugins: 'Plugins',
     },
     backup: {
       title: 'Backup',
@@ -229,6 +230,11 @@ const catalog = {
         description:
           'Turn this off to show “WhatsApp” instead of the contact or group, for example when others can see your screen.',
       },
+      'plugins.developerMode': {
+        label: 'Developer Mode',
+        description:
+          'Lets you install unsigned plugins while you write them. Nobody vouches for an unsigned plugin, so YapYap marks it wherever it appears.',
+      },
       'privacy.notificationText': {
         label: 'Show message text in notifications',
         description:
@@ -292,6 +298,53 @@ const catalog = {
     full: 'Show account names',
     doNotDisturb: 'Do not disturb',
   },
+  plugins: {
+    title: 'Plugins',
+    hint: 'Each plugin runs in its own sandbox and can do only what you allowed when you installed it.',
+    empty: 'No plugins are installed.',
+    install: 'Install Plugin…',
+    fileType: 'YapYap plugins',
+    version: (version: string): string => `Version ${version}`,
+    trust: {
+      'first-party': 'By YapYap',
+      'third-party': 'Third-party',
+      developer: 'Unsigned',
+    },
+    developerMode:
+      'Developer Mode is on, so unsigned plugins can be installed. Turn it off in Settings when you no longer need it.',
+    result: {
+      installed: (name: string, version: string): string => `${name} ${version} is installed.`,
+      rejected: 'This plugin cannot be installed.',
+      failed: 'The plugin could not be installed. Try again.',
+    },
+    consent: {
+      install: (name: string): string => `Install ${name}?`,
+      update: (name: string, version: string): string => `Update ${name} to ${version}?`,
+      author: (name: string): string => `By ${name}`,
+      key: 'Signing key',
+      unsigned: 'Not signed',
+      firstParty: 'Signed by YapYap.',
+      asks: 'It asks to:',
+      updateAsks: 'This update asks for more than before:',
+      hosts: 'Connect to:',
+      nothing: 'It asks for nothing.',
+      risk: 'YapYap has not reviewed this plugin. Install it only if you trust its author: you install it at your own risk.',
+      unsignedRisk:
+        'Nobody signed this plugin, so nothing shows who made it or that it is unchanged. Install it only if you wrote it yourself.',
+      acknowledge: 'I understand that I install this plugin at my own risk',
+      confirmInstall: 'Install',
+      confirmUpdate: 'Update',
+    },
+    /** What each capability lets a plugin do, in the words the consent window uses. */
+    capabilities: {
+      'chat:read-active': 'Read the messages of the chat you have open',
+      'chat:read-unread-summary': 'See which chats have unread messages',
+      'composer:insert-draft': 'Write drafts in the message box, which you send yourself',
+      'notifications:show': 'Show notifications',
+      'storage:local': 'Keep its own data on this computer',
+      'secrets:own': 'Keep its own secrets, such as API keys, encrypted',
+    },
+  },
   notifications: {
     /** With several accounts, the account a notification comes from heads it. */
     titled: (account: string, title: string): string => `${account}: ${title}`,
@@ -327,6 +380,8 @@ const catalog = {
     resetSession: 'Reset Session…',
     addAccount: 'Add Account',
     manageAccounts: 'Manage Accounts…',
+    plugins: 'Plugins…',
+    installPlugin: 'Install Plugin…',
     removeAccount: 'Remove Account…',
     doNotDisturb: 'Do Not Disturb',
     muteAccount: 'Mute This Account',
@@ -340,6 +395,8 @@ const catalog = {
     picker: 'Share your screen',
     newChat: 'New Chat',
     accounts: 'Accounts',
+    plugins: 'Plugins',
+    pluginConsent: 'Install Plugin',
     offline: (pageTitle: string): string => `${pageTitle} (offline)`,
   },
   dialogs: {

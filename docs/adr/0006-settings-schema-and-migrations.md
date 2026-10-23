@@ -48,7 +48,8 @@ through an export.
   test fails whenever the schema gains a section the allowlist has not
   classified. Partition names, plugin secrets, cookies, pinned keys and
   anything under `secrets` are never exported; a section holding them stays
-  out of exports and keeps its current values on import. Import reads at
+  out of exports and keeps its current values on import (`LOCAL_SECTIONS`).
+  The `plugins` section is one: Developer Mode must not arrive in a file. Import reads at
   most 64 KiB, requires the format marker, runs the same
   migrate-and-validate pipeline, refuses files from a newer schema, and asks
   before replacing. It is unavailable while the settings are read-only.

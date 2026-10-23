@@ -76,6 +76,45 @@ export interface SidebarState {
   readonly doNotDisturb: boolean;
 }
 
+/**
+ * Who vouches for a plugin: YapYap's own key, another author's key the user
+ * pins on first install, or nobody (Developer Mode only).
+ */
+export type PluginTrust = 'first-party' | 'third-party' | 'developer';
+
+/** Grants a plugin asks for: capabilities, and network hosts one by one. */
+interface PluginGrants {
+  readonly capabilities: readonly string[];
+  readonly hosts: readonly string[];
+}
+
+/** What the consent window shows before a plugin is installed or updated (ADR 0004). */
+export interface PluginConsent extends PluginGrants {
+  readonly id: string;
+  readonly name: string;
+  readonly version: string;
+  readonly author: { readonly name: string; readonly url: string | null };
+  /** The signing key's fingerprint; null for an unsigned plugin. */
+  readonly fingerprint: string | null;
+  readonly trust: PluginTrust;
+  /** An update to an installed plugin, which asks only because it wants more. */
+  readonly update: boolean;
+  /** On an update, what it asks for that was not granted before. */
+  readonly added: PluginGrants;
+}
+
+/** An installed plugin, as the Plugins window lists it. */
+export interface InstalledPlugin {
+  readonly id: string;
+  readonly version: string;
+  readonly trust: PluginTrust;
+}
+
+export interface PluginList {
+  readonly plugins: readonly InstalledPlugin[];
+  readonly developerMode: boolean;
+}
+
 /** The API the chrome preload exposes as `window.yapyap`, one function per operation. */
 export interface ChromeApi {
   readonly about: {
@@ -113,6 +152,13 @@ export interface ChromeApi {
     readonly stopSharing: (id: string) => Promise<void>;
     /** YapYap sends the new state whenever it changes; the page never asks what to listen to. */
     readonly onState: (listener: (state: SidebarState) => void) => void;
+  };
+  readonly plugins: {
+    readonly list: () => Promise<PluginList>;
+    /** The pending install this consent window asks about. */
+    readonly consent: () => Promise<PluginConsent>;
+    /** `acknowledged`: the user accepted the risk of a plugin YapYap has not reviewed. */
+    readonly answer: (install: boolean, acknowledged: boolean) => Promise<void>;
   };
   readonly picker: {
     readonly offer: () => Promise<PickerOffer>;
@@ -172,6 +218,9 @@ export const CHROME_CHANNELS = {
   sidebarSwitch: 'sidebar:switch',
   sidebarSetCompact: 'sidebar:set-compact',
   sidebarStopSharing: 'sidebar:stop-sharing',
+  pluginsList: 'plugins:list',
+  pluginsConsent: 'plugins:consent',
+  pluginsAnswer: 'plugins:answer',
 } as const;
 
 /** The one channel YapYap sends on, from the main process to the sidebar. */

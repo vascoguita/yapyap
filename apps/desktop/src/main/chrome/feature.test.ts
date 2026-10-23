@@ -64,6 +64,13 @@ function setup() {
     },
     settingEffects: {},
     hiddenSettings: [],
+    plugins: {
+      root: '/nonexistent/plugins',
+      anchors: new Set<string>(),
+      chooseArchive: vi.fn(() => Promise.resolve<string | undefined>(undefined)),
+      readFile: vi.fn(() => Promise.resolve(new Uint8Array())),
+      showMessage: vi.fn(),
+    },
     settingsFiles: {
       chooseExport: vi.fn(() => Promise.resolve(undefined)),
       chooseImport: vi.fn(() => Promise.resolve(undefined)),
@@ -204,6 +211,7 @@ describe('createChromeFeature', () => {
         'privacy.unreadWhileHidden': true,
         'privacy.notificationSender': true,
         'privacy.notificationText': true,
+        'plugins.developerMode': false,
         'general.autostart': false,
         'general.startMinimized': false,
         'general.betaUpdates': false,

@@ -1,7 +1,7 @@
 import { CHROME_CHANNELS, type TransferResult } from '../../shared/chrome-api.ts';
 import { noArguments, type ChromeCall, type ChromeHandler } from '../chrome/ipc.ts';
 import type { SettingsService } from './service.ts';
-import { exportSettings, readImport } from './transfer.ts';
+import { exportSettings, keepLocal, readImport } from './transfer.ts';
 import { en } from '../../shared/messages/en.ts';
 
 /** The file dialogs and file access behind export and import; `owner` is the calling window's contents. */
@@ -60,7 +60,7 @@ async function importFrom(
   if (!(await files.confirmImport(call.sender, TEXT.replaces(result.reset.length)))) {
     return CANCELLED;
   }
-  service.update(() => result.settings);
+  service.update((current) => keepLocal(result.settings, current));
   return { outcome: 'done', message: TEXT.imported };
 }
 

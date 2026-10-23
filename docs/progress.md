@@ -250,6 +250,21 @@ not edit the same lines.
   atomically written `.plugins.json`. The consent screen and the Developer
   Mode badge come with the plugin runtime UI.
 
+- Plugin consent (#91, third part): File → Install Plugin… (the app menu
+  on macOS) picks an archive, reads at most one byte past the size limit,
+  and runs `prepareInstall`; a consent window (`plugin-consent.html`, one
+  at a time, answered only by its own window, `createPluginConsent`) shows
+  the author, signing key, capabilities in plain words and hosts, marking
+  what an update adds. For a third-party or unsigned plugin it says
+  YapYap has not reviewed it and that it is installed at the user's own
+  risk, and Install stays off until the user acknowledges this; the main
+  process refuses an install without the acknowledgement too. The Plugins
+  window (`plugins.html`) lists installed plugins marked By YapYap,
+  Third-party or Unsigned, and warns while `plugins.developerMode`
+  (settings schema v10, a new Plugins section) is on. That section is
+  local: never exported, and kept as it is on import (`LOCAL_SECTIONS`).
+  Running plugins comes with the plugin runtime.
+
 - Screen-sharing indicator (#161): the WhatsApp preload's second stand-in
   (`installShareShim`, ADR 0011) reports when a screen share starts and
   ends, by a random ID only, and stops one when YapYap asks. The main
