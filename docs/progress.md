@@ -173,6 +173,14 @@ not edit the same lines.
   window's page reports itself hidden; verified on real Wayland and X11
   sessions, since Playwright keeps the pages it drives active.
 
+- Call windows (#67): a popup on WhatsApp's own origin, opened directly or
+  as `about:blank` that then goes there, is shown as a window of its
+  account instead of being loaded into the account's view or discarded. It
+  inherits the opener's zone and home (`inherit` in the navigation guard),
+  so its own guards, permissions and screen-sharing rules treat it like the
+  account, and it closes, never destroyed, when the account's page goes.
+  The fake page opens calls both ways (`call.js`, `call.html`).
+
 - Update policy (#68): `decideUpdatePolicy` maps the stamped install channel
   and runtime evidence (`APPIMAGE`, `PORTABLE_EXECUTABLE_DIR`, Flatpak
   markers, a Developer ID signature) to `self-update`, `notify`, `system` or

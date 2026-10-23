@@ -25,6 +25,9 @@ function setup(home: string | null = HOME) {
       openHandler = handler;
     }),
     loadURL: vi.fn(() => Promise.resolve()),
+    once: vi.fn((event: string, listener: Listener) => {
+      handlers.set(event, [...(handlers.get(event) ?? []), listener]);
+    }),
   } satisfies NavigationContents;
   const scheduled: { callback: () => void; ms: number }[] = [];
   const deps = {
@@ -33,6 +36,7 @@ function setup(home: string | null = HOME) {
     popupPreferences: vi.fn(() => PREFERENCES),
     warn: vi.fn(),
     schedule: vi.fn((callback: () => void, ms: number) => scheduled.push({ callback, ms })),
+    inherit: vi.fn(),
   } satisfies NavigationDependencies;
   const guard = createNavigationGuard(deps);
   guard(contents);
@@ -147,11 +151,19 @@ describe('window.open', () => {
     expect(t.deps.openExternal).toHaveBeenCalledExactlyOnceWith('https://example.com/');
   });
 
-  it('denies same-origin windows without opening anything', () => {
+  it('allows WhatsApp’s own windows, such as calls, hidden until they load', () => {
     const t = setup();
-    expect(t.open(`${HOME}/other`)).toEqual({ action: 'deny' });
+    expect(t.open(`${HOME}/call`)).toEqual({
+      action: 'allow',
+      overrideBrowserWindowOptions: { show: false, webPreferences: PREFERENCES },
+    });
     expect(t.deps.openExternal).not.toHaveBeenCalled();
     expect(t.contents.loadURL).not.toHaveBeenCalled();
+  });
+
+  it('opens no window for a page of a view without a home', () => {
+    const t = setup(null);
+    expect(t.open(`${HOME}/call`)).toEqual({ action: 'deny' });
   });
 
   it.each(['about:blank', ''])('allows a hidden, hardened transient popup for %j', (url) => {
@@ -166,7 +178,7 @@ describe('window.open', () => {
 
 describe('transient popups', () => {
   function popup(url = '') {
-    let navigated: () => void = () => undefined;
+    let navigated: (event: { url: string }) => void = () => undefined;
     const handlers = new Map<string, Listener[]>();
     const emit = (event: string, arg: unknown): void => {
       for (const listener of handlers.get(event) ?? []) {
@@ -176,8 +188,10 @@ describe('transient popups', () => {
     let destroyed = false;
     const window = {
       webContents: {
-        once: vi.fn((_event: 'will-navigate', listener: () => void) => {
-          navigated = listener;
+        once: vi.fn((event: string, listener: (event: { url: string }) => void) => {
+          if (event === 'will-navigate') {
+            navigated = listener;
+          }
         }),
         on: vi.fn((event: string, listener: Listener) => {
           handlers.set(event, [...(handlers.get(event) ?? []), listener]);
@@ -191,11 +205,13 @@ describe('transient popups', () => {
       destroy: vi.fn(() => {
         destroyed = true;
       }),
+      show: vi.fn(),
+      close: vi.fn(),
     } satisfies PopupWindow & { readonly webContents: NavigationContents };
     return {
       window,
-      navigate: () => {
-        navigated();
+      navigate: (target = 'https://example.com/from-popup') => {
+        navigated({ url: target });
       },
       start: (target: string, isMainFrame = true) => {
         emit('did-start-navigation', { url: target, isMainFrame });
@@ -304,5 +320,47 @@ describe('transient popups', () => {
     run(t, 0);
     expect(p.window.webContents.getURL).not.toHaveBeenCalled();
     expect(t.deps.openExternal).not.toHaveBeenCalled();
+  });
+
+  it('gives the popup its opener’s zone, so its own guard treats it alike', () => {
+    const t = setup();
+    const p = popup();
+    t.fire('did-create-window', p.window);
+    expect(t.deps.inherit).toHaveBeenCalledWith(p.window.webContents, t.contents);
+  });
+
+  it('shows a popup that goes to WhatsApp’s own origin as a call window, and keeps it', () => {
+    const t = setup();
+    const p = popup();
+    t.fire('did-create-window', p.window);
+    p.navigate(`${HOME}/call`);
+    expect(p.window.show).toHaveBeenCalledOnce();
+    run(t, 1);
+    expect(p.window.destroy).not.toHaveBeenCalled();
+  });
+
+  it('keeps a call window whose page loaded before anyone listened', () => {
+    const t = setup();
+    const p = popup(`${HOME}/call`);
+    t.fire('did-create-window', p.window);
+    run(t, 0);
+    run(t, 1);
+    expect(p.window.show).toHaveBeenCalledOnce();
+    expect(p.window.destroy).not.toHaveBeenCalled();
+    expect(t.deps.openExternal).not.toHaveBeenCalled();
+  });
+
+  it('closes the account’s windows, letting them unload, when its page goes away', () => {
+    const t = setup();
+    const p = popup();
+    t.fire('did-create-window', p.window);
+    p.navigate(`${HOME}/call`);
+    t.fire('destroyed');
+    expect(p.window.close).toHaveBeenCalledOnce();
+    const gone = popup();
+    t.fire('did-create-window', gone.window);
+    gone.window.isDestroyed.mockReturnValue(true);
+    t.fire('destroyed');
+    expect(gone.window.close).not.toHaveBeenCalled();
   });
 });

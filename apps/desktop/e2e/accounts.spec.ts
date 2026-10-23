@@ -1,3 +1,4 @@
+import type { Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { closeApp, expect, launchApp, test, whatsAppPage } from './fixtures.ts';
@@ -87,7 +88,10 @@ test('adds, switches and removes accounts, each in its own session', async ({
   });
   await clickAccountMenu(app, 'Add Account');
   await expect.poll(async () => (await accountPages(app)).length).toBe(2);
-  const second = app.windows().find((page) => page !== window && page.url().startsWith('http'));
+  // Playwright lists a new page a moment after Electron creates it.
+  const isSecond = (page: Page) => page !== window && page.url().startsWith('http');
+  await expect.poll(() => app.windows().some(isSecond)).toBe(true);
+  const second = app.windows().find(isSecond);
   await expect(second?.getByTestId('fake-whatsapp') ?? window.locator('missing')).toBeVisible();
   // A new account shares nothing with the first one.
   expect(await second?.evaluate(() => localStorage.getItem('yapyap-e2e'))).toBeNull();
