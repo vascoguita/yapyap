@@ -61,6 +61,12 @@ export function installSecurity(app: SecurityApp, deps: SecurityDependencies): v
     homeOf: (contents) => deps.views.get(contents)?.home,
     openExternal: deps.openExternal,
     popupPreferences: () => rendererPreferences(),
+    inherit: (popup, opener) => {
+      const info = deps.views.get(opener);
+      if (info !== undefined) {
+        deps.views.set(popup, info);
+      }
+    },
     warn: deps.warn,
     schedule: (callback, ms) => setTimeout(callback, ms),
   });

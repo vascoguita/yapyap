@@ -69,6 +69,12 @@ If YapYap does not start at all, run `yapyap --ozone-platform=x11` (or
 ignores a setting whose display server is missing and uses the automatic
 choice instead.
 
+## Calls
+
+Voice and video calls open in a window of their own, which belongs to the
+account the call is in: it uses that account's login, and closes when you
+hang up or when the account is turned off or removed.
+
 ## Screen sharing
 
 When you share your screen in a WhatsApp call, YapYap asks what to share

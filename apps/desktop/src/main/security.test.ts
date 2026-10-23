@@ -20,6 +20,7 @@ function setup() {
       openHandler = handler;
     }),
     loadURL: vi.fn(() => Promise.resolve()),
+    once: vi.fn(),
   };
   const home = 'https://web.whatsapp.com';
   const views = new WeakMap([[contents, { zone: 'whatsapp' as const, home, label: 'WhatsApp' }]]);
@@ -47,6 +48,7 @@ function setup() {
   };
   return {
     contents,
+    views: views as WeakMap<object, unknown>,
     fire,
     openExternal,
     createContents,
@@ -93,12 +95,33 @@ describe('secureAllWebContents', () => {
       webContents: { once: vi.fn(), on: vi.fn(), getURL: () => '' },
       isDestroyed: () => false,
       destroy: vi.fn(),
+      show: vi.fn(),
+      close: vi.fn(),
     };
     t.fire('did-create-window', popup);
+    // The popup belongs to the account that opened it, as far as every guard goes.
+    expect(t.views.get(popup.webContents)).toEqual(t.views.get(t.contents));
     vi.advanceTimersByTime(TRANSIENT_POPUP_MS - 1);
     expect(popup.destroy).not.toHaveBeenCalled();
     vi.advanceTimersByTime(1);
     expect(popup.destroy).toHaveBeenCalledOnce();
+  });
+
+  it('gives no zone to a popup of a web contents YapYap did not create', () => {
+    const t = setup();
+    const stranger = { ...t.contents, on: vi.fn<(event: string, listener: Listener) => void>() };
+    t.createContents(stranger);
+    const [, created] =
+      stranger.on.mock.calls.find(([event]) => event === 'did-create-window') ?? [];
+    const popup = {
+      webContents: { once: vi.fn(), on: vi.fn(), getURL: () => '' },
+      isDestroyed: () => false,
+      destroy: vi.fn(),
+      show: vi.fn(),
+      close: vi.fn(),
+    };
+    created?.(...([popup] as never[]));
+    expect(t.views.get(popup.webContents)).toBeUndefined();
   });
 
   it('treats web contents YapYap did not create as having no home', () => {

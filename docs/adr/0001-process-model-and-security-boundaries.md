@@ -77,10 +77,16 @@ and an ESLint restriction forbids constructing `BrowserWindow` or
   `https://api.whatsapp.com/send` are rewritten as `whatsapp://send` and go
   through the same link policy, keeping only the phone number and text.
   Every other argument is ignored, and links are never logged (#45).
-- The one exception is an empty `about:blank` popup, which WhatsApp opens
-  before setting its location. It is created hidden with the hardened
-  preferences, its first navigation goes through the link policy, and it is
-  destroyed then, or after five seconds if it never navigates.
+- The exceptions are popups WhatsApp opens for itself: an empty
+  `about:blank` popup, which it opens before setting its location, and a
+  window on its own origin, such as a call (#67). Either is created hidden
+  with the hardened preferences, on the opener's session, and takes the
+  opener's zone and home origin, so its own guards treat it like the
+  account. A popup that reaches WhatsApp's origin is shown as a window of
+  that account; any other first navigation goes through the link policy and
+  the popup is destroyed then, or after five seconds if it never navigates.
+  An account's windows close, letting their pages unload, when the account's
+  page goes away, since WhatsApp's calls do not survive being destroyed.
 - `setPermissionRequestHandler` and `setPermissionCheckHandler` use a
   per-zone allowlist, applied to every session. The WhatsApp zone, from its
   own origin only, gets `notifications`, `clipboard-sanitized-write`,

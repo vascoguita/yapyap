@@ -33,17 +33,21 @@ interface StartedNavigation {
 
 export interface PopupWindow {
   readonly webContents: {
-    once(event: 'will-navigate', listener: () => void): unknown;
+    once(event: 'will-navigate', listener: (event: { readonly url: string }) => void): unknown;
     on(event: 'did-start-navigation', listener: (details: StartedNavigation) => void): unknown;
     getURL(): string;
   };
   isDestroyed(): boolean;
   destroy(): void;
+  show(): void;
+  /** Lets the page unload, unlike destroy, which WhatsApp's calls do not survive. */
+  close(): void;
 }
 
 export interface NavigationContents {
   on(event: 'will-navigate' | 'will-redirect', listener: (event: NavigationEvent) => void): unknown;
   on(event: 'did-create-window', listener: (window: PopupWindow) => void): unknown;
+  once(event: 'destroyed', listener: () => void): unknown;
   setWindowOpenHandler(handler: (details: { readonly url: string }) => WindowOpenResponse): void;
   loadURL(url: string): Promise<unknown>;
 }
@@ -53,6 +57,8 @@ export interface NavigationDependencies {
   readonly homeOf: (contents: NavigationContents) => string | undefined;
   readonly openExternal: (url: string) => Promise<unknown>;
   readonly popupPreferences: () => WebPreferences;
+  /** Gives a popup its opener's zone and home, so its own guard treats it like the opener. */
+  readonly inherit: (popup: object, opener: NavigationContents) => void;
   readonly warn: (message: string) => void;
   readonly schedule: (callback: () => void, ms: number) => unknown;
 }
@@ -74,12 +80,34 @@ function follow(contents: NavigationContents, url: string, deps: NavigationDepen
 const isBlank = (url: string): boolean => url === 'about:blank' || url === '';
 
 interface PopupRoute {
-  /** Destroys the popup; nothing routes it after this. */
+  /** Destroys the popup, unless it became a call window; nothing routes it after this. */
   readonly discard: () => void;
+  /** Shows the popup as a window of its account, such as a WhatsApp call. */
+  readonly keep: () => void;
   /** Routes where the popup is heading or what it shows, unless already handled. */
   readonly routeUnseen: () => void;
   readonly done: () => boolean;
   readonly started: (url: string) => void;
+}
+
+/** The popup's fate: discarded once routed, or kept as a window of its account. */
+function popupFate(popup: PopupWindow): Pick<PopupRoute, 'discard' | 'keep' | 'done'> {
+  let done = false;
+  let kept = false;
+  return {
+    discard: () => {
+      done = true;
+      if (!kept && !popup.isDestroyed()) {
+        popup.destroy();
+      }
+    },
+    keep: () => {
+      done = true;
+      kept = true;
+      popup.show();
+    },
+    done: () => done,
+  };
 }
 
 function popupRoute(
@@ -88,18 +116,17 @@ function popupRoute(
   deps: NavigationDependencies,
   routed: WeakSet<object>,
 ): PopupRoute {
-  let done = false;
+  const { discard, keep, done } = popupFate(popup);
   let started: string | undefined;
-  const discard = (): void => {
-    done = true;
-    if (!popup.isDestroyed()) {
-      popup.destroy();
-    }
-  };
+  const home = deps.homeOf(opener);
   const target = (): string => started ?? (popup.isDestroyed() ? '' : popup.webContents.getURL());
   const routeUnseen = (): void => {
     const url = target();
-    if (done || isBlank(url)) {
+    if (done() || isBlank(url)) {
+      return;
+    }
+    if (isSameOrigin(url, home)) {
+      keep();
       return;
     }
     // A will-navigate that arrives after this must not route the link again.
@@ -109,8 +136,9 @@ function popupRoute(
   };
   return {
     discard,
+    keep,
     routeUnseen,
-    done: () => done,
+    done,
     started: (url) => {
       started = url;
     },
@@ -130,8 +158,22 @@ function adoptPopup(
       deps.schedule(watch, UNSEEN_NAVIGATION_MS);
     }
   };
-  // The popup's own navigation guard has already routed the link by now.
-  popup.webContents.once('will-navigate', route.discard);
+  // The popup's own navigation guard has already routed a link by now; a
+  // page on the opener's own origin is WhatsApp's, such as a call.
+  const home = deps.homeOf(opener);
+  popup.webContents.once('will-navigate', ({ url }) => {
+    if (isSameOrigin(url, home)) {
+      route.keep();
+    } else {
+      route.discard();
+    }
+  });
+  // A call window belongs to its account, and goes when the account does.
+  opener.once('destroyed', () => {
+    if (!popup.isDestroyed()) {
+      popup.close();
+    }
+  });
   // A navigation the opener starts is normally reported as will-navigate
   // right after it starts. On Windows it sometimes is not, or starts before
   // these listeners exist (#188), so a timer also checks where the popup is
@@ -152,7 +194,8 @@ function adoptPopup(
 
 /**
  * Keeps each view on its home origin, sends links to the browser or the
- * mail and phone apps through the link policy, and never opens app windows.
+ * mail and phone apps through the link policy, and opens windows only for
+ * WhatsApp's own pages, such as calls, on the account's session (#67).
  */
 export function createNavigationGuard(
   deps: NavigationDependencies,
@@ -177,7 +220,8 @@ export function createNavigationGuard(
       }
     });
     contents.setWindowOpenHandler(({ url }) => {
-      if (isBlank(url)) {
+      // WhatsApp opens its own pages, such as calls, in windows of their own.
+      if (isBlank(url) || isSameOrigin(url, deps.homeOf(contents))) {
         const webPreferences = deps.popupPreferences();
         return { action: 'allow', overrideBrowserWindowOptions: { show: false, webPreferences } };
       }
@@ -185,6 +229,7 @@ export function createNavigationGuard(
       return { action: 'deny' };
     });
     contents.on('did-create-window', (popup) => {
+      deps.inherit(popup.webContents, contents);
       adoptPopup(contents, popup, deps, routed);
     });
   };
