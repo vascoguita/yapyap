@@ -919,8 +919,7 @@ describe('startApp', () => {
       open('447700900123');
       const work = f.hosts[1]?.webContents;
       expect(work?.loadURL).toHaveBeenLastCalledWith(`${WHATSAPP_ORIGIN}/send?phone=447700900123`);
-      const focused = f.window.on.mock.calls.find(([event]) => event === 'focus');
-      (focused?.[1] as (() => void) | undefined)?.();
+      windowEvent(f, 'focus');
       expect(work?.focus).toHaveBeenCalledOnce();
     });
 

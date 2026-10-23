@@ -91,6 +91,25 @@ const setWindowShown = (app: ElectronApplication, shown: boolean) =>
     }
   }, shown);
 
+/** Records the window's visibility events, so a failure says what the window did. */
+const recordWindowEvents = (app: ElectronApplication) =>
+  app.evaluate(({ BrowserWindow, webContents }) => {
+    const page = webContents
+      .getAllWebContents()
+      .find((contents) => contents.getURL().startsWith('http'));
+    const owner = page === undefined ? null : BrowserWindow.fromWebContents(page);
+    const seen: string[] = [];
+    for (const event of ['show', 'hide', 'focus', 'blur', 'minimize', 'restore'] as const) {
+      owner?.on(event as 'show', () => {
+        seen.push(`${event}:${String(owner.isVisible())}`);
+      });
+    }
+    Object.assign(globalThis, { windowEvents: seen });
+  });
+
+const windowEvents = (app: ElectronApplication) =>
+  app.evaluate(() => (globalThis as unknown as { windowEvents: string[] }).windowEvents.join(', '));
+
 test('do not disturb drops notifications, and mutes WhatsApp while it is out of sight', async ({
   app,
   window,
@@ -102,8 +121,11 @@ test('do not disturb drops notifications, and mutes WhatsApp while it is out of 
   await window.getByTestId('notify').click();
   await expect(window.getByTestId('notify-result')).toHaveText('permission granted');
   expect(await whatsAppAudioMuted(app)).toBe(false);
+  await recordWindowEvents(app);
   await setWindowShown(app, false);
-  await expect.poll(() => whatsAppAudioMuted(app)).toBe(true);
+  await expect
+    .poll(() => whatsAppAudioMuted(app), { message: `window events: ${await windowEvents(app)}` })
+    .toBe(true);
   await setWindowShown(app, true);
   await expect.poll(() => whatsAppAudioMuted(app)).toBe(false);
   await toggleDoNotDisturb(app);
