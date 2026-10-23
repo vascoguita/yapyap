@@ -25,7 +25,7 @@ Use pnpm (version pinned in `package.json`) on Node.js 24 LTS.
 | Typecheck                       | `pnpm typecheck`                                                                         |
 | Unit + integration tests        | `pnpm test`                                                                              |
 | Coverage (100% gate)            | `pnpm test:coverage`                                                                     |
-| E2E tests                       | `xvfb-run -a pnpm test:e2e` on Linux when available, else `pnpm test:e2e`                |
+| E2E tests                       | `dbus-run-session -- xvfb-run -a pnpm test:e2e` on Linux, else `pnpm test:e2e`           |
 | Mutation tests (≥ 90%)          | `pnpm test:mutation` (PR CI mutates changed in-scope files only)                         |
 | Performance benchmark           | `xvfb-run -a pnpm test:bench` (nightly; budgets in `apps/desktop/e2e/bench/`, ADR 0009)  |
 | Commit messages                 | `pnpm commitlint`                                                                        |
@@ -186,6 +186,9 @@ Update this table in the PR that adds a command.
   but never reaches `setDisplayMediaRequestHandler`. Never grant that request
   without a user pick; see `allowScreenCapture` in
   `src/main/permissions/session-guard.ts` and ADR 0001.
+- On a Linux desktop, run E2E tests under `dbus-run-session` as well as
+  `xvfb-run`: Xvfb hides the windows, but tray icons and notifications go
+  through the session bus and would appear on the developer's desktop.
 - E2E runs drop `WAYLAND_DISPLAY` so local runs use the virtual X11 display
   like CI. `YAPYAP_E2E_WAYLAND_DISPLAY` passes a compositor socket through
   instead; CI runs `display.spec.ts` that way on a headless Weston. Under it no window manager focuses windows, so tests that need a
