@@ -1,7 +1,7 @@
 import { en } from './messages/en.ts';
 
 /** A value the settings window can show and change. */
-export type SettingValue = boolean | string;
+export type SettingValue = boolean | string | number;
 
 /** A settings file section, in the order the settings window lists them. */
 export const SETTINGS_SECTIONS = [
@@ -22,7 +22,7 @@ export interface SettingField {
   /** Takes effect only at the next launch, so changing it offers a restart. */
   readonly restart: boolean;
   /** One of several values; without options, the setting is an on/off switch. */
-  readonly options?: readonly { readonly value: string; readonly label: string }[];
+  readonly options?: readonly { readonly value: string | number; readonly label: string }[];
   /** The platforms (`process.platform`) where it does something; all of them when absent. */
   readonly platforms?: readonly string[];
 }
@@ -38,6 +38,19 @@ function described(id: keyof typeof text): Pick<SettingField, 'id' | 'label' | '
 function choices(options: Readonly<Record<string, string>>): NonNullable<SettingField['options']> {
   return Object.entries(options).map(([value, label]) => ({ value, label }));
 }
+
+/** WhatsApp's zoom in Settings: common steps; the View menu goes finer and up to 300%. */
+const INTERFACE_SCALES = [
+  { factor: 0.5 },
+  { factor: 0.75 },
+  { factor: 0.9 },
+  { factor: 1 },
+  { factor: 1.1 },
+  { factor: 1.25 },
+  { factor: 1.5 },
+  { factor: 1.75 },
+  { factor: 2 },
+].map(({ factor }) => factor);
 
 /**
  * What the settings window shows. A setting appears here only once YapYap
@@ -56,6 +69,12 @@ export const SETTING_FIELDS: readonly SettingField[] = [
     options: choices(text['appearance.theme'].options),
   },
   { ...described('appearance.autoHideMenuBar'), restart: false, platforms: ['linux', 'win32'] },
+  {
+    ...described('appearance.zoom'),
+    restart: false,
+    options: INTERFACE_SCALES.map((value) => ({ value, label: en.settings.scale(value) })),
+  },
+  { ...described('appearance.pinchZoom'), restart: false },
   { ...described('appearance.compactSidebar'), restart: false },
   {
     ...described('appearance.trayIcon'),

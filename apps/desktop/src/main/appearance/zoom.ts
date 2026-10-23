@@ -49,7 +49,10 @@ export function followZoomSetting(
   contents.on('did-finish-load', () => {
     apply(settings.current());
   });
+  // A touchpad pinch arrives as this event too, so the switch can stop it (#81).
   contents.on('zoom-changed', (_event, direction) => {
-    changeZoom(settings, direction);
+    if (settings.current().appearance.pinchZoom) {
+      changeZoom(settings, direction);
+    }
   });
 }

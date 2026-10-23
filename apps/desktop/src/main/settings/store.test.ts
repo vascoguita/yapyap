@@ -11,6 +11,7 @@ const custom = () => ({
   appearance: {
     theme: 'dark' as const,
     zoom: 1.5,
+    pinchZoom: true,
     autoHideMenuBar: false,
     compactSidebar: false,
     trayIcon: 'color' as const,
@@ -97,7 +98,7 @@ describe('saveSettings', () => {
       defaultSettings(),
     );
     expect(readFileSync(join(dir, SETTINGS_FILE), 'utf8')).toMatch(
-      /^\{\n {2}"schemaVersion": 11,[\s\S]*\}\n$/,
+      /^\{\n {2}"schemaVersion": 12,[\s\S]*\}\n$/,
     );
     expect(readdirSync(dir).sort()).toEqual(['settings.json', 'settings.json.bak']);
   });

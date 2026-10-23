@@ -38,7 +38,7 @@ function Choice(props: FieldProps & { readonly options: NonNullable<SettingField
     <fieldset class="choice" aria-describedby={`${field.id}-hint`} disabled={snapshot.readOnly}>
       <legend>{field.label}</legend>
       {options.map(({ value, label }) => (
-        <label key={value}>
+        <label key={String(value)}>
           <input
             type="radio"
             name={field.id}
