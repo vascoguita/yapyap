@@ -210,6 +210,11 @@ Update this table in the PR that adds a command.
   is set, which `launchApp` does. Linux runs need unprivileged user
   namespaces for the sandbox: CI lifts Ubuntu's restriction, and VS Code's
   AppArmor profile grants them to terminals inside it.
+- WhatsApp's views have one preload, `src/preload/whatsapp/`, which replaces
+  the page's `Notification` (ADR 0011). `installNotificationShim` runs in
+  WhatsApp's main world as source text, so it may use nothing from outside
+  its body; check `out/preload/whatsapp.cjs` after changing it. Its bridge
+  has three operations, and the main process checks everything it sends.
 - Code that inspects WhatsApp's page lives in `src/adapter/` and runs in the
   adapter's isolated world (`ADAPTER_WORLD_ID`). Probes return plain flags,
   never page text, which can contain chats. They run on demand and never add

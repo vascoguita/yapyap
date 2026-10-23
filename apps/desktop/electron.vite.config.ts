@@ -6,7 +6,10 @@ export default defineConfig({
   preload: {
     build: {
       rollupOptions: {
-        input: { chrome: resolve(import.meta.dirname, 'src/preload/chrome/index.ts') },
+        input: {
+          chrome: resolve(import.meta.dirname, 'src/preload/chrome/index.ts'),
+          whatsapp: resolve(import.meta.dirname, 'src/preload/whatsapp/index.ts'),
+        },
         // Sandboxed preloads cannot load ES modules.
         output: { format: 'cjs', entryFileNames: '[name].cjs' },
       },

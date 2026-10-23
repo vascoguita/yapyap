@@ -30,6 +30,7 @@ function fakeContents() {
     loadURL: vi.fn(() => Promise.resolve()),
     executeJavaScriptInIsolatedWorld: vi.fn(() => Promise.resolve()),
     reload: vi.fn(),
+    send: vi.fn(),
     forcefullyCrashRenderer: vi.fn(),
     getOSProcessId: () => 4242,
     setBackgroundThrottling: vi.fn(),
@@ -56,9 +57,19 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     enableSandbox: vi.fn(),
     whenReady: vi.fn(() => Promise.resolve()),
     setAppUserModelId: vi.fn(),
-    on: vi.fn((event: string, listener: (...args: never[]) => void) =>
-      listeners.set(event, listener),
-    ),
+    // Every listener of an event runs, as Electron's emitter runs them all.
+    on: vi.fn((event: string, listener: (...args: never[]) => void) => {
+      const previous = listeners.get(event);
+      listeners.set(
+        event,
+        previous === undefined
+          ? listener
+          : (...args: never[]) => {
+              previous(...args);
+              listener(...args);
+            },
+      );
+    }),
     quit: vi.fn(),
     requestSingleInstanceLock: vi.fn(() => true),
   } satisfies AppPort;
@@ -122,6 +133,13 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     return host;
   });
   const stored = new Map<string, string>();
+  const natives: {
+    options: { title: string; body: string; silent: boolean };
+    show: ReturnType<typeof vi.fn>;
+    close: ReturnType<typeof vi.fn>;
+    on: ReturnType<typeof vi.fn>;
+  }[] = [];
+  const ipcListeners = new Map<string, (event: unknown, ...args: unknown[]) => void>();
   const warn = vi.fn();
   const openExternal = vi.fn(() => Promise.resolve());
   const fakeSession = () => ({
@@ -155,6 +173,22 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     createAccountHost,
     hosts,
     saveAccounts: vi.fn(),
+    whatsAppPreload: '/out/preload/whatsapp.cjs',
+    natives,
+    notifications: {
+      create: vi.fn((options: { title: string; body: string; silent: boolean }) => {
+        const native = { options, show: vi.fn(), close: vi.fn(), on: vi.fn() };
+        natives.push(native);
+        return native;
+      }),
+      isSupported: () => true,
+    },
+    ipc: {
+      on: vi.fn((channel: string, listener: (event: unknown, ...args: unknown[]) => void) =>
+        ipcListeners.set(channel, listener),
+      ),
+    },
+    ipcListeners,
     newAccountId: () => SECOND,
     defaultSession: () => session,
     sessionOf: vi.fn(() => accountSession),
@@ -630,6 +664,16 @@ describe('startApp', () => {
     expect(f.window.setTitle).toHaveBeenLastCalledWith('(3) WhatsApp');
   });
 
+  it('shows notifications without an account name when there is one account', async () => {
+    const f = fakes();
+    await startApp(f);
+    f.ipcListeners.get('whatsapp:notification-show')?.(
+      { sender: f.web.contents, senderFrame: { url: `${WHATSAPP_ORIGIN}/` } },
+      { id: '1', title: 'Alice' },
+    );
+    expect(f.natives[0]?.options.title).toBe('Alice');
+  });
+
   describe('with two accounts', () => {
     function twoAccounts(argv: readonly string[] = []) {
       const f = fakes({}, argv);
@@ -694,6 +738,47 @@ describe('startApp', () => {
       expect(f.window.show).toHaveBeenCalled();
     });
 
+    it('shows each account’s notifications under its name, and switches to it on a click', async () => {
+      const f = twoAccounts();
+      await startApp(f);
+      const personal = f.hosts[0]?.webContents;
+      const fromPersonal = { sender: personal, senderFrame: { url: `${WHATSAPP_ORIGIN}/` } };
+      f.ipcListeners.get('whatsapp:notification-show')?.(fromPersonal, {
+        id: '1',
+        title: 'Alice',
+        body: 'Hi',
+      });
+      const native = f.natives[0];
+      if (native === undefined || personal === undefined) {
+        throw new Error('No notification was shown.');
+      }
+      expect(native.options).toEqual({ title: 'Personal: Alice', body: 'Hi', silent: false });
+      const [, click] = native.on.mock.calls[0] as [string, () => void];
+      click();
+      expect(f.hosts[0]?.show).toHaveBeenCalledOnce();
+      expect(personal.send).toHaveBeenCalledWith('whatsapp:notification-click', '1');
+      f.ipcListeners.get('whatsapp:notification-close')?.(fromPersonal, '1');
+      expect(native.close).toHaveBeenCalledOnce();
+    });
+
+    it('withdraws a removed account’s notifications, and everyone’s when quitting', async () => {
+      const f = twoAccounts();
+      await startApp(f);
+      const show = (index: number, id: string) => {
+        f.ipcListeners.get('whatsapp:notification-show')?.(
+          { sender: f.hosts[index]?.webContents, senderFrame: { url: `${WHATSAPP_ORIGIN}/` } },
+          { id, title: 'Alice' },
+        );
+      };
+      show(0, '1');
+      show(1, '2');
+      void menu(f).remove(ACCOUNT);
+      expect(f.natives[0]?.close).toHaveBeenCalledOnce();
+      expect(f.natives[1]?.close).not.toHaveBeenCalled();
+      f.listeners.get('will-quit')?.();
+      expect(f.natives[1]?.close).toHaveBeenCalledOnce();
+    });
+
     it('sends chat links and focus to the active account', async () => {
       const f = twoAccounts();
       await startApp(f);
@@ -728,6 +813,7 @@ describe('startApp', () => {
       menu(f).add();
       expect(f.createAccountHost).toHaveBeenLastCalledWith(f.window, {
         partition: `persist:account-${THIRD}`,
+        preload: '/out/preload/whatsapp.cjs',
       });
       expect(f.hosts[2]?.show).toHaveBeenCalledOnce();
       expect(f.hosts[2]?.webContents.loadURL).toHaveBeenCalledWith(WHATSAPP_ORIGIN);
@@ -754,6 +840,7 @@ describe('startApp', () => {
     await startApp(f);
     expect(f.createAccountHost).toHaveBeenCalledWith(f.window, {
       partition: `persist:account-${ACCOUNT}`,
+      preload: '/out/preload/whatsapp.cjs',
     });
     expect(f.sessionOf).toHaveBeenCalledWith(`persist:account-${ACCOUNT}`);
   });

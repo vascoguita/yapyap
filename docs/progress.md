@@ -102,6 +102,17 @@ not edit the same lines.
   (`runAccounts().update`). Accounts that are off are left out of the menu.
   The color stands in for an avatar until profile photos (#87).
 
+- Notifications (#59): WhatsApp's views have a preload (ADR 0011) that
+  replaces the page's `Notification` with a stand-in before any page script
+  runs (`installNotificationShim`, sent with `executeInMainWorld`, so it must
+  stay self-contained). The main process accepts its messages only from a
+  WhatsApp view on WhatsApp's origin (`listenForNotifications`), checks and
+  rate-limits them per account (`accountNotifier`), and shows system
+  notifications headed by the account's name when there are several. A
+  click switches to the account and lets the page open the chat; closing in
+  the page, removing the account or quitting withdraws them. The fake page
+  shows notifications through the Web API (`notify.js`).
+
 - Tray menu (#63, first part): the tray shows or hides the window (the
   label follows the window), switches between running accounts, opens
   Settings and quits; its tooltip, and the macOS menu bar title, show the

@@ -1,0 +1,28 @@
+import { NOTIFICATION_CHANNELS, type NotificationBridge } from '../../shared/notification-api.ts';
+
+export interface PreloadIpc {
+  send(channel: string, ...args: unknown[]): void;
+  on(channel: string, listener: (event: unknown, ...args: unknown[]) => void): unknown;
+}
+
+/**
+ * The page's side of WhatsApp notifications: three operations on fixed
+ * channels, never `ipcRenderer` itself (ADR 0011).
+ */
+export function createNotificationBridge(ipc: PreloadIpc): NotificationBridge {
+  return {
+    show: (request) => {
+      ipc.send(NOTIFICATION_CHANNELS.show, request);
+    },
+    close: (id) => {
+      ipc.send(NOTIFICATION_CHANNELS.close, id);
+    },
+    onClick: (listener) => {
+      ipc.on(NOTIFICATION_CHANNELS.click, (_event, id) => {
+        if (typeof id === 'string') {
+          listener(id);
+        }
+      });
+    },
+  };
+}

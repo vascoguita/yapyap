@@ -48,6 +48,13 @@ import type { RendererOptions } from './web-preferences.ts';
 import { accountSignals, type AccountSignals } from './accounts/account-signals.ts';
 import { partitionOf, type Account, type Accounts } from './accounts/accounts.ts';
 import { runAccounts, type AccountPage, type RunningAccounts } from './accounts/running.ts';
+import { NOTIFICATION_CHANNELS } from '../shared/notification-api.ts';
+import { listenForNotifications, type NotificationIpc } from './notifications/notification-ipc.ts';
+import {
+  accountNotifier,
+  type AccountNotifier,
+  type NotifierDependencies,
+} from './notifications/notifier.ts';
 import type { WindowOptions } from './windows.ts';
 import {
   bringToFront,
@@ -125,6 +132,7 @@ type AccountContents = WhatsAppContents &
   FocusablePage & {
     loadURL(url: string): Promise<unknown>;
     on(event: 'page-title-updated', listener: (event: unknown, title: string) => void): unknown;
+    send(channel: string, ...args: unknown[]): void;
   };
 
 /** An account's views in the main window, from `createAccountHost`. */
@@ -166,6 +174,10 @@ export interface StartDependencies<Window extends WindowPort> {
   readonly accounts: Accounts;
   readonly saveAccounts: (accounts: Accounts) => void;
   readonly newAccountId: () => string;
+  /** The preload of WhatsApp's views, which hands its notifications to YapYap (ADR 0011). */
+  readonly whatsAppPreload: string;
+  readonly notifications: Pick<NotifierDependencies, 'create' | 'isSupported'>;
+  readonly ipc: NotificationIpc;
   /** `process.versions.chrome`: the identity must match the bundled engine. */
   readonly chromeVersion: string;
   readonly platform: string;
@@ -430,8 +442,50 @@ interface AccountWiring<Window extends WindowPort> {
   readonly window: Window;
   readonly signals: AccountSignals;
   readonly origin: string;
+  /** The accounts once they run; read on use, after they all opened. */
+  readonly running: () => RunningAccounts<OpenedAccount>;
   /** Where an account first loads: a chat link from the command line, once, or WhatsApp. */
   readonly firstUrl: (account: Account) => string;
+  readonly notifiers: Notifiers;
+}
+
+/** Each account's notifier, found by its page, and all of them for quitting. */
+interface Notifiers {
+  readonly byPage: WeakMap<object, AccountNotifier>;
+  readonly all: Set<AccountNotifier>;
+}
+
+/**
+ * Shows an account's WhatsApp notifications; a click brings its window
+ * forward, switches to it and lets WhatsApp open the chat.
+ */
+function notifyFor<Window extends WindowPort>(
+  wiring: AccountWiring<Window>,
+  account: Account,
+  contents: AccountContents,
+): AccountNotifier {
+  const { deps, window, running } = wiring;
+  const notifier = accountNotifier(
+    { ...deps.notifications, now: Date.now, warn: deps.warn },
+    {
+      heading: () => {
+        const names = new Map(
+          running()
+            .list()
+            .map(({ id, name }) => [id, name]),
+        );
+        return running().opened().length > 1 ? names.get(account.id) : undefined;
+      },
+      onClick: (id) => {
+        bringToFront(window);
+        running().switchTo(account.id);
+        contents.send(NOTIFICATION_CHANNELS.click, id);
+      },
+    },
+  );
+  wiring.notifiers.byPage.set(contents, notifier);
+  wiring.notifiers.all.add(notifier);
+  return notifier;
 }
 
 /** Opens an account's views, hidden, and everything that watches or serves its WhatsApp. */
@@ -441,8 +495,12 @@ function openAccount<Window extends WindowPort>(
 ): OpenedAccount {
   const { deps, chrome, window, signals, origin } = wiring;
   guardAccountSession(deps, wiring.security, account);
-  const host = deps.createAccountHost(window, { partition: partitionOf(account) });
+  const host = deps.createAccountHost(window, {
+    partition: partitionOf(account),
+    preload: deps.whatsAppPreload,
+  });
   const contents = host.webContents;
+  const notifier = notifyFor(wiring, account, contents);
   wiring.security.views.set(contents, { zone: 'whatsapp', home: origin, label: account.name });
   const recovery = chrome.attachRecovery(contents, origin, host.createOverlay);
   watchMemory(contents, {
@@ -462,7 +520,12 @@ function openAccount<Window extends WindowPort>(
   const loaded = contents
     .loadURL(wiring.firstUrl(account))
     .then(reportedElsewhere, reportedElsewhere);
-  return { ...host, contents, reconnect: recovery.reconnect, loaded };
+  const close = (): void => {
+    notifier.closeAll();
+    wiring.notifiers.all.delete(notifier);
+    host.close();
+  };
+  return { ...host, close, contents, reconnect: recovery.reconnect, loaded };
 }
 
 /** Deletes a removed account's WhatsApp data; its folder goes at the next start. */
@@ -534,7 +597,7 @@ function windowSignals<Window extends WindowPort>(
  * give it a new unread count.
  */
 function accountsTray<Window extends WindowPort>(
-  { deps, chrome, window }: Omit<AccountWiring<Window>, 'signals'>,
+  { deps, chrome, window }: Omit<AccountWiring<Window>, 'signals' | 'running'>,
   running: () => RunningAccounts<OpenedAccount>,
 ): { readonly refresh: () => void; readonly setUnread: (unread: number) => void } {
   let unread = 0;
@@ -565,7 +628,7 @@ function accountsTray<Window extends WindowPort>(
 
 /** Every enabled account, in its own view of the main window; the active one shows. */
 function openAccounts<Window extends WindowPort>(
-  wiring: Omit<AccountWiring<Window>, 'signals'>,
+  wiring: Omit<AccountWiring<Window>, 'signals' | 'running'>,
 ): RunningAccounts<OpenedAccount> {
   const { deps, chrome, window } = wiring;
   const tray = accountsTray(wiring, () => running);
@@ -577,7 +640,7 @@ function openAccounts<Window extends WindowPort>(
   };
   const running: RunningAccounts<OpenedAccount> = runAccounts({
     accounts: deps.accounts,
-    open: (account) => openAccount({ ...wiring, signals }, account),
+    open: (account) => openAccount({ ...wiring, signals, running: () => running }, account),
     save: deps.saveAccounts,
     forget: (account) => forgetAccount(deps, signals, account),
     newId: deps.newAccountId,
@@ -645,6 +708,21 @@ function chatLinkOnce(
   };
 }
 
+/** Hears every account's notifications, and withdraws them all when YapYap quits. */
+function listenToNotifications<Window extends WindowPort>(
+  deps: StartDependencies<Window>,
+  origin: string,
+): Notifiers {
+  const notifiers: Notifiers = { byPage: new WeakMap(), all: new Set() };
+  listenForNotifications(deps.ipc, (sender) => notifiers.byPage.get(sender), origin, deps.warn);
+  deps.app.on('will-quit', () => {
+    for (const notifier of notifiers.all) {
+      notifier.closeAll();
+    }
+  });
+  return notifiers;
+}
+
 /** Opens the main window with every account, and waits for their first loads. */
 async function openWindow<Window extends WindowPort>(
   deps: StartDependencies<Window>,
@@ -661,6 +739,7 @@ async function openWindow<Window extends WindowPort>(
     window,
     origin,
     firstUrl: chatLinkOnce(chatLinkInArguments(deps.argv, origin), deps.accounts.active, origin),
+    notifiers: listenToNotifications(deps, origin),
   });
   instances.attach(window, wireMainWindow(deps, chrome, window, running, origin));
   // A failed load must not end startup: the monitor shows the recovery screen.
