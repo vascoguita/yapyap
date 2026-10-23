@@ -51,6 +51,31 @@ describe('migrate', () => {
   });
 });
 
+describe('version 6 to 7', () => {
+  const toVersion7 = MIGRATIONS[5];
+
+  it('adds do not disturb, off, and keeps the other general settings', () => {
+    expect(toVersion7?.({ schemaVersion: 6, general: { autostart: true } })).toEqual({
+      schemaVersion: 6,
+      general: { doNotDisturb: false, autostart: true },
+    });
+  });
+
+  it('keeps a choice that is already there', () => {
+    expect(toVersion7?.({ general: { doNotDisturb: true } })).toEqual({
+      general: { doNotDisturb: true },
+    });
+  });
+
+  it.each([undefined, null, 'on', [true]])(
+    'leaves a general section of %j for validation to reset',
+    (general) => {
+      const settings = { schemaVersion: 6, general };
+      expect(toVersion7?.(settings)).toBe(settings);
+    },
+  );
+});
+
 describe('version 5 to 6', () => {
   const toVersion6 = MIGRATIONS[4];
 

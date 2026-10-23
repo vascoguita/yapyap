@@ -31,7 +31,7 @@ function setup(heading?: string) {
     now: () => time,
     warn: vi.fn(),
   };
-  const account = { heading: () => heading, onClick: vi.fn() };
+  const account = { heading: () => heading, silenced: vi.fn(() => false), onClick: vi.fn() };
   return {
     deps,
     account,
@@ -69,6 +69,18 @@ describe('accountNotifier', () => {
       { title: 'Work: WhatsApp', body: 'Hi', silent: false },
       { title: 'Work: Alice', body: 'New message', silent: false },
     ]);
+  });
+
+  it('shows nothing while the account is silenced, and that counts against no limit', () => {
+    const t = setup();
+    t.account.silenced.mockReturnValue(true);
+    for (let index = 0; index < 31; index += 1) {
+      t.notifier.show(request(String(index)));
+    }
+    t.account.silenced.mockReturnValue(false);
+    t.notifier.show(request('later'));
+    expect(t.deps.create).toHaveBeenCalledOnce();
+    expect(t.deps.warn).not.toHaveBeenCalled();
   });
 
   it('tells the account which notification was clicked', () => {

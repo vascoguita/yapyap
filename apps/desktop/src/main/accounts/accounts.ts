@@ -25,6 +25,8 @@ const AccountSchema = Type.Object(
       Type.Literal('teal'),
     ]),
     enabled: Type.Boolean(),
+    // Optional, so files written before muting existed stay valid (#61).
+    muted: Type.Optional(Type.Boolean()),
   },
   { additionalProperties: false },
 );

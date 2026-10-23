@@ -205,6 +205,7 @@ describe('createChromeFeature', () => {
         'general.autostart': false,
         'general.startMinimized': false,
         'general.betaUpdates': false,
+        'general.doNotDisturb': false,
         'general.closeToTray': false,
       },
       restartPending: false,
@@ -338,7 +339,9 @@ describe('createChromeFeature', () => {
     };
     runtime.attachRecovery(contents, 'https://web.whatsapp.com', vi.fn());
     runtime.setAccountMenu({
-      entries: [{ id: 'a', name: 'WhatsApp', color: 'green', enabled: true, active: true }],
+      entries: [
+        { id: 'a', name: 'WhatsApp', color: 'green', enabled: true, muted: false, active: true },
+      ],
       activeContents: () => contents,
       switchTo: vi.fn(),
       add: vi.fn(),
@@ -373,8 +376,8 @@ describe('createChromeFeature', () => {
     expect(t.deps.confirmRemoveAccount).not.toHaveBeenCalled();
     const menu = {
       entries: [
-        { id: 'a', name: 'Personal', color: 'green', enabled: true, active: false },
-        { id: 'b', name: 'Work', color: 'blue', enabled: true, active: true },
+        { id: 'a', name: 'Personal', color: 'green', enabled: true, muted: false, active: false },
+        { id: 'b', name: 'Work', color: 'blue', enabled: true, muted: false, active: true },
       ],
       activeContents: () => ({}),
       switchTo: vi.fn(),
@@ -407,7 +410,9 @@ describe('createChromeFeature', () => {
     t.clickAccount('Manage Accounts…');
     expect(t.window.loadURL).toHaveBeenCalledWith('app://chrome/accounts.html');
     expect(t.call('accounts:list')).toHaveProperty('accounts', []);
-    const entries = [{ id: 'a', name: 'Personal', color: 'green', enabled: true, active: true }];
+    const entries = [
+      { id: 'a', name: 'Personal', color: 'green', enabled: true, muted: false, active: true },
+    ];
     runtime.setAccountMenu({
       entries,
       activeContents: () => ({}),
@@ -424,8 +429,8 @@ describe('createChromeFeature', () => {
     const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
     runtime.setAccountMenu({
       entries: [
-        { id: 'a', name: 'Personal', color: 'green', enabled: true, active: false },
-        { id: 'b', name: 'Work', color: 'blue', enabled: true, active: false },
+        { id: 'a', name: 'Personal', color: 'green', enabled: true, muted: false, active: false },
+        { id: 'b', name: 'Work', color: 'blue', enabled: true, muted: false, active: false },
       ],
       activeContents: () => ({}),
       switchTo: vi.fn(),
@@ -435,6 +440,36 @@ describe('createChromeFeature', () => {
     });
     t.clickAccount('Remove Account…');
     expect(t.deps.confirmRemoveAccount).not.toHaveBeenCalled();
+  });
+
+  it('turns do not disturb on and mutes the account on screen from the Account menu', () => {
+    const t = setup();
+    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    t.clickAccount('Do Not Disturb');
+    t.clickAccount('Mute This Account');
+    expect(t.deps.settings.update).toHaveBeenCalledOnce();
+    const work = { id: 'b', name: 'Work', color: 'blue', enabled: true, muted: false };
+    const menu = {
+      entries: [{ ...work, color: 'pink', id: 'a', active: false }],
+      activeContents: () => ({}),
+      switchTo: vi.fn(),
+      add: vi.fn(),
+      update: vi.fn(() => true),
+      remove: vi.fn(() => Promise.resolve(true)),
+    };
+    runtime.setAccountMenu(menu);
+    t.clickAccount('Mute This Account');
+    runtime.setAccountMenu({ ...menu, entries: [{ ...work, color: 'pink', active: true }] });
+    t.clickAccount('Mute This Account');
+    expect(menu.update).not.toHaveBeenCalled();
+    runtime.setAccountMenu({ ...menu, entries: [{ ...work, active: true }] });
+    t.clickAccount('Mute This Account');
+    expect(menu.update).toHaveBeenCalledExactlyOnceWith('b', {
+      name: 'Work',
+      color: 'blue',
+      enabled: true,
+      muted: true,
+    });
   });
 
   it('opens New Chat from the Account menu and its chats in WhatsApp once there is a window', () => {

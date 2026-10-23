@@ -10,6 +10,9 @@ function actions(accounts: AccountSummary[] = []) {
     addAccount: vi.fn(),
     openAccounts: vi.fn(),
     removeAccount: vi.fn(),
+    doNotDisturb: false,
+    setDoNotDisturb: vi.fn(),
+    setMuted: vi.fn(),
     openAbout: vi.fn(),
     openSettings: vi.fn(),
     openNewChat: vi.fn(),
@@ -27,6 +30,14 @@ const ACCOUNT = (a: ReturnType<typeof actions>) => ({
     { label: 'Add Account', click: a.addAccount },
     { label: 'Manage Accounts…', click: a.openAccounts },
     { label: 'Remove Account…', enabled: false, click: a.removeAccount },
+    { type: 'separator' },
+    expect.objectContaining({ label: 'Do Not Disturb', type: 'checkbox', checked: false }),
+    expect.objectContaining({
+      label: 'Mute This Account',
+      type: 'checkbox',
+      checked: false,
+      enabled: false,
+    }),
     { type: 'separator' },
     { label: 'New Chat with Number…', click: a.openNewChat },
     { type: 'separator' },
@@ -46,9 +57,17 @@ describe('buildMenuTemplate', () => {
       name: `Account ${String(index + 1)}`,
       color: 'green',
       enabled: true,
+      muted: false,
       active: index === 1,
     }));
-    accounts.push({ id: 'off', name: 'Switched off', color: 'red', enabled: false, active: false });
+    accounts.push({
+      id: 'off',
+      name: 'Switched off',
+      color: 'red',
+      enabled: false,
+      muted: false,
+      active: false,
+    });
     const a = actions(accounts);
     const menu = buildMenuTemplate('linux', a).find((entry) => entry.label === '&Account');
     const entries = items(menu);
@@ -121,6 +140,31 @@ describe('buildMenuTemplate', () => {
       { label: 'Copy Diagnostics', click: a.copyDiagnostics },
     ]);
     expect(template[1]).toEqual(ACCOUNT(a));
+  });
+
+  it('turns do not disturb on and off, and mutes or unmutes the account on screen', () => {
+    const entry = { id: 'a', name: 'Work', color: 'blue', enabled: true, active: true };
+    const item = (a: ReturnType<typeof actions>, label: string) => {
+      const found = items(buildMenuTemplate('linux', a)[1]).find((each) => each.label === label);
+      if (found?.click === undefined) {
+        throw new Error(`No ${label} item.`);
+      }
+      return { ...found, click: found.click as () => void };
+    };
+    const off = actions([{ ...entry, muted: false }]);
+    item(off, 'Do Not Disturb').click();
+    item(off, 'Mute This Account').click();
+    expect(off.setDoNotDisturb).toHaveBeenCalledWith(true);
+    expect(off.setMuted).toHaveBeenCalledWith(true);
+    const on = { ...actions([{ ...entry, muted: true }]), doNotDisturb: true };
+    const dnd = item(on, 'Do Not Disturb');
+    const mute = item(on, 'Mute This Account');
+    expect(dnd.checked).toBe(true);
+    expect(mute).toMatchObject({ checked: true, enabled: true });
+    dnd.click();
+    mute.click();
+    expect(on.setDoNotDisturb).toHaveBeenCalledWith(false);
+    expect(on.setMuted).toHaveBeenCalledWith(false);
   });
 
   it('puts About and Settings in the app menu on macOS', () => {

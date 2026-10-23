@@ -15,12 +15,13 @@ function isName(value: unknown): value is string {
   return typeof value === 'string' && value.trim() !== '' && value.length <= MAX_ACCOUNT_NAME;
 }
 
-/** Exactly a name, a known color and an on/off switch: nothing else gets through. */
+/** Exactly a name, a known color and two switches: nothing else gets through. */
 function parseChange(value: unknown): AccountChange | undefined {
-  const { name, color, enabled, ...rest } = Object(value) as Record<string, unknown>;
-  const complete = isName(name) && isAccountColor(color) && typeof enabled === 'boolean';
+  const { name, color, enabled, muted, ...rest } = Object(value) as Record<string, unknown>;
+  const switches = typeof enabled === 'boolean' && typeof muted === 'boolean';
+  const complete = isName(name) && isAccountColor(color) && switches;
   return complete && Object.keys(rest).length === 0
-    ? { name: name.trim(), color, enabled }
+    ? { name: name.trim(), color, enabled, muted }
     : undefined;
 }
 

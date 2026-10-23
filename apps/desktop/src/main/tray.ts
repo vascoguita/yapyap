@@ -20,6 +20,7 @@ export interface TrayDependencies {
   readonly buildMenu: (template: MenuItemConstructorOptions[]) => unknown;
   readonly switchAccount: (id: string) => void;
   readonly openSettings: () => void;
+  readonly setDoNotDisturb: (on: boolean) => void;
   readonly quit: () => void;
 }
 
@@ -28,6 +29,7 @@ export interface TrayState {
   readonly accounts: readonly AccountSummary[];
   readonly unread: number;
   readonly windowShown: boolean;
+  readonly doNotDisturb: boolean;
 }
 
 /** The running accounts, when there is a choice; picking one shows it. */
@@ -43,7 +45,7 @@ function accountItems(
   return [
     { type: 'separator' },
     ...running.map((account): MenuItemConstructorOptions => ({
-      label: account.name,
+      label: account.muted ? en.tray.mutedAccount(account.name) : account.name,
       type: 'radio',
       checked: account.active,
       click: () => {
@@ -76,6 +78,14 @@ function menuOf(
     toggle,
     ...accountItems(state, window, deps),
     { type: 'separator' },
+    {
+      label: en.tray.doNotDisturb,
+      type: 'checkbox',
+      checked: state.doNotDisturb,
+      click: () => {
+        deps.setDoNotDisturb(!state.doNotDisturb);
+      },
+    },
     { label: en.tray.settings, click: deps.openSettings },
     { type: 'separator' },
     { label: en.tray.quit, click: deps.quit },

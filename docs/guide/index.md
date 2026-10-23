@@ -92,6 +92,15 @@ Settings → Privacy you can hide who wrote and what they wrote, for example
 when others can see your screen; hidden text never reaches the system's
 notifications at all.
 
+**Do Not Disturb**, in the tray menu, the Account menu or Settings → General,
+stops all notifications and silences the sounds of accounts that are not on
+screen, such as message tones and ringtones. To silence one account, use
+**Mute This Account** in the Account menu or turn on **Mute this account** in
+the Accounts window; the tray marks muted accounts. The account on screen
+keeps its sound either way, so the voice messages and videos you play still
+work. Unread counts keep updating, and chats you mute in WhatsApp itself
+never notify.
+
 ## Accounts
 
 YapYap can run several WhatsApp accounts side by side, such as a personal

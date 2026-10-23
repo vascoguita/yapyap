@@ -156,6 +156,11 @@ const catalog = {
         description:
           'Try each version a few days before its release and help find problems. Betas can be less stable; turning this off waits for the next release rather than going back.',
       },
+      'general.doNotDisturb': {
+        label: 'Do not disturb',
+        description:
+          'Show no notifications at all, and play no sounds from accounts that are not on screen. Unread counts still update.',
+      },
       'general.closeToTray': {
         label: 'Close to the tray',
         description:
@@ -232,6 +237,10 @@ const catalog = {
       red: 'Red',
       teal: 'Teal',
     },
+    mute: 'Mute this account',
+    muteHint:
+      'A muted account shows no notifications and plays no sounds while it is not on screen.',
+    muted: 'Muted',
     run: 'Run this account',
     runHint:
       'An account that is off keeps its login and data on this computer, but receives no messages until you turn it on again.',
@@ -263,6 +272,8 @@ const catalog = {
     show: 'Show YapYap',
     hide: 'Hide YapYap',
     settings: 'Settings…',
+    doNotDisturb: 'Do Not Disturb',
+    mutedAccount: (name: string): string => `${name} (muted)`,
     quit: 'Quit YapYap',
   },
   // `&` marks the access key on Windows and Linux; macOS ignores it.
@@ -279,6 +290,8 @@ const catalog = {
     addAccount: 'Add Account',
     manageAccounts: 'Manage Accounts…',
     removeAccount: 'Remove Account…',
+    doNotDisturb: 'Do Not Disturb',
+    muteAccount: 'Mute This Account',
     about: (product: string): string => `About ${product}`,
     settings: 'Settings…',
     copyDiagnostics: 'Copy Diagnostics',

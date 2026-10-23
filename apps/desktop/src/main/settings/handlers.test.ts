@@ -17,6 +17,7 @@ const START_MINIMIZED = 'general.startMinimized';
 const CLOSE_TO_TRAY = 'general.closeToTray';
 const AUTOSTART = 'general.autostart';
 const BETA = 'general.betaUpdates';
+const DND = 'general.doNotDisturb';
 
 function setup(readOnly = false, effects: Readonly<Record<string, SettingEffect>> = {}) {
   let settings: Settings = defaultSettings();
@@ -122,6 +123,7 @@ describe('settingsHandlers', () => {
         [AUTOSTART]: false,
         [START_MINIMIZED]: false,
         [BETA]: false,
+        [DND]: false,
         [CLOSE_TO_TRAY]: false,
       },
       restartPending: false,
@@ -190,6 +192,7 @@ describe('settingsHandlers', () => {
         [AUTOSTART]: false,
         [START_MINIMIZED]: false,
         [BETA]: false,
+        [DND]: false,
         [CLOSE_TO_TRAY]: false,
       },
       restartPending: true,

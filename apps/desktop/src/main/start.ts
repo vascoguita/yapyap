@@ -13,6 +13,7 @@ import {
   type GraphicsReason,
 } from './recovery/gpu-safe-mode.ts';
 import type { SettingsService } from './settings/service.ts';
+import { isSilenced, quietAudio, setDoNotDisturb, type AudioPage } from './notifications/quiet.ts';
 import { followHiddenReadsSetting, type ThrottledContents } from './privacy/hidden-reads.ts';
 import { watchForReleases, type UpdateNoticeDependencies } from './updates/update-notice.ts';
 import {
@@ -128,6 +129,7 @@ type AccountContents = WhatsAppContents &
   ZoomableContents &
   WatchedRenderer &
   ThrottledContents &
+  AudioPage &
   ReadyPage &
   FocusablePage & {
     loadURL(url: string): Promise<unknown>;
@@ -151,7 +153,9 @@ export interface WindowPort extends LinkWindow, Omit<ManagedWindow, 'on'> {
   on: ManagedWindow['on'] &
     FocusableWindow['on'] &
     ((event: 'show', listener: () => void) => unknown) &
-    ((event: 'hide', listener: () => void) => unknown);
+    ((event: 'hide', listener: () => void) => unknown) &
+    ((event: 'minimize', listener: () => void) => unknown) &
+    ((event: 'restore', listener: () => void) => unknown);
   isVisible(): boolean;
   /** Shows the active account's page title, as a browser would. */
   setTitle(title: string): void;
@@ -455,6 +459,12 @@ interface Notifiers {
   readonly all: Set<AccountNotifier>;
 }
 
+/** The account's name, to head its notifications when several accounts run. */
+function headingOf(running: RunningAccounts<OpenedAccount>, id: string): string | undefined {
+  const names = new Map(running.list().map((entry) => [entry.id, entry.name]));
+  return running.opened().length > 1 ? names.get(id) : undefined;
+}
+
 /**
  * Shows an account's WhatsApp notifications; a click brings its window
  * forward, switches to it and lets WhatsApp open the chat.
@@ -476,13 +486,12 @@ function notifyFor<Window extends WindowPort>(
       warn: deps.warn,
     },
     {
-      heading: () => {
-        const names = new Map(
-          running()
-            .list()
-            .map(({ id, name }) => [id, name]),
-        );
-        return running().opened().length > 1 ? names.get(account.id) : undefined;
+      heading: () => headingOf(running(), account.id),
+      silenced: () => {
+        const { doNotDisturb } = deps.settings.current().general;
+        return running()
+          .list()
+          .some((entry) => entry.id === account.id && isSilenced(doNotDisturb, entry));
       },
       onClick: (id) => {
         bringToFront(window);
@@ -554,7 +563,11 @@ const reportedElsewhere = (): undefined => undefined;
 /** Every account, marking the one on screen. */
 function summaries(running: RunningAccounts<OpenedAccount>): AccountSummary[] {
   const active = running.active().account.id;
-  return running.list().map((account) => ({ ...account, active: account.id === active }));
+  return running.list().map((account) => ({
+    ...account,
+    muted: account.muted === true,
+    active: account.id === active,
+  }));
 }
 
 /** What the Account menu shows and does. */
@@ -616,12 +629,20 @@ function accountsTray<Window extends WindowPort>(
       running().switchTo(id);
     },
     openSettings: chrome.openSettings,
+    setDoNotDisturb: (on) => {
+      setDoNotDisturb(deps.settings, on);
+    },
     quit: () => {
       deps.app.quit();
     },
   });
   const refresh = (): void => {
-    update({ unread, accounts: summaries(running()), windowShown: window.isVisible() });
+    update({
+      unread,
+      accounts: summaries(running()),
+      windowShown: window.isVisible(),
+      doNotDisturb: deps.settings.current().general.doNotDisturb,
+    });
   };
   window.on('show', refresh);
   window.on('hide', refresh);
@@ -634,6 +655,32 @@ function accountsTray<Window extends WindowPort>(
   };
 }
 
+/**
+ * Mutes the sound of silenced accounts out of sight, again whenever the
+ * window, the accounts or do not disturb change.
+ */
+function keepQuiet<Window extends WindowPort>(
+  deps: StartDependencies<Window>,
+  window: Window,
+  running: () => RunningAccounts<OpenedAccount>,
+): () => void {
+  const apply = (): void => {
+    const shown = window.isVisible() && !window.isMinimized();
+    quietAudio(
+      running()
+        .opened()
+        .map(({ account, page }) => ({ account, page: page.contents })),
+      deps.settings.current().general.doNotDisturb,
+      shown ? running().active().account.id : undefined,
+    );
+  };
+  window.on('show', apply);
+  window.on('hide', apply);
+  window.on('minimize', apply);
+  window.on('restore', apply);
+  return apply;
+}
+
 /** Every enabled account, in its own view of the main window; the active one shows. */
 function openAccounts<Window extends WindowPort>(
   wiring: Omit<AccountWiring<Window>, 'signals' | 'running'>,
@@ -641,10 +688,12 @@ function openAccounts<Window extends WindowPort>(
   const { deps, chrome, window } = wiring;
   const tray = accountsTray(wiring, () => running);
   const signals = windowSignals(deps, window, tray.setUnread);
+  const quiet = keepQuiet(deps, window, () => running);
   const changed = (): void => {
     signals.activate(running.active().account.id);
     chrome.setAccountMenu(accountMenu(running, deps.warn));
     tray.refresh();
+    quiet();
   };
   const running: RunningAccounts<OpenedAccount> = runAccounts({
     accounts: deps.accounts,
@@ -655,6 +704,8 @@ function openAccounts<Window extends WindowPort>(
     onChange: changed,
   });
   changed();
+  // The menu and the tray show do not disturb, and it decides what is muted.
+  deps.settings.onChange(changed);
   watchConnectivity({
     isOnline: deps.isOnline,
     onResume: deps.onResume,

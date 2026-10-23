@@ -162,7 +162,7 @@ function keepOpen<Page extends AccountPage>(
 }
 
 /** What the user can change about an account. */
-export type AccountChange = Pick<Account, 'name' | 'color' | 'enabled'>;
+export type AccountChange = Required<Pick<Account, 'name' | 'color' | 'enabled' | 'muted'>>;
 
 /**
  * Applies a change: turning an account off closes its views but keeps its

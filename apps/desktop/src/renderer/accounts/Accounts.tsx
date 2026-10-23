@@ -13,17 +13,16 @@ const text = en.accounts;
 /** Where the user asked to go while an edit was unsaved: another account, or away. */
 type Pending = { readonly kind: 'select'; readonly id: string } | { readonly kind: 'close' };
 
-const changeOf = ({ name, color, enabled }: AccountSummary): AccountChange => ({
+const changeOf = ({ name, color, enabled, muted }: AccountSummary): AccountChange => ({
   name,
   color,
   enabled,
+  muted,
 });
 
 function isDirty(draft: AccountChange, account: AccountSummary): boolean {
   const saved = changeOf(account);
-  return (
-    draft.name !== saved.name || draft.color !== saved.color || draft.enabled !== saved.enabled
-  );
+  return (Object.keys(saved) as (keyof AccountChange)[]).some((key) => draft[key] !== saved[key]);
 }
 
 function colorName(color: string): string {
@@ -36,7 +35,11 @@ function AccountRow(props: {
   readonly onSelect: (id: string) => void;
 }): JSX.Element {
   const { account, selected, onSelect } = props;
-  const notes = [account.enabled ? '' : text.off, account.active ? text.shown : ''];
+  const notes = [
+    account.enabled ? '' : text.off,
+    account.muted ? text.muted : '',
+    account.active ? text.shown : '',
+  ];
   return (
     <li>
       <button
@@ -102,23 +105,52 @@ function NameField({ draft, onChange }: DraftProps): JSX.Element {
   );
 }
 
-function RunField({ draft, onChange }: DraftProps): JSX.Element {
+/** An on/off switch of the draft, with its explanation. */
+function SwitchField(
+  props: DraftProps & {
+    readonly field: 'enabled' | 'muted';
+    readonly label: string;
+    readonly hint: string;
+  },
+): JSX.Element {
+  const { draft, onChange, field } = props;
   return (
     <div class="field">
       <input
-        id="enabled"
+        id={field}
         type="checkbox"
-        checked={draft.enabled}
-        aria-describedby="enabled-hint"
+        checked={draft[field]}
+        aria-describedby={`${field}-hint`}
         onChange={(event) => {
-          onChange({ ...draft, enabled: event.currentTarget.checked });
+          onChange({ ...draft, [field]: event.currentTarget.checked });
         }}
       />
-      <label htmlFor="enabled">{text.run}</label>
-      <p id="enabled-hint" class="hint">
-        {text.runHint}
+      <label htmlFor={field}>{props.label}</label>
+      <p id={`${field}-hint`} class="hint">
+        {props.hint}
       </p>
     </div>
+  );
+}
+
+function Switches({ draft, onChange }: DraftProps): JSX.Element {
+  return (
+    <>
+      <SwitchField
+        draft={draft}
+        onChange={onChange}
+        field="enabled"
+        label={text.run}
+        hint={text.runHint}
+      />
+      <SwitchField
+        draft={draft}
+        onChange={onChange}
+        field="muted"
+        label={text.mute}
+        hint={text.muteHint}
+      />
+    </>
   );
 }
 
@@ -150,7 +182,7 @@ function Editor(
     <form class="editor" onSubmit={submit}>
       <NameField draft={draft} onChange={onChange} />
       <ColorChoice colors={props.colors} value={draft.color} onChange={pickColor} />
-      <RunField draft={draft} onChange={onChange} />
+      <Switches draft={draft} onChange={onChange} />
       <EditorActions
         id={id}
         draft={draft}

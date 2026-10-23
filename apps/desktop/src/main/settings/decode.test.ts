@@ -3,13 +3,14 @@ import { describe, expect, it } from 'vitest';
 import { decodeSettings, defaultSettings } from './decode.ts';
 
 const DEFAULTS = {
-  schemaVersion: 6,
+  schemaVersion: 7,
   general: {
     language: 'system',
     startMinimized: false,
     autostart: false,
     closeToTray: false,
     betaUpdates: false,
+    doNotDisturb: false,
   },
   appearance: { theme: 'system', zoom: 1, autoHideMenuBar: false },
   reliability: {
@@ -72,9 +73,9 @@ describe('decodeSettings', () => {
   it('reads what it understands of a newer file and marks it', () => {
     const appearance = { theme: 'light', zoom: 2, autoHideMenuBar: false };
     const decoded = decodeSettings(
-      JSON.stringify({ ...DEFAULTS, appearance, schemaVersion: 7, future: true }),
+      JSON.stringify({ ...DEFAULTS, appearance, schemaVersion: 8, future: true }),
     );
-    expect(decoded).toEqual({ kind: 'newer', settings: { ...DEFAULTS, appearance }, version: 7 });
+    expect(decoded).toEqual({ kind: 'newer', settings: { ...DEFAULTS, appearance }, version: 8 });
   });
 
   it('accepts every option of each choice', () => {
