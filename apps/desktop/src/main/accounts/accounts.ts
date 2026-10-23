@@ -5,6 +5,9 @@ import { en } from '../../shared/messages/en.ts';
 /** Colors an account can take; the chrome maps each to a shade that suits the theme. */
 export const ACCOUNT_COLORS = ['green', 'blue', 'purple', 'orange', 'red', 'teal'] as const;
 
+/** The longest account name, which still fits the menu and the sidebar. */
+export const MAX_ACCOUNT_NAME = 40;
+
 const UUID = '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$';
 const PARTITION_PREFIX = 'account-';
 const FORMAT_VERSION = 1;
@@ -12,7 +15,7 @@ const FORMAT_VERSION = 1;
 const AccountSchema = Type.Object(
   {
     id: Type.String({ pattern: UUID }),
-    name: Type.String({ minLength: 1, maxLength: 40 }),
+    name: Type.String({ minLength: 1, maxLength: MAX_ACCOUNT_NAME }),
     color: Type.Union([
       Type.Literal('green'),
       Type.Literal('blue'),
@@ -36,6 +39,10 @@ const AccountsSchema = Type.Object(
 );
 
 export type Account = Static<typeof AccountSchema>;
+
+export function isAccountColor(value: unknown): value is Account['color'] {
+  return (ACCOUNT_COLORS as readonly unknown[]).includes(value);
+}
 export type Accounts = Static<typeof AccountsSchema>;
 
 /**

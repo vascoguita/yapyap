@@ -34,7 +34,8 @@ export interface RunningAccounts<Page extends AccountPage> {
   readonly switchTo: (id: string) => void;
   readonly add: () => void;
   /** Removes an account and its data; the last open account stays. */
-  readonly remove: (id: string) => Promise<void>;
+  readonly remove: (id: string) => Promise<boolean>;
+  readonly update: (id: string, change: AccountChange) => boolean;
 }
 
 /**
@@ -107,28 +108,92 @@ function addAccount<Page extends AccountPage>(
   switchAccount(deps, state, account.id);
 }
 
+/**
+ * Takes an open account's views away, showing another first if it was the
+ * one on screen. The last open account stays: false means it was refused.
+ */
+function closeAccount<Page extends AccountPage>(
+  deps: RunningDependencies<Page>,
+  state: State<Page>,
+  closing: OpenAccount<Page>,
+): boolean {
+  const fallback = [...state.open.values()].find((candidate) => candidate !== closing);
+  if (fallback === undefined) {
+    return false;
+  }
+  if (closing === state.active) {
+    switchAccount(deps, state, fallback.account.id);
+  }
+  closing.page.close();
+  state.open.delete(closing.account.id);
+  return true;
+}
+
 async function removeAccount<Page extends AccountPage>(
   deps: RunningDependencies<Page>,
   state: State<Page>,
   id: string,
-): Promise<void> {
-  const removed = state.open.get(id);
-  const fallback = [...state.open.values()].find((candidate) => candidate !== removed);
-  if (removed === undefined || fallback === undefined) {
-    return;
+): Promise<boolean> {
+  const account = state.accounts.accounts.find((candidate) => candidate.id === id);
+  const opened = state.open.get(id);
+  if (account === undefined || (opened !== undefined && !closeAccount(deps, state, opened))) {
+    return false;
   }
-  switchAccount(
-    deps,
-    state,
-    removed === state.active ? fallback.account.id : state.active.account.id,
-  );
-  removed.page.close();
-  state.open.delete(id);
   update(deps, state, {
     ...state.accounts,
-    accounts: state.accounts.accounts.filter((account) => account.id !== id),
+    accounts: state.accounts.accounts.filter((candidate) => candidate.id !== id),
   });
-  await deps.forget(removed.account);
+  await deps.forget(account);
+  return true;
+}
+
+/** Opens an account that was off, or refreshes the details of an open one. */
+function keepOpen<Page extends AccountPage>(
+  deps: RunningDependencies<Page>,
+  state: State<Page>,
+  opened: OpenAccount<Page> | undefined,
+  account: Account,
+): void {
+  const entry = { account, page: opened?.page ?? deps.open(account) };
+  state.open.set(account.id, entry);
+  if (opened === state.active) {
+    state.active = entry;
+  }
+}
+
+/** What the user can change about an account. */
+export type AccountChange = Pick<Account, 'name' | 'color' | 'enabled'>;
+
+/**
+ * Applies a change: turning an account off closes its views but keeps its
+ * data, and turning it on opens it again. The last open account cannot be
+ * turned off; false means the change was refused.
+ */
+function updateAccount<Page extends AccountPage>(
+  deps: RunningDependencies<Page>,
+  state: State<Page>,
+  id: string,
+  change: AccountChange,
+): boolean {
+  const current = state.accounts.accounts.find((candidate) => candidate.id === id);
+  if (current === undefined) {
+    return false;
+  }
+  const account: Account = { ...current, ...change };
+  const opened = state.open.get(id);
+  if (opened !== undefined && !account.enabled && !closeAccount(deps, state, opened)) {
+    return false;
+  }
+  if (account.enabled) {
+    keepOpen(deps, state, opened, account);
+  }
+  update(deps, state, {
+    ...state.accounts,
+    accounts: state.accounts.accounts.map((candidate) =>
+      candidate.id === id ? account : candidate,
+    ),
+  });
+  return true;
 }
 
 export function runAccounts<Page extends AccountPage>(
@@ -147,5 +212,6 @@ export function runAccounts<Page extends AccountPage>(
       addAccount(deps, state);
     },
     remove: (id) => removeAccount(deps, state, id),
+    update: (id, change) => updateAccount(deps, state, id, change),
   };
 }

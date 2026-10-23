@@ -40,6 +40,7 @@ function api(overrides: Partial<ChromeApi['settings']> = {}) {
       ...overrides,
     },
     chat: { openNumber: vi.fn() },
+    accounts: { list: vi.fn(), save: vi.fn(), remove: vi.fn() },
     picker: { offer: vi.fn(), choose: vi.fn(), cancel: vi.fn() },
   } satisfies ChromeApi;
 }

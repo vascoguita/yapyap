@@ -1,22 +1,18 @@
 import type { MenuItemConstructorOptions } from 'electron';
 import type { ZoomStep } from './appearance/zoom.ts';
 import { PRODUCT_NAME } from './identity.ts';
+import type { AccountSummary } from '../shared/chrome-api.ts';
 import { en } from '../shared/messages/en.ts';
-
-/** An account as the Account menu lists it. */
-export interface AccountEntry {
-  readonly id: string;
-  readonly name: string;
-  readonly active: boolean;
-}
 
 /** Positions with a shortcut: the digits 1 to 9. */
 const SHORTCUT_POSITIONS = 9;
 
 export interface MenuActions {
-  readonly accounts: readonly AccountEntry[];
+  /** Every account; only those that are on can be switched to. */
+  readonly accounts: readonly AccountSummary[];
   readonly switchAccount: (id: string) => void;
   readonly addAccount: () => void;
+  readonly openAccounts: () => void;
   /** Asks first, since it deletes the active account's WhatsApp data. */
   readonly removeAccount: () => void;
   readonly openAbout: () => void;
@@ -65,9 +61,13 @@ function viewMenu(actions: MenuActions): MenuItemConstructorOptions {
   };
 }
 
+function running(actions: MenuActions): readonly AccountSummary[] {
+  return actions.accounts.filter((entry) => entry.enabled);
+}
+
 /** The accounts, switched by position with Ctrl or Cmd and a digit. */
 function accountItems(actions: MenuActions): MenuItemConstructorOptions[] {
-  return actions.accounts.map((entry, index) => ({
+  return running(actions).map((entry, index) => ({
     label: entry.name,
     type: 'radio',
     checked: entry.active,
@@ -86,9 +86,10 @@ function accountMenu(actions: MenuActions): MenuItemConstructorOptions {
       ...accountItems(actions),
       { type: 'separator' },
       { label: en.menu.addAccount, click: actions.addAccount },
+      { label: en.menu.manageAccounts, click: actions.openAccounts },
       {
         label: en.menu.removeAccount,
-        enabled: actions.accounts.length > 1,
+        enabled: running(actions).length > 1,
         click: actions.removeAccount,
       },
       { type: 'separator' },

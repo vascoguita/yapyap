@@ -207,6 +207,34 @@ const catalog = {
   accounts: {
     defaultName: (position: number): string =>
       position === 1 ? 'WhatsApp' : `WhatsApp ${String(position)}`,
+    title: 'Accounts',
+    hint: 'Each account uses one of WhatsApp’s linked-device slots for its number.',
+    listLabel: 'Your accounts',
+    off: 'Off',
+    shown: 'On screen',
+    name: 'Name',
+    color: 'Color',
+    colors: {
+      green: 'Green',
+      blue: 'Blue',
+      purple: 'Purple',
+      orange: 'Orange',
+      red: 'Red',
+      teal: 'Teal',
+    },
+    run: 'Run this account',
+    runHint:
+      'An account that is off keeps its login and data on this computer, but receives no messages until you turn it on again.',
+    save: 'Save',
+    remove: 'Remove Account…',
+    refused: 'At least one account must keep running, so this one cannot be turned off.',
+    failed: 'Could not save the account. Try again.',
+    unavailable: 'Accounts are unavailable.',
+    discard: {
+      message: 'Discard your changes to this account?',
+      confirm: 'Discard',
+      keep: 'Keep Editing',
+    },
   },
   badge: {
     unread: (count: number): string =>
@@ -229,6 +257,7 @@ const catalog = {
     clearCache: 'Clear Cache and Reload',
     resetSession: 'Reset Session…',
     addAccount: 'Add Account',
+    manageAccounts: 'Manage Accounts…',
     removeAccount: 'Remove Account…',
     about: (product: string): string => `About ${product}`,
     settings: 'Settings…',
@@ -239,6 +268,7 @@ const catalog = {
     settings: (product: string): string => `${product} Settings`,
     picker: 'Share your screen',
     newChat: 'New Chat',
+    accounts: 'Accounts',
     offline: (pageTitle: string): string => `${pageTitle} (offline)`,
   },
   dialogs: {

@@ -1,0 +1,412 @@
+import type { JSX } from 'preact';
+import { useCallback, useEffect, useState } from 'preact/hooks';
+import type {
+  AccountChange,
+  AccountList,
+  AccountSummary,
+  ChromeApi,
+} from '../../shared/chrome-api.ts';
+import { en } from '../../shared/messages/en.ts';
+
+const text = en.accounts;
+
+/** Where the user asked to go while an edit was unsaved: another account, or away. */
+type Pending = { readonly kind: 'select'; readonly id: string } | { readonly kind: 'close' };
+
+const changeOf = ({ name, color, enabled }: AccountSummary): AccountChange => ({
+  name,
+  color,
+  enabled,
+});
+
+function isDirty(draft: AccountChange, account: AccountSummary): boolean {
+  const saved = changeOf(account);
+  return (
+    draft.name !== saved.name || draft.color !== saved.color || draft.enabled !== saved.enabled
+  );
+}
+
+function colorName(color: string): string {
+  return (text.colors as Readonly<Record<string, string>>)[color] ?? color;
+}
+
+function AccountRow(props: {
+  readonly account: AccountSummary;
+  readonly selected: boolean;
+  readonly onSelect: (id: string) => void;
+}): JSX.Element {
+  const { account, selected, onSelect } = props;
+  const notes = [account.enabled ? '' : text.off, account.active ? text.shown : ''];
+  return (
+    <li>
+      <button
+        type="button"
+        aria-pressed={selected}
+        onClick={() => {
+          onSelect(account.id);
+        }}
+      >
+        <span class={`swatch swatch-${account.color}`} aria-hidden="true" />
+        {account.name}
+        <span class="hint">{notes.filter((note) => note !== '').join(' · ')}</span>
+      </button>
+    </li>
+  );
+}
+
+function ColorChoice(props: {
+  readonly colors: readonly string[];
+  readonly value: string;
+  readonly onChange: (color: string) => void;
+}): JSX.Element {
+  return (
+    <fieldset class="choice">
+      <legend>{text.color}</legend>
+      {props.colors.map((color) => (
+        <label key={color}>
+          <input
+            type="radio"
+            name="color"
+            value={color}
+            checked={props.value === color}
+            onChange={() => {
+              props.onChange(color);
+            }}
+          />
+          <span class={`swatch swatch-${color}`} aria-hidden="true" />
+          {colorName(color)}
+        </label>
+      ))}
+    </fieldset>
+  );
+}
+
+interface DraftProps {
+  readonly draft: AccountChange;
+  readonly onChange: (draft: AccountChange) => void;
+}
+
+function NameField({ draft, onChange }: DraftProps): JSX.Element {
+  return (
+    <div class="field">
+      <label htmlFor="name">{text.name}</label>
+      <input
+        id="name"
+        maxLength={40}
+        value={draft.name}
+        onInput={(event) => {
+          onChange({ ...draft, name: event.currentTarget.value });
+        }}
+      />
+    </div>
+  );
+}
+
+function RunField({ draft, onChange }: DraftProps): JSX.Element {
+  return (
+    <div class="field">
+      <input
+        id="enabled"
+        type="checkbox"
+        checked={draft.enabled}
+        aria-describedby="enabled-hint"
+        onChange={(event) => {
+          onChange({ ...draft, enabled: event.currentTarget.checked });
+        }}
+      />
+      <label htmlFor="enabled">{text.run}</label>
+      <p id="enabled-hint" class="hint">
+        {text.runHint}
+      </p>
+    </div>
+  );
+}
+
+function Editor(
+  props: DraftProps & {
+    readonly id: string;
+    readonly colors: readonly string[];
+    readonly dirty: boolean;
+    readonly onSave: (id: string, change: AccountChange) => void;
+    readonly onRevert: () => void;
+    readonly onRemove: (id: string) => void;
+  },
+): JSX.Element {
+  const { id, draft, onChange, onSave, onRemove } = props;
+  const submit = useCallback(
+    (event: SubmitEvent): void => {
+      event.preventDefault();
+      onSave(id, draft);
+    },
+    [id, draft, onSave],
+  );
+  const pickColor = useCallback(
+    (color: string): void => {
+      onChange({ ...draft, color });
+    },
+    [draft, onChange],
+  );
+  return (
+    <form class="editor" onSubmit={submit}>
+      <NameField draft={draft} onChange={onChange} />
+      <ColorChoice colors={props.colors} value={draft.color} onChange={pickColor} />
+      <RunField draft={draft} onChange={onChange} />
+      <EditorActions
+        id={id}
+        draft={draft}
+        dirty={props.dirty}
+        onRevert={props.onRevert}
+        onRemove={onRemove}
+      />
+    </form>
+  );
+}
+
+function EditorActions(props: {
+  readonly id: string;
+  readonly draft: AccountChange;
+  readonly dirty: boolean;
+  readonly onRevert: () => void;
+  readonly onRemove: (id: string) => void;
+}): JSX.Element {
+  const { id, onRemove } = props;
+  const remove = useCallback((): void => {
+    onRemove(id);
+  }, [id, onRemove]);
+  return (
+    <div class="actions">
+      <button type="button" onClick={remove}>
+        {text.remove}
+      </button>
+      <button type="button" disabled={!props.dirty} onClick={props.onRevert}>
+        {en.common.cancel}
+      </button>
+      <button type="submit" disabled={!props.dirty || props.draft.name.trim() === ''}>
+        {text.save}
+      </button>
+    </div>
+  );
+}
+
+function DiscardPrompt({ onSettle }: { readonly onSettle: (discard: boolean) => void }) {
+  return (
+    <div class="notice" role="alertdialog" aria-labelledby="discard-message">
+      <p id="discard-message">{text.discard.message}</p>
+      <button
+        type="button"
+        onClick={() => {
+          onSettle(false);
+        }}
+      >
+        {text.discard.keep}
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          onSettle(true);
+        }}
+      >
+        {text.discard.confirm}
+      </button>
+    </div>
+  );
+}
+
+interface WindowState {
+  readonly list: AccountList | null | undefined;
+  readonly account: AccountSummary | undefined;
+  /** The unsaved edit of the selected account, if the user changed anything. */
+  readonly edit: AccountChange | undefined;
+  readonly setEdit: (edit: AccountChange) => void;
+  readonly select: (id: string) => void;
+  /** Shows a fresh list with `id` selected, or the account on screen. */
+  readonly show: (list: AccountList, id?: string) => void;
+  readonly revert: () => void;
+}
+
+function useAccountList(api: ChromeApi): WindowState {
+  const [list, setList] = useState<AccountList | null | undefined>(undefined);
+  const [selectedId, setSelectedId] = useState<string | undefined>(undefined);
+  const [edit, setEdit] = useState<AccountChange | undefined>(undefined);
+  const select = useCallback((id: string): void => {
+    setSelectedId(id);
+    setEdit(undefined);
+  }, []);
+  const show = useCallback((next: AccountList, id?: string): void => {
+    const chosen = next.accounts.find((candidate) => candidate.id === id);
+    setList(next);
+    setSelectedId((chosen ?? next.accounts.find((candidate) => candidate.active))?.id);
+    setEdit(undefined);
+  }, []);
+  const revert = useCallback((): void => {
+    setEdit(undefined);
+  }, []);
+  useEffect(() => {
+    api.accounts.list().then(show, () => {
+      setList(null);
+    });
+  }, [api, show]);
+  const account = list?.accounts.find((candidate) => candidate.id === selectedId);
+  return { list, account, edit, setEdit, select, show, revert };
+}
+
+/** Leaving an unsaved edit, by Escape or by picking another account, asks first. */
+function useLeaving(state: WindowState): {
+  readonly pending: Pending | undefined;
+  readonly request: (pending: Pending) => void;
+  readonly settle: (discard: boolean) => void;
+} {
+  const [pending, setPending] = useState<Pending | undefined>(undefined);
+  const { select } = state;
+  const leave = useCallback(
+    (target: Pending): void => {
+      if (target.kind === 'close') {
+        window.close();
+      } else {
+        select(target.id);
+      }
+    },
+    [select],
+  );
+  const changed =
+    state.account !== undefined && state.edit !== undefined && isDirty(state.edit, state.account);
+  const request = useCallback(
+    (target: Pending): void => {
+      if (changed) {
+        setPending(target);
+      } else {
+        leave(target);
+      }
+    },
+    [changed, leave],
+  );
+  const settle = useCallback(
+    (discard: boolean): void => {
+      setPending(undefined);
+      if (discard && pending !== undefined) {
+        leave(pending);
+      }
+    },
+    [pending, leave],
+  );
+  return { pending, request, settle };
+}
+
+function useEscapeToClose(request: (pending: Pending) => void): void {
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') {
+        request({ kind: 'close' });
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [request]);
+}
+
+/** Saving and removing; YapYap answers with the accounts as they now are. */
+function useActions(
+  api: ChromeApi,
+  show: WindowState['show'],
+): {
+  readonly error: string;
+  readonly save: (id: string, change: AccountChange) => void;
+  readonly remove: (id: string) => void;
+} {
+  const [error, setError] = useState('');
+  const failed = useCallback((): void => {
+    setError(text.failed);
+  }, []);
+  const save = useCallback(
+    (id: string, change: AccountChange): void => {
+      api.accounts.save(id, change).then((next) => {
+        setError(next === null ? text.refused : '');
+        if (next !== null) {
+          show(next, id);
+        }
+      }, failed);
+    },
+    [api, show, failed],
+  );
+  const remove = useCallback(
+    (id: string): void => {
+      api.accounts.remove(id).then((next) => {
+        show(next, id);
+      }, failed);
+    },
+    [api, show, failed],
+  );
+  return { error, save, remove };
+}
+
+function AccountRows(props: {
+  readonly list: AccountList;
+  readonly selected: string;
+  readonly onSelect: (id: string) => void;
+}): JSX.Element {
+  return (
+    <ul class="account-list" aria-label={text.listLabel}>
+      {props.list.accounts.map((entry) => (
+        <AccountRow
+          key={entry.id}
+          account={entry}
+          selected={entry.id === props.selected}
+          onSelect={props.onSelect}
+        />
+      ))}
+    </ul>
+  );
+}
+
+function NoAccounts({ loading }: { readonly loading: boolean }): JSX.Element {
+  return (
+    <main class="accounts">
+      <h1>{text.title}</h1>
+      <p>{loading ? en.common.loading : text.unavailable}</p>
+    </main>
+  );
+}
+
+/**
+ * Renames, recolors, turns off and removes accounts. Edits stay a draft
+ * until saved, and YapYap checks each change again before applying it.
+ */
+export function Accounts({ api }: { readonly api: ChromeApi }): JSX.Element {
+  const state = useAccountList(api);
+  const leaving = useLeaving(state);
+  const actions = useActions(api, state.show);
+  useEscapeToClose(leaving.request);
+  const { request } = leaving;
+  const select = useCallback(
+    (id: string): void => {
+      request({ kind: 'select', id });
+    },
+    [request],
+  );
+  const { list, account } = state;
+  if (list == null || account === undefined) {
+    return <NoAccounts loading={list === undefined} />;
+  }
+  const draft = state.edit ?? changeOf(account);
+  return (
+    <main class="accounts">
+      <h1>{text.title}</h1>
+      <p class="hint">{text.hint}</p>
+      <AccountRows list={list} selected={account.id} onSelect={select} />
+      {leaving.pending === undefined ? null : <DiscardPrompt onSettle={leaving.settle} />}
+      <Editor
+        id={account.id}
+        draft={draft}
+        colors={list.colors}
+        dirty={isDirty(draft, account)}
+        onChange={state.setEdit}
+        onSave={actions.save}
+        onRevert={state.revert}
+        onRemove={actions.remove}
+      />
+      <p role="alert">{actions.error}</p>
+    </main>
+  );
+}

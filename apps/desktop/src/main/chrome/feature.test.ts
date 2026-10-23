@@ -316,11 +316,12 @@ describe('createChromeFeature', () => {
     };
     runtime.attachRecovery(contents, 'https://web.whatsapp.com', vi.fn());
     runtime.setAccountMenu({
-      entries: [{ id: 'a', name: 'WhatsApp', active: true }],
+      entries: [{ id: 'a', name: 'WhatsApp', color: 'green', enabled: true, active: true }],
       activeContents: () => contents,
       switchTo: vi.fn(),
       add: vi.fn(),
-      remove: vi.fn(),
+      update: vi.fn(() => true),
+      remove: vi.fn(() => Promise.resolve(true)),
     });
     t.clickAccount('Clear Cache and Reload');
     await new Promise((resolve) => setTimeout(resolve));
@@ -350,13 +351,14 @@ describe('createChromeFeature', () => {
     expect(t.deps.confirmRemoveAccount).not.toHaveBeenCalled();
     const menu = {
       entries: [
-        { id: 'a', name: 'Personal', active: false },
-        { id: 'b', name: 'Work', active: true },
+        { id: 'a', name: 'Personal', color: 'green', enabled: true, active: false },
+        { id: 'b', name: 'Work', color: 'blue', enabled: true, active: true },
       ],
       activeContents: () => ({}),
       switchTo: vi.fn(),
       add: vi.fn(),
-      remove: vi.fn(),
+      update: vi.fn(() => true),
+      remove: vi.fn(() => Promise.resolve(true)),
     };
     runtime.setAccountMenu(menu);
     t.clickAccount('Personal');
@@ -375,6 +377,14 @@ describe('createChromeFeature', () => {
     t.clickAccount('Remove Account…');
     await new Promise((resolve) => setTimeout(resolve));
     expect(warn).toHaveBeenCalledWith('Could not finish an account maintenance action.');
+  });
+
+  it('opens the Accounts window from the Account menu', () => {
+    const t = setup();
+    t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    t.clickAccount('Manage Accounts…');
+    expect(t.window.loadURL).toHaveBeenCalledWith('app://chrome/accounts.html');
+    expect(t.call('accounts:list')).toHaveProperty('accounts', []);
   });
 
   it('opens New Chat from the Account menu and its chats in WhatsApp once there is a window', () => {

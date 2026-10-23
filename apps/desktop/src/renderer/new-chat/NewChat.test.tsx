@@ -18,6 +18,7 @@ function api(opened: boolean) {
     chat: {
       openNumber: vi.fn<(number: string) => Promise<boolean>>(() => Promise.resolve(opened)),
     },
+    accounts: { list: vi.fn(), save: vi.fn(), remove: vi.fn() },
     picker: { offer: vi.fn(), choose: vi.fn(), cancel: vi.fn() },
   } satisfies ChromeApi;
 }

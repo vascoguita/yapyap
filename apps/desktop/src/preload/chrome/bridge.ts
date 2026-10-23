@@ -1,6 +1,7 @@
 import {
   CHROME_CHANNELS,
   type AboutInfo,
+  type AccountList,
   type ChromeApi,
   type PickerOffer,
   type RecoveryProblem,
@@ -8,13 +9,22 @@ import {
   type TransferResult,
 } from '../../shared/chrome-api.ts';
 
+type Invoke = (channel: string, ...args: unknown[]) => Promise<unknown>;
+
+function accountsBridge(invoke: Invoke): ChromeApi['accounts'] {
+  return {
+    list: () => invoke(CHROME_CHANNELS.accountsList) as Promise<AccountList>,
+    save: (id, change) =>
+      invoke(CHROME_CHANNELS.accountsSave, id, change) as Promise<AccountList | null>,
+    remove: (id) => invoke(CHROME_CHANNELS.accountsRemove, id) as Promise<AccountList>,
+  };
+}
+
 /**
  * Builds the chrome API from a single invoke function. Each operation has its
  * own fixed channel, so the page can never choose what it calls.
  */
-export function createChromeBridge(
-  invoke: (channel: string, ...args: unknown[]) => Promise<unknown>,
-): ChromeApi {
+export function createChromeBridge(invoke: Invoke): ChromeApi {
   const run = (channel: string) => async (): Promise<void> => {
     await invoke(channel);
   };
@@ -40,6 +50,7 @@ export function createChromeBridge(
     chat: {
       openNumber: (number) => invoke(CHROME_CHANNELS.chatOpenNumber, number) as Promise<boolean>,
     },
+    accounts: accountsBridge(invoke),
     picker: {
       offer: () => invoke(CHROME_CHANNELS.pickerOffer) as Promise<PickerOffer>,
       choose: async (id, audio) => {

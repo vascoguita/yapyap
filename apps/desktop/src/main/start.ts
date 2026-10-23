@@ -48,7 +48,13 @@ import { accountSignals, type AccountSignals } from './accounts/account-signals.
 import { partitionOf, type Account, type Accounts } from './accounts/accounts.ts';
 import { runAccounts, type AccountPage, type RunningAccounts } from './accounts/running.ts';
 import type { WindowOptions } from './windows.ts';
-import { bringToFront, claimSingleInstance, type LinkPage, type LinkWindow } from './instances.ts';
+import {
+  bringToFront,
+  claimSingleInstance,
+  type Instances,
+  type LinkPage,
+  type LinkWindow,
+} from './instances.ts';
 import { chatLinkInArguments } from './navigation/deep-link.ts';
 import { refuseUnsafeStart, type UnsafeStartDependencies } from './sandbox-check.ts';
 import {
@@ -408,6 +414,8 @@ function refuseWithoutSandbox<Window extends WindowPort>(
 interface OpenedAccount extends AccountPage {
   readonly contents: AccountContents;
   readonly reconnect: () => void;
+  /** Settles once its first load ends, however it ends. */
+  readonly loaded: Promise<void>;
 }
 
 interface AccountWiring<Window extends WindowPort> {
@@ -417,6 +425,8 @@ interface AccountWiring<Window extends WindowPort> {
   readonly window: Window;
   readonly signals: AccountSignals;
   readonly origin: string;
+  /** Where an account first loads: a chat link from the command line, once, or WhatsApp. */
+  readonly firstUrl: (account: Account) => string;
 }
 
 /** Opens an account's views, hidden, and everything that watches or serves its WhatsApp. */
@@ -443,7 +453,11 @@ function openAccount<Window extends WindowPort>(
   contents.on('page-title-updated', (_event, title) => {
     signals.pageTitle(account.id, title);
   });
-  return { ...host, contents, reconnect: recovery.reconnect };
+  // A failed load is reported by the recovery monitor.
+  const loaded = contents
+    .loadURL(wiring.firstUrl(account))
+    .then(reportedElsewhere, reportedElsewhere);
+  return { ...host, contents, reconnect: recovery.reconnect, loaded };
 }
 
 /** Deletes a removed account's WhatsApp data; its folder goes at the next start. */
@@ -464,28 +478,20 @@ const reportedElsewhere = (): undefined => undefined;
 /** What the Account menu shows and does. */
 function accountMenu(
   running: RunningAccounts<OpenedAccount>,
-  origin: string,
   warn: (message: string) => void,
 ): AccountMenu {
   const active = running.active().account.id;
   return {
-    entries: running.opened().map(({ account }) => ({
-      id: account.id,
-      name: account.name,
-      active: account.id === active,
-    })),
+    entries: running.list().map((account) => ({ ...account, active: account.id === active })),
     activeContents: () => running.active().page.contents,
     switchTo: running.switchTo,
-    add: () => {
-      running.add();
-      // A failed load is reported by the recovery monitor.
-      running.active().page.contents.loadURL(origin).catch(reportedElsewhere);
-    },
-    remove: (id) => {
+    add: running.add,
+    update: running.update,
+    remove: (id) =>
       running.remove(id).catch(() => {
         warn('Could not delete the data of a removed account.');
-      });
-    },
+        return true;
+      }),
   };
 }
 
@@ -515,7 +521,7 @@ function openAccounts<Window extends WindowPort>(
   const signals = windowSignals(deps, window);
   const changed = (): void => {
     signals.activate(running.active().account.id);
-    chrome.setAccountMenu(accountMenu(running, wiring.origin, deps.warn));
+    chrome.setAccountMenu(accountMenu(running, deps.warn));
   };
   const running = runAccounts({
     accounts: deps.accounts,
@@ -574,23 +580,45 @@ function wireMainWindow<Window extends WindowPort>(
 }
 
 /**
- * Loads WhatsApp in every open account; a chat link from the command line
- * opens in the active one.
+ * Opens a chat link from the command line in the account YapYap starts on,
+ * and only the first time that account loads.
  */
-async function loadWhatsApp(
-  running: RunningAccounts<OpenedAccount>,
+function chatLinkOnce(
   link: string | undefined,
+  startsOn: string,
+  origin: string,
+): (account: Account) => string {
+  let pending = link;
+  return (account) => {
+    if (account.id !== startsOn || pending === undefined) {
+      return origin;
+    }
+    const target = pending;
+    pending = undefined;
+    return target;
+  };
+}
+
+/** Opens the main window with every account, and waits for their first loads. */
+async function openWindow<Window extends WindowPort>(
+  deps: StartDependencies<Window>,
+  chrome: ReturnType<StartDependencies<Window>['chrome']['afterReady']>,
+  security: Parameters<typeof secureSession>[1],
+  instances: Instances,
   origin: string,
 ): Promise<void> {
-  const active = running.active().page;
+  const window = openMainWindow(deps);
+  const running = openAccounts({
+    deps,
+    chrome,
+    security,
+    window,
+    origin,
+    firstUrl: chatLinkOnce(chatLinkInArguments(deps.argv, origin), deps.accounts.active, origin),
+  });
+  instances.attach(window, wireMainWindow(deps, chrome, window, running, origin));
   // A failed load must not end startup: the monitor shows the recovery screen.
-  await Promise.all(
-    running
-      .opened()
-      .map(({ page }) =>
-        page.contents.loadURL(page === active ? (link ?? origin) : origin).catch(reportedElsewhere),
-      ),
-  );
+  await Promise.all(running.opened().map(({ page }) => page.loaded));
 }
 
 /** How YapYap presents itself to WhatsApp: the bundled Chromium, as desktop Chrome. */
@@ -637,8 +665,5 @@ export async function startApp<Window extends WindowPort>(
   picker.bind(chrome.pickCaptureSource);
   announceStartup(deps, graphics);
   reportCrash(chrome.technicalDetails);
-  const window = openMainWindow(deps);
-  const running = openAccounts({ deps, chrome, security, window, origin });
-  instances.attach(window, wireMainWindow(deps, chrome, window, running, origin));
-  await loadWhatsApp(running, chatLinkInArguments(deps.argv, origin), origin);
+  await openWindow(deps, chrome, security, instances, origin);
 }

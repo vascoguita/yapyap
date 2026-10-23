@@ -78,11 +78,43 @@ export interface ChromeApi {
     /** Opens the chat with an international number; false when WhatsApp cannot yet. */
     readonly openNumber: (number: string) => Promise<boolean>;
   };
+  readonly accounts: {
+    readonly list: () => Promise<AccountList>;
+    /** Null when YapYap refused the change, such as turning off the last running account. */
+    readonly save: (id: string, change: AccountChange) => Promise<AccountList | null>;
+    /** Asks the user first, so the list may come back unchanged. */
+    readonly remove: (id: string) => Promise<AccountList>;
+  };
   readonly picker: {
     readonly offer: () => Promise<PickerOffer>;
     readonly choose: (id: string, audio: boolean) => Promise<void>;
     readonly cancel: () => Promise<void>;
   };
+}
+
+/** An account as YapYap's own windows and menus show it. */
+export interface AccountSummary {
+  readonly id: string;
+  readonly name: string;
+  /** One of {@link AccountList.colors}. */
+  readonly color: string;
+  /** An account that is off keeps its data but runs no WhatsApp. */
+  readonly enabled: boolean;
+  /** The account the main window shows. */
+  readonly active: boolean;
+}
+
+export interface AccountList {
+  readonly accounts: readonly AccountSummary[];
+  /** The colors an account can take, in the order to offer them. */
+  readonly colors: readonly string[];
+}
+
+/** What the Accounts window can change about an account. */
+export interface AccountChange {
+  readonly name: string;
+  readonly color: string;
+  readonly enabled: boolean;
 }
 
 export const CHROME_CHANNELS = {
@@ -101,4 +133,7 @@ export const CHROME_CHANNELS = {
   pickerChoose: 'picker:choose',
   pickerCancel: 'picker:cancel',
   chatOpenNumber: 'chat:open-number',
+  accountsList: 'accounts:list',
+  accountsSave: 'accounts:save',
+  accountsRemove: 'accounts:remove',
 } as const;

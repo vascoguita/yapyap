@@ -637,8 +637,8 @@ describe('startApp', () => {
         `${WHATSAPP_ORIGIN}/send?phone=447700900123`,
       );
       expect(menu(f).entries).toEqual([
-        { id: ACCOUNT, name: 'Personal', active: false },
-        { id: SECOND, name: 'Work', active: true },
+        { id: ACCOUNT, name: 'Personal', color: 'green', enabled: true, active: false },
+        { id: SECOND, name: 'Work', color: 'blue', enabled: true, active: true },
       ]);
       expect(menu(f).activeContents()).toBe(work?.webContents);
     });
@@ -699,14 +699,14 @@ describe('startApp', () => {
     it('removes an account: closes it and deletes its data, warning if that fails', async () => {
       const f = twoAccounts();
       await startApp(f);
-      menu(f).remove(ACCOUNT);
+      void menu(f).remove(ACCOUNT);
       await vi.advanceTimersByTimeAsync(0);
       expect(f.hosts[0]?.close).toHaveBeenCalledOnce();
       expect(f.accountSession.clearStorageData).toHaveBeenCalledOnce();
       expect(f.accountSession.clearCache).toHaveBeenCalledOnce();
       f.accountSession.clearStorageData.mockRejectedValueOnce(new Error('busy'));
       menu(f).add();
-      menu(f).remove(SECOND);
+      void menu(f).remove(SECOND);
       await vi.advanceTimersByTimeAsync(0);
       expect(f.warn).toHaveBeenCalledWith('Could not delete the data of a removed account.');
     });
