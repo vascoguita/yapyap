@@ -22,15 +22,15 @@ export function createSecureWindow(
 }
 
 /**
- * Adds a hardened view filling `window`, kept in size as the window resizes;
- * `index` 0 puts it beneath every other view. Returns how to undo it.
+ * Adds `view` on top of the others, filling `window` and kept in size as the
+ * window resizes. Returns how to take it away again.
  */
-function fill(window: BrowserWindow, view: WebContentsView, index?: number): () => void {
+function fill(window: BrowserWindow, view: WebContentsView): () => void {
   const fit = (): void => {
     const [width = 0, height = 0] = window.getContentSize();
     view.setBounds({ x: 0, y: 0, width, height });
   };
-  window.contentView.addChildView(view, index);
+  window.contentView.addChildView(view);
   fit();
   window.on('resize', fit);
   return () => {
@@ -40,32 +40,82 @@ function fill(window: BrowserWindow, view: WebContentsView, index?: number): () 
 }
 
 /**
- * Lays a hardened view over the whole content of `window`, kept in size as
- * the window resizes, for screens such as recovery.
+ * One account in the main window: its WhatsApp, in its own partition
+ * (ADR 0001), and any screen laid over it, such as recovery. They are shown
+ * and hidden together, so switching accounts never shows one account's
+ * recovery screen over another, and a hidden account's page counts as
+ * hidden.
  */
-export function createSecureOverlay(window: BrowserWindow, renderer: RendererOptions): Overlay {
-  const view = new WebContentsView({ webPreferences: rendererPreferences(renderer) });
-  const unfill = fill(window, view);
+export interface AccountHost {
+  readonly webContents: WebContents;
+  readonly show: () => void;
+  readonly hide: () => void;
+  readonly createOverlay: (renderer: RendererOptions) => Overlay;
+  /** Removes the account's views for good, closing their pages. */
+  readonly close: () => void;
+}
+
+/** Closes the pages of `views` the first time it is called, whoever calls it first. */
+function closeOnce(views: () => readonly WebContentsView[]): () => void {
+  let closed = false;
+  return () => {
+    if (!closed) {
+      closed = true;
+      for (const view of views()) {
+        view.webContents.close();
+      }
+    }
+  };
+}
+
+/** An overlay that takes itself out of its account, then closes its page. */
+function overlayOf(view: WebContentsView, takeOut: () => void): Overlay {
   return {
     webContents: view.webContents,
     remove: () => {
-      unfill();
+      takeOut();
       view.webContents.close();
     },
   };
 }
 
-/**
- * The view an account's WhatsApp runs in, in its own partition (ADR 0001),
- * beneath any overlay such as recovery.
- */
-export function createAccountView(window: BrowserWindow, renderer: RendererOptions): WebContents {
-  const view = new WebContentsView({ webPreferences: rendererPreferences(renderer) });
-  fill(window, view, 0);
+export function createAccountHost(window: BrowserWindow, renderer: RendererOptions): AccountHost {
+  const page = new WebContentsView({ webPreferences: rendererPreferences(renderer) });
+  const overlays = new Set<WebContentsView>();
+  const shown = new Map<WebContentsView, () => void>();
+  const hide = (): void => {
+    for (const undo of shown.values()) {
+      undo();
+    }
+    shown.clear();
+  };
+  const closePages = closeOnce(() => [page, ...overlays]);
   // A closed window leaves its views' pages running, firing events at a
   // window that no longer exists and holding up quitting (#223).
-  window.once('closed', () => {
-    view.webContents.close();
-  });
-  return view.webContents;
+  window.once('closed', closePages);
+  return {
+    hide,
+    webContents: page.webContents,
+    show: () => {
+      for (const view of shown.has(page) ? [] : [page, ...overlays]) {
+        shown.set(view, fill(window, view));
+      }
+    },
+    createOverlay: (overlayRenderer) => {
+      const view = new WebContentsView({ webPreferences: rendererPreferences(overlayRenderer) });
+      overlays.add(view);
+      if (shown.has(page)) {
+        shown.set(view, fill(window, view));
+      }
+      return overlayOf(view, () => {
+        overlays.delete(view);
+        shown.get(view)?.();
+        shown.delete(view);
+      });
+    },
+    close: () => {
+      hide();
+      closePages();
+    },
+  };
 }

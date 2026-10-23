@@ -79,9 +79,29 @@ audio**. On Wayland and macOS 15 and later, your system's own picker asks
 instead. Cancelling, closing the picker or pressing <kbd>Esc</kbd> shares
 nothing.
 
+## Accounts
+
+YapYap can run several WhatsApp accounts side by side, such as a personal
+and a work number. Each one is linked separately and keeps its own login,
+cache and storage; nothing is shared between them.
+
+- **Account → Add Account** adds one and shows its QR code to link it.
+- The **Account** menu lists your accounts; pick one, or press
+  <kbd>Ctrl</kbd>+<kbd>1</kbd> to <kbd>Ctrl</kbd>+<kbd>9</kbd>
+  (<kbd>⌘</kbd> on macOS) to switch by position. Switching never reloads an
+  account.
+- Every account keeps running in the background, so its messages keep
+  arriving. The window title shows the account you see, and the unread count
+  on YapYap's icon adds up all of them.
+- **Account → Remove Account…** removes the account you see, after asking.
+  It logs that account out and deletes its WhatsApp data on this computer;
+  its chats stay on the phone. The last account cannot be removed.
+
+Each account uses one of WhatsApp's linked-device slots for its number.
+
 ## When WhatsApp misbehaves
 
-The **Account** menu has two maintenance actions:
+The **Account** menu has two maintenance actions for the account you see:
 
 - **Clear Cache and Reload** removes WhatsApp's cached files and service
   worker, then reloads. You stay logged in, so try this first when WhatsApp

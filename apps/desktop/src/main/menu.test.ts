@@ -2,8 +2,12 @@ import type { MenuItemConstructorOptions } from 'electron';
 import { describe, expect, it, vi } from 'vitest';
 import { buildMenuTemplate } from './menu.ts';
 
-function actions() {
+function actions(accounts: { id: string; name: string; active: boolean }[] = []) {
   return {
+    accounts,
+    switchAccount: vi.fn(),
+    addAccount: vi.fn(),
+    removeAccount: vi.fn(),
     openAbout: vi.fn(),
     openSettings: vi.fn(),
     openNewChat: vi.fn(),
@@ -17,6 +21,10 @@ function actions() {
 const ACCOUNT = (a: ReturnType<typeof actions>) => ({
   label: '&Account',
   submenu: [
+    { type: 'separator' },
+    { label: 'Add Account', click: a.addAccount },
+    { label: 'Remove Account…', enabled: false, click: a.removeAccount },
+    { type: 'separator' },
     { label: 'New Chat with Number…', click: a.openNewChat },
     { type: 'separator' },
     { label: 'Clear Cache and Reload', click: a.clearCache },
@@ -29,6 +37,34 @@ const items = (menu: MenuItemConstructorOptions | undefined) =>
   Array.isArray(menu?.submenu) ? menu.submenu : [];
 
 describe('buildMenuTemplate', () => {
+  it('lists the accounts by position, marks the active one and switches on click', () => {
+    const accounts = Array.from({ length: 10 }, (_, index) => ({
+      id: `id-${String(index)}`,
+      name: `Account ${String(index + 1)}`,
+      active: index === 1,
+    }));
+    const a = actions(accounts);
+    const menu = buildMenuTemplate('linux', a).find((entry) => entry.label === '&Account');
+    const entries = items(menu);
+    expect(entries.slice(0, 2)).toEqual([
+      expect.objectContaining({
+        label: 'Account 1',
+        type: 'radio',
+        checked: false,
+        accelerator: 'CmdOrCtrl+1',
+      }),
+      expect.objectContaining({ label: 'Account 2', checked: true, accelerator: 'CmdOrCtrl+2' }),
+    ]);
+    expect(entries[8]).toHaveProperty('accelerator', 'CmdOrCtrl+9');
+    expect(entries[9]).not.toHaveProperty('accelerator');
+    entries[0]?.click?.(undefined as never, undefined, undefined as never);
+    expect(a.switchAccount).toHaveBeenCalledWith('id-0');
+    expect(entries.find((entry) => entry.label === 'Remove Account…')).toHaveProperty(
+      'enabled',
+      true,
+    );
+  });
+
   it('zooms the WhatsApp view in 5% steps from the View menu', () => {
     const a = actions();
     const view = buildMenuTemplate('linux', a).find((menu) => menu.label === '&View');

@@ -22,7 +22,7 @@ vi.mock('electron', () => ({
   },
 }));
 
-const { createAccountView, createSecureOverlay, createSecureWindow } = await import('./windows.ts');
+const { createAccountHost, createSecureWindow } = await import('./windows.ts');
 
 describe('createSecureWindow', () => {
   beforeEach(() => {
@@ -43,23 +43,45 @@ describe('createSecureWindow', () => {
   });
 });
 
-describe('createSecureOverlay', () => {
+interface FakeView {
+  readonly options: unknown;
+  readonly setBounds: ReturnType<typeof vi.fn>;
+  readonly webContents: { close: ReturnType<typeof vi.fn> };
+}
+
+describe('createAccountHost', () => {
   function fakeWindow() {
-    const listeners = new Map<string, () => void>();
+    const listeners = new Set<() => void>();
     let size = [800, 600];
+    const children: FakeView[] = [];
+    const closedListeners: (() => void)[] = [];
     const window = {
-      contentView: { addChildView: vi.fn(), removeChildView: vi.fn() },
+      contentView: {
+        addChildView: vi.fn((view: FakeView) => children.push(view)),
+        removeChildView: vi.fn((view: FakeView) => children.splice(children.indexOf(view), 1)),
+      },
       getContentSize: vi.fn(() => size),
-      on: vi.fn((event: string, listener: () => void) => listeners.set(event, listener)),
-      off: vi.fn((event: string) => listeners.delete(event)),
+      on: vi.fn((_event: string, listener: () => void) => listeners.add(listener)),
+      off: vi.fn((_event: string, listener: () => void) => listeners.delete(listener)),
+      once: vi.fn((_event: 'closed', listener: () => void) => {
+        closedListeners.push(listener);
+      }),
     };
     return {
       window,
+      children,
       resize: (width: number, height: number) => {
         size = [width, height];
-        listeners.get('resize')?.();
+        listeners.forEach((listener) => {
+          listener();
+        });
       },
-      listening: () => listeners.has('resize'),
+      listeners: () => listeners.size,
+      close: () => {
+        for (const listener of closedListeners) {
+          listener();
+        }
+      },
     };
   }
 
@@ -67,71 +89,98 @@ describe('createSecureOverlay', () => {
     constructed.length = 0;
   });
 
-  it('lays a hardened view over the whole window and keeps it fitted', () => {
+  it('creates the account’s page hardened, in its partition, and hidden', () => {
     const f = fakeWindow();
-    const overlay = createSecureOverlay(f.window as never, { preload: '/p.cjs' });
+    createAccountHost(f.window as never, { partition: 'persist:account-a' });
     expect(constructed).toStrictEqual([
-      { webPreferences: rendererPreferences({ preload: '/p.cjs' }) },
+      { webPreferences: rendererPreferences({ partition: 'persist:account-a' }) },
     ]);
-    const [[view]] = f.window.contentView.addChildView.mock.calls as [
-      [{ setBounds: ReturnType<typeof vi.fn> }],
-    ];
-    expect(view.setBounds).toHaveBeenLastCalledWith({ x: 0, y: 0, width: 800, height: 600 });
-    f.resize(1024, 700);
-    expect(view.setBounds).toHaveBeenLastCalledWith({ x: 0, y: 0, width: 1024, height: 700 });
-    expect(overlay.webContents).toBe((view as unknown as { webContents: object }).webContents);
+    expect(f.children).toHaveLength(0);
   });
 
-  it('detaches and closes the view on removal', () => {
+  it('shows the page with its overlays on top, fitted to the window as it resizes', () => {
     const f = fakeWindow();
-    const overlay = createSecureOverlay(f.window as never, {});
-    const [[view]] = f.window.contentView.addChildView.mock.calls as [
-      [{ webContents: { close: ReturnType<typeof vi.fn> } }],
-    ];
-    overlay.remove();
-    expect(f.window.contentView.removeChildView).toHaveBeenCalledWith(view);
-    expect(view.webContents.close).toHaveBeenCalledOnce();
-    expect(f.listening()).toBe(false);
+    const host = createAccountHost(f.window as never, {});
+    const overlay = host.createOverlay({ preload: '/p.cjs' });
+    expect(f.children).toHaveLength(0);
+    host.show();
+    host.show();
+    const [page, laid] = f.children;
+    expect(f.children).toHaveLength(2);
+    expect(page?.webContents).toBe(host.webContents);
+    expect(laid?.webContents).toBe(overlay.webContents);
+    expect(laid?.options).toStrictEqual({
+      webPreferences: rendererPreferences({ preload: '/p.cjs' }),
+    });
+    expect(page?.setBounds).toHaveBeenLastCalledWith({ x: 0, y: 0, width: 800, height: 600 });
+    f.resize(1024, 700);
+    expect(laid?.setBounds).toHaveBeenLastCalledWith({ x: 0, y: 0, width: 1024, height: 700 });
+  });
+
+  it('lays a new overlay over a shown account at once', () => {
+    const f = fakeWindow();
+    const host = createAccountHost(f.window as never, {});
+    host.show();
+    const overlay = host.createOverlay({});
+    expect(f.children.at(-1)?.webContents).toBe(overlay.webContents);
+  });
+
+  it('hides every view of the account and stops fitting them', () => {
+    const f = fakeWindow();
+    const host = createAccountHost(f.window as never, {});
+    host.createOverlay({});
+    host.show();
+    host.hide();
+    expect(f.children).toHaveLength(0);
+    expect(f.listeners()).toBe(0);
+  });
+
+  it('removes and closes an overlay, shown or not', () => {
+    const f = fakeWindow();
+    const host = createAccountHost(f.window as never, {});
+    host.show();
+    const shown = host.createOverlay({});
+    shown.remove();
+    expect(f.children).toHaveLength(1);
+    host.hide();
+    const hidden = host.createOverlay({});
+    hidden.remove();
+    host.show();
+    expect(f.children).toHaveLength(1);
+    expect(constructed).toHaveLength(3);
+  });
+
+  it('closes every page for good', () => {
+    const f = fakeWindow();
+    const host = createAccountHost(f.window as never, {});
+    host.createOverlay({});
+    host.show();
+    const views = [...f.children];
+    host.close();
+    expect(f.children).toHaveLength(0);
+    for (const view of views) {
+      expect(view.webContents.close).toHaveBeenCalledOnce();
+    }
+  });
+
+  it('closes the account’s pages when the window closes, and only once', () => {
+    const f = fakeWindow();
+    const host = createAccountHost(f.window as never, {});
+    host.createOverlay({});
+    host.show();
+    const views = [...f.children];
+    f.close();
+    host.close();
+    for (const view of views) {
+      expect(view.webContents.close).toHaveBeenCalledOnce();
+    }
   });
 
   it('tolerates a window that reports no size', () => {
     const f = fakeWindow();
     f.window.getContentSize.mockReturnValueOnce([]);
-    createSecureOverlay(f.window as never, {});
-    const [[view]] = f.window.contentView.addChildView.mock.calls as [
-      [{ setBounds: ReturnType<typeof vi.fn> }],
-    ];
-    expect(view.setBounds).toHaveBeenCalledWith({ x: 0, y: 0, width: 0, height: 0 });
-  });
-});
-
-describe('createAccountView', () => {
-  beforeEach(() => {
-    constructed.length = 0;
-  });
-
-  it('puts a hardened view beneath every other view, filling the window', () => {
-    let closed: (() => void) | undefined;
-    const window = {
-      contentView: { addChildView: vi.fn(), removeChildView: vi.fn() },
-      getContentSize: vi.fn(() => [800, 600]),
-      on: vi.fn(),
-      off: vi.fn(),
-      once: vi.fn((_event: 'closed', listener: () => void) => {
-        closed = listener;
-      }),
-    };
-    const contents = createAccountView(window as never, { partition: 'persist:account-a' });
-    expect(constructed).toStrictEqual([
-      { webPreferences: rendererPreferences({ partition: 'persist:account-a' }) },
-    ]);
-    const [[view, index]] = window.contentView.addChildView.mock.calls as [
-      [{ setBounds: ReturnType<typeof vi.fn>; webContents: object }, number],
-    ];
-    expect(index).toBe(0);
-    expect(view.setBounds).toHaveBeenCalledWith({ x: 0, y: 0, width: 800, height: 600 });
-    expect(contents).toBe(view.webContents);
-    closed?.();
-    expect((view.webContents as { close: ReturnType<typeof vi.fn> }).close).toHaveBeenCalledOnce();
+    const host = createAccountHost(f.window as never, {});
+    host.show();
+    expect(f.children[0]?.setBounds).toHaveBeenCalledWith({ x: 0, y: 0, width: 0, height: 0 });
   });
 });

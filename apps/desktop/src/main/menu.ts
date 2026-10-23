@@ -3,7 +3,22 @@ import type { ZoomStep } from './appearance/zoom.ts';
 import { PRODUCT_NAME } from './identity.ts';
 import { en } from '../shared/messages/en.ts';
 
+/** An account as the Account menu lists it. */
+export interface AccountEntry {
+  readonly id: string;
+  readonly name: string;
+  readonly active: boolean;
+}
+
+/** Positions with a shortcut: the digits 1 to 9. */
+const SHORTCUT_POSITIONS = 9;
+
 export interface MenuActions {
+  readonly accounts: readonly AccountEntry[];
+  readonly switchAccount: (id: string) => void;
+  readonly addAccount: () => void;
+  /** Asks first, since it deletes the active account's WhatsApp data. */
+  readonly removeAccount: () => void;
   readonly openAbout: () => void;
   readonly openSettings: () => void;
   readonly openNewChat: () => void;
@@ -50,11 +65,33 @@ function viewMenu(actions: MenuActions): MenuItemConstructorOptions {
   };
 }
 
-/** Maintenance for the WhatsApp account, for when it misbehaves. */
+/** The accounts, switched by position with Ctrl or Cmd and a digit. */
+function accountItems(actions: MenuActions): MenuItemConstructorOptions[] {
+  return actions.accounts.map((entry, index) => ({
+    label: entry.name,
+    type: 'radio',
+    checked: entry.active,
+    ...(index < SHORTCUT_POSITIONS ? { accelerator: `CmdOrCtrl+${String(index + 1)}` } : {}),
+    click: () => {
+      actions.switchAccount(entry.id);
+    },
+  }));
+}
+
+/** The accounts, and maintenance for the active one, for when it misbehaves. */
 function accountMenu(actions: MenuActions): MenuItemConstructorOptions {
   return {
     label: en.menu.account,
     submenu: [
+      ...accountItems(actions),
+      { type: 'separator' },
+      { label: en.menu.addAccount, click: actions.addAccount },
+      {
+        label: en.menu.removeAccount,
+        enabled: actions.accounts.length > 1,
+        click: actions.removeAccount,
+      },
+      { type: 'separator' },
       { label: en.menu.newChat, click: actions.openNewChat },
       { type: 'separator' },
       { label: en.menu.clearCache, click: actions.clearCache },

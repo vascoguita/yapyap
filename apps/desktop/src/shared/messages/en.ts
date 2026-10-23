@@ -228,6 +228,8 @@ const catalog = {
     newChat: 'New Chat with Number…',
     clearCache: 'Clear Cache and Reload',
     resetSession: 'Reset Session…',
+    addAccount: 'Add Account',
+    removeAccount: 'Remove Account…',
     about: (product: string): string => `About ${product}`,
     settings: 'Settings…',
     copyDiagnostics: 'Copy Diagnostics',
@@ -245,6 +247,12 @@ const catalog = {
       detail:
         'This logs you out and deletes WhatsApp’s data on this computer. Your chats stay on your phone. To use WhatsApp here again, link this device again.',
       confirm: 'Reset Session',
+    },
+    removeAccount: {
+      message: (name: string): string => `Remove ${name}?`,
+      detail:
+        'This logs the account out and deletes its WhatsApp data on this computer. Its chats stay on your phone.',
+      confirm: 'Remove Account',
     },
     unsafeStart: {
       message: 'YapYap cannot start safely on this system',

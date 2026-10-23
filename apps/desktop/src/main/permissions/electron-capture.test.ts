@@ -45,13 +45,19 @@ describe('electronCapture', () => {
     expect(electron.fromFrame).toHaveBeenCalledWith(frame);
   });
 
+  const page = {};
+  const own = { webContents: page, contentView: { children: [] } };
+  const inView = { webContents: {}, contentView: { children: [{}, { webContents: page }] } };
+  const hidden = { webContents: {}, contentView: { children: [{ webContents: {} }] } };
   it.each([
-    [{ isVisible: () => true, isFocused: () => true }, true],
-    [{ isVisible: () => false, isFocused: () => true }, false],
-    [{ isVisible: () => true, isFocused: () => false }, false],
+    [{ ...own, isVisible: () => true, isFocused: () => true }, true],
+    [{ ...inView, isVisible: () => true, isFocused: () => true }, true],
+    [{ ...hidden, isVisible: () => true, isFocused: () => true }, false],
+    [{ ...own, isVisible: () => false, isFocused: () => true }, false],
+    [{ ...own, isVisible: () => true, isFocused: () => false }, false],
     [null, false],
-  ])('reports whether the window is visible and focused (%#)', (window, expected) => {
-    const contents = {};
+  ])('reports whether the page shows in a visible, focused window (%#)', (window, expected) => {
+    const contents = page;
     electron.fromWebContents.mockReturnValueOnce(window);
     expect(electronCapture('linux', false, '7.0.0', vi.fn()).isVisibleAndFocused(contents)).toBe(
       expected,
