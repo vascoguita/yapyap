@@ -55,6 +55,7 @@ export const SETTING_FIELDS: readonly SettingField[] = [
     options: choices(text['appearance.theme'].options),
   },
   { ...described('appearance.autoHideMenuBar'), restart: false, platforms: ['linux', 'win32'] },
+  { ...described('appearance.compactSidebar'), restart: false },
   { ...described('reliability.hardwareAcceleration'), restart: true },
   {
     ...described('reliability.displayBackend'),

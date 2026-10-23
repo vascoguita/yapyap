@@ -25,6 +25,13 @@ import { changeZoom } from '../appearance/zoom.ts';
 import { buildMenuTemplate, type MenuActions } from '../menu.ts';
 import { accountsHandlers, type AccountManager } from './accounts.ts';
 import {
+  attachSidebar,
+  sidebarHandlers,
+  type SidebarPort,
+  type SidebarSlot,
+  type SidebarSource,
+} from './sidebar.ts';
+import {
   createRecovery,
   type Overlay,
   type RecoverableContents,
@@ -185,6 +192,10 @@ interface ChromeRuntime {
   /** Lists the accounts in the Account menu, whose actions apply to the active one. */
   readonly setAccountMenu: (menu: AccountMenu) => void;
   readonly openSettings: () => void;
+  /** Docks the account sidebar; returns how to show it the accounts. */
+  readonly attachSidebar: (
+    create: (renderer: RendererOptions) => SidebarPort,
+  ) => (source: SidebarSource) => void;
 }
 
 /** The accounts as the menu and the Accounts window need them. */
@@ -464,6 +475,7 @@ function allHandlers(
   picker: SourcePicker,
   chats: ChatTarget,
   accounts: AccountsSlot,
+  sidebar: SidebarSlot,
 ): ChromeHandler[] {
   return [
     ...aboutHandlers(deps),
@@ -478,6 +490,7 @@ function allHandlers(
     ...settingsTransferHandlers(deps.settings, deps.settingsFiles),
     ...newChatHandlers(chats),
     ...accountsHandlers(() => accounts.current, deps.confirmRemoveAccount),
+    ...sidebarHandlers(sidebar, deps.settings),
     ...picker.handlers,
   ];
 }
@@ -498,7 +511,8 @@ function startChrome(
   const picker = sourcePicker(deps, windows);
   const chats: ChatTarget = {};
   const accounts: AccountsSlot = {};
-  const handlers = allHandlers(withGraphics, recoveries, picker, chats, accounts);
+  const sidebar: SidebarSlot = {};
+  const handlers = allHandlers(withGraphics, recoveries, picker, chats, accounts, sidebar);
   registerChromeHandlers(deps.ipc, views, handlers, warn);
   const openers = chromeOpeners(windows);
   const copyDiagnostics = (): void => {
@@ -515,6 +529,7 @@ function startChrome(
     },
     setAccountMenu: accountMenuSetter(deps, openers, recoveries, accounts, warn, copyDiagnostics),
     openSettings: openers.openSettings,
+    attachSidebar: (create) => attachSidebar(create(renderer), views, sidebar, warn),
   };
 }
 

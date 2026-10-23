@@ -1,5 +1,6 @@
 import type { AccountSummary } from '../shared/chrome-api.ts';
 import type { AccountMenu, ChromeFeature, WhatsAppContents } from './chrome/feature.ts';
+import type { SidebarPort, SidebarSource } from './chrome/sidebar.ts';
 import { watchConnectivity } from './connectivity/connectivity.ts';
 import { APP_ID, PRODUCT_NAME } from './identity.ts';
 import type { CaptureChoice, DisplayCapturePort, MediaType } from './permissions/session-guard.ts';
@@ -170,6 +171,8 @@ export interface WindowPort extends LinkWindow, Omit<ManagedWindow, 'on'> {
 export interface StartDependencies<Window extends WindowPort> {
   readonly app: AppPort;
   readonly createWindow: (options: WindowOptions) => Window;
+  /** The account sidebar, docked in the main window. */
+  readonly createSidebar: (window: Window, renderer: RendererOptions) => SidebarPort;
   /** An account's views in the window, hidden until it is the active one. */
   readonly createAccountHost: (window: Window, renderer: RendererOptions) => AccountHostPort;
   /** Nothing loads in the default session, but it is guarded all the same. */
@@ -668,6 +671,32 @@ function keepQuiet<Window extends WindowPort>(
   );
 }
 
+/** The running accounts in the sidebar, in their menu order, with their unread chats. */
+function sidebarSource<Window extends WindowPort>(
+  deps: StartDependencies<Window>,
+  running: RunningAccounts<OpenedAccount>,
+  signals: AccountSignals,
+): SidebarSource {
+  const { appearance, general } = deps.settings.current();
+  const open = new Set(running.opened().map(({ account }) => account.id));
+  const active = running.active().account.id;
+  const accounts = running
+    .list()
+    .filter((account) => open.has(account.id))
+    .map(({ id, name, color, muted = false }) => ({
+      id,
+      name,
+      color,
+      muted,
+      unread: muted ? 0 : signals.unreadOf(id),
+      active: id === active,
+    }));
+  return {
+    state: { accounts, compact: appearance.compactSidebar, doNotDisturb: general.doNotDisturb },
+    switchTo: running.switchTo,
+  };
+}
+
 /** Every enabled account, in its own view of the main window; the active one shows. */
 function openAccounts<Window extends WindowPort>(
   wiring: Omit<AccountWiring<Window>, 'signals' | 'running'>,
@@ -678,12 +707,20 @@ function openAccounts<Window extends WindowPort>(
     keepQuiet(deps, running, visibility);
   });
   const tray = accountsTray(wiring, () => running, visibility);
-  const signals = windowSignals(deps, window, tray.setUnread);
+  const sidebar = chrome.attachSidebar((renderer) => deps.createSidebar(window, renderer));
+  const showSidebar = (): void => {
+    sidebar(sidebarSource(deps, running, signals));
+  };
+  const signals = windowSignals(deps, window, (total) => {
+    tray.setUnread(total);
+    showSidebar();
+  });
   const changed = (): void => {
     signals.activate(running.active().account.id);
     chrome.setAccountMenu(accountMenu(running, deps.warn));
     tray.refresh();
     keepQuiet(deps, running, visibility);
+    showSidebar();
   };
   const running: RunningAccounts<OpenedAccount> = runAccounts({
     accounts: deps.accounts,
@@ -696,6 +733,16 @@ function openAccounts<Window extends WindowPort>(
   changed();
   // The menu and the tray show do not disturb, and it decides what is muted.
   deps.settings.onChange(changed);
+  reconnectWhenOnline(deps, signals, running);
+  return running;
+}
+
+/** Marks the title while offline, and reloads every account when the network returns. */
+function reconnectWhenOnline<Window extends WindowPort>(
+  deps: StartDependencies<Window>,
+  signals: AccountSignals,
+  running: RunningAccounts<OpenedAccount>,
+): void {
   watchConnectivity({
     isOnline: deps.isOnline,
     onResume: deps.onResume,
@@ -708,7 +755,6 @@ function openAccounts<Window extends WindowPort>(
       }
     },
   });
-  return running;
 }
 
 /** The window-wide parts: chat links, focus, and showing the window. */

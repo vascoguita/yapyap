@@ -195,6 +195,7 @@ describe('createChromeFeature', () => {
       values: {
         'appearance.theme': 'system',
         'appearance.autoHideMenuBar': false,
+        'appearance.compactSidebar': false,
         'reliability.hardwareAcceleration': true,
         'reliability.displayBackend': 'auto',
         'reliability.hardwareVideoDecoding': true,
@@ -402,6 +403,33 @@ describe('createChromeFeature', () => {
     t.clickAccount('Remove Account…');
     await new Promise((resolve) => setTimeout(resolve));
     expect(warn).toHaveBeenCalledWith('Could not finish an account maintenance action.');
+  });
+
+  it('docks the account sidebar as a chrome page and answers its calls', () => {
+    const t = setup();
+    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    const port = {
+      webContents: { loadURL: vi.fn(() => Promise.resolve()), send: vi.fn() },
+      setWidth: vi.fn(),
+    };
+    const create = vi.fn(() => port);
+    const show = runtime.attachSidebar(create);
+    expect(create).toHaveBeenCalledWith({
+      preload: '/app/preload/chrome.cjs',
+      partition: 'yapyap-chrome',
+    });
+    const entry = { name: 'A', color: 'green', unread: 0, muted: false, active: true };
+    const state = {
+      accounts: [
+        { ...entry, id: 'a' },
+        { ...entry, id: 'b', active: false },
+      ],
+      compact: false,
+      doNotDisturb: false,
+    };
+    show({ state, switchTo: vi.fn() });
+    expect(port.setWidth).toHaveBeenCalledWith(220);
+    expect(t.call('sidebar:state', port.webContents)).toBe(state);
   });
 
   it('opens the Accounts window from the Account menu, listing the current accounts', () => {

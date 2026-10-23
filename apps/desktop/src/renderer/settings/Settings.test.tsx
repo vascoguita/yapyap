@@ -41,6 +41,7 @@ function api(overrides: Partial<ChromeApi['settings']> = {}) {
     },
     chat: { openNumber: vi.fn() },
     accounts: { list: vi.fn(), save: vi.fn(), remove: vi.fn() },
+    sidebar: { state: vi.fn(), switchTo: vi.fn(), setCompact: vi.fn(), onState: vi.fn() },
     picker: { offer: vi.fn(), choose: vi.fn(), cancel: vi.fn() },
   } satisfies ChromeApi;
 }

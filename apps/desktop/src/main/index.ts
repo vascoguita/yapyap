@@ -56,7 +56,7 @@ import { confirmResetWithDialog } from './session-reset-prompt.ts';
 import { confirmRemoveAccountWithDialog } from './account-removal-prompt.ts';
 import { explainUnsafeStartWithDialog } from './unsafe-start-prompt.ts';
 import { startApp } from './start.ts';
-import { createAccountHost, createSecureWindow } from './windows.ts';
+import { createAccountHost, createSecureWindow, createSidebarView } from './windows.ts';
 
 const PICKER_THUMBNAIL = { width: 320, height: 180 };
 
@@ -187,6 +187,7 @@ startApp({
   warn,
   createWindow: (options) => createSecureWindow(options),
   createAccountHost: (window, renderer) => createAccountHost(window, renderer),
+  createSidebar: (window, renderer) => createSidebarView(window, renderer),
   defaultSession: () => session.defaultSession,
   sessionOf: (partition) => session.fromPartition(partition),
   accounts: loadAccounts(app.getPath('userData')),

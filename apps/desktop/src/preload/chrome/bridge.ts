@@ -6,10 +6,13 @@ import {
   type PickerOffer,
   type RecoveryProblem,
   type SettingsSnapshot,
+  type SidebarState,
   type TransferResult,
 } from '../../shared/chrome-api.ts';
 
 type Invoke = (channel: string, ...args: unknown[]) => Promise<unknown>;
+/** Hears the sidebar's state, the only thing the main process sends. */
+type Listen = (listener: (state: SidebarState) => void) => void;
 
 function accountsBridge(invoke: Invoke): ChromeApi['accounts'] {
   return {
@@ -20,11 +23,24 @@ function accountsBridge(invoke: Invoke): ChromeApi['accounts'] {
   };
 }
 
+function sidebarBridge(invoke: Invoke, listen: Listen): ChromeApi['sidebar'] {
+  return {
+    state: () => invoke(CHROME_CHANNELS.sidebarState) as Promise<SidebarState>,
+    switchTo: async (id) => {
+      await invoke(CHROME_CHANNELS.sidebarSwitch, id);
+    },
+    setCompact: async (compact) => {
+      await invoke(CHROME_CHANNELS.sidebarSetCompact, compact);
+    },
+    onState: listen,
+  };
+}
+
 /**
  * Builds the chrome API from a single invoke function. Each operation has its
  * own fixed channel, so the page can never choose what it calls.
  */
-export function createChromeBridge(invoke: Invoke): ChromeApi {
+export function createChromeBridge(invoke: Invoke, listen: Listen): ChromeApi {
   const run = (channel: string) => async (): Promise<void> => {
     await invoke(channel);
   };
@@ -51,6 +67,7 @@ export function createChromeBridge(invoke: Invoke): ChromeApi {
       openNumber: (number) => invoke(CHROME_CHANNELS.chatOpenNumber, number) as Promise<boolean>,
     },
     accounts: accountsBridge(invoke),
+    sidebar: sidebarBridge(invoke, listen),
     picker: {
       offer: () => invoke(CHROME_CHANNELS.pickerOffer) as Promise<PickerOffer>,
       choose: async (id, audio) => {

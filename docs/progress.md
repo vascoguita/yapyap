@@ -93,6 +93,17 @@ not edit the same lines.
   the default session loads nothing. `writeTextAtomically` is shared with
   the settings store. Several accounts and their views come next.
 
+- Account sidebar (#57): with two or more running accounts, a chrome page
+  (`sidebar.html`) docks on the main window's left edge (`createSidebarView`,
+  which insets every account view and overlay beside it). It lists the
+  running accounts in menu order with an initial avatar in their color, an
+  unread badge (none for muted accounts, which show a muted mark instead)
+  and a do not disturb note; a click switches without reloading. The main
+  process pushes each new state on one channel (`sidebar:state-changed`)
+  and checks that a switch names a listed account (`sidebarHandlers`).
+  `appearance.compactSidebar` (settings schema v8), from the sidebar's own
+  button or Settings, shows avatars only in a 64 px strip.
+
 - Account management (#58): the Accounts window (`accounts.html`, Account →
   Manage Accounts…) renames, recolors, turns off and removes accounts. Edits
   are a draft until saved, and Escape or picking another account asks before
@@ -123,8 +134,8 @@ not edit the same lines.
   events (`trackVisibility`), since macOS still reports a window visible
   while its `hide` event runs; the tray's Show and Hide follow it too. Do not disturb is in the tray,
   the Account menu and Settings; Mute This Account is in the Account menu
-  and the Accounts window, and the tray marks muted accounts. The sidebar
-  (#57) will show both when it lands.
+  and the Accounts window, and the tray and the sidebar (#57) mark muted
+  accounts.
 
 - Notification privacy (#62): `privacy.notificationSender` and
   `privacy.notificationText` (settings schema v6) replace the sender with

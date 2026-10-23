@@ -26,6 +26,7 @@ export default defineConfig({
           picker: resolve(import.meta.dirname, 'src/renderer/picker.html'),
           'new-chat': resolve(import.meta.dirname, 'src/renderer/new-chat.html'),
           accounts: resolve(import.meta.dirname, 'src/renderer/accounts.html'),
+          sidebar: resolve(import.meta.dirname, 'src/renderer/sidebar.html'),
         },
       },
     },

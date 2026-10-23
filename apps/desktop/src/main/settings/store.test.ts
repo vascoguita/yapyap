@@ -8,7 +8,7 @@ import { loadSettings, saveSettings, SETTINGS_FILE } from './store.ts';
 const fresh = () => mkdtempSync(join(tmpdir(), 'yapyap-settings-'));
 const custom = () => ({
   ...defaultSettings(),
-  appearance: { theme: 'dark' as const, zoom: 1.5, autoHideMenuBar: false },
+  appearance: { theme: 'dark' as const, zoom: 1.5, autoHideMenuBar: false, compactSidebar: false },
 });
 
 describe('loadSettings', () => {
@@ -91,7 +91,7 @@ describe('saveSettings', () => {
       defaultSettings(),
     );
     expect(readFileSync(join(dir, SETTINGS_FILE), 'utf8')).toMatch(
-      /^\{\n {2}"schemaVersion": 7,[\s\S]*\}\n$/,
+      /^\{\n {2}"schemaVersion": 8,[\s\S]*\}\n$/,
     );
     expect(readdirSync(dir).sort()).toEqual(['settings.json', 'settings.json.bak']);
   });

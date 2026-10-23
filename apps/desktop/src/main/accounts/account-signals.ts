@@ -17,6 +17,8 @@ export interface AccountSignals {
   readonly forget: (id: string) => void;
   /** Marks the title while offline: unobtrusive, and visible in the taskbar. */
   readonly setOnline: (online: boolean) => void;
+  /** Unread chats in one account, for its sidebar badge. */
+  readonly unreadOf: (id: string) => number;
 }
 
 export function accountSignals(deps: SignalDependencies): AccountSignals {
@@ -50,5 +52,6 @@ export function accountSignals(deps: SignalDependencies): AccountSignals {
       online = isOnline;
       applyTitle();
     },
+    unreadOf: (id) => unreadInTitle(titles.get(id) ?? ''),
   };
 }

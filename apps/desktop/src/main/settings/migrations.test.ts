@@ -51,6 +51,31 @@ describe('migrate', () => {
   });
 });
 
+describe('version 7 to 8', () => {
+  const toVersion8 = MIGRATIONS[6];
+
+  it('adds the compact sidebar, off, and keeps the other appearance settings', () => {
+    expect(toVersion8?.({ schemaVersion: 7, appearance: { theme: 'dark' } })).toEqual({
+      schemaVersion: 7,
+      appearance: { compactSidebar: false, theme: 'dark' },
+    });
+  });
+
+  it('keeps a choice that is already there', () => {
+    expect(toVersion8?.({ appearance: { compactSidebar: true } })).toEqual({
+      appearance: { compactSidebar: true },
+    });
+  });
+
+  it.each([undefined, null, 'on', [true]])(
+    'leaves an appearance section of %j for validation to reset',
+    (appearance) => {
+      const settings = { schemaVersion: 7, appearance };
+      expect(toVersion8?.(settings)).toBe(settings);
+    },
+  );
+});
+
 describe('version 6 to 7', () => {
   const toVersion7 = MIGRATIONS[5];
 

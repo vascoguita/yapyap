@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { trackVisibility } from './visibility.ts';
 
 function setup(visible: boolean, minimized = false) {
@@ -17,25 +17,50 @@ function setup(visible: boolean, minimized = false) {
   };
 }
 
+const state = (t: ReturnType<typeof setup>) => [t.visibility.visible(), t.visibility.onScreen()];
+
 describe('trackVisibility', () => {
-  it('starts from what the window reports', () => {
-    expect(setup(true).visibility.onScreen()).toBe(true);
-    expect(setup(true, true).visibility.onScreen()).toBe(false);
-    expect(setup(true, true).visibility.visible()).toBe(true);
-    expect(setup(false).visibility.visible()).toBe(false);
+  beforeEach(() => {
+    vi.useFakeTimers();
   });
 
-  it('follows the events, even while the window still reports the old state', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('asks the window, even when it appeared without a show event', () => {
     const t = setup(false);
-    t.fire('show');
-    expect(t.visibility.onScreen()).toBe(true);
-    t.fire('minimize');
-    expect([t.visibility.visible(), t.visibility.onScreen()]).toEqual([true, false]);
-    t.fire('restore');
-    expect(t.visibility.onScreen()).toBe(true);
+    expect(state(t)).toEqual([false, false]);
     t.window.isVisible.mockReturnValue(true);
+    expect(state(t)).toEqual([true, true]);
+    t.window.isMinimized.mockReturnValue(true);
+    expect(state(t)).toEqual([true, false]);
+  });
+
+  it('trusts hide and minimize over a window that still reports the old state', () => {
+    const t = setup(true);
+    t.fire('minimize');
+    expect(state(t)).toEqual([true, false]);
+    t.fire('restore');
+    expect(state(t)).toEqual([true, true]);
     t.fire('hide');
-    expect([t.visibility.visible(), t.visibility.onScreen()]).toEqual([false, false]);
-    expect(t.onChange).toHaveBeenCalledTimes(4);
+    expect(state(t)).toEqual([false, false]);
+    t.fire('show');
+    expect(state(t)).toEqual([true, true]);
+    t.fire('hide');
+    t.fire('minimize');
+    t.fire('focus');
+    expect(state(t)).toEqual([true, true]);
+    expect(t.onChange).toHaveBeenCalledTimes(7);
+  });
+
+  it('looks again once the window has settled, in case an event came out of order', () => {
+    const t = setup(true);
+    t.fire('focus');
+    expect(t.onChange).toHaveBeenCalledOnce();
+    t.window.isVisible.mockReturnValue(false);
+    vi.advanceTimersByTime(250);
+    expect(t.onChange).toHaveBeenCalledTimes(2);
+    expect(state(t)).toEqual([false, false]);
   });
 });

@@ -7,6 +7,7 @@ import type { AccountMenu } from './chrome/feature.ts';
 import type { CaptureChoice } from './permissions/session-guard.ts';
 import { defaultSettings } from './settings/decode.ts';
 import type { Settings } from './settings/schema.ts';
+import type { SidebarSource } from './chrome/sidebar.ts';
 import { WHATSAPP_ORIGIN } from './whatsapp-origin.ts';
 import type { WindowOptions } from './windows.ts';
 
@@ -111,7 +112,16 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     openChatsWith: vi.fn<(open: (phone: string) => void) => void>(),
     setAccountMenu: vi.fn<(menu: AccountMenu) => void>(),
     openSettings: vi.fn(),
+    sidebar: vi.fn<(source: SidebarSource) => void>(),
+    attachSidebar: vi.fn((create: (renderer: object) => unknown) => {
+      create({ preload: '/app/preload/chrome.cjs' });
+      return runtime.sidebar;
+    }),
   };
+  const createSidebar = vi.fn(() => ({
+    webContents: { loadURL: vi.fn(() => Promise.resolve()), send: vi.fn() },
+    setWidth: vi.fn(),
+  }));
   // The first account's page is `web`, so single-account tests read it directly.
   const hosts: {
     page: ReturnType<typeof fakeContents>;
@@ -173,6 +183,7 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     session,
     createWindow,
     createAccountHost,
+    createSidebar,
     hosts,
     saveAccounts: vi.fn(),
     whatsAppPreload: '/out/preload/whatsapp.cjs',
@@ -822,13 +833,43 @@ describe('startApp', () => {
       }
     };
 
+    const withMuted = (f: ReturnType<typeof twoAccounts>, index: number) => {
+      f.accounts = {
+        ...f.accounts,
+        accounts: f.accounts.accounts.map((entry, at) =>
+          at === index ? { ...entry, muted: true } : entry,
+        ),
+      };
+    };
+    const titled = (f: ReturnType<typeof twoAccounts>, index: number, title: string) => {
+      f.hosts[index]?.page.fire('page-title-updated', {}, title);
+    };
+
+    it('shows the running accounts in the sidebar, with unread chats unless muted', async () => {
+      const f = twoAccounts();
+      withMuted(f, 1);
+      await startApp(f);
+      titled(f, 0, '(2) WhatsApp');
+      titled(f, 1, '(5) WhatsApp');
+      const [last] = f.runtime.sidebar.mock.calls.at(-1) ?? [];
+      if (last === undefined) {
+        throw new Error('The sidebar was never shown.');
+      }
+      expect(last.state).toEqual({
+        accounts: [
+          { id: ACCOUNT, name: 'Personal', color: 'green', muted: false, unread: 2, active: false },
+          { id: SECOND, name: 'Work', color: 'blue', muted: true, unread: 0, active: true },
+        ],
+        compact: false,
+        doNotDisturb: false,
+      });
+      last.switchTo(ACCOUNT);
+      expect(f.hosts[0]?.show).toHaveBeenCalledOnce();
+    });
+
     it('silences a muted account, and mutes its sound while it is out of sight', async () => {
       const f = twoAccounts();
-      const [personal, work] = f.accounts.accounts;
-      if (personal === undefined || work === undefined) {
-        throw new Error('Two accounts are expected.');
-      }
-      f.accounts = { ...f.accounts, accounts: [{ ...personal, muted: true }, work] };
+      withMuted(f, 0);
       await startApp(f);
       showFrom(f, 0);
       showFrom(f, 1);
@@ -878,8 +919,7 @@ describe('startApp', () => {
       open('447700900123');
       const work = f.hosts[1]?.webContents;
       expect(work?.loadURL).toHaveBeenLastCalledWith(`${WHATSAPP_ORIGIN}/send?phone=447700900123`);
-      const focused = f.window.on.mock.calls.find(([event]) => event === 'focus');
-      (focused?.[1] as (() => void) | undefined)?.();
+      windowEvent(f, 'focus');
       expect(work?.focus).toHaveBeenCalledOnce();
     });
 
