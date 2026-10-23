@@ -242,7 +242,11 @@ const catalog = {
   },
   tray: {
     tooltip: 'YapYap',
+    unread: (count: number): string =>
+      count === 1 ? 'YapYap: 1 unread chat' : `YapYap: ${String(count)} unread chats`,
     show: 'Show YapYap',
+    hide: 'Hide YapYap',
+    settings: 'Settings…',
     quit: 'Quit YapYap',
   },
   // `&` marks the access key on Windows and Linux; macOS ignores it.

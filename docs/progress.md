@@ -102,6 +102,14 @@ not edit the same lines.
   (`runAccounts().update`). Accounts that are off are left out of the menu.
   The color stands in for an avatar until profile photos (#87).
 
+- Tray menu (#63, first part): the tray shows or hides the window (the
+  label follows the window), switches between running accounts, opens
+  Settings and quits; its tooltip, and the macOS menu bar title, show the
+  unread count of every account. On macOS a click opens the menu, as menu
+  bar items do. Chrome windows now share one opener each, so a rebuilt menu
+  or the tray never opens a second copy. Do not disturb (#61) and a symbolic
+  icon that follows the system theme are still to come.
+
 - Unread badge (#64): the count of unread chats in WhatsApp's title
   (`unreadInTitle` in the adapter, read on `page-title-updated`, so no page
   probe) becomes the Dock badge on macOS, the launcher count on Linux

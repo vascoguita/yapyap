@@ -145,8 +145,11 @@ Settings → Appearance hides the menu until you press <kbd>Alt</kbd>.
 the window keeps YapYap running, as other Mac apps do: click its Dock icon
 to bring the window back, and choose **Quit** to quit.
 
-YapYap's tray icon shows the window again, and its menu has **Show YapYap**
-and **Quit YapYap**. With **Start minimized** on, YapYap opens in the
+YapYap's tray icon shows the window again; on macOS it sits in the menu bar
+and opens its menu. The menu shows or hides the window, lists your running
+accounts to switch to, and has **Settings…** and **Quit YapYap**. Its
+tooltip shows how many chats have unread messages across all accounts, and
+on macOS the number also appears next to the icon. With **Start minimized** on, YapYap opens in the
 background. Some Linux desktops have no tray; there, starting YapYap again
 always brings its window back.
 

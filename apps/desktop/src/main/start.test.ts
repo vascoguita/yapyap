@@ -80,6 +80,7 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     setAutoHideMenuBar: vi.fn(),
     setMenuBarVisibility: vi.fn(),
     setOverlayIcon: vi.fn(),
+    isVisible: vi.fn(() => true),
   } satisfies WindowPort;
   const createWindow = vi.fn<(options: WindowOptions) => WindowPort>(() => window);
   const runtime = {
@@ -96,6 +97,7 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     technicalDetails: () => 'YapYap 0.1.0 (deb)',
     openChatsWith: vi.fn<(open: (phone: string) => void) => void>(),
     setAccountMenu: vi.fn<(menu: AccountMenu) => void>(),
+    openSettings: vi.fn(),
   };
   // The first account's page is `web`, so single-account tests read it directly.
   const hosts: {
@@ -195,7 +197,12 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     },
     autostart: { enabled: vi.fn(() => false), enable: vi.fn(), disable: vi.fn() },
     tray: {
-      create: vi.fn(() => ({ setToolTip: vi.fn(), setContextMenu: vi.fn(), on: vi.fn() })),
+      create: vi.fn(() => ({
+        setToolTip: vi.fn(),
+        setContextMenu: vi.fn(),
+        setTitle: vi.fn(),
+        on: vi.fn(),
+      })),
       buildMenu: vi.fn((template: unknown) => template),
     },
     releases: {
@@ -588,12 +595,30 @@ describe('startApp', () => {
     expect(f.selfUpdate.instance.autoInstallOnAppQuit).toBe(false);
   });
 
-  it('puts YapYap in the tray, whose menu quits it', async () => {
+  it('puts YapYap in the tray, keeping its menu and count up to date', async () => {
     const f = fakes();
     await startApp(f);
     expect(f.tray.create).toHaveBeenCalledOnce();
-    const [template] = f.tray.buildMenu.mock.calls[0] as [{ click?: () => void }[]];
-    template[2]?.click?.();
+    const tray = f.tray.create.mock.results[0]?.value as {
+      setToolTip: ReturnType<typeof vi.fn>;
+    };
+    const lastMenu = () =>
+      (f.tray.buildMenu.mock.calls.at(-1)?.[0] ?? []) as { label?: string; click?: () => void }[];
+    const click = (label: string) => {
+      lastMenu()
+        .find((entry) => entry.label === label)
+        ?.click?.();
+    };
+    expect(lastMenu()[0]?.label).toBe('Hide YapYap');
+    f.window.isVisible.mockReturnValue(false);
+    const hidden = f.window.on.mock.calls.find(([event]) => event === 'hide');
+    (hidden?.[1] as (() => void) | undefined)?.();
+    expect(lastMenu()[0]?.label).toBe('Show YapYap');
+    f.web.fire('page-title-updated', {}, '(2) WhatsApp');
+    expect(tray.setToolTip).toHaveBeenLastCalledWith('YapYap: 2 unread chats');
+    click('Settings…');
+    expect(f.runtime.openSettings).toHaveBeenCalledOnce();
+    click('Quit YapYap');
     expect(f.app.quit).toHaveBeenCalledOnce();
   });
 
@@ -655,6 +680,18 @@ describe('startApp', () => {
       expect(f.window.setTitle).toHaveBeenLastCalledWith('(2) WhatsApp');
       expect(work?.hide).toHaveBeenCalledOnce();
       expect(f.saveAccounts).toHaveBeenCalledWith(expect.objectContaining({ active: ACCOUNT }));
+    });
+
+    it('switches accounts from the tray and shows the window', async () => {
+      const f = twoAccounts();
+      await startApp(f);
+      const template = (f.tray.buildMenu.mock.calls.at(-1)?.[0] ?? []) as {
+        label?: string;
+        click?: () => void;
+      }[];
+      template.find((entry) => entry.label === 'Personal')?.click?.();
+      expect(f.hosts[0]?.show).toHaveBeenCalledOnce();
+      expect(f.window.show).toHaveBeenCalled();
     });
 
     it('sends chat links and focus to the active account', async () => {

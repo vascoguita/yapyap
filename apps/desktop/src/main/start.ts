@@ -1,3 +1,4 @@
+import type { AccountSummary } from '../shared/chrome-api.ts';
 import type { AccountMenu, ChromeFeature, WhatsAppContents } from './chrome/feature.ts';
 import { watchConnectivity } from './connectivity/connectivity.ts';
 import { APP_ID, PRODUCT_NAME } from './identity.ts';
@@ -139,7 +140,11 @@ interface ClearableSession {
 }
 
 export interface WindowPort extends LinkWindow, Omit<ManagedWindow, 'on'> {
-  on: ManagedWindow['on'] & FocusableWindow['on'];
+  on: ManagedWindow['on'] &
+    FocusableWindow['on'] &
+    ((event: 'show', listener: () => void) => unknown) &
+    ((event: 'hide', listener: () => void) => unknown);
+  isVisible(): boolean;
   /** Shows the active account's page title, as a browser would. */
   setTitle(title: string): void;
   isFocused(): boolean;
@@ -475,14 +480,19 @@ async function forgetAccount<Window extends WindowPort>(
 /** A failed page load needs no handling here: the recovery monitor reports it. */
 const reportedElsewhere = (): undefined => undefined;
 
+/** Every account, marking the one on screen. */
+function summaries(running: RunningAccounts<OpenedAccount>): AccountSummary[] {
+  const active = running.active().account.id;
+  return running.list().map((account) => ({ ...account, active: account.id === active }));
+}
+
 /** What the Account menu shows and does. */
 function accountMenu(
   running: RunningAccounts<OpenedAccount>,
   warn: (message: string) => void,
 ): AccountMenu {
-  const active = running.active().account.id;
   return {
-    entries: running.list().map((account) => ({ ...account, active: account.id === active })),
+    entries: summaries(running),
     activeContents: () => running.active().page.contents,
     switchTo: running.switchTo,
     add: running.add,
@@ -499,18 +509,58 @@ function accountMenu(
 function windowSignals<Window extends WindowPort>(
   deps: Pick<StartDependencies<Window>, 'badge' | 'platform'>,
   window: Window,
+  tray: (unread: number) => void,
 ): AccountSignals {
+  const badge = unreadBadge({
+    ...deps.badge,
+    platform: deps.platform,
+    setOverlayIcon: window.setOverlayIcon.bind(window),
+  });
   return accountSignals({
     setTitle: (title) => {
       window.setTitle(title);
     },
-    showUnread: unreadBadge({
-      ...deps.badge,
-      platform: deps.platform,
-      setOverlayIcon: window.setOverlayIcon.bind(window),
-    }),
+    showUnread: (total) => {
+      badge(total);
+      tray(total);
+    },
     initialTitle: PRODUCT_NAME,
   });
+}
+
+/**
+ * The tray: the running accounts, the unread count of all of them, and
+ * whether the window is out of sight. Returns how to refresh it and how to
+ * give it a new unread count.
+ */
+function accountsTray<Window extends WindowPort>(
+  { deps, chrome, window }: Omit<AccountWiring<Window>, 'signals'>,
+  running: () => RunningAccounts<OpenedAccount>,
+): { readonly refresh: () => void; readonly setUnread: (unread: number) => void } {
+  let unread = 0;
+  const update = setUpTray(deps.tray.create(), window, {
+    platform: deps.platform,
+    buildMenu: deps.tray.buildMenu,
+    switchAccount: (id) => {
+      running().switchTo(id);
+    },
+    openSettings: chrome.openSettings,
+    quit: () => {
+      deps.app.quit();
+    },
+  });
+  const refresh = (): void => {
+    update({ unread, accounts: summaries(running()), windowShown: window.isVisible() });
+  };
+  window.on('show', refresh);
+  window.on('hide', refresh);
+  return {
+    refresh,
+    setUnread: (total) => {
+      unread = total;
+      refresh();
+    },
+  };
 }
 
 /** Every enabled account, in its own view of the main window; the active one shows. */
@@ -518,12 +568,14 @@ function openAccounts<Window extends WindowPort>(
   wiring: Omit<AccountWiring<Window>, 'signals'>,
 ): RunningAccounts<OpenedAccount> {
   const { deps, chrome, window } = wiring;
-  const signals = windowSignals(deps, window);
+  const tray = accountsTray(wiring, () => running);
+  const signals = windowSignals(deps, window, tray.setUnread);
   const changed = (): void => {
     signals.activate(running.active().account.id);
     chrome.setAccountMenu(accountMenu(running, deps.warn));
+    tray.refresh();
   };
-  const running = runAccounts({
+  const running: RunningAccounts<OpenedAccount> = runAccounts({
     accounts: deps.accounts,
     open: (account) => openAccount({ ...wiring, signals }, account),
     save: deps.saveAccounts,
@@ -547,7 +599,7 @@ function openAccounts<Window extends WindowPort>(
   return running;
 }
 
-/** The window-wide parts: chat links, focus, the tray, and showing the window. */
+/** The window-wide parts: chat links, focus, and showing the window. */
 function wireMainWindow<Window extends WindowPort>(
   deps: StartDependencies<Window>,
   chrome: ReturnType<StartDependencies<Window>['chrome']['afterReady']>,
@@ -567,12 +619,6 @@ function wireMainWindow<Window extends WindowPort>(
   focusPageWithWindow(window, {
     focus: () => {
       activePage().focus();
-    },
-  });
-  setUpTray(deps.tray.create(), window, {
-    buildMenu: deps.tray.buildMenu,
-    quit: () => {
-      deps.app.quit();
     },
   });
   showWhenReady(window, deps.settings.current().general.startMinimized, activePage());
