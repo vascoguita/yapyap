@@ -119,7 +119,9 @@ not edit the same lines.
   `accountNotifier` before the rate limit. `quietAudio` mutes the page audio
   of every silenced account except the one on screen; it runs again when
   the window is shown, hidden, minimized or restored, when accounts change
-  and when settings change (ADR 0008, C20). Do not disturb is in the tray,
+  and when settings change (ADR 0008, C20). The window's visibility comes from its
+  events (`trackVisibility`), since macOS still reports a window visible
+  while its `hide` event runs; the tray's Show and Hide follow it too. Do not disturb is in the tray,
   the Account menu and Settings; Mute This Account is in the Account menu
   and the Accounts window, and the tray marks muted accounts. The sidebar
   (#57) will show both when it lands.

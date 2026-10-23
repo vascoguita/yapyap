@@ -13,6 +13,7 @@ import {
   type GraphicsReason,
 } from './recovery/gpu-safe-mode.ts';
 import type { SettingsService } from './settings/service.ts';
+import { trackVisibility, type Visibility } from './window/visibility.ts';
 import { isSilenced, quietAudio, setDoNotDisturb, type AudioPage } from './notifications/quiet.ts';
 import { followHiddenReadsSetting, type ThrottledContents } from './privacy/hidden-reads.ts';
 import { watchForReleases, type UpdateNoticeDependencies } from './updates/update-notice.ts';
@@ -620,6 +621,7 @@ function windowSignals<Window extends WindowPort>(
 function accountsTray<Window extends WindowPort>(
   { deps, chrome, window }: Omit<AccountWiring<Window>, 'signals' | 'running'>,
   running: () => RunningAccounts<OpenedAccount>,
+  visibility: Visibility,
 ): { readonly refresh: () => void; readonly setUnread: (unread: number) => void } {
   let unread = 0;
   const update = setUpTray(deps.tray.create(), window, {
@@ -640,12 +642,10 @@ function accountsTray<Window extends WindowPort>(
     update({
       unread,
       accounts: summaries(running()),
-      windowShown: window.isVisible(),
+      windowShown: visibility.visible(),
       doNotDisturb: deps.settings.current().general.doNotDisturb,
     });
   };
-  window.on('show', refresh);
-  window.on('hide', refresh);
   return {
     refresh,
     setUnread: (total) => {
@@ -655,30 +655,17 @@ function accountsTray<Window extends WindowPort>(
   };
 }
 
-/**
- * Mutes the sound of silenced accounts out of sight, again whenever the
- * window, the accounts or do not disturb change.
- */
+/** Mutes the sound of silenced accounts out of sight; run again on every change. */
 function keepQuiet<Window extends WindowPort>(
   deps: StartDependencies<Window>,
-  window: Window,
-  running: () => RunningAccounts<OpenedAccount>,
-): () => void {
-  const apply = (): void => {
-    const shown = window.isVisible() && !window.isMinimized();
-    quietAudio(
-      running()
-        .opened()
-        .map(({ account, page }) => ({ account, page: page.contents })),
-      deps.settings.current().general.doNotDisturb,
-      shown ? running().active().account.id : undefined,
-    );
-  };
-  window.on('show', apply);
-  window.on('hide', apply);
-  window.on('minimize', apply);
-  window.on('restore', apply);
-  return apply;
+  running: RunningAccounts<OpenedAccount>,
+  visibility: Visibility,
+): void {
+  quietAudio(
+    running.opened().map(({ account, page }) => ({ account, page: page.contents })),
+    deps.settings.current().general.doNotDisturb,
+    visibility.onScreen() ? running.active().account.id : undefined,
+  );
 }
 
 /** Every enabled account, in its own view of the main window; the active one shows. */
@@ -686,14 +673,17 @@ function openAccounts<Window extends WindowPort>(
   wiring: Omit<AccountWiring<Window>, 'signals' | 'running'>,
 ): RunningAccounts<OpenedAccount> {
   const { deps, chrome, window } = wiring;
-  const tray = accountsTray(wiring, () => running);
+  const visibility = trackVisibility(window, () => {
+    tray.refresh();
+    keepQuiet(deps, running, visibility);
+  });
+  const tray = accountsTray(wiring, () => running, visibility);
   const signals = windowSignals(deps, window, tray.setUnread);
-  const quiet = keepQuiet(deps, window, () => running);
   const changed = (): void => {
     signals.activate(running.active().account.id);
     chrome.setAccountMenu(accountMenu(running, deps.warn));
     tray.refresh();
-    quiet();
+    keepQuiet(deps, running, visibility);
   };
   const running: RunningAccounts<OpenedAccount> = runAccounts({
     accounts: deps.accounts,

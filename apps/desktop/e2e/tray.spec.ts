@@ -26,6 +26,8 @@ test('keeps running hidden when the window closes, with Close to the tray on', a
   const app = await launchWith(fakeWhatsApp.origin, profile, { closeToTray: true });
   try {
     await expect((await whatsAppPage(app)).getByTestId('fake-whatsapp')).toBeVisible();
+    // Closing before YapYap first shows the window would race that first show.
+    await expect.poll(() => whatsApp(app)).toBe('visible=true');
     await app.evaluate(({ BrowserWindow }) => {
       // The main window is the only one open.
       BrowserWindow.getAllWindows()[0]?.close();

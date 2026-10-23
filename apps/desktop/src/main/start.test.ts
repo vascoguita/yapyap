@@ -836,12 +836,12 @@ describe('startApp', () => {
       expect(audioMuted(f)).toEqual([true, false]);
       menu(f).switchTo(ACCOUNT);
       expect(audioMuted(f)).toEqual([false, false]);
-      f.window.isMinimized.mockReturnValue(true);
       windowEvent(f, 'minimize');
       expect(audioMuted(f)).toEqual([true, false]);
-      f.window.isMinimized.mockReturnValue(false);
-      f.window.isVisible.mockReturnValue(false);
       windowEvent(f, 'restore');
+      expect(audioMuted(f)).toEqual([false, false]);
+      // macOS still reports the window visible while its hide event runs.
+      windowEvent(f, 'hide');
       expect(audioMuted(f)).toEqual([true, false]);
     });
 
