@@ -62,6 +62,7 @@ function setup() {
       update: vi.fn(),
       onChange: vi.fn(),
     },
+    settingEffects: {},
     settingsFiles: {
       chooseExport: vi.fn(() => Promise.resolve(undefined)),
       chooseImport: vi.fn(() => Promise.resolve(undefined)),
@@ -195,11 +196,13 @@ describe('createChromeFeature', () => {
         'reliability.hardwareVideoDecoding': true,
         'privacy.crashReports': 'off',
         'privacy.unreadWhileHidden': true,
+        'general.autostart': false,
         'general.startMinimized': false,
         'general.closeToTray': false,
       },
       restartPending: false,
       readOnly: false,
+      problems: {},
     });
     t.call('settings:restart');
     expect(t.deps.restart).toHaveBeenCalledOnce();

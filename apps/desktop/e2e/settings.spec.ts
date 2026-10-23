@@ -122,3 +122,17 @@ test('exports the settings to a file and imports them back', async ({ app, profi
   };
   expect(saved.appearance.theme).toBe('dark');
 });
+
+test('starts at login through an autostart entry on Linux', async ({ app, profile }) => {
+  test.skip(
+    process.platform !== 'linux',
+    'Windows and macOS use login items, which tests leave alone',
+  );
+  const entry = join(profile, 'xdg-config', 'autostart', 'org.guita.YapYap.desktop');
+  const settings = await openSettings(app);
+  const toggle = settings.getByRole('checkbox', { name: 'Start at login' });
+  await toggle.check();
+  await expect.poll(() => readFile(entry, 'utf8').catch(() => '')).toContain('Exec=');
+  await toggle.uncheck();
+  await expect.poll(() => readFile(entry, 'utf8').catch(() => 'gone')).toBe('gone');
+});

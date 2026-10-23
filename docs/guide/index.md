@@ -129,6 +129,12 @@ on the Dock on macOS, over the taskbar icon on Windows, and on the launcher
 icon on Linux desktops that support counts, such as Ubuntu's dock and KDE
 Plasma.
 
+**Start at login** under Settings → General starts YapYap when you log in;
+together with **Start minimized** it waits in the tray. It uses your
+system's login items, so removing YapYap there turns the setting off too.
+The Flatpak package cannot do this yet; add YapYap to your desktop's
+startup applications instead.
+
 ## Zoom
 
 Make WhatsApp bigger or smaller with **View → Zoom In** and **Zoom Out**

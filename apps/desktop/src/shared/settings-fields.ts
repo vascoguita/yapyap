@@ -43,6 +43,7 @@ function choices(options: Readonly<Record<string, string>>): NonNullable<Setting
  * acts on it, so the window never offers a switch that does nothing.
  */
 export const SETTING_FIELDS: readonly SettingField[] = [
+  { ...described('general.autostart'), restart: false },
   { ...described('general.startMinimized'), restart: false },
   // macOS always keeps YapYap in the Dock when the window closes.
   { ...described('general.closeToTray'), restart: false, platforms: ['linux', 'win32'] },

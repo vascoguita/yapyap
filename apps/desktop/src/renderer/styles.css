@@ -5,6 +5,7 @@
   --muted: #5b5a6e;
   --accent: #3f2fb8;
   --border: #dcd9f2;
+  --danger: #b3261e;
   font-family: system-ui, sans-serif;
 }
 
@@ -15,6 +16,7 @@
     --muted: #b0aec4;
     --accent: #c9c3ff;
     --border: #34324a;
+    --danger: #ffb4ab;
   }
 }
 
@@ -145,6 +147,12 @@ section > .actions {
   margin: 0;
   color: var(--muted);
   font-size: 0.9rem;
+}
+
+.hint .problem:not(:empty) {
+  display: block;
+  margin-top: 4px;
+  color: var(--danger);
 }
 
 .notice {

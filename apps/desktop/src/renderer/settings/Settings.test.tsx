@@ -12,6 +12,7 @@ const snapshot = (overrides: Partial<SettingsSnapshot> = {}): SettingsSnapshot =
   values: { [THEME]: 'system', [HARDWARE]: true },
   restartPending: false,
   readOnly: false,
+  problems: {},
   ...overrides,
 });
 
@@ -140,6 +141,25 @@ describe('Settings', () => {
     } as const;
     render(<Field field={field} snapshot={snapshot()} onChange={vi.fn()} />);
     expect(document.getElementById('general.example-hint')?.textContent).toBe('Applies at once.');
+  });
+
+  it('explains under a setting why its change did not take effect', () => {
+    const field = {
+      id: 'general.example',
+      label: 'Example',
+      description: 'Does something.',
+      restart: false,
+    } as const;
+    render(
+      <Field
+        field={field}
+        snapshot={snapshot({ problems: { 'general.example': 'The system refused.' } })}
+        onChange={vi.fn()}
+      />,
+    );
+    expect(document.getElementById('general.example-hint')?.textContent).toBe(
+      'Does something.The system refused.',
+    );
   });
 
   it('exports the settings and says how it went', async () => {

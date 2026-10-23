@@ -1,3 +1,5 @@
+import { join } from 'node:path';
+
 // Editors built on Electron (such as VS Code) export ELECTRON_RUN_AS_NODE to
 // their terminals, which would make a development build start as plain Node.js.
 // A desktop session's WAYLAND_DISPLAY would send the app to the real Wayland
@@ -7,7 +9,11 @@ const DROPPED = new Set(['ELECTRON_RUN_AS_NODE', 'WAYLAND_DISPLAY']);
 /** CI sets this to a headless Wayland compositor's socket to test the Wayland backend (#41). */
 const WAYLAND_UNDER_TEST = 'YAPYAP_E2E_WAYLAND_DISPLAY';
 
-export function appEnvironment(origin: string): Record<string, string> {
+/**
+ * The app's environment for a test run. Autostart entries go under the
+ * throwaway profile, so a run never changes the developer's own login items.
+ */
+export function appEnvironment(origin: string, profile: string): Record<string, string> {
   const env: Record<string, string> = {};
   for (const [key, value] of Object.entries(process.env)) {
     if (value !== undefined && !DROPPED.has(key)) {
@@ -18,6 +24,7 @@ export function appEnvironment(origin: string): Record<string, string> {
   return {
     ...env,
     ...(wayland === '' ? {} : { WAYLAND_DISPLAY: wayland }),
+    XDG_CONFIG_HOME: join(profile, 'xdg-config'),
     YAPYAP_TEST_WHATSAPP_ORIGIN: origin,
   };
 }

@@ -18,11 +18,21 @@ import {
   type WebContents,
 } from 'electron';
 import { spawnSync } from 'node:child_process';
-import { existsSync, lstatSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { readFile } from 'node:fs/promises';
-import { release } from 'node:os';
+import { homedir, release } from 'node:os';
 import { join } from 'node:path';
 import { readInstallChannel } from './about/about-info.ts';
+import { applyAutostart, chooseAutostart } from './autostart/autostart.ts';
+import { xdgAutostart } from './autostart/xdg-autostart.ts';
 import { CHROME_PARTITION, createChromeFeature } from './chrome/feature.ts';
 import { profileCrashFiles, readPreviousLog } from './crash/crash-files.ts';
 import { reviewCrashWithDialog } from './crash-review-prompt.ts';
@@ -87,10 +97,35 @@ const installEvidence = () =>
       }).stderr,
   });
 
+const autostart = chooseAutostart({
+  platform: process.platform,
+  flatpak: existsSync('/.flatpak-info'),
+  loginItems: app,
+  xdg: () =>
+    xdgAutostart({
+      env: process.env,
+      home: homedir(),
+      execPath: process.execPath,
+      files: {
+        exists: existsSync,
+        mkdir: (path) => {
+          mkdirSync(path, { recursive: true });
+        },
+        write: (path, text) => {
+          writeFileSync(path, text);
+        },
+        remove: (path) => {
+          rmSync(path);
+        },
+      },
+    }),
+});
+
 const chrome = createChromeFeature({
   notify,
   settings,
   installEvidence,
+  settingEffects: { 'general.autostart': applyAutostart(autostart, warn) },
   registerSchemesAsPrivileged: (schemes) => {
     protocol.registerSchemesAsPrivileged([...schemes]);
   },
@@ -132,6 +167,7 @@ const chrome = createChromeFeature({
 // entry module has finished evaluating.
 startApp({
   app,
+  autostart,
   chrome,
   settings,
   nativeTheme,

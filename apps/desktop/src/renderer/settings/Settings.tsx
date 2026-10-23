@@ -19,11 +19,15 @@ interface FieldProps {
   readonly onChange: Change;
 }
 
-function Hint({ field }: { readonly field: SettingField }): JSX.Element {
+/** The field's description, then why its last change did not take effect. */
+function Hint({ field, snapshot }: Omit<FieldProps, 'onChange'>): JSX.Element {
   return (
     <p id={`${field.id}-hint`} class="hint">
       {field.description}
       {field.restart ? ` ${text.restartNote}` : ''}
+      <span class="problem" aria-live="polite">
+        {snapshot.problems[field.id]}
+      </span>
     </p>
   );
 }
@@ -47,7 +51,7 @@ function Choice(props: FieldProps & { readonly options: NonNullable<SettingField
           {label}
         </label>
       ))}
-      <Hint field={field} />
+      <Hint field={field} snapshot={snapshot} />
     </fieldset>
   );
 }
@@ -71,7 +75,7 @@ export function Field(props: FieldProps): JSX.Element {
         }}
       />
       <label for={field.id}>{field.label}</label>
-      <Hint field={field} />
+      <Hint field={field} snapshot={snapshot} />
     </div>
   );
 }

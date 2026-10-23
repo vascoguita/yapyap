@@ -11,6 +11,7 @@ the [profile folder](#files).
 
 | Setting                        | In the file                         | Default            | Notes                                                           |
 | ------------------------------ | ----------------------------------- | ------------------ | --------------------------------------------------------------- |
+| Start at login                 | `general.autostart`                 | Off                | Follows the system's login items; not yet in Flatpak (#234)     |
 | Start minimized                | `general.startMinimized`            | Off                | Opens in the tray or the Dock                                   |
 | Close to the tray              | `general.closeToTray`               | Off                | Windows and Linux; macOS always keeps running                   |
 | Theme                          | `appearance.theme`                  | Same as the system | `system`, `light` or `dark`                                     |

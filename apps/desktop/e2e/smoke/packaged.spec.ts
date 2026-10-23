@@ -46,7 +46,7 @@ test('the installed package opens a window on the fake WhatsApp page and plays m
   const fake = await startFakeWhatsApp();
   const profile = mkdtempSync(join(tmpdir(), 'yapyap-smoke-'));
   const app = spawn(executable, ['--remote-debugging-port=0', `--user-data-dir=${profile}`], {
-    env: appEnvironment(fake.origin),
+    env: appEnvironment(fake.origin, profile),
     stdio: 'inherit',
   });
   try {
@@ -87,7 +87,7 @@ test('the package explains, instead of running, when it cannot get its sandbox',
   const fake = await startFakeWhatsApp();
   const profile = mkdtempSync(join(tmpdir(), 'yapyap-smoke-'));
   const app = spawn(executable, [`--user-data-dir=${profile}`], {
-    env: appEnvironment(fake.origin),
+    env: appEnvironment(fake.origin, profile),
     stdio: ['ignore', 'ignore', 'pipe'],
   });
   try {
