@@ -11,6 +11,8 @@ const MENU_BAR = 'appearance.autoHideMenuBar';
 const BACKEND = 'reliability.displayBackend';
 const CRASH = 'privacy.crashReports';
 const UNREAD = 'privacy.unreadWhileHidden';
+const SENDER = 'privacy.notificationSender';
+const TEXT = 'privacy.notificationText';
 const START_MINIMIZED = 'general.startMinimized';
 const CLOSE_TO_TRAY = 'general.closeToTray';
 const AUTOSTART = 'general.autostart';
@@ -115,6 +117,8 @@ describe('settingsHandlers', () => {
         [VIDEO]: true,
         [CRASH]: 'off',
         [UNREAD]: true,
+        [SENDER]: true,
+        [TEXT]: true,
         [AUTOSTART]: false,
         [START_MINIMIZED]: false,
         [BETA]: false,
@@ -181,6 +185,8 @@ describe('settingsHandlers', () => {
         [VIDEO]: true,
         [CRASH]: 'off',
         [UNREAD]: true,
+        [SENDER]: true,
+        [TEXT]: true,
         [AUTOSTART]: false,
         [START_MINIMIZED]: false,
         [BETA]: false,

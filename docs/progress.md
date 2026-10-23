@@ -113,6 +113,11 @@ not edit the same lines.
   the page, removing the account or quitting withdraws them. The fake page
   shows notifications through the Web API (`notify.js`).
 
+- Notification privacy (#62): `privacy.notificationSender` and
+  `privacy.notificationText` (settings schema v6) replace the sender with
+  “WhatsApp” and the text with “New message” before anything reaches the
+  system; images are never shown (ADR 0011).
+
 - Tray menu (#63, first part): the tray shows or hides the window (the
   label follows the window), switches between running accounts, opens
   Settings and quits; its tooltip, and the macOS menu bar title, show the

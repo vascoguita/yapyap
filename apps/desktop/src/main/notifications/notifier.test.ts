@@ -27,6 +27,7 @@ function setup(heading?: string) {
       return native;
     }),
     isSupported: vi.fn(() => true),
+    privacy: vi.fn(() => ({ sender: true, text: true })),
     now: () => time,
     warn: vi.fn(),
   };
@@ -56,6 +57,18 @@ describe('accountNotifier', () => {
     const t = setup('Work');
     t.notifier.show(request('1'));
     expect(t.natives[0]?.options.title).toBe('Work: Alice');
+  });
+
+  it('hides the sender or the text when the privacy options say so', () => {
+    const t = setup('Work');
+    t.deps.privacy.mockReturnValueOnce({ sender: false, text: true });
+    t.notifier.show(request('1'));
+    t.deps.privacy.mockReturnValueOnce({ sender: true, text: false });
+    t.notifier.show(request('2'));
+    expect(t.natives.map((native) => native.options)).toEqual([
+      { title: 'Work: WhatsApp', body: 'Hi', silent: false },
+      { title: 'Work: Alice', body: 'New message', silent: false },
+    ]);
   });
 
   it('tells the account which notification was clicked', () => {

@@ -68,4 +68,6 @@ export const SETTING_FIELDS: readonly SettingField[] = [
     options: choices(text['privacy.crashReports'].options),
   },
   { ...described('privacy.unreadWhileHidden'), restart: false },
+  { ...described('privacy.notificationSender'), restart: false },
+  { ...described('privacy.notificationText'), restart: false },
 ];

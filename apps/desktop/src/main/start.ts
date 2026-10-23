@@ -466,7 +466,15 @@ function notifyFor<Window extends WindowPort>(
 ): AccountNotifier {
   const { deps, window, running } = wiring;
   const notifier = accountNotifier(
-    { ...deps.notifications, now: Date.now, warn: deps.warn },
+    {
+      ...deps.notifications,
+      privacy: () => {
+        const { notificationSender, notificationText } = deps.settings.current().privacy;
+        return { sender: notificationSender, text: notificationText };
+      },
+      now: Date.now,
+      warn: deps.warn,
+    },
     {
       heading: () => {
         const names = new Map(

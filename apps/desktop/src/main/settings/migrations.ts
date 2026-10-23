@@ -38,6 +38,17 @@ function addBetaUpdates(settings: Raw): Raw {
     : settings;
 }
 
+/** Version 6 adds the notification privacy options, showing everything as before (#62). */
+function addNotificationPrivacy(settings: Raw): Raw {
+  const privacy = settings['privacy'];
+  return isSection(privacy)
+    ? {
+        ...settings,
+        privacy: { notificationSender: true, notificationText: true, ...privacy },
+      }
+    : settings;
+}
+
 /**
  * `MIGRATIONS[n]` turns a version n+1 file into version n+2. They are pure,
  * forward-only, and each has its own test; a test also checks that there is
@@ -48,6 +59,7 @@ export const MIGRATIONS: readonly ((settings: Raw) => Raw)[] = [
   addUnreadWhileHidden,
   addCloseToTray,
   addBetaUpdates,
+  addNotificationPrivacy,
 ];
 
 export type MigrationResult =
