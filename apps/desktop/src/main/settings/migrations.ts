@@ -49,6 +49,14 @@ function addNotificationPrivacy(settings: Raw): Raw {
     : settings;
 }
 
+/** Version 7 adds do not disturb, off as before (#61). */
+function addDoNotDisturb(settings: Raw): Raw {
+  const general = settings['general'];
+  return isSection(general)
+    ? { ...settings, general: { doNotDisturb: false, ...general } }
+    : settings;
+}
+
 /**
  * `MIGRATIONS[n]` turns a version n+1 file into version n+2. They are pure,
  * forward-only, and each has its own test; a test also checks that there is
@@ -60,6 +68,7 @@ export const MIGRATIONS: readonly ((settings: Raw) => Raw)[] = [
   addCloseToTray,
   addBetaUpdates,
   addNotificationPrivacy,
+  addDoNotDisturb,
 ];
 
 export type MigrationResult =

@@ -31,6 +31,7 @@ describe('openSettings', () => {
       autostart: true,
       closeToTray: false,
       betaUpdates: false,
+      doNotDisturb: false,
     });
   });
 

@@ -100,6 +100,8 @@ export interface AccountSummary {
   readonly color: string;
   /** An account that is off keeps its data but runs no WhatsApp. */
   readonly enabled: boolean;
+  /** A muted account shows no notifications and plays no sounds while out of sight. */
+  readonly muted: boolean;
   /** The account the main window shows. */
   readonly active: boolean;
 }
@@ -115,6 +117,7 @@ export interface AccountChange {
   readonly name: string;
   readonly color: string;
   readonly enabled: boolean;
+  readonly muted: boolean;
 }
 
 export const CHROME_CHANNELS = {

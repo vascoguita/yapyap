@@ -32,6 +32,8 @@ import {
 } from '../recovery/controller.ts';
 import { guardCrashes, type CrashableContents } from '../recovery/crash-guard.ts';
 import { monitorPage, type MonitoredContents } from '../recovery/monitor.ts';
+import { isAccountColor } from '../accounts/accounts.ts';
+import { setDoNotDisturb } from '../notifications/quiet.ts';
 import { settingsHandlers, type SettingEffect } from '../settings/handlers.ts';
 import type { SettingsService } from '../settings/service.ts';
 import { settingsTransferHandlers, type SettingsFiles } from '../settings/transfer-handlers.ts';
@@ -346,6 +348,26 @@ function accountActions(
   };
 }
 
+/** Do not disturb, kept in the settings, and muting the account on screen. */
+function quietActions(
+  settings: SettingsService,
+  menu: AccountMenu | undefined,
+): Pick<MenuActions, 'doNotDisturb' | 'setDoNotDisturb' | 'setMuted'> {
+  return {
+    doNotDisturb: settings.current().general.doNotDisturb,
+    setDoNotDisturb: (on) => {
+      setDoNotDisturb(settings, on);
+    },
+    setMuted: (muted) => {
+      const entry = menu?.entries.find((candidate) => candidate.active);
+      if (menu !== undefined && entry !== undefined && isAccountColor(entry.color)) {
+        const { name, color, enabled } = entry;
+        menu.update(entry.id, { name, color, enabled, muted });
+      }
+    },
+  };
+}
+
 function diagnostics(
   deps: Omit<ChromeFeatureDependencies, 'facts'> & FactsSource,
   page?: string,
@@ -415,6 +437,7 @@ function accountMenuSetter(
         addAccount: menu?.add ?? ignore,
         ...openers,
         ...accountActions(deps, recoveries, menu, warn),
+        ...quietActions(deps.settings, menu),
         zoom: (step) => {
           changeZoom(deps.settings, step);
         },

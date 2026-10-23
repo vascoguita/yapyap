@@ -58,3 +58,56 @@ test('turns WhatsApp’s notifications into system ones that open the chat and g
   await window.getByTestId('notify-read').click();
   await expect.poll(async () => (await shown(app))[0]?.closed).toBe(true);
 });
+
+/** Clicks Do Not Disturb in the Account menu. */
+const toggleDoNotDisturb = (app: ElectronApplication) =>
+  app.evaluate(({ Menu }) => {
+    Menu.getApplicationMenu()
+      ?.items.flatMap((menu) => menu.submenu?.items ?? [])
+      .find((entry) => entry.label === 'Do Not Disturb')
+      ?.click();
+  });
+
+/** Whether WhatsApp's page is muted. */
+const whatsAppAudioMuted = (app: ElectronApplication) =>
+  app.evaluate(({ webContents }) =>
+    webContents
+      .getAllWebContents()
+      .find((contents) => contents.getURL().startsWith('http'))
+      ?.isAudioMuted(),
+  );
+
+/** Shows or hides the window around WhatsApp's page. */
+const setWindowShown = (app: ElectronApplication, shown: boolean) =>
+  app.evaluate(({ BrowserWindow, webContents }, show) => {
+    const page = webContents
+      .getAllWebContents()
+      .find((contents) => contents.getURL().startsWith('http'));
+    const owner = page === undefined ? null : BrowserWindow.fromWebContents(page);
+    if (show) {
+      owner?.show();
+    } else {
+      owner?.hide();
+    }
+  }, shown);
+
+test('do not disturb drops notifications, and mutes WhatsApp while it is out of sight', async ({
+  app,
+  window,
+}) => {
+  await recordNotifications(app);
+  await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
+  await window.waitForLoadState('load');
+  await toggleDoNotDisturb(app);
+  await window.getByTestId('notify').click();
+  await expect(window.getByTestId('notify-result')).toHaveText('permission granted');
+  expect(await whatsAppAudioMuted(app)).toBe(false);
+  await setWindowShown(app, false);
+  await expect.poll(() => whatsAppAudioMuted(app)).toBe(true);
+  await setWindowShown(app, true);
+  await expect.poll(() => whatsAppAudioMuted(app)).toBe(false);
+  await toggleDoNotDisturb(app);
+  // Notifications arrive in order, so only the second appearing proves the first was dropped.
+  await window.getByTestId('notify').click();
+  await expect.poll(() => shown(app)).toHaveLength(1);
+});

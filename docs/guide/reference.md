@@ -14,6 +14,7 @@ the [profile folder](#files).
 | Start at login                     | `general.autostart`                 | Off                | Follows the system's login items; not yet in Flatpak (#234)                   |
 | Start minimized                    | `general.startMinimized`            | Off                | Opens in the tray or the Dock                                                 |
 | Get beta updates                   | `general.betaUpdates`               | Off                | Only in builds that update or announce updates; see [betas](install.md#betas) |
+| Do not disturb                     | `general.doNotDisturb`              | Off                | Also in the tray and the Account menu                                         |
 | Close to the tray                  | `general.closeToTray`               | Off                | Windows and Linux; macOS always keeps running                                 |
 | Theme                              | `appearance.theme`                  | Same as the system | `system`, `light` or `dark`                                                   |
 | Hide the menu bar                  | `appearance.autoHideMenuBar`        | Off                | Windows and Linux; <kbd>Alt</kbd> shows it                                    |

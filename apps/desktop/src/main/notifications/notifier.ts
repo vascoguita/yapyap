@@ -30,6 +30,8 @@ export interface NotifierDependencies {
 export interface NotifierAccount {
   /** The account's name, shown when there is more than one account. */
   readonly heading: () => string | undefined;
+  /** Do not disturb is on, or the account is muted (#61). */
+  readonly silenced: () => boolean;
   readonly onClick: (id: string) => void;
 }
 
@@ -111,6 +113,19 @@ function availability(deps: NotifierDependencies): () => boolean {
   };
 }
 
+/** Whether the system should show one more notification now. */
+function admission(deps: NotifierDependencies): () => boolean {
+  const allowed = rateLimiter(deps.now);
+  const available = availability(deps);
+  return () => {
+    if (!allowed()) {
+      deps.warn('Dropped a notification: WhatsApp sent too many at once.');
+      return false;
+    }
+    return available();
+  };
+}
+
 type Shown = Map<string, { readonly native: NativeNotification; readonly tag: string }>;
 
 /** Shows a checked notification, replacing any with the same tag, as the Web API does. */
@@ -148,8 +163,7 @@ export function accountNotifier(
   account: NotifierAccount,
 ): AccountNotifier {
   const shown: Shown = new Map();
-  const allowed = rateLimiter(deps.now);
-  const available = availability(deps);
+  const admitted = admission(deps);
   const close = (id: string): void => {
     shown.get(id)?.native.close();
     shown.delete(id);
@@ -161,11 +175,8 @@ export function accountNotifier(
         deps.warn('Dropped a malformed notification from WhatsApp.');
         return;
       }
-      if (!allowed()) {
-        deps.warn('Dropped a notification: WhatsApp sent too many at once.');
-        return;
-      }
-      if (available()) {
+      // A silenced account's notifications count against no limit.
+      if (!account.silenced() && admitted()) {
         display(deps, account, shown, notification);
       }
     },

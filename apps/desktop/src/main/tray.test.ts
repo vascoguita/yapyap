@@ -2,9 +2,16 @@ import type { MenuItemConstructorOptions } from 'electron';
 import { describe, expect, it, vi } from 'vitest';
 import { setUpTray, type TrayState } from './tray.ts';
 
-const PERSONAL = { id: 'a', name: 'Personal', color: 'green', enabled: true, active: true };
-const WORK = { id: 'b', name: 'Work', color: 'blue', enabled: true, active: false };
-const OFF = { id: 'c', name: 'Old', color: 'red', enabled: false, active: false };
+const PERSONAL = {
+  id: 'a',
+  name: 'Personal',
+  color: 'green',
+  enabled: true,
+  muted: false,
+  active: true,
+};
+const WORK = { id: 'b', name: 'Work', color: 'blue', enabled: true, muted: false, active: false };
+const OFF = { id: 'c', name: 'Old', color: 'red', enabled: false, muted: false, active: false };
 
 function setup(platform = 'linux', minimized = false) {
   let click: (() => void) | undefined;
@@ -28,6 +35,7 @@ function setup(platform = 'linux', minimized = false) {
     buildMenu: vi.fn((template: MenuItemConstructorOptions[]) => template),
     switchAccount: vi.fn(),
     openSettings: vi.fn(),
+    setDoNotDisturb: vi.fn(),
     quit: vi.fn(),
   };
   const update = setUpTray(tray, window, deps);
@@ -44,6 +52,7 @@ const state = (overrides: Partial<TrayState> = {}): TrayState => ({
   accounts: [PERSONAL],
   unread: 0,
   windowShown: false,
+  doNotDisturb: false,
   ...overrides,
 });
 
@@ -60,13 +69,14 @@ describe('setUpTray', () => {
     expect(setup('darwin').tray.on).not.toHaveBeenCalled();
   });
 
-  it('offers Show, Settings and Quit with one account', () => {
+  it('offers Show, Do Not Disturb, Settings and Quit with one account', () => {
     const t = setup();
     const template = t.menu(state());
     expect(t.tray.setContextMenu).toHaveBeenLastCalledWith(template);
     expect(template.map((entry) => entry.label ?? entry.type)).toEqual([
       'Show YapYap',
       'separator',
+      'Do Not Disturb',
       'Settings…',
       'separator',
       'Quit YapYap',
@@ -77,6 +87,21 @@ describe('setUpTray', () => {
     expect(t.deps.openSettings).toHaveBeenCalledOnce();
     t.item(template, 'Quit YapYap')();
     expect(t.deps.quit).toHaveBeenCalledOnce();
+  });
+
+  it('turns do not disturb on and off, showing whether it is on', () => {
+    const t = setup();
+    const off = t.menu(state());
+    expect(off.find((entry) => entry.label === 'Do Not Disturb')).toMatchObject({
+      type: 'checkbox',
+      checked: false,
+    });
+    t.item(off, 'Do Not Disturb')();
+    expect(t.deps.setDoNotDisturb).toHaveBeenLastCalledWith(true);
+    const on = t.menu(state({ doNotDisturb: true }));
+    expect(on.find((entry) => entry.label === 'Do Not Disturb')?.checked).toBe(true);
+    t.item(on, 'Do Not Disturb')();
+    expect(t.deps.setDoNotDisturb).toHaveBeenLastCalledWith(false);
   });
 
   it('hides the window when it is shown', () => {
@@ -94,6 +119,8 @@ describe('setUpTray', () => {
       expect.objectContaining({ label: 'Work', checked: false }),
     ]);
     expect(template.some((entry) => entry.label === 'Old')).toBe(false);
+    const muted = t.menu(state({ accounts: [PERSONAL, { ...WORK, muted: true }] }));
+    expect(muted[3]?.label).toBe('Work (muted)');
     t.item(template, 'Work')();
     expect(t.deps.switchAccount).toHaveBeenCalledWith('b');
     expect(t.window.show).toHaveBeenCalledOnce();

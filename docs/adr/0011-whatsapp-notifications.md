@@ -43,6 +43,10 @@ notifications in the main process.
 - If the system has no notification service, YapYap logs that once and keeps
   trying for later notifications, so notifications return when the service
   does.
+- Do not disturb and muting an account (#61) drop that account's
+  notifications before the rate limit, so they never reach the system. They
+  also mute the page's audio, which carries WhatsApp's message tones and
+  ringtones, except for the account on screen (ADR 0008, C20).
 
 ## Consequences
 

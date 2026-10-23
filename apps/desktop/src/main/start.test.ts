@@ -6,6 +6,7 @@ import type { Accounts } from './accounts/accounts.ts';
 import type { AccountMenu } from './chrome/feature.ts';
 import type { CaptureChoice } from './permissions/session-guard.ts';
 import { defaultSettings } from './settings/decode.ts';
+import type { Settings } from './settings/schema.ts';
 import { WHATSAPP_ORIGIN } from './whatsapp-origin.ts';
 import type { WindowOptions } from './windows.ts';
 
@@ -34,6 +35,7 @@ function fakeContents() {
     forcefullyCrashRenderer: vi.fn(),
     getOSProcessId: () => 4242,
     setBackgroundThrottling: vi.fn(),
+    setAudioMuted: vi.fn(),
     session: {
       clearCache: vi.fn(() => Promise.resolve()),
       clearStorageData: vi.fn(() => Promise.resolve()),
@@ -725,8 +727,15 @@ describe('startApp', () => {
         `${WHATSAPP_ORIGIN}/send?phone=447700900123`,
       );
       expect(menu(f).entries).toEqual([
-        { id: ACCOUNT, name: 'Personal', color: 'green', enabled: true, active: false },
-        { id: SECOND, name: 'Work', color: 'blue', enabled: true, active: true },
+        {
+          id: ACCOUNT,
+          name: 'Personal',
+          color: 'green',
+          enabled: true,
+          muted: false,
+          active: false,
+        },
+        { id: SECOND, name: 'Work', color: 'blue', enabled: true, muted: false, active: true },
       ]);
       expect(menu(f).activeContents()).toBe(work?.webContents);
     });
@@ -796,6 +805,70 @@ describe('startApp', () => {
       expect(f.natives[1]?.close).not.toHaveBeenCalled();
       f.listeners.get('will-quit')?.();
       expect(f.natives[1]?.close).toHaveBeenCalledOnce();
+    });
+
+    const showFrom = (f: ReturnType<typeof twoAccounts>, index: number) => {
+      f.ipcListeners.get('whatsapp:notification-show')?.(
+        { sender: f.hosts[index]?.webContents, senderFrame: { url: `${WHATSAPP_ORIGIN}/` } },
+        { id: String(index), title: 'Alice' },
+      );
+    };
+    const audioMuted = (f: ReturnType<typeof twoAccounts>) =>
+      f.hosts.map((host) => host.page.contents.setAudioMuted.mock.calls.at(-1)?.[0] as boolean);
+    const windowEvent = (f: ReturnType<typeof twoAccounts>, name: string) => {
+      const listeners = f.window.on.mock.calls.filter(([event]) => event === name);
+      for (const [, listener] of listeners) {
+        (listener as () => void)();
+      }
+    };
+
+    it('silences a muted account, and mutes its sound while it is out of sight', async () => {
+      const f = twoAccounts();
+      const [personal, work] = f.accounts.accounts;
+      if (personal === undefined || work === undefined) {
+        throw new Error('Two accounts are expected.');
+      }
+      f.accounts = { ...f.accounts, accounts: [{ ...personal, muted: true }, work] };
+      await startApp(f);
+      showFrom(f, 0);
+      showFrom(f, 1);
+      expect(f.natives.map((native) => native.options.title)).toEqual(['Work: Alice']);
+      expect(audioMuted(f)).toEqual([true, false]);
+      menu(f).switchTo(ACCOUNT);
+      expect(audioMuted(f)).toEqual([false, false]);
+      f.window.isMinimized.mockReturnValue(true);
+      windowEvent(f, 'minimize');
+      expect(audioMuted(f)).toEqual([true, false]);
+      f.window.isMinimized.mockReturnValue(false);
+      f.window.isVisible.mockReturnValue(false);
+      windowEvent(f, 'restore');
+      expect(audioMuted(f)).toEqual([true, false]);
+    });
+
+    it('turns do not disturb on from the tray, silencing every account out of sight', async () => {
+      const f = twoAccounts();
+      let settings = defaultSettings();
+      f.settings.current = () => settings;
+      await startApp(f);
+      const tray = () =>
+        (f.tray.buildMenu.mock.calls.at(-1)?.[0] ?? []) as {
+          label?: string;
+          checked?: boolean;
+          click?: () => void;
+        }[];
+      tray()
+        .find((entry) => entry.label === 'Do Not Disturb')
+        ?.click?.();
+      const [change] = f.settings.update.mock.calls[0] as [(current: Settings) => Settings];
+      settings = change(settings);
+      for (const [listener] of f.settings.onChange.mock.calls as [(next: Settings) => void][]) {
+        listener(settings);
+      }
+      expect(tray().find((entry) => entry.label === 'Do Not Disturb')?.checked).toBe(true);
+      expect(audioMuted(f)).toEqual([true, false]);
+      showFrom(f, 0);
+      showFrom(f, 1);
+      expect(f.natives).toHaveLength(0);
     });
 
     it('sends chat links and focus to the active account', async () => {

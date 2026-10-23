@@ -6,9 +6,9 @@ import { Accounts } from './Accounts.tsx';
 
 const LIST: AccountList = {
   accounts: [
-    { id: 'a', name: 'Personal', color: 'green', enabled: true, active: false },
-    { id: 'b', name: 'Work', color: 'blue', enabled: true, active: true },
-    { id: 'c', name: 'Old', color: 'pink', enabled: false, active: false },
+    { id: 'a', name: 'Personal', color: 'green', enabled: true, muted: true, active: false },
+    { id: 'b', name: 'Work', color: 'blue', enabled: true, muted: false, active: true },
+    { id: 'c', name: 'Old', color: 'pink', enabled: false, muted: false, active: false },
   ],
   // A color this YapYap has no name for still shows, by its key.
   colors: ['green', 'blue', 'teal', 'pink'],
@@ -49,11 +49,12 @@ afterEach(() => {
 });
 
 describe('Accounts', () => {
-  it('lists every account, marking the one on screen and those that are off', async () => {
+  it('lists every account, marking the one on screen and those that are off or muted', async () => {
     await shown();
     expect(screen.getByRole('list', { name: 'Your accounts' }).textContent).toContain('Old');
     expect(button('Work On screen').getAttribute('aria-pressed')).toBe('true');
     expect(button('Old Off').getAttribute('aria-pressed')).toBe('false');
+    expect(button('Personal Muted').getAttribute('aria-pressed')).toBe('false');
     expect(screen.getByRole('radio', { name: 'Teal' })).toBeTruthy();
     expect(screen.getByRole('radio', { name: 'pink' })).toBeTruthy();
   });
@@ -79,11 +80,13 @@ describe('Accounts', () => {
     fireEvent.input(name(), { target: { value: 'Office' } });
     fireEvent.click(screen.getByRole('radio', { name: 'Teal' }));
     fireEvent.click(screen.getByLabelText('Run this account'));
+    fireEvent.click(screen.getByLabelText('Mute this account'));
     fireEvent.click(button('Save'));
     expect(t.accounts.save).toHaveBeenCalledWith('b', {
       name: 'Office',
       color: 'teal',
       enabled: false,
+      muted: true,
     });
     await waitFor(() => {
       expect(name().value).toBe('Work');
@@ -110,7 +113,7 @@ describe('Accounts', () => {
 
   it('switches accounts at once when nothing changed, and asks first when something did', async () => {
     await shown();
-    fireEvent.click(button('Personal'));
+    fireEvent.click(button('Personal Muted'));
     expect(name().value).toBe('Personal');
     fireEvent.input(name(), { target: { value: 'Home' } });
     fireEvent.click(button('Work On screen'));

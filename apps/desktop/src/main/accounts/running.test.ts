@@ -140,13 +140,18 @@ describe('runAccounts', () => {
 describe('update', () => {
   it('renames and recolors an account, on screen or not', () => {
     const t = setup(two);
-    expect(t.running.update(B, { name: 'Office', color: 'teal', enabled: true })).toBe(true);
-    expect(t.running.update(A, { name: 'Home', color: 'red', enabled: true })).toBe(true);
+    expect(
+      t.running.update(B, { name: 'Office', color: 'teal', enabled: true, muted: false }),
+    ).toBe(true);
+    expect(t.running.update(A, { name: 'Home', color: 'red', enabled: true, muted: false })).toBe(
+      true,
+    );
     expect(t.running.active().account).toEqual({
       id: B,
       name: 'Office',
       color: 'teal',
       enabled: true,
+      muted: false,
     });
     expect(t.running.opened().map((entry) => entry.account.name)).toEqual(['Home', 'Office']);
     expect(t.deps.open).toHaveBeenCalledTimes(2);
@@ -159,7 +164,9 @@ describe('update', () => {
 
   it('turns the active account off: shows another, closes its views and keeps its data', () => {
     const t = setup(two);
-    expect(t.running.update(B, { name: 'Work', color: 'green', enabled: false })).toBe(true);
+    expect(
+      t.running.update(B, { name: 'Work', color: 'green', enabled: false, muted: false }),
+    ).toBe(true);
     expect(t.running.active().account.id).toBe(A);
     expect(t.page(B)?.close).toHaveBeenCalledOnce();
     expect(t.deps.forget).not.toHaveBeenCalled();
@@ -172,7 +179,9 @@ describe('update', () => {
       accounts: [account(A, 'Personal'), account(B, 'Work', false)],
       active: A,
     });
-    expect(t.running.update(B, { name: 'Work', color: 'green', enabled: true })).toBe(true);
+    expect(t.running.update(B, { name: 'Work', color: 'green', enabled: true, muted: false })).toBe(
+      true,
+    );
     expect(t.deps.open).toHaveBeenCalledTimes(2);
     expect(t.page(B)?.show).not.toHaveBeenCalled();
     expect(t.running.opened()).toHaveLength(2);
@@ -180,8 +189,12 @@ describe('update', () => {
 
   it('refuses to turn off the last open account, or to change one it does not know', () => {
     const t = setup({ ...two, accounts: [account(A, 'Personal')], active: A });
-    expect(t.running.update(A, { name: 'Personal', color: 'green', enabled: false })).toBe(false);
-    expect(t.running.update(C, { name: 'Nobody', color: 'green', enabled: true })).toBe(false);
+    expect(
+      t.running.update(A, { name: 'Personal', color: 'green', enabled: false, muted: false }),
+    ).toBe(false);
+    expect(
+      t.running.update(C, { name: 'Nobody', color: 'green', enabled: true, muted: false }),
+    ).toBe(false);
     expect(t.deps.save).not.toHaveBeenCalled();
   });
 });

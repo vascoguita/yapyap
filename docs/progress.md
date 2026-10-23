@@ -113,6 +113,17 @@ not edit the same lines.
   the page, removing the account or quitting withdraws them. The fake page
   shows notifications through the Web API (`notify.js`).
 
+- Do not disturb and per-account mute (#61): `general.doNotDisturb`
+  (settings schema v7) and an optional `muted` flag per account in
+  `accounts.json` (old files stay valid) silence notifications in
+  `accountNotifier` before the rate limit. `quietAudio` mutes the page audio
+  of every silenced account except the one on screen; it runs again when
+  the window is shown, hidden, minimized or restored, when accounts change
+  and when settings change (ADR 0008, C20). Do not disturb is in the tray,
+  the Account menu and Settings; Mute This Account is in the Account menu
+  and the Accounts window, and the tray marks muted accounts. The sidebar
+  (#57) will show both when it lands.
+
 - Notification privacy (#62): `privacy.notificationSender` and
   `privacy.notificationText` (settings schema v6) replace the sender with
   “WhatsApp” and the text with “New message” before anything reaches the
@@ -123,8 +134,8 @@ not edit the same lines.
   Settings and quits; its tooltip, and the macOS menu bar title, show the
   unread count of every account. On macOS a click opens the menu, as menu
   bar items do. Chrome windows now share one opener each, so a rebuilt menu
-  or the tray never opens a second copy. Do not disturb (#61) and a symbolic
-  icon that follows the system theme are still to come.
+  or the tray never opens a second copy. A symbolic icon that follows the
+  system theme is still to come.
 
 - Unread badge (#64): the count of unread chats in WhatsApp's title
   (`unreadInTitle` in the adapter, read on `page-title-updated`, so no page

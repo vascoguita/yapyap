@@ -15,6 +15,10 @@ export interface MenuActions {
   readonly openAccounts: () => void;
   /** Asks first, since it deletes the active account's WhatsApp data. */
   readonly removeAccount: () => void;
+  readonly doNotDisturb: boolean;
+  readonly setDoNotDisturb: (on: boolean) => void;
+  /** Mutes or unmutes the active account. */
+  readonly setMuted: (muted: boolean) => void;
   readonly openAbout: () => void;
   readonly openSettings: () => void;
   readonly openNewChat: () => void;
@@ -78,6 +82,31 @@ function accountItems(actions: MenuActions): MenuItemConstructorOptions[] {
   }));
 }
 
+/** Do not disturb for every account, and muting for the one on screen (#61). */
+function quietItems(actions: MenuActions): MenuItemConstructorOptions[] {
+  const active = actions.accounts.find((entry) => entry.active);
+  const muted = active?.muted === true;
+  return [
+    {
+      label: en.menu.doNotDisturb,
+      type: 'checkbox',
+      checked: actions.doNotDisturb,
+      click: () => {
+        actions.setDoNotDisturb(!actions.doNotDisturb);
+      },
+    },
+    {
+      label: en.menu.muteAccount,
+      type: 'checkbox',
+      checked: muted,
+      enabled: active !== undefined,
+      click: () => {
+        actions.setMuted(!muted);
+      },
+    },
+  ];
+}
+
 /** The accounts, and maintenance for the active one, for when it misbehaves. */
 function accountMenu(actions: MenuActions): MenuItemConstructorOptions {
   return {
@@ -92,6 +121,8 @@ function accountMenu(actions: MenuActions): MenuItemConstructorOptions {
         enabled: running(actions).length > 1,
         click: actions.removeAccount,
       },
+      { type: 'separator' },
+      ...quietItems(actions),
       { type: 'separator' },
       { label: en.menu.newChat, click: actions.openNewChat },
       { type: 'separator' },

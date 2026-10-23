@@ -33,7 +33,7 @@ describe('createChromeBridge', () => {
     await api.picker.cancel();
     expect(await api.chat.openNumber('+44 7700 900123')).toBe(true);
     expect(await api.accounts.list()).toBe('ignored');
-    const change = { name: 'Work', color: 'blue', enabled: true };
+    const change = { name: 'Work', color: 'blue', enabled: true, muted: false };
     expect(await api.accounts.save('a', change)).toBe('ignored');
     expect(await api.accounts.remove('a')).toBe('ignored');
     expect(invoke.mock.calls).toEqual([
@@ -53,7 +53,7 @@ describe('createChromeBridge', () => {
       ['picker:cancel'],
       ['chat:open-number', '+44 7700 900123'],
       ['accounts:list'],
-      ['accounts:save', 'a', { name: 'Work', color: 'blue', enabled: true }],
+      ['accounts:save', 'a', { name: 'Work', color: 'blue', enabled: true, muted: false }],
       ['accounts:remove', 'a'],
     ]);
   });
