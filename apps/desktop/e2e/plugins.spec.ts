@@ -292,3 +292,37 @@ test('lists a plugin’s commands in the menu under its name, and runs the one t
   await expect.poll(async () => (await pluginPage(app))?.title).toBe('greeted');
   expect((await pluginPage(app))?.shown).toBe(false);
 });
+
+/** Writes its settings in its title every half second. */
+const CONFIGURED = `
+export default {
+  activate(host) {
+    setInterval(() => {
+      host.settings.get().then((settings) => {
+        document.title = JSON.stringify(settings);
+      });
+    }, 500);
+  },
+};
+`;
+
+test('gives a plugin the settings the user chose in its form', async ({ app, profile }) => {
+  const manifest = testManifest({
+    capabilities: [],
+    network: { hosts: [] },
+    contributes: {
+      settings: {
+        type: 'object',
+        properties: { model: { type: 'string', title: 'Model', enum: ['small', 'large'] } },
+      },
+    },
+  });
+  await installPlugin(app, profile, manifest, CONFIGURED);
+  await expect.poll(async () => (await pluginPage(app))?.title, { timeout: 20_000 }).toBe('{}');
+  await clickMenu(app, 'Plugins…');
+  const plugins = await chromePage(app, '/plugins.html');
+  await plugins.getByText('Settings').click();
+  await plugins.getByLabel('Model').selectOption('large');
+  await expect.poll(async () => (await pluginPage(app))?.title).toBe('{"model":"large"}');
+  await expect(plugins.getByLabel('Model')).toHaveValue('large');
+});

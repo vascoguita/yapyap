@@ -477,6 +477,13 @@ not edit the same lines.
   or stop. Context menu items, composer actions, the settings form and
   panels follow.
 
+- Plugin settings (#98, second part): `formOf` accepts only a plain object
+  of string, number, integer and boolean fields (titles, descriptions,
+  choices, bounds) from `contributes.settings`; the Plugins window renders
+  it, `plugins:set-setting` saves a value only if it fits, records keep the
+  values across updates, and the SDK's new `settings.get` (no capability)
+  returns those that still fit.
+
 - Plugin activity log (#99): `servePluginRpc` reports each call to an
   operation YapYap offers (operation, capability, outcome) and
   `createAuditLog` appends it, with the time and plugin ID, to

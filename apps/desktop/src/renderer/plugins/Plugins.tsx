@@ -5,6 +5,7 @@ import type {
   InstalledPlugin,
   PluginActivity,
   PluginGrant,
+  PluginSetting,
   PluginList,
 } from '../../shared/chrome-api.ts';
 import { en } from '../../shared/messages/en.ts';
@@ -88,9 +89,111 @@ function Grant(props: {
   );
 }
 
+type SettingChange = (plugin: string, key: string, value: string | number | boolean | null) => void;
+
+/** A value from an input, in the setting's own type; empty text means the plugin's default. */
+function parsed(setting: PluginSetting, entered: string): string | number | null {
+  if (entered === '') {
+    return null;
+  }
+  return setting.type === 'string' ? entered : Number(entered);
+}
+
+interface SettingProps {
+  readonly plugin: string;
+  readonly setting: PluginSetting;
+  readonly onChange: SettingChange;
+}
+
+const inputId = (plugin: string, key: string): string => `${plugin}|setting|${key}`;
+
+function BooleanSetting({ plugin, setting, onChange }: SettingProps): JSX.Element {
+  return (
+    <input
+      id={inputId(plugin, setting.key)}
+      type="checkbox"
+      checked={setting.value === true}
+      onChange={(event) => {
+        onChange(plugin, setting.key, event.currentTarget.checked);
+      }}
+    />
+  );
+}
+
+function ChoiceSetting(
+  props: SettingProps & { readonly choices: readonly (string | number)[] },
+): JSX.Element {
+  const { plugin, setting, onChange } = props;
+  return (
+    <select
+      id={inputId(plugin, setting.key)}
+      value={String(setting.value ?? '')}
+      onChange={(event) => {
+        onChange(plugin, setting.key, parsed(setting, event.currentTarget.value));
+      }}
+    >
+      <option value="">{text.settingDefault}</option>
+      {props.choices.map((choice) => (
+        <option key={String(choice)} value={String(choice)}>
+          {String(choice)}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+/** Text and numbers are saved when the field is left, so a half-typed value is never checked. */
+function TextSetting({ plugin, setting, onChange }: SettingProps): JSX.Element {
+  return (
+    <input
+      id={inputId(plugin, setting.key)}
+      type="text"
+      inputMode={setting.type === 'string' ? 'text' : 'decimal'}
+      spellcheck={false}
+      defaultValue={String(setting.value ?? '')}
+      onBlur={(event) => {
+        onChange(plugin, setting.key, parsed(setting, event.currentTarget.value));
+      }}
+    />
+  );
+}
+
+function SettingInput(props: SettingProps): JSX.Element {
+  if (props.setting.type === 'boolean') {
+    return <BooleanSetting {...props} />;
+  }
+  const choices = props.setting.enum;
+  return choices === undefined ? (
+    <TextSetting {...props} />
+  ) : (
+    <ChoiceSetting {...props} choices={choices} />
+  );
+}
+
+function SettingsForm(props: {
+  readonly plugin: InstalledPlugin;
+  readonly onChange: SettingChange;
+}): JSX.Element {
+  return (
+    <details class="plugin-settings">
+      <summary>{text.settings}</summary>
+      {props.plugin.settings.map((setting) => (
+        <div class="field" key={setting.key}>
+          <label htmlFor={inputId(props.plugin.id, setting.key)}>
+            {setting.title ?? setting.key}
+          </label>
+          <SettingInput plugin={props.plugin.id} setting={setting} onChange={props.onChange} />
+          {setting.description === undefined ? null : <p class="hint">{setting.description}</p>}
+        </div>
+      ))}
+    </details>
+  );
+}
+
 function PluginRow(props: {
   readonly plugin: InstalledPlugin;
   readonly onGrant: GrantChange;
+  readonly onSetting: SettingChange;
 }): JSX.Element {
   const { plugin } = props;
   return (
@@ -113,6 +216,9 @@ function PluginRow(props: {
             ))}
           </ul>
         </details>
+      )}
+      {plugin.settings.length === 0 ? null : (
+        <SettingsForm plugin={plugin} onChange={props.onSetting} />
       )}
     </li>
   );
@@ -151,21 +257,33 @@ function Activity({ activity }: { readonly activity: readonly PluginActivity[] }
   );
 }
 
-/**
- * The installed plugins, each marked by who vouches for it, so a third-party
- * or unsigned plugin never passes for one of YapYap's own.
- */
-export function Plugins({ api }: { readonly api: ChromeApi }): JSX.Element | null {
+/** The plugin list, and how to change a grant or a setting, each answered with the new list. */
+function usePluginList(api: ChromeApi) {
   const [list, setList] = useState<PluginList | null>(null);
   useEffect(() => {
     api.plugins.list().then(setList, () => undefined);
   }, [api]);
+  const setting = useCallback<SettingChange>(
+    (plugin, key, value) => {
+      api.plugins.setSetting(plugin, key, value).then(setList, () => undefined);
+    },
+    [api],
+  );
   const grant = useCallback<GrantChange>(
     (plugin, capability, account, granted) => {
       api.plugins.setGrant(plugin, capability, account, granted).then(setList, () => undefined);
     },
     [api],
   );
+  return { list, grant, setting };
+}
+
+/**
+ * The installed plugins, each marked by who vouches for it, so a third-party
+ * or unsigned plugin never passes for one of YapYap's own.
+ */
+export function Plugins({ api }: { readonly api: ChromeApi }): JSX.Element | null {
+  const { list, grant, setting } = usePluginList(api);
   if (list === null) {
     return null;
   }
@@ -183,7 +301,7 @@ export function Plugins({ api }: { readonly api: ChromeApi }): JSX.Element | nul
       ) : (
         <ul class="plugin-list">
           {list.plugins.map((plugin) => (
-            <PluginRow key={plugin.id} plugin={plugin} onGrant={grant} />
+            <PluginRow key={plugin.id} plugin={plugin} onGrant={grant} onSetting={setting} />
           ))}
         </ul>
       )}

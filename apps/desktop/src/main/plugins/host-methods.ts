@@ -1,3 +1,4 @@
+import type { SettingValue } from '@yapyap/plugin-sdk';
 import { Type } from 'typebox';
 import { en } from '../../shared/messages/en.ts';
 import type { SecretStore } from '../secrets/secret-store.ts';
@@ -18,6 +19,8 @@ export interface HostServices {
 export interface CallingPlugin {
   readonly id: string;
   readonly name: string;
+  /** The values the user saved in the plugin's settings form, as they stand now (#98). */
+  readonly settings: () => Readonly<Record<string, SettingValue>>;
 }
 
 const Notification = Type.Object(
@@ -109,6 +112,8 @@ export function hostMethods(
   services: HostServices,
 ): Readonly<Record<string, RpcMethod>> {
   return {
+    // A plugin's own settings need no grant: the user filled them in for it.
+    'settings.get': { params: Type.Tuple([]), run: () => Promise.resolve(plugin.settings()) },
     ...notifications(plugin, services),
     ...secrets(plugin, services),
     ...composer(services),

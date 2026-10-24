@@ -6,7 +6,8 @@ import type { ViewRegistry } from '../views.ts';
 import { loadRecords, saveRecords, type PluginRecord } from './records.ts';
 import { Type } from 'typebox';
 import type { ProcessMetrics } from './resource-guard.ts';
-import { RPC_OPTIONS } from './rpc.ts';
+import type { CallingPlugin } from './host-methods.ts';
+import { RPC_OPTIONS, type RpcMethod } from './rpc.ts';
 import { createPluginRuntime, pluginPartition } from './runtime.ts';
 
 const MANIFEST = {
@@ -127,7 +128,7 @@ function setup() {
     readFile: (path: string) => readFile(path),
     views,
     warn: vi.fn(),
-    methodsFor: vi.fn(() => ({
+    methodsFor: vi.fn<(plugin: CallingPlugin) => Readonly<Record<string, RpcMethod>>>(() => ({
       'notifications.show': {
         capability: 'notifications:show',
         params: Type.Tuple([]),
@@ -212,10 +213,10 @@ describe('createPluginRuntime', () => {
     host.load();
     expect(host.openPort).toHaveBeenCalledTimes(2);
     expect(host.ports.map((port) => port.start.mock.calls.length)).toEqual([1, 1]);
-    expect(t.deps.methodsFor).toHaveBeenCalledExactlyOnceWith({
-      id: 'org.example.hello',
-      name: 'Hello',
-    });
+    const [calling] = t.deps.methodsFor.mock.calls[0] ?? [];
+    expect(calling).toMatchObject({ id: 'org.example.hello', name: 'Hello' });
+    // Its manifest declares no settings form, so the plugin gets no settings.
+    expect(calling?.settings()).toEqual({});
     // A call over the port is audited under the plugin's ID.
     const [port] = host.ports;
     const receive = port?.on.mock.calls[0]?.[1];
