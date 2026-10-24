@@ -221,6 +221,24 @@ const catalog = {
           'How YapYap talks to your display server. Try the other one if the window is blank, blurry or misplaced.',
         options: { auto: 'Automatic', wayland: 'Wayland', x11: 'X11 (XWayland)' },
       },
+      'reliability.diskCacheMb': {
+        label: 'Disk cache size',
+        description:
+          'How much disk space WhatsApp’s files may take in the cache. Smaller saves space; WhatsApp may load a little slower. Takes effect after a restart.',
+        options: {
+          auto: 'Automatic',
+          '128': '128 MB',
+          '256': '256 MB',
+          '512': '512 MB',
+          '1024': '1 GB',
+        },
+      },
+      'reliability.jsHeapMb': {
+        label: 'Memory limit per page',
+        description:
+          'The most memory WhatsApp’s scripts may use in one account. Raise it if a large account crashes; lower it to save memory. Takes effect after a restart.',
+        options: { auto: 'Automatic', '2048': '2 GB', '4096': '4 GB', '8192': '8 GB' },
+      },
       'reliability.hardwareVideoDecoding': {
         label: 'Use hardware video decoding',
         description:

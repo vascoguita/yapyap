@@ -209,6 +209,8 @@ describe('createChromeFeature', () => {
         'reliability.hardwareAcceleration': true,
         'reliability.displayBackend': 'auto',
         'reliability.hardwareVideoDecoding': true,
+        'reliability.diskCacheMb': 'auto',
+        'reliability.jsHeapMb': 'auto',
         'privacy.crashReports': 'off',
         'privacy.unreadWhileHidden': true,
         'privacy.notificationSender': true,

@@ -51,6 +51,25 @@ describe('migrate', () => {
   });
 });
 
+describe('version 12 to 13', () => {
+  const toVersion13 = MIGRATIONS[11];
+
+  it('adds automatic disk cache and memory limits, keeping the other reliability settings', () => {
+    expect(toVersion13?.({ schemaVersion: 12, reliability: { memoryWatchdogMb: 4096 } })).toEqual({
+      schemaVersion: 12,
+      reliability: { diskCacheMb: 'auto', jsHeapMb: 'auto', memoryWatchdogMb: 4096 },
+    });
+  });
+
+  it('keeps choices that are already there, and leaves a broken section to validation', () => {
+    expect(toVersion13?.({ reliability: { jsHeapMb: '4096' } })).toEqual({
+      reliability: { diskCacheMb: 'auto', jsHeapMb: '4096' },
+    });
+    const settings = { schemaVersion: 12, reliability: 7 };
+    expect(toVersion13?.(settings)).toBe(settings);
+  });
+});
+
 describe('version 11 to 12', () => {
   const toVersion12 = MIGRATIONS[10];
 
