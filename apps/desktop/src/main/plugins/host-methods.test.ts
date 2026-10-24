@@ -10,7 +10,17 @@ const HELLO: CallingPlugin = {
 
 function services() {
   const stored = new Map<string, string>();
+  const kept = new Map<string, unknown>();
   return {
+    kept,
+    storage: {
+      get: vi.fn((key: string) => kept.get(key)),
+      set: vi.fn((key: string, value: unknown) => {
+        kept.set(key, value);
+        return kept.size <= 2;
+      }),
+      delete: vi.fn((key: string) => kept.delete(key)),
+    },
     notify: vi.fn(),
     quiet: vi.fn(() => false),
     insertDraft: vi.fn<(text: string) => Promise<boolean>>(() => Promise.resolve(true)),
@@ -140,7 +150,42 @@ describe('hostMethods', () => {
       'secrets.get',
       'secrets.set',
       'secrets.delete',
+      'storage.get',
+      'storage.set',
+      'storage.delete',
       'composer.insertDraft',
     ]);
+  });
+});
+
+describe('storage', () => {
+  it('keeps values in the plugin’s own store, behind storage:local', async () => {
+    const given = services();
+    for (const name of ['storage.get', 'storage.set', 'storage.delete']) {
+      expect(method(name).capability).toBe('storage:local');
+    }
+    await method('storage.set', HELLO, given).run(['last', { chat: 'Team', at: 3 }]);
+    expect(await method('storage.get', HELLO, given).run(['last'])).toEqual({
+      chat: 'Team',
+      at: 3,
+    });
+    await method('storage.delete', HELLO, given).run(['last']);
+    expect(await method('storage.get', HELLO, given).run(['last'])).toBeUndefined();
+  });
+
+  it('fails a write once the store is full', async () => {
+    const given = services();
+    await method('storage.set', HELLO, given).run(['a', 1]);
+    await method('storage.set', HELLO, given).run(['b', 2]);
+    await expect(method('storage.set', HELLO, given).run(['c', 3])).rejects.toThrow('full');
+  });
+
+  it('accepts a short key and any value, and nothing else', () => {
+    expect(accepts('storage.set', ['last', null])).toBe(true);
+    expect(accepts('storage.set', ['', 1])).toBe(false);
+    expect(accepts('storage.set', ['x'.repeat(257), 1])).toBe(false);
+    expect(accepts('storage.get', ['x'.repeat(256)])).toBe(true);
+    expect(accepts('storage.delete', [7])).toBe(false);
+    expect(accepts('storage.get', ['a', 'b'])).toBe(false);
   });
 });

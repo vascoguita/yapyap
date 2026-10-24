@@ -37,6 +37,7 @@ import { writeTextAtomically } from './atomic-write.ts';
 import { createCustomCode } from './custom-code/custom-code.ts';
 import { PLUGIN_PORT_CHANNEL } from '../shared/plugin-rpc.ts';
 import { hostMethods } from './plugins/host-methods.ts';
+import { keyValueStore } from './plugins/key-value-store.ts';
 import { RPC_OPTIONS } from './plugins/rpc.ts';
 import { auditFileAt, createAuditLog } from './plugins/audit-log.ts';
 import { availableParallelism, homedir, release } from 'node:os';
@@ -254,6 +255,7 @@ const chrome = createChromeFeature({
         },
         quiet: () => settings.current().general.doNotDisturb,
         secrets: pluginSecrets,
+        storage: keyValueStore(join(app.getPath('userData'), 'plugins', '.storage'), plugin.id),
       }),
     limits: {
       metrics: () => app.getAppMetrics(),

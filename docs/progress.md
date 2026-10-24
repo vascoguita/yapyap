@@ -623,6 +623,12 @@ not edit the same lines.
   secret again when the system rotates its key. Both preloads still require
   nothing but `electron`, as sandboxed preloads lose `Buffer` and timers.
 
+- Plugin storage (#301): `storage.get`, `storage.set` and `storage.delete`,
+  behind `storage:local`, keep JSON values in the calling plugin's own file
+  under `plugins/.storage/` (`keyValueStore`), up to 1 MiB per plugin and
+  readable by the user alone. The audit log records the calls, never keys
+  or values.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).
