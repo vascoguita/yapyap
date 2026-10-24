@@ -38,7 +38,7 @@ const DEFAULTS = {
   },
   network: { proxyMode: 'system', proxyServer: '' },
   plugins: { developerMode: false },
-  downloads: { askWhere: false, openWhenDone: false },
+  downloads: { askWhere: false, openWhenDone: false, folder: '' },
   spelling: { enabled: false, languages: [] },
 };
 

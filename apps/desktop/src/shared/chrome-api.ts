@@ -134,6 +134,8 @@ export interface ChromeApi {
     readonly restart: () => Promise<void>;
     readonly export: () => Promise<TransferResult>;
     readonly import: () => Promise<TransferResult>;
+    /** Asks in the system's folder dialog; read the settings again afterwards. */
+    readonly chooseFolder: (id: string) => Promise<void>;
   };
   readonly chat: {
     /** Opens the chat with an international number; false when WhatsApp cannot yet. */
@@ -287,6 +289,7 @@ export const CHROME_CHANNELS = {
   settingsRestart: 'settings:restart',
   settingsExport: 'settings:export',
   settingsImport: 'settings:import',
+  settingsChooseFolder: 'settings:choose-folder',
   pickerOffer: 'picker:offer',
   pickerChoose: 'picker:choose',
   pickerCancel: 'picker:cancel',

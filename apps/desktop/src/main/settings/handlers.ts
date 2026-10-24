@@ -16,7 +16,7 @@ function readValue(settings: Settings, id: string): unknown {
   return Pointer.Get(settings, pointer(id));
 }
 
-function withValue(settings: Settings, id: string, value: unknown): unknown {
+export function withValue(settings: Settings, id: string, value: unknown): unknown {
   const next = Value.Clone(settings);
   Pointer.Set(next, pointer(id), value);
   return next;
@@ -106,7 +106,7 @@ export function settingsHandlers(
       channel: CHROME_CHANNELS.settingsSet,
       accepts: (args) =>
         args.length === 2 &&
-        fields.some((field) => field.id === args[0]) &&
+        fields.some((field) => field.id === args[0] && (field.folder !== true || args[1] === '')) &&
         Value.Check(SettingsSchema, change(args)),
       handle: (_call, ...args) => {
         const next = change(args);

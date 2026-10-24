@@ -9,38 +9,39 @@ Change settings in **Settings** (<kbd>Ctrl</kbd>+<kbd>,</kbd>, or
 <kbd>⌘</kbd>+<kbd>,</kbd> on macOS). They are saved in `settings.json` in
 the [profile folder](#files).
 
-| Setting                                 | In the file                         | Default            | Notes                                                                                     |
-| --------------------------------------- | ----------------------------------- | ------------------ | ----------------------------------------------------------------------------------------- |
-| Start at login                          | `general.autostart`                 | Off                | Follows the system's login items; not yet in Flatpak (#234)                               |
-| Start minimized                         | `general.startMinimized`            | Off                | Opens in the tray or the Dock                                                             |
-| Get beta updates                        | `general.betaUpdates`               | Off                | Only in builds that update or announce updates; see [betas](install.md#betas)             |
-| Do not disturb                          | `general.doNotDisturb`              | Off                | Also in the tray and the Account menu                                                     |
-| Close to the tray                       | `general.closeToTray`               | Off                | Windows and Linux; macOS always keeps running                                             |
-| Check spelling                          | `spelling.enabled`                  | Off                | Downloads a dictionary from Google on Windows and Linux; see [Spelling](/guide/#spelling) |
-| Spelling languages                      | `spelling.languages`                | Empty              | Right-click → Languages…; up to ten, such as `en-GB`; empty means the system's language   |
-| Theme                                   | `appearance.theme`                  | Same as the system | `system`, `light` or `dark`                                                               |
-| Tray icon                               | `appearance.trayIcon`               | App icon           | `color`, `auto`, `light` or `dark`; one-color icons are templates on macOS                |
-| Compact account sidebar                 | `appearance.compactSidebar`         | Off                | Avatars only; the sidebar shows with two or more accounts                                 |
-| Hide the menu bar                       | `appearance.autoHideMenuBar`        | Off                | Windows and Linux; <kbd>Alt</kbd> shows it                                                |
-| Interface scale                         | `appearance.zoom`                   | 100%               | 50% to 200% in Settings; the View menu goes in 5% steps up to 300%                        |
-| Zoom with a pinch or the wheel          | `appearance.pinchZoom`              | On                 | Off ignores pinches and Ctrl with the wheel; the View menu still zooms                    |
-| Use hardware acceleration               | `reliability.hardwareAcceleration`  | On                 | Takes effect after a restart                                                              |
-| Use hardware video decoding             | `reliability.hardwareVideoDecoding` | On                 | Takes effect after a restart                                                              |
-| Display backend                         | `reliability.displayBackend`        | Automatic          | Linux; `auto`, `wayland` or `x11`; restart                                                |
-| Disk cache size                         | `reliability.diskCacheMb`           | Automatic          | `auto`, `128`, `256`, `512` or `1024` MB; takes effect after a restart                    |
-| Memory limit per page                   | `reliability.jsHeapMb`              | Automatic          | `auto`, `2048`, `4096` or `8192` MB of script memory; after a restart                     |
-| Memory limit                            | `reliability.memoryWatchdogMb`      | 2048 MB            | File only; 512 to 16384; see below                                                        |
-| Crash reports                           | `privacy.crashReports`              | Off                | `off`, `local` or `ask`; see [Privacy](/privacy)                                          |
-| Keep chats unread while hidden          | `privacy.unreadWhileHidden`         | On                 | WhatsApp marks nothing read while YapYap is hidden or minimized                           |
-| Show who wrote in notifications         | `privacy.notificationSender`        | On                 | Off shows “WhatsApp” instead                                                              |
-| Developer Mode                          | `plugins.developerMode`             | Off                | Installs unsigned plugins; never exported or imported                                     |
-| Blur when not in front                  | `privacy.blurWhenUnfocused`         | Off                | The privacy screen covers WhatsApp while another window is in front                       |
-| Blur when you are away                  | `privacy.blurWhenIdle`              | Off                | After five minutes without using the computer                                             |
-| Show message text in notifications      | `privacy.notificationText`          | On                 | Off shows “New message”; the text never reaches the system                                |
-| Proxy                                   | `network.proxyMode`                 | Same as the system | `system`, `direct` or `manual`; see [Proxy](/guide/#proxy)                                |
-| Proxy address                           | `network.proxyServer`               | Empty              | With `manual`: `http://`, `https://` or `socks5://`, a host and a port                    |
-| Ask where to save each file             | `downloads.askWhere`                | Off                | Off saves to the Downloads folder; on starts the dialog in the last folder chosen         |
-| Open files when they finish downloading | `downloads.openWhenDone`            | Off                | PDFs, pictures, sound, video and text only; nothing that could run                        |
+| Setting                                 | In the file                         | Default               | Notes                                                                                     |
+| --------------------------------------- | ----------------------------------- | --------------------- | ----------------------------------------------------------------------------------------- |
+| Start at login                          | `general.autostart`                 | Off                   | Follows the system's login items; not yet in Flatpak (#234)                               |
+| Start minimized                         | `general.startMinimized`            | Off                   | Opens in the tray or the Dock                                                             |
+| Get beta updates                        | `general.betaUpdates`               | Off                   | Only in builds that update or announce updates; see [betas](install.md#betas)             |
+| Do not disturb                          | `general.doNotDisturb`              | Off                   | Also in the tray and the Account menu                                                     |
+| Close to the tray                       | `general.closeToTray`               | Off                   | Windows and Linux; macOS always keeps running                                             |
+| Check spelling                          | `spelling.enabled`                  | Off                   | Downloads a dictionary from Google on Windows and Linux; see [Spelling](/guide/#spelling) |
+| Spelling languages                      | `spelling.languages`                | Empty                 | Right-click → Languages…; up to ten, such as `en-GB`; empty means the system's language   |
+| Theme                                   | `appearance.theme`                  | Same as the system    | `system`, `light` or `dark`                                                               |
+| Tray icon                               | `appearance.trayIcon`               | App icon              | `color`, `auto`, `light` or `dark`; one-color icons are templates on macOS                |
+| Compact account sidebar                 | `appearance.compactSidebar`         | Off                   | Avatars only; the sidebar shows with two or more accounts                                 |
+| Hide the menu bar                       | `appearance.autoHideMenuBar`        | Off                   | Windows and Linux; <kbd>Alt</kbd> shows it                                                |
+| Interface scale                         | `appearance.zoom`                   | 100%                  | 50% to 200% in Settings; the View menu goes in 5% steps up to 300%                        |
+| Zoom with a pinch or the wheel          | `appearance.pinchZoom`              | On                    | Off ignores pinches and Ctrl with the wheel; the View menu still zooms                    |
+| Use hardware acceleration               | `reliability.hardwareAcceleration`  | On                    | Takes effect after a restart                                                              |
+| Use hardware video decoding             | `reliability.hardwareVideoDecoding` | On                    | Takes effect after a restart                                                              |
+| Display backend                         | `reliability.displayBackend`        | Automatic             | Linux; `auto`, `wayland` or `x11`; restart                                                |
+| Disk cache size                         | `reliability.diskCacheMb`           | Automatic             | `auto`, `128`, `256`, `512` or `1024` MB; takes effect after a restart                    |
+| Memory limit per page                   | `reliability.jsHeapMb`              | Automatic             | `auto`, `2048`, `4096` or `8192` MB of script memory; after a restart                     |
+| Memory limit                            | `reliability.memoryWatchdogMb`      | 2048 MB               | File only; 512 to 16384; see below                                                        |
+| Crash reports                           | `privacy.crashReports`              | Off                   | `off`, `local` or `ask`; see [Privacy](/privacy)                                          |
+| Keep chats unread while hidden          | `privacy.unreadWhileHidden`         | On                    | WhatsApp marks nothing read while YapYap is hidden or minimized                           |
+| Show who wrote in notifications         | `privacy.notificationSender`        | On                    | Off shows “WhatsApp” instead                                                              |
+| Developer Mode                          | `plugins.developerMode`             | Off                   | Installs unsigned plugins; never exported or imported                                     |
+| Blur when not in front                  | `privacy.blurWhenUnfocused`         | Off                   | The privacy screen covers WhatsApp while another window is in front                       |
+| Blur when you are away                  | `privacy.blurWhenIdle`              | Off                   | After five minutes without using the computer                                             |
+| Show message text in notifications      | `privacy.notificationText`          | On                    | Off shows “New message”; the text never reaches the system                                |
+| Proxy                                   | `network.proxyMode`                 | Same as the system    | `system`, `direct` or `manual`; see [Proxy](/guide/#proxy)                                |
+| Proxy address                           | `network.proxyServer`               | Empty                 | With `manual`: `http://`, `https://` or `socks5://`, a host and a port                    |
+| Ask where to save each file             | `downloads.askWhere`                | Off                   | Off saves to the Downloads folder; on starts the dialog in the last folder chosen         |
+| Save files to                           | `downloads.folder`                  | Your Downloads folder | Set with Choose… in Settings; a folder that is gone means Downloads again                 |
+| Open files when they finish downloading | `downloads.openWhenDone`            | Off                   | PDFs, pictures, sound, video and text only; nothing that could run                        |
 
 The file also has entries for features that are not built yet. YapYap
 ignores them until those features arrive, and the settings window shows a

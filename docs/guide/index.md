@@ -327,7 +327,9 @@ cleaned up so they are safe on every system: folder parts and characters
 Windows does not allow are removed, and a file is never replaced. A second
 `photo.jpg` is saved as `photo (1).jpg`.
 
-Under Settings → Downloads, **Ask where to save each file** shows the save
+Under Settings → Downloads, **Save files to** → **Choose…** picks another
+folder for them; if it goes away, files go to Downloads again.
+**Ask where to save each file** shows the save
 dialog for every download instead, starting in the folder you last chose.
 **Open files when they finish downloading** opens PDFs, pictures, sound,
 video and plain text in their usual app. Anything else, programs, scripts,

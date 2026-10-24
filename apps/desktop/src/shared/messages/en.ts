@@ -103,6 +103,9 @@ const catalog = {
     saveFailed: 'Could not save that setting.',
     scale: (factor: number): string => `${String(Math.round(factor * 100))}%`,
     proxyPlaceholder: 'socks5://127.0.0.1:1080',
+    defaultFolder: 'Your Downloads folder',
+    chooseFolder: 'Choose…',
+    useDefaultFolder: 'Use Downloads Folder',
     sections: {
       general: 'General',
       spelling: 'Spelling',
@@ -299,6 +302,10 @@ const catalog = {
         label: 'Ask where to save each file',
         description:
           'Off saves files straight to your Downloads folder. On asks each time, starting in the folder you last chose.',
+      },
+      'downloads.folder': {
+        label: 'Save files to',
+        description: 'Where files go when YapYap does not ask.',
       },
       'downloads.openWhenDone': {
         label: 'Open files when they finish downloading',

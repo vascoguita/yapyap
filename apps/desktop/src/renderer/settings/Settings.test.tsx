@@ -37,6 +37,7 @@ function api(overrides: Partial<ChromeApi['settings']> = {}) {
       import: vi.fn(() =>
         Promise.resolve({ outcome: 'done' as const, message: 'Settings imported.' }),
       ),
+      chooseFolder: vi.fn(() => Promise.resolve()),
       ...overrides,
     },
     chat: { openNumber: vi.fn() },
@@ -293,5 +294,64 @@ describe('a text setting', () => {
   it('starts empty for a value it does not have', () => {
     render(<Field field={field} snapshot={snapshot()} onChange={vi.fn()} />);
     expect(screen.getByLabelText<HTMLInputElement>('Proxy address').value).toBe('');
+  });
+});
+
+describe('a folder setting', () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  const field = {
+    id: 'downloads.folder' as const,
+    label: 'Save files to',
+    description: 'Where files go.',
+    restart: false,
+    folder: true as const,
+  };
+
+  it('shows the Downloads folder until another is chosen, and goes back to it', () => {
+    const onChange = vi.fn();
+    const onChooseFolder = vi.fn();
+    const { rerender } = render(
+      <Field
+        field={field}
+        snapshot={snapshot()}
+        onChange={onChange}
+        onChooseFolder={onChooseFolder}
+      />,
+    );
+    expect(screen.getByText('Your Downloads folder')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Use Downloads Folder' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Choose…' }));
+    expect(onChooseFolder).toHaveBeenCalledExactlyOnceWith('downloads.folder');
+    rerender(
+      <Field
+        field={field}
+        snapshot={snapshot({ values: { 'downloads.folder': '/home/someone/Saved' } })}
+        onChange={onChange}
+        onChooseFolder={onChooseFolder}
+      />,
+    );
+    expect(screen.getByText('/home/someone/Saved')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Use Downloads Folder' }));
+    expect(onChange).toHaveBeenCalledExactlyOnceWith('downloads.folder', '');
+  });
+
+  it('chooses nothing where no folder dialog is offered', () => {
+    render(<Field field={field} snapshot={snapshot()} onChange={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Choose…' }));
+    expect(screen.getByText('Your Downloads folder')).toBeTruthy();
+  });
+
+  it('asks main for the folder, then shows what was saved', async () => {
+    const withFolder = snapshot({ values: { ...snapshot().values, 'downloads.folder': '' } });
+    const yapyap = api({ get: vi.fn(() => Promise.resolve(withFolder)) });
+    render(<Settings api={yapyap} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Choose…' }));
+    expect(yapyap.settings.chooseFolder).toHaveBeenCalledExactlyOnceWith('downloads.folder');
+    await vi.waitFor(() => {
+      expect(yapyap.settings.get).toHaveBeenCalledTimes(2);
+    });
   });
 });

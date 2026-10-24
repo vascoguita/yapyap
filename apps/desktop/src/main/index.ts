@@ -27,12 +27,14 @@ import {
   readFileSync,
   realpathSync,
   rmSync,
+  statSync,
   writeFileSync,
 } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { homedir, release } from 'node:os';
 import { join } from 'node:path';
 import { createDownloadList } from './downloads/download-list.ts';
+import { downloadsFolder } from './downloads/downloads.ts';
 import { lastFolderIn } from './downloads/last-folder.ts';
 import { openSecretStore, secretFileAt } from './secrets/secret-store.ts';
 import { readInstallChannel } from './about/about-info.ts';
@@ -51,7 +53,7 @@ import { askToInstallUpdateWithDialog } from './update-prompt.ts';
 import { readInstallEvidence } from './updates/install-evidence.ts';
 import { releaseFetcher } from './updates/update-notice.ts';
 import { decideUpdatePolicy, settingsIgnoredBy } from './updates/update-policy.ts';
-import { electronSettingsFiles } from './settings/transfer-dialogs.ts';
+import { chooseFolder, electronSettingsFiles } from './settings/transfer-dialogs.ts';
 import { openSettings } from './settings/service.ts';
 import { electronCapture } from './permissions/electron-capture.ts';
 import { askMediaWithDialog } from './permissions/media-prompt.ts';
@@ -147,6 +149,7 @@ const downloadList = createDownloadList((path) => {
 const chrome = createChromeFeature({
   notify,
   settings,
+  chooseFolder,
   installEvidence,
   settingEffects: { 'general.autostart': applyAutostart(autostart, warn) },
   hiddenSettings: settingsIgnoredBy(updatePolicy),
@@ -262,7 +265,11 @@ startApp({
   },
   workAreas: () => screen.getAllDisplays().map((display) => display.workArea),
   downloads: {
-    folder: () => realpathSync(app.getPath('downloads')),
+    folder: () =>
+      downloadsFolder(settings.current().downloads.folder, () => app.getPath('downloads'), {
+        realpath: (path) => realpathSync(path),
+        isFolder: (path) => statSync(path).isDirectory(),
+      }),
     taken: (path) => lstatSync(path, { throwIfNoEntry: false }) !== undefined,
     lastFolder: lastFolderIn({
       read: () => readFileSync(DOWNLOADS_STATE, 'utf8'),

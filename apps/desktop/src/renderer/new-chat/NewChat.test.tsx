@@ -14,6 +14,7 @@ function api(opened: boolean) {
       restart: vi.fn(),
       export: vi.fn(),
       import: vi.fn(),
+      chooseFolder: vi.fn(),
     },
     chat: {
       openNumber: vi.fn<(number: string) => Promise<boolean>>(() => Promise.resolve(opened)),

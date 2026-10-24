@@ -74,6 +74,7 @@ function setup() {
       showMessage: vi.fn(),
     },
     spelling: { available: () => ['en-GB', 'pt-PT'], system: () => ['en-GB'] },
+    chooseFolder: vi.fn(() => Promise.resolve<string | undefined>(undefined)),
     downloads: { add: vi.fn(), entries: vi.fn(() => []), act: vi.fn(() => true), clear: vi.fn() },
     settingsFiles: {
       chooseExport: vi.fn(() => Promise.resolve(undefined)),
@@ -355,6 +356,7 @@ describe('createChromeFeature', () => {
         'plugins.developerMode': false,
         'downloads.askWhere': false,
         'downloads.openWhenDone': false,
+        'downloads.folder': '',
         'spelling.enabled': false,
         'general.autostart': false,
         'general.startMinimized': false,

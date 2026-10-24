@@ -237,6 +237,11 @@ not edit the same lines.
   allows: pause, resume, cancel, show in folder. A download is named to the
   page by an id, never by its path; the page refreshes every half second
   while open.
+  Third part: `downloads.folder` (Settings → Save files to → Choose…)
+  sends automatic downloads elsewhere; `downloadsFolder` falls back to the
+  system's Downloads folder when the chosen one is gone or not a folder.
+  Only the system's folder dialog can set it (`settings:choose-folder`);
+  `settings:set` accepts nothing but the empty reset for a folder field.
 
 - Keyboard shortcuts, first part (#75): `shared/shortcuts.ts` is the one
   table of shortcuts, with macOS keys where they differ and platforms where

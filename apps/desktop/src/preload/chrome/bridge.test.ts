@@ -29,6 +29,7 @@ describe('createChromeBridge', () => {
     await api.settings.restart();
     expect(await api.settings.export()).toBe('ignored');
     expect(await api.settings.import()).toBe('ignored');
+    await api.settings.chooseFolder('downloads.folder');
     expect(await api.picker.offer()).toBe('ignored');
     await api.picker.choose('screen:1:0', true);
     await api.picker.cancel();
@@ -74,6 +75,7 @@ describe('createChromeBridge', () => {
       ['settings:restart'],
       ['settings:export'],
       ['settings:import'],
+      ['settings:choose-folder', 'downloads.folder'],
       ['picker:offer'],
       ['picker:choose', 'screen:1:0', true],
       ['picker:cancel'],
@@ -145,7 +147,14 @@ describe('createChromeBridge', () => {
       'forgetPermissions',
     ]);
     expect(Object.keys(api.picker)).toEqual(['offer', 'choose', 'cancel']);
-    expect(Object.keys(api.settings)).toEqual(['get', 'set', 'restart', 'export', 'import']);
+    expect(Object.keys(api.settings)).toEqual([
+      'get',
+      'set',
+      'restart',
+      'export',
+      'import',
+      'chooseFolder',
+    ]);
     expect(Object.keys(api.about)).toEqual(['info', 'copyTechnicalDetails']);
     expect(Object.keys(api.recovery)).toEqual([
       'problem',
