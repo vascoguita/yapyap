@@ -17,6 +17,7 @@ describe('settingsHandlers with settings that apply at once', () => {
       current: () => settings,
       notice: undefined,
       readOnly: false,
+      firstRun: false,
       update: (change: (current: Settings) => Settings) => {
         settings = change(settings);
       },

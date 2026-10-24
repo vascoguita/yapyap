@@ -6,6 +6,8 @@ export interface SettingsService {
   readonly notice: string | undefined;
   /** The settings belong to a newer YapYap, so `update` changes nothing. */
   readonly readOnly: boolean;
+  /** No settings were saved before this launch, so it is the first (#84). */
+  readonly firstRun: boolean;
   /** Applies a change and saves it, unless the file belongs to a newer YapYap. */
   readonly update: (change: (settings: Settings) => Settings) => void;
   /** Calls `listener` after every saved change, so live settings apply at once. */
@@ -24,6 +26,7 @@ export function openSettings(
     current: () => settings,
     notice: loaded.notice,
     readOnly: loaded.readOnly,
+    firstRun: loaded.firstRun === true,
     update: (change) => {
       if (loaded.readOnly) {
         warn('Not saving settings: they belong to a newer version of YapYap.');

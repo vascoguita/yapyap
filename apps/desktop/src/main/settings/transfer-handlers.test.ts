@@ -12,6 +12,7 @@ function setup(readOnly = false) {
     current: () => settings,
     notice: undefined,
     readOnly,
+    firstRun: false,
     update: vi.fn((change: (current: Settings) => Settings) => {
       settings = change(settings);
     }),

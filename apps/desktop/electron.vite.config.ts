@@ -33,6 +33,7 @@ export default defineConfig({
           picker: resolve(import.meta.dirname, 'src/renderer/picker.html'),
           'new-chat': resolve(import.meta.dirname, 'src/renderer/new-chat.html'),
           accounts: resolve(import.meta.dirname, 'src/renderer/accounts.html'),
+          welcome: resolve(import.meta.dirname, 'src/renderer/welcome.html'),
           sidebar: resolve(import.meta.dirname, 'src/renderer/sidebar.html'),
           plugins: resolve(import.meta.dirname, 'src/renderer/plugins.html'),
           'plugin-consent': resolve(import.meta.dirname, 'src/renderer/plugin-consent.html'),

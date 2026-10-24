@@ -59,6 +59,7 @@ function setup() {
       current: defaultSettings,
       notice: undefined,
       readOnly: false,
+      firstRun: false,
       update: vi.fn(),
       onChange: vi.fn(),
     },
@@ -426,6 +427,14 @@ describe('createChromeFeature', () => {
     t.clickAccount('Remove Account…');
     await new Promise((resolve) => setTimeout(resolve));
     expect(warn).toHaveBeenCalledWith('Could not finish an account maintenance action.');
+  });
+
+  it('opens the welcome in its own window, once', () => {
+    const t = setup();
+    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    runtime.openWelcome();
+    runtime.openWelcome();
+    expect(t.window.loadURL).toHaveBeenCalledExactlyOnceWith('app://chrome/welcome.html');
   });
 
   it('docks the account sidebar as a chrome page and answers its calls', () => {

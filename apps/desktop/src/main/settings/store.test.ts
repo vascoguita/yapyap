@@ -19,11 +19,12 @@ const custom = () => ({
 });
 
 describe('loadSettings', () => {
-  it('starts with defaults and no notice on first run', () => {
+  it('starts with defaults and no notice on first run, and says it is the first', () => {
     expect(loadSettings(fresh(), 1)).toEqual({
       settings: defaultSettings(),
       readOnly: false,
       notice: undefined,
+      firstRun: true,
     });
   });
 

@@ -14,6 +14,8 @@ export interface LoadedSettings {
   readonly readOnly: boolean;
   /** What to tell the user about how the settings were loaded, if anything. */
   readonly notice: string | undefined;
+  /** No settings file yet: YapYap's first launch in this profile. */
+  readonly firstRun?: true;
 }
 
 function readText(path: string): string | undefined {
@@ -44,7 +46,7 @@ export function loadSettings(dir: string, now: number): LoadedSettings {
   const path = join(dir, SETTINGS_FILE);
   const text = readText(path);
   if (text === undefined) {
-    return { settings: defaultSettings(), readOnly: false, notice: undefined };
+    return { settings: defaultSettings(), readOnly: false, notice: undefined, firstRun: true };
   }
   const decoded = decodeSettings(text);
   if (decoded.kind === 'newer') {

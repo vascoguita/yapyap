@@ -286,6 +286,19 @@ const catalog = {
       },
     },
   },
+  welcome: {
+    title: 'Welcome to YapYap',
+    intro:
+      'A few choices to start with. You can change any of them later in Settings, and skip this with Escape.',
+    language: 'Language',
+    languageNote: 'YapYap is in English for now. More languages are on their way.',
+    look: 'Look',
+    closing: 'Starting and closing',
+    notifications: 'Notifications',
+    notificationsNote:
+      'YapYap shows WhatsApp’s notifications as your system’s own. The first time, your system may ask whether YapYap may show them.',
+    start: 'Start Using YapYap',
+  },
   accounts: {
     defaultName: (position: number): string =>
       position === 1 ? 'WhatsApp' : `WhatsApp ${String(position)}`,
@@ -450,6 +463,7 @@ const catalog = {
     accounts: 'Accounts',
     plugins: 'Plugins',
     pluginConsent: 'Install Plugin',
+    welcome: 'Welcome',
     offline: (pageTitle: string): string => `${pageTitle} (offline)`,
   },
   dialogs: {
