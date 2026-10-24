@@ -486,6 +486,10 @@ const catalog = {
       confirmInstall: 'Install',
       confirmUpdate: 'Update',
     },
+    permissions: 'Permissions',
+    permissionsHint:
+      'Turn off anything you no longer want this plugin to do. Turning something back on gives back only what you allowed when you installed it.',
+    connectTo: (host: string): string => `Connect to ${host}`,
     /** What each capability lets a plugin do, in the words the consent window uses. */
     capabilities: {
       'chat:read-active': 'Read the messages of the chat you have open',

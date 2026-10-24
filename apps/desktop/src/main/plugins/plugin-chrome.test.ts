@@ -7,8 +7,10 @@ import { defaultSettings } from '../settings/decode.ts';
 import type { ViewRegistry } from '../views.ts';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { createPluginChrome, installFlow, messageOf, openConsentWindow } from './plugin-chrome.ts';
-import { RECORDS_FILE, saveRecords, type PluginRecord } from './records.ts';
+import { loadRecords, RECORDS_FILE, saveRecords, type PluginRecord } from './records.ts';
 import { unsignedArchive, zipArchive } from '../../../test/plugins.ts';
+
+const ACCOUNT = '6f1c2a5e-0b1d-4c8e-9a3f-2d4b6c8e0a1b';
 
 /** A well-formed fingerprint: 32 bytes as colon-separated hex. */
 const KEY = Array.from({ length: 32 }, () => 'ab').join(':');
@@ -59,11 +61,12 @@ function setup(root: string, developerMode = false, overrides: object = {}) {
   const views: ViewRegistry = new WeakMap();
   const warn = vi.fn();
   const insertDraft = vi.fn<(text: string) => Promise<boolean>>(() => Promise.resolve(true));
+  const accounts = [{ id: ACCOUNT, name: 'Work' }];
   const chrome = createPluginChrome(
     deps,
     { current: () => ({ ...settings, plugins: { developerMode } }) },
     { createWindow, views, warn },
-    insertDraft,
+    { insertDraft, active: () => undefined, list: () => accounts },
   );
   const handler = (channel: string) => {
     const found = chrome.handlers.find((candidate) => candidate.channel === channel);
@@ -138,6 +141,51 @@ describe('createPluginChrome', () => {
     });
   });
 
+  it('lets the user take a grant back and give it again, for one account or the plugin', async () => {
+    const hello = record('org.example.hello', {
+      developer: true,
+      capabilities: ['composer:insert-draft', 'notifications:show'],
+    });
+    await saveRecords(root, new Map([['org.example.hello', hello]]));
+    const t = setup(root);
+    const set = t.handler('plugins:set-grant');
+    const call = { sender: {} };
+    expect(set.accepts(['org.example.hello', 'composer:insert-draft', ACCOUNT, false])).toBe(true);
+    expect(set.accepts(['org.example.hello', 'notifications:show', null, true])).toBe(true);
+    for (const args of [
+      ['org.example.hello', 'composer:insert-draft', 'unknown-account', false],
+      ['org.example.hello', 'notifications:show', null, 'no'],
+      ['org.example.hello', 'x'.repeat(301), null, false],
+      [7, 'notifications:show', null, false],
+      ['org.example.hello', 'notifications:show', null, false, 'more'],
+    ]) {
+      expect(set.accepts(args)).toBe(false);
+    }
+    const list = (await set.handle(
+      call,
+      'org.example.hello',
+      'composer:insert-draft',
+      ACCOUNT,
+      false,
+    )) as {
+      plugins: { grants: unknown[] }[];
+    };
+    expect(list.plugins[0]?.grants).toEqual([
+      {
+        capability: 'composer:insert-draft',
+        granted: true,
+        accounts: [{ id: ACCOUNT, name: 'Work', granted: false }],
+      },
+      { capability: 'notifications:show', granted: true },
+    ]);
+    await set.handle(call, 'org.example.hello', 'notifications:show', null, false);
+    expect((await loadRecords(root)).get('org.example.hello')?.revoked).toEqual([
+      'notifications:show',
+    ]);
+    await set.handle(call, 'org.example.gone', 'notifications:show', null, false);
+    expect([...(await loadRecords(root)).keys()]).toEqual(['org.example.hello']);
+  });
+
   it('lists installed plugins by ID, marked by who vouches for them', async () => {
     await saveRecords(
       root,
@@ -158,9 +206,9 @@ describe('createPluginChrome', () => {
     const t = setup(root, true);
     await expect(t.handler('plugins:list').handle({ sender: {} })).resolves.toEqual({
       plugins: [
-        { id: 'org.alpha', version: '1.0.0', trust: 'third-party' },
-        { id: 'org.guita.yapyap.ai', version: '1.0.0', trust: 'first-party' },
-        { id: 'org.zeta', version: '1.0.0', trust: 'developer' },
+        { id: 'org.alpha', version: '1.0.0', trust: 'third-party', grants: [] },
+        { id: 'org.guita.yapyap.ai', version: '1.0.0', trust: 'first-party', grants: [] },
+        { id: 'org.zeta', version: '1.0.0', trust: 'developer', grants: [] },
       ],
       developerMode: true,
       activity: [],

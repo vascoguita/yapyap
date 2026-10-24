@@ -86,7 +86,7 @@ function withTimeout<T>(work: Promise<T>, options: RpcOptions): Promise<T> {
 async function dispatch(
   message: { readonly method: string; readonly params: readonly unknown[] },
   methods: Readonly<Record<string, RpcMethod>>,
-  granted: ReadonlySet<string>,
+  granted: (capability: string) => boolean,
   take: () => boolean,
   options: RpcOptions,
 ): Promise<unknown> {
@@ -94,7 +94,7 @@ async function dispatch(
   if (method === undefined || !Value.Check(method.params, message.params)) {
     throw new RpcFailure('invalid', 'The call does not match the API.');
   }
-  if (!granted.has(method.capability)) {
+  if (!granted(method.capability)) {
     throw new RpcFailure('not-granted', `The plugin does not hold ${method.capability}.`);
   }
   if (!take()) {
@@ -127,7 +127,7 @@ export interface AuditedCall {
  */
 export function servePluginRpc(
   port: RpcPort,
-  granted: ReadonlySet<string>,
+  granted: (capability: string) => boolean,
   methods: Readonly<Record<string, RpcMethod>>,
   options: RpcOptions,
   audit: (call: AuditedCall) => void,

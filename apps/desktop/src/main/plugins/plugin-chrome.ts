@@ -17,13 +17,15 @@ import {
   type InstallOutcome,
 } from './install-flow.ts';
 import { commitInstall, prepareInstall } from './installer.ts';
-import { loadRecords } from './records.ts';
+import { grantsOf, withGrant } from './grants.ts';
+import { loadRecords, saveRecords } from './records.ts';
 import type { AuditLog } from './audit-log.ts';
 import type { CallingPlugin } from './host-methods.ts';
 import type { RpcOptions } from './rpc.ts';
 import {
   createPluginRuntime,
   type PluginHost,
+  type PluginRuntime,
   type PluginRuntimeDependencies,
   type PluginSession,
 } from './runtime.ts';
@@ -103,13 +105,79 @@ async function listPlugins(
   root: string,
   developerMode: boolean,
   audit: Pick<AuditLog, 'recent'>,
+  accounts: PluginAccounts['list'],
 ): Promise<PluginList> {
   const installed = await loadRecords(root);
-  const records = [...installed.values()];
-  const plugins = records
-    .map((record) => ({ id: record.id, version: record.version, trust: trustOf(record) }))
+  const plugins = [...installed.values()]
+    .map((record) => ({
+      id: record.id,
+      version: record.version,
+      trust: trustOf(record),
+      grants: grantsOf(record, accounts()),
+    }))
     .sort((a, b) => compareCodeUnits(a.id, b.id));
   return { plugins, developerMode, activity: audit.recent() };
+}
+
+/** Saves a changed grant, and lets the running plugin feel it at its next call (#94). */
+async function setGrant(
+  root: string,
+  runtime: Pick<PluginRuntime, 'regrant'>,
+  [id, capability, account, granted]: readonly unknown[],
+): Promise<void> {
+  const records = await loadRecords(root);
+  const record = records.get(String(id));
+  if (record !== undefined) {
+    const scope = typeof account === 'string' ? account : undefined;
+    const changed = withGrant(record, String(capability), scope, granted === true);
+    await saveRecords(root, new Map(records).set(record.id, changed));
+    await runtime.regrant(record.id);
+  }
+}
+
+/** Longer than any capability or `network:<host>` grant. */
+const MAX_CAPABILITY = 300;
+
+/** A grant change: an installed plugin, a short capability, a listed account or none, on or off. */
+function isGrantChange(
+  [id, capability, account, granted, ...rest]: readonly unknown[],
+  accounts: PluginAccounts['list'],
+): boolean {
+  const known = account === null || accounts().some((entry) => entry.id === account);
+  const shaped =
+    typeof id === 'string' && typeof capability === 'string' && capability.length <= MAX_CAPABILITY;
+  return rest.length === 0 && shaped && known && typeof granted === 'boolean';
+}
+
+function pluginHandlers(
+  deps: PluginChromeDependencies,
+  settings: Pick<SettingsService, 'current'>,
+  accounts: PluginAccounts,
+  runtime: Pick<PluginRuntime, 'regrant'>,
+): ChromeHandler[] {
+  const list = (): Promise<PluginList> =>
+    listPlugins(deps.root, settings.current().plugins.developerMode, deps.audit, accounts.list);
+  return [
+    { channel: CHROME_CHANNELS.pluginsList, accepts: noArguments, handle: list },
+    {
+      channel: CHROME_CHANNELS.pluginsSetGrant,
+      accepts: (args) => isGrantChange(args, accounts.list),
+      handle: async (_call, ...args) => {
+        await setGrant(deps.root, runtime, args);
+        return list();
+      },
+    },
+  ];
+}
+
+/** What plugins need of YapYap's accounts. */
+export interface PluginAccounts {
+  /** Puts a draft in the active account's open chat; false when none is open. */
+  readonly insertDraft: (text: string) => Promise<boolean>;
+  /** The account on screen. */
+  readonly active: () => string | undefined;
+  /** Every account, for per-account grants in the Plugins window (#94). */
+  readonly list: () => readonly { readonly id: string; readonly name: string }[];
 }
 
 export interface PluginChrome {
@@ -162,13 +230,14 @@ export function createPluginChrome(
   deps: PluginChromeDependencies,
   settings: Pick<SettingsService, 'current'>,
   windows: ChromeWindowDependencies,
-  insertDraft: (text: string) => Promise<boolean>,
+  accounts: PluginAccounts,
 ): PluginChrome {
   const runtime = createPluginRuntime({
     ...deps,
     views: windows.views,
     warn: windows.warn,
-    methodsFor: (plugin) => deps.methodsFor(plugin, insertDraft),
+    methodsFor: (plugin) => deps.methodsFor(plugin, accounts.insertDraft),
+    activeAccount: accounts.active,
   });
   const failed = (): void => {
     windows.warn('Could not read the installed plugins, so none was started.');
@@ -179,14 +248,7 @@ export function createPluginChrome(
     runtime.restart(id).catch(failed);
   });
   return {
-    handlers: [
-      {
-        channel: CHROME_CHANNELS.pluginsList,
-        accepts: noArguments,
-        handle: () => listPlugins(deps.root, settings.current().plugins.developerMode, deps.audit),
-      },
-      ...consent.handlers,
-    ],
+    handlers: [...pluginHandlers(deps, settings, accounts, runtime), ...consent.handlers],
     install: () => {
       void installPlugin(flow);
     },

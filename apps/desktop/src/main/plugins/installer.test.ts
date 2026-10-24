@@ -17,7 +17,7 @@ import {
   type ApprovableInstall,
   type PreparedInstall,
 } from './installer.ts';
-import { loadRecords, RECORDS_FILE } from './records.ts';
+import { loadRecords, saveRecords, RECORDS_FILE } from './records.ts';
 
 const AUTHOR = testKey();
 const ANCHORS: ReadonlySet<string> = new Set();
@@ -117,6 +117,33 @@ describe('prepareInstall and commitInstall', () => {
       zipArchive(signedArchive(testKey(), testManifest({ version: '1.2.0' }))),
     );
     expect(imposter.decision.kind).toBe('rejected');
+  });
+
+  it('keeps the grants the user took back across an update', async () => {
+    await install(AUTHOR);
+    const account = '6f1c2a5e-0b1d-4c8e-9a3f-2d4b6c8e0a1b';
+    const before = await loadRecords(root);
+    const record = before.get(ID);
+    if (record === undefined) {
+      throw new Error('Not installed.');
+    }
+    await saveRecords(
+      root,
+      new Map(before).set(ID, {
+        ...record,
+        revoked: ['network:api.example.org'],
+        revokedIn: { [account]: ['composer:insert-draft'] },
+      }),
+    );
+    const update = await prepare(
+      zipArchive(signedArchive(AUTHOR, testManifest({ version: '1.1.0' }))),
+    );
+    await commitInstall(root, approvable(update));
+    expect((await loadRecords(root)).get(ID)).toMatchObject({
+      version: '1.1.0',
+      revoked: ['network:api.example.org'],
+      revokedIn: { [account]: ['composer:insert-draft'] },
+    });
   });
 
   it('keeps other plugins’ records when installing another one', async () => {

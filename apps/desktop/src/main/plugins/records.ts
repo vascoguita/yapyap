@@ -14,6 +14,14 @@ export const RECORDS_FILE = '.plugins.json';
 const RECORDS_VERSION = 1;
 const FINGERPRINT = '^[0-9a-f]{2}(?::[0-9a-f]{2}){31}$';
 
+const ACCOUNT_ID = '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$';
+
+/** Room for every capability and every host a plugin can hold. */
+const Revocations = Type.Array(Type.String({ maxLength: 300 }), {
+  maxItems: 64,
+  uniqueItems: true,
+});
+
 const PluginRecordSchema = Type.Object(
   {
     id: ManifestSchema.properties.id,
@@ -25,6 +33,12 @@ const PluginRecordSchema = Type.Object(
     developer: Type.Boolean(),
     capabilities: ManifestSchema.properties.capabilities,
     hosts: ManifestSchema.properties.network.properties.hosts,
+    /** Capabilities and `network:<host>` grants the user took back from the whole plugin (#94). */
+    revoked: Type.Optional(Revocations),
+    /** Account capabilities the user took back for one account, by account ID. */
+    revokedIn: Type.Optional(
+      Type.Record(Type.String({ pattern: ACCOUNT_ID }), Revocations, { maxProperties: 32 }),
+    ),
   },
   { additionalProperties: false },
 );

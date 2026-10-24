@@ -112,6 +112,23 @@ export interface InstalledPlugin {
   readonly id: string;
   readonly version: string;
   readonly trust: PluginTrust;
+  /** What the user approved, and whether each grant still stands (#94). */
+  readonly grants: readonly PluginGrant[];
+}
+
+/**
+ * One capability or `network:<host>` the user approved: granted for the
+ * whole plugin, or, for one that acts on an account, account by account.
+ */
+export interface PluginGrant {
+  readonly capability: string;
+  readonly granted: boolean;
+  /** Set for a capability that acts on the account on screen. */
+  readonly accounts?: readonly {
+    readonly id: string;
+    readonly name: string;
+    readonly granted: boolean;
+  }[];
 }
 
 export interface PluginList {
@@ -184,6 +201,13 @@ export interface ChromeApi {
     readonly consent: () => Promise<PluginConsent>;
     /** `acknowledged`: the user accepted the risk of a plugin YapYap has not reviewed. */
     readonly answer: (install: boolean, acknowledged: boolean) => Promise<void>;
+    /** Grants a capability again or takes it back: for one account, or the whole plugin with null. */
+    readonly setGrant: (
+      id: string,
+      capability: string,
+      account: string | null,
+      granted: boolean,
+    ) => Promise<PluginList>;
   };
   readonly report: {
     /** The sanitized diagnostics the report would carry, for the user to review. */
@@ -360,6 +384,7 @@ export const CHROME_CHANNELS = {
   pluginsList: 'plugins:list',
   pluginsConsent: 'plugins:consent',
   pluginsAnswer: 'plugins:answer',
+  pluginsSetGrant: 'plugins:set-grant',
   shortcutsList: 'shortcuts:list',
   shortcutsSet: 'shortcuts:set',
   downloadsList: 'downloads:list',

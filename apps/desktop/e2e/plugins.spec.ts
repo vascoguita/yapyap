@@ -215,3 +215,40 @@ test('puts a plugin’s draft in the open chat’s message box, for the user to 
     .toBe('drafted');
   await expect(window.getByTestId('composer')).toHaveText('Sounds good, see you at 8.');
 });
+
+/** Shows a notification every half second, and writes in its title how the last one went. */
+const PERSISTENT = `
+export default {
+  activate(host) {
+    setInterval(() => {
+      host.notifications.show({ title: 'Ping', body: '' }).then(
+        () => { document.title = 'ok'; },
+        (error) => { document.title = error.kind; },
+      );
+    }, 500);
+  },
+};
+`;
+
+test('stops a plugin’s calls as soon as the user takes the permission back', async ({
+  app,
+  profile,
+}) => {
+  await app.evaluate(({ Notification }) => {
+    Notification.prototype.show = () => undefined;
+  });
+  await installPlugin(
+    app,
+    profile,
+    testManifest({ capabilities: ['notifications:show'], network: { hosts: [] } }),
+    PERSISTENT,
+  );
+  await expect.poll(async () => (await pluginPage(app))?.title, { timeout: 20_000 }).toBe('ok');
+  await clickMenu(app, 'Plugins…');
+  const plugins = await chromePage(app, '/plugins.html');
+  await plugins.getByText('Permissions').click();
+  await plugins.getByRole('checkbox', { name: 'Show notifications' }).uncheck();
+  await expect.poll(async () => (await pluginPage(app))?.title).toBe('not-granted');
+  await plugins.getByRole('checkbox', { name: 'Show notifications' }).check();
+  await expect.poll(async () => (await pluginPage(app))?.title).toBe('ok');
+});

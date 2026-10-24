@@ -8,7 +8,7 @@ import type { ViewInfo } from '../views.ts';
 import {
   CHROME_PARTITION,
   createChromeFeature,
-  draftsTo,
+  pluginAccounts,
   type AccountMenu,
   type ChromeFeatureDependencies,
 } from './feature.ts';
@@ -1018,13 +1018,26 @@ describe('createChromeFeature', () => {
     expect(() => t.call('recovery:retry')).toThrow('No recovery screen belongs to this window.');
   });
 
-  it('sends a plugin’s draft to the active account, and nowhere before there are accounts', async () => {
+  it('shows plugins the accounts: drafts and grants go to the active one, none before there are any', async () => {
     const slot: { current?: AccountMenu } = {};
-    const drafts = draftsTo(slot);
-    await expect(drafts('Hi')).resolves.toBe(false);
+    const accounts = pluginAccounts(slot);
+    await expect(accounts.insertDraft('Hi')).resolves.toBe(false);
+    expect(accounts.active()).toBeUndefined();
+    expect(accounts.list()).toEqual([]);
     const insertDraft = vi.fn(() => Promise.resolve(true));
-    slot.current = { insertDraft } as unknown as AccountMenu;
-    await expect(drafts('Hi')).resolves.toBe(true);
+    slot.current = {
+      insertDraft,
+      entries: [
+        { id: 'a', name: 'Home', active: false },
+        { id: 'b', name: 'Work', active: true },
+      ],
+    } as unknown as AccountMenu;
+    await expect(accounts.insertDraft('Hi')).resolves.toBe(true);
     expect(insertDraft).toHaveBeenCalledExactlyOnceWith('Hi');
+    expect(accounts.active()).toBe('b');
+    expect(accounts.list()).toEqual([
+      { id: 'a', name: 'Home' },
+      { id: 'b', name: 'Work' },
+    ]);
   });
 });

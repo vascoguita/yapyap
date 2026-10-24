@@ -144,6 +144,15 @@ to `<userData>/plugins/<id>/<version>/` only after the signature verifies.
 
 Capabilities are granted per plugin **and per account**, and can be revoked at
 any time in settings.
+At install the user approves the manifest's capabilities and hosts for the
+whole plugin. The Plugins window can then take any of them back, and the
+ones that act on the account on screen (`chat:read-active`,
+`chat:read-unread-summary`, `composer:insert-draft`) account by account.
+The record keeps these as `revoked` and `revokedIn`; an update keeps them,
+and turning a grant back on can never give more than was approved. Grants
+are read on every call and request, so a change applies to the next one.
+YapYap listens on no port or socket, and a test fails if its code ever
+starts to.
 
 | Capability                 | Grants                                                                                   |
 | -------------------------- | ---------------------------------------------------------------------------------------- |

@@ -438,6 +438,15 @@ not edit the same lines.
   `hostMethods` offers `notifications.show` first, which names the plugin
   and respects Do not disturb; the other operations come with their issues.
 
+- Plugin grants (#94): records gain `revoked` and `revokedIn`, which an
+  update keeps. `holds` decides each call against them, with account
+  capabilities checked for the account on screen, and `grantedHosts` drops
+  revoked hosts from the network policy. `plugins:set-grant` changes one
+  grant (`withGrant` never gives more than was approved) and the runtime
+  rereads it at once; the Plugins window lists every grant with switches,
+  per account where it applies. A test fails if YapYap's code ever opens a
+  local port or socket.
+
 - Plugin network allowlist (#95): `hostPolicy` decides every request on a
   plugin's session: its own files and plain HTTPS to approved hosts pass;
   a new host the manifest schema would accept asks the user
