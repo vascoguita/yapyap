@@ -182,6 +182,20 @@ describe('createChromeFeature', () => {
     );
   });
 
+  it('lists the shortcuts of the platform it runs on', () => {
+    const t = setup();
+    t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    const help = t.menu().find((menu) => menu.role === 'help');
+    const open = Array.isArray(help?.submenu)
+      ? help.submenu.find((item) => item.label === 'Keyboard Shortcuts…')
+      : undefined;
+    (open?.click as (() => void) | undefined)?.();
+    expect(t.window.loadURL).toHaveBeenCalledWith('app://chrome/shortcuts.html');
+    const list = t.call('shortcuts:list') as { platform: string; shortcuts: { id: string }[] };
+    expect(list.platform).toBe(t.deps.platform);
+    expect(list.shortcuts.map((shortcut) => shortcut.id)).toContain('settings');
+  });
+
   it('opens Settings from the menu and answers its IPC calls', async () => {
     const t = setup();
     t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');

@@ -211,6 +211,15 @@ not edit the same lines.
   a notification that opens the release page; nothing is downloaded, and
   other policies never make the request.
 
+- Keyboard shortcuts, first part (#75): `shared/shortcuts.ts` is the one
+  table of shortcuts, with macOS keys where they differ and platforms where
+  only some have them. The menus take every accelerator from it, so the
+  Edit and Window menus are built item by item (plain-text paste included)
+  instead of from Electron's roles. Help → Keyboard Shortcuts… (Ctrl+/)
+  lists them with the system's own keys; `shortcuts.spec.ts` checks that
+  each listed shortcut is on a menu item. Changing shortcuts and global
+  shortcuts come next.
+
 - Site permissions (#77): each account's session guard now hands back what
   it remembers (`PermissionMemory`), and the Accounts window shows, for a
   running account, whether the camera and microphone are allowed until

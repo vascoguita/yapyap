@@ -56,6 +56,7 @@ function api(overrides: Partial<ChromeApi['settings']> = {}) {
     },
     plugins: { list: vi.fn(), consent: vi.fn(), answer: vi.fn() },
     picker: { offer: vi.fn(), choose: vi.fn(), cancel: vi.fn() },
+    shortcuts: { list: vi.fn() },
   } satisfies ChromeApi;
 }
 

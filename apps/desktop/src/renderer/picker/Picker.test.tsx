@@ -43,6 +43,7 @@ function api(offer: () => Promise<PickerOffer> = () => Promise.resolve(OFFER)) {
       choose: vi.fn(() => Promise.resolve()),
       cancel: vi.fn(() => Promise.resolve()),
     },
+    shortcuts: { list: vi.fn() },
   } satisfies ChromeApi;
 }
 

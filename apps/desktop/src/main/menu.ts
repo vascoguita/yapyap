@@ -3,9 +3,16 @@ import type { ZoomStep } from './appearance/zoom.ts';
 import { PRODUCT_NAME } from './identity.ts';
 import type { AccountSummary } from '../shared/chrome-api.ts';
 import { en } from '../shared/messages/en.ts';
+import { acceleratorOf, type ShortcutId } from '../shared/shortcuts.ts';
 
 /** Positions with a shortcut: the digits 1 to 9. */
 const SHORTCUT_POSITIONS = 9;
+
+/** The accelerator a platform gives `id`, ready to spread into a menu item. */
+function keyed(id: ShortcutId, platform: string): Pick<MenuItemConstructorOptions, 'accelerator'> {
+  const accelerator = acceleratorOf(id, platform);
+  return accelerator === undefined ? {} : { accelerator };
+}
 
 export interface MenuActions {
   /** Every account; only those that are on can be switched to. */
@@ -31,43 +38,76 @@ export interface MenuActions {
   readonly togglePrivacyScreen: () => void;
   /** Copies versions, platform, GPU summary and recent redacted log lines for bug reports. */
   readonly copyDiagnostics: () => void;
+  readonly openShortcuts: () => void;
 }
 
 /** Zoom in YapYap's own 5% steps, kept per account. */
-function zoomItems(actions: MenuActions): MenuItemConstructorOptions[] {
-  const step = (label: string, accelerator: string, zoom: ZoomStep) => ({
+function zoomItems(actions: MenuActions, platform: string): MenuItemConstructorOptions[] {
+  const step = (label: string, id: ShortcutId, zoom: ZoomStep) => ({
     label,
-    accelerator,
+    ...keyed(id, platform),
     click: () => {
       actions.zoom(zoom);
     },
   });
   return [
-    step(en.menu.actualSize, 'CmdOrCtrl+0', 'reset'),
-    step(en.menu.zoomIn, 'CmdOrCtrl+=', 'in'),
-    step(en.menu.zoomOut, 'CmdOrCtrl+-', 'out'),
+    step(en.menu.actualSize, 'actualSize', 'reset'),
+    step(en.menu.zoomIn, 'zoomIn', 'in'),
+    step(en.menu.zoomOut, 'zoomOut', 'out'),
   ];
 }
 
 /** The standard View menu, with YapYap's zoom and its privacy screen. */
-function viewMenu(actions: MenuActions): MenuItemConstructorOptions {
+function viewMenu(actions: MenuActions, platform: string): MenuItemConstructorOptions {
   return {
     label: en.menu.view,
     submenu: [
-      { role: 'reload' },
-      { role: 'forceReload' },
-      { role: 'toggleDevTools' },
+      { role: 'reload', ...keyed('reload', platform) },
+      { role: 'forceReload', ...keyed('forceReload', platform) },
+      { role: 'toggleDevTools', ...keyed('devTools', platform) },
       { type: 'separator' },
-      ...zoomItems(actions),
+      ...zoomItems(actions, platform),
       { type: 'separator' },
       {
         label: en.menu.privacyScreen,
         type: 'checkbox',
         checked: actions.privacyScreen,
-        accelerator: 'CmdOrCtrl+Shift+H',
+        ...keyed('privacyScreen', platform),
         click: actions.togglePrivacyScreen,
       },
-      { role: 'togglefullscreen' },
+      { role: 'togglefullscreen', ...keyed('fullScreen', platform) },
+    ],
+  };
+}
+
+/** Editing, with each shortcut from the shared table, plain-text paste included. */
+function editMenu(platform: string): MenuItemConstructorOptions {
+  return {
+    label: en.menu.edit,
+    submenu: [
+      { role: 'undo', ...keyed('undo', platform) },
+      { role: 'redo', ...keyed('redo', platform) },
+      { type: 'separator' },
+      { role: 'cut', ...keyed('cut', platform) },
+      { role: 'copy', ...keyed('copy', platform) },
+      { role: 'paste', ...keyed('paste', platform) },
+      { role: 'pasteAndMatchStyle', ...keyed('pastePlain', platform) },
+      { role: 'selectAll', ...keyed('selectAll', platform) },
+    ],
+  };
+}
+
+function windowMenu(platform: string): MenuItemConstructorOptions {
+  const mac: MenuItemConstructorOptions[] =
+    platform === 'darwin' ? [{ role: 'zoom' }, { type: 'separator' }, { role: 'front' }] : [];
+  return {
+    label: en.menu.window,
+    // On macOS this role adds the open windows to the menu.
+    ...(platform === 'darwin' ? { role: 'windowMenu' as const } : {}),
+    submenu: [
+      { role: 'minimize', ...keyed('minimize', platform) },
+      { role: 'close', ...keyed('close', platform) },
+      ...mac,
     ],
   };
 }
@@ -77,12 +117,13 @@ function running(actions: MenuActions): readonly AccountSummary[] {
 }
 
 /** The accounts, switched by position with Ctrl or Cmd and a digit. */
-function accountItems(actions: MenuActions): MenuItemConstructorOptions[] {
+function accountItems(actions: MenuActions, platform: string): MenuItemConstructorOptions[] {
+  const first = String(acceleratorOf('switchAccount', platform));
   return running(actions).map((entry, index) => ({
     label: entry.name,
     type: 'radio',
     checked: entry.active,
-    ...(index < SHORTCUT_POSITIONS ? { accelerator: `CmdOrCtrl+${String(index + 1)}` } : {}),
+    ...(index < SHORTCUT_POSITIONS ? { accelerator: first.replace(/1$/, String(index + 1)) } : {}),
     click: () => {
       actions.switchAccount(entry.id);
     },
@@ -115,11 +156,11 @@ function quietItems(actions: MenuActions): MenuItemConstructorOptions[] {
 }
 
 /** The accounts, and maintenance for the active one, for when it misbehaves. */
-function accountMenu(actions: MenuActions): MenuItemConstructorOptions {
+function accountMenu(actions: MenuActions, platform: string): MenuItemConstructorOptions {
   return {
     label: en.menu.account,
     submenu: [
-      ...accountItems(actions),
+      ...accountItems(actions, platform),
       { type: 'separator' },
       { label: en.menu.addAccount, click: actions.addAccount },
       { label: en.menu.manageAccounts, click: actions.openAccounts },
@@ -147,7 +188,8 @@ function accountMenu(actions: MenuActions): MenuItemConstructorOptions {
  */
 function commonItems(
   actions: MenuActions,
-): Record<'about' | 'settings' | 'diagnostics', MenuItemConstructorOptions> {
+  platform: string,
+): Record<'about' | 'settings' | 'help', MenuItemConstructorOptions[]> {
   const about: MenuItemConstructorOptions = {
     label: en.menu.about(PRODUCT_NAME),
     click: actions.openAbout,
@@ -158,10 +200,15 @@ function commonItems(
   };
   const settings: MenuItemConstructorOptions = {
     label: en.menu.settings,
-    accelerator: 'CmdOrCtrl+,',
+    ...keyed('settings', platform),
     click: actions.openSettings,
   };
-  return { about, settings, diagnostics };
+  const shortcuts: MenuItemConstructorOptions = {
+    label: en.menu.shortcuts,
+    ...keyed('shortcuts', platform),
+    click: actions.openShortcuts,
+  };
+  return { about: [about], settings: [settings], help: [shortcuts, diagnostics] };
 }
 
 /** Plugins sit beside Settings, as Settings is where Developer Mode lives. */
@@ -176,51 +223,53 @@ export function buildMenuTemplate(
   platform: string,
   actions: MenuActions,
 ): MenuItemConstructorOptions[] {
-  const { about, settings, diagnostics } = commonItems(actions);
+  const { about, settings, help } = commonItems(actions, platform);
+  const quit: MenuItemConstructorOptions = { role: 'quit', ...keyed('quit', platform) };
   const standard: MenuItemConstructorOptions[] = [
-    { role: 'editMenu' },
-    viewMenu(actions),
-    { role: 'windowMenu' },
+    editMenu(platform),
+    viewMenu(actions, platform),
+    windowMenu(platform),
   ];
   if (platform !== 'darwin') {
     const file: MenuItemConstructorOptions = {
       label: en.menu.file,
-      submenu: [settings, ...pluginItems(actions), { type: 'separator' }, { role: 'quit' }],
+      submenu: [...settings, ...pluginItems(actions), { type: 'separator' }, quit],
     };
     return [
       file,
-      accountMenu(actions),
+      accountMenu(actions, platform),
       ...standard,
-      { role: 'help', submenu: [about, { type: 'separator' }, diagnostics] },
+      { role: 'help', submenu: [...about, { type: 'separator' }, ...help] },
     ];
   }
   return [
-    macAppMenu(about, [settings, ...pluginItems(actions)]),
+    macAppMenu([...about], [...settings, ...pluginItems(actions)], quit),
     { role: 'fileMenu' },
-    accountMenu(actions),
+    accountMenu(actions, platform),
     ...standard,
-    { role: 'help', submenu: [diagnostics] },
+    { role: 'help', submenu: help },
   ];
 }
 
 function macAppMenu(
-  about: MenuItemConstructorOptions,
+  about: MenuItemConstructorOptions[],
   settings: MenuItemConstructorOptions[],
+  quit: MenuItemConstructorOptions,
 ): MenuItemConstructorOptions {
   return {
     label: PRODUCT_NAME,
     submenu: [
-      about,
+      ...about,
       { type: 'separator' },
       ...settings,
       { type: 'separator' },
       { role: 'services' },
       { type: 'separator' },
-      { role: 'hide' },
+      { role: 'hide', ...keyed('hide', 'darwin') },
       { role: 'hideOthers' },
       { role: 'unhide' },
       { type: 'separator' },
-      { role: 'quit' },
+      quit,
     ],
   };
 }

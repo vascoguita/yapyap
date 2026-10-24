@@ -1,4 +1,5 @@
 import type { SettingValue } from './settings-fields.ts';
+import type { Shortcut } from './shortcuts.ts';
 
 /** What the About window shows; built in main, rendered by the chrome renderer. */
 export interface AboutInfo {
@@ -168,6 +169,15 @@ export interface ChromeApi {
     readonly choose: (id: string, audio: boolean) => Promise<void>;
     readonly cancel: () => Promise<void>;
   };
+  readonly shortcuts: {
+    readonly list: () => Promise<ShortcutList>;
+  };
+}
+
+/** The shortcuts of the platform YapYap runs on, with its own keys. */
+export interface ShortcutList {
+  readonly platform: string;
+  readonly shortcuts: readonly Shortcut[];
 }
 
 /** An account as YapYap's own windows and menus show it. */
@@ -226,6 +236,7 @@ export const CHROME_CHANNELS = {
   pluginsList: 'plugins:list',
   pluginsConsent: 'plugins:consent',
   pluginsAnswer: 'plugins:answer',
+  shortcutsList: 'shortcuts:list',
 } as const;
 
 /** The one channel YapYap sends on, from the main process to the sidebar. */
