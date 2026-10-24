@@ -2,6 +2,7 @@ import { generateKeyPairSync } from 'node:crypto';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { strFromU8, unzipSync } from 'fflate';
 import { describe, expect, it } from 'vitest';
 import { runCli } from './cli.ts';
 
@@ -19,7 +20,11 @@ function plugin(): string {
 function run(...args: string[]) {
   const out: string[] = [];
   const err: string[] = [];
+  const written = new Map<string, Uint8Array>();
   const code = runCli(args, {
+    writeFile: (path, bytes) => {
+      written.set(path, bytes);
+    },
     readFile: (path) => {
       if (path !== 'key.pem') {
         throw new Error(`ENOENT: no such file, open '${path}'`);
@@ -29,7 +34,7 @@ function run(...args: string[]) {
     out: (line) => out.push(line),
     err: (line) => err.push(line),
   });
-  return { code, out, err };
+  return { code, out, err, written };
 }
 
 describe('runCli', () => {
@@ -41,7 +46,7 @@ describe('runCli', () => {
       expect.stringMatching(/^Signed .+ with key [0-9a-f]{2}(?::[0-9a-f]{2}){31}$/) as unknown,
     ]);
     const verified = run('verify', root);
-    expect(verified).toEqual({
+    expect(verified).toMatchObject({
       code: 0,
       out: [expect.stringMatching(/^Valid signature by key [0-9a-f:]{95}$/) as unknown],
       err: [],
@@ -52,15 +57,34 @@ describe('runCli', () => {
   });
 
   it('exits 1 with the reason for an unsigned plugin', () => {
-    expect(run('verify', plugin())).toEqual({
+    expect(run('verify', plugin())).toMatchObject({
       code: 1,
       out: [],
       err: ['Invalid: The plugin is not signed.'],
     });
   });
 
+  it('packs a signed plugin into an archive that holds its manifest and files', () => {
+    const root = plugin();
+    run('sign', '--key', 'key.pem', root);
+    const packed = run('pack', root, 'hello.yapyap-plugin');
+    expect(packed).toMatchObject({ code: 0, out: [`Packed ${root} into hello.yapyap-plugin`] });
+    const files = unzipSync(packed.written.get('hello.yapyap-plugin') ?? new Uint8Array());
+    expect(Object.keys(files).sort()).toEqual(['main.js', 'manifest.json']);
+    expect(strFromU8(files['manifest.json'] ?? new Uint8Array())).toContain('"signature"');
+  });
+
+  it('refuses to pack a plugin whose signature does not verify', () => {
+    const packed = run('pack', plugin(), 'hello.yapyap-plugin');
+    expect(packed).toMatchObject({
+      code: 1,
+      err: ["The plugin's signature does not verify: The plugin is not signed."],
+    });
+    expect(packed.written.size).toBe(0);
+  });
+
   it('exits 1 with the error, never the key, when signing fails', () => {
-    expect(run('sign', '--key', 'missing.pem', plugin())).toEqual({
+    expect(run('sign', '--key', 'missing.pem', plugin())).toMatchObject({
       code: 1,
       out: [],
       err: ["ENOENT: no such file, open 'missing.pem'"],
@@ -72,6 +96,7 @@ describe('runCli', () => {
       readFile: () => {
         throw 'boom' as unknown as Error;
       },
+      writeFile: () => undefined,
       out: () => undefined,
       err: (line) => {
         expect(line).toBe('Unexpected error.');
@@ -80,9 +105,9 @@ describe('runCli', () => {
     expect(code).toBe(1);
   });
 
-  it('explains both commands', () => {
+  it('explains every command', () => {
     expect(run().err).toEqual([
-      'Usage:\n  yapyap-plugin-sign sign --key <private-key.pem> <plugin-folder>\n  yapyap-plugin-sign verify <plugin-folder>',
+      'Usage:\n  yapyap-plugin-sign sign --key <private-key.pem> <plugin-folder>\n  yapyap-plugin-sign verify <plugin-folder>\n  yapyap-plugin-sign pack <plugin-folder> <archive.yapyap-plugin>',
     ]);
   });
 
@@ -97,6 +122,9 @@ describe('runCli', () => {
     [['sign', '--key', 'key.pem', 'dir', 'extra']],
     [['verify']],
     [['verify', 'a', 'b']],
+    [['pack']],
+    [['pack', 'dir']],
+    [['pack', 'dir', 'out', 'extra']],
   ])('prints usage and exits 2 for %j', (args) => {
     const result = run(...args);
     expect(result.code).toBe(2);

@@ -84,7 +84,7 @@ settings store, i18n catalogs, and the RPC layer.
 | Package                          | Version         |
 | -------------------------------- | --------------- |
 | vitepress                        | 1.6.4           |
-| typedoc, typedoc-plugin-markdown | 0.28.20, 4.14.0 |
+| typedoc, typedoc-plugin-markdown | 0.28.20, 4.14.1 |
 
 #### Supply chain
 
