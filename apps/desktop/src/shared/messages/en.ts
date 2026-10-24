@@ -120,6 +120,7 @@ const catalog = {
       exportFailed: 'Could not save the settings file.',
       readFailed: 'Could not read that file.',
       notSettings: 'That file is not a YapYap settings file.',
+      damaged: 'YapYap could not read that file. It may be damaged.',
       newer: 'Those settings come from a newer version of YapYap. Update YapYap to import them.',
       confirm: 'Import these settings?',
       confirmButton: 'Import',

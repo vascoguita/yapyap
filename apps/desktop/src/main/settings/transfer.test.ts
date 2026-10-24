@@ -99,8 +99,14 @@ describe('readImport', () => {
     );
   });
 
+  it('says when a file cannot even be read', () => {
+    expect(readImport('{')).toEqual({
+      kind: 'rejected',
+      reason: 'YapYap could not read that file. It may be damaged.',
+    });
+  });
+
   it.each([
-    ['not JSON', '{'],
     ['JSON that is not an object', '[]'],
     ['null', 'null'],
     ['a number', '5'],

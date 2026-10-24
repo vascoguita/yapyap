@@ -196,6 +196,74 @@ describe('createChromeFeature', () => {
     expect(list.shortcuts.map((shortcut) => shortcut.id)).toContain('settings');
   });
 
+  it('gives each of YapYap’s windows its own size and controls', () => {
+    const t = setup();
+    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    const clickLabel = (label: string): void => {
+      const item = t
+        .menu()
+        .flatMap((menu) => (Array.isArray(menu.submenu) ? menu.submenu : []))
+        .find((entry) => entry.label === label);
+      (item?.click as (() => void) | undefined)?.();
+    };
+    const lastOptions = (): unknown =>
+      (t.deps.createWindow.mock.lastCall as unknown[] | undefined)?.[0];
+    const fixed = { resizable: false, minimizable: false, maximizable: false };
+    clickLabel('About YapYap');
+    expect(lastOptions()).toEqual({
+      autoHideMenuBar: true,
+      title: 'About YapYap',
+      width: 480,
+      height: 640,
+      ...fixed,
+      show: false,
+    });
+    clickLabel('New Chat with Number…');
+    expect(lastOptions()).toEqual({
+      autoHideMenuBar: true,
+      title: 'New Chat',
+      width: 440,
+      height: 300,
+      ...fixed,
+      show: false,
+    });
+    clickLabel('Keyboard Shortcuts…');
+    expect(lastOptions()).toEqual({
+      autoHideMenuBar: true,
+      title: 'Keyboard Shortcuts',
+      width: 520,
+      height: 640,
+      minWidth: 400,
+      minHeight: 360,
+      minimizable: false,
+      show: false,
+    });
+    clickLabel('Manage Accounts…');
+    expect(lastOptions()).toEqual({
+      autoHideMenuBar: true,
+      title: 'Accounts',
+      width: 560,
+      height: 520,
+      minWidth: 440,
+      minHeight: 360,
+      minimizable: false,
+      maximizable: false,
+      show: false,
+    });
+    runtime.openWelcome();
+    expect(lastOptions()).toEqual({
+      autoHideMenuBar: true,
+      title: 'Welcome',
+      width: 560,
+      height: 640,
+      minWidth: 420,
+      minHeight: 420,
+      minimizable: false,
+      maximizable: false,
+      show: false,
+    });
+  });
+
   it('opens Settings from the menu and answers its IPC calls', async () => {
     const t = setup();
     t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');

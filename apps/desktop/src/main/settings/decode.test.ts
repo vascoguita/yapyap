@@ -39,6 +39,26 @@ const DEFAULTS = {
   plugins: { developerMode: false },
 };
 
+/**
+ * Every value each choice accepts, written out rather than read from the
+ * schema, so dropping or misspelling one there fails here.
+ */
+const CHOICES: Readonly<Record<string, readonly string[]>> = {
+  'appearance.theme': ['system', 'light', 'dark'],
+  'appearance.trayIcon': ['color', 'auto', 'light', 'dark'],
+  'reliability.diskCacheMb': ['auto', '128', '256', '512', '1024'],
+  'reliability.jsHeapMb': ['auto', '2048', '4096', '8192'],
+  'reliability.displayBackend': ['auto', 'wayland', 'x11'],
+  'privacy.crashReports': ['off', 'local', 'ask'],
+};
+
+/** The defaults with one setting changed. */
+function withValue(id: string, value: unknown): Record<string, unknown> {
+  const [section = '', key = ''] = id.split('.');
+  const defaults = DEFAULTS as unknown as Record<string, Record<string, unknown>>;
+  return { ...DEFAULTS, [section]: { ...defaults[section], [key]: value } };
+}
+
 describe('defaultSettings', () => {
   it('gives every setting its default', () => {
     expect(defaultSettings()).toEqual(DEFAULTS);
@@ -136,17 +156,28 @@ describe('decodeSettings', () => {
   });
 
   it('drops unknown keys inside every section', () => {
-    const decoded = decodeSettings(
-      JSON.stringify({
-        ...DEFAULTS,
-        general: { ...DEFAULTS.general, extra: 1 },
-        appearance: { ...DEFAULTS.appearance, extra: 1 },
-        reliability: { ...DEFAULTS.reliability, extra: 1 },
-        privacy: { ...DEFAULTS.privacy, extra: 1 },
-      }),
-    );
-    expect(decoded.kind === 'ok' && decoded.settings).toEqual(DEFAULTS);
+    const sections = Object.keys(DEFAULTS).filter((key) => key !== 'schemaVersion');
+    for (const section of sections) {
+      const decoded = decodeSettings(JSON.stringify(withValue(`${section}.extra`, 1)));
+      expect(decoded.kind === 'ok' && decoded.settings, section).toEqual(DEFAULTS);
+    }
   });
+
+  it.each(Object.entries(CHOICES))(
+    'keeps every value %s accepts, and nothing else',
+    (id, values) => {
+      for (const value of values) {
+        expect(decodeSettings(JSON.stringify(withValue(id, value)))).toEqual({
+          kind: 'ok',
+          settings: withValue(id, value),
+          reset: [],
+        });
+      }
+      expect(decodeSettings(JSON.stringify(withValue(id, 'other')))).toMatchObject({
+        reset: [`/${id.replace('.', '/')}`],
+      });
+    },
+  );
 
   it.each([
     '',

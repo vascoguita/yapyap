@@ -402,6 +402,13 @@ not edit the same lines.
   which fixes GHSA-834v-8h66-3h79. It is a test-only dependency, so builds
   were never affected; the audit passes again.
 
+- Mutation gate for settings and chrome windows (#275): `decode.test.ts`
+  writes out every value each choice accepts and checks unknown keys in
+  every section, so schema literals no longer survive by changing the test
+  with them. `readImport` answers a file that is not JSON with its own
+  message ("damaged"), which also makes its parse error observable. A
+  feature test pins the size and controls of YapYap's own windows.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).
