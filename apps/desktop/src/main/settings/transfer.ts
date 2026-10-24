@@ -55,24 +55,14 @@ export function exportSettings(settings: Settings): string {
   return `${JSON.stringify({ format: SETTINGS_EXPORT_FORMAT, settings: exported }, null, 2)}\n`;
 }
 
-function parseJson(text: string): unknown {
-  try {
-    return JSON.parse(text);
-  } catch {
-    return undefined;
-  }
-}
-
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
 
-/** The settings inside an export, as JSON; anything else gives '', which never decodes. */
-function settingsJson(text: string): string {
-  const value = parseJson(text);
-  if (!isRecord(value) || value['format'] !== SETTINGS_EXPORT_FORMAT || !('settings' in value)) {
-    return '';
-  }
-  return JSON.stringify(value['settings']);
+/** The settings inside an export; undefined when the value is not one. */
+function exportedSettings(value: unknown): unknown {
+  return isRecord(value) && value['format'] === SETTINGS_EXPORT_FORMAT
+    ? value['settings']
+    : undefined;
 }
 
 const NOT_SETTINGS: ImportResult = {
@@ -80,20 +70,30 @@ const NOT_SETTINGS: ImportResult = {
   reason: en.settings.backup.notSettings,
 };
 
-/** Reads an exported file through the same migrations and checks as `settings.json`. */
-export function readImport(text: string): ImportResult {
-  if (Buffer.byteLength(text) > MAX_IMPORT_BYTES) {
-    return NOT_SETTINGS;
-  }
-  const decoded = decodeSettings(settingsJson(text));
+const DAMAGED: ImportResult = { kind: 'rejected', reason: en.settings.backup.damaged };
+
+/** Decoded settings as an import sees them: newer or unreadable ones are refused. */
+function checked(decoded: ReturnType<typeof decodeSettings>): ImportResult {
   if (decoded.kind === 'newer') {
     return {
       kind: 'rejected',
       reason: en.settings.backup.newer,
     };
   }
-  if (decoded.kind === 'corrupt') {
+  return decoded.kind === 'corrupt' ? NOT_SETTINGS : decoded;
+}
+
+/** Reads an exported file through the same migrations and checks as `settings.json`. */
+export function readImport(text: string): ImportResult {
+  if (Buffer.byteLength(text) > MAX_IMPORT_BYTES) {
     return NOT_SETTINGS;
   }
-  return decoded;
+  let value: unknown;
+  try {
+    value = JSON.parse(text);
+  } catch {
+    return DAMAGED;
+  }
+  const settings = exportedSettings(value);
+  return settings === undefined ? NOT_SETTINGS : checked(decodeSettings(JSON.stringify(settings)));
 }
