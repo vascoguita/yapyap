@@ -4,7 +4,7 @@ import { defaultSettings } from '../settings/decode.ts';
 import type { Settings } from '../settings/schema.ts';
 import { shortcutHandlers } from './shortcut-settings.ts';
 
-function setup(readOnly = false, platform = 'linux') {
+function setup(readOnly = false, platform = 'linux', registered = true) {
   let settings: Settings = defaultSettings();
   const service = {
     current: () => settings,
@@ -13,7 +13,7 @@ function setup(readOnly = false, platform = 'linux') {
       settings = change(settings);
     }),
   };
-  const handlers = shortcutHandlers(service, platform);
+  const handlers = shortcutHandlers(service, platform, () => registered);
   const handler = (channel: string) => {
     const found = handlers.find((candidate) => candidate.channel === channel);
     if (found === undefined) {
@@ -72,5 +72,43 @@ describe('shortcutHandlers', () => {
     expect(accepts(['settings', 7])).toBe(false);
     expect(accepts(['settings', 'K'.repeat(65)])).toBe(false);
     expect(accepts(['settings', 'CmdOrCtrl+K', 'extra'])).toBe(false);
+  });
+});
+
+describe('the shortcut that works from any app', () => {
+  it('has no keys at first, takes some, and gives them back', () => {
+    const t = setup();
+    const before = t
+      .handler(CHROME_CHANNELS.shortcutsList)
+      .handle({ sender: {} }) as ShortcutChange;
+    expect(before.global).toEqual([
+      {
+        id: 'toggleWindow',
+        label: 'Show or hide YapYap, from any app',
+        accelerator: '',
+        registered: true,
+      },
+    ]);
+    expect(t.set('toggleWindow', 'CmdOrCtrl+Alt+Y').problem).toBe('');
+    expect(t.settings().shortcuts.global.toggleWindow).toBe('CmdOrCtrl+Alt+Y');
+    expect(t.set('toggleWindow', null).problem).toBe('');
+    expect(t.settings().shortcuts.global.toggleWindow).toBe('');
+  });
+
+  it('takes no keys that do not fit or that YapYap already uses, either way round', () => {
+    const t = setup();
+    expect(t.set('toggleWindow', 'Y').problem).toMatch(/^Use a key together/);
+    expect(t.set('toggleWindow', 'Ctrl+,').problem).toBe(
+      'Those keys are already used for “Open Settings”.',
+    );
+    t.set('toggleWindow', 'CmdOrCtrl+Alt+Y');
+    expect(t.set('settings', 'Ctrl+Alt+Y').problem).toBe(
+      'Those keys are already used for “Show or hide YapYap, from any app”.',
+    );
+  });
+
+  it('says when the system did not grant the keys', () => {
+    const t = setup(false, 'linux', false);
+    expect(t.set('toggleWindow', 'F9').global[0]?.registered).toBe(false);
   });
 });

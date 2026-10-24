@@ -76,6 +76,7 @@ function setup() {
     },
     spelling: { available: () => ['en-GB', 'pt-PT'], system: () => ['en-GB'] },
     chooseFolder: vi.fn(() => Promise.resolve<string | undefined>(undefined)),
+    isGlobalShortcutRegistered: vi.fn(() => true),
     downloads: { add: vi.fn(), entries: vi.fn(() => []), act: vi.fn(() => true), clear: vi.fn() },
     settingsFiles: {
       chooseExport: vi.fn(() => Promise.resolve(undefined)),
@@ -199,7 +200,10 @@ describe('createChromeFeature', () => {
       listener(settings);
     }
     expect(t.deps.setMenu).toHaveBeenCalledTimes(builds);
-    const custom = { ...settings, shortcuts: { custom: { settings: 'Alt+S' } } };
+    const custom = {
+      ...settings,
+      shortcuts: { ...settings.shortcuts, custom: { settings: 'Alt+S' } },
+    };
     for (const listener of listeners) {
       listener(custom);
     }

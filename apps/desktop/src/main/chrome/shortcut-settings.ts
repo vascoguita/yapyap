@@ -5,7 +5,13 @@ import {
 } from '../../shared/chrome-api.ts';
 import { en } from '../../shared/messages/en.ts';
 import { conflictOf, isValidShortcut } from '../../shared/shortcut-keys.ts';
-import { fitsShortcut, shortcutsFor, type ShortcutId } from '../../shared/shortcuts.ts';
+import {
+  fitsShortcut,
+  GLOBAL_SHORTCUTS,
+  shortcutsFor,
+  type GlobalShortcutId,
+  type ShortcutId,
+} from '../../shared/shortcuts.ts';
 import type { SettingsService } from '../settings/service.ts';
 import { noArguments, type ChromeHandler } from './ipc.ts';
 
@@ -20,24 +26,44 @@ type Service = Pick<SettingsService, 'current' | 'update' | 'readOnly'>;
 const isKeysOrReset = (value: unknown): boolean =>
   value === null || (typeof value === 'string' && value.length <= MAX_ACCELERATOR);
 
-/** Why the keys cannot be used for `id`, or '' when they can. */
-function problemOf(
+const isGlobal = (id: string): id is GlobalShortcutId =>
+  GLOBAL_SHORTCUTS.some((shortcut) => shortcut.id === id);
+
+/** Every binding in use: the in-app shortcuts, and the global ones that have keys. */
+function bindingsOf(
   service: Service,
   platform: string,
-  id: ShortcutId,
-  accelerator: string,
-): string {
-  if (!fitsShortcut(id, accelerator)) {
+): { id: string; label: string; accelerator: string }[] {
+  const { custom, global } = service.current().shortcuts;
+  const local = shortcutsFor(platform, custom);
+  const everywhere = GLOBAL_SHORTCUTS.map(({ id, label }) => ({
+    id,
+    label,
+    accelerator: global[id],
+  }));
+  return [...local, ...everywhere.filter(({ accelerator }) => accelerator !== '')];
+}
+
+/** Why the keys cannot be used for `id`, or '' when they can. */
+function problemOf(service: Service, platform: string, id: string, accelerator: string): string {
+  const fits = isGlobal(id)
+    ? isValidShortcut(accelerator)
+    : fitsShortcut(id as ShortcutId, accelerator);
+  if (!fits) {
     return isValidShortcut(accelerator) ? text.switchEndsInOne : text.invalid;
   }
-  const shortcuts = shortcutsFor(platform, service.current().shortcuts.custom);
-  const taken = conflictOf(id, accelerator, shortcuts, platform);
-  const other = shortcuts.find((shortcut) => shortcut.id === taken);
+  const bindings = bindingsOf(service, platform);
+  const taken = conflictOf(id, accelerator, bindings, platform);
+  const other = bindings.find((binding) => binding.id === taken);
   return other === undefined ? '' : text.taken(other.label);
 }
 
-function save(service: Service, id: ShortcutId, accelerator: string | null): void {
+function save(service: Service, id: string, accelerator: string | null): void {
   service.update((current) => {
+    if (isGlobal(id)) {
+      const global = { ...current.shortcuts.global, [id]: accelerator ?? '' };
+      return { ...current, shortcuts: { ...current.shortcuts, global } };
+    }
     const others = Object.entries(current.shortcuts.custom).filter(([key]) => key !== id);
     const custom = Object.fromEntries(
       accelerator === null ? others : [...others, [id, accelerator]],
@@ -48,27 +74,44 @@ function save(service: Service, id: ShortcutId, accelerator: string | null): voi
 
 /**
  * The Keyboard Shortcuts window's operations (#75): list the shortcuts, and
- * change or reset one. Keys that do not fit or that another action uses are
- * refused, with the reason; nothing is saved for a newer YapYap's file.
+ * change or reset one, in-app or global. Keys that do not fit or that
+ * another action uses are refused, with the reason; nothing is saved for a
+ * newer YapYap's file. A global shortcut also says whether the system
+ * granted its keys.
  */
-export function shortcutHandlers(service: Service, platform: string): ChromeHandler[] {
-  const list = (): ShortcutList => ({
-    platform,
-    shortcuts: shortcutsFor(platform, service.current().shortcuts.custom),
-  });
-  const known = new Set(list().shortcuts.map((shortcut) => shortcut.id));
+export function shortcutHandlers(
+  service: Service,
+  platform: string,
+  isRegistered: (accelerator: string) => boolean,
+): ChromeHandler[] {
+  const list = (): ShortcutList => {
+    const { custom, global } = service.current().shortcuts;
+    return {
+      platform,
+      shortcuts: shortcutsFor(platform, custom),
+      global: GLOBAL_SHORTCUTS.map(({ id, label }) => ({
+        id,
+        label,
+        accelerator: global[id],
+        registered: global[id] === '' || isRegistered(global[id]),
+      })),
+    };
+  };
+  const known = new Set<string>([
+    ...list().shortcuts.map((shortcut) => shortcut.id),
+    ...GLOBAL_SHORTCUTS.map((shortcut) => shortcut.id),
+  ]);
   return [
     { channel: CHROME_CHANNELS.shortcutsList, accepts: noArguments, handle: list },
     {
       channel: CHROME_CHANNELS.shortcutsSet,
       accepts: ([id, accelerator, ...rest]) =>
-        rest.length === 0 && known.has(id as ShortcutId) && isKeysOrReset(accelerator),
+        rest.length === 0 && known.has(String(id)) && isKeysOrReset(accelerator),
       handle: (_call, id, accelerator): ShortcutChange => {
-        const shortcut = id as ShortcutId;
         const keys = accelerator as string | null;
-        const problem = keys === null ? '' : problemOf(service, platform, shortcut, keys);
+        const problem = keys === null ? '' : problemOf(service, platform, String(id), keys);
         if (problem === '' && !service.readOnly) {
-          save(service, shortcut, keys);
+          save(service, String(id), keys);
         }
         return { ...list(), problem };
       },

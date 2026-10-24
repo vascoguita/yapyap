@@ -487,6 +487,12 @@ const catalog = {
     kept: 'YapYap keeps this list only while it runs.',
   },
   shortcuts: {
+    global: 'From any app',
+    globalHint: 'These work while you use other apps. They have no keys until you give them some.',
+    none: 'None',
+    remove: 'Remove',
+    notRegistered:
+      'Another app already uses those keys, or this system does not let apps use keys everywhere.',
     change: 'Change',
     reset: 'Reset',
     press: 'Press the new keys, or Escape to keep these',
@@ -519,6 +525,7 @@ const catalog = {
       minimize: 'Minimize the window',
       close: 'Close the window',
       downloads: 'Show downloads',
+      toggleWindow: 'Show or hide YapYap, from any app',
       hide: 'Hide YapYap',
       quit: 'Quit YapYap',
     },

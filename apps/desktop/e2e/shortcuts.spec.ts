@@ -34,7 +34,8 @@ test('binds every listed shortcut in the menus, and lists them all in a window',
   });
   const window = await opened;
   await window.waitForURL('app://chrome/shortcuts.html');
-  await expect(window.getByRole('row')).toHaveCount(listed.length + 1);
+  // The header row, one per shortcut, and the shortcut that works from any app.
+  await expect(window.getByRole('row')).toHaveCount(listed.length + 2);
   await expect(window.getByRole('cell', { name: 'Open Settings', exact: true })).toBeVisible();
 });
 
@@ -70,4 +71,27 @@ test('changes a shortcut by pressing the new keys, and the menu follows', async 
   );
   await window.getByRole('button', { name: 'Reset: Open Settings' }).click();
   await expect.poll(settingsKeys).toBe('CmdOrCtrl+,');
+});
+
+test('takes keys from any app for showing YapYap, and gives them back', async ({ app }) => {
+  await whatsAppPage(app);
+  const opened = app.waitForEvent('window');
+  await app.evaluate(({ Menu }) => {
+    Menu.getApplicationMenu()
+      ?.items.flatMap((menu) => menu.submenu?.items ?? [])
+      .find((item) => item.label === 'Keyboard Shortcuts…')
+      ?.click();
+  });
+  const window = await opened;
+  await window.waitForURL('app://chrome/shortcuts.html');
+  const label = 'Show or hide YapYap, from any app';
+  await window.getByRole('button', { name: `Change: ${label}` }).click();
+  await expect(window.getByRole('status')).toBeVisible();
+  await window.keyboard.press('ControlOrMeta+Alt+KeyY');
+  await expect(window.getByRole('button', { name: `Remove: ${label}` })).toBeVisible();
+  const registered = () =>
+    app.evaluate(({ globalShortcut }) => globalShortcut.isRegistered('CmdOrCtrl+Alt+Y'));
+  await expect.poll(registered).toBe(true);
+  await window.getByRole('button', { name: `Remove: ${label}` }).click();
+  await expect.poll(registered).toBe(false);
 });

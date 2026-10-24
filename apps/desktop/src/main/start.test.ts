@@ -293,6 +293,7 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     },
     appMetrics: vi.fn(() => [{ pid: 4242, memory: { workingSetSize: 100 * 1024 } }]),
     idleSeconds: () => 600,
+    globalShortcuts: { register: vi.fn(() => true), unregister: vi.fn(), unregisterAll: vi.fn() },
     systemLanguages: () => ['pt-PT', 'en-GB'],
     contextMenu: vi.fn(),
     secrets: {
@@ -1345,6 +1346,33 @@ describe('startApp', () => {
     };
     willDownload({}, item);
     expect(item.setSavePath).toHaveBeenCalledWith(expect.stringMatching(/a\.pdf$/));
+  });
+
+  it('gives back the keys of shortcuts that work from any app when YapYap quits', async () => {
+    const f = fakes();
+    await startApp(f);
+    f.listeners.get('will-quit')?.(...([] as never[]));
+    expect(f.globalShortcuts.unregisterAll).toHaveBeenCalled();
+    expect(f.globalShortcuts.register).not.toHaveBeenCalled();
+  });
+
+  it('shows or hides the window with the keys the user gave it', async () => {
+    const f = fakes();
+    const base = defaultSettings();
+    f.settings.current = () => ({
+      ...base,
+      shortcuts: { ...base.shortcuts, global: { toggleWindow: 'CmdOrCtrl+Alt+Y' } },
+    });
+    await startApp(f);
+    const [keys, press] = f.globalShortcuts.register.mock.lastCall as unknown as [
+      string,
+      () => void,
+    ];
+    expect(keys).toBe('CmdOrCtrl+Alt+Y');
+    f.window.isVisible.mockReturnValue(true);
+    f.window.isFocused.mockReturnValue(true);
+    press();
+    expect(f.window.hide).toHaveBeenCalled();
   });
 
   it('follows the theme setting once ready', async () => {

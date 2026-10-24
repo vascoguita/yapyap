@@ -220,6 +220,16 @@ export interface DownloadEntry {
 export interface ShortcutList {
   readonly platform: string;
   readonly shortcuts: readonly ActiveShortcut[];
+  readonly global: readonly GlobalShortcutState[];
+}
+
+/** A shortcut that works from any app, and whether the system granted its keys. */
+export interface GlobalShortcutState {
+  readonly id: string;
+  readonly label: string;
+  /** Empty when it has no keys. */
+  readonly accelerator: string;
+  readonly registered: boolean;
 }
 
 /** The shortcuts after a change, and why it was refused; empty when it was not. */

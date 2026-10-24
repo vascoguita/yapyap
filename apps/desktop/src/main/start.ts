@@ -121,6 +121,11 @@ import {
 import type { Rect } from './window/window-state.ts';
 import { resolveWhatsAppOrigin } from './whatsapp-origin.ts';
 import { en } from '../shared/messages/en.ts';
+import {
+  followGlobalShortcuts,
+  toggleWindow,
+  type GlobalShortcutPort,
+} from './shortcuts/global-shortcuts.ts';
 import type { ContextMenuItem, MenuPage } from './spelling/context-menu.ts';
 import { followSpellingSetting, type SpellingController } from './spelling/spelling.ts';
 import { createProxyLogin, type AuthInfo, type LoginCallback } from './network/proxy-login.ts';
@@ -273,6 +278,8 @@ export interface StartDependencies<Window extends WindowPort> {
   readonly appMetrics: () => readonly ProcessMemory[];
   /** Seconds since the last keyboard or mouse input. */
   readonly idleSeconds: () => number;
+  /** Electron's `globalShortcut`, for the shortcuts that work from any app. */
+  readonly globalShortcuts: GlobalShortcutPort;
   /** `app.getPreferredSystemLanguages()`, which picks the spelling language until the user does. */
   readonly systemLanguages: () => readonly string[];
   /** Shows a context menu where the pointer is. */
@@ -472,6 +479,21 @@ function signInToProxies<Window extends WindowPort>(
   });
   deps.app.on('login', (event, contents, _details, info, callback) => {
     login.handle(event, contents?.session ?? NO_PAGE, info, callback);
+  });
+}
+
+/** The shortcuts that work from any app, given back when YapYap quits (#75). */
+function takeGlobalShortcuts<Window extends WindowPort>(
+  deps: Pick<StartDependencies<Window>, 'app' | 'globalShortcuts' | 'settings'>,
+  window: Window,
+): void {
+  followGlobalShortcuts(deps.globalShortcuts, deps.settings, {
+    toggleWindow: () => {
+      toggleWindow(window);
+    },
+  });
+  deps.app.on('will-quit', () => {
+    deps.globalShortcuts.unregisterAll();
   });
 }
 
@@ -1048,6 +1070,7 @@ async function openWindow<Window extends WindowPort>(
   proxy: ProxyController,
 ): Promise<void> {
   const window = openMainWindow(deps);
+  takeGlobalShortcuts(deps, window);
   const running = openAccounts({
     deps,
     chrome,
