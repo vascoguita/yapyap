@@ -8,10 +8,14 @@ function setup(options: {
   marker?: string;
   setting?: 'off' | 'local' | 'ask';
   failing?: string[];
+  savedAt?: number;
+  dumps?: number;
+  report?: string;
 }) {
-  const stored = new Map<string, string>(
-    options.marker === undefined ? [] : [['running.json', options.marker]],
-  );
+  const stored = new Map<string, string>([
+    ...(options.marker === undefined ? [] : [['running.json', options.marker] as const]),
+    ...(options.report === undefined ? [] : [['crash-report.txt', options.report] as const]),
+  ]);
   const failing = new Set(options.failing ?? []);
   const files = {
     read: vi.fn((name: string) => stored.get(name)),
@@ -26,6 +30,13 @@ function setup(options: {
         throw new Error('busy');
       }
       stored.delete(name);
+    }),
+    modifiedAt: vi.fn((name: string) => (stored.has(name) ? (options.savedAt ?? 2000) : undefined)),
+    clearDumps: vi.fn(() => {
+      if (failing.has('clear dumps')) {
+        throw new Error('busy');
+      }
+      return options.dumps ?? 0;
     }),
   };
   let quit: (() => void) | undefined;
@@ -71,7 +82,7 @@ describe('trackCrashes', () => {
     await afterReady(t.review);
     const report = t.stored.get('crash-report.txt');
     expect(report).toMatch(
-      /^YapYap closed unexpectedly\.\nPrevious session: YapYap 0\.0\.9, [\s\S]*YapYap 0\.1\.0 \(deb\)[\s\S]*\nlast line$/,
+      /^YapYap closed unexpectedly\.\nFingerprint: [0-9a-f]{12}\nPrevious session: YapYap 0\.0\.9, [\s\S]*YapYap 0\.1\.0 \(deb\)[\s\S]*\nlast line$/,
     );
     expect(t.review.review).toHaveBeenCalledExactlyOnceWith(report);
     expect(t.review.openExternal).not.toHaveBeenCalled();
@@ -131,5 +142,31 @@ describe('trackCrashes', () => {
       ['Could not record that YapYap quit cleanly.'],
     ]);
     expect(t.review.review).toHaveBeenCalledOnce();
+  });
+
+  it('forgets a report older than 30 days, and keeps a newer one', () => {
+    const day = 24 * 60 * 60 * 1000;
+    const old = setup({ report: 'old', savedAt: 2000 - 31 * day });
+    trackCrashes(old.deps);
+    expect(old.stored.has('crash-report.txt')).toBe(false);
+    const recent = setup({ report: 'recent', savedAt: 2000 - 29 * day });
+    trackCrashes(recent.deps);
+    expect(recent.stored.get('crash-report.txt')).toBe('recent');
+    const none = setup({});
+    trackCrashes(none.deps);
+    expect(none.deps.files.remove).not.toHaveBeenCalledWith('crash-report.txt');
+  });
+
+  it('removes memory dumps Chromium left behind, and says how many', () => {
+    const t = setup({ dumps: 2 });
+    trackCrashes(t.deps);
+    expect(t.deps.files.clearDumps).toHaveBeenCalledOnce();
+    expect(t.deps.warn).toHaveBeenCalledWith('Removed 2 crash dumps, which can hold messages.');
+    const clean = setup({});
+    trackCrashes(clean.deps);
+    expect(clean.deps.warn).not.toHaveBeenCalled();
+    const failing = setup({ failing: ['clear dumps'] });
+    trackCrashes(failing.deps);
+    expect(failing.deps.warn).toHaveBeenCalledWith('Could not remove old crash files.');
   });
 });

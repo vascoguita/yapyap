@@ -448,7 +448,7 @@ startApp({
     },
   },
   crashes: {
-    files: profileCrashFiles(app.getPath('userData')),
+    files: profileCrashFiles(app.getPath('userData'), app.getPath('crashDumps')),
     version: app.getVersion(),
     previousLog: () => readPreviousLog(LOG_DIR),
     review: reviewCrashWithDialog,

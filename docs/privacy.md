@@ -41,9 +41,12 @@ browser. YapYap does not read, copy or upload them.
   reports** in Settings → Privacy. Then, after YapYap closes unexpectedly, it
   saves a plain-text report in its data folder (`crash-report.txt`): the
   version, operating system and graphics details, and the end of the
-  previous session's log, which is already redacted. It never saves memory
-  dumps, which could contain messages. With **Keep a report and offer to
-  review it**, YapYap shows you the whole report at the next launch.
+  previous session's log, which is already redacted, under a short
+  fingerprint that names the crash without revealing anything. It keeps one
+  report, for at most 30 days. It never saves memory dumps, which could
+  contain messages, and removes any that Chromium leaves behind at every
+  start. With **Keep a report and offer to review it**, YapYap shows you
+  the whole report at the next launch.
   Nothing is sent: **Report on GitHub** only opens a prefilled bug report in
   your browser, for you to read, edit and submit yourself.
 

@@ -369,6 +369,9 @@ const catalog = {
     /** GitHub issue titles; the user can still change them before submitting. */
     issueTitle: 'Problem report',
     crashTitle: 'YapYap closed unexpectedly',
+    /** Named by the crash's fingerprint, so reports of one crash can be found together. */
+    crashTitleWith: (fingerprint: string): string =>
+      `YapYap closed unexpectedly (crash ${fingerprint})`,
     crashWhatHappened: 'YapYap closed unexpectedly. I was …',
     title: 'Report a Problem',
     intro:
