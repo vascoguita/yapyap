@@ -552,13 +552,16 @@ not edit the same lines.
   pages' CSP as it is. No page had a violation. The manual screen reader
   and keyboard checklist for releases is at `/architecture/accessibility`.
 
-- Crash fingerprints (#113, first part): each crash report starts with a
+- Crash fingerprints and traces (#113): each crash report starts with a
   12-character fingerprint, a hash of the previous session's last five
   warnings and errors without their times and with numbers made alike, and
   the prefilled issue's title names it, so reports of one crash can be
   found together. At every start, YapYap forgets a crash report older than
   30 days and removes any `.dmp` memory dumps under Chromium's crash dumps
-  folder. Trace capture is still to come.
+  folder. **Help → Record a Performance Trace…** (`recordTrace`) asks
+  first, then where to save, records 10 seconds of Chromium tracing in
+  timing categories only (no memory dumps or screenshots), and saves a
+  Perfetto trace there; nothing is sent.
 
 - Screen-sharing indicator (#161): the WhatsApp preload's second stand-in
   (`installShareShim`, ADR 0011) reports when a screen share starts and

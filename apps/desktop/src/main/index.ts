@@ -2,7 +2,9 @@ import {
   app,
   BrowserWindow,
   clipboard,
+  contentTracing,
   desktopCapturer,
+  dialog,
   ipcMain,
   Menu,
   MessageChannelMain,
@@ -53,6 +55,7 @@ import { applyAutostart, chooseAutostart } from './autostart/autostart.ts';
 import { xdgAutostart } from './autostart/xdg-autostart.ts';
 import { CHROME_PARTITION, createChromeFeature } from './chrome/feature.ts';
 import { profileCrashFiles, readPreviousLog } from './crash/crash-files.ts';
+import { recordTrace } from './crash/trace.ts';
 import { reviewCrashWithDialog } from './crash-review-prompt.ts';
 import electronUpdater from 'electron-updater';
 import trayIcon from '../../build/icons/32x32.png?asset';
@@ -202,6 +205,20 @@ const chrome = createChromeFeature({
     Menu.setApplicationMenu(Menu.buildFromTemplate(template));
   },
   writeClipboard: (text) => clipboard.writeText(text),
+  recordTrace: () => {
+    void recordTrace({
+      ask: (question) => dialog.showMessageBox(question),
+      chooseFile: () => dialog.showSaveDialog({ defaultPath: 'yapyap.perfetto-trace' }),
+      start: (categories) =>
+        contentTracing.startRecording({ included_categories: [...categories] }),
+      stop: (path) => contentTracing.stopRecording(path),
+      wait: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+      tell: (message) => {
+        void dialog.showMessageBox(message);
+      },
+      warn,
+    });
+  },
   openExternal: (url) => shell.openExternal(url),
   facts: () => ({
     version: app.getVersion(),

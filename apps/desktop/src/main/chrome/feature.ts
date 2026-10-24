@@ -233,6 +233,8 @@ export interface ChromeFeatureDependencies {
   readonly createWindow: (options: WindowOptions, renderer: RendererOptions) => PanelWindow;
   readonly setMenu: (template: MenuItemConstructorOptions[]) => void;
   readonly writeClipboard: (text: string) => Promise<unknown>;
+  /** Records a performance trace, if the user agrees, and saves it (#113). */
+  readonly recordTrace: () => void;
   /** Opens a web page in the user's browser, such as GitHub's bug form. */
   readonly openExternal: (url: string) => Promise<unknown>;
   /** A system notification, for things the user should know but need not act on. */
@@ -641,6 +643,7 @@ function menuActionsOf(
       changeZoom(deps.settings, step);
     },
     copyDiagnostics,
+    recordTrace: deps.recordTrace,
     pluginCommands: plugins.commands(),
     runPluginCommand: plugins.runCommand,
     pluginPanels: plugins.panels(),

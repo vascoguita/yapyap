@@ -49,6 +49,10 @@ browser. YapYap does not read, copy or upload them.
   the whole report at the next launch.
   Nothing is sent: **Report on GitHub** only opens a prefilled bug report in
   your browser, for you to read, edit and submit yourself.
+- **Performance traces are on request.** **Help → Record a Performance
+  Trace…** records 10 seconds of timing data only after you agree, and
+  saves it where you choose. It holds page and file addresses, never
+  messages, memory dumps or screenshots, and YapYap never sends it.
 
 A complete inventory of the data YapYap stores, where it is stored, and how
 to delete it will be added here as each feature ships.

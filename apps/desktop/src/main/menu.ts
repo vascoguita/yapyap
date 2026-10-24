@@ -56,6 +56,8 @@ export interface MenuActions {
   readonly openDownloads: () => void;
   /** Help → Report a Problem: the guided report (#82). */
   readonly openReport: () => void;
+  /** Help → Record a Performance Trace, for slow-downs a log cannot explain (#113). */
+  readonly recordTrace: () => void;
 }
 
 /** Zoom in YapYap's own 5% steps, kept per account. */
@@ -232,7 +234,11 @@ function commonItems(
     label: en.menu.reportProblem,
     click: actions.openReport,
   };
-  return { about: [about], settings: [settings], help: [shortcuts, report, diagnostics] };
+  const trace: MenuItemConstructorOptions = {
+    label: en.menu.recordTrace,
+    click: actions.recordTrace,
+  };
+  return { about: [about], settings: [settings], help: [shortcuts, report, diagnostics, trace] };
 }
 
 /**
