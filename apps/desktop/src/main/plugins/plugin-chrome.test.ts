@@ -135,7 +135,7 @@ describe('createPluginChrome', () => {
     });
     await vi.waitFor(() => {
       expect(t.deps.methodsFor).toHaveBeenCalledExactlyOnceWith(
-        { id: 'org.example.hello', name: 'Hello' },
+        expect.objectContaining({ id: 'org.example.hello', name: 'Hello' }),
         t.insertDraft,
       );
     });
@@ -186,6 +186,40 @@ describe('createPluginChrome', () => {
     expect([...(await loadRecords(root)).keys()]).toEqual(['org.example.hello']);
   });
 
+  it('saves a plugin setting through IPC, checking it against the plugin’s form', async () => {
+    const folder = join(root, 'org.example.hello', '1.0.0');
+    mkdirSync(folder, { recursive: true });
+    writeFileSync(
+      join(folder, 'manifest.json'),
+      JSON.stringify({
+        id: 'org.example.hello',
+        name: 'Hello',
+        version: '1.0.0',
+        author: { name: 'Example' },
+        apiVersion: '1.0.0',
+        entry: 'main.js',
+        capabilities: [],
+        contributes: {
+          settings: { type: 'object', properties: { concise: { type: 'boolean' } } },
+        },
+      }),
+    );
+    await saveRecords(
+      root,
+      new Map([['org.example.hello', record('org.example.hello', { developer: true })]]),
+    );
+    const t = setup(root, false, {
+      readFile: (path: string) => Promise.resolve(new Uint8Array(readFileSync(path))),
+    });
+    const set = t.handler('plugins:set-setting');
+    expect(set.accepts(['org.example.hello', 'concise', true])).toBe(true);
+    expect(set.accepts(['org.example.hello', 'concise', [true]])).toBe(false);
+    const list = (await set.handle({ sender: {} }, 'org.example.hello', 'concise', true)) as {
+      plugins: { settings: unknown[] }[];
+    };
+    expect(list.plugins[0]?.settings).toEqual([{ key: 'concise', type: 'boolean', value: true }]);
+  });
+
   it('lists installed plugins by ID, marked by who vouches for them', async () => {
     await saveRecords(
       root,
@@ -206,9 +240,15 @@ describe('createPluginChrome', () => {
     const t = setup(root, true);
     await expect(t.handler('plugins:list').handle({ sender: {} })).resolves.toEqual({
       plugins: [
-        { id: 'org.alpha', version: '1.0.0', trust: 'third-party', grants: [] },
-        { id: 'org.guita.yapyap.ai', version: '1.0.0', trust: 'first-party', grants: [] },
-        { id: 'org.zeta', version: '1.0.0', trust: 'developer', grants: [] },
+        { id: 'org.alpha', version: '1.0.0', trust: 'third-party', grants: [], settings: [] },
+        {
+          id: 'org.guita.yapyap.ai',
+          version: '1.0.0',
+          trust: 'first-party',
+          grants: [],
+          settings: [],
+        },
+        { id: 'org.zeta', version: '1.0.0', trust: 'developer', grants: [], settings: [] },
       ],
       developerMode: true,
       activity: [],

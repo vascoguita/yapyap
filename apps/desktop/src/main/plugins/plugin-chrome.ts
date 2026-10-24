@@ -18,6 +18,7 @@ import {
 } from './install-flow.ts';
 import { commitInstall, prepareInstall } from './installer.ts';
 import { grantsOf, withGrant } from './grants.ts';
+import { isSettingChange, saveSetting, settingsOf } from './plugin-settings.ts';
 import { loadRecords, saveRecords } from './records.ts';
 import type { AuditLog } from './audit-log.ts';
 import type { CallingPlugin } from './host-methods.ts';
@@ -106,16 +107,19 @@ async function listPlugins(
   developerMode: boolean,
   audit: Pick<AuditLog, 'recent'>,
   accounts: PluginAccounts['list'],
+  readFile: (path: string) => Promise<Uint8Array>,
 ): Promise<PluginList> {
   const installed = await loadRecords(root);
-  const plugins = [...installed.values()]
-    .map((record) => ({
+  const listed = await Promise.all(
+    [...installed.values()].map(async (record) => ({
       id: record.id,
       version: record.version,
       trust: trustOf(record),
       grants: grantsOf(record, accounts()),
-    }))
-    .sort((a, b) => compareCodeUnits(a.id, b.id));
+      settings: await settingsOf(root, record, readFile),
+    })),
+  );
+  const plugins = listed.toSorted((a, b) => compareCodeUnits(a.id, b.id));
   return { plugins, developerMode, activity: audit.recent() };
 }
 
@@ -156,9 +160,23 @@ function pluginHandlers(
   runtime: Pick<PluginRuntime, 'regrant'>,
 ): ChromeHandler[] {
   const list = (): Promise<PluginList> =>
-    listPlugins(deps.root, settings.current().plugins.developerMode, deps.audit, accounts.list);
+    listPlugins(
+      deps.root,
+      settings.current().plugins.developerMode,
+      deps.audit,
+      accounts.list,
+      deps.readFile,
+    );
   return [
     { channel: CHROME_CHANNELS.pluginsList, accepts: noArguments, handle: list },
+    {
+      channel: CHROME_CHANNELS.pluginsSetSetting,
+      accepts: isSettingChange,
+      handle: async (_call, ...args) => {
+        await saveSetting(deps.root, deps.readFile, runtime, args);
+        return list();
+      },
+    },
     {
       channel: CHROME_CHANNELS.pluginsSetGrant,
       accepts: (args) => isGrantChange(args, accounts.list),

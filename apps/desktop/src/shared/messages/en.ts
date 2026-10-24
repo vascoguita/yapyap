@@ -486,6 +486,8 @@ const catalog = {
       confirmInstall: 'Install',
       confirmUpdate: 'Update',
     },
+    settings: 'Settings',
+    settingDefault: 'Plugin’s default',
     permissions: 'Permissions',
     permissionsHint:
       'Turn off anything you no longer want this plugin to do. Turning something back on gives back only what you allowed when you installed it.',

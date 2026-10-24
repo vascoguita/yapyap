@@ -114,6 +114,23 @@ export interface InstalledPlugin {
   readonly trust: PluginTrust;
   /** What the user approved, and whether each grant still stands (#94). */
   readonly grants: readonly PluginGrant[];
+  /** The plugin's settings form, with what the user saved; empty when it has none (#98). */
+  readonly settings: readonly PluginSetting[];
+}
+
+/** One field of a plugin's settings form, as YapYap renders it. */
+export interface PluginSetting {
+  readonly key: string;
+  readonly type: 'string' | 'number' | 'integer' | 'boolean';
+  readonly title?: string;
+  readonly description?: string;
+  /** The values to choose from, when the plugin lists them. */
+  readonly enum?: readonly (string | number)[];
+  readonly minimum?: number;
+  readonly maximum?: number;
+  readonly maxLength?: number;
+  /** Missing until the user saves one. */
+  readonly value?: string | number | boolean;
 }
 
 /**
@@ -202,6 +219,12 @@ export interface ChromeApi {
     /** `acknowledged`: the user accepted the risk of a plugin YapYap has not reviewed. */
     readonly answer: (install: boolean, acknowledged: boolean) => Promise<void>;
     /** Grants a capability again or takes it back: for one account, or the whole plugin with null. */
+    /** Saves one setting of a plugin; null goes back to the plugin's own default. */
+    readonly setSetting: (
+      id: string,
+      key: string,
+      value: string | number | boolean | null,
+    ) => Promise<PluginList>;
     readonly setGrant: (
       id: string,
       capability: string,
@@ -385,6 +408,7 @@ export const CHROME_CHANNELS = {
   pluginsConsent: 'plugins:consent',
   pluginsAnswer: 'plugins:answer',
   pluginsSetGrant: 'plugins:set-grant',
+  pluginsSetSetting: 'plugins:set-setting',
   shortcutsList: 'shortcuts:list',
   shortcutsSet: 'shortcuts:set',
   downloadsList: 'downloads:list',

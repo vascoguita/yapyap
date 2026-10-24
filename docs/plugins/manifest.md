@@ -51,6 +51,22 @@ No capability lets a plugin send a message, see WhatsApp's page, or run code
 in it. Plugins only ever get chat content as plain data, and only what you
 grant.
 
+## Settings form
+
+`contributes.settings` is a JSON Schema for the plugin's settings, which
+YapYap shows as a form in the Plugins window. YapYap renders only a plain
+`object` whose `properties` are named with letters, digits and `_` and
+each have:
+
+- `type`: `string`, `number`, `integer` or `boolean`;
+- optionally `title`, `description`, `enum` (the choices),
+  `minimum`/`maximum`, and `maxLength` (at most 1000).
+
+A schema with anything else shows no form. The plugin reads what the user
+saved with `host.settings.get()`, which needs no capability; a setting the
+user never saved is missing, so the plugin falls back to its own default.
+Keep API keys out of settings and in `host.secrets`.
+
 ## Writing a plugin
 
 The `@yapyap/plugin-sdk` package has the TypeScript types for the manifest

@@ -41,6 +41,7 @@ export function hostApi(call: Call, commands: Map<string, () => unknown>): Plugi
         commands.set(id, handler);
       },
     },
+    settings: { get: () => call('settings.get') },
   };
 }
 

@@ -10,6 +10,7 @@ function setup(list: () => Promise<PluginList>) {
     consent: vi.fn(),
     answer: vi.fn(),
     setGrant: vi.fn(list),
+    setSetting: vi.fn(list),
   };
   render(<Plugins api={{ plugins } as unknown as ChromeApi} />);
   return plugins;
@@ -24,9 +25,21 @@ describe('Plugins', () => {
     setup(() =>
       Promise.resolve({
         plugins: [
-          { id: 'org.example.hello', version: '1.0.0', trust: 'third-party', grants: [] },
-          { id: 'org.guita.yapyap.ai', version: '2.0.0', trust: 'first-party', grants: [] },
-          { id: 'org.me.draft', version: '0.1.0', trust: 'developer', grants: [] },
+          {
+            id: 'org.example.hello',
+            version: '1.0.0',
+            trust: 'third-party',
+            settings: [],
+            grants: [],
+          },
+          {
+            id: 'org.guita.yapyap.ai',
+            version: '2.0.0',
+            trust: 'first-party',
+            settings: [],
+            grants: [],
+          },
+          { id: 'org.me.draft', version: '0.1.0', trust: 'developer', settings: [], grants: [] },
         ],
         developerMode: false,
         activity: [],
@@ -51,7 +64,15 @@ describe('Plugins', () => {
     const time = '2026-10-24T10:00:00.000Z';
     setup(() =>
       Promise.resolve({
-        plugins: [{ id: 'org.example.hello', version: '1.0.0', trust: 'third-party', grants: [] }],
+        plugins: [
+          {
+            id: 'org.example.hello',
+            version: '1.0.0',
+            trust: 'third-party',
+            settings: [],
+            grants: [],
+          },
+        ],
         developerMode: false,
         activity: [
           {
@@ -103,6 +124,7 @@ describe('Plugins', () => {
             id: 'org.example.hello',
             version: '1.0.0',
             trust: 'third-party',
+            settings: [],
             grants: [
               {
                 capability: 'composer:insert-draft',
@@ -159,7 +181,15 @@ describe('Plugins', () => {
   it('shows no permissions for a plugin that asked for none', async () => {
     setup(() =>
       Promise.resolve({
-        plugins: [{ id: 'org.example.quiet', version: '1.0.0', trust: 'third-party', grants: [] }],
+        plugins: [
+          {
+            id: 'org.example.quiet',
+            version: '1.0.0',
+            trust: 'third-party',
+            settings: [],
+            grants: [],
+          },
+        ],
         developerMode: false,
         activity: [],
       }),
@@ -176,6 +206,7 @@ describe('Plugins', () => {
             id: 'org.example.hello',
             version: '1.0.0',
             trust: 'third-party',
+            settings: [],
             grants: [{ capability: 'secrets:own', granted: true }],
           },
         ],
@@ -190,5 +221,62 @@ describe('Plugins', () => {
     );
     expect(plugins.setGrant).toHaveBeenCalledOnce();
     expect(screen.getByText('org.example.hello')).toBeTruthy();
+  });
+
+  it('shows a plugin’s settings form, and saves each field as the user changes it', async () => {
+    const plugins = setup(() =>
+      Promise.resolve({
+        plugins: [
+          {
+            id: 'org.example.hello',
+            version: '1.0.0',
+            trust: 'third-party',
+            grants: [],
+            settings: [
+              {
+                key: 'model',
+                type: 'string',
+                title: 'Model',
+                enum: ['small', 'large'],
+                value: 'large',
+              },
+              { key: 'endpoint', type: 'string', description: 'Where requests go.' },
+              { key: 'replies', type: 'integer', title: 'Replies', value: 2 },
+              { key: 'concise', type: 'boolean', title: 'Concise' },
+              { key: 'tone', type: 'string', title: 'Tone', enum: ['warm', 'plain'] },
+            ],
+          },
+        ],
+        developerMode: false,
+        activity: [],
+      }),
+    );
+    fireEvent.click(await screen.findByText('Settings'));
+    expect(screen.queryByText('Permissions')).toBeNull();
+    const model = screen.getByLabelText<HTMLSelectElement>('Model');
+    expect(model.value).toBe('large');
+    fireEvent.change(model, { target: { value: 'small' } });
+    expect(plugins.setSetting).toHaveBeenLastCalledWith('org.example.hello', 'model', 'small');
+    fireEvent.change(model, { target: { value: '' } });
+    expect(plugins.setSetting).toHaveBeenLastCalledWith('org.example.hello', 'model', null);
+    expect(screen.getByText('Where requests go.')).toBeTruthy();
+    fireEvent.blur(screen.getByLabelText('endpoint'), { target: { value: 'https://x.example' } });
+    expect(plugins.setSetting).toHaveBeenLastCalledWith(
+      'org.example.hello',
+      'endpoint',
+      'https://x.example',
+    );
+    const replies = screen.getByLabelText<HTMLInputElement>('Replies');
+    expect(replies.value).toBe('2');
+    fireEvent.blur(replies, { target: { value: '3' } });
+    expect(plugins.setSetting).toHaveBeenLastCalledWith('org.example.hello', 'replies', 3);
+    expect(screen.getByLabelText<HTMLSelectElement>('Tone').value).toBe('');
+    // A save that fails leaves the form as it was.
+    plugins.setSetting.mockRejectedValueOnce(new Error('unwritable'));
+    fireEvent.click(screen.getByLabelText('Concise'));
+    expect(plugins.setSetting).toHaveBeenLastCalledWith('org.example.hello', 'concise', true);
+    await waitFor(() => {
+      expect(screen.getByLabelText('Model')).toBeTruthy();
+    });
   });
 });

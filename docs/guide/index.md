@@ -152,6 +152,8 @@ only what you allow when you install it.
   received.
 - A plugin's commands appear in the File menu (the YapYap menu on macOS)
   under **Plugin Commands**, each named after its plugin.
+- A plugin that has settings shows them under **Settings** in the Plugins
+  window; each one is saved as soon as you change it.
 - Under **Permissions**, each plugin lists what you allowed it to do. Turn
   anything off at any time, for the plugin or, for reading chats and
   writing drafts, account by account; it applies to the plugin's very next

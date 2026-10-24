@@ -11,6 +11,7 @@ import {
 } from './plugin-files.ts';
 import { grantedHosts, holds } from './grants.ts';
 import { hostPolicy } from './network-policy.ts';
+import { formOf, valuesOf, type SettingField } from './settings-form.ts';
 import { loadRecords, saveRecords, type PluginRecord } from './records.ts';
 import type { AuditLog } from './audit-log.ts';
 import type { CallingPlugin } from './host-methods.ts';
@@ -110,7 +111,7 @@ export interface PluginCommand {
 }
 
 /** The installed manifest, or undefined when the file is missing or not a manifest. */
-async function manifestIn(
+export async function manifestIn(
   folder: string,
   readFile: PluginRuntimeDependencies['readFile'],
 ): Promise<Manifest | undefined> {
@@ -134,7 +135,11 @@ function connect(
   known: KnownPlugin,
 ): void {
   const { id } = known.record;
-  const methods = deps.methodsFor({ id, name: known.name });
+  const methods = deps.methodsFor({
+    id,
+    name: known.name,
+    settings: () => valuesOf(known.form, known.record.settings),
+  });
   // Grants are read on every call, so taking one back stops the next call (#94).
   const granted = (capability: string): boolean =>
     holds(known.record, capability, deps.activeAccount());
@@ -150,6 +155,8 @@ function connect(
 interface KnownPlugin {
   name: string;
   record: PluginRecord;
+  /** The settings form its manifest declares, which saved values must fit. */
+  form: readonly SettingField[];
 }
 
 /** Adds `host` to the plugin's record, so the approval outlives a restart. */
@@ -228,8 +235,10 @@ async function start(
     return;
   }
   state.sources.set(record.id, { folder, entry: manifest.entry });
-  const known = state.known.get(record.id) ?? { name: manifest.name, record };
+  const form = formOf(manifest.contributes?.settings);
+  const known = state.known.get(record.id) ?? { name: manifest.name, record, form };
   known.name = manifest.name;
+  known.form = form;
   known.record = record;
   state.known.set(record.id, known);
   const partition = pluginPartition(record);
