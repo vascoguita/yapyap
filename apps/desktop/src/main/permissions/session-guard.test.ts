@@ -211,6 +211,16 @@ describe('screen sharing', () => {
     expect(pick).toHaveBeenCalledOnce();
   });
 
+  it('lets the user pick for display-capture, as Electron 45 names screen capture', async () => {
+    const pick = pickWith();
+    const t = setup({ pick });
+    expect(await t.ask(t.whatsapp, 'display-capture')).toBe(true);
+    expect(pick).toHaveBeenCalledExactlyOnceWith(t.whatsapp);
+    expect(t.deps.askMedia).not.toHaveBeenCalled();
+    expect(await t.ask(t.chrome, 'display-capture')).toBe(false);
+    expect(pick).toHaveBeenCalledOnce();
+  });
+
   it('denies and forgets an earlier pick when the user cancels or the picker fails', async () => {
     const pick = vi
       .fn<(contents: object) => Promise<CaptureChoice | undefined>>()

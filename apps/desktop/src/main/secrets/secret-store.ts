@@ -3,11 +3,13 @@ import { writeTextAtomically } from '../atomic-write.ts';
 
 /** Electron's `safeStorage`, as far as YapYap uses it. */
 export interface EncryptionPort {
-  isEncryptionAvailable(): boolean;
+  isAsyncEncryptionAvailable(): Promise<boolean>;
   /** Linux only. */
   getSelectedStorageBackend(): string;
-  encryptString(plainText: string): Buffer;
-  decryptString(encrypted: Buffer): string;
+  encryptStringAsync(plainText: string): Promise<Buffer>;
+  decryptStringAsync(
+    encrypted: Buffer,
+  ): Promise<{ readonly result: string; readonly shouldReEncrypt: boolean }>;
 }
 
 /** The secrets file; only ever holds ciphertext. */
@@ -18,10 +20,10 @@ export interface SecretFile {
 
 export interface SecretStore {
   /** False where the system offers no real encryption, so nothing may be kept. */
-  readonly canKeep: () => boolean;
-  readonly get: (name: string) => string | undefined;
+  readonly canKeep: () => Promise<boolean>;
+  readonly get: (name: string) => Promise<string | undefined>;
   /** Keeps a secret, or forgets it when `value` is undefined; false if it cannot be kept. */
-  readonly set: (name: string, value: string | undefined) => boolean;
+  readonly set: (name: string, value: string | undefined) => Promise<boolean>;
 }
 
 const FILE_VERSION = 1;
@@ -68,6 +70,27 @@ function parse(text: string | undefined): Map<string, string> {
   }
 }
 
+/** Decrypts a stored secret, storing it again under a rotated key; undefined if it cannot be. */
+async function reveal(
+  encryption: EncryptionPort,
+  stored: string,
+  keepAgain: (result: string) => Promise<void>,
+): Promise<string | undefined> {
+  try {
+    const { result, shouldReEncrypt } = await encryption.decryptStringAsync(
+      Buffer.from(stored, 'base64'),
+    );
+    if (shouldReEncrypt) {
+      // The system rotated its key; storing again keeps the secret readable.
+      await keepAgain(result);
+    }
+    return result;
+  } catch {
+    // Encrypted under a key the system no longer has; asking again is all that is left.
+    return undefined;
+  }
+}
+
 /**
  * Keeps secrets such as proxy passwords encrypted by the system's keychain
  * through `safeStorage`, never in the settings and never in plain text.
@@ -83,31 +106,31 @@ export function openSecretStore(
   const save = (): void => {
     file.write(JSON.stringify({ version: FILE_VERSION, secrets: Object.fromEntries(secrets) }));
   };
-  const canKeep = (): boolean =>
-    encryption.isEncryptionAvailable() && !WEAK_BACKENDS.has(backend());
+  const canKeep = async (): Promise<boolean> =>
+    (await encryption.isAsyncEncryptionAvailable()) && !WEAK_BACKENDS.has(backend());
+  const keep = async (name: string, value: string): Promise<void> => {
+    secrets.set(name, (await encryption.encryptStringAsync(value)).toString('base64'));
+    save();
+  };
   return {
     canKeep,
-    get: (name) => {
+    get: async (name) => {
       const stored = secrets.get(name);
-      if (stored === undefined || !encryption.isEncryptionAvailable()) {
+      if (stored === undefined || !(await encryption.isAsyncEncryptionAvailable())) {
         return undefined;
       }
-      try {
-        return encryption.decryptString(Buffer.from(stored, 'base64'));
-      } catch {
-        // Encrypted under a key the system no longer has; asking again is all that is left.
-        return undefined;
-      }
+      return reveal(encryption, stored, (result) => keep(name, result));
     },
-    set: (name, value) => {
+    set: async (name, value) => {
       if (value === undefined) {
         secrets.delete(name);
-      } else if (canKeep()) {
-        secrets.set(name, encryption.encryptString(value).toString('base64'));
-      } else {
+        save();
+        return true;
+      }
+      if (!(await canKeep())) {
         return false;
       }
-      save();
+      await keep(name, value);
       return true;
     },
   };

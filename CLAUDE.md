@@ -129,7 +129,7 @@ Update this table in the PR that adds a command.
   CONTRIBUTING).
 - Terminals inside VS Code export `ELECTRON_RUN_AS_NODE=1`. The E2E fixture
   strips it; strip it yourself before running `electron` by hand.
-- Electron 44 has no postinstall step. It downloads its binary on first use, so
+- Electron (44 and later) has no postinstall step. It downloads its binary on first use, so
   no `allowBuilds` entry is needed.
 - Never use top-level `await` in the main entry. Playwright holds back the
   `ready` event until the entry module finishes evaluating, so the app hangs.
@@ -181,10 +181,10 @@ Update this table in the PR that adds a command.
   otherwise; `launchApp` passes `colorScheme: null` so tests see YapYap's
   real theme. Visual baselines are per OS and come from CI artifacts (see
   CONTRIBUTING), never from a local run.
-- Screen capture reaches the permission handler as a `media` request with no
-  device types, and the legacy desktop `getUserMedia` uses the same request
-  but never reaches `setDisplayMediaRequestHandler`. Never grant that request
-  without a user pick; see `allowScreenCapture` in
+- Screen capture reaches the permission handler as `display-capture` (since
+  Electron 45), and the legacy desktop `getUserMedia` as a `media` request with
+  no device types that never reaches `setDisplayMediaRequestHandler`. Never
+  grant either without a user pick; see `allowScreenCapture` in
   `src/main/permissions/session-guard.ts` and ADR 0001.
 - On a Linux desktop, run E2E tests under `dbus-run-session` as well as
   `xvfb-run`: Xvfb hides the windows, but tray icons and notifications go

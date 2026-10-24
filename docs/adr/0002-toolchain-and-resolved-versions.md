@@ -33,9 +33,9 @@ Releases API. Pre-release, beta and nightly versions are never used.
 
 | Tool     | Version | Notes                                                                       |
 | -------- | ------- | --------------------------------------------------------------------------- |
-| Node.js  | 24.22.0 | Latest Active LTS ("Krypton"). Matches the Node bundled in Electron 44.9.0. |
+| Node.js  | 24.22.0 | Latest Active LTS ("Krypton"). Matches the Node bundled in Electron 45.0.0. |
 | pnpm     | 12.14.0 | Pinned via `packageManager` (Corepack)                                      |
-| Electron | 44.9.0  | Chromium 152.0.7977.167                                                     |
+| Electron | 45.0.0  | Chromium 156.0.8078.48                                                      |
 
 #### Build and language
 

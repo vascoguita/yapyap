@@ -296,9 +296,9 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     systemLanguages: () => ['pt-PT', 'en-GB'],
     contextMenu: vi.fn(),
     secrets: {
-      canKeep: () => true,
-      get: vi.fn<(name: string) => string | undefined>(() => undefined),
-      set: vi.fn(() => true),
+      canKeep: () => Promise.resolve(true),
+      get: vi.fn<(name: string) => Promise<string | undefined>>(() => Promise.resolve(undefined)),
+      set: vi.fn(() => Promise.resolve(true)),
     },
     settings: {
       current: () => defaultSettings(),

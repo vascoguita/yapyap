@@ -10,15 +10,15 @@ function setup(saved?: string) {
   let answer: ((credentials: ProxyLoginAnswer | undefined) => void) | undefined;
   const deps = {
     secrets: {
-      canKeep: () => true,
-      get: (name: string) => store.get(name),
+      canKeep: () => Promise.resolve(true),
+      get: (name: string) => Promise.resolve(store.get(name)),
       set: vi.fn((name: string, value: string | undefined) => {
         if (value === undefined) {
           store.delete(name);
         } else {
           store.set(name, value);
         }
-        return true;
+        return Promise.resolve(true);
       }),
     },
     ask: vi.fn(
@@ -59,6 +59,7 @@ describe('createProxyLogin', () => {
     const second = vi.fn();
     t.login.handle(t.event(), {}, PROXY, first);
     t.login.handle(t.event(), {}, PROXY, second);
+    await settle();
     expect(t.deps.ask).toHaveBeenCalledExactlyOnceWith({
       host: 'proxy.example.org',
       port: 3128,
@@ -80,9 +81,11 @@ describe('createProxyLogin', () => {
     const session = {};
     const callback = vi.fn();
     t.login.handle(t.event(), session, PROXY, callback);
+    await settle();
     expect(callback).toHaveBeenCalledExactlyOnceWith('ana', 'old');
     expect(t.deps.ask).not.toHaveBeenCalled();
     t.login.handle(t.event(), session, PROXY, callback);
+    await settle();
     expect(t.deps.ask).toHaveBeenCalledWith(expect.objectContaining({ failed: true }));
     t.answer({ username: 'ana', password: 'new', remember: false });
     await settle();
@@ -95,22 +98,26 @@ describe('createProxyLogin', () => {
     const t = setup();
     const callback = vi.fn();
     t.login.handle(t.event(), {}, PROXY, callback);
+    await settle();
     t.answer();
     await settle();
     expect(callback).toHaveBeenCalledExactlyOnceWith(undefined, undefined);
     t.deps.now.mockReturnValue(DECLINE_MS - 1);
     t.login.handle(t.event(), {}, PROXY, callback);
+    await settle();
     expect(callback).toHaveBeenLastCalledWith();
     expect(t.deps.ask).toHaveBeenCalledOnce();
     t.deps.now.mockReturnValue(DECLINE_MS);
     t.login.handle(t.event(), {}, PROXY, callback);
+    await settle();
     expect(t.deps.ask).toHaveBeenCalledTimes(2);
   });
 
-  it('asks when the saved credentials cannot be read', () => {
+  it('asks when the saved credentials cannot be read', async () => {
     for (const saved of ['{', '{"username":"ana"}', 'null']) {
       const t = setup(saved);
       t.login.handle(t.event(), {}, PROXY, vi.fn());
+      await settle();
       expect(t.deps.ask).toHaveBeenCalledOnce();
     }
   });

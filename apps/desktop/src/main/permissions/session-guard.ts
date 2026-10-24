@@ -126,9 +126,9 @@ function routeExternal(deps: SessionGuardDependencies, view: ViewInfo | undefine
 }
 
 /**
- * A media request with no device types is screen capture, from either
- * `getDisplayMedia` or the legacy desktop `getUserMedia`. Electron cannot
- * tell them apart, and the legacy one captures without ever reaching the
+ * Screen capture arrives as `display-capture` (Electron 45 and later) or as
+ * a media request with no device types, from the legacy desktop
+ * `getUserMedia`. The legacy one captures without ever reaching the
  * display-media handler, so the user picks the source here, before anything
  * is granted. Where the OS shows its own picker (macOS), it guards both.
  */
@@ -158,7 +158,7 @@ async function allowScreenCapture(
 }
 
 const isScreenCapture = (permission: string, mediaTypes: readonly MediaType[]): boolean =>
-  permission === 'media' && mediaTypes.length === 0;
+  permission === 'display-capture' || (permission === 'media' && mediaTypes.length === 0);
 
 function answer(
   deps: SessionGuardDependencies,
