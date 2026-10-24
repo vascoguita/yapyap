@@ -63,3 +63,27 @@ export function createChromeWindowOpener(
     current = openChromeWindow(deps, page);
   };
 }
+
+/** A window that asks one question and goes away once answered or closed. */
+export interface PromptWindow {
+  readonly webContents: object;
+  close(): void;
+  /** Called once the window is gone, however it was closed. */
+  onClosed(listener: () => void): void;
+}
+
+/** Opens `page` as a prompt window, which closing twice cannot break. */
+export function openPromptWindow(deps: ChromeWindowDependencies, page: ChromePage): PromptWindow {
+  const window = openChromeWindow(deps, page);
+  return {
+    webContents: window.webContents,
+    close: () => {
+      if (!window.isDestroyed()) {
+        window.close();
+      }
+    },
+    onClosed: (listener) => {
+      window.once('closed', listener);
+    },
+  };
+}

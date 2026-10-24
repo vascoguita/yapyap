@@ -4,7 +4,7 @@ import { en } from '../../shared/messages/en.ts';
 import { noArguments, type ChromeHandler } from '../chrome/ipc.ts';
 import {
   createChromeWindowOpener,
-  openChromeWindow,
+  openPromptWindow,
   type ChromePage,
   type ChromeWindowDependencies,
 } from '../chrome/window-opener.ts';
@@ -93,18 +93,7 @@ export interface PluginChrome {
 
 /** The consent window, as the consent prompt drives it. */
 export function openConsentWindow(windows: ChromeWindowDependencies): ConsentWindow {
-  const window = openChromeWindow(windows, CONSENT_PAGE);
-  return {
-    webContents: window.webContents,
-    close: () => {
-      if (!window.isDestroyed()) {
-        window.close();
-      }
-    },
-    onClosed: (listener) => {
-      window.once('closed', listener);
-    },
-  };
+  return openPromptWindow(windows, CONSENT_PAGE);
 }
 
 /** The install flow, checking archives against the plugins installed under `deps.root`. */

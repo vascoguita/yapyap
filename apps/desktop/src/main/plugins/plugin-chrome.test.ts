@@ -4,9 +4,9 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defaultSettings } from '../settings/decode.ts';
 import type { ViewRegistry } from '../views.ts';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { createPluginChrome, installFlow, messageOf, openConsentWindow } from './plugin-chrome.ts';
-import { saveRecords, type PluginRecord } from './records.ts';
+import { RECORDS_FILE, saveRecords, type PluginRecord } from './records.ts';
 import { unsignedArchive, zipArchive } from '../../../test/plugins.ts';
 
 /** A well-formed fingerprint: 32 bytes as colon-separated hex. */
@@ -86,6 +86,11 @@ describe('createPluginChrome', () => {
         ['org.alpha', record('org.alpha', { fingerprint: KEY })],
       ]),
     );
+    // A file edited by hand can list plugins in any order.
+    const path = join(root, RECORDS_FILE);
+    const file = JSON.parse(readFileSync(path, 'utf8')) as { plugins: Record<string, unknown> };
+    file.plugins = Object.fromEntries(Object.entries(file.plugins).reverse());
+    writeFileSync(path, JSON.stringify(file));
     const t = setup(root, true);
     await expect(t.handler('plugins:list').handle({ sender: {} })).resolves.toEqual({
       plugins: [
@@ -111,6 +116,17 @@ describe('createPluginChrome', () => {
     t.chrome.openPlugins();
     expect(t.windows).toHaveLength(1);
     expect(t.windows[0]?.loadURL).toHaveBeenCalledWith('app://chrome/plugins.html');
+    expect(t.windows[0]?.options).toEqual({
+      autoHideMenuBar: true,
+      title: 'Plugins',
+      width: 520,
+      height: 480,
+      minWidth: 400,
+      minHeight: 320,
+      minimizable: false,
+      maximizable: false,
+      show: false,
+    });
     t.deps.chooseArchive.mockResolvedValueOnce('/tmp/broken.yapyap-plugin');
     t.chrome.install();
     await vi.waitFor(() => {
@@ -185,14 +201,27 @@ describe('openConsentWindow', () => {
       loadURL: vi.fn(() => Promise.resolve()),
     };
     const views: ViewRegistry = new WeakMap();
-    const consent = openConsentWindow({ createWindow: () => window, views, warn: vi.fn() });
+    const createWindow = vi.fn<(options: object) => typeof window>(() => window);
+    const consent = openConsentWindow({ createWindow, views, warn: vi.fn() });
     expect(window.loadURL).toHaveBeenCalledWith('app://chrome/plugin-consent.html');
+    expect(createWindow).toHaveBeenCalledWith({
+      autoHideMenuBar: true,
+      title: 'Install Plugin',
+      width: 520,
+      height: 620,
+      minWidth: 420,
+      minHeight: 420,
+      minimizable: false,
+      maximizable: false,
+      show: false,
+    });
     expect(consent.webContents).toBe(window.webContents);
     const listener = vi.fn();
     consent.onClosed(listener);
     closed?.();
     expect(listener).toHaveBeenCalledOnce();
     consent.close();
+    expect(window.close).toHaveBeenCalledOnce();
     window.isDestroyed.mockReturnValue(true);
     consent.close();
     expect(window.close).toHaveBeenCalledOnce();

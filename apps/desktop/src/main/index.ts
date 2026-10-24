@@ -12,6 +12,7 @@ import {
   Notification,
   powerMonitor,
   protocol,
+  safeStorage,
   screen,
   session,
   shell,
@@ -32,6 +33,7 @@ import { readFile } from 'node:fs/promises';
 import { homedir, release } from 'node:os';
 import { join } from 'node:path';
 import { lastFolderIn } from './downloads/last-folder.ts';
+import { openSecretStore, secretFileAt } from './secrets/secret-store.ts';
 import { readInstallChannel } from './about/about-info.ts';
 import { loadAccounts, saveAccounts } from './accounts/accounts-file.ts';
 import { applyAutostart, chooseAutostart } from './autostart/autostart.ts';
@@ -237,6 +239,11 @@ startApp({
   contextMenu: (items) => {
     Menu.buildFromTemplate(items).popup();
   },
+  secrets: openSecretStore(
+    secretFileAt(join(app.getPath('userData'), 'secrets.json')),
+    safeStorage,
+    process.platform,
+  ),
   onResume: (listener) => {
     powerMonitor.on('resume', listener);
   },

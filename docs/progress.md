@@ -251,7 +251,14 @@ not edit the same lines.
   connections instead of going direct, and the warning leaves the address
   out. Chromium's proxy options on the command line stand in for the
   system's settings, so they keep working. With a manual proxy, WebRTC sends only through it (ADR 0008, C23).
-  Proxy passwords come in the second part.
+  Second part: a proxy that asks for a password opens Proxy Sign-In
+  (`proxy-login.html`; `createProxyLogin` on the app's `login` event, proxy
+  requests only). Saved credentials are tried once per session; refused ones
+  bring the window back marked as failed; a cancel holds off new windows for
+  a minute. Requests waiting on the same proxy share one window. Remembered
+  credentials live in `secrets.json` through `openSecretStore` (`safeStorage`,
+  file mode 0600), which keeps nothing where Linux falls back to
+  `basic_text`. Neither the username nor the password is ever logged.
 
 - Site permissions (#77): each account's session guard now hands back what
   it remembers (`PermissionMemory`), and the Accounts window shows, for a

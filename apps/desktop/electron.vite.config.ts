@@ -43,6 +43,7 @@ export default defineConfig({
             import.meta.dirname,
             'src/renderer/spelling-languages.html',
           ),
+          'proxy-login': resolve(import.meta.dirname, 'src/renderer/proxy-login.html'),
         },
       },
     },

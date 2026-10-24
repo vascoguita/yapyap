@@ -514,6 +514,18 @@ const catalog = {
     spellingSettings: 'Check Spelling…',
     languages: 'Languages…',
   },
+  proxyLogin: {
+    title: 'Sign in to the proxy',
+    asks: (host: string): string => `The proxy ${host} asks for a username and password.`,
+    failed: 'The proxy did not accept that username and password. Try again.',
+    username: 'Username',
+    password: 'Password',
+    remember: 'Remember on this computer',
+    rememberHint: 'Kept encrypted by your system’s keychain.',
+    cannotRemember:
+      'This computer has no keychain YapYap can use, so the password is asked for each time.',
+    signIn: 'Sign In',
+  },
   badge: {
     unread: (count: number): string => unreadChats(count),
   },
@@ -569,6 +581,7 @@ const catalog = {
     pluginConsent: 'Install Plugin',
     welcome: 'Welcome',
     report: 'Report a Problem',
+    proxyLogin: 'Proxy Sign-In',
     offline: (pageTitle: string): string => `${pageTitle} (offline)`,
   },
   dialogs: {

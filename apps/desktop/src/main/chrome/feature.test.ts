@@ -278,6 +278,30 @@ describe('createChromeFeature', () => {
     });
   });
 
+  it('asks for a proxy password in a window of its own', async () => {
+    const t = setup();
+    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    const request = { host: 'proxy.example.org', port: 3128, failed: false, canRemember: true };
+    const asked = runtime.askProxyLogin(request);
+    expect(t.window.loadURL).toHaveBeenCalledWith('app://chrome/proxy-login.html');
+    expect(t.deps.createWindow).toHaveBeenLastCalledWith(
+      {
+        autoHideMenuBar: true,
+        title: 'Proxy Sign-In',
+        width: 440,
+        height: 400,
+        resizable: false,
+        minimizable: false,
+        maximizable: false,
+        show: false,
+      },
+      expect.anything(),
+    );
+    expect(t.call('proxy-login:request')).toEqual(request);
+    t.call('proxy-login:answer', t.window.webContents, null);
+    await expect(asked).resolves.toBeUndefined();
+  });
+
   it('opens Settings from the menu and answers its IPC calls', async () => {
     const t = setup();
     t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');

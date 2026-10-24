@@ -52,6 +52,7 @@ function api(initial: Partial<SpellingLanguages>) {
     },
     plugins: { list: vi.fn(), consent: vi.fn(), answer: vi.fn() },
     picker: { offer: vi.fn(), choose: vi.fn(), cancel: vi.fn() },
+    proxyLogin: { request: vi.fn(), answer: vi.fn() },
     report: { diagnostics: vi.fn(), open: vi.fn() },
     shortcuts: { list: vi.fn() },
     spelling: { languages: vi.fn(() => Promise.resolve(state)), choose },

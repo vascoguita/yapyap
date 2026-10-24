@@ -22,6 +22,11 @@ browser. YapYap does not read, copy or upload them.
   Chromium downloads the dictionary for your language from Google once;
   macOS uses its own spell checker and downloads nothing. Words you add to
   the dictionary stay in YapYap's data folder.
+- **Passwords stay encrypted.** A proxy password you ask YapYap to remember
+  is encrypted with your system's keychain (Keychain on macOS, DPAPI on
+  Windows, the Secret Service or KWallet on Linux) and kept in
+  `secrets.json`, never in the settings or the logs. Without a keychain,
+  YapYap keeps nothing and asks each time.
 - **Logs stay local and are redacted.** YapYap never logs message content.
   Before a line is written, phone numbers, email addresses, tokens and your
   home folder are replaced with placeholders. Logs live in the `logs` folder

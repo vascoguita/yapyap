@@ -91,6 +91,7 @@ Inside it:
 | `gpu-crashes.json`     | The times of recent graphics crashes, which trigger the safe graphics fallback               |
 | `running.json`         | The version and start time of the running session; left behind only if YapYap did not quit   |
 | `crash-report.txt`     | With crash reports on, the report of the last unclean exit; a new one replaces it            |
+| `secrets.json`         | Proxy passwords you chose to remember, encrypted by the system's keychain                    |
 | `logs/`                | Redacted logs: this session's `yapyap.log` and up to five older files, deleted after 14 days |
 | Everything else        | Chromium's own caches and state                                                              |
 

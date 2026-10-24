@@ -59,6 +59,7 @@ function api(overrides: Partial<ChromeApi['settings']> = {}) {
     picker: { offer: vi.fn(), choose: vi.fn(), cancel: vi.fn() },
     shortcuts: { list: vi.fn() },
     spelling: { languages: vi.fn(), choose: vi.fn() },
+    proxyLogin: { request: vi.fn(), answer: vi.fn() },
   } satisfies ChromeApi;
 }
 
