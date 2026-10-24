@@ -1,0 +1,37 @@
+{
+  "id": "org.guita.yapyap.ai-assistant",
+  "name": "AI assistant",
+  "version": "0.1.0",
+  "description": "Suggests replies and rewrites drafts with the AI model you choose, using your own key. Nothing is sent without your say.",
+  "author": { "name": "YapYap", "url": "https://yapyap.guita.org" },
+  "apiVersion": "^1.0.0",
+  "entry": "main.js",
+  "capabilities": ["secrets:own"],
+  "network": { "hosts": ["api.anthropic.com", "api.openai.com"] },
+  "contributes": {
+    "panel": { "title": "Assistant", "entry": "panel.js" },
+    "settings": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "type": "string",
+          "title": "Provider",
+          "description": "Who answers: Claude (anthropic), OpenAI (openai), or your own OpenAI-compatible server (compatible).",
+          "enum": ["anthropic", "openai", "compatible"]
+        },
+        "model": {
+          "type": "string",
+          "title": "Model",
+          "description": "The model's name, as your provider writes it. Claude uses claude-opus-5-5 when empty.",
+          "maxLength": 100
+        },
+        "endpoint": {
+          "type": "string",
+          "title": "Server address",
+          "description": "For a compatible server only: its https:// address, such as https://llm.example.org/v1.",
+          "maxLength": 300
+        }
+      }
+    }
+  }
+}
