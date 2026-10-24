@@ -1,5 +1,5 @@
 import type { SettingValue } from './settings-fields.ts';
-import type { Shortcut } from './shortcuts.ts';
+import type { ActiveShortcut } from './shortcuts.ts';
 
 /** What the About window shows; built in main, rendered by the chrome renderer. */
 export interface AboutInfo {
@@ -179,6 +179,8 @@ export interface ChromeApi {
   };
   readonly shortcuts: {
     readonly list: () => Promise<ShortcutList>;
+    /** New keys for one shortcut, or null to go back to YapYap's own. */
+    readonly set: (id: string, accelerator: string | null) => Promise<ShortcutChange>;
   };
   readonly downloads: {
     readonly list: () => Promise<readonly DownloadEntry[]>;
@@ -217,7 +219,12 @@ export interface DownloadEntry {
 /** The shortcuts of the platform YapYap runs on, with its own keys. */
 export interface ShortcutList {
   readonly platform: string;
-  readonly shortcuts: readonly Shortcut[];
+  readonly shortcuts: readonly ActiveShortcut[];
+}
+
+/** The shortcuts after a change, and why it was refused; empty when it was not. */
+export interface ShortcutChange extends ShortcutList {
+  readonly problem: string;
 }
 
 /** How many spelling languages can be on at once; each one is a dictionary to load. */
@@ -309,6 +316,7 @@ export const CHROME_CHANNELS = {
   pluginsConsent: 'plugins:consent',
   pluginsAnswer: 'plugins:answer',
   shortcutsList: 'shortcuts:list',
+  shortcutsSet: 'shortcuts:set',
   downloadsList: 'downloads:list',
   downloadsAct: 'downloads:act',
   downloadsClear: 'downloads:clear',

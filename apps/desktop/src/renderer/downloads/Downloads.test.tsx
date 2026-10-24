@@ -46,7 +46,7 @@ function api(entries: readonly DownloadEntry[]) {
     spelling: { languages: vi.fn(), choose: vi.fn() },
     report: { diagnostics: vi.fn(), open: vi.fn() },
     proxyLogin: { request: vi.fn(), answer: vi.fn() },
-    shortcuts: { list: vi.fn() },
+    shortcuts: { list: vi.fn(), set: vi.fn() },
     downloads: {
       list: vi.fn(() => Promise.resolve(entries)),
       act: vi.fn(() => Promise.resolve()),

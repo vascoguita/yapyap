@@ -35,5 +35,39 @@ test('binds every listed shortcut in the menus, and lists them all in a window',
   const window = await opened;
   await window.waitForURL('app://chrome/shortcuts.html');
   await expect(window.getByRole('row')).toHaveCount(listed.length + 1);
-  await expect(window.getByRole('cell', { name: 'Open Settings' })).toBeVisible();
+  await expect(window.getByRole('cell', { name: 'Open Settings', exact: true })).toBeVisible();
+});
+
+test('changes a shortcut by pressing the new keys, and the menu follows', async ({ app }) => {
+  await whatsAppPage(app);
+  const opened = app.waitForEvent('window');
+  await app.evaluate(({ Menu }) => {
+    Menu.getApplicationMenu()
+      ?.items.flatMap((menu) => menu.submenu?.items ?? [])
+      .find((item) => item.label === 'Keyboard Shortcuts…')
+      ?.click();
+  });
+  const window = await opened;
+  await window.waitForURL('app://chrome/shortcuts.html');
+  // ⌘ on macOS and Ctrl elsewhere, which YapYap writes as CmdOrCtrl.
+  await window.getByRole('button', { name: 'Change: Open Settings' }).click();
+  await expect(window.getByRole('status')).toBeVisible();
+  await window.keyboard.press('ControlOrMeta+Alt+KeyS');
+  await expect(window.getByRole('button', { name: 'Reset: Open Settings' })).toBeVisible();
+  const settingsKeys = () =>
+    app.evaluate(
+      ({ Menu }) =>
+        Menu.getApplicationMenu()
+          ?.items.flatMap((menu) => menu.submenu?.items ?? [])
+          .find((item) => item.label === 'Settings…')?.accelerator,
+    );
+  await expect.poll(settingsKeys).toBe('CmdOrCtrl+Alt+S');
+  await window.getByRole('button', { name: 'Change: Zoom in' }).click();
+  await expect(window.getByRole('status')).toBeVisible();
+  await window.keyboard.press('ControlOrMeta+Alt+KeyS');
+  await expect(window.getByRole('alert')).toHaveText(
+    'Those keys are already used for “Open Settings”.',
+  );
+  await window.getByRole('button', { name: 'Reset: Open Settings' }).click();
+  await expect.poll(settingsKeys).toBe('CmdOrCtrl+,');
 });

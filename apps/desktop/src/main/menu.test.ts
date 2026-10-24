@@ -288,3 +288,25 @@ describe('the standard menus', () => {
     expect(items(windows).at(-1)).toEqual({ role: 'quit' });
   });
 });
+
+describe('custom shortcuts in the menus', () => {
+  it('puts the keys the user chose on the menu items, switching accounts included', () => {
+    const accounts = [
+      { id: 'a', name: 'Work', color: 'blue', enabled: true, muted: false, active: true },
+      { id: 'b', name: 'Home', color: 'red', enabled: true, muted: false, active: false },
+    ];
+    const template = buildMenuTemplate('linux', actions(accounts), {
+      settings: 'Alt+S',
+      switchAccount: 'Alt+1',
+      quit: 'Ctrl+Alt+Q',
+    });
+    const file = items(template[0]);
+    expect(file[0]).toMatchObject({ label: 'Settings…', accelerator: 'Alt+S' });
+    expect(file.at(-1)).toEqual({ role: 'quit', accelerator: 'Ctrl+Alt+Q' });
+    expect(
+      items(template[1])
+        .slice(0, 2)
+        .map((item) => item.accelerator),
+    ).toEqual(['Alt+1', 'Alt+2']);
+  });
+});

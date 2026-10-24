@@ -55,7 +55,7 @@ function api(overrides: Partial<ChromeApi['about']> = {}): ChromeApi {
     plugins: { list: vi.fn(), consent: vi.fn(), answer: vi.fn() },
     report: { diagnostics: vi.fn(), open: vi.fn() },
     picker: { offer: vi.fn(), choose: vi.fn(), cancel: vi.fn() },
-    shortcuts: { list: vi.fn() },
+    shortcuts: { list: vi.fn(), set: vi.fn() },
     downloads: { list: vi.fn(), act: vi.fn(), clear: vi.fn() },
     spelling: { languages: vi.fn(), choose: vi.fn() },
     proxyLogin: { request: vi.fn(), answer: vi.fn() },

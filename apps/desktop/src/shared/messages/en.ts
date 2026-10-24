@@ -487,6 +487,13 @@ const catalog = {
     kept: 'YapYap keeps this list only while it runs.',
   },
   shortcuts: {
+    change: 'Change',
+    reset: 'Reset',
+    press: 'Press the new keys, or Escape to keep these',
+    invalid:
+      'Use a key together with a modifier such as Ctrl, Alt, Shift or ⌘, or a function key alone.',
+    switchEndsInOne: 'Switching accounts needs keys that end in 1, as it takes 1 to 9.',
+    taken: (action: string): string => `Those keys are already used for “${action}”.`,
     title: 'Keyboard shortcuts',
     shortcut: 'Shortcut',
     action: 'Action',

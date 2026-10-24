@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { acceleratorOf, keysOf, SHORTCUTS, shortcutsFor } from './shortcuts.ts';
+import { acceleratorOf, fitsShortcut, keysOf, SHORTCUTS, shortcutsFor } from './shortcuts.ts';
 
 describe('shortcutsFor', () => {
   it('gives each platform its own shortcuts and keys', () => {
@@ -29,5 +29,23 @@ describe('keysOf', () => {
     expect(keysOf('Alt+Shift+Cmd+V', 'darwin')).toEqual(['⌥', '⇧', '⌘', 'V']);
     expect(keysOf('Ctrl+Cmd+F', 'darwin')).toEqual(['⌃', '⌘', 'F']);
     expect(keysOf('F11', 'win32')).toEqual(['F11']);
+  });
+});
+
+describe('custom shortcuts', () => {
+  it('uses keys the user chose, and YapYap’s own where theirs do not fit', () => {
+    const custom = { settings: 'Alt+S', zoomIn: 'nonsense', switchAccount: 'Alt+2' };
+    const settings = shortcutsFor('linux', custom).find((shortcut) => shortcut.id === 'settings');
+    expect(settings).toMatchObject({ accelerator: 'Alt+S', standard: 'CmdOrCtrl+,', custom: true });
+    expect(acceleratorOf('zoomIn', 'linux', custom)).toBe('CmdOrCtrl+=');
+    expect(acceleratorOf('switchAccount', 'linux', custom)).toBe('CmdOrCtrl+1');
+    expect(acceleratorOf('switchAccount', 'linux', { switchAccount: 'Alt+1' })).toBe('Alt+1');
+  });
+
+  it('lets account switching end only in 1', () => {
+    expect(fitsShortcut('switchAccount', 'Alt+1')).toBe(true);
+    expect(fitsShortcut('switchAccount', 'Alt+2')).toBe(false);
+    expect(fitsShortcut('settings', 'Alt+2')).toBe(true);
+    expect(fitsShortcut('settings', '2')).toBe(false);
   });
 });

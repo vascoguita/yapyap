@@ -251,6 +251,14 @@ not edit the same lines.
   lists them with the system's own keys; `shortcuts.spec.ts` checks that
   each listed shortcut is on a menu item. Changing shortcuts and global
   shortcuts come next.
+  Second part: each shortcut can be changed in that window (Change waits
+  for the next keys; Escape keeps the old ones) and reset.
+  `shortcuts.custom` keeps the user's keys by id, and the menu is built
+  again when they change. Main refuses keys that do not fit
+  (`isValidShortcut`: one key with modifiers, or a function key alone) and
+  keys another action uses on this platform (`conflictOf`, which counts
+  all nine account digits); keys in a hand-edited file that do not fit are
+  ignored.
 
 - Proxy, first part (#76): `network.proxyMode` (system, direct or manual)
   and `network.proxyServer`, in a new Network section with the first text
