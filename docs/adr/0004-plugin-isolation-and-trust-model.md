@@ -98,6 +98,13 @@ to `<userData>/plugins/<id>/<version>/` only after the signature verifies.
   approved. Hosts the user enters at runtime (for example a custom AI
   endpoint) go through an explicit permission prompt before they join the
   allowlist.
+  The plugin CSP adds `connect-src https:` so these requests reach the
+  filter, which decides: only plain `https://` on the default port, without
+  credentials, to a host name the manifest schema would accept. A new host
+  raises one prompt at a time (Deny is the default); an allowed host is
+  added to the plugin's record, and a refused one is not asked about again
+  until YapYap restarts. A plugin that already holds 32 hosts is not asked
+  about more.
 - Plugin pages are a trust zone of their own (`plugin`). The navigation
   guard confines them: they open no windows and no links in the browser or
   other apps, and cannot navigate away from `plugin://<id>/`. The host page

@@ -58,4 +58,21 @@ describe('electronPluginDialogs', () => {
       detail: 'Bad signature.',
     });
   });
+
+  it('asks before a plugin reaches a new host, and denies by default', async () => {
+    electron.showMessageBox.mockResolvedValueOnce({ response: 0 });
+    await expect(dialogs.askHost('Hello', 'api.example.org')).resolves.toBe(true);
+    expect(electron.showMessageBox).toHaveBeenLastCalledWith({
+      type: 'question',
+      title: 'YapYap',
+      message: 'Let Hello connect to api.example.org?',
+      detail:
+        'The plugin wants to send data there and read the answer. Only allow a host you trust, such as a service you set up for this plugin.',
+      buttons: ['Allow', 'Deny'],
+      defaultId: 1,
+      cancelId: 1,
+    });
+    electron.showMessageBox.mockResolvedValueOnce({ response: 1 });
+    await expect(dialogs.askHost('Hello', 'api.example.org')).resolves.toBe(false);
+  });
 });

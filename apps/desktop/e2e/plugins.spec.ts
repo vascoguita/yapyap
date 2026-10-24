@@ -118,7 +118,13 @@ async function installPlugin(
   await writeFile(archive, zipArchive(signedArchive(testKey(), manifest, { 'main.js': main })));
   await app.evaluate(({ dialog }, path) => {
     dialog.showOpenDialog = () => Promise.resolve({ canceled: false, filePaths: [path] });
-    dialog.showMessageBox = () => Promise.resolve({ response: 0, checkboxChecked: false });
+    const asked: string[] = [];
+    Object.assign(globalThis, { pluginPrompts: asked });
+    // The second button denies: a plugin's request for a new host is refused, and only recorded.
+    dialog.showMessageBox = (options: unknown) => {
+      asked.push((options as { message: string }).message);
+      return Promise.resolve({ response: 1, checkboxChecked: false });
+    };
   }, archive);
   await clickMenu(app, 'Install Plugin…');
   const consent = await chromePage(app, '/plugin-consent.html');
@@ -148,6 +154,10 @@ test('runs an installed plugin hidden, on its own session, with no eval and no n
     });
   // Its window stays hidden: nothing a plugin does can show it.
   expect((await pluginPage(app))?.shown).toBe(false);
+  // Its fetch to a host it never declared made YapYap ask, and the user said no.
+  expect(
+    await app.evaluate(() => (globalThis as { pluginPrompts?: string[] }).pluginPrompts),
+  ).toContain('Let Hello connect to example.com?');
 });
 
 /** Shows a notification, then writes in its title how that went. */

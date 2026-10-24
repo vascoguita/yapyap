@@ -21,7 +21,7 @@ async function readArchive(path: string): Promise<Uint8Array> {
 
 export const electronPluginDialogs: Pick<
   PluginChromeDependencies,
-  'chooseArchive' | 'readFile' | 'showMessage'
+  'chooseArchive' | 'readFile' | 'showMessage' | 'askHost'
 > = {
   chooseArchive: async () => {
     const { canceled, filePaths } = await dialog.showOpenDialog({
@@ -33,5 +33,19 @@ export const electronPluginDialogs: Pick<
   readFile: readArchive,
   showMessage: ({ type, message, detail }) => {
     void dialog.showMessageBox({ title: PRODUCT_NAME, type, message, detail });
+  },
+  // Deny is the default, so a stray Enter never lets a plugin reach a new host.
+  askHost: async (plugin, host) => {
+    const text = en.dialogs.pluginHost;
+    const { response } = await dialog.showMessageBox({
+      type: 'question',
+      title: PRODUCT_NAME,
+      message: text.message(plugin, host),
+      detail: text.detail,
+      buttons: [text.allow, text.deny],
+      defaultId: 1,
+      cancelId: 1,
+    });
+    return response === 0;
   },
 };

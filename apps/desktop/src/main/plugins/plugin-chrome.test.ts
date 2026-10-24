@@ -52,6 +52,7 @@ function setup(root: string, developerMode = false) {
     rpc: { ...RPC_OPTIONS, now: () => 0, after: vi.fn() },
     audit: { record: vi.fn(), recent: vi.fn(() => []) },
     limits: { metrics: () => [], notify: vi.fn(), every: vi.fn(), now: () => 0, cores: 1 },
+    askHost: vi.fn(() => Promise.resolve(false)),
   };
   const settings = defaultSettings();
   const views: ViewRegistry = new WeakMap();
@@ -275,6 +276,7 @@ describe('installFlow', () => {
       rpc: { ...RPC_OPTIONS, now: () => 0, after: vi.fn() },
       audit: { record: vi.fn(), recent: vi.fn(() => []) },
       limits: { metrics: () => [], notify: vi.fn(), every: vi.fn(), now: () => 0, cores: 1 },
+      askHost: vi.fn(() => Promise.resolve(false)),
     };
     const started = vi.fn();
     const flow = installFlow(deps, { current: defaultSettings }, vi.fn(), started);

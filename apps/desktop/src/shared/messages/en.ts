@@ -666,6 +666,13 @@ const catalog = {
     offline: (pageTitle: string): string => `${pageTitle} (offline)`,
   },
   dialogs: {
+    pluginHost: {
+      message: (plugin: string, host: string): string => `Let ${plugin} connect to ${host}?`,
+      detail:
+        'The plugin wants to send data there and read the answer. Only allow a host you trust, such as a service you set up for this plugin.',
+      allow: 'Allow',
+      deny: 'Deny',
+    },
     resetSession: {
       message: 'Reset this WhatsApp session?',
       detail:

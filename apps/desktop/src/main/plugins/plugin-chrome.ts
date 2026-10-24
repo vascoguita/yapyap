@@ -78,6 +78,8 @@ export interface PluginChromeDependencies {
   readonly audit: AuditLog;
   /** What the plugins' CPU and memory limits need (#97). */
   readonly limits: PluginRuntimeDependencies['limits'];
+  /** Asks the user whether a plugin may connect to a host it did not declare (#95). */
+  readonly askHost: PluginRuntimeDependencies['askHost'];
 }
 
 /** What the user is told when an install ends; a declined one ends quietly. */
