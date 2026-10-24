@@ -193,6 +193,15 @@ test('answers a plugin’s calls over its port, only for what it was granted', a
       () => (globalThis as { pluginNotifications?: string[] }).pluginNotifications,
     ),
   ).toEqual(['Hello: Done / Your draft is ready.']);
+  // The Plugins window shows both calls and how each went, never what they carried.
+  await clickMenu(app, 'Plugins…');
+  const plugins = await chromePage(app, '/plugins.html');
+  const activity = plugins.getByRole('region', { name: 'Recent activity' });
+  await expect(activity.getByRole('listitem')).toHaveCount(2);
+  await expect(activity.getByRole('listitem').first()).toContainText('org.example.quiet');
+  await expect(activity.getByRole('listitem').first()).toContainText('Refused: not allowed');
+  await expect(activity.getByRole('listitem').last()).toContainText('Show notificationsDone');
+  await expect(activity).not.toContainText('Your draft is ready.');
 });
 
 /** Keeps a secret and reads it back, or only reads it, and writes what it got in its title. */

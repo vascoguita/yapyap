@@ -23,6 +23,7 @@ describe('Plugins', () => {
           { id: 'org.me.draft', version: '0.1.0', trust: 'developer' },
         ],
         developerMode: false,
+        activity: [],
       }),
     );
     await screen.findByText('org.example.hello');
@@ -34,9 +35,52 @@ describe('Plugins', () => {
   });
 
   it('says when nothing is installed, and warns while Developer Mode is on', async () => {
-    setup(() => Promise.resolve({ plugins: [], developerMode: true }));
+    setup(() => Promise.resolve({ plugins: [], developerMode: true, activity: [] }));
     await screen.findByText('No plugins are installed.');
     expect(screen.getByRole('alert').textContent).toMatch(/Developer Mode is on/);
+    expect(screen.getByText('No plugin has asked for anything yet.')).toBeTruthy();
+  });
+
+  it('shows what each plugin asked for, newest first, and how it went', async () => {
+    const time = '2026-10-24T10:00:00.000Z';
+    setup(() =>
+      Promise.resolve({
+        plugins: [{ id: 'org.example.hello', version: '1.0.0', trust: 'third-party' }],
+        developerMode: false,
+        activity: [
+          {
+            time,
+            plugin: 'org.example.hello',
+            capability: 'secrets:own',
+            method: 'secrets.get',
+            outcome: 'not-granted',
+          },
+          {
+            time,
+            plugin: 'org.example.hello',
+            capability: 'notifications:show',
+            method: 'notifications.show',
+            outcome: 'ok',
+          },
+          {
+            time,
+            plugin: 'org.example.hello',
+            capability: 'network:api.example.org',
+            method: 'network.fetch',
+            outcome: 'rate-limited',
+          },
+        ],
+      }),
+    );
+    const section = await screen.findByRole('region', { name: 'Recent activity' });
+    const rows = [...section.querySelectorAll('li')].map((row) => row.textContent);
+    const when = new Date(time).toLocaleString();
+    expect(rows).toEqual([
+      `${when}org.example.helloKeep its own secrets, such as API keys, encryptedRefused: not allowed`,
+      `${when}org.example.helloShow notificationsDone`,
+      `${when}org.example.hellonetwork:api.example.orgRefused: too many requests`,
+    ]);
+    expect(screen.getByText('Done').className).toBe('outcome outcome-ok');
   });
 
   it('shows nothing when the list cannot be read', async () => {

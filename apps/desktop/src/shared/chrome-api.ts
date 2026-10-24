@@ -117,6 +117,17 @@ export interface InstalledPlugin {
 export interface PluginList {
   readonly plugins: readonly InstalledPlugin[];
   readonly developerMode: boolean;
+  /** What plugins asked YapYap to do, newest first; never what they sent or got. */
+  readonly activity: readonly PluginActivity[];
+}
+
+/** One call a plugin made, by operation and outcome. */
+export interface PluginActivity {
+  readonly time: string;
+  readonly plugin: string;
+  readonly capability: string;
+  readonly method: string;
+  readonly outcome: 'ok' | 'invalid' | 'not-granted' | 'rate-limited' | 'timeout' | 'failed';
 }
 
 /** The API the chrome preload exposes as `window.yapyap`, one function per operation. */

@@ -10,6 +10,7 @@ import {
   type PluginSource,
 } from './plugin-files.ts';
 import { loadRecords, type PluginRecord } from './records.ts';
+import type { AuditLog } from './audit-log.ts';
 import type { CallingPlugin } from './host-methods.ts';
 import { servePluginRpc, type RpcMethod, type RpcOptions, type RpcPort } from './rpc.ts';
 
@@ -58,6 +59,7 @@ export interface PluginRuntimeDependencies {
   /** What a plugin may call, behind its capabilities (#93). */
   readonly methodsFor: (plugin: CallingPlugin) => Readonly<Record<string, RpcMethod>>;
   readonly rpc: RpcOptions;
+  readonly audit: Pick<AuditLog, 'record'>;
 }
 
 export interface PluginRuntime {
@@ -96,7 +98,9 @@ function connect(
   const methods = deps.methodsFor({ id: record.id, name: manifest.name });
   const granted = new Set<string>(record.capabilities);
   host.webContents.on('did-finish-load', () => {
-    servePluginRpc(host.openPort(), granted, methods, deps.rpc);
+    servePluginRpc(host.openPort(), granted, methods, deps.rpc, (call) => {
+      deps.audit.record({ ...call, plugin: record.id });
+    });
   });
 }
 

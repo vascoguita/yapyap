@@ -493,6 +493,20 @@ const catalog = {
       'storage:local': 'Keep its own data on this computer',
       'secrets:own': 'Keep its own secrets, such as API keys, encrypted',
     },
+    /** The Plugins window's log of what plugins asked for (#99). */
+    activity: {
+      title: 'Recent activity',
+      hint: 'What each plugin asked YapYap to do, and how it went. YapYap never records what a plugin sent or received.',
+      empty: 'No plugin has asked for anything yet.',
+      outcomes: {
+        ok: 'Done',
+        invalid: 'Refused: not a valid request',
+        'not-granted': 'Refused: not allowed',
+        'rate-limited': 'Refused: too many requests',
+        timeout: 'Took too long',
+        failed: 'Failed',
+      },
+    },
   },
   notifications: {
     /** With several accounts, the account a notification comes from heads it. */

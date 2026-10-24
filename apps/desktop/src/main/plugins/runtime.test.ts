@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import type { ViewRegistry } from '../views.ts';
 import { saveRecords, type PluginRecord } from './records.ts';
+import { Type } from 'typebox';
 import { RPC_OPTIONS } from './rpc.ts';
 import { createPluginRuntime, pluginPartition } from './runtime.ts';
 
@@ -122,8 +123,15 @@ function setup() {
     readFile: (path: string) => readFile(path),
     views,
     warn: vi.fn(),
-    methodsFor: vi.fn(() => ({})),
+    methodsFor: vi.fn(() => ({
+      'notifications.show': {
+        capability: 'notifications:show',
+        params: Type.Tuple([]),
+        run: () => Promise.resolve(),
+      },
+    })),
     rpc: { ...RPC_OPTIONS, now: () => 0, after: vi.fn() },
+    audit: { record: vi.fn() },
   };
   const only = <T>(items: readonly T[]): T => {
     const [item] = items;
@@ -185,6 +193,18 @@ describe('createPluginRuntime', () => {
     expect(t.deps.methodsFor).toHaveBeenCalledExactlyOnceWith({
       id: 'org.example.hello',
       name: 'Hello',
+    });
+    // A call over the port is audited under the plugin's ID.
+    const [port] = host.ports;
+    const receive = port?.on.mock.calls[0]?.[1];
+    receive?.({ data: { id: 1, method: 'notifications.show', params: [] } });
+    await vi.waitFor(() => {
+      expect(t.deps.audit.record).toHaveBeenCalledExactlyOnceWith({
+        plugin: 'org.example.hello',
+        method: 'notifications.show',
+        capability: 'notifications:show',
+        outcome: 'ok',
+      });
     });
   });
 
