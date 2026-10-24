@@ -558,6 +558,17 @@ not edit the same lines.
   `content_filter` finish fails as refused. Both map errors through one
   `kindOf`, as both SDKs share their error classes.
 
+- AI assistant shell (#103, third part): Vite bundles the plugin into
+  `main.js` (the hidden page) and `panel.js` (the panel) beside
+  `public/manifest.json`. The settings form picks the provider (anthropic,
+  openai or compatible), the model and a compatible server's `https://`
+  address. The panel takes the API key and sends it over a
+  `BroadcastChannel` to the hidden page, which keeps it with
+  `secrets.set` under `apiKey.<provider>` and only ever reports whether one
+  is there. `e2e/ai-assistant.spec.ts` installs the built bundle and saves
+  and forgets a key through the panel. `pnpm test:e2e` builds every plugin
+  first.
+
 - Account budgets (#109, first part): `bench/accounts.spec.ts` measures the
   memory a second account adds and the CPU a hidden account uses while
   idle, from cumulative CPU time, and the nightly run holds them to budgets

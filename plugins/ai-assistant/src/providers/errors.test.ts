@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { kindOf } from './errors.ts';
 
 class APIError extends Error {
-  constructor(readonly status?: number) {
+  readonly status: number | undefined;
+
+  constructor(status?: number) {
     super('api');
+    this.status = status;
   }
 }
 class APIConnectionError extends APIError {}
