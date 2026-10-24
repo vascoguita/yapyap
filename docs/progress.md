@@ -211,6 +211,16 @@ not edit the same lines.
   a notification that opens the release page; nothing is downloaded, and
   other policies never make the request.
 
+- Custom CSS and JavaScript (#72): **Custom CSS and JavaScript…** opens a
+  chrome window (`custom-code:get`, `:save`, `:preview`) with a warning, an
+  off-by-default switch, a scope (all accounts or one) and the two
+  snippets. `createCustomCode` keeps them in `custom-code.json`, outside
+  settings and their export; it inserts the CSS on every load and at once
+  on save or preview (unsaved CSS shows as the user types and is taken
+  back when the window closes), and runs each script in its own function
+  and call in `CUSTOM_CODE_WORLD_ID`, logging only that one failed. Saving
+  drops snippets that are empty or belong to removed accounts.
+
 - Spell checking, first part (#73): a context menu on account views (cut,
   copy, paste, select all; Copy for selected text elsewhere) with up to five
   suggestions, Add to Dictionary and a spelling toggle. `spelling.enabled`

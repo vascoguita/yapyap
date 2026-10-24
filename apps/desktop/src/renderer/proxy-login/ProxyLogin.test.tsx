@@ -37,6 +37,7 @@ function api(request: Partial<ProxyLoginRequest> = {}) {
     report: { diagnostics: vi.fn(), open: vi.fn() },
     shortcuts: { list: vi.fn(), set: vi.fn() },
     downloads: { list: vi.fn(), act: vi.fn(), clear: vi.fn() },
+    customCode: { get: vi.fn(), save: vi.fn(), preview: vi.fn() },
     proxyLogin: {
       request: vi.fn(() =>
         Promise.resolve({

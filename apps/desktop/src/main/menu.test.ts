@@ -17,6 +17,7 @@ function actions(accounts: AccountSummary[] = []) {
     openSettings: vi.fn(),
     openPlugins: vi.fn(),
     installPlugin: vi.fn(),
+    openCustomCode: vi.fn(),
     openNewChat: vi.fn(),
     clearCache: vi.fn(),
     resetSession: vi.fn(),
@@ -155,6 +156,7 @@ describe('buildMenuTemplate', () => {
       { label: 'Settings…', accelerator: 'CmdOrCtrl+,', click: a.openSettings },
       { label: 'Plugins…', click: a.openPlugins },
       { label: 'Install Plugin…', click: a.installPlugin },
+      { label: 'Custom CSS and JavaScript…', click: a.openCustomCode },
       { type: 'separator' },
       { role: 'quit', accelerator: 'CmdOrCtrl+Q' },
     ]);
@@ -204,13 +206,15 @@ describe('buildMenuTemplate', () => {
       accelerator: 'CmdOrCtrl+,',
       click: a.openSettings,
     });
-    expect(entries.slice(3, 5)).toEqual([
+    expect(entries.slice(3, 6)).toEqual([
       { label: 'Plugins…', click: a.openPlugins },
       { label: 'Install Plugin…', click: a.installPlugin },
+      { label: 'Custom CSS and JavaScript…', click: a.openCustomCode },
     ]);
     expect(entries.map((item) => item.role ?? item.type)).toEqual([
       undefined,
       'separator',
+      undefined,
       undefined,
       undefined,
       undefined,

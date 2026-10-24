@@ -492,6 +492,22 @@ const catalog = {
     clear: 'Clear Finished',
     kept: 'YapYap keeps this list only while it runs.',
   },
+  customCode: {
+    title: 'Custom CSS and JavaScript',
+    warning:
+      'Advanced. This code runs in WhatsApp and can read your chats. Only add code you understand, and never paste code someone sent you.',
+    enabled: 'Use custom CSS and JavaScript',
+    scope: 'Applies to',
+    allAccounts: 'All accounts',
+    css: 'CSS',
+    cssHint: 'WhatsApp shows your CSS as you type. It is kept only when you save.',
+    js: 'JavaScript',
+    jsHint:
+      'Runs when WhatsApp loads, after the code for all accounts, apart from WhatsApp’s own scripts. Reload WhatsApp to run a change.',
+    save: 'Save',
+    saved: 'Saved.',
+    failed: 'Could not save the code.',
+  },
   shortcuts: {
     global: 'From any app',
     globalHint: 'These work while you use other apps. They have no keys until you give them some.',
@@ -601,6 +617,7 @@ const catalog = {
     manageAccounts: 'Manage Accounts…',
     plugins: 'Plugins…',
     installPlugin: 'Install Plugin…',
+    customCode: 'Custom CSS and JavaScript…',
     removeAccount: 'Remove Account…',
     doNotDisturb: 'Do Not Disturb',
     muteAccount: 'Mute This Account',
@@ -622,6 +639,7 @@ const catalog = {
     accounts: 'Accounts',
     plugins: 'Plugins',
     shortcuts: 'Keyboard Shortcuts',
+    customCode: 'Custom CSS and JavaScript',
     downloads: 'Downloads',
     pluginConsent: 'Install Plugin',
     welcome: 'Welcome',

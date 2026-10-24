@@ -32,6 +32,8 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { readFile } from 'node:fs/promises';
+import { writeTextAtomically } from './atomic-write.ts';
+import { createCustomCode } from './custom-code/custom-code.ts';
 import { homedir, release } from 'node:os';
 import { join } from 'node:path';
 import { createDownloadList } from './downloads/download-list.ts';
@@ -73,6 +75,8 @@ const PICKER_THUMBNAIL = { width: 320, height: 180 };
 const GPU_CRASH_LOG = join(app.getPath('userData'), 'gpu-crashes.json');
 const WINDOW_STATE = join(app.getPath('userData'), 'window-state.json');
 const DOWNLOADS_STATE = join(app.getPath('userData'), 'downloads.json');
+// Kept apart from settings, so importing a settings file can never bring code that runs in WhatsApp.
+const CUSTOM_CODE = join(app.getPath('userData'), 'custom-code.json');
 
 // Holds the tray for the app's lifetime; a collected Tray disappears from the panel.
 let tray: Tray | undefined;
@@ -147,8 +151,19 @@ const downloadList = createDownloadList((path) => {
   shell.showItemInFolder(path);
 });
 
+const customCode = createCustomCode(
+  {
+    read: () => readFileSync(CUSTOM_CODE, 'utf8'),
+    write: (text) => {
+      writeTextAtomically(CUSTOM_CODE, text);
+    },
+  },
+  warn,
+);
+
 const chrome = createChromeFeature({
   notify,
+  customCode,
   settings,
   chooseFolder,
   installEvidence,
@@ -214,6 +229,7 @@ startApp({
   nativeTheme,
   notify,
   warn,
+  customCode,
   createWindow: (options) => createSecureWindow(options),
   createAccountHost: (window, renderer) => createAccountHost(window, renderer),
   createSidebar: (window, renderer) => createSidebarView(window, renderer),
