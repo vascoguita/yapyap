@@ -479,6 +479,7 @@ function contextMenuFor<Window extends WindowPort>(
       }));
     },
     openSettings: chrome.openSettings,
+    openLanguages: chrome.openSpellingLanguages,
   };
   attachContextMenu(contents, actions, deps.contextMenu);
 }

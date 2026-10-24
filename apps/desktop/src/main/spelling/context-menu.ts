@@ -31,6 +31,7 @@ export interface ContextMenuActions {
   readonly turnSpellingOff: () => void;
   /** Settings explains the dictionary download before spelling can come on (C24). */
   readonly openSettings: () => void;
+  readonly openLanguages: () => void;
 }
 
 /** Long lists push the editing entries out of reach; Chromium's own menu stops at five too. */
@@ -63,15 +64,18 @@ function spellingItems(params: ContextMenuParams, actions: ContextMenuActions): 
   ];
 }
 
-function spellingToggle(actions: ContextMenuActions): ContextMenuItem {
+function spellingSwitch(actions: ContextMenuActions): ContextMenuItem[] {
   return actions.spellingOn()
-    ? {
-        label: en.contextMenu.checkSpelling,
-        type: 'checkbox',
-        checked: true,
-        click: actions.turnSpellingOff,
-      }
-    : { label: en.contextMenu.spellingSettings, click: actions.openSettings };
+    ? [
+        {
+          label: en.contextMenu.checkSpelling,
+          type: 'checkbox',
+          checked: true,
+          click: actions.turnSpellingOff,
+        },
+        { label: en.contextMenu.languages, click: actions.openLanguages },
+      ]
+    : [{ label: en.contextMenu.spellingSettings, click: actions.openSettings }];
 }
 
 /** What a right click offers: editing and spelling in text boxes, and Copy for selected text. */
@@ -89,7 +93,7 @@ export function contextMenuOf(
       SEPARATOR,
       { role: 'selectAll', enabled: flags.canSelectAll },
       SEPARATOR,
-      spellingToggle(actions),
+      ...spellingSwitch(actions),
     ];
   }
   return params.selectionText.trim() === '' ? [] : [{ role: 'copy', enabled: flags.canCopy }];

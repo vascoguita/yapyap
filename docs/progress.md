@@ -217,7 +217,12 @@ not edit the same lines.
   is off by default (ADR 0008, C24); while it is off sessions list no
   language, so nothing is fetched. Once on, `followSpellingSetting` checks
   `spelling.languages` or the first system language with a dictionary;
-  macOS uses its own checker. The searchable language list comes next.
+  macOS uses its own checker. The Spelling Languages window (second part,
+  `spelling-languages.html`, from the menu's Languages…) lists Chromium's
+  dictionaries by their own and English names (`Intl.DisplayNames`),
+  searchable without accents, chosen ones first, at most ten; the
+  `spelling:choose` handler accepts only distinct languages that have a
+  dictionary.
 
 - Download options, first part (#74): `downloads.askWhere` hands the path
   to Chromium's save dialog, which starts in the folder last chosen

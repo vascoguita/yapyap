@@ -17,7 +17,7 @@ the [profile folder](#files).
 | Do not disturb                          | `general.doNotDisturb`              | Off                | Also in the tray and the Account menu                                                     |
 | Close to the tray                       | `general.closeToTray`               | Off                | Windows and Linux; macOS always keeps running                                             |
 | Check spelling                          | `spelling.enabled`                  | Off                | Downloads a dictionary from Google on Windows and Linux; see [Spelling](/guide/#spelling) |
-| Spelling languages                      | `spelling.languages`                | Empty              | File only; codes such as `en-GB`; empty means the system's language                       |
+| Spelling languages                      | `spelling.languages`                | Empty              | Right-click → Languages…; up to ten, such as `en-GB`; empty means the system's language   |
 | Theme                                   | `appearance.theme`                  | Same as the system | `system`, `light` or `dark`                                                               |
 | Tray icon                               | `appearance.trayIcon`               | App icon           | `color`, `auto`, `light` or `dark`; one-color icons are templates on macOS                |
 | Compact account sidebar                 | `appearance.compactSidebar`         | Off                | Avatars only; the sidebar shows with two or more accounts                                 |

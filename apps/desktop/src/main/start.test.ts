@@ -118,6 +118,7 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     setAccountMenu: vi.fn<(menu: AccountMenu) => void>(),
     openSettings: vi.fn(),
     openWelcome: vi.fn(),
+    openSpellingLanguages: vi.fn(),
     sidebar: vi.fn<(source: SidebarSource) => void>(),
     attachSidebar: vi.fn((create: (renderer: object) => unknown) => {
       create({ preload: '/app/preload/chrome.cjs' });
@@ -1136,14 +1137,16 @@ describe('startApp', () => {
       expect(f.runtime.openSettings).toHaveBeenCalledOnce();
     });
 
-    it('turns spell checking off at once', async () => {
+    it('turns spell checking off at once, and opens the languages', async () => {
       const f = fakes();
       const on = { ...defaultSettings(), spelling: { enabled: true, languages: [] } };
       f.settings.current = () => on;
       const items = await rightClick(f);
-      items.at(-1)?.click?.();
+      items.at(-2)?.click?.();
       const [change] = f.settings.update.mock.lastCall as [(settings: Settings) => Settings];
       expect(change(on).spelling).toEqual({ enabled: false, languages: [] });
+      items.at(-1)?.click?.();
+      expect(f.runtime.openSpellingLanguages).toHaveBeenCalledOnce();
     });
   });
 

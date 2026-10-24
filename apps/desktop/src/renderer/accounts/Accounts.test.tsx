@@ -39,6 +39,7 @@ function api(list: () => Promise<AccountList> = () => Promise.resolve(LIST)) {
     report: { diagnostics: vi.fn(), open: vi.fn() },
     picker: { offer: vi.fn(), choose: vi.fn(), cancel: vi.fn() },
     shortcuts: { list: vi.fn() },
+    spelling: { languages: vi.fn(), choose: vi.fn() },
   } satisfies ChromeApi;
   return { fake, accounts };
 }

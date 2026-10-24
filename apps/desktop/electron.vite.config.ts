@@ -39,6 +39,10 @@ export default defineConfig({
           plugins: resolve(import.meta.dirname, 'src/renderer/plugins.html'),
           'plugin-consent': resolve(import.meta.dirname, 'src/renderer/plugin-consent.html'),
           shortcuts: resolve(import.meta.dirname, 'src/renderer/shortcuts.html'),
+          'spelling-languages': resolve(
+            import.meta.dirname,
+            'src/renderer/spelling-languages.html',
+          ),
         },
       },
     },

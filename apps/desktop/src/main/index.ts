@@ -169,6 +169,10 @@ const chrome = createChromeFeature({
   gpuStatus: () => app.getGPUFeatureStatus() as unknown as Record<string, string>,
   recentLog: () => logger.recent(),
   settingsFiles: electronSettingsFiles,
+  spelling: {
+    available: () => session.defaultSession.availableSpellCheckerLanguages,
+    system: () => app.getPreferredSystemLanguages(),
+  },
   plugins: {
     ...electronPluginDialogs,
     root: join(app.getPath('userData'), 'plugins'),

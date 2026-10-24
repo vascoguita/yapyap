@@ -73,6 +73,7 @@ function setup() {
       readFile: vi.fn(() => Promise.resolve(new Uint8Array())),
       showMessage: vi.fn(),
     },
+    spelling: { available: () => ['en-GB', 'pt-PT'], system: () => ['en-GB'] },
     settingsFiles: {
       chooseExport: vi.fn(() => Promise.resolve(undefined)),
       chooseImport: vi.fn(() => Promise.resolve(undefined)),
@@ -246,6 +247,18 @@ describe('createChromeFeature', () => {
       width: 560,
       height: 520,
       minWidth: 440,
+      minHeight: 360,
+      minimizable: false,
+      maximizable: false,
+      show: false,
+    });
+    runtime.openSpellingLanguages();
+    expect(lastOptions()).toEqual({
+      autoHideMenuBar: true,
+      title: 'Spelling Languages',
+      width: 460,
+      height: 560,
+      minWidth: 360,
       minHeight: 360,
       minimizable: false,
       maximizable: false,
