@@ -2,6 +2,8 @@ import { join } from 'node:path';
 import { ManifestSchema, type Manifest } from '@yapyap/plugin-sdk';
 import { Value } from 'typebox/value';
 import type { ViewRegistry } from '../views.ts';
+import { en } from '../../shared/messages/en.ts';
+import { PANEL_PAGE_PATH } from '../../shared/plugin-rpc.ts';
 import {
   confinePluginRequests,
   PLUGIN_SCHEME,
@@ -58,12 +60,23 @@ export interface PluginHost {
   openPort(): RpcPort;
 }
 
+/** The window of a plugin's panel: its page, framed by a title YapYap sets. */
+interface PluginPanelWindow {
+  readonly webContents: object;
+  loadURL(url: string): Promise<unknown>;
+  focus(): void;
+  destroy(): void;
+  onClosed(listener: () => void): void;
+}
+
 export interface PluginRuntimeDependencies {
   /** Where plugins are installed, such as `<userData>/plugins`. */
   readonly root: string;
   readonly sessionOf: (partition: string) => PluginSession;
   /** A hidden, sandboxed window on `partition`. */
   readonly createHost: (partition: string) => PluginHost;
+  /** A window on `partition` titled `title`, which the page cannot change (#98). */
+  readonly createPanel: (partition: string, title: string) => PluginPanelWindow;
   readonly readFile: (path: string) => Promise<Uint8Array>;
   readonly views: ViewRegistry;
   readonly warn: (message: string) => void;
@@ -100,6 +113,10 @@ export interface PluginRuntime {
   readonly actions: () => readonly PluginAction[];
   /** Runs a command the user picked; false when its plugin is not ready for it. */
   readonly runCommand: (plugin: string, command: string) => boolean;
+  /** The running plugins' panels, for the menu (#98). */
+  readonly panels: () => readonly PluginPanel[];
+  /** Opens a plugin's panel, or brings it forward; false when it has none. */
+  readonly openPanel: (plugin: string) => boolean;
   /** Calls `listener` whenever plugins start or stop. */
   readonly onChange: (listener: () => void) => void;
 }
@@ -114,6 +131,13 @@ export interface PluginAction {
   readonly command: string;
   readonly title: string;
   readonly on: PluginActionPlace;
+}
+
+/** A panel a running plugin offers. */
+export interface PluginPanel {
+  readonly plugin: string;
+  readonly pluginName: string;
+  readonly title: string;
 }
 
 /** A command a running plugin offers. */
@@ -191,7 +215,11 @@ interface RunningPlugin {
   readonly name: string;
   readonly commands: readonly { readonly id: string; readonly title: string }[];
   readonly actions: readonly Omit<PluginAction, 'plugin' | 'pluginName'>[];
+  readonly partition: string;
+  /** The panel's title, if the plugin has one. */
+  readonly panel: string | undefined;
   port?: RpcPort;
+  panelWindow?: PluginPanelWindow;
 }
 
 interface RuntimeState {
@@ -236,20 +264,35 @@ function serve(
   session.webRequest.onBeforeRequest(confinePluginRequests(decide));
 }
 
+/** What YapYap keeps of a plugin it started: its window, and what its manifest contributes. */
+function runningPlugin(host: PluginHost, partition: string, manifest: Manifest): RunningPlugin {
+  return {
+    host,
+    partition,
+    name: manifest.name,
+    commands: manifest.contributes?.commands ?? [],
+    actions: actionsOf(manifest),
+    panel: manifest.contributes?.panel?.title,
+  };
+}
+
 async function start(
   deps: PluginRuntimeDependencies,
   state: RuntimeState,
   record: PluginRecord,
 ): Promise<void> {
-  state.hosts.get(record.id)?.host.destroy();
-  state.hosts.delete(record.id);
+  closeRunning(state, record.id);
   const folder = join(deps.root, record.id, record.version);
   const manifest = await manifestIn(folder, deps.readFile);
   if (manifest === undefined) {
     deps.warn(`Plugin ${record.id} has no readable manifest, so it was not started.`);
     return;
   }
-  state.sources.set(record.id, { folder, entry: manifest.entry });
+  state.sources.set(record.id, {
+    folder,
+    entry: manifest.entry,
+    panel: manifest.contributes?.panel?.entry,
+  });
   const form = formOf(manifest.contributes?.settings);
   const known = state.known.get(record.id) ?? { name: manifest.name, record, form };
   known.name = manifest.name;
@@ -261,12 +304,7 @@ async function start(
   const host = deps.createHost(partition);
   const home = pluginOrigin(record.id);
   deps.views.set(host.webContents, { home, zone: 'plugin', label: record.id });
-  const running: RunningPlugin = {
-    host,
-    name: manifest.name,
-    commands: manifest.contributes?.commands ?? [],
-    actions: actionsOf(manifest),
-  };
+  const running = runningPlugin(host, partition, manifest);
   state.hosts.set(record.id, running);
   changed(state);
   connect(deps, running, known);
@@ -301,10 +339,55 @@ const changed = (state: RuntimeState): void => {
   }
 };
 
-function stopPlugin(state: RuntimeState, id: string): void {
-  state.hosts.get(id)?.host.destroy();
+/** Closes a running plugin's window and its panel, if open. */
+function closeRunning(state: RuntimeState, id: string): void {
+  const running = state.hosts.get(id);
+  running?.host.destroy();
+  running?.panelWindow?.destroy();
   state.hosts.delete(id);
+}
+
+function stopPlugin(state: RuntimeState, id: string): void {
+  closeRunning(state, id);
   changed(state);
+}
+
+/** The panels of the plugins that run, in the order they started. */
+function panelsOf(state: RuntimeState): PluginPanel[] {
+  return [...state.hosts].flatMap(([plugin, { name, panel }]) =>
+    panel === undefined ? [] : [{ plugin, pluginName: name, title: panel }],
+  );
+}
+
+/**
+ * Opens a plugin's panel in a window of its own, on the plugin's session
+ * and under its CSP, titled with the plugin's name, so it never passes for
+ * WhatsApp or YapYap (ADR 0004). A panel already open comes forward.
+ */
+function openPanel(deps: PluginRuntimeDependencies, state: RuntimeState, plugin: string): boolean {
+  const running = state.hosts.get(plugin);
+  if (running?.panel === undefined) {
+    return false;
+  }
+  if (running.panelWindow !== undefined) {
+    running.panelWindow.focus();
+    return true;
+  }
+  const window = deps.createPanel(
+    running.partition,
+    en.menu.pluginCommand(running.name, running.panel),
+  );
+  const home = pluginOrigin(plugin);
+  deps.views.set(window.webContents, { home, zone: 'plugin', label: plugin });
+  running.panelWindow = window;
+  // A new window is made only once this one is gone, so this one is still the panel.
+  window.onClosed(() => {
+    delete running.panelWindow;
+  });
+  window.loadURL(`${home}${PANEL_PAGE_PATH}`).catch(() => {
+    deps.warn(`The panel of plugin ${plugin} could not be loaded.`);
+  });
+  return true;
 }
 
 /** The commands of the plugins that run, in the order they started. */
@@ -359,8 +442,9 @@ function processesOf(state: RuntimeState): PluginProcess[] {
 /** What YapYap's menus show of the running plugins, and how they run a command. */
 function contributionsOf(
   state: RuntimeState,
-): Pick<PluginRuntime, 'commands' | 'actions' | 'runCommand' | 'onChange'> {
+): Pick<PluginRuntime, 'commands' | 'actions' | 'runCommand' | 'panels' | 'onChange'> {
   return {
+    panels: () => panelsOf(state),
     commands: () => commandsOf(state),
     actions: () => pluginActionsOf(state),
     runCommand: (plugin, command) => runCommand(state, plugin, command),
@@ -397,6 +481,7 @@ export function createPluginRuntime(deps: PluginRuntimeDependencies): PluginRunt
       stopPlugin(state, id);
     },
     ...contributionsOf(state),
+    openPanel: (plugin) => openPanel(deps, state, plugin),
     regrant: (id) => regrant(deps.root, state, id),
   };
   guardPluginResources({

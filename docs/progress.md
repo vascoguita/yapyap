@@ -493,6 +493,14 @@ not edit the same lines.
   the plugin does not declare are dropped. The context menu is now built
   asynchronously.
 
+- Plugin panels (#98, last part): **Plugin Commands** lists each running
+  plugin's panel. It opens in a window of its own (`createPanel`), on the
+  plugin's session with no preload, titled `<plugin>: <title>` by YapYap,
+  which the page cannot change. YapYap serves `/__yapyap/panel.html` to load
+  the panel's module. A panel comes forward when opened again and closes
+  with its plugin. ADR 0008 C25 explains why a window and not a frame
+  beside WhatsApp.
+
 - Plugin activity log (#99): `servePluginRpc` reports each call to an
   operation YapYap offers (operation, capability, outcome) and
   `createAuditLog` appends it, with the time and plugin ID, to

@@ -86,15 +86,17 @@ export const pluginPage = (
     };
   }, `plugin://${id}/`);
 
-/** Installs a signed third-party plugin with `main.js`, accepting its consent window. */
+/** Installs a signed third-party plugin with `main.js` and `files`, accepting its consent window. */
 export async function installPlugin(
   app: ElectronApplication,
   profile: string,
   manifest: Record<string, unknown>,
   main: string,
+  files: Readonly<Record<string, string>> = {},
 ): Promise<void> {
   const archive = join(profile, `${String(manifest['id'])}.yapyap-plugin`);
-  await writeFile(archive, zipArchive(signedArchive(testKey(), manifest, { 'main.js': main })));
+  const signed = signedArchive(testKey(), manifest, { 'main.js': main, ...files });
+  await writeFile(archive, zipArchive(signed));
   await app.evaluate(({ dialog }, path) => {
     dialog.showOpenDialog = () => Promise.resolve({ canceled: false, filePaths: [path] });
     const asked: string[] = [];

@@ -3,7 +3,7 @@ import type { ZoomStep } from './appearance/zoom.ts';
 import { PRODUCT_NAME } from './identity.ts';
 import type { AccountSummary } from '../shared/chrome-api.ts';
 import { en } from '../shared/messages/en.ts';
-import type { PluginCommand } from './plugins/runtime.ts';
+import type { PluginCommand, PluginPanel } from './plugins/runtime.ts';
 import { acceleratorOf, type CustomShortcuts, type ShortcutId } from '../shared/shortcuts.ts';
 
 /** The platform the menu is for, and the keys the user chose instead of YapYap's. */
@@ -41,6 +41,9 @@ export interface MenuActions {
   /** Commands of the running plugins, each under its plugin's name (#98). */
   readonly pluginCommands: readonly PluginCommand[];
   readonly runPluginCommand: (plugin: string, command: string) => void;
+  /** Panels of the running plugins, each under its plugin's name (#98). */
+  readonly pluginPanels: readonly PluginPanel[];
+  readonly openPluginPanel: (plugin: string) => void;
   readonly openNewChat: () => void;
   readonly clearCache: () => void;
   readonly resetSession: () => void;
@@ -237,16 +240,24 @@ function commonItems(
  * submenu, each named after its plugin.
  */
 function pluginCommandItems(actions: MenuActions): MenuItemConstructorOptions[] {
-  if (actions.pluginCommands.length === 0) {
-    return [];
-  }
-  const submenu = actions.pluginCommands.map(({ plugin, pluginName, id, title }) => ({
+  const commands = actions.pluginCommands.map(({ plugin, pluginName, id, title }) => ({
     label: en.menu.pluginCommand(pluginName, title),
     click: () => {
       actions.runPluginCommand(plugin, id);
     },
   }));
-  return [{ label: en.menu.pluginCommands, submenu }];
+  const panels = actions.pluginPanels.map(({ plugin, pluginName, title }) => ({
+    label: en.menu.pluginCommand(pluginName, title),
+    click: () => {
+      actions.openPluginPanel(plugin);
+    },
+  }));
+  if (commands.length + panels.length === 0) {
+    return [];
+  }
+  const apart: MenuItemConstructorOptions[] =
+    commands.length > 0 && panels.length > 0 ? [{ type: 'separator' }] : [];
+  return [{ label: en.menu.pluginCommands, submenu: [...commands, ...apart, ...panels] }];
 }
 
 /**

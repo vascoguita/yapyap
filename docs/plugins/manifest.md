@@ -44,6 +44,12 @@ WhatsApp: composer actions on the message box, and context-menu items on a
 message (`"on": "message"`) or on a chat in the list (`"on": "chat"`). An
 item that names a command the plugin does not declare is not shown.
 
+`contributes.panel` (`title` and `entry`) gives the plugin a panel, which
+the user opens from **Plugin Commands**. It opens in a window of its own,
+titled `<plugin name>: <title>`, whose page loads the `entry` module. The
+panel has no host API of its own: it talks to the plugin's main module,
+which shares its origin, with a `BroadcastChannel`.
+
 ## Capabilities
 
 | Capability                 | Lets the plugin                                              |

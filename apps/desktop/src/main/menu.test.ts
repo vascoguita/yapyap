@@ -20,6 +20,8 @@ function actions(accounts: AccountSummary[] = []) {
     openCustomCode: vi.fn(),
     pluginCommands: [] as { plugin: string; pluginName: string; id: string; title: string }[],
     runPluginCommand: vi.fn(),
+    pluginPanels: [] as { plugin: string; pluginName: string; title: string }[],
+    openPluginPanel: vi.fn(),
     openNewChat: vi.fn(),
     clearCache: vi.fn(),
     resetSession: vi.fn(),
@@ -355,5 +357,27 @@ describe('custom shortcuts in the menus', () => {
     expect(items(buildMenuTemplate('linux', actions())[0]).map((item) => item.label)).not.toContain(
       'Plugin Commands',
     );
+  });
+
+  it('lists the running plugins’ panels after their commands, and opens the one picked', () => {
+    const panel = { plugin: 'org.example.hello', pluginName: 'Hello', title: 'Notes' };
+    const command = { ...panel, id: 'translate', title: 'Translate draft' };
+    const submenu = (a: ReturnType<typeof actions>) => {
+      const found = items(buildMenuTemplate('linux', a)[0]).find(
+        (item) => item.label === 'Plugin Commands',
+      );
+      return Array.isArray(found?.submenu) ? found.submenu : [];
+    };
+    const a = { ...actions(), pluginCommands: [command], pluginPanels: [panel] };
+    const both = submenu(a);
+    expect(both.map((item) => item.label ?? item.type)).toEqual([
+      'Hello: Translate draft',
+      'separator',
+      'Hello: Notes',
+    ]);
+    (both[2]?.click as (() => void) | undefined)?.();
+    expect(a.openPluginPanel).toHaveBeenCalledExactlyOnceWith('org.example.hello');
+    const alone = submenu({ ...actions(), pluginPanels: [panel] });
+    expect(alone.map((item) => item.label)).toEqual(['Hello: Notes']);
   });
 });

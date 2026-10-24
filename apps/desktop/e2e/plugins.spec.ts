@@ -234,6 +234,11 @@ test('keeps each plugin’s storage to itself, across restarts', async ({
   } finally {
     await closeApp(second);
   }
+  const kept = await readFile(
+    join(profile, 'plugins', '.storage', 'org.example.hello.json'),
+    'utf8',
+  );
+  expect(JSON.parse(kept)).toEqual({ version: 1, entries: { starts: '2' } });
 });
 
 /** Drafts a reply, then writes in its title how that went. */
@@ -426,4 +431,47 @@ test('adds a plugin’s items to right clicks on the message box, a message and 
   expect((await rightClick('chat'))?.at(-1)).toBe('Hello: Summarize');
   await clickLastItem(app);
   await expect.poll(async () => (await pluginPage(app))?.title).toBe('summarize');
+});
+
+/** A panel that says it loaded, and tries to retitle its window. */
+const PANEL = `
+document.body.textContent = 'Notes for this chat';
+document.title = 'WhatsApp';
+`;
+
+test('opens a plugin’s panel in a window of its own, titled with the plugin’s name', async ({
+  app,
+  profile,
+}) => {
+  const manifest = testManifest({
+    capabilities: [],
+    network: { hosts: [] },
+    contributes: { panel: { title: 'Notes', entry: 'panel.js' } },
+  });
+  await installPlugin(app, profile, manifest, 'export default { activate() {} };', {
+    'panel.js': PANEL,
+  });
+  const open = () =>
+    app.evaluate(({ Menu }) => {
+      const plugins = Menu.getApplicationMenu()
+        ?.items.flatMap((menu) => menu.submenu?.items ?? [])
+        .find((entry) => entry.label === 'Plugin Commands');
+      const panel = plugins?.submenu?.items.find((entry) => entry.label === 'Hello: Notes');
+      panel?.click();
+      return panel !== undefined;
+    });
+  await expect.poll(open, { timeout: 20_000 }).toBe(true);
+  const panel = await chromePage(app, '/__yapyap/panel.html');
+  await expect(panel.locator('body')).toHaveText('Notes for this chat');
+  const title = () =>
+    app.evaluate(({ BrowserWindow }) =>
+      BrowserWindow.getAllWindows()
+        .find((window) => window.webContents.getURL().endsWith('/__yapyap/panel.html'))
+        ?.getTitle(),
+    );
+  await expect.poll(title).toBe('Hello: Notes');
+  expect(await open()).toBe(true);
+  expect(app.windows().filter((page) => page.url().endsWith('/__yapyap/panel.html'))).toHaveLength(
+    1,
+  );
 });

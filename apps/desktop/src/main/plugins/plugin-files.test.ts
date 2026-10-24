@@ -1,19 +1,29 @@
 import { join, resolve } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { hostScript } from './host-script.ts';
-import { confinePluginRequests, HOST_PAGE, PLUGIN_CSP, servePluginFiles } from './plugin-files.ts';
+import {
+  confinePluginRequests,
+  HOST_PAGE,
+  panelPage,
+  PLUGIN_CSP,
+  servePluginFiles,
+  type PluginSource,
+} from './plugin-files.ts';
 
 const ID = 'org.example.hello';
 const FOLDER = resolve('/plugins', ID, '1.0.0');
 
-function setup(files: Readonly<Record<string, string>> = { 'main.js': 'export default {};' }) {
+function setup(
+  files: Readonly<Record<string, string>> = { 'main.js': 'export default {};' },
+  panel?: string,
+) {
   const readFile = vi.fn((path: string) => {
     const name = Object.keys(files).find((file) => join(FOLDER, file) === path);
     return name === undefined
       ? Promise.reject(new Error('ENOENT'))
       : Promise.resolve(new TextEncoder().encode(files[name]));
   });
-  let source: { folder: string; entry: string } | undefined = { folder: FOLDER, entry: 'main.js' };
+  let source: PluginSource | undefined = { folder: FOLDER, entry: 'main.js', panel };
   const serve = servePluginFiles(ID, () => source, readFile);
   return {
     readFile,
@@ -37,6 +47,15 @@ describe('servePluginFiles', () => {
     expect(script.headers.get('content-type')).toBe('text/javascript');
     expect(script.headers.get('content-security-policy')).toBe(PLUGIN_CSP);
     expect(await script.text()).toBe(hostScript('main.js'));
+  });
+
+  it('serves the page of the plugin’s panel, if it has one, under the plugin CSP', async () => {
+    const page = await setup(undefined, 'ui/panel.js').get(`plugin://${ID}/__yapyap/panel.html`);
+    expect(page.headers.get('content-type')).toBe('text/html; charset=utf-8');
+    expect(page.headers.get('content-security-policy')).toBe(PLUGIN_CSP);
+    expect(await page.text()).toBe(panelPage('ui/panel.js'));
+    expect(panelPage('ui/panel.js')).toContain('<script type="module" src="/ui/panel.js">');
+    expect((await setup().get(`plugin://${ID}/__yapyap/panel.html`)).status).toBe(404);
   });
 
   it('serves the plugin’s files with their types, and nothing it did not ship', async () => {

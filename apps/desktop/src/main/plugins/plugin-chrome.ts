@@ -75,6 +75,8 @@ export interface PluginChromeDependencies {
   readonly sessionOf: (partition: string) => PluginSession;
   /** A hidden, sandboxed window on `partition`, which is never shown. */
   readonly createHost: (partition: string) => PluginHost;
+  /** A plugin panel's window, titled by YapYap (#98). */
+  readonly createPanel: PluginRuntimeDependencies['createPanel'];
   /** What a plugin may call, behind its capabilities (#93); drafts go to the active chat. */
   readonly methodsFor: (
     plugin: CallingPlugin,
@@ -209,6 +211,9 @@ export interface PluginChrome {
   readonly onCommandsChange: PluginRuntime['onChange'];
   /** The running plugins' right-click items (#98). */
   readonly actions: PluginRuntime['actions'];
+  /** The running plugins' panels, and how to open one (#98). */
+  readonly panels: PluginRuntime['panels'];
+  readonly openPanel: PluginRuntime['openPanel'];
 }
 
 /** The consent window, as the consent prompt drives it. */
@@ -281,5 +286,7 @@ export function createPluginChrome(
     runCommand: runtime.runCommand,
     onCommandsChange: runtime.onChange,
     actions: runtime.actions,
+    panels: runtime.panels,
+    openPanel: runtime.openPanel,
   };
 }

@@ -616,7 +616,10 @@ function menuAccounts(
   };
 }
 
-type MenuPlugins = Pick<PluginChrome, 'commands' | 'runCommand' | 'onCommandsChange'>;
+type MenuPlugins = Pick<
+  PluginChrome,
+  'commands' | 'runCommand' | 'panels' | 'openPanel' | 'onCommandsChange'
+>;
 
 /** The menu's actions for the accounts as they are, and the running plugins' commands. */
 function menuActionsOf(
@@ -638,6 +641,8 @@ function menuActionsOf(
     copyDiagnostics,
     pluginCommands: plugins.commands(),
     runPluginCommand: plugins.runCommand,
+    pluginPanels: plugins.panels(),
+    openPluginPanel: plugins.openPanel,
   });
 }
 
