@@ -6,8 +6,8 @@ import {
   type Completion,
   type CompletionRequest,
   type Provider,
-  type ProviderErrorKind,
 } from './provider.ts';
+import { kindOf } from './errors.ts';
 
 /** The model the assistant uses until the user picks another. */
 export const DEFAULT_ANTHROPIC_MODEL = 'claude-opus-5-5';
@@ -32,25 +32,6 @@ export interface AnthropicSettings {
   readonly fetch?: typeof fetch;
   /** Only for tests; {@link REQUEST_TIMEOUT_MS} otherwise. */
   readonly timeoutMs?: number;
-}
-
-/** The request itself was wrong: a model or setting the provider does not accept. */
-const BAD_REQUEST: ProviderErrorKind = 'bad-request';
-
-/** The SDK's typed errors, most specific first, as the kinds the user sees. */
-function kindOf(error: unknown): ProviderErrorKind {
-  const kinds: readonly [new (...args: never[]) => unknown, ProviderErrorKind][] = [
-    [Anthropic.APIUserAbortError, 'cancelled'],
-    [Anthropic.APIConnectionTimeoutError, 'timeout'],
-    [Anthropic.APIConnectionError, 'network'],
-    [Anthropic.AuthenticationError, 'auth'],
-    [Anthropic.PermissionDeniedError, 'auth'],
-    [Anthropic.RateLimitError, 'rate-limited'],
-    [Anthropic.BadRequestError, BAD_REQUEST],
-    [Anthropic.NotFoundError, BAD_REQUEST],
-    [Anthropic.UnprocessableEntityError, BAD_REQUEST],
-  ];
-  return kinds.find(([type]) => error instanceof type)?.[1] ?? 'failed';
 }
 
 async function streamReply(
@@ -104,7 +85,7 @@ export function anthropicProvider(settings: AnthropicSettings): Provider {
       try {
         return await streamReply(client, settings.model, request, onText);
       } catch (error) {
-        throw error instanceof ProviderError ? error : new ProviderError(kindOf(error));
+        throw error instanceof ProviderError ? error : new ProviderError(kindOf(error, Anthropic));
       }
     },
   };

@@ -552,7 +552,11 @@ not edit the same lines.
   server-side refusal fallbacks, retries twice, times out after a minute,
   and maps the SDK's typed errors to auth, rate-limited, network, timeout,
   refused, bad-request, cancelled or failed. Tests stream through a fake
-  `fetch`; nothing reaches the network.
+  `fetch`; nothing reaches the network. The OpenAI provider uses the
+  official `openai` SDK's chat completions, for OpenAI or, with a base URL,
+  any compatible server (which gets the older `max_tokens` limit); a
+  `content_filter` finish fails as refused. Both map errors through one
+  `kindOf`, as both SDKs share their error classes.
 
 - Account budgets (#109, first part): `bench/accounts.spec.ts` measures the
   memory a second account adds and the CPU a hidden account uses while
