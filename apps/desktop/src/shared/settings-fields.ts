@@ -6,6 +6,7 @@ export type SettingValue = boolean | string | number;
 /** A settings file section, in the order the settings window lists them. */
 export const SETTINGS_SECTIONS = [
   { id: 'general', title: en.settings.sections.general },
+  { id: 'spelling', title: en.settings.sections.spelling },
   { id: 'appearance', title: en.settings.sections.appearance },
   { id: 'reliability', title: en.settings.sections.reliability },
   { id: 'downloads', title: en.settings.sections.downloads },
@@ -64,6 +65,7 @@ export const SETTING_FIELDS: readonly SettingField[] = [
   { ...described('general.doNotDisturb'), restart: false },
   // macOS always keeps YapYap in the Dock when the window closes.
   { ...described('general.closeToTray'), restart: false, platforms: ['linux', 'win32'] },
+  { ...described('spelling.enabled'), restart: false },
   {
     ...described('appearance.theme'),
     restart: false,

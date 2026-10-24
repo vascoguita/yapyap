@@ -211,6 +211,14 @@ not edit the same lines.
   a notification that opens the release page; nothing is downloaded, and
   other policies never make the request.
 
+- Spell checking, first part (#73): a context menu on account views (cut,
+  copy, paste, select all; Copy for selected text elsewhere) with up to five
+  suggestions, Add to Dictionary and a spelling toggle. `spelling.enabled`
+  is off by default (ADR 0008, C24); while it is off sessions list no
+  language, so nothing is fetched. Once on, `followSpellingSetting` checks
+  `spelling.languages` or the first system language with a dictionary;
+  macOS uses its own checker. The searchable language list comes next.
+
 - Download options, first part (#74): `downloads.askWhere` hands the path
   to Chromium's save dialog, which starts in the folder last chosen
   (`downloads.json`, state rather than a setting); `downloads.openWhenDone`

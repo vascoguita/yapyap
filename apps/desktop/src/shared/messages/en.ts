@@ -104,6 +104,7 @@ const catalog = {
     scale: (factor: number): string => `${String(Math.round(factor * 100))}%`,
     sections: {
       general: 'General',
+      spelling: 'Spelling',
       appearance: 'Appearance',
       reliability: 'Reliability',
       downloads: 'Downloads',
@@ -170,6 +171,11 @@ const catalog = {
         label: 'Do not disturb',
         description:
           'Show no notifications at all, and play no sounds from accounts that are not on screen. Unread counts still update.',
+      },
+      'spelling.enabled': {
+        label: 'Check spelling',
+        description:
+          'Underline misspelled words as you type, in your system’s language. On Windows and Linux, turning this on downloads that language’s dictionary from Google once.',
       },
       'general.closeToTray': {
         label: 'Close to the tray',
@@ -473,6 +479,12 @@ const catalog = {
       hide: 'Hide YapYap',
       quit: 'Quit YapYap',
     },
+  },
+  contextMenu: {
+    noSuggestions: 'No Suggestions',
+    addToDictionary: 'Add to Dictionary',
+    checkSpelling: 'Check Spelling',
+    spellingSettings: 'Check Spelling…',
   },
   badge: {
     unread: (count: number): string => unreadChats(count),
