@@ -4,7 +4,10 @@ import { en } from '../../shared/messages/en.ts';
 export const PLUGIN_SAMPLE_MS = 5_000;
 /** Samples in a row over a limit before acting, so a brief spike is forgiven. */
 export const SAMPLES_OVER_LIMIT = 3;
-/** A plugin has no reason to keep a core busy: it waits on the user and on the network. */
+/**
+ * Half of one core: a plugin has no reason to keep a core busy, since it
+ * waits on the user and on the network.
+ */
 export const CPU_LIMIT_PERCENT = 50;
 export const MEMORY_LIMIT_MB = 256;
 /** Restarts within the window that stop the plugin instead. */
@@ -39,15 +42,18 @@ export interface ResourceGuardDependencies {
   readonly notify: (message: string) => void;
   readonly every: (callback: () => void, ms: number) => unknown;
   readonly now: () => number;
+  /** The computer's logical cores, such as `os.availableParallelism()`. */
+  readonly cores: number;
   readonly warn: (message: string) => void;
 }
 
 /** Which limit a sample breaks, if any. */
-function excess(metric: ProcessMetrics | undefined): 'CPU' | 'memory' | undefined {
+function excess(metric: ProcessMetrics | undefined, cores: number): 'CPU' | 'memory' | undefined {
   if (metric === undefined) {
     return undefined;
   }
-  if (metric.cpu.percentCPUUsage > CPU_LIMIT_PERCENT) {
+  // Electron spreads the usage over every core, so one busy core reads as 1/cores of 100%.
+  if (metric.cpu.percentCPUUsage * cores > CPU_LIMIT_PERCENT) {
     return 'CPU';
   }
   return metric.memory.workingSetSize / KB_PER_MB > MEMORY_LIMIT_MB ? 'memory' : undefined;
@@ -87,7 +93,10 @@ export function guardPluginResources(deps: ResourceGuardDependencies): void {
   deps.every(() => {
     const metrics = deps.metrics();
     for (const plugin of deps.running()) {
-      const limit = excess(metrics.find((metric) => metric.pid === plugin.pid));
+      const limit = excess(
+        metrics.find((metric) => metric.pid === plugin.pid),
+        deps.cores,
+      );
       const count = limit === undefined ? 0 : (over.get(plugin.id) ?? 0) + 1;
       over.set(plugin.id, count >= SAMPLES_OVER_LIMIT ? 0 : count);
       if (limit !== undefined && count >= SAMPLES_OVER_LIMIT) {

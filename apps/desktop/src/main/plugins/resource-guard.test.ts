@@ -11,9 +11,10 @@ import {
 const HELLO = { id: 'org.example.hello', name: 'Hello', pid: 41 };
 const OTHER = { id: 'org.example.other', name: 'Other', pid: 42 };
 
+/** `cpu` is the share of one core, as the limit counts it; Electron reports it spread over four. */
 const sample = (pid: number, cpu: number, memoryMb: number): ProcessMetrics => ({
   pid,
-  cpu: { percentCPUUsage: cpu },
+  cpu: { percentCPUUsage: cpu / 4 },
   memory: { workingSetSize: memoryMb * 1024 },
 });
 
@@ -31,6 +32,7 @@ function setup() {
       tick = callback;
     }),
     now: () => time,
+    cores: 4,
     warn: vi.fn(),
   };
   guardPluginResources(deps);

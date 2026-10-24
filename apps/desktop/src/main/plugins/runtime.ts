@@ -69,7 +69,10 @@ export interface PluginRuntimeDependencies {
   readonly rpc: RpcOptions;
   readonly audit: Pick<AuditLog, 'record'>;
   /** What the CPU and memory limits need besides the plugins themselves (#97). */
-  readonly limits: Pick<ResourceGuardDependencies, 'metrics' | 'notify' | 'every' | 'now'>;
+  readonly limits: Pick<
+    ResourceGuardDependencies,
+    'metrics' | 'notify' | 'every' | 'now' | 'cores'
+  >;
 }
 
 export interface PluginRuntime {

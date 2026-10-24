@@ -79,7 +79,7 @@ function setup() {
       methodsFor: vi.fn(() => ({})),
       rpc: { ...RPC_OPTIONS, now: () => 0, after: vi.fn() },
       audit: { record: vi.fn(), recent: vi.fn(() => []) },
-      limits: { metrics: () => [], notify: vi.fn(), every: vi.fn(), now: () => 0 },
+      limits: { metrics: () => [], notify: vi.fn(), every: vi.fn(), now: () => 0, cores: 1 },
     },
     spelling: { available: () => ['en-GB', 'pt-PT'], system: () => ['en-GB'] },
     chooseFolder: vi.fn(() => Promise.resolve<string | undefined>(undefined)),

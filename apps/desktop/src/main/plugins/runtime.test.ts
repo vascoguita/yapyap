@@ -143,6 +143,7 @@ function setup() {
         sampled.push(callback);
       }),
       now: () => 0,
+      cores: 1,
     },
   };
   const only = <T>(items: readonly T[]): T => {
