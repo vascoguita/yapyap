@@ -27,9 +27,11 @@ export const DECLINE_MS = 60_000;
 
 const secretName = (info: AuthInfo): string => `proxy:${info.host}:${String(info.port)}`;
 
-function saved(secrets: SecretStore, name: string): ProxyCredentials | undefined {
+async function saved(secrets: SecretStore, name: string): Promise<ProxyCredentials | undefined> {
   try {
-    const parsed = JSON.parse(secrets.get(name) ?? 'null') as Partial<ProxyCredentials> | null;
+    const parsed = JSON.parse(
+      (await secrets.get(name)) ?? 'null',
+    ) as Partial<ProxyCredentials> | null;
     return typeof parsed?.username === 'string' && typeof parsed.password === 'string'
       ? { username: parsed.username, password: parsed.password, remember: true }
       : undefined;
@@ -59,23 +61,23 @@ function asker(deps: ProxyLoginDependencies, declined: Map<string, number>) {
     }
     const callbacks = [callback];
     pending.set(name, callbacks);
-    const request = {
-      failed,
-      host: info.host,
-      port: info.port,
-      canRemember: deps.secrets.canKeep(),
-    };
-    void deps.ask(request).then((credentials) => {
-      pending.delete(name);
-      if (credentials === undefined) {
-        declined.set(name, deps.now());
-      } else {
-        deps.secrets.set(name, credentials.remember ? JSON.stringify(credentials) : undefined);
-      }
-      for (const answer of callbacks) {
-        answer(credentials?.username, credentials?.password);
-      }
-    });
+    void deps.secrets
+      .canKeep()
+      .then((canRemember) => deps.ask({ failed, host: info.host, port: info.port, canRemember }))
+      .then((credentials) => {
+        pending.delete(name);
+        if (credentials === undefined) {
+          declined.set(name, deps.now());
+        } else {
+          void deps.secrets.set(
+            name,
+            credentials.remember ? JSON.stringify(credentials) : undefined,
+          );
+        }
+        for (const answer of callbacks) {
+          answer(credentials?.username, credentials?.password);
+        }
+      });
   };
 }
 
@@ -87,6 +89,25 @@ export function createProxyLogin(deps: ProxyLoginDependencies): ProxyLogin {
   const tried = new WeakMap<object, Set<string>>();
   const declined = new Map<string, number>();
   const ask = asker(deps, declined);
+  const respond = async (
+    attempts: Set<string>,
+    info: AuthInfo,
+    callback: LoginCallback,
+  ): Promise<void> => {
+    const name = secretName(info);
+    const known = await saved(deps.secrets, name);
+    if (known !== undefined && !attempts.has(name)) {
+      attempts.add(name);
+      callback(known.username, known.password);
+      return;
+    }
+    if (deps.now() - (declined.get(name) ?? -Infinity) < DECLINE_MS) {
+      callback();
+      return;
+    }
+    ask(name, info, attempts.has(name), callback);
+    attempts.add(name);
+  };
   return {
     handle: (event, owner, info, callback) => {
       if (!info.isProxy) {
@@ -94,21 +115,9 @@ export function createProxyLogin(deps: ProxyLoginDependencies): ProxyLogin {
         return;
       }
       event.preventDefault();
-      const name = secretName(info);
       const attempts = tried.get(owner) ?? new Set<string>();
       tried.set(owner, attempts);
-      const known = saved(deps.secrets, name);
-      if (known !== undefined && !attempts.has(name)) {
-        attempts.add(name);
-        callback(known.username, known.password);
-        return;
-      }
-      if (deps.now() - (declined.get(name) ?? -Infinity) < DECLINE_MS) {
-        callback();
-        return;
-      }
-      ask(name, info, attempts.has(name), callback);
-      attempts.add(name);
+      void respond(attempts, info, callback);
     },
   };
 }

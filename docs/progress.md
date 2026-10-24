@@ -456,6 +456,14 @@ not edit the same lines.
   message ("damaged"), which also makes its parse error observable. A
   feature test pins the size and controls of YapYap's own windows.
 
+- Electron 45.0.0 (#277; Chromium 156, Node 24.22). Screen capture now
+  reaches the permission handler as `display-capture`, which goes to the
+  same source picker as the legacy empty `media` request; both still need
+  the user's pick. The secret store uses `safeStorage`'s asynchronous
+  methods, as the synchronous ones go away in Electron 46, and stores a
+  secret again when the system rotates its key. Both preloads still require
+  nothing but `electron`, as sandboxed preloads lose `Buffer` and timers.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).
