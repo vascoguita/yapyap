@@ -31,6 +31,7 @@ import {
 import { readFile } from 'node:fs/promises';
 import { homedir, release } from 'node:os';
 import { join } from 'node:path';
+import { lastFolderIn } from './downloads/last-folder.ts';
 import { readInstallChannel } from './about/about-info.ts';
 import { loadAccounts, saveAccounts } from './accounts/accounts-file.ts';
 import { applyAutostart, chooseAutostart } from './autostart/autostart.ts';
@@ -65,6 +66,7 @@ const PICKER_THUMBNAIL = { width: 320, height: 180 };
 
 const GPU_CRASH_LOG = join(app.getPath('userData'), 'gpu-crashes.json');
 const WINDOW_STATE = join(app.getPath('userData'), 'window-state.json');
+const DOWNLOADS_STATE = join(app.getPath('userData'), 'downloads.json');
 
 // Holds the tray for the app's lifetime; a collected Tray disappears from the panel.
 let tray: Tray | undefined;
@@ -240,6 +242,13 @@ startApp({
   downloads: {
     folder: () => realpathSync(app.getPath('downloads')),
     taken: (path) => lstatSync(path, { throwIfNoEntry: false }) !== undefined,
+    lastFolder: lastFolderIn({
+      read: () => readFileSync(DOWNLOADS_STATE, 'utf8'),
+      write: (text) => {
+        writeFileSync(DOWNLOADS_STATE, text);
+      },
+    }),
+    openPath: (path) => shell.openPath(path),
   },
   shutdown: {
     onSignal: (signal, listener) => {

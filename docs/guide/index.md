@@ -291,6 +291,13 @@ cleaned up so they are safe on every system: folder parts and characters
 Windows does not allow are removed, and a file is never replaced. A second
 `photo.jpg` is saved as `photo (1).jpg`.
 
+Under Settings → Downloads, **Ask where to save each file** shows the save
+dialog for every download instead, starting in the folder you last chose.
+**Open files when they finish downloading** opens PDFs, pictures, sound,
+video and plain text in their usual app. Anything else, programs, scripts,
+installers and office documents among them, is only saved, so a file
+someone sends you can never start a program by itself.
+
 ## Voice notes and videos
 
 Voice notes, videos, GIFs and status videos play with sound in every YapYap

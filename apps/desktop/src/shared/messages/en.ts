@@ -106,6 +106,7 @@ const catalog = {
       general: 'General',
       appearance: 'Appearance',
       reliability: 'Reliability',
+      downloads: 'Downloads',
       privacy: 'Privacy',
       plugins: 'Plugins',
     },
@@ -274,6 +275,16 @@ const catalog = {
         label: 'Blur WhatsApp when YapYap is not in front',
         description:
           'Hides your chats whenever another window is in front of YapYap. Click YapYap to see them again.',
+      },
+      'downloads.askWhere': {
+        label: 'Ask where to save each file',
+        description:
+          'Off saves files straight to your Downloads folder. On asks each time, starting in the folder you last chose.',
+      },
+      'downloads.openWhenDone': {
+        label: 'Open files when they finish downloading',
+        description:
+          'Opens PDFs, pictures, sound, video and text in their usual app. Anything that could run a program is only saved.',
       },
       'privacy.blurWhenIdle': {
         label: 'Blur WhatsApp when you are away',
@@ -573,6 +584,7 @@ const catalog = {
       `YapYap ${version} is available. Click to open its download page.`,
     downloaded: (name: string): string => `Downloaded ${name} to your Downloads folder.`,
     downloadFailed: (name: string): string => `Could not download ${name}.`,
+    saved: (name: string): string => `Saved ${name}.`,
   },
 } as const;
 

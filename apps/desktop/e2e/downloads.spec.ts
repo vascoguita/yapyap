@@ -1,7 +1,8 @@
 import type { ElectronApplication, Page } from '@playwright/test';
-import { mkdir, readdir, readFile, symlink, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, realpath, symlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { expect, test } from './fixtures.ts';
+import { SETTINGS_VERSION } from '../src/main/settings/schema.ts';
+import { closeApp, expect, launchApp, test, whatsAppPage } from './fixtures.ts';
 
 /** Points YapYap's downloads folder into the test profile. */
 async function useDownloads(app: ElectronApplication, profile: string): Promise<string> {
@@ -63,4 +64,44 @@ test('renames a Windows device name instead of saving it', async ({ app, window,
   const folder = await useDownloads(app, profile);
   await download(window, 'CON.txt');
   await expect.poll(() => readdir(folder)).toEqual(['_CON.txt']);
+});
+
+test('opens a finished PDF when asked to, and never a program', async ({
+  fakeWhatsApp,
+  profile,
+}) => {
+  await writeFile(
+    join(profile, 'settings.json'),
+    JSON.stringify({ schemaVersion: SETTINGS_VERSION, downloads: { openWhenDone: true } }),
+  );
+  const app = await launchApp(fakeWhatsApp.origin, profile);
+  try {
+    const folder = await useDownloads(app, profile);
+    // Records what would open instead of opening it on the test machine.
+    await app.evaluate(({ shell }) => {
+      const opened: string[] = [];
+      Object.assign(globalThis, { openedPaths: opened });
+      shell.openPath = (path) => {
+        opened.push(path);
+        return Promise.resolve('');
+      };
+    });
+    const window = await whatsAppPage(app);
+    await download(window, 'setup.exe');
+    await download(window, 'Invoice.pdf');
+    await expect
+      .poll(async () => (await readdir(folder)).sort())
+      .toEqual(['Invoice.pdf', 'setup.exe']);
+    // Paths compare once resolved: macOS links the temporary folder elsewhere,
+    // and Windows may name it by its short 8.3 form.
+    const opened = async (): Promise<string[]> => {
+      const paths = await app.evaluate(
+        () => (globalThis as unknown as { openedPaths: string[] }).openedPaths,
+      );
+      return Promise.all(paths.map((path) => realpath(path)));
+    };
+    await expect.poll(opened).toEqual([await realpath(join(folder, 'Invoice.pdf'))]);
+  } finally {
+    await closeApp(app);
+  }
 });

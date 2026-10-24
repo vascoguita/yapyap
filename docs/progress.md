@@ -211,6 +211,14 @@ not edit the same lines.
   a notification that opens the release page; nothing is downloaded, and
   other policies never make the request.
 
+- Download options, first part (#74): `downloads.askWhere` hands the path
+  to Chromium's save dialog, which starts in the folder last chosen
+  (`downloads.json`, state rather than a setting); `downloads.openWhenDone`
+  opens a finished file only if its extension is on an allowlist of types
+  that display and never run (`opensSafely`). A download YapYap cannot
+  place safely is now asked about, and reported as saved. The downloads
+  window with progress, pause and resume comes next.
+
 - Keyboard shortcuts, first part (#75): `shared/shortcuts.ts` is the one
   table of shortcuts, with macOS keys where they differ and platforms where
   only some have them. The menus take every accelerator from it, so the

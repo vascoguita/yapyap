@@ -15,6 +15,8 @@ const JS_HEAP = 'reliability.jsHeapMb';
 const PINCH = 'appearance.pinchZoom';
 const TRAY_ICON = 'appearance.trayIcon';
 const DEVELOPER = 'plugins.developerMode';
+const ASK_WHERE = 'downloads.askWhere';
+const OPEN_DONE = 'downloads.openWhenDone';
 const BLUR_UNFOCUSED = 'privacy.blurWhenUnfocused';
 const BLUR_IDLE = 'privacy.blurWhenIdle';
 const BACKEND = 'reliability.displayBackend';
@@ -140,6 +142,8 @@ describe('settingsHandlers', () => {
         [BLUR_UNFOCUSED]: false,
         [BLUR_IDLE]: false,
         [DEVELOPER]: false,
+        [ASK_WHERE]: false,
+        [OPEN_DONE]: false,
         [AUTOSTART]: false,
         [START_MINIMIZED]: false,
         [BETA]: false,
@@ -219,6 +223,8 @@ describe('settingsHandlers', () => {
         [BLUR_UNFOCUSED]: false,
         [BLUR_IDLE]: false,
         [DEVELOPER]: false,
+        [ASK_WHERE]: false,
+        [OPEN_DONE]: false,
         [AUTOSTART]: false,
         [START_MINIMIZED]: false,
         [BETA]: false,

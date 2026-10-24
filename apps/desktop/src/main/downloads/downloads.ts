@@ -1,10 +1,15 @@
-import { basename, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { numberedName, safeFileName } from './file-name.ts';
+import type { LastFolder } from './last-folder.ts';
+import { opensSafely } from './open-safely.ts';
 import { en } from '../../shared/messages/en.ts';
+import type { Settings } from '../settings/schema.ts';
 
 export interface DownloadItem {
   getFilename(): string;
+  getSavePath(): string;
   setSavePath(path: string): void;
+  setSaveDialogOptions(options: { readonly defaultPath: string }): void;
   once(event: 'done', listener: (event: unknown, state: string) => void): unknown;
 }
 
@@ -19,6 +24,10 @@ export interface DownloadDependencies {
   readonly taken: (path: string) => boolean;
   readonly notify: (message: string) => void;
   readonly warn: (message: string) => void;
+  readonly options: () => Settings['downloads'];
+  readonly lastFolder: LastFolder;
+  /** `shell.openPath`: resolves with an error message, empty on success. */
+  readonly openPath: (path: string) => Promise<string>;
 }
 
 /** Gives up numbering long before anyone has a hundred copies of one file. */
@@ -44,16 +53,40 @@ export function downloadTarget(
   return undefined;
 }
 
-/** What to tell the user per final state; a cancel is the user's own doing. */
-const REPORTS: ReadonlyMap<string, (name: string) => string> = new Map([
-  ['completed', en.notices.downloaded],
-  ['interrupted', en.notices.downloadFailed],
-]);
+/** Opens a finished download if the user asked for that and it cannot run anything. */
+function openIfViewable(deps: DownloadDependencies, path: string): void {
+  if (!deps.options().openWhenDone || !opensSafely(path)) {
+    return;
+  }
+  void deps.openPath(path).then((error) => {
+    if (error !== '') {
+      deps.warn('Could not open a download.');
+    }
+  });
+}
 
-function report(deps: DownloadDependencies, name: string, state: string): void {
-  const message = REPORTS.get(state);
-  if (message !== undefined) {
-    deps.notify(message(name));
+/** Says how a download ended, and opens it if asked; a cancel is the user's own doing. */
+function finish(deps: DownloadDependencies, path: string, state: string, asked: boolean): void {
+  const name = basename(path);
+  if (state === 'interrupted') {
+    deps.notify(en.notices.downloadFailed(name));
+  }
+  if (state !== 'completed') {
+    return;
+  }
+  deps.notify(asked ? en.notices.saved(name) : en.notices.downloaded(name));
+  if (asked) {
+    deps.lastFolder.set(dirname(path));
+  }
+  openIfViewable(deps, path);
+}
+
+/** The Save dialog starts in the last folder the user picked, or the downloads folder. */
+function startFolder(deps: DownloadDependencies): string | undefined {
+  try {
+    return deps.lastFolder.get() ?? deps.folder();
+  } catch {
+    return undefined;
   }
 }
 
@@ -66,20 +99,34 @@ function targetOrNothing(suggested: string, deps: DownloadDependencies): string 
   }
 }
 
+/** Leaves the path to Chromium's Save dialog, opening in the folder YapYap picks. */
+function askWhere(item: DownloadItem, deps: DownloadDependencies): void {
+  const name = safeFileName(item.getFilename());
+  const folder = startFolder(deps);
+  item.setSaveDialogOptions({ defaultPath: folder === undefined ? name : join(folder, name) });
+}
+
 /**
  * Saves WhatsApp downloads straight into the downloads folder, as browsers
- * do, and says how each one ended. File names stay out of the log.
+ * do, or asks where when the user wants that, and says how each one ended.
+ * File names stay out of the log.
  */
 export function guardDownloads(session: DownloadingSession, deps: DownloadDependencies): void {
   session.on('will-download', (_event, item) => {
-    const target = targetOrNothing(item.getFilename(), deps);
-    if (target === undefined) {
-      deps.warn('Could not choose where to save a download; asking instead.');
-      return;
+    let asked = deps.options().askWhere;
+    if (asked) {
+      askWhere(item, deps);
+    } else {
+      const target = targetOrNothing(item.getFilename(), deps);
+      if (target === undefined) {
+        deps.warn('Could not choose where to save a download; asking instead.');
+        asked = true;
+      } else {
+        item.setSavePath(target);
+      }
     }
-    item.setSavePath(target);
     item.once('done', (_done, state) => {
-      report(deps, basename(target), state);
+      finish(deps, item.getSavePath(), state, asked);
     });
   });
 }

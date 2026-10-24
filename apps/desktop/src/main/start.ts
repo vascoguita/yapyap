@@ -234,7 +234,7 @@ export interface StartDependencies<Window extends WindowPort> {
   /** Whether Chromium's sandbox was turned off on the command line or in the environment. */
   readonly sandboxDisabled: boolean;
   readonly explainUnsafeStart: UnsafeStartDependencies['explain'];
-  readonly downloads: Pick<DownloadDependencies, 'folder' | 'taken'>;
+  readonly downloads: Pick<DownloadDependencies, 'folder' | 'taken' | 'lastFolder' | 'openPath'>;
   /** `app.getAppMetrics()`: memory per process, for the memory watchdog. */
   readonly appMetrics: () => readonly ProcessMemory[];
   /** Seconds since the last keyboard or mouse input. */
@@ -428,7 +428,12 @@ function guardAccountSession<Window extends WindowPort>(
 ): PermissionMemory {
   const session = deps.sessionOf(partitionOf(account));
   const permissions = secureSession(session, security);
-  guardDownloads(session, { ...deps.downloads, notify: deps.notify, warn: deps.warn });
+  guardDownloads(session, {
+    ...deps.downloads,
+    notify: deps.notify,
+    warn: deps.warn,
+    options: () => deps.settings.current().downloads,
+  });
   return permissions;
 }
 

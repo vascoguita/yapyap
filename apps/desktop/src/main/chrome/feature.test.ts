@@ -302,6 +302,8 @@ describe('createChromeFeature', () => {
         'privacy.blurWhenUnfocused': false,
         'privacy.blurWhenIdle': false,
         'plugins.developerMode': false,
+        'downloads.askWhere': false,
+        'downloads.openWhenDone': false,
         'general.autostart': false,
         'general.startMinimized': false,
         'general.betaUpdates': false,

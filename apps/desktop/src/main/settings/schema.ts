@@ -68,6 +68,13 @@ export const SettingsSchema = Type.Object(
       },
       { default: {}, additionalProperties: false },
     ),
+    downloads: Type.Object(
+      {
+        askWhere: Type.Boolean({ default: false }),
+        openWhenDone: Type.Boolean({ default: false }),
+      },
+      { default: {}, additionalProperties: false },
+    ),
     privacy: Type.Object(
       {
         crashReports: Type.Union(
