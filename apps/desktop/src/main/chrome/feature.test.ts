@@ -1,6 +1,7 @@
 import type { MenuItemConstructorOptions } from 'electron';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
+import { RPC_OPTIONS } from '../plugins/rpc.ts';
 import { defaultSettings } from '../settings/decode.ts';
 import type { Settings } from '../settings/schema.ts';
 import type { ViewInfo } from '../views.ts';
@@ -79,6 +80,8 @@ function setup() {
       showMessage: vi.fn(),
       sessionOf: vi.fn(),
       createHost: vi.fn(),
+      methodsFor: vi.fn(() => ({})),
+      rpc: { ...RPC_OPTIONS, now: () => 0, after: vi.fn() },
     },
     spelling: { available: () => ['en-GB', 'pt-PT'], system: () => ['en-GB'] },
     chooseFolder: vi.fn(() => Promise.resolve<string | undefined>(undefined)),

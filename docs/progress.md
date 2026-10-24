@@ -429,6 +429,15 @@ not edit the same lines.
   follow in #95). `plugin` is a new view zone: permissions deny it
   everything, and the navigation guard lets it open no windows or links.
 
+- Plugin RPC (#93): the plugin preload (`src/preload/plugin/`) only forwards
+  the one MessagePort main sends on each page load. YapYap's bootstrap,
+  served at `/__yapyap/host.js`, builds the SDK's `PluginHost` on it and
+  activates the entry. `servePluginRpc` checks each `{ id, method, params }`
+  message in ADR 0004's order (envelope and parameter schemas, capability,
+  token bucket, timeout) and answers with a result or a typed error.
+  `hostMethods` offers `notifications.show` first, which names the plugin
+  and respects Do not disturb; the other operations come with their issues.
+
 - Screen-sharing indicator (#161): the WhatsApp preload's second stand-in
   (`installShareShim`, ADR 0011) reports when a screen share starts and
   ends, by a random ID only, and stops one when YapYap asks. The main

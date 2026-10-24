@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { RPC_OPTIONS } from './rpc.ts';
 import { defaultSettings } from '../settings/decode.ts';
 import type { ViewRegistry } from '../views.ts';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -47,6 +48,8 @@ function setup(root: string, developerMode = false) {
     showMessage: vi.fn(),
     sessionOf: vi.fn(),
     createHost: vi.fn(),
+    methodsFor: vi.fn(() => ({})),
+    rpc: { ...RPC_OPTIONS, now: () => 0, after: vi.fn() },
   };
   const settings = defaultSettings();
   const views: ViewRegistry = new WeakMap();
@@ -264,6 +267,8 @@ describe('installFlow', () => {
       showMessage,
       sessionOf: vi.fn(),
       createHost: vi.fn(),
+      methodsFor: vi.fn(() => ({})),
+      rpc: { ...RPC_OPTIONS, now: () => 0, after: vi.fn() },
     };
     const started = vi.fn();
     const flow = installFlow(deps, { current: defaultSettings }, vi.fn(), started);

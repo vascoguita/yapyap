@@ -1,8 +1,9 @@
 import { join, resolve } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
+import { hostScript } from './host-script.ts';
 import {
   confinePluginRequests,
-  hostPage,
+  HOST_PAGE,
   PLUGIN_CSP,
   pluginOrigin,
   servePluginFiles,
@@ -30,14 +31,18 @@ function setup(files: Readonly<Record<string, string>> = { 'main.js': 'export de
 }
 
 describe('servePluginFiles', () => {
-  it('serves a page that loads the entry module, under the plugin CSP', async () => {
+  it('serves a page that starts YapYap’s bootstrap, which loads the entry, under the plugin CSP', async () => {
     const t = setup();
     const page = await t.get(`plugin://${ID}/`);
     expect(page.status).toBe(200);
     expect(page.headers.get('content-type')).toBe('text/html; charset=utf-8');
     expect(page.headers.get('content-security-policy')).toBe(PLUGIN_CSP);
-    expect(await page.text()).toBe(hostPage('main.js'));
-    expect(hostPage('dist/my entry.js')).toContain('src="/dist/my%20entry.js"');
+    expect(await page.text()).toBe(HOST_PAGE);
+    expect(HOST_PAGE).toContain('src="/__yapyap/host.js"');
+    const script = await t.get(`plugin://${ID}/__yapyap/host.js`);
+    expect(script.headers.get('content-type')).toBe('text/javascript');
+    expect(script.headers.get('content-security-policy')).toBe(PLUGIN_CSP);
+    expect(await script.text()).toBe(hostScript('main.js'));
   });
 
   it('serves the plugin’s files with their types, and nothing it did not ship', async () => {
