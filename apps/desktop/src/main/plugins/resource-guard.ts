@@ -3,7 +3,7 @@ import { en } from '../../shared/messages/en.ts';
 /** How often each plugin's renderer is sampled. */
 export const PLUGIN_SAMPLE_MS = 5_000;
 /** Samples in a row over a limit before acting, so a brief spike is forgiven. */
-export const SAMPLES_OVER_LIMIT = 3;
+const SAMPLES_OVER_LIMIT = 3;
 /**
  * Half of one core: a plugin has no reason to keep a core busy, since it
  * waits on the user and on the network.
@@ -11,7 +11,7 @@ export const SAMPLES_OVER_LIMIT = 3;
 export const CPU_LIMIT_PERCENT = 50;
 export const MEMORY_LIMIT_MB = 256;
 /** Restarts within the window that stop the plugin instead. */
-export const RESTARTS_BEFORE_STOP = 3;
+const RESTARTS_BEFORE_STOP = 3;
 /** Restarts further apart than ten minutes are unrelated, so they never add up to a stop. */
 export const RESTART_WINDOW_MS = 600_000;
 
