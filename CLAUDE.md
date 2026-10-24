@@ -36,7 +36,7 @@ Use pnpm (version pinned in `package.json`) on Node.js 24 LTS.
 | Smoke-test an installed package | `YAPYAP_PACKAGED_EXECUTABLE=<path> pnpm test:smoke`                                      |
 | Verify hardened fuses           | `node scripts/src/bin/verify-fuses.ts <executable or .app>`                              |
 | AUR PKGBUILD and .SRCINFO       | `node scripts/src/bin/aur.ts <version> <amd64 .deb> <arm64 .deb> <output dir>`           |
-| Sign or verify a plugin folder  | `node packages/plugin-sign/src/bin/yapyap-plugin-sign.ts sign --key <pem> <folder>`      |
+| Sign, verify or pack a plugin   | `node packages/plugin-sign/src/bin/yapyap-plugin-sign.ts sign --key <pem> <folder>`      |
 | Flatpak bundle (Linux)          | See the `flatpak` job in `.github/workflows/package.yml`; it runs in Flathub's container |
 
 Update this table in the PR that adds a command.

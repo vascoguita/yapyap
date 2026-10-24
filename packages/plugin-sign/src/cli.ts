@@ -1,7 +1,8 @@
-import { signPluginFolder, verifyPluginFolder } from './plugin-folder.ts';
+import { packPluginFolder, signPluginFolder, verifyPluginFolder } from './plugin-folder.ts';
 
 export interface CliIo {
   readonly readFile: (path: string) => string;
+  readonly writeFile: (path: string, bytes: Uint8Array) => void;
   readonly out: (line: string) => void;
   readonly err: (line: string) => void;
 }
@@ -10,6 +11,7 @@ const USAGE = [
   'Usage:',
   '  yapyap-plugin-sign sign --key <private-key.pem> <plugin-folder>',
   '  yapyap-plugin-sign verify <plugin-folder>',
+  '  yapyap-plugin-sign pack <plugin-folder> <archive.yapyap-plugin>',
 ].join('\n');
 
 function sign(args: readonly string[], io: CliIo): number {
@@ -39,6 +41,17 @@ function verify(args: readonly string[], io: CliIo): number {
   return 1;
 }
 
+function pack(args: readonly string[], io: CliIo): number {
+  const [folder, archive, ...rest] = args;
+  if (folder === undefined || archive === undefined || rest.length > 0) {
+    io.err(USAGE);
+    return 2;
+  }
+  io.writeFile(archive, packPluginFolder(folder));
+  io.out(`Packed ${folder} into ${archive}`);
+  return 0;
+}
+
 /**
  * Runs one command and returns the exit code. Messages name keys only by
  * fingerprint; nothing here ever prints or writes private key material.
@@ -51,6 +64,9 @@ export function runCli(args: readonly string[], io: CliIo): number {
     }
     if (command === 'verify') {
       return verify(rest, io);
+    }
+    if (command === 'pack') {
+      return pack(rest, io);
     }
   } catch (error) {
     io.err(error instanceof Error ? error.message : 'Unexpected error.');

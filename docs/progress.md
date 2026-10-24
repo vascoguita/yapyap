@@ -498,6 +498,16 @@ not edit the same lines.
   open, and nothing sends. Reading chats follows once the adapter can read
   messages as plain data.
 
+- Example plugin and author guide (#101): `plugins/example` is Greeter, a
+  third-party plugin that drafts a greeting the user sets in its settings
+  form when they run its command. `tsc` builds it into `dist/` with its
+  manifest; `e2e/example-plugin.spec.ts` signs that build with an in-memory
+  key, installs it and checks the draft. `yapyap-plugin-sign pack` turns a
+  signed folder into an installable archive, refusing one whose signature
+  does not verify. The docs site has the author guide at `/plugins/` and an
+  SDK API reference at `/api/`, which typedoc generates on every docs build.
+  The key-value storage API was never served; #301 tracks it.
+
 - Malicious-plugin suite (#102): `e2e/malicious-plugin.spec.ts` installs a
   hostile plugin next to a victim. It cannot reach WhatsApp's page or
   origin, an undeclared host over `fetch` or WebSocket, the victim's

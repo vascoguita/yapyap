@@ -2,6 +2,17 @@ import { defineConfig } from 'vitepress';
 
 const repository = 'https://github.com/vascoguita/yapyap';
 
+const pluginsSidebar = [
+  {
+    text: 'Plugins',
+    items: [
+      { text: 'Writing a plugin', link: '/plugins/' },
+      { text: 'Manifest', link: '/plugins/manifest' },
+      { text: 'SDK API reference', link: '/api/' },
+    ],
+  },
+];
+
 export default defineConfig({
   title: 'YapYap',
   description: 'A fast, private, extensible desktop client for WhatsApp Web. Unofficial.',
@@ -19,6 +30,7 @@ export default defineConfig({
     logo: '/logo.svg',
     nav: [
       { text: 'Guide', link: '/guide/' },
+      { text: 'Plugins', link: '/plugins/' },
       { text: 'Privacy', link: '/privacy' },
       { text: 'Brand', link: '/brand' },
       { text: 'Architecture', link: '/architecture/' },
@@ -44,10 +56,11 @@ export default defineConfig({
             { text: 'Install', link: '/guide/install' },
             { text: 'Troubleshooting', link: '/guide/troubleshooting' },
             { text: 'Reference', link: '/guide/reference' },
-            { text: 'Plugin manifest', link: '/plugins/manifest' },
           ],
         },
       ],
+      '/plugins/': pluginsSidebar,
+      '/api/': pluginsSidebar,
       '/architecture/': [
         {
           text: 'Architecture',
