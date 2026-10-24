@@ -5,5 +5,8 @@
   "description": "Bring-your-own-model AI writing assistant for YapYap",
   "license": "MIT",
   "author": "Vasco Guita",
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "@anthropic-ai/sdk": "1.2.0"
+  }
 }
