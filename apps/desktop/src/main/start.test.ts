@@ -349,6 +349,8 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
         remove: (name: string) => {
           stored.delete(name);
         },
+        modifiedAt: () => undefined,
+        clearDumps: () => 0,
       },
       version: '0.1.0',
       previousLog: () => ['last line'],

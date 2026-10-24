@@ -18,14 +18,19 @@ test('saves a local crash report after an unclean exit, and clears the mark on q
   );
   await mkdir(join(profile, 'logs'));
   await writeFile(join(profile, 'logs', 'yapyap.log'), 'warn The last thing that happened\n');
+  // A memory dump Chromium left behind, which could hold messages.
+  const dump = join(profile, 'Crashpad', 'completed', 'old.dmp');
+  await mkdir(join(profile, 'Crashpad', 'completed'), { recursive: true });
+  await writeFile(dump, 'dump');
   const app = await launchApp(fakeWhatsApp.origin, profile);
   const report = join(profile, 'crash-report.txt');
   await expect
     .poll(() => readFile(report, 'utf8').catch(() => ''))
     .toMatch(
-      /^YapYap closed unexpectedly\.\nPrevious session: YapYap 0\.0\.9,[\s\S]*\nwarn The last thing that happened$/,
+      /^YapYap closed unexpectedly\.\nFingerprint: [0-9a-f]{12}\nPrevious session: YapYap 0\.0\.9,[\s\S]*\nwarn The last thing that happened$/,
     );
   expect(existsSync(join(profile, 'running.json'))).toBe(true);
+  expect(existsSync(dump)).toBe(false);
   await expect((await whatsAppPage(app)).getByTestId('fake-whatsapp')).toBeVisible();
   // Quit as a user does; Playwright's own close skips Electron's quit events.
   const closed = app.waitForEvent('close');

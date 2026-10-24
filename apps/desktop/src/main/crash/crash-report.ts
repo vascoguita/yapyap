@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { en } from '../../shared/messages/en.ts';
 
 /** Present while YapYap runs; still there at the next launch means it did not quit cleanly. */
@@ -39,6 +40,25 @@ function shorten(line: string): string {
   return line.length > MAX_LINE_LENGTH ? `${line.slice(0, MAX_LINE_LENGTH)}…` : line;
 }
 
+/** How many of the last warnings and errors identify a crash. */
+const FINGERPRINT_LINES = 5;
+const FINGERPRINT_LENGTH = 12;
+
+/**
+ * A short, stable name for a crash (#113), so reports of the same crash can
+ * be found together. It hashes the previous session's last warnings and
+ * errors, without their times and with every number made alike, so it does
+ * not change with when the crash happened or with IDs and sizes in messages.
+ */
+export function crashFingerprint(previousLog: readonly string[]): string {
+  const signs = previousLog
+    .map((line) => line.split(' ').slice(1).join(' '))
+    .filter((line) => line.startsWith('warn ') || line.startsWith('error '))
+    .slice(-FINGERPRINT_LINES)
+    .map((line) => line.replaceAll(/\d+/g, '#'));
+  return createHash('sha256').update(signs.join('\n')).digest('hex').slice(0, FINGERPRINT_LENGTH);
+}
+
 /**
  * Plain text the user reviews before sharing anything. It holds the
  * technical details and the end of the previous session's log, which is
@@ -52,6 +72,7 @@ export function buildCrashReport(
   const log = previousLog.slice(-LOG_LINES).map(shorten);
   return [
     'YapYap closed unexpectedly.',
+    `Fingerprint: ${crashFingerprint(previousLog)}`,
     `Previous session: YapYap ${previous.version}, started ${new Date(previous.startedAt).toISOString()}`,
     '',
     technicalDetails,
@@ -86,8 +107,9 @@ export function bugReportUrl(report: BugReport): string {
 
 /** A new bug report with the crash report filled in, for the user to review and submit. */
 export function crashIssueUrl(report: string): string {
+  const fingerprint = /^Fingerprint: (\w+)$/m.exec(report)?.[1];
   return bugReportUrl({
-    title: en.report.crashTitle,
+    title: fingerprint === undefined ? en.report.crashTitle : en.report.crashTitleWith(fingerprint),
     whatHappened: en.report.crashWhatHappened,
     diagnostics: report,
   });

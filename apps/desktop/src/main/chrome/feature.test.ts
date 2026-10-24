@@ -50,6 +50,7 @@ function setup() {
       menu = template;
     }),
     writeClipboard: vi.fn(() => Promise.resolve()),
+    recordTrace: vi.fn(),
     openExternal: vi.fn(() => Promise.resolve()),
     notify: vi.fn(),
     facts: () => ({

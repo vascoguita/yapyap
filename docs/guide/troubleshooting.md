@@ -49,3 +49,11 @@ your operating system, the graphics mode and a GPU summary, and the most
 recent log lines. Log lines are redacted before they are written: phone
 numbers, email addresses, tokens and your home folder never appear, and
 YapYap never logs message content. Read it before you share it.
+
+If YapYap is slow and the log does not say why, choose **Help → Record a
+Performance Trace…**. After you agree and choose where to save it, YapYap
+records for 10 seconds where its time goes, so do whatever is slow during
+that time. The trace holds the addresses of the pages and files YapYap
+loads, but no messages, memory dumps or screenshots. It opens in the
+Perfetto trace viewer, and YapYap sends it nowhere; attach it to a bug
+report only if you choose to.

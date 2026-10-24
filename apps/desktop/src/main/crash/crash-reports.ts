@@ -18,7 +18,15 @@ export interface CrashFiles {
   read(name: string): string | undefined;
   write(name: string, text: string): void;
   remove(name: string): void;
+  /** When the file was last written, in milliseconds since the epoch; undefined when it is missing. */
+  modifiedAt(name: string): number | undefined;
+  /** Removes the memory dumps Chromium may have written, and returns how many. */
+  clearDumps(): number;
 }
+
+/** A crash report older than this is no longer worth keeping. */
+const REPORT_DAYS = 30;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 export interface CrashReportDependencies {
   readonly files: CrashFiles;
@@ -76,6 +84,27 @@ function reportCrash(
 }
 
 /**
+ * Keeps crash files bounded (#113): one report, for at most 30 days, and no
+ * memory dumps, which could hold messages, whatever wrote them.
+ */
+function pruneCrashFiles(deps: CrashReportDependencies): void {
+  attempt(
+    () => {
+      const saved = deps.files.modifiedAt(CRASH_REPORT);
+      if (saved !== undefined && deps.now() - saved > REPORT_DAYS * DAY_MS) {
+        deps.files.remove(CRASH_REPORT);
+      }
+      const dumps = deps.files.clearDumps();
+      if (dumps > 0) {
+        deps.warn(`Removed ${String(dumps)} crash dumps, which can hold messages.`);
+      }
+    },
+    deps.warn,
+    'Could not remove old crash files.',
+  );
+}
+
+/**
  * Notices when the previous session did not quit cleanly. With crash reports
  * on, the returned function saves a local report once the app is ready and,
  * when the user asked for it, offers to review it. Nothing leaves the
@@ -84,6 +113,7 @@ function reportCrash(
 export function trackCrashes(
   deps: CrashReportDependencies,
 ): (review: CrashReviewDependencies) => Promise<void> {
+  pruneCrashFiles(deps);
   const previous = readSessionMarker(deps.files.read(SESSION_MARKER) ?? '');
   attempt(
     () => {

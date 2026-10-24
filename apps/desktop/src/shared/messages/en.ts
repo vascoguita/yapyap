@@ -365,10 +365,28 @@ const catalog = {
       'YapYap shows WhatsApp’s notifications as your system’s own. The first time, your system may ask whether YapYap may show them.',
     start: 'Start Using YapYap',
   },
+  trace: {
+    confirm: 'Record a performance trace?',
+    confirmDetail: [
+      'For 10 seconds, YapYap records where its time goes: pages, scripts, layout and drawing.',
+      'Do whatever is slow during that time.',
+      'The trace holds the addresses of the pages and files YapYap loads, but no messages, memory dumps or screenshots.',
+      'It is saved where you choose, and nothing is sent.',
+    ].join(' '),
+    buttons: ['Choose Where to Save…', 'Cancel'],
+    saved: 'The performance trace is saved.',
+    savedDetail:
+      'Attach it to a bug report if you choose to. Open it in the Perfetto trace viewer.',
+    failed: 'The performance trace could not be recorded.',
+    failedDetail: 'Try again in a moment.',
+  },
   report: {
     /** GitHub issue titles; the user can still change them before submitting. */
     issueTitle: 'Problem report',
     crashTitle: 'YapYap closed unexpectedly',
+    /** Named by the crash's fingerprint, so reports of one crash can be found together. */
+    crashTitleWith: (fingerprint: string): string =>
+      `YapYap closed unexpectedly (crash ${fingerprint})`,
     crashWhatHappened: 'YapYap closed unexpectedly. I was …',
     title: 'Report a Problem',
     intro:
@@ -679,6 +697,7 @@ const catalog = {
     about: (product: string): string => `About ${product}`,
     settings: 'Settings…',
     copyDiagnostics: 'Copy Diagnostics',
+    recordTrace: 'Record a Performance Trace…',
     shortcuts: 'Keyboard Shortcuts…',
     downloads: 'Downloads…',
     edit: '&Edit',

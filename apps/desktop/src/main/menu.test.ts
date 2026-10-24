@@ -32,6 +32,7 @@ function actions(accounts: AccountSummary[] = []) {
     openShortcuts: vi.fn(),
     openDownloads: vi.fn(),
     openReport: vi.fn(),
+    recordTrace: vi.fn(),
   };
 }
 
@@ -170,6 +171,7 @@ describe('buildMenuTemplate', () => {
       { label: 'Keyboard Shortcuts…', accelerator: 'CmdOrCtrl+/', click: a.openShortcuts },
       { label: 'Report a Problem…', click: a.openReport },
       { label: 'Copy Diagnostics', click: a.copyDiagnostics },
+      { label: 'Record a Performance Trace…', click: a.recordTrace },
     ]);
     expect(template[1]).toEqual(ACCOUNT(a));
   });
@@ -244,6 +246,7 @@ describe('buildMenuTemplate', () => {
       { label: 'Keyboard Shortcuts…', accelerator: 'CmdOrCtrl+/', click: a.openShortcuts },
       { label: 'Report a Problem…', click: a.openReport },
       { label: 'Copy Diagnostics', click: a.copyDiagnostics },
+      { label: 'Record a Performance Trace…', click: a.recordTrace },
     ]);
     expect(rest[1]).toEqual(ACCOUNT(a));
   });
