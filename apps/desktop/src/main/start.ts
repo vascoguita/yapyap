@@ -112,6 +112,12 @@ import {
 import type { Rect } from './window/window-state.ts';
 import { resolveWhatsAppOrigin } from './whatsapp-origin.ts';
 import { en } from '../shared/messages/en.ts';
+import { attachContextMenu, type ContextMenuItem, type MenuPage } from './spelling/context-menu.ts';
+import {
+  followSpellingSetting,
+  type SpellingController,
+  type SpellingSession,
+} from './spelling/spelling.ts';
 
 export interface AppPort {
   disableHardwareAcceleration(): void;
@@ -154,7 +160,9 @@ type AccountContents = WhatsAppContents &
   ReplyContents &
   CoverablePage &
   ReadyPage &
-  FocusablePage & {
+  FocusablePage &
+  MenuPage & {
+    replaceMisspelling(word: string): void;
     loadURL(url: string): Promise<unknown>;
     on(event: 'page-title-updated', listener: (event: unknown, title: string) => void): unknown;
     send(channel: string, ...args: unknown[]): void;
@@ -200,7 +208,9 @@ export interface StartDependencies<Window extends WindowPort> {
   /** Nothing loads in the default session, but it is guarded all the same. */
   readonly defaultSession: () => GuardedSession;
   /** The session behind a partition, such as an account's (ADR 0001). */
-  readonly sessionOf: (partition: string) => GuardedSession & DownloadingSession & ClearableSession;
+  readonly sessionOf: (
+    partition: string,
+  ) => GuardedSession & DownloadingSession & ClearableSession & DictionarySession;
   readonly accounts: Accounts;
   readonly saveAccounts: (accounts: Accounts) => void;
   readonly newAccountId: () => string;
@@ -239,6 +249,10 @@ export interface StartDependencies<Window extends WindowPort> {
   readonly appMetrics: () => readonly ProcessMemory[];
   /** Seconds since the last keyboard or mouse input. */
   readonly idleSeconds: () => number;
+  /** `app.getPreferredSystemLanguages()`, which picks the spelling language until the user does. */
+  readonly systemLanguages: () => readonly string[];
+  /** Shows a context menu where the pointer is. */
+  readonly contextMenu: (items: ContextMenuItem[]) => void;
   /** What tells the user about new releases, for builds that cannot update themselves. */
   readonly releases: Pick<
     UpdateNoticeDependencies,
@@ -417,24 +431,56 @@ function whatsAppOrigin(
   return origin;
 }
 
+/** A session's own word list, which spelling suggestions leave alone. */
+interface DictionarySession extends SpellingSession {
+  addWordToSpellCheckerDictionary(word: string): boolean;
+}
+
 /**
- * Each account's session gets YapYap's guards and download handling (the
- * `session-created` hook also secures it, before anything loads there).
+ * Each account's session gets YapYap's guards, download handling and
+ * spelling setting (the `session-created` hook also secures it, before
+ * anything loads there).
  */
 function guardAccountSession<Window extends WindowPort>(
   deps: StartDependencies<Window>,
-  security: Parameters<typeof secureSession>[1],
+  wiring: Pick<AccountWiring<Window>, 'security' | 'spelling'>,
   account: Account,
-): PermissionMemory {
+): { readonly session: DictionarySession; readonly permissions: PermissionMemory } {
   const session = deps.sessionOf(partitionOf(account));
-  const permissions = secureSession(session, security);
+  const permissions = secureSession(session, wiring.security);
   guardDownloads(session, {
     ...deps.downloads,
     notify: deps.notify,
     warn: deps.warn,
     options: () => deps.settings.current().downloads,
   });
-  return permissions;
+  wiring.spelling.guard(session);
+  return { session, permissions };
+}
+
+/** The right-click menu of an account's WhatsApp, with spelling suggestions (#73). */
+function contextMenuFor<Window extends WindowPort>(
+  { deps, chrome }: Pick<AccountWiring<Window>, 'deps' | 'chrome'>,
+  contents: AccountContents,
+  session: DictionarySession,
+): void {
+  const actions = {
+    spellingOn: () => deps.settings.current().spelling.enabled,
+    replaceMisspelling: (word: string) => {
+      contents.replaceMisspelling(word);
+    },
+    addToDictionary: (word: string) => {
+      session.addWordToSpellCheckerDictionary(word);
+    },
+    turnSpellingOff: () => {
+      deps.settings.update((current) => ({
+        ...current,
+        spelling: { ...current.spelling, enabled: false },
+      }));
+    },
+    openSettings: chrome.openSettings,
+  };
+  attachContextMenu(contents, actions, deps.contextMenu);
 }
 
 /** Opens the main window where the user left it. */
@@ -488,6 +534,7 @@ interface AccountWiring<Window extends WindowPort> {
   /** Where an account first loads: a chat link from the command line, once, or WhatsApp. */
   readonly firstUrl: (account: Account) => string;
   readonly notifiers: Notifiers;
+  readonly spelling: SpellingController;
 }
 
 /** Each account's notifier, found by its page, and all of them for quitting. */
@@ -592,12 +639,15 @@ function openAccount<Window extends WindowPort>(
   account: Account,
 ): OpenedAccount {
   const { deps, chrome, window, origin } = wiring;
-  const permissions = guardAccountSession(deps, wiring.security, account);
+  const { session, permissions } = guardAccountSession(deps, wiring, account);
   const host = deps.createAccountHost(window, {
     partition: partitionOf(account),
     preload: deps.whatsAppPreload,
+    // The session's setting decides whether anything is checked (#73).
+    spellcheck: true,
   });
   const contents = host.webContents;
+  contextMenuFor(wiring, contents, session);
   const notifier = notifyFor(wiring, account, contents);
   const view = {
     zone: 'whatsapp',
@@ -1011,6 +1061,7 @@ async function openWindow<Window extends WindowPort>(
     origin,
     firstUrl: chatLinkOnce(chatLinkInArguments(deps.argv, origin), deps.accounts.active, origin),
     notifiers: listenToNotifications(deps, origin),
+    spelling: followSpellingSetting(deps.settings, deps.systemLanguages),
   });
   instances.attach(window, wireMainWindow(deps, chrome, window, running, origin));
   // A failed load must not end startup: the monitor shows the recovery screen.

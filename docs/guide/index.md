@@ -283,6 +283,18 @@ your clipboard; it can only copy to it while you are using its window, as
 when you copy a message. YapYap itself only writes to the clipboard when you
 click one of its **Copy** buttons.
 
+## Spelling
+
+Right-click in WhatsApp's message box for **Cut**, **Copy**, **Paste** and
+**Select All**; right-click selected text elsewhere to copy it. Spell
+checking is off at first, because on Windows and Linux it needs a dictionary
+downloaded from Google (see [Privacy](/privacy)). Turn it on under
+Settings → Spelling, or with **Check Spelling…** in the right-click menu,
+which opens Settings. It checks your system's language. Right-click an
+underlined word for up to five suggestions, or **Add to Dictionary** to stop
+YapYap from flagging it. Unticking **Check Spelling** in the same menu turns
+it off at once.
+
 ## Downloads
 
 Files you download from WhatsApp go straight to your Downloads folder, and

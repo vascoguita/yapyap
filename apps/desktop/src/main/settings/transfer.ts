@@ -25,6 +25,7 @@ export type ImportResult =
  */
 export const EXPORTED_SECTIONS = [
   'general',
+  'spelling',
   'appearance',
   'reliability',
   'downloads',

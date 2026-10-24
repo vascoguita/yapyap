@@ -304,6 +304,7 @@ describe('createChromeFeature', () => {
         'plugins.developerMode': false,
         'downloads.askWhere': false,
         'downloads.openWhenDone': false,
+        'spelling.enabled': false,
         'general.autostart': false,
         'general.startMinimized': false,
         'general.betaUpdates': false,

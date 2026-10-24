@@ -51,8 +51,8 @@ export function secureSession(
   // Every window makes Chromium fetch a spelling dictionary for the UI
   // language from a Google CDN, which reveals that language and the user's
   // IP address. Only an empty language list stops it; disabling the
-  // spellchecker alone does not. Spell checking returns with explicit
-  // language choices in #73.
+  // spellchecker alone does not. Account sessions change this only once the
+  // user turns spell checking on (#73, ADR 0008 C24).
   session.setSpellCheckerEnabled(false);
   session.setSpellCheckerLanguages([]);
   return memory;

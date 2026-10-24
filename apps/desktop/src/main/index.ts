@@ -229,6 +229,10 @@ startApp({
   },
   appMetrics: () => app.getAppMetrics(),
   idleSeconds: () => powerMonitor.getSystemIdleTime(),
+  systemLanguages: () => app.getPreferredSystemLanguages(),
+  contextMenu: (items) => {
+    Menu.buildFromTemplate(items).popup();
+  },
   onResume: (listener) => {
     powerMonitor.on('resume', listener);
   },

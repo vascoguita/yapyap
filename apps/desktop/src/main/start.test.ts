@@ -8,6 +8,7 @@ import type { CaptureChoice } from './permissions/session-guard.ts';
 import { defaultSettings } from './settings/decode.ts';
 import type { Settings } from './settings/schema.ts';
 import type { SidebarSource } from './chrome/sidebar.ts';
+import type { ContextMenuItem, ContextMenuParams } from './spelling/context-menu.ts';
 import { WHATSAPP_ORIGIN } from './whatsapp-origin.ts';
 import type { WindowOptions } from './windows.ts';
 
@@ -40,6 +41,7 @@ function fakeContents() {
     insertText: vi.fn(() => Promise.resolve()),
     insertCSS: vi.fn(() => Promise.resolve('privacy')),
     removeInsertedCSS: vi.fn(() => Promise.resolve()),
+    replaceMisspelling: vi.fn(),
     session: {
       clearCache: vi.fn(() => Promise.resolve()),
       clearStorageData: vi.fn(() => Promise.resolve()),
@@ -170,6 +172,8 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     on: vi.fn(),
     clearStorageData: vi.fn(() => Promise.resolve()),
     clearCache: vi.fn(() => Promise.resolve()),
+    availableSpellCheckerLanguages: ['en-GB', 'en-US', 'pt-PT'],
+    addWordToSpellCheckerDictionary: vi.fn(() => true),
   });
   const session = fakeSession();
   const accountSession = fakeSession();
@@ -273,6 +277,8 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     },
     appMetrics: vi.fn(() => [{ pid: 4242, memory: { workingSetSize: 100 * 1024 } }]),
     idleSeconds: () => 600,
+    systemLanguages: () => ['pt-PT', 'en-GB'],
+    contextMenu: vi.fn(),
     settings: {
       current: () => defaultSettings(),
       notice: undefined as string | undefined,
@@ -1072,6 +1078,7 @@ describe('startApp', () => {
       expect(f.createAccountHost).toHaveBeenLastCalledWith(f.window, {
         partition: `persist:account-${THIRD}`,
         preload: '/out/preload/whatsapp.cjs',
+        spellcheck: true,
       });
       expect(f.hosts[2]?.show).toHaveBeenCalledOnce();
       expect(f.hosts[2]?.webContents.loadURL).toHaveBeenCalledWith(WHATSAPP_ORIGIN);
@@ -1093,12 +1100,60 @@ describe('startApp', () => {
     });
   });
 
+  it('keeps spell checking off, and fetches no dictionary, until the user turns it on', async () => {
+    const f = fakes();
+    await startApp(f);
+    expect(f.accountSession.setSpellCheckerLanguages).toHaveBeenLastCalledWith([]);
+    expect(f.accountSession.setSpellCheckerEnabled).toHaveBeenLastCalledWith(false);
+  });
+
+  describe('the context menu', () => {
+    const misspelled: ContextMenuParams = {
+      isEditable: true,
+      selectionText: '',
+      misspelledWord: 'helo',
+      dictionarySuggestions: ['hello'],
+      editFlags: { canCut: true, canCopy: true, canPaste: true, canSelectAll: true },
+    };
+
+    async function rightClick(f: ReturnType<typeof fakes>): Promise<ContextMenuItem[]> {
+      await startApp(f);
+      f.web.fire('context-menu', {}, misspelled);
+      const [items] = f.contextMenu.mock.lastCall as [ContextMenuItem[]];
+      return items;
+    }
+
+    it('replaces a misspelling, learns a word, and leads to Settings to turn spelling on', async () => {
+      const f = fakes();
+      const items = await rightClick(f);
+      items[0]?.click?.();
+      expect(f.web.contents.replaceMisspelling).toHaveBeenCalledExactlyOnceWith('hello');
+      items[1]?.click?.();
+      expect(f.accountSession.addWordToSpellCheckerDictionary).toHaveBeenCalledExactlyOnceWith(
+        'helo',
+      );
+      items.at(-1)?.click?.();
+      expect(f.runtime.openSettings).toHaveBeenCalledOnce();
+    });
+
+    it('turns spell checking off at once', async () => {
+      const f = fakes();
+      const on = { ...defaultSettings(), spelling: { enabled: true, languages: [] } };
+      f.settings.current = () => on;
+      const items = await rightClick(f);
+      items.at(-1)?.click?.();
+      const [change] = f.settings.update.mock.lastCall as [(settings: Settings) => Settings];
+      expect(change(on).spelling).toEqual({ enabled: false, languages: [] });
+    });
+  });
+
   it('opens WhatsApp in the active account’s own session', async () => {
     const f = fakes();
     await startApp(f);
     expect(f.createAccountHost).toHaveBeenCalledWith(f.window, {
       partition: `persist:account-${ACCOUNT}`,
       preload: '/out/preload/whatsapp.cjs',
+      spellcheck: true,
     });
     expect(f.sessionOf).toHaveBeenCalledWith(`persist:account-${ACCOUNT}`);
   });

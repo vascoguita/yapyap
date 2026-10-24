@@ -18,7 +18,10 @@ browser. YapYap does not read, copy or upload them.
 - **No hidden downloads.** Chromium normally fetches a spelling dictionary
   from Google whenever a window opens, which tells Google your language and
   your IP address. YapYap stops that, so spell checking is off until you
-  choose languages yourself.
+  turn it on under Settings → Spelling. Then, on Windows and Linux,
+  Chromium downloads the dictionary for your language from Google once;
+  macOS uses its own spell checker and downloads nothing. Words you add to
+  the dictionary stay in YapYap's data folder.
 - **Logs stay local and are redacted.** YapYap never logs message content.
   Before a line is written, phone numbers, email addresses, tokens and your
   home folder are replaced with placeholders. Logs live in the `logs` folder

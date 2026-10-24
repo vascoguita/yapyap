@@ -38,6 +38,7 @@ const DEFAULTS = {
   },
   plugins: { developerMode: false },
   downloads: { askWhere: false, openWhenDone: false },
+  spelling: { enabled: false, languages: [] },
 };
 
 /**
@@ -154,6 +155,25 @@ describe('decodeSettings', () => {
         });
       }
     }
+  });
+
+  it('keeps each spelling language once, and repairs a list that cannot be one', () => {
+    const decode = (spelling: object) => decodeSettings(JSON.stringify({ ...DEFAULTS, spelling }));
+    const valid = { enabled: true, languages: ['en-GB', 'pt-PT', 'de'] };
+    expect(decode(valid)).toMatchObject({ settings: { spelling: valid }, reset: [] });
+    expect(decode({ enabled: true, languages: ['en-GB', 'en-GB'] })).toMatchObject({
+      settings: { spelling: { languages: ['en-GB'] } },
+      reset: ['/spelling/languages'],
+    });
+    // Too long to be a language: emptied, which no dictionary is called.
+    expect(decode({ enabled: true, languages: ['x'.repeat(36)] })).toMatchObject({
+      settings: { spelling: { languages: [''] } },
+      reset: ['/spelling/languages/0'],
+    });
+    expect(decode({ enabled: true, languages: 'en-GB' })).toMatchObject({
+      settings: { spelling: { languages: [] } },
+    });
+    expect(decode({ ...valid, extra: 1 })).toMatchObject({ settings: { spelling: valid } });
   });
 
   it('drops unknown keys inside every section', () => {

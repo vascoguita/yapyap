@@ -17,6 +17,7 @@ const TRAY_ICON = 'appearance.trayIcon';
 const DEVELOPER = 'plugins.developerMode';
 const ASK_WHERE = 'downloads.askWhere';
 const OPEN_DONE = 'downloads.openWhenDone';
+const SPELLING = 'spelling.enabled';
 const BLUR_UNFOCUSED = 'privacy.blurWhenUnfocused';
 const BLUR_IDLE = 'privacy.blurWhenIdle';
 const BACKEND = 'reliability.displayBackend';
@@ -144,6 +145,7 @@ describe('settingsHandlers', () => {
         [DEVELOPER]: false,
         [ASK_WHERE]: false,
         [OPEN_DONE]: false,
+        [SPELLING]: false,
         [AUTOSTART]: false,
         [START_MINIMIZED]: false,
         [BETA]: false,
@@ -225,6 +227,7 @@ describe('settingsHandlers', () => {
         [DEVELOPER]: false,
         [ASK_WHERE]: false,
         [OPEN_DONE]: false,
+        [SPELLING]: false,
         [AUTOSTART]: false,
         [START_MINIMIZED]: false,
         [BETA]: false,

@@ -21,6 +21,20 @@ export const SettingsSchema = Type.Object(
       },
       { default: {}, additionalProperties: false },
     ),
+    spelling: Type.Object(
+      {
+        enabled: Type.Boolean({ default: false }),
+        // Empty means the system language. Codes such as en-GB are only ever
+        // used when Chromium has a dictionary of that name, so the schema
+        // checks no pattern: a pattern would leave a bad code unrepairable.
+        languages: Type.Array(Type.String({ maxLength: 35 }), {
+          maxItems: 10,
+          uniqueItems: true,
+          default: [],
+        }),
+      },
+      { default: {}, additionalProperties: false },
+    ),
     appearance: Type.Object(
       {
         theme: Type.Union([Type.Literal('system'), Type.Literal('light'), Type.Literal('dark')], {
