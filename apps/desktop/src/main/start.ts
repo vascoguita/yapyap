@@ -129,9 +129,10 @@ import type { ContextMenuItem, MenuPage } from './spelling/context-menu.ts';
 import { followSpellingSetting, type SpellingController } from './spelling/spelling.ts';
 import { createProxyLogin, type AuthInfo, type LoginCallback } from './network/proxy-login.ts';
 import type { SecretStore } from './secrets/secret-store.ts';
-import { useCameraPortal } from './permissions/camera-portal.ts';
+import { panelOwner } from './chrome/quick-panel.ts';
 import { sidebarSource } from './accounts/sidebar-source.ts';
 import type { CodePage, CustomCodeController } from './custom-code/custom-code.ts';
+import { useCameraPortal } from './permissions/camera-portal.ts';
 
 export interface AppPort {
   disableHardwareAcceleration(): void;
@@ -882,14 +883,18 @@ function accountIndicators<Window extends WindowPort>(
     warn: deps.warn,
   });
   const visibility = trackVisibility(window, () => {
-    tray.refresh();
+    // The tray's Show or Hide, and the panel that stands in for a hidden window.
+    refresh();
     keepQuiet(deps, running(), visibility);
   });
   const tray = accountsTray(wiring, running, visibility, { shares, privacy });
   const sidebar = chrome.attachSidebar((renderer) => deps.createSidebar(window, renderer));
+  const panel = chrome.attachQuickPanel(panelOwner(window, visibility));
   const refresh = (): void => {
     tray.refresh();
-    sidebar(sidebarSource(deps.settings.current(), running(), signals(), shares));
+    const source = sidebarSource(deps.settings.current(), running(), signals(), shares);
+    sidebar(source);
+    panel(source);
   };
   const setUnread = (total: number): void => {
     tray.setUnread(total);
@@ -1125,7 +1130,7 @@ export async function startApp<Window extends WindowPort>(
   followThemeSetting(deps.nativeTheme, deps.settings);
   syncAutostartSetting(deps.autostart, deps.settings, warn);
   const rendering = `${describeGraphics(graphics)}, display ${describeDisplayBackend(display)}`;
-  const chrome = deps.chrome.afterReady(views, warn, rendering);
+  const chrome = deps.chrome.afterReady(views, warn, rendering, display.active === 'wayland');
   signInToProxies(deps, chrome);
   picker.bind(chrome.pickCaptureSource);
   announceStartup(deps, graphics);

@@ -32,6 +32,8 @@ export interface SettingsSnapshot {
   readonly readOnly: boolean;
   /** Why the last change of a field did not take effect, keyed by field ID. */
   readonly problems: Readonly<Record<string, string>>;
+  /** Fields shown but not changeable here, with the reason, keyed by field ID. */
+  readonly unavailable: Readonly<Record<string, string>>;
 }
 
 /** How an export or import ended, with what to tell the user. */
@@ -159,6 +161,11 @@ export interface ChromeApi {
     readonly stopSharing: (id: string) => Promise<void>;
     /** YapYap sends the new state whenever it changes; the page never asks what to listen to. */
     readonly onState: (listener: (state: SidebarState) => void) => void;
+  };
+  readonly quickPanel: {
+    /** Switches to the account and brings YapYap's window back. */
+    readonly open: (id: string) => Promise<void>;
+    readonly setDoNotDisturb: (on: boolean) => Promise<void>;
   };
   readonly plugins: {
     readonly list: () => Promise<PluginList>;
@@ -352,6 +359,8 @@ export const CHROME_CHANNELS = {
   customCodeGet: 'custom-code:get',
   customCodeSave: 'custom-code:save',
   customCodePreview: 'custom-code:preview',
+  quickPanelOpen: 'quick-panel:open',
+  quickPanelSetDoNotDisturb: 'quick-panel:set-do-not-disturb',
   proxyLoginRequest: 'proxy-login:request',
   proxyLoginAnswer: 'proxy-login:answer',
 } as const;

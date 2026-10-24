@@ -11,6 +11,8 @@ const DEFAULTS = {
     closeToTray: false,
     betaUpdates: false,
     doNotDisturb: false,
+    quickPanel: 'off',
+    quickPanelPlace: 'free',
   },
   appearance: {
     theme: 'system',
@@ -48,6 +50,8 @@ const DEFAULTS = {
  * schema, so dropping or misspelling one there fails here.
  */
 const CHOICES: Readonly<Record<string, readonly string[]>> = {
+  'general.quickPanel': ['off', 'always', 'whenHidden'],
+  'general.quickPanelPlace': ['free', 'topLeft', 'topRight', 'bottomLeft', 'bottomRight'],
   'appearance.theme': ['system', 'light', 'dark'],
   'appearance.trayIcon': ['color', 'auto', 'light', 'dark'],
   'reliability.diskCacheMb': ['auto', '128', '256', '512', '1024'],

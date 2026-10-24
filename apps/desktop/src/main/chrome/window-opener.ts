@@ -14,8 +14,8 @@ export interface ChromeWindowPort {
   loadURL(url: string): Promise<unknown>;
 }
 
-export interface ChromeWindowDependencies {
-  readonly createWindow: (options: WindowOptions) => ChromeWindowPort;
+export interface ChromeWindowDependencies<Window extends ChromeWindowPort = ChromeWindowPort> {
+  readonly createWindow: (options: WindowOptions) => Window;
   readonly views: ViewRegistry;
   readonly warn: (message: string) => void;
 }
@@ -28,11 +28,11 @@ export interface ChromePage {
 }
 
 /** Opens `page` in a new chrome window, shown once it has rendered or after a short wait. */
-export function openChromeWindow(
-  deps: ChromeWindowDependencies,
+export function openChromeWindow<Window extends ChromeWindowPort>(
+  deps: ChromeWindowDependencies<Window>,
   page: ChromePage,
   extra: WindowOptions = {},
-): ChromeWindowPort {
+): Window {
   // Dialog-like windows have no use for the app menu, which Windows and Linux
   // would otherwise draw inside each of them.
   const window = deps.createWindow({

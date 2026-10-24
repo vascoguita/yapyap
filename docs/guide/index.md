@@ -276,6 +276,19 @@ system's login items, so removing YapYap there turns the setting off too.
 The Flatpak package cannot do this yet; add YapYap to your desktop's
 startup applications instead.
 
+## Quick access panel
+
+**Settings → General → Quick access panel** adds a small window that stays
+on top of other apps. It lists your accounts with their unread counts, and
+has a **Do not disturb** switch. Click an account to switch to it and bring
+YapYap's window back.
+
+- **Always** keeps the panel open; **While YapYap's window is hidden** shows
+  it only while the window is hidden or minimized. It is off by default.
+- **Quick access panel position** puts it in a corner of your main screen,
+  or where you last left it. On Wayland, your desktop decides where windows
+  go, so this option is unavailable there.
+
 ## Privacy screen
 
 The privacy screen blurs WhatsApp so people nearby cannot read your chats.

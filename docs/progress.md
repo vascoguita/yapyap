@@ -359,6 +359,15 @@ not edit the same lines.
   v11), while the window is out of focus or the computer has been idle for
   five minutes. New accounts are covered as they open.
 
+- Quick access panel (#86): `general.quickPanel` (off, always, while the
+  window is hidden or minimized) and `general.quickPanelPlace` (where the
+  user left it, kept in `quick-panel.json`, or a corner of the main screen).
+  `createQuickPanel` opens an always-on-top chrome window that shows the
+  sidebar's state with names, a Do Not Disturb switch, and
+  `quick-panel:open`, which switches account and brings the main window
+  back. On Wayland YapYap never positions it, and the settings snapshot's
+  new `unavailable` map shows the position setting disabled with the reason.
+
 - Plugin SDK (#88): `@yapyap/plugin-sdk` defines the manifest as a TypeBox
   schema (the published `manifest.schema.json` is generated from it and
   tested to match) and the typed host API, one interface per capability. The

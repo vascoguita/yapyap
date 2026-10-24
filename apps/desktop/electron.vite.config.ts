@@ -40,6 +40,7 @@ export default defineConfig({
           'plugin-consent': resolve(import.meta.dirname, 'src/renderer/plugin-consent.html'),
           shortcuts: resolve(import.meta.dirname, 'src/renderer/shortcuts.html'),
           'custom-code': resolve(import.meta.dirname, 'src/renderer/custom-code.html'),
+          'quick-panel': resolve(import.meta.dirname, 'src/renderer/quick-panel.html'),
           downloads: resolve(import.meta.dirname, 'src/renderer/downloads.html'),
           'spelling-languages': resolve(
             import.meta.dirname,
