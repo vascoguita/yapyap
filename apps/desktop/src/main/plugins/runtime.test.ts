@@ -148,6 +148,7 @@ function setup() {
     askHost: vi.fn<(plugin: string, host: string) => Promise<boolean>>(() =>
       Promise.resolve(false),
     ),
+    activeAccount: vi.fn((): string | undefined => undefined),
   };
   const only = <T>(items: readonly T[]): T => {
     const [item] = items;
@@ -226,6 +227,20 @@ describe('createPluginRuntime', () => {
         capability: 'notifications:show',
         outcome: 'ok',
       });
+    });
+    // Taking the grant back stops the very next call, without a restart (#94).
+    const granted = record({ capabilities: ['notifications:show'] });
+    await saveRecords(
+      root,
+      new Map([['org.example.hello', { ...granted, revoked: ['notifications:show'] }]]),
+    );
+    await t.runtime.regrant('org.example.hello');
+    await t.runtime.regrant('org.example.missing');
+    receive?.({ data: { id: 2, method: 'notifications.show', params: [] } });
+    await vi.waitFor(() => {
+      expect(t.deps.audit.record).toHaveBeenLastCalledWith(
+        expect.objectContaining({ outcome: 'not-granted' }),
+      );
     });
   });
 

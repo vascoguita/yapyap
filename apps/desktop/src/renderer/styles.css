@@ -931,3 +931,29 @@ main.downloads .download .actions {
   grid-row: 1;
   gap: 6px;
 }
+
+main.plugins .permissions {
+  flex-basis: 100%;
+}
+
+main.plugins .permissions ul {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+
+main.plugins .grant {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+main.plugins .grant-accounts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}

@@ -9,6 +9,7 @@ import {
   servePluginFiles,
   type PluginSource,
 } from './plugin-files.ts';
+import { grantedHosts, holds } from './grants.ts';
 import { hostPolicy } from './network-policy.ts';
 import { loadRecords, saveRecords, type PluginRecord } from './records.ts';
 import type { AuditLog } from './audit-log.ts';
@@ -74,6 +75,8 @@ export interface PluginRuntimeDependencies {
     ResourceGuardDependencies,
     'metrics' | 'notify' | 'every' | 'now' | 'cores'
   >;
+  /** The account on screen, which account capabilities are checked against (#94). */
+  readonly activeAccount: () => string | undefined;
   /** Asks the user whether `plugin` may connect to `host` (#95). */
   readonly askHost: (plugin: string, host: string) => Promise<boolean>;
 }
@@ -88,6 +91,8 @@ export interface PluginRuntime {
   readonly processes: () => readonly PluginProcess[];
   /** Stops a plugin until it is started again. */
   readonly stop: (id: string) => void;
+  /** Reads a plugin's grants again after the user changed them (#94). */
+  readonly regrant: (id: string) => Promise<void>;
 }
 
 /** The installed manifest, or undefined when the file is missing or not a manifest. */
@@ -109,24 +114,23 @@ async function manifestIn(
  * Hands each page the plugin loads a port of its own, and serves its calls
  * there with the grants the plugin holds (ADR 0004).
  */
-function connect(
-  deps: PluginRuntimeDependencies,
-  host: PluginHost,
-  record: PluginRecord,
-  manifest: Manifest,
-): void {
-  const methods = deps.methodsFor({ id: record.id, name: manifest.name });
-  const granted = new Set<string>(record.capabilities);
+function connect(deps: PluginRuntimeDependencies, host: PluginHost, known: KnownPlugin): void {
+  const { id } = known.record;
+  const methods = deps.methodsFor({ id, name: known.name });
+  // Grants are read on every call, so taking one back stops the next call (#94).
+  const granted = (capability: string): boolean =>
+    holds(known.record, capability, deps.activeAccount());
   host.webContents.on('did-finish-load', () => {
     servePluginRpc(host.openPort(), granted, methods, deps.rpc, (call) => {
-      deps.audit.record({ ...call, plugin: record.id });
+      deps.audit.record({ ...call, plugin: id });
     });
   });
 }
 
+/** A plugin's name and its record as it stands now, grants and hosts included. */
 interface KnownPlugin {
   name: string;
-  hosts: readonly string[];
+  record: PluginRecord;
 }
 
 /** Adds `host` to the plugin's record, so the approval outlives a restart. */
@@ -145,7 +149,7 @@ interface RuntimeState {
   /** Each running plugin's window, and its name from its manifest. */
   readonly hosts: Map<string, { readonly host: PluginHost; readonly name: string }>;
   readonly sources: Map<string, PluginSource>;
-  /** Each plugin's name and approved hosts, which its session's request policy reads. */
+  /** Each plugin's name and current record, which its calls and requests are checked against. */
   readonly known: Map<string, KnownPlugin>;
   /** Sessions that already serve their plugin: a scheme is handled once per session. */
   readonly served: Set<string>;
@@ -171,10 +175,10 @@ function serve(
   const decide = hostPolicy({
     id,
     name: () => known.name,
-    approved: () => known.hosts,
+    approved: () => grantedHosts(known.record),
     ask: deps.askHost,
     approve: async (host) => {
-      known.hosts = [...known.hosts, host];
+      known.record = { ...known.record, hosts: [...known.record.hosts, host] };
       await approveHost(deps.root, id, host);
     },
   });
@@ -195,9 +199,9 @@ async function start(
     return;
   }
   state.sources.set(record.id, { folder, entry: manifest.entry });
-  const known = state.known.get(record.id) ?? { name: manifest.name, hosts: [] };
+  const known = state.known.get(record.id) ?? { name: manifest.name, record };
   known.name = manifest.name;
-  known.hosts = record.hosts;
+  known.record = record;
   state.known.set(record.id, known);
   const partition = pluginPartition(record);
   serve(deps, state, record.id, partition, known);
@@ -205,10 +209,24 @@ async function start(
   const home = pluginOrigin(record.id);
   deps.views.set(host.webContents, { home, zone: 'plugin', label: record.id });
   state.hosts.set(record.id, { host, name: manifest.name });
-  connect(deps, host, record, manifest);
+  connect(deps, host, known);
   await host.loadURL(`${home}/`).catch(() => {
     deps.warn(`Plugin ${record.id} could not be loaded.`);
   });
+}
+
+function newState(): RuntimeState {
+  return { hosts: new Map(), sources: new Map(), known: new Map(), served: new Set() };
+}
+
+/** Reads a plugin's record again, so its next call and request see the grants as they are now. */
+async function regrant(root: string, state: RuntimeState, id: string): Promise<void> {
+  const records = await loadRecords(root);
+  const record = records.get(id);
+  const known = state.known.get(id);
+  if (record !== undefined && known !== undefined) {
+    known.record = record;
+  }
 }
 
 function processesOf(state: RuntimeState): PluginProcess[] {
@@ -226,12 +244,7 @@ function processesOf(state: RuntimeState): PluginProcess[] {
  * cancelled.
  */
 export function createPluginRuntime(deps: PluginRuntimeDependencies): PluginRuntime {
-  const state: RuntimeState = {
-    hosts: new Map(),
-    sources: new Map(),
-    known: new Map(),
-    served: new Set(),
-  };
+  const state = newState();
   const restart = async (id: string): Promise<void> => {
     const records = await loadRecords(deps.root);
     const record = records.get(id);
@@ -251,6 +264,7 @@ export function createPluginRuntime(deps: PluginRuntimeDependencies): PluginRunt
       state.hosts.get(id)?.host.destroy();
       state.hosts.delete(id);
     },
+    regrant: (id) => regrant(deps.root, state, id),
   };
   guardPluginResources({
     ...deps.limits,

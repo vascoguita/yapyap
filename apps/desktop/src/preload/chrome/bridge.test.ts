@@ -49,6 +49,9 @@ describe('createChromeBridge', () => {
     expect(await api.plugins.list()).toBe('ignored');
     expect(await api.plugins.consent()).toBe('ignored');
     await api.plugins.answer(true, false);
+    expect(await api.plugins.setGrant('org.example.hello', 'secrets:own', null, false)).toBe(
+      'ignored',
+    );
     expect(await api.shortcuts.list()).toBe('ignored');
     expect(await api.shortcuts.set('settings', 'CmdOrCtrl+K')).toBe('ignored');
     expect(await api.downloads.list()).toBe('ignored');
@@ -105,6 +108,7 @@ describe('createChromeBridge', () => {
       ['plugins:list'],
       ['plugins:consent'],
       ['plugins:answer', true, false],
+      ['plugins:set-grant', 'org.example.hello', 'secrets:own', null, false],
       ['shortcuts:list'],
       ['shortcuts:set', 'settings', 'CmdOrCtrl+K'],
       ['downloads:list'],
@@ -153,7 +157,7 @@ describe('createChromeBridge', () => {
       'stopSharing',
       'onState',
     ]);
-    expect(Object.keys(api.plugins)).toEqual(['list', 'consent', 'answer']);
+    expect(Object.keys(api.plugins)).toEqual(['list', 'consent', 'answer', 'setGrant']);
     expect(Object.keys(api.quickPanel)).toEqual(['open', 'setDoNotDisturb']);
     expect(Object.keys(api.chat)).toEqual(['openNumber']);
     expect(Object.keys(api.shortcuts)).toEqual(['list', 'set']);

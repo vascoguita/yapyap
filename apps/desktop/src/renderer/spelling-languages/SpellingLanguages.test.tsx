@@ -58,7 +58,7 @@ function api(initial: Partial<SpellingLanguages>) {
       onState: vi.fn(),
     },
     quickPanel: { open: vi.fn(), setDoNotDisturb: vi.fn() },
-    plugins: { list: vi.fn(), consent: vi.fn(), answer: vi.fn() },
+    plugins: { list: vi.fn(), consent: vi.fn(), answer: vi.fn(), setGrant: vi.fn() },
     picker: { offer: vi.fn(), choose: vi.fn(), cancel: vi.fn() },
     customCode: { get: vi.fn(), save: vi.fn(), preview: vi.fn() },
     proxyLogin: { request: vi.fn(), answer: vi.fn() },

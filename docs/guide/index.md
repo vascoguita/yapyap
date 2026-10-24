@@ -150,6 +150,10 @@ only what you allow when you install it.
   Under **Recent activity**, it shows what each plugin asked YapYap to do,
   and whether YapYap did it or refused, but never what the plugin sent or
   received.
+- Under **Permissions**, each plugin lists what you allowed it to do. Turn
+  anything off at any time, for the plugin or, for reading chats and
+  writing drafts, account by account; it applies to the plugin's very next
+  request.
 - A plugin reaches only the internet hosts you allowed when you installed
   it. If it tries another one, such as an AI service you set it up to use,
   YapYap asks you first; **Deny** is the default, and YapYap remembers your

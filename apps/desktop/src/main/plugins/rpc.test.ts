@@ -31,7 +31,7 @@ function setup(granted: readonly string[] = ['notifications:show']) {
   const audit = vi.fn();
   servePluginRpc(
     port,
-    new Set(granted),
+    (capability) => granted.includes(capability),
     methods,
     {
       rate: { burst: 2, perSecond: 1 },

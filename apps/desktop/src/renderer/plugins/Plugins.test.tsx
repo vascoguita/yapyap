@@ -1,12 +1,18 @@
 /** @vitest-environment happy-dom */
-import { cleanup, render, screen } from '@testing-library/preact';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ChromeApi, PluginList } from '../../shared/chrome-api.ts';
 import { Plugins } from './Plugins.tsx';
 
 function setup(list: () => Promise<PluginList>) {
-  const plugins = { list: vi.fn(list), consent: vi.fn(), answer: vi.fn() };
+  const plugins = {
+    list: vi.fn(list),
+    consent: vi.fn(),
+    answer: vi.fn(),
+    setGrant: vi.fn(list),
+  };
   render(<Plugins api={{ plugins } as unknown as ChromeApi} />);
+  return plugins;
 }
 
 afterEach(() => {
@@ -18,9 +24,9 @@ describe('Plugins', () => {
     setup(() =>
       Promise.resolve({
         plugins: [
-          { id: 'org.example.hello', version: '1.0.0', trust: 'third-party' },
-          { id: 'org.guita.yapyap.ai', version: '2.0.0', trust: 'first-party' },
-          { id: 'org.me.draft', version: '0.1.0', trust: 'developer' },
+          { id: 'org.example.hello', version: '1.0.0', trust: 'third-party', grants: [] },
+          { id: 'org.guita.yapyap.ai', version: '2.0.0', trust: 'first-party', grants: [] },
+          { id: 'org.me.draft', version: '0.1.0', trust: 'developer', grants: [] },
         ],
         developerMode: false,
         activity: [],
@@ -45,7 +51,7 @@ describe('Plugins', () => {
     const time = '2026-10-24T10:00:00.000Z';
     setup(() =>
       Promise.resolve({
-        plugins: [{ id: 'org.example.hello', version: '1.0.0', trust: 'third-party' }],
+        plugins: [{ id: 'org.example.hello', version: '1.0.0', trust: 'third-party', grants: [] }],
         developerMode: false,
         activity: [
           {
@@ -78,7 +84,7 @@ describe('Plugins', () => {
     expect(rows).toEqual([
       `${when}org.example.helloKeep its own secrets, such as API keys, encryptedRefused: not allowed`,
       `${when}org.example.helloShow notificationsDone`,
-      `${when}org.example.hellonetwork:api.example.orgRefused: too many requests`,
+      `${when}org.example.helloConnect to api.example.orgRefused: too many requests`,
     ]);
     expect(screen.getByText('Done').className).toBe('outcome outcome-ok');
   });
@@ -87,5 +93,102 @@ describe('Plugins', () => {
     setup(() => Promise.reject(new Error('unreadable')));
     await Promise.resolve();
     expect(document.body.textContent).toBe('');
+  });
+
+  it('lets the user turn each permission off, for the plugin or account by account', async () => {
+    const plugins = setup(() =>
+      Promise.resolve({
+        plugins: [
+          {
+            id: 'org.example.hello',
+            version: '1.0.0',
+            trust: 'third-party',
+            grants: [
+              {
+                capability: 'composer:insert-draft',
+                granted: true,
+                accounts: [
+                  { id: 'a', name: 'Home', granted: true },
+                  { id: 'b', name: 'Work', granted: false },
+                ],
+              },
+              { capability: 'notifications:show', granted: true },
+              { capability: 'network:api.example.org', granted: false },
+              { capability: 'calendar:read', granted: true },
+            ],
+          },
+        ],
+        developerMode: false,
+        activity: [],
+      }),
+    );
+    fireEvent.click(await screen.findByText('Permissions'));
+    const group = screen.getByRole('group', {
+      name: 'Write drafts in the message box, which you send yourself',
+    });
+    expect(group.textContent).toBe(
+      'Write drafts in the message box, which you send yourselfHomeWork',
+    );
+    expect(screen.getByRole<HTMLInputElement>('checkbox', { name: 'Home' }).checked).toBe(true);
+    expect(screen.getByRole<HTMLInputElement>('checkbox', { name: 'Work' }).checked).toBe(false);
+    expect(
+      screen.getByRole<HTMLInputElement>('checkbox', { name: 'Connect to api.example.org' })
+        .checked,
+    ).toBe(false);
+    // A capability this version does not know is shown by its name.
+    expect(screen.getByRole('checkbox', { name: 'calendar:read' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Home' }));
+    expect(plugins.setGrant).toHaveBeenLastCalledWith(
+      'org.example.hello',
+      'composer:insert-draft',
+      'a',
+      false,
+    );
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Show notifications' }));
+    expect(plugins.setGrant).toHaveBeenLastCalledWith(
+      'org.example.hello',
+      'notifications:show',
+      null,
+      false,
+    );
+    await waitFor(() => {
+      expect(plugins.list).toHaveBeenCalledOnce();
+    });
+  });
+
+  it('shows no permissions for a plugin that asked for none', async () => {
+    setup(() =>
+      Promise.resolve({
+        plugins: [{ id: 'org.example.quiet', version: '1.0.0', trust: 'third-party', grants: [] }],
+        developerMode: false,
+        activity: [],
+      }),
+    );
+    await screen.findByText('org.example.quiet');
+    expect(screen.queryByText('Permissions')).toBeNull();
+  });
+
+  it('keeps the list as it was when a change cannot be saved', async () => {
+    const plugins = setup(() =>
+      Promise.resolve({
+        plugins: [
+          {
+            id: 'org.example.hello',
+            version: '1.0.0',
+            trust: 'third-party',
+            grants: [{ capability: 'secrets:own', granted: true }],
+          },
+        ],
+        developerMode: false,
+        activity: [],
+      }),
+    );
+    plugins.setGrant.mockRejectedValueOnce(new Error('unwritable'));
+    fireEvent.click(await screen.findByText('Permissions'));
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: 'Keep its own secrets, such as API keys, encrypted' }),
+    );
+    expect(plugins.setGrant).toHaveBeenCalledOnce();
+    expect(screen.getByText('org.example.hello')).toBeTruthy();
   });
 });

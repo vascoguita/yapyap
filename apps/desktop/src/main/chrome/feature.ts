@@ -47,6 +47,7 @@ import { accountsHandlers, type AccountManager } from './accounts.ts';
 import { problemReportHandlers } from './problem-report.ts';
 import {
   createPluginChrome,
+  type PluginAccounts,
   type PluginChrome,
   type PluginChromeDependencies,
 } from '../plugins/plugin-chrome.ts';
@@ -707,11 +708,18 @@ function diagnosticsCopier(
   };
 }
 
-/** Where a plugin's draft goes: the active account's open chat, once there are accounts. */
-export const draftsTo =
-  (accounts: AccountsSlot) =>
-  (text: string): Promise<boolean> =>
-    accounts.current === undefined ? Promise.resolve(false) : accounts.current.insertDraft(text);
+/**
+ * The accounts as plugins see them: drafts go to the active account's open
+ * chat, and before there are accounts, there is no account to act on.
+ */
+export function pluginAccounts(accounts: AccountsSlot): PluginAccounts {
+  return {
+    insertDraft: (text) =>
+      accounts.current === undefined ? Promise.resolve(false) : accounts.current.insertDraft(text),
+    active: () => accounts.current?.entries.find((entry) => entry.active)?.id,
+    list: () => (accounts.current?.entries ?? []).map(({ id, name }) => ({ id, name })),
+  };
+}
 
 /** What YapYap's pages share with the main process: the pages it watches and what they act on. */
 interface ChromeSlots {
@@ -745,7 +753,7 @@ function standbyWindows(
   accounts: AccountsSlot,
 ): { plugins: PluginChrome; proxyLogin: ProxyLoginPrompt; quickPanel: QuickPanel } {
   return {
-    plugins: createPluginChrome(deps.plugins, deps.settings, windows, draftsTo(accounts)),
+    plugins: createPluginChrome(deps.plugins, deps.settings, windows, pluginAccounts(accounts)),
     proxyLogin: createProxyLoginPrompt(() => openPromptWindow(windows, PROXY_LOGIN_PAGE)),
     quickPanel: createQuickPanel({
       wayland,

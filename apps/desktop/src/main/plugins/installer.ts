@@ -46,7 +46,12 @@ export async function prepareInstall(options: PrepareOptions): Promise<PreparedI
 }
 
 /** Approving an install grants everything it asked for, and nothing it did not. */
-function recordOf(request: InstallRequest): PluginRecord {
+/**
+ * The record of an install. An update keeps the grants the user took back
+ * (#94); hosts are the new version's own, so one it dropped is gone, and
+ * one allowed only at run time is asked about again (#95).
+ */
+function recordOf(request: InstallRequest, previous: PluginRecord | undefined): PluginRecord {
   return {
     id: request.id,
     version: request.version,
@@ -55,6 +60,8 @@ function recordOf(request: InstallRequest): PluginRecord {
     developer: request.developer,
     capabilities: [...request.capabilities],
     hosts: [...request.hosts],
+    ...(previous?.revoked === undefined ? {} : { revoked: previous.revoked }),
+    ...(previous?.revokedIn === undefined ? {} : { revokedIn: previous.revokedIn }),
   };
 }
 
@@ -70,7 +77,8 @@ export async function commitInstall(root: string, install: ApprovableInstall): P
   );
   const files = new Map(install.archive.files).set(MANIFEST, manifest);
   const folder = await installFiles(root, request.id, request.version, files);
-  const records = new Map(await loadRecords(root)).set(request.id, recordOf(request));
+  const installed = await loadRecords(root);
+  const records = new Map(installed).set(request.id, recordOf(request, installed.get(request.id)));
   await saveRecords(root, records);
   await pruneVersions(root, request.id, request.version);
   return folder;
