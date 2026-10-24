@@ -65,9 +65,9 @@ function setup(root: string, developerMode = false, overrides: object = {}) {
   const accounts = [{ id: ACCOUNT, name: 'Work' }];
   const chrome = createPluginChrome(
     deps,
-    { current: () => ({ ...settings, plugins: { developerMode } }) },
+    { current: () => ({ ...settings, plugins: { ...settings.plugins, developerMode } }) },
     { createWindow, views, warn },
-    { insertDraft, active: () => undefined, list: () => accounts },
+    { insertDraft, readActiveChat: vi.fn(), active: () => undefined, list: () => accounts },
   );
   const handler = (channel: string) => {
     const found = chrome.handlers.find((candidate) => candidate.channel === channel);
@@ -102,7 +102,7 @@ describe('createPluginChrome', () => {
     expect(t.deps.createHost).not.toHaveBeenCalled();
   });
 
-  it('lets a running plugin’s drafts go where YapYap sends them', async () => {
+  it('lets a running plugin’s drafts and chat reads go where YapYap sends them', async () => {
     const folder = join(root, 'org.example.hello', '1.0.0');
     mkdirSync(folder, { recursive: true });
     writeFileSync(
@@ -137,7 +137,7 @@ describe('createPluginChrome', () => {
     await vi.waitFor(() => {
       expect(t.deps.methodsFor).toHaveBeenCalledExactlyOnceWith(
         expect.objectContaining({ id: 'org.example.hello', name: 'Hello' }),
-        t.insertDraft,
+        expect.objectContaining({ insertDraft: t.insertDraft }),
       );
     });
   });

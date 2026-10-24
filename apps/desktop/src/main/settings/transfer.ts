@@ -37,7 +37,8 @@ export const EXPORTED_SECTIONS = [
 /**
  * Sections that stay with this installation: never exported, and kept as
  * they are on import. A file someone hands the user must not be able to
- * turn on Developer Mode, which installs plugins nobody signed.
+ * turn on Developer Mode, which installs plugins nobody signed, or let
+ * plugins read more messages.
  */
 export const LOCAL_SECTIONS = ['plugins'] as const;
 

@@ -15,6 +15,7 @@ const JS_HEAP = 'reliability.jsHeapMb';
 const PINCH = 'appearance.pinchZoom';
 const TRAY_ICON = 'appearance.trayIcon';
 const DEVELOPER = 'plugins.developerMode';
+const CHAT_MESSAGES = 'plugins.chatMessages';
 const ASK_WHERE = 'downloads.askWhere';
 const OPEN_DONE = 'downloads.openWhenDone';
 const FOLDER = 'downloads.folder';
@@ -168,6 +169,7 @@ describe('settingsHandlers', () => {
         [PROXY]: 'system',
         [PROXY_SERVER]: '',
         [DEVELOPER]: false,
+        [CHAT_MESSAGES]: '20',
         [ASK_WHERE]: false,
         [OPEN_DONE]: false,
         [FOLDER]: '',
@@ -272,6 +274,7 @@ describe('settingsHandlers', () => {
         [PROXY]: 'system',
         [PROXY_SERVER]: '',
         [DEVELOPER]: false,
+        [CHAT_MESSAGES]: '20',
         [ASK_WHERE]: false,
         [OPEN_DONE]: false,
         [FOLDER]: '',

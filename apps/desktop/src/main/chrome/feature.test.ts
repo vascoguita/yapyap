@@ -447,6 +447,7 @@ describe('createChromeFeature', () => {
         'network.proxyMode': 'system',
         'network.proxyServer': '',
         'plugins.developerMode': false,
+        'plugins.chatMessages': '20',
         'downloads.askWhere': false,
         'downloads.openWhenDone': false,
         'downloads.folder': '',
@@ -605,6 +606,7 @@ describe('createChromeFeature', () => {
       ],
       activeContents: () => contents,
       insertDraft: vi.fn(() => Promise.resolve(true)),
+      readActiveChat: vi.fn(() => Promise.resolve(null)),
       switchTo: vi.fn(),
       add: vi.fn(),
       privacyScreen: false,
@@ -663,6 +665,7 @@ describe('createChromeFeature', () => {
       ],
       activeContents: () => ({}),
       insertDraft: vi.fn(() => Promise.resolve(true)),
+      readActiveChat: vi.fn(() => Promise.resolve(null)),
       switchTo: vi.fn(),
       add: vi.fn(),
       privacyScreen: false,
@@ -782,6 +785,7 @@ describe('createChromeFeature', () => {
       entries,
       activeContents: () => ({}),
       insertDraft: vi.fn(() => Promise.resolve(true)),
+      readActiveChat: vi.fn(() => Promise.resolve(null)),
       switchTo: vi.fn(),
       add: vi.fn(),
       privacyScreen: false,
@@ -821,6 +825,7 @@ describe('createChromeFeature', () => {
       ],
       activeContents: () => ({}),
       insertDraft: vi.fn(() => Promise.resolve(true)),
+      readActiveChat: vi.fn(() => Promise.resolve(null)),
       switchTo: vi.fn(),
       add: vi.fn(),
       privacyScreen: false,
@@ -845,6 +850,7 @@ describe('createChromeFeature', () => {
       entries: [{ ...work, color: 'pink', id: 'a', active: false }],
       activeContents: () => ({}),
       insertDraft: vi.fn(() => Promise.resolve(true)),
+      readActiveChat: vi.fn(() => Promise.resolve(null)),
       switchTo: vi.fn(),
       add: vi.fn(),
       privacyScreen: false,
@@ -912,7 +918,7 @@ describe('createChromeFeature', () => {
     await new Promise((resolve) => setTimeout(resolve));
     expect(t.deps.writeClipboard).toHaveBeenLastCalledWith(
       expect.stringMatching(
-        /^YapYap 0\.1\.0 \(deb\)\n[\s\S]*\nGPU gpu_compositing=enabled, rasterization=unknown, video_decode=unknown, webgl=enabled_on\nUpdates system \(deb\)\nWhatsApp page unavailable \(landmarks v2\)\n\nRecent log:\n2026-10-21T12:00:00\.000Z warn Something happened$/,
+        /^YapYap 0\.1\.0 \(deb\)\n[\s\S]*\nGPU gpu_compositing=enabled, rasterization=unknown, video_decode=unknown, webgl=enabled_on\nUpdates system \(deb\)\nWhatsApp page unavailable \(landmarks v3\)\n\nRecent log:\n2026-10-21T12:00:00\.000Z warn Something happened$/,
       ),
     );
   });
@@ -942,7 +948,7 @@ describe('createChromeFeature', () => {
     await new Promise((resolve) => setTimeout(resolve));
     expect(t.deps.writeClipboard).toHaveBeenLastCalledWith(
       expect.stringContaining(
-        '\nWhatsApp view=chats, chat_open=true (landmarks v2)\n\nRecent log:',
+        '\nWhatsApp view=chats, chat_open=true (landmarks v3)\n\nRecent log:',
       ),
     );
   });
@@ -1023,11 +1029,15 @@ describe('createChromeFeature', () => {
     const slot: { current?: AccountMenu } = {};
     const accounts = pluginAccounts(slot);
     await expect(accounts.insertDraft('Hi')).resolves.toBe(false);
+    await expect(accounts.readActiveChat(5)).resolves.toBeNull();
     expect(accounts.active()).toBeUndefined();
     expect(accounts.list()).toEqual([]);
     const insertDraft = vi.fn(() => Promise.resolve(true));
+    const chat = { name: 'Team', group: false, messages: [] };
+    const readActiveChat = vi.fn(() => Promise.resolve(chat));
     slot.current = {
       insertDraft,
+      readActiveChat,
       entries: [
         { id: 'a', name: 'Home', active: false },
         { id: 'b', name: 'Work', active: true },
@@ -1035,6 +1045,8 @@ describe('createChromeFeature', () => {
     } as unknown as AccountMenu;
     await expect(accounts.insertDraft('Hi')).resolves.toBe(true);
     expect(insertDraft).toHaveBeenCalledExactlyOnceWith('Hi');
+    await expect(accounts.readActiveChat(5)).resolves.toBe(chat);
+    expect(readActiveChat).toHaveBeenCalledExactlyOnceWith(5);
     expect(accounts.active()).toBe('b');
     expect(accounts.list()).toEqual([
       { id: 'a', name: 'Home' },

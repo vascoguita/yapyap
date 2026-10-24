@@ -8,7 +8,7 @@ import { SHORTCUT_IDS, type ShortcutId } from '../../shared/shortcuts.ts';
  * it, so the schema is the only source of truth. Every value has a default,
  * which is what an invalid or missing value falls back to.
  */
-export const SETTINGS_VERSION = 13;
+export const SETTINGS_VERSION = 14;
 
 export const SettingsSchema = Type.Object(
   {
@@ -163,6 +163,11 @@ export const SettingsSchema = Type.Object(
     plugins: Type.Object(
       {
         developerMode: Type.Boolean({ default: false }),
+        // How many of the open chat's latest messages a plugin may read (#100).
+        chatMessages: Type.Union(
+          [Type.Literal('5'), Type.Literal('10'), Type.Literal('20'), Type.Literal('50')],
+          { default: '20' },
+        ),
       },
       { default: {}, additionalProperties: false },
     ),

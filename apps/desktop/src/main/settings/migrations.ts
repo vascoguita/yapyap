@@ -108,6 +108,14 @@ function addResourceLimits(settings: Raw): Raw {
     : settings;
 }
 
+/** Version 14 adds how many messages plugins may read, 20 by default (#100). */
+function addChatMessages(settings: Raw): Raw {
+  const plugins = settings['plugins'];
+  return isSection(plugins)
+    ? { ...settings, plugins: { chatMessages: '20', ...plugins } }
+    : settings;
+}
+
 /**
  * `MIGRATIONS[n]` turns a version n+1 file into version n+2. They are pure,
  * forward-only, and each has its own test; a test also checks that there is
@@ -126,6 +134,7 @@ export const MIGRATIONS: readonly ((settings: Raw) => Raw)[] = [
   addPrivacyScreen,
   addPinchZoom,
   addResourceLimits,
+  addChatMessages,
 ];
 
 export type MigrationResult =

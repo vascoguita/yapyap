@@ -814,6 +814,14 @@ describe('startApp', () => {
     expect(f.runtime.panel).toHaveBeenLastCalledWith(f.runtime.sidebar.mock.calls.at(-1)?.[0]);
   });
 
+  it('reads the active account’s open chat for a plugin, through the adapter', async () => {
+    const f = fakes();
+    await startApp(f);
+    const [menu] = f.runtime.setAccountMenu.mock.calls.at(-1) ?? [];
+    f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValueOnce(null);
+    await expect(menu?.readActiveChat(5)).resolves.toBeNull();
+  });
+
   it('puts a plugin’s draft in the active account’s open chat, and only there', async () => {
     const f = fakes();
     await startApp(f);

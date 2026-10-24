@@ -22,6 +22,7 @@ import { isSettingChange, saveSetting, settingsOf } from './plugin-settings.ts';
 import { loadRecords, saveRecords } from './records.ts';
 import type { AuditLog } from './audit-log.ts';
 import type { CallingPlugin } from './host-methods.ts';
+import type { ReadChat } from '../../adapter/active-chat.ts';
 import type { RpcOptions } from './rpc.ts';
 import {
   createPluginRuntime,
@@ -80,7 +81,7 @@ export interface PluginChromeDependencies {
   /** What a plugin may call, behind its capabilities (#93); drafts go to the active chat. */
   readonly methodsFor: (
     plugin: CallingPlugin,
-    insertDraft: (text: string) => Promise<boolean>,
+    chats: Pick<PluginAccounts, 'insertDraft' | 'readActiveChat'>,
   ) => ReturnType<PluginRuntimeDependencies['methodsFor']>;
   readonly rpc: RpcOptions;
   /** What plugins asked YapYap to do, for the Plugins window (#99). */
@@ -194,6 +195,8 @@ function pluginHandlers(
 export interface PluginAccounts {
   /** Puts a draft in the active account's open chat; false when none is open. */
   readonly insertDraft: (text: string) => Promise<boolean>;
+  /** The active account's open chat and its last `messages` messages; null when none is open. */
+  readonly readActiveChat: (messages: number) => Promise<ReadChat | null>;
   /** The account on screen. */
   readonly active: () => string | undefined;
   /** Every account, for per-account grants in the Plugins window (#94). */
@@ -265,7 +268,7 @@ export function createPluginChrome(
     ...deps,
     views: windows.views,
     warn: windows.warn,
-    methodsFor: (plugin) => deps.methodsFor(plugin, accounts.insertDraft),
+    methodsFor: (plugin) => deps.methodsFor(plugin, accounts),
     activeAccount: accounts.active,
   });
   const failed = (): void => {

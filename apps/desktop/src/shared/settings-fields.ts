@@ -141,4 +141,9 @@ export const SETTING_FIELDS: readonly SettingField[] = [
     text: { placeholder: en.settings.proxyPlaceholder },
   },
   { ...described('plugins.developerMode'), restart: false },
+  {
+    ...described('plugins.chatMessages'),
+    restart: false,
+    options: choices(text['plugins.chatMessages'].options),
+  },
 ];
