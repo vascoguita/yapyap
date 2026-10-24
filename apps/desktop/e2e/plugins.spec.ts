@@ -501,7 +501,14 @@ test('reads the open chat for a plugin allowed to, as plain data', async ({
     testManifest({ capabilities: ['chat:read-active'], network: { hosts: [] } }),
     READER,
   );
-  const read = async () => JSON.parse((await pluginPage(app))?.title ?? 'null') as unknown;
+  // Until the plugin writes its title, the page is titled with its address.
+  const read = async () => {
+    try {
+      return JSON.parse((await pluginPage(app))?.title ?? 'null') as unknown;
+    } catch {
+      return undefined;
+    }
+  };
   await expect.poll(read, { timeout: 20_000 }).toEqual({
     name: 'Test Chat One',
     group: false,
