@@ -544,6 +544,14 @@ not edit the same lines.
   `e2e/plugin-helpers.ts`. The suite found that Electron spreads CPU usage
   over every core, which #97's guard now accounts for.
 
+- Accessibility checks (#110, first part): `e2e/accessibility.spec.ts` runs
+  axe-core against WCAG 2.2 AA on every chrome page the menu opens, in the
+  light and dark themes, and a planted unlabelled button proves the check
+  bites. axe is evaluated over the DevTools protocol, since Electron cannot
+  open the extra page `@axe-core/playwright` needs, and that keeps the
+  pages' CSP as it is. No page had a violation. The manual screen reader
+  and keyboard checklist for releases is at `/architecture/accessibility`.
+
 - Screen-sharing indicator (#161): the WhatsApp preload's second stand-in
   (`installShareShim`, ADR 0011) reports when a screen share starts and
   ends, by a random ID only, and stops one when YapYap asks. The main

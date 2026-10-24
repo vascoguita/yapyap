@@ -20,6 +20,7 @@
     "@testing-library/preact": "3.2.4",
     "@yapyap/plugin-sdk": "workspace:*",
     "@yapyap/plugin-sign": "workspace:*",
+    "axe-core": "4.14.0",
     "electron": "45.0.0",
     "electron-builder": "26.15.3",
     "electron-vite": "6.0.0",
