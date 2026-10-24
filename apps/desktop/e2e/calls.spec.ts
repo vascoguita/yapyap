@@ -1,4 +1,4 @@
-import type { ElectronApplication } from '@playwright/test';
+import type { ElectronApplication, Page } from '@playwright/test';
 import { expect, test } from './fixtures.ts';
 
 /** The call window, if one is open: whether it shows, and the session it runs on. */
@@ -25,8 +25,14 @@ for (const button of ['call', 'call-blank']) {
     await window.waitForLoadState('load');
     await window.getByTestId(button).click();
     await expect.poll(() => callWindow(app)).toEqual({ visible: true, sameSession: true });
-    const call = app.windows().find((page) => page.url().endsWith('/call.html'));
-    await call?.getByTestId('hang-up').click();
+    // Playwright lists a new page a moment after Electron creates it.
+    const isCall = (page: Page) => page.url().endsWith('/call.html');
+    await expect.poll(() => app.windows().some(isCall)).toBe(true);
+    const call = app.windows().find(isCall);
+    if (call === undefined) {
+      throw new Error('No call window.');
+    }
+    await call.getByTestId('hang-up').click();
     await expect.poll(() => callWindow(app)).toBeNull();
   });
 }
