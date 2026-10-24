@@ -360,6 +360,10 @@ not edit the same lines.
   (compromised eMudhra intermediate certificates) and lets the audit pass.
   Electron 45 is a new major version and comes in its own change.
 
+- happy-dom, the DOM the unit tests run in, is pinned to 21.0.4 (#268),
+  which fixes GHSA-834v-8h66-3h79. It is a test-only dependency, so builds
+  were never affected; the audit passes again.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).

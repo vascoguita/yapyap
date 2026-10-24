@@ -45,7 +45,9 @@ test('installs a third-party plugin only once the user accepts the risk, and mar
   const install = consent.getByRole('button', { name: 'Install' });
   await expect(install).toBeDisabled();
   await consent.getByLabel('I understand that I install this plugin at my own risk').check();
-  await install.click();
+  // Install closes the window, which can end the click before Playwright sees it
+  // finish; the poll below checks that it installed.
+  await Promise.all([consent.waitForEvent('close'), install.click().catch(() => undefined)]);
   await expect
     .poll(() =>
       app.evaluate(() => (globalThis as unknown as { pluginMessages: string[] }).pluginMessages),
