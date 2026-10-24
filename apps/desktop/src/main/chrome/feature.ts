@@ -319,6 +319,8 @@ interface ChromeRuntime {
 export interface AccountMenu extends AccountManager {
   /** The active account's WhatsApp, which Clear Cache and Reset Session act on. */
   readonly activeContents: () => object;
+  /** Puts a plugin's draft in the active account's open chat; false when none is open. */
+  readonly insertDraft: (text: string) => Promise<boolean>;
   readonly switchTo: (id: string) => void;
   readonly add: () => void;
   readonly privacyScreen: boolean;
@@ -705,6 +707,12 @@ function diagnosticsCopier(
   };
 }
 
+/** Where a plugin's draft goes: the active account's open chat, once there are accounts. */
+export const draftsTo =
+  (accounts: AccountsSlot) =>
+  (text: string): Promise<boolean> =>
+    accounts.current === undefined ? Promise.resolve(false) : accounts.current.insertDraft(text);
+
 /** What YapYap's pages share with the main process: the pages it watches and what they act on. */
 interface ChromeSlots {
   readonly recoveries: Map<object, Recovery>;
@@ -734,9 +742,10 @@ function standbyWindows(
   deps: ChromeFeatureDependencies,
   windows: ChromeWindowDependencies<PanelWindow>,
   wayland: boolean,
+  accounts: AccountsSlot,
 ): { plugins: PluginChrome; proxyLogin: ProxyLoginPrompt; quickPanel: QuickPanel } {
   return {
-    plugins: createPluginChrome(deps.plugins, deps.settings, windows),
+    plugins: createPluginChrome(deps.plugins, deps.settings, windows, draftsTo(accounts)),
     proxyLogin: createProxyLoginPrompt(() => openPromptWindow(windows, PROXY_LOGIN_PAGE)),
     quickPanel: createQuickPanel({
       wayland,
@@ -765,7 +774,7 @@ function startChrome(
   const windows = chromeWindows(deps, renderer, views, warn);
   const slots = chromeSlots(deps, windows);
   const { recoveries, pages, picker, chats, accounts, sidebar } = slots;
-  const { plugins, proxyLogin, quickPanel } = standbyWindows(deps, windows, wayland);
+  const { plugins, proxyLogin, quickPanel } = standbyWindows(deps, windows, wayland, accounts);
   const handlers = [
     ...allHandlers({ ...withGraphics, unavailableSettings: unavailableOn(wayland) }, slots),
     ...plugins.handlers,

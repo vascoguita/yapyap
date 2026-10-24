@@ -19,6 +19,7 @@ import {
 import { commitInstall, prepareInstall } from './installer.ts';
 import { loadRecords } from './records.ts';
 import type { AuditLog } from './audit-log.ts';
+import type { CallingPlugin } from './host-methods.ts';
 import type { RpcOptions } from './rpc.ts';
 import {
   createPluginRuntime,
@@ -71,8 +72,11 @@ export interface PluginChromeDependencies {
   readonly sessionOf: (partition: string) => PluginSession;
   /** A hidden, sandboxed window on `partition`, which is never shown. */
   readonly createHost: (partition: string) => PluginHost;
-  /** What a plugin may call, behind its capabilities (#93). */
-  readonly methodsFor: PluginRuntimeDependencies['methodsFor'];
+  /** What a plugin may call, behind its capabilities (#93); drafts go to the active chat. */
+  readonly methodsFor: (
+    plugin: CallingPlugin,
+    insertDraft: (text: string) => Promise<boolean>,
+  ) => ReturnType<PluginRuntimeDependencies['methodsFor']>;
   readonly rpc: RpcOptions;
   /** What plugins asked YapYap to do, for the Plugins window (#99). */
   readonly audit: AuditLog;
@@ -158,8 +162,14 @@ export function createPluginChrome(
   deps: PluginChromeDependencies,
   settings: Pick<SettingsService, 'current'>,
   windows: ChromeWindowDependencies,
+  insertDraft: (text: string) => Promise<boolean>,
 ): PluginChrome {
-  const runtime = createPluginRuntime({ ...deps, views: windows.views, warn: windows.warn });
+  const runtime = createPluginRuntime({
+    ...deps,
+    views: windows.views,
+    warn: windows.warn,
+    methodsFor: (plugin) => deps.methodsFor(plugin, insertDraft),
+  });
   const failed = (): void => {
     windows.warn('Could not read the installed plugins, so none was started.');
   };

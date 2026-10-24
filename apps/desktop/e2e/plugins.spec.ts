@@ -183,3 +183,35 @@ test('keeps each plugin’s secrets to itself', async ({ app, profile }) => {
   const kept = await readFile(join(profile, 'plugins', '.secrets.json'), 'utf8');
   expect(kept).not.toContain('sk-test');
 });
+
+/** Drafts a reply, then writes in its title how that went. */
+const DRAFTER = `
+export default {
+  async activate(host) {
+    try {
+      await host.composer.insertDraft('Sounds good, see you at 8.');
+      document.title = 'drafted';
+    } catch (error) {
+      document.title = error.kind;
+    }
+  },
+};
+`;
+
+test('puts a plugin’s draft in the open chat’s message box, for the user to send', async ({
+  app,
+  profile,
+  window,
+}) => {
+  await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
+  await installPlugin(
+    app,
+    profile,
+    testManifest({ capabilities: ['composer:insert-draft'], network: { hosts: [] } }),
+    DRAFTER,
+  );
+  await expect
+    .poll(async () => (await pluginPage(app))?.title, { timeout: 20_000 })
+    .toBe('drafted');
+  await expect(window.getByTestId('composer')).toHaveText('Sounds good, see you at 8.');
+});

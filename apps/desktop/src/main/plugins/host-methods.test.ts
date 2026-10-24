@@ -9,6 +9,7 @@ function services() {
   return {
     notify: vi.fn(),
     quiet: vi.fn(() => false),
+    insertDraft: vi.fn<(text: string) => Promise<boolean>>(() => Promise.resolve(true)),
     stored,
     secrets: {
       get: vi.fn((name: string) => Promise.resolve(stored.get(name))),
@@ -98,6 +99,25 @@ describe('secrets', () => {
   });
 });
 
+describe('composer.insertDraft', () => {
+  it('puts a draft in the open chat, behind composer:insert-draft, and never sends', async () => {
+    const given = services();
+    const draft = method('composer.insertDraft', HELLO, given);
+    expect(draft.capability).toBe('composer:insert-draft');
+    await draft.run(['Sounds good, see you at 8.']);
+    expect(given.insertDraft).toHaveBeenCalledExactlyOnceWith('Sounds good, see you at 8.');
+    given.insertDraft.mockResolvedValueOnce(false);
+    await expect(draft.run(['Hi'])).rejects.toThrow('No chat is open.');
+  });
+
+  it('accepts one short text, and nothing else', () => {
+    expect(accepts('composer.insertDraft', ['Hi'])).toBe(true);
+    expect(accepts('composer.insertDraft', [''])).toBe(false);
+    expect(accepts('composer.insertDraft', ['x'.repeat(4097)])).toBe(false);
+    expect(accepts('composer.insertDraft', ['Hi', { send: true }])).toBe(false);
+  });
+});
+
 describe('hostMethods', () => {
   it('offers no way to send a message', () => {
     expect(Object.keys(hostMethods(HELLO, services()))).toEqual([
@@ -105,6 +125,7 @@ describe('hostMethods', () => {
       'secrets.get',
       'secrets.set',
       'secrets.delete',
+      'composer.insertDraft',
     ]);
   });
 });

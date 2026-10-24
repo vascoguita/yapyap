@@ -24,7 +24,7 @@ const record = (id: string, extra: Partial<PluginRecord> = {}): PluginRecord => 
   ...extra,
 });
 
-function setup(root: string, developerMode = false) {
+function setup(root: string, developerMode = false, overrides: object = {}) {
   const windows: { loadURL: ReturnType<typeof vi.fn>; options: object }[] = [];
   const createWindow = vi.fn((options: object) => {
     const window = {
@@ -53,14 +53,17 @@ function setup(root: string, developerMode = false) {
     audit: { record: vi.fn(), recent: vi.fn(() => []) },
     limits: { metrics: () => [], notify: vi.fn(), every: vi.fn(), now: () => 0, cores: 1 },
     askHost: vi.fn(() => Promise.resolve(false)),
+    ...overrides,
   };
   const settings = defaultSettings();
   const views: ViewRegistry = new WeakMap();
   const warn = vi.fn();
+  const insertDraft = vi.fn<(text: string) => Promise<boolean>>(() => Promise.resolve(true));
   const chrome = createPluginChrome(
     deps,
     { current: () => ({ ...settings, plugins: { developerMode } }) },
     { createWindow, views, warn },
+    insertDraft,
   );
   const handler = (channel: string) => {
     const found = chrome.handlers.find((candidate) => candidate.channel === channel);
@@ -69,7 +72,7 @@ function setup(root: string, developerMode = false) {
     }
     return found;
   };
-  return { deps, chrome, windows, handler, warn };
+  return { deps, chrome, windows, handler, warn, insertDraft };
 }
 
 describe('createPluginChrome', () => {
@@ -93,6 +96,46 @@ describe('createPluginChrome', () => {
       );
     });
     expect(t.deps.createHost).not.toHaveBeenCalled();
+  });
+
+  it('lets a running plugin’s drafts go where YapYap sends them', async () => {
+    const folder = join(root, 'org.example.hello', '1.0.0');
+    mkdirSync(folder, { recursive: true });
+    writeFileSync(
+      join(folder, 'manifest.json'),
+      JSON.stringify({
+        id: 'org.example.hello',
+        name: 'Hello',
+        version: '1.0.0',
+        author: { name: 'Example' },
+        apiVersion: '1.0.0',
+        entry: 'main.js',
+        capabilities: [],
+      }),
+    );
+    await saveRecords(
+      root,
+      new Map([['org.example.hello', record('org.example.hello', { developer: true })]]),
+    );
+    const t = setup(root, false, {
+      readFile: (path: string) => Promise.resolve(new Uint8Array(readFileSync(path))),
+      sessionOf: () => ({
+        protocol: { handle: vi.fn() },
+        webRequest: { onBeforeRequest: vi.fn() },
+      }),
+      createHost: () => ({
+        webContents: { on: vi.fn(), getOSProcessId: () => 1 },
+        loadURL: () => Promise.resolve(),
+        destroy: vi.fn(),
+        openPort: vi.fn(),
+      }),
+    });
+    await vi.waitFor(() => {
+      expect(t.deps.methodsFor).toHaveBeenCalledExactlyOnceWith(
+        { id: 'org.example.hello', name: 'Hello' },
+        t.insertDraft,
+      );
+    });
   });
 
   it('lists installed plugins by ID, marked by who vouches for them', async () => {

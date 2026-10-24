@@ -32,6 +32,20 @@ async function focused(contents: ReplyContents): Promise<boolean> {
 }
 
 /**
+ * Puts a plugin's draft into the open chat's message box, as if typed,
+ * for the user to edit and send (ADR 0004: plugins never send). False when
+ * no chat is open to take it. The text is message content, so it is never
+ * logged.
+ */
+export async function insertDraft(contents: ReplyContents, text: string): Promise<boolean> {
+  if (!(await focused(contents))) {
+    return false;
+  }
+  await contents.insertText(text);
+  return true;
+}
+
+/**
  * Puts a reply typed in a notification into WhatsApp's own message box, as
  * a draft, once WhatsApp has opened the chat. YapYap never sends it: the
  * user sees which chat it is in and sends it themselves (ADR 0008, C22).
