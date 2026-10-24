@@ -716,6 +716,11 @@ not edit the same lines.
   secret again when the system rotates its key. Both preloads still require
   nothing but `electron`, as sandboxed preloads lose `Buffer` and timers.
 
+- Call window test (#296): Hang up closes its own window, which could end
+  Playwright's click before it saw it finish ("Target page, context or
+  browser has been closed"), on any system. The test now waits for the
+  window to close, as the plugin consent helper does for Install.
+
 - Plugin storage (#301): `storage.get`, `storage.set` and `storage.delete`,
   behind `storage:local`, keep JSON values in the calling plugin's own file
   under `plugins/.storage/` (`keyValueStore`), up to 1 MiB per plugin and

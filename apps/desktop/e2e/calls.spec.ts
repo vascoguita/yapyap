@@ -32,7 +32,15 @@ for (const button of ['call', 'call-blank']) {
     if (call === undefined) {
       throw new Error('No call window.');
     }
-    await call.getByTestId('hang-up').click();
+    // Hang up closes its own window, which can end the click before
+    // Playwright sees it finish; the window closing is what counts.
+    await Promise.all([
+      call.waitForEvent('close'),
+      call
+        .getByTestId('hang-up')
+        .click()
+        .catch(() => undefined),
+    ]);
     await expect.poll(() => callWindow(app)).toBeNull();
   });
 }
