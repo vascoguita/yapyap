@@ -284,7 +284,11 @@ importers:
 
   plugins/ai-assistant: {}
 
-  plugins/example: {}
+  plugins/example:
+    devDependencies:
+      '@yapyap/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
 
   scripts:
     devDependencies:

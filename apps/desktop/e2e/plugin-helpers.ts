@@ -19,6 +19,20 @@ export const clickMenu = async (app: ElectronApplication, label: string): Promis
   }, label);
 };
 
+/**
+ * Clicks a plugin command in the "Plugin Commands" menu, once the plugin has
+ * started and its commands are listed; returns whether it was there.
+ */
+export const runPluginCommand = (app: ElectronApplication, label: string): Promise<boolean> =>
+  app.evaluate(({ Menu }, wanted) => {
+    const commands = Menu.getApplicationMenu()
+      ?.items.flatMap((menu) => menu.submenu?.items ?? [])
+      .find((entry) => entry.label === 'Plugin Commands');
+    const command = commands?.submenu?.items.find((entry) => entry.label === wanted);
+    command?.click();
+    return command !== undefined;
+  }, label);
+
 /** What the app shows and said, so a missing window explains itself. */
 const whatHappened = async (app: ElectronApplication): Promise<string> => {
   const urls = app.windows().map((page) => page.url());

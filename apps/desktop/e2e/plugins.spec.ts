@@ -2,7 +2,13 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { signedArchive, testKey, testManifest, zipArchive } from '../test/plugins.ts';
 import { expect, test } from './fixtures.ts';
-import { chromePage, clickMenu, installPlugin, pluginPage } from './plugin-helpers.ts';
+import {
+  chromePage,
+  clickMenu,
+  installPlugin,
+  pluginPage,
+  runPluginCommand,
+} from './plugin-helpers.ts';
 
 test('installs a third-party plugin only once the user accepts the risk, and marks it', async ({
   app,
@@ -279,16 +285,7 @@ test('lists a plugin’s commands in the menu under its name, and runs the one t
   await expect
     .poll(async () => (await pluginPage(app))?.title, { timeout: 20_000 })
     .toBe('waiting');
-  const pick = () =>
-    app.evaluate(({ Menu }) => {
-      const commands = Menu.getApplicationMenu()
-        ?.items.flatMap((menu) => menu.submenu?.items ?? [])
-        .find((entry) => entry.label === 'Plugin Commands');
-      const command = commands?.submenu?.items.find((entry) => entry.label === 'Hello: Say hello');
-      command?.click();
-      return command !== undefined;
-    });
-  await expect.poll(pick).toBe(true);
+  await expect.poll(() => runPluginCommand(app, 'Hello: Say hello')).toBe(true);
   await expect.poll(async () => (await pluginPage(app))?.title).toBe('greeted');
   expect((await pluginPage(app))?.shown).toBe(false);
 });
