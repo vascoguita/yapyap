@@ -12,6 +12,8 @@ function setup(confirmed = true, open = true) {
       ],
       update: vi.fn(() => true),
       remove: vi.fn(() => Promise.resolve(true)),
+      permissions: vi.fn((): readonly string[] | undefined => undefined),
+      forgetPermissions: vi.fn(),
     },
   };
   const confirm = vi.fn(() => Promise.resolve(confirmed));
@@ -110,5 +112,23 @@ describe('accountsHandlers', () => {
     await remove.handle(t.call, 'zz');
     expect(t.confirm).toHaveBeenCalledOnce();
     expect(t.holder.current.remove).not.toHaveBeenCalled();
+  });
+
+  it('tells what an account may use, and forgets its camera and microphone answers', () => {
+    const t = setup();
+    vi.mocked(t.holder.current.permissions).mockReturnValueOnce(['audio']).mockReturnValueOnce([]);
+    expect(t.handler('accounts:permissions').handle(t.call, 'b')).toEqual(['audio']);
+    expect(t.handler('accounts:forget-permissions').handle(t.call, 'b')).toEqual([]);
+    expect(t.holder.current.forgetPermissions).toHaveBeenCalledWith('b');
+    expect(t.handler('accounts:permissions').handle(t.call, 'a')).toBeNull();
+    expect(t.handler('accounts:permissions').accepts(['b'])).toBe(true);
+    expect(t.handler('accounts:permissions').accepts([1])).toBe(false);
+    expect(t.handler('accounts:forget-permissions').accepts(['b', 'c'])).toBe(false);
+  });
+
+  it('answers nothing about permissions before the accounts are open', () => {
+    const t = setup(true, false);
+    expect(t.handler('accounts:permissions').handle(t.call, 'b')).toBeNull();
+    expect(t.handler('accounts:forget-permissions').handle(t.call, 'b')).toBeNull();
   });
 });

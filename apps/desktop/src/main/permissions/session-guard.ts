@@ -253,7 +253,27 @@ function displayMediaHandler(deps: SessionGuardDependencies, shares: Shares) {
 }
 
 /** Applies the permission policy from ADR 0001 to one session. */
-export function guardSession(session: SessionPort, deps: SessionGuardDependencies): void {
+/** What a session remembers the user allowed, and how to make it ask again (#77). */
+export interface PermissionMemory {
+  /** The devices the user allowed for this session, until YapYap quits. */
+  readonly allowed: () => readonly MediaType[];
+  readonly forget: () => void;
+}
+
+function memoryOf(grants: Grants): PermissionMemory {
+  const types: readonly MediaType[] = ['audio', 'video'];
+  return {
+    allowed: () => types.filter((type) => [...grants].some((key) => key.endsWith(`\u0000${type}`))),
+    forget: () => {
+      grants.clear();
+    },
+  };
+}
+
+export function guardSession(
+  session: SessionPort,
+  deps: SessionGuardDependencies,
+): PermissionMemory {
   const grants: Grants = new Set();
   const shares: Shares = new WeakMap();
   session.setPermissionRequestHandler(requestHandler(deps, grants, shares));
@@ -262,4 +282,5 @@ export function guardSession(session: SessionPort, deps: SessionGuardDependencie
   session.setDisplayMediaRequestHandler(displayMediaHandler(deps, shares), {
     useSystemPicker: deps.capture.useSystemPicker,
   });
+  return memoryOf(grants);
 }

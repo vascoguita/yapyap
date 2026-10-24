@@ -37,6 +37,8 @@ describe('createChromeBridge', () => {
     const change = { name: 'Work', color: 'blue', enabled: true, muted: false };
     expect(await api.accounts.save('a', change)).toBe('ignored');
     expect(await api.accounts.remove('a')).toBe('ignored');
+    expect(await api.accounts.permissions('a')).toBe('ignored');
+    expect(await api.accounts.forgetPermissions('a')).toBe('ignored');
     expect(await api.sidebar.state()).toBe('ignored');
     await api.sidebar.switchTo('a');
     await api.sidebar.setCompact(true);
@@ -66,6 +68,8 @@ describe('createChromeBridge', () => {
       ['accounts:list'],
       ['accounts:save', 'a', { name: 'Work', color: 'blue', enabled: true, muted: false }],
       ['accounts:remove', 'a'],
+      ['accounts:permissions', 'a'],
+      ['accounts:forget-permissions', 'a'],
       ['sidebar:state'],
       ['sidebar:switch', 'a'],
       ['sidebar:set-compact', true],
@@ -97,7 +101,13 @@ describe('createChromeBridge', () => {
     ]);
     expect(Object.keys(api.plugins)).toEqual(['list', 'consent', 'answer']);
     expect(Object.keys(api.chat)).toEqual(['openNumber']);
-    expect(Object.keys(api.accounts)).toEqual(['list', 'save', 'remove']);
+    expect(Object.keys(api.accounts)).toEqual([
+      'list',
+      'save',
+      'remove',
+      'permissions',
+      'forgetPermissions',
+    ]);
     expect(Object.keys(api.picker)).toEqual(['offer', 'choose', 'cancel']);
     expect(Object.keys(api.settings)).toEqual(['get', 'set', 'restart', 'export', 'import']);
     expect(Object.keys(api.about)).toEqual(['info', 'copyTechnicalDetails']);

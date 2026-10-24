@@ -159,6 +159,11 @@ cache and storage; nothing is shared between them.
   the window, asking first if you changed something. An account that is off
   keeps its login and data but receives no messages until you turn it on
   again. At least one account keeps running.
+- The Accounts window also shows each running account's **Permissions**:
+  whether it may use the camera and microphone until YapYap quits, or asks
+  first. **Ask Again for Camera and Microphone** forgets those answers.
+  Notifications are always allowed (mute the account to silence them), and
+  screen sharing asks every time.
 - **Remove Account…**, in the Account menu or the Accounts window, removes
   an account after asking. It logs that account out and deletes its
   WhatsApp data on this computer; its chats stay on the phone. The last

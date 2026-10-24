@@ -144,6 +144,9 @@ export interface ChromeApi {
     readonly save: (id: string, change: AccountChange) => Promise<AccountList | null>;
     /** Asks the user first, so the list may come back unchanged. */
     readonly remove: (id: string) => Promise<AccountList>;
+    /** `audio` and `video` the account was allowed until YapYap quits; null while it is off. */
+    readonly permissions: (id: string) => Promise<readonly string[] | null>;
+    readonly forgetPermissions: (id: string) => Promise<readonly string[] | null>;
   };
   readonly sidebar: {
     readonly state: () => Promise<SidebarState>;
@@ -214,6 +217,8 @@ export const CHROME_CHANNELS = {
   accountsList: 'accounts:list',
   accountsSave: 'accounts:save',
   accountsRemove: 'accounts:remove',
+  accountsPermissions: 'accounts:permissions',
+  accountsForgetPermissions: 'accounts:forget-permissions',
   sidebarState: 'sidebar:state',
   sidebarSwitch: 'sidebar:switch',
   sidebarSetCompact: 'sidebar:set-compact',

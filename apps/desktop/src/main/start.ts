@@ -3,7 +3,12 @@ import type { AccountMenu, ChromeFeature, WhatsAppContents } from './chrome/feat
 import type { SidebarPort, SidebarSource } from './chrome/sidebar.ts';
 import { watchConnectivity } from './connectivity/connectivity.ts';
 import { APP_ID, PRODUCT_NAME } from './identity.ts';
-import type { CaptureChoice, DisplayCapturePort, MediaType } from './permissions/session-guard.ts';
+import type {
+  CaptureChoice,
+  DisplayCapturePort,
+  MediaType,
+  PermissionMemory,
+} from './permissions/session-guard.ts';
 import { followThemeSetting, type ThemePort } from './appearance/theme.ts';
 import { followZoomSetting, type ZoomableContents } from './appearance/zoom.ts';
 import { chromeUserAgent } from './identity/user-agent.ts';
@@ -418,10 +423,11 @@ function guardAccountSession<Window extends WindowPort>(
   deps: StartDependencies<Window>,
   security: Parameters<typeof secureSession>[1],
   account: Account,
-): void {
+): PermissionMemory {
   const session = deps.sessionOf(partitionOf(account));
-  secureSession(session, security);
+  const permissions = secureSession(session, security);
   guardDownloads(session, { ...deps.downloads, notify: deps.notify, warn: deps.warn });
+  return permissions;
 }
 
 /** Opens the main window where the user left it. */
@@ -457,6 +463,8 @@ function refuseWithoutSandbox<Window extends WindowPort>(
 interface OpenedAccount extends AccountPage {
   readonly contents: AccountContents;
   readonly reconnect: () => void;
+  /** Camera and microphone answers for this account, kept until YapYap quits (#77). */
+  readonly permissions: PermissionMemory;
   /** Settles once its first load ends, however it ends. */
   readonly loaded: Promise<void>;
 }
@@ -577,7 +585,7 @@ function openAccount<Window extends WindowPort>(
   account: Account,
 ): OpenedAccount {
   const { deps, chrome, window, origin } = wiring;
-  guardAccountSession(deps, wiring.security, account);
+  const permissions = guardAccountSession(deps, wiring.security, account);
   const host = deps.createAccountHost(window, {
     partition: partitionOf(account),
     preload: deps.whatsAppPreload,
@@ -602,7 +610,7 @@ function openAccount<Window extends WindowPort>(
     wiring.notifiers.all.delete(notifier);
     host.close();
   };
-  return { ...host, close, contents, reconnect: recovery.reconnect, loaded };
+  return { ...host, close, contents, reconnect: recovery.reconnect, loaded, permissions };
 }
 
 /** Deletes a removed account's WhatsApp data; its folder goes at the next start. */
@@ -630,6 +638,10 @@ function summaries(running: RunningAccounts<OpenedAccount>): AccountSummary[] {
   }));
 }
 
+function pageOf(running: RunningAccounts<OpenedAccount>, id: string): OpenedAccount | undefined {
+  return running.opened().find(({ account }) => account.id === id)?.page;
+}
+
 /** What the Account menu shows and does. */
 function accountMenu(
   running: RunningAccounts<OpenedAccount>,
@@ -644,6 +656,10 @@ function accountMenu(
     switchTo: running.switchTo,
     add: running.add,
     update: running.update,
+    permissions: (id) => pageOf(running, id)?.permissions.allowed(),
+    forgetPermissions: (id) => {
+      pageOf(running, id)?.permissions.forget();
+    },
     remove: (id) =>
       running.remove(id).catch(() => {
         warn('Could not delete the data of a removed account.');

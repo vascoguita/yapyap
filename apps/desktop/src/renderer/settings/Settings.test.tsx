@@ -40,7 +40,13 @@ function api(overrides: Partial<ChromeApi['settings']> = {}) {
       ...overrides,
     },
     chat: { openNumber: vi.fn() },
-    accounts: { list: vi.fn(), save: vi.fn(), remove: vi.fn() },
+    accounts: {
+      list: vi.fn(),
+      save: vi.fn(),
+      remove: vi.fn(),
+      permissions: vi.fn(),
+      forgetPermissions: vi.fn(),
+    },
     sidebar: {
       state: vi.fn(),
       switchTo: vi.fn(),

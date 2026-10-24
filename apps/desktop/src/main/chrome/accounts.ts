@@ -9,6 +9,10 @@ export interface AccountManager {
   /** False when YapYap refused the change, such as turning off the last running account. */
   readonly update: (id: string, change: AccountChange) => boolean;
   readonly remove: (id: string) => Promise<boolean>;
+  /** Devices the account was allowed until YapYap quits; undefined while it is off. */
+  readonly permissions: (id: string) => readonly string[] | undefined;
+  /** Makes the account ask again before using the camera or microphone. */
+  readonly forgetPermissions: (id: string) => void;
 }
 
 function isName(value: unknown): value is string {
@@ -23,6 +27,29 @@ function parseChange(value: unknown): AccountChange | undefined {
   return complete && Object.keys(rest).length === 0
     ? { name: name.trim(), color, enabled, muted }
     : undefined;
+}
+
+const oneId = ([id, ...rest]: readonly unknown[]): boolean =>
+  rest.length === 0 && typeof id === 'string';
+
+/** What an account may use, and forgetting the camera and microphone answers (#77). */
+function permissionHandlers(current: () => AccountManager | undefined): ChromeHandler[] {
+  return [
+    {
+      channel: CHROME_CHANNELS.accountsPermissions,
+      accepts: oneId,
+      handle: (_call, id) => current()?.permissions(id as string) ?? null,
+    },
+    {
+      channel: CHROME_CHANNELS.accountsForgetPermissions,
+      accepts: oneId,
+      handle: (_call, id) => {
+        const manager = current();
+        manager?.forgetPermissions(id as string);
+        return manager?.permissions(id as string) ?? null;
+      },
+    },
+  ];
 }
 
 /**
@@ -60,5 +87,6 @@ export function accountsHandlers(
         return list();
       },
     },
+    ...permissionHandlers(current),
   ];
 }

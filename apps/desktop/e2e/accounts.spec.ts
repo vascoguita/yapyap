@@ -131,6 +131,12 @@ test('renames an account and turns another off from the Accounts window', async 
   }
   // The window opens on the account on screen: the one just added.
   await expect(manage.getByLabel('Name')).toHaveValue('WhatsApp 2');
+  // Nothing was allowed yet, so the account asks before using the camera.
+  await expect(manage.getByRole('heading', { name: 'Permissions' })).toBeVisible();
+  await expect(manage.getByText('Asks first')).toHaveCount(2);
+  await expect(
+    manage.getByRole('button', { name: 'Ask Again for Camera and Microphone' }),
+  ).toBeDisabled();
   await manage.getByLabel('Name').fill('Work');
   await manage.getByLabel('Run this account').uncheck();
   await manage.getByRole('button', { name: 'Save' }).click();

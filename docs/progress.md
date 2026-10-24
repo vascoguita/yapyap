@@ -211,6 +211,13 @@ not edit the same lines.
   a notification that opens the release page; nothing is downloaded, and
   other policies never make the request.
 
+- Site permissions (#77): each account's session guard now hands back what
+  it remembers (`PermissionMemory`), and the Accounts window shows, for a
+  running account, whether the camera and microphone are allowed until
+  YapYap quits or ask first, with a button that forgets those answers.
+  Notifications are always allowed and screen sharing asks every time, so
+  there is nothing else to reset.
+
 - Account → New Chat with Number… (#80) opens a small chrome window; the
   number is parsed by `src/shared/phone-number.ts` in the window and again in
   main, then opened as WhatsApp's own chat link. Nothing is stored.

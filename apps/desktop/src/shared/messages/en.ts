@@ -298,6 +298,18 @@ const catalog = {
     refused: 'At least one account must keep running, so this one cannot be turned off.',
     failed: 'Could not save the account. Try again.',
     unavailable: 'Accounts are unavailable.',
+    permissions: {
+      title: 'Permissions',
+      camera: 'Camera',
+      microphone: 'Microphone',
+      notifications: 'Notifications',
+      screen: 'Screen sharing',
+      allowed: 'Allowed until YapYap quits',
+      asks: 'Asks first',
+      notificationsState: 'Allowed; mute the account to silence them',
+      screenState: 'Asks every time',
+      forget: 'Ask Again for Camera and Microphone',
+    },
     discard: {
       message: 'Discard your changes to this account?',
       confirm: 'Discard',

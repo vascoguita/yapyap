@@ -363,6 +363,8 @@ describe('createChromeFeature', () => {
       togglePrivacyScreen: vi.fn(),
       update: vi.fn(() => true),
       remove: vi.fn(() => Promise.resolve(true)),
+      permissions: vi.fn((): readonly string[] | undefined => undefined),
+      forgetPermissions: vi.fn(),
     });
     t.clickAccount('Clear Cache and Reload');
     await new Promise((resolve) => setTimeout(resolve));
@@ -402,6 +404,8 @@ describe('createChromeFeature', () => {
       togglePrivacyScreen: vi.fn(),
       update: vi.fn(() => true),
       remove: vi.fn(() => Promise.resolve(true)),
+      permissions: vi.fn((): readonly string[] | undefined => undefined),
+      forgetPermissions: vi.fn(),
     };
     runtime.setAccountMenu(menu);
     t.clickAccount('Personal');
@@ -474,6 +478,8 @@ describe('createChromeFeature', () => {
       togglePrivacyScreen: vi.fn(),
       update: vi.fn(() => true),
       remove: vi.fn(() => Promise.resolve(true)),
+      permissions: vi.fn((): readonly string[] | undefined => undefined),
+      forgetPermissions: vi.fn(),
     });
     expect(t.call('accounts:list')).toHaveProperty('accounts', entries);
   });
@@ -493,6 +499,8 @@ describe('createChromeFeature', () => {
       togglePrivacyScreen: vi.fn(),
       update: vi.fn(() => true),
       remove: vi.fn(() => Promise.resolve(true)),
+      permissions: vi.fn((): readonly string[] | undefined => undefined),
+      forgetPermissions: vi.fn(),
     });
     t.clickAccount('Remove Account…');
     expect(t.deps.confirmRemoveAccount).not.toHaveBeenCalled();
@@ -514,6 +522,8 @@ describe('createChromeFeature', () => {
       togglePrivacyScreen: vi.fn(),
       update: vi.fn(() => true),
       remove: vi.fn(() => Promise.resolve(true)),
+      permissions: vi.fn((): readonly string[] | undefined => undefined),
+      forgetPermissions: vi.fn(),
     };
     runtime.setAccountMenu(menu);
     t.clickAccount('Mute This Account');

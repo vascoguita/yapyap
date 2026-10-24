@@ -57,7 +57,7 @@ function setup(capture: Partial<DisplayCapturePort> = {}) {
       handlers.display = handler;
     }),
   } satisfies SessionPort;
-  guardSession(session, deps);
+  const memory = guardSession(session, deps);
   const { request, check, device, display } = handlers as Handlers;
   const ask = (contents: object | null, permission: string, details: object = {}) =>
     new Promise<boolean>((resolve) => {
@@ -67,7 +67,7 @@ function setup(capture: Partial<DisplayCapturePort> = {}) {
     new Promise<unknown>((resolve) => {
       display({ securityOrigin: HOME, ...request }, resolve);
     });
-  return { deps, session, whatsapp, chrome, frame, ask, check, device, share };
+  return { deps, session, whatsapp, chrome, frame, ask, check, device, share, memory };
 }
 
 const settle = () => new Promise((resolve) => setTimeout(resolve));
@@ -96,6 +96,17 @@ describe('permission requests', () => {
     expect(t.deps.askMedia).toHaveBeenCalledExactlyOnceWith(WHATSAPP, ['audio', 'video']);
     expect(await t.ask(t.whatsapp, 'media', { mediaTypes: ['video'] })).toBe(true);
     expect(t.deps.askMedia).toHaveBeenCalledOnce();
+  });
+
+  it('tells which devices it remembers, and forgets them to ask again (#77)', async () => {
+    const t = setup();
+    expect(t.memory.allowed()).toEqual([]);
+    await t.ask(t.whatsapp, 'media', { mediaTypes: ['video'] });
+    expect(t.memory.allowed()).toEqual(['video']);
+    t.memory.forget();
+    expect(t.memory.allowed()).toEqual([]);
+    await t.ask(t.whatsapp, 'media', { mediaTypes: ['video'] });
+    expect(t.deps.askMedia).toHaveBeenCalledTimes(2);
   });
 
   it('asks only about devices that are not allowed yet', async () => {

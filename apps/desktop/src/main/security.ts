@@ -6,6 +6,7 @@ import {
 import { createNavigationGuard, type NavigationContents } from './navigation/navigation-guard.ts';
 import {
   guardSession,
+  type PermissionMemory,
   type SessionGuardDependencies,
   type SessionPort,
 } from './permissions/session-guard.ts';
@@ -41,8 +42,11 @@ export interface SecurityDependencies extends SessionGuardDependencies {
 }
 
 /** Applies the permission policy and the Chrome identity to one session. */
-export function secureSession(session: GuardedSession, deps: SecurityDependencies): void {
-  guardSession(session, deps);
+export function secureSession(
+  session: GuardedSession,
+  deps: SecurityDependencies,
+): PermissionMemory {
+  const memory = guardSession(session, deps);
   presentAsChrome(session, deps.identity);
   // Every window makes Chromium fetch a spelling dictionary for the UI
   // language from a Google CDN, which reveals that language and the user's
@@ -51,6 +55,7 @@ export function secureSession(session: GuardedSession, deps: SecurityDependencie
   // language choices in #73.
   session.setSpellCheckerEnabled(false);
   session.setSpellCheckerLanguages([]);
+  return memory;
 }
 
 /**

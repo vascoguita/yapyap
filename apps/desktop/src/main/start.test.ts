@@ -763,6 +763,16 @@ describe('startApp', () => {
       expect(menu(f).activeContents()).toBe(work?.webContents);
     });
 
+    it('lets the Accounts window read and forget each running account’s camera and microphone answers', async () => {
+      const f = twoAccounts();
+      await startApp(f);
+      expect(menu(f).permissions(ACCOUNT)).toEqual([]);
+      expect(menu(f).permissions('not-running')).toBeUndefined();
+      menu(f).forgetPermissions(ACCOUNT);
+      menu(f).forgetPermissions('not-running');
+      expect(menu(f).permissions(ACCOUNT)).toEqual([]);
+    });
+
     it('titles the window after the active account and counts every account’s unread chats', async () => {
       const f = twoAccounts();
       await startApp(f);
