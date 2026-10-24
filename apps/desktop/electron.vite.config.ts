@@ -34,6 +34,7 @@ export default defineConfig({
           'new-chat': resolve(import.meta.dirname, 'src/renderer/new-chat.html'),
           accounts: resolve(import.meta.dirname, 'src/renderer/accounts.html'),
           welcome: resolve(import.meta.dirname, 'src/renderer/welcome.html'),
+          report: resolve(import.meta.dirname, 'src/renderer/report.html'),
           sidebar: resolve(import.meta.dirname, 'src/renderer/sidebar.html'),
           plugins: resolve(import.meta.dirname, 'src/renderer/plugins.html'),
           'plugin-consent': resolve(import.meta.dirname, 'src/renderer/plugin-consent.html'),

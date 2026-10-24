@@ -150,6 +150,7 @@ const chrome = createChromeFeature({
     Menu.setApplicationMenu(Menu.buildFromTemplate(template));
   },
   writeClipboard: (text) => clipboard.writeText(text),
+  openExternal: (url) => shell.openExternal(url),
   facts: () => ({
     version: app.getVersion(),
     channel: installChannel(),

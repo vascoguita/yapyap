@@ -1,3 +1,5 @@
+import { en } from '../../shared/messages/en.ts';
+
 /** Present while YapYap runs; still there at the next launch means it did not quit cleanly. */
 export const SESSION_MARKER = 'running.json';
 /** The latest crash report. Only one is kept; a new crash replaces it. */
@@ -59,14 +61,34 @@ export function buildCrashReport(
   ].join('\n');
 }
 
-/** A new bug report with the crash report filled in, for the user to review and submit. */
-export function crashIssueUrl(report: string): string {
-  const diagnostics =
-    report.length > MAX_ISSUE_REPORT ? `${report.slice(0, MAX_ISSUE_REPORT)}\n[trimmed]` : report;
+/** What a bug report starts with; the user edits all of it on GitHub before submitting. */
+interface BugReport {
+  readonly title: string;
+  readonly whatHappened: string;
+  readonly diagnostics: string;
+}
+
+/** GitHub's bug report form, filled in through the template's field IDs. */
+export function bugReportUrl(report: BugReport): string {
+  const { diagnostics } = report;
   const url = new URL(ISSUE_FORM);
   url.searchParams.set('template', 'bug_report.yml');
-  url.searchParams.set('title', 'YapYap closed unexpectedly');
-  url.searchParams.set('what-happened', 'YapYap closed unexpectedly. I was …');
-  url.searchParams.set('diagnostics', diagnostics);
+  url.searchParams.set('title', report.title);
+  url.searchParams.set('what-happened', report.whatHappened);
+  url.searchParams.set(
+    'diagnostics',
+    diagnostics.length > MAX_ISSUE_REPORT
+      ? `${diagnostics.slice(0, MAX_ISSUE_REPORT)}\n[trimmed]`
+      : diagnostics,
+  );
   return url.toString();
+}
+
+/** A new bug report with the crash report filled in, for the user to review and submit. */
+export function crashIssueUrl(report: string): string {
+  return bugReportUrl({
+    title: en.report.crashTitle,
+    whatHappened: en.report.crashWhatHappened,
+    diagnostics: report,
+  });
 }

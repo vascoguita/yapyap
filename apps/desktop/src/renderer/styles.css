@@ -759,3 +759,36 @@ main.shortcuts kbd {
   font: inherit;
   font-size: 0.85rem;
 }
+
+main.report {
+  align-items: stretch;
+  max-width: 600px;
+  margin: 0 auto;
+  text-align: left;
+}
+
+main.report .hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+main.report textarea {
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  resize: vertical;
+}
+
+/* The report as it will be copied, read-only but reachable with the keyboard. */
+main.report .diagnostics {
+  font-family: ui-monospace, monospace;
+  font-size: 0.8rem;
+}
+
+main.report .actions {
+  justify-content: flex-end;
+}

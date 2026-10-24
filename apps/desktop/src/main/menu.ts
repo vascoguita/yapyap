@@ -39,6 +39,8 @@ export interface MenuActions {
   /** Copies versions, platform, GPU summary and recent redacted log lines for bug reports. */
   readonly copyDiagnostics: () => void;
   readonly openShortcuts: () => void;
+  /** Help → Report a Problem: the guided report (#82). */
+  readonly openReport: () => void;
 }
 
 /** Zoom in YapYap's own 5% steps, kept per account. */
@@ -208,7 +210,11 @@ function commonItems(
     ...keyed('shortcuts', platform),
     click: actions.openShortcuts,
   };
-  return { about: [about], settings: [settings], help: [shortcuts, diagnostics] };
+  const report: MenuItemConstructorOptions = {
+    label: en.menu.reportProblem,
+    click: actions.openReport,
+  };
+  return { about: [about], settings: [settings], help: [shortcuts, report, diagnostics] };
 }
 
 /** Plugins sit beside Settings, as Settings is where Developer Mode lives. */

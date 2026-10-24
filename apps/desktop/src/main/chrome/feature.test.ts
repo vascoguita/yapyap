@@ -42,6 +42,7 @@ function setup() {
       menu = template;
     }),
     writeClipboard: vi.fn(() => Promise.resolve()),
+    openExternal: vi.fn(() => Promise.resolve()),
     notify: vi.fn(),
     facts: () => ({
       version: '0.1.0',
@@ -517,6 +518,31 @@ describe('createChromeFeature', () => {
     runtime.openWelcome();
     runtime.openWelcome();
     expect(t.window.loadURL).toHaveBeenCalledExactlyOnceWith('app://chrome/welcome.html');
+  });
+
+  it('opens Report a Problem from the Help menu, describing the first WhatsApp view', async () => {
+    const t = setup();
+    t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    const help = t.menu().at(-1)?.submenu;
+    const report = Array.isArray(help)
+      ? help.find((item) => item.label === 'Report a Problem…')
+      : undefined;
+    (report?.click as (() => void) | undefined)?.();
+    expect(t.window.loadURL).toHaveBeenCalledWith('app://chrome/report.html');
+    expect(t.deps.createWindow).toHaveBeenLastCalledWith(
+      {
+        autoHideMenuBar: true,
+        title: 'Report a Problem',
+        width: 600,
+        height: 640,
+        minWidth: 440,
+        minHeight: 420,
+        minimizable: false,
+        show: false,
+      },
+      expect.anything(),
+    );
+    await expect(t.call('report:diagnostics')).resolves.toMatch(/WhatsApp page unavailable/);
   });
 
   it('docks the account sidebar as a chrome page and answers its calls', () => {

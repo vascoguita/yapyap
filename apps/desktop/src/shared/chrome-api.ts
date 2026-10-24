@@ -164,6 +164,12 @@ export interface ChromeApi {
     /** `acknowledged`: the user accepted the risk of a plugin YapYap has not reviewed. */
     readonly answer: (install: boolean, acknowledged: boolean) => Promise<void>;
   };
+  readonly report: {
+    /** The sanitized diagnostics the report would carry, for the user to review. */
+    readonly diagnostics: () => Promise<string>;
+    /** Copies the report and opens GitHub's form with it; YapYap itself sends nothing. */
+    readonly open: (description: string) => Promise<void>;
+  };
   readonly picker: {
     readonly offer: () => Promise<PickerOffer>;
     readonly choose: (id: string, audio: boolean) => Promise<void>;
@@ -233,6 +239,8 @@ export const CHROME_CHANNELS = {
   sidebarSwitch: 'sidebar:switch',
   sidebarSetCompact: 'sidebar:set-compact',
   sidebarStopSharing: 'sidebar:stop-sharing',
+  reportDiagnostics: 'report:diagnostics',
+  reportOpen: 'report:open',
   pluginsList: 'plugins:list',
   pluginsConsent: 'plugins:consent',
   pluginsAnswer: 'plugins:answer',

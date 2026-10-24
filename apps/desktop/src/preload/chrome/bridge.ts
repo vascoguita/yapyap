@@ -60,6 +60,15 @@ function shortcutsBridge(invoke: Invoke): ChromeApi['shortcuts'] {
   return { list: () => invoke(CHROME_CHANNELS.shortcutsList) as Promise<ShortcutList> };
 }
 
+function reportBridge(invoke: Invoke): ChromeApi['report'] {
+  return {
+    diagnostics: () => invoke(CHROME_CHANNELS.reportDiagnostics) as Promise<string>,
+    open: async (description) => {
+      await invoke(CHROME_CHANNELS.reportOpen, description);
+    },
+  };
+}
+
 /**
  * Builds the chrome API from a single invoke function. Each operation has its
  * own fixed channel, so the page can never choose what it calls.
@@ -93,6 +102,7 @@ export function createChromeBridge(invoke: Invoke, listen: Listen): ChromeApi {
     accounts: accountsBridge(invoke),
     sidebar: sidebarBridge(invoke, listen),
     plugins: pluginsBridge(invoke),
+    report: reportBridge(invoke),
     picker: {
       offer: () => invoke(CHROME_CHANNELS.pickerOffer) as Promise<PickerOffer>,
       choose: async (id, audio) => {

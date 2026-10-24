@@ -237,6 +237,13 @@ not edit the same lines.
   by pinch or Ctrl with the wheel, which arrive as `zoom-changed`; the View
   menu still zooms.
 
+- Guided problem report (#82): Help → Report a Problem… opens a window
+  where the user describes the problem and reviews the sanitized
+  diagnostics (the same report as Copy Diagnostics, for the first WhatsApp
+  view). Copy and Open GitHub copies both and opens the bug form with them
+  filled in (`bugReportUrl`, shared with crash reports); YapYap sends
+  nothing itself.
+
 - Cache and memory options (#83): `reliability.diskCacheMb` and
   `reliability.jsHeapMb` (settings schema v13) set Chromium's disk cache
   size and each page's JavaScript memory limit at launch
