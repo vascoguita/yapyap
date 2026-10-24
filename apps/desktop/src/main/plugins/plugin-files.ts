@@ -1,5 +1,5 @@
 import { extname, resolve, sep } from 'node:path';
-import { HOST_SCRIPT_PATH } from '../../shared/plugin-rpc.ts';
+import { HOST_SCRIPT_PATH, PANEL_PAGE_PATH } from '../../shared/plugin-rpc.ts';
 import { hostScript } from './host-script.ts';
 
 export const PLUGIN_SCHEME = 'plugin';
@@ -54,6 +54,14 @@ const notFound = (): Response => respond(null, 'text/plain', NOT_FOUND);
  */
 export const HOST_PAGE = `<!doctype html><html><head><meta charset="utf-8"><script type="module" src="${HOST_SCRIPT_PATH}"></script></head></html>`;
 
+/**
+ * The page of a plugin's panel (#98), which loads the module the manifest
+ * names. The schema allows only letters, digits, `.`, `_`, `-` and `/` in
+ * that path, so it needs no escaping.
+ */
+export const panelPage = (entry: string): string =>
+  `<!doctype html><html><head><meta charset="utf-8"><script type="module" src="/${entry}"></script></head><body></body></html>`;
+
 /** The file `pathname` names inside `folder`, or undefined when it would leave it. */
 function fileIn(folder: string, pathname: string): string | undefined {
   let relative: string;
@@ -66,18 +74,28 @@ function fileIn(folder: string, pathname: string): string | undefined {
   return path.startsWith(folder + sep) ? path : undefined;
 }
 
-/** The page and bootstrap YapYap serves to start the plugin, which no plugin file can replace. */
-function yapyapFile(pathname: string, entry: string): Response | undefined {
-  if (pathname === '/') {
-    return respond(HOST_PAGE, 'text/html; charset=utf-8');
+const HTML = 'text/html; charset=utf-8';
+
+/** The pages and bootstrap YapYap serves for the plugin, which no plugin file can replace. */
+function yapyapFile(pathname: string, source: PluginSource): Response | undefined {
+  switch (pathname) {
+    case '/':
+      return respond(HOST_PAGE, HTML);
+    case HOST_SCRIPT_PATH:
+      return respond(hostScript(source.entry), JAVASCRIPT);
+    case PANEL_PAGE_PATH:
+      return source.panel === undefined ? notFound() : respond(panelPage(source.panel), HTML);
+    default:
+      return undefined;
   }
-  return pathname === HOST_SCRIPT_PATH ? respond(hostScript(entry), JAVASCRIPT) : undefined;
 }
 
 /** Where a running plugin's files are, and the module it starts from. */
 export interface PluginSource {
   readonly folder: string;
   readonly entry: string;
+  /** The module of the plugin's panel, if it has one. */
+  readonly panel: string | undefined;
 }
 
 /**
@@ -96,7 +114,7 @@ export function servePluginFiles(
     if (url.protocol !== `${PLUGIN_SCHEME}:` || url.host !== id || current === undefined) {
       return notFound();
     }
-    const own = yapyapFile(url.pathname, current.entry);
+    const own = yapyapFile(url.pathname, current);
     if (own !== undefined) {
       return own;
     }

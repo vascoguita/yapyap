@@ -228,7 +228,7 @@ const chrome = createChromeFeature({
     root: join(app.getPath('userData'), 'plugins'),
     anchors: anchorFingerprints(TRUST_ANCHORS),
     sessionOf: (partition) => session.fromPartition(partition),
-    // A plugin has no window of its own to show; its UI is YapYap's (ADR 0004).
+    // A plugin's code runs in a window never shown; its UI is YapYap's, or its panel (ADR 0004).
     createHost: (partition) => {
       const host = createSecureWindow(
         { show: false, skipTaskbar: true, focusable: false, paintWhenInitiallyHidden: false },
@@ -244,6 +244,31 @@ const chrome = createChromeFeature({
           const { port1, port2 } = new MessageChannelMain();
           host.webContents.postMessage(PLUGIN_PORT_CHANNEL, null, [port2]);
           return port1;
+        },
+      };
+    },
+    // No preload: a panel gets no port, so it reaches the host API only through its plugin's page.
+    createPanel: (partition, title) => {
+      const panel = createSecureWindow(
+        { title, width: 420, height: 640, autoHideMenuBar: true },
+        { partition },
+      );
+      // The title names the plugin, so its page may not change it.
+      panel.on('page-title-updated', (event) => {
+        event.preventDefault();
+      });
+      return {
+        webContents: panel.webContents,
+        loadURL: (url) => panel.loadURL(url),
+        focus: () => {
+          panel.focus();
+        },
+        // Only called while the window is open: closing it forgets it first.
+        destroy: () => {
+          panel.destroy();
+        },
+        onClosed: (listener) => {
+          panel.once('closed', listener);
         },
       };
     },

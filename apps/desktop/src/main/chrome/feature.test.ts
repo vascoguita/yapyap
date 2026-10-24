@@ -82,6 +82,7 @@ function setup() {
       showMessage: vi.fn(),
       sessionOf: vi.fn(),
       createHost: vi.fn(),
+      createPanel: vi.fn(),
       methodsFor: vi.fn(() => ({})),
       rpc: { ...RPC_OPTIONS, now: () => 0, after: vi.fn() },
       audit: { record: vi.fn(), recent: vi.fn(() => []) },

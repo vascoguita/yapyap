@@ -105,8 +105,27 @@ const fakeHost = (partition: string, loaded: Promise<unknown> = Promise.resolve(
   };
 };
 
+function fakePanel() {
+  const closed: (() => void)[] = [];
+  return {
+    webContents: {},
+    loadURL: vi.fn((): Promise<unknown> => Promise.resolve()),
+    focus: vi.fn(),
+    destroy: vi.fn(),
+    onClosed: vi.fn((listener: () => void) => {
+      closed.push(listener);
+    }),
+    close: () => {
+      for (const listener of closed) {
+        listener();
+      }
+    },
+  };
+}
+
 function setup() {
   const sampled: (() => void)[] = [];
+  const panels: ReturnType<typeof fakePanel>[] = [];
   const sessions = new Map<string, FakeSession>();
   const hosts: FakeHost[] = [];
   const views: ViewRegistry = new WeakMap();
@@ -124,6 +143,11 @@ function setup() {
       const host = fakeHost(partition);
       hosts.push(host);
       return host;
+    }),
+    createPanel: vi.fn<(partition: string, title: string) => ReturnType<typeof fakePanel>>(() => {
+      const panel = fakePanel();
+      panels.push(panel);
+      return panel;
     }),
     readFile: (path: string) => readFile(path),
     views,
@@ -163,7 +187,8 @@ function setup() {
       callback();
     }
   };
-  return { deps, sessions, hosts, views, only, sample, runtime: createPluginRuntime(deps) };
+  const runtime = createPluginRuntime(deps);
+  return { deps, sessions, hosts, panels, views, only, sample, runtime };
 }
 
 describe('pluginPartition', () => {
@@ -381,6 +406,76 @@ describe('createPluginRuntime', () => {
     const t = setup();
     await t.runtime.startAll();
     expect(t.runtime.actions()).toEqual([]);
+  });
+
+  it('opens a plugin’s panel in a window titled with its name, and brings it forward again', async () => {
+    const panel = { title: 'Notes', entry: 'panel.js' };
+    await install(record(), { ...MANIFEST, contributes: { panel } });
+    await saveRecords(root, new Map([['org.example.hello', record()]]));
+    const t = setup();
+    await t.runtime.startAll();
+    expect(t.runtime.panels()).toEqual([
+      { plugin: 'org.example.hello', pluginName: 'Hello', title: 'Notes' },
+    ]);
+    expect(t.runtime.openPanel('org.example.hello')).toBe(true);
+    expect(t.deps.createPanel).toHaveBeenCalledExactlyOnceWith(
+      'plugin:org.example.hello',
+      'Hello: Notes',
+    );
+    const window = t.only(t.panels);
+    expect(window.loadURL).toHaveBeenCalledWith('plugin://org.example.hello/__yapyap/panel.html');
+    expect(t.views.get(window.webContents)).toEqual({
+      home: 'plugin://org.example.hello',
+      zone: 'plugin',
+      label: 'org.example.hello',
+    });
+    expect(t.runtime.openPanel('org.example.hello')).toBe(true);
+    expect(window.focus).toHaveBeenCalledOnce();
+    window.close();
+    t.runtime.openPanel('org.example.hello');
+    expect(t.panels).toHaveLength(2);
+    t.runtime.stop('org.example.hello');
+    expect(t.panels[1]?.destroy).toHaveBeenCalledOnce();
+    expect(t.runtime.panels()).toEqual([]);
+  });
+
+  it('opens no panel for a plugin without one, or one that does not run', async () => {
+    await install(record());
+    await saveRecords(root, new Map([['org.example.hello', record()]]));
+    const t = setup();
+    await t.runtime.startAll();
+    expect(t.runtime.panels()).toEqual([]);
+    expect(t.runtime.openPanel('org.example.hello')).toBe(false);
+    expect(t.runtime.openPanel('org.example.other')).toBe(false);
+    expect(t.deps.createPanel).not.toHaveBeenCalled();
+  });
+
+  it('says when a panel’s page cannot load, and forgets a panel closed after a restart', async () => {
+    await install(record(), {
+      ...MANIFEST,
+      contributes: { panel: { title: 'Notes', entry: 'panel.js' } },
+    });
+    await saveRecords(root, new Map([['org.example.hello', record()]]));
+    const t = setup();
+    await t.runtime.startAll();
+    t.deps.createPanel.mockImplementationOnce(() => {
+      const panel = fakePanel();
+      panel.loadURL.mockRejectedValue(new Error('gone'));
+      t.panels.push(panel);
+      return panel;
+    });
+    t.runtime.openPanel('org.example.hello');
+    await vi.waitFor(() => {
+      expect(t.deps.warn).toHaveBeenCalledWith(
+        'The panel of plugin org.example.hello could not be loaded.',
+      );
+    });
+    await t.runtime.restart('org.example.hello');
+    const old = t.only(t.panels);
+    expect(old.destroy).toHaveBeenCalledOnce();
+    old.close();
+    t.runtime.openPanel('org.example.hello');
+    expect(t.panels).toHaveLength(2);
   });
 
   it('starts an updated plugin again on the same session, from its new folder', async () => {

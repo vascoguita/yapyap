@@ -178,9 +178,9 @@ WhatsApp adapter as validated plain objects.
 Commands, composer actions, context-menu items and settings forms are
 declarative. YapYap renders them in its own chrome, with the plugin's name and
 icon in a visually distinct style, outside the WhatsApp view, so a plugin can
-never draw over the composer or imitate WhatsApp. Optional panels render in
-the plugin's own sandboxed view, inside a YapYap frame that shows the plugin
-identity.
+never draw over the composer or imitate WhatsApp. An optional panel opens
+in a window of its own, on the plugin's session and under its CSP, titled
+with the plugin's name by YapYap (C25 in ADR 0008).
 
 Commands are the first contribution YapYap renders (#98): those of the
 running plugins appear in the menu under **Plugin Commands**, each labelled
@@ -205,6 +205,15 @@ point and returns only that, never page text, and only when some plugin
 has items. Picking one runs the plugin's command, as the menu does; the
 plugin then reads what its capabilities allow. Where WhatsApp shows a menu
 of its own, Chromium shows none, and so neither do plugin items.
+
+Panels are the last (#98). **Plugin Commands** lists each running plugin's
+panel after its commands. Picking one opens the panel's window, or brings
+it forward. YapYap serves its page at `/__yapyap/panel.html`, which loads
+the manifest's `panel.entry` as a module. The window has no preload, so the
+panel gets no port; it reaches the host API only through its plugin's
+hidden page, which shares its origin. The window's title is
+`<plugin name>: <panel title>`, and the page cannot change it. The panel
+closes when its plugin stops or restarts.
 
 ### Audit log
 
