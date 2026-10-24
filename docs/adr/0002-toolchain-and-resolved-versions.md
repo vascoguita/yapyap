@@ -76,6 +76,7 @@ Releases API. Pre-release, beta and nightly versions are never used.
 | fflate            | 0.8.3   | Zero-dependency zip reader for `.yapyap-plugin` bundles                                                                                                                                                                  |
 | electron-updater  | 6.8.9   | Signed update metadata for AppImage, NSIS and macOS only                                                                                                                                                                 |
 | @anthropic-ai/sdk | 1.2.0   | The AI assistant plugin's Anthropic provider (#103): the vendor's own streaming, error types, retries and timeouts, bundled into the plugin only; 1.2.0 because pnpm's one-day release-age policy still holds back 1.3.0 |
+| openai            | 7.43.0  | The AI assistant plugin's OpenAI and OpenAI-compatible provider (#103): the vendor's chat-completions streaming and error types, which self-hosted servers speak too; bundled into the plugin only                       |
 
 Everything else is written in-house and kept small: logging with redaction,
 settings store, i18n catalogs, and the RPC layer.
