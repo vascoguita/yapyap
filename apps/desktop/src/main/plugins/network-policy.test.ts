@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { hostPolicy } from './network-policy.ts';
 
-function setup(approved: string[] = ['api.example.org']) {
+function setup(approved: string[] = ['api.example.org'], local = false) {
   let hosts = approved;
   let answer: (allowed: boolean) => void = () => undefined;
   const deps = {
@@ -18,6 +18,7 @@ function setup(approved: string[] = ['api.example.org']) {
       hosts = [...hosts, host];
       return Promise.resolve();
     }),
+    local: () => local,
   };
   return {
     deps,
@@ -81,5 +82,29 @@ describe('hostPolicy', () => {
     const t = setup(full);
     expect(await t.decide('https://one-more.example.org/')).toBe(false);
     expect(t.deps.ask).not.toHaveBeenCalled();
+  });
+
+  it('reaches servers on this computer only with the grant, and nothing else nearby', async () => {
+    const granted = setup([], true);
+    for (const url of [
+      'http://localhost:11434/v1/chat/completions',
+      'http://127.0.0.1:8080/',
+      'https://localhost/v1',
+      'http://[::1]:1234/',
+    ]) {
+      expect(await granted.decide(url)).toBe(true);
+    }
+    for (const url of [
+      'http://192.168.1.10:11434/',
+      'http://user:secret@localhost:11434/',
+      'ws://localhost:8080/',
+      'http://localhost.example.org/',
+    ]) {
+      expect(await granted.decide(url)).toBe(false);
+    }
+    const refused = setup([], false);
+    expect(await refused.decide('http://localhost:11434/')).toBe(false);
+    expect(granted.deps.ask).not.toHaveBeenCalled();
+    expect(refused.deps.ask).not.toHaveBeenCalled();
   });
 });

@@ -105,6 +105,10 @@ to `<userData>/plugins/<id>/<version>/` only after the signature verifies.
   added to the plugin's record, and a refused one is not asked about again
   until YapYap restarts. A plugin that already holds 32 hosts is not asked
   about more.
+  The plugin CSP also lets plain HTTP to `localhost`, `127.0.0.1` and
+  `[::1]` reach the filter, which allows it, on any port, only to a plugin
+  holding `local-network` (#103), for a model server the user runs on
+  this computer. Other machines on the local network are never reachable.
 - Plugin pages are a trust zone of their own (`plugin`). The navigation
   guard confines them: they open no windows and no links in the browser or
   other apps, and cannot navigate away from `plugin://<id>/`. The host page
@@ -163,6 +167,7 @@ starts to.
 | `storage:local`            | A persistent private partition and a key-value store API                                 |
 | `secrets:own`              | Read and write the plugin's own secrets namespace (Electron `safeStorage`)               |
 | `network:<host>`           | HTTPS requests to that host via the plugin session                                       |
+| `local-network`            | HTTP or HTTPS requests to this computer (`localhost`, `127.0.0.1`, `[::1]`), any port    |
 
 The key-value store (#301) keeps each plugin's values as JSON in
 `<userData>/plugins/.storage/<id>.json`, readable by the user alone, with

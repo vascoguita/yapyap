@@ -86,6 +86,10 @@
           {
             "type": "string",
             "const": "secrets:own"
+          },
+          {
+            "type": "string",
+            "const": "local-network"
           }
         ]
       },

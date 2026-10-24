@@ -343,6 +343,33 @@ describe('createPluginRuntime', () => {
     expect(await loadRecords(root)).toEqual(new Map());
   });
 
+  it('lets a plugin reach this computer only while it holds local-network', async () => {
+    const local = record({ capabilities: ['local-network'] });
+    await install(local);
+    await saveRecords(root, new Map([['org.example.hello', local]]));
+    const t = setup();
+    await t.runtime.startAll();
+    const session = t.only([...t.sessions.values()]);
+    const filter = session.webRequest.onBeforeRequest.mock.calls[0]?.[0] as (
+      details: { url: string },
+      callback: (response: { cancel: boolean }) => void,
+    ) => void;
+    const request = (url: string) =>
+      new Promise<boolean>((resolve) => {
+        filter({ url }, ({ cancel }) => {
+          resolve(!cancel);
+        });
+      });
+    expect(await request('http://localhost:11434/v1')).toBe(true);
+    await saveRecords(
+      root,
+      new Map([['org.example.hello', { ...local, revoked: ['local-network'] }]]),
+    );
+    await t.runtime.regrant('org.example.hello');
+    expect(await request('http://localhost:11434/v1')).toBe(false);
+    expect(t.deps.askHost).not.toHaveBeenCalled();
+  });
+
   it('lists the running plugins’ commands, runs one over the port, and says when they change', async () => {
     const commands = [{ id: 'translate', title: 'Translate draft' }];
     await install(record(), { ...MANIFEST, contributes: { commands } });
