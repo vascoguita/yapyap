@@ -1,7 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { signedArchive, testKey, testManifest, zipArchive } from '../test/plugins.ts';
-import { expect, test } from './fixtures.ts';
+import { closeApp, expect, launchApp, test } from './fixtures.ts';
 import {
   chromePage,
   clickMenu,
@@ -188,6 +188,51 @@ test('keeps each plugin’s secrets to itself', async ({ app, profile }) => {
   // What the file keeps is what the system's encryption made of the secret.
   const kept = await readFile(join(profile, 'plugins', '.secrets.json'), 'utf8');
   expect(kept).not.toContain('sk-test');
+});
+
+/** Counts its starts in its storage, or only reads the count, and writes it in its title. */
+const counter = (count: boolean) => `
+export default {
+  async activate(host) {
+    try {
+      const starts = (await host.storage.get('starts')) ?? 0;
+      ${count ? "await host.storage.set('starts', starts + 1);" : ''}
+      document.title = String(${count ? 'starts + 1' : 'starts'});
+    } catch (error) {
+      document.title = error.kind;
+    }
+  },
+};
+`;
+
+test('keeps each plugin’s storage to itself, across restarts', async ({
+  fakeWhatsApp,
+  profile,
+}) => {
+  const network = { hosts: [] };
+  const first = await launchApp(fakeWhatsApp.origin, profile);
+  try {
+    await installPlugin(
+      first,
+      profile,
+      testManifest({ capabilities: ['storage:local'], network }),
+      counter(true),
+    );
+    await expect.poll(async () => (await pluginPage(first))?.title, { timeout: 20_000 }).toBe('1');
+    const other = { id: 'org.example.other', name: 'Other', capabilities: ['storage:local'] };
+    await installPlugin(first, profile, testManifest({ ...other, network }), counter(false));
+    await expect
+      .poll(async () => (await pluginPage(first, 'org.example.other'))?.title, { timeout: 20_000 })
+      .toBe('0');
+  } finally {
+    await closeApp(first);
+  }
+  const second = await launchApp(fakeWhatsApp.origin, profile);
+  try {
+    await expect.poll(async () => (await pluginPage(second))?.title, { timeout: 20_000 }).toBe('2');
+  } finally {
+    await closeApp(second);
+  }
 });
 
 /** Drafts a reply, then writes in its title how that went. */

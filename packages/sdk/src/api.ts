@@ -70,7 +70,7 @@ export interface NotificationsApi {
 export interface StorageApi {
   /** The stored JSON value, or undefined. Needs `storage:local`. */
   readonly get: (key: string) => Promise<unknown>;
-  /** Stores a JSON value. Needs `storage:local`. */
+  /** Stores a JSON value; fails once the store would pass 1 MiB. Needs `storage:local`. */
   readonly set: (key: string, value: unknown) => Promise<void>;
   /** Removes a key. Needs `storage:local`. */
   readonly delete: (key: string) => Promise<void>;
