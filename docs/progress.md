@@ -429,6 +429,13 @@ not edit the same lines.
   `hostMethods` offers `notifications.show` first, which names the plugin
   and respects Do not disturb; the other operations come with their issues.
 
+- Plugin secrets (#96): `secrets.get`, `secrets.set` and `secrets.delete`
+  behind `secrets:own`, kept with `safeStorage` in `plugins/.secrets.json`,
+  apart from YapYap's own secrets. Each key is the calling plugin's ID, which
+  comes from YapYap, plus a plain name, so one plugin can never name
+  another's. Where the system cannot encrypt, the call fails rather than
+  keeping the secret in the clear.
+
 - Screen-sharing indicator (#161): the WhatsApp preload's second stand-in
   (`installShareShim`, ADR 0011) reports when a screen share starts and
   ends, by a random ID only, and stops one when YapYap asks. The main

@@ -165,6 +165,13 @@ const customCode = createCustomCode(
   warn,
 );
 
+// Plugins' secrets live apart from YapYap's own, so no mistake in a plugin's namespace reaches them (#96).
+const pluginSecrets = openSecretStore(
+  secretFileAt(join(app.getPath('userData'), 'plugins', '.secrets.json')),
+  safeStorage,
+  process.platform,
+);
+
 const chrome = createChromeFeature({
   notify,
   customCode,
@@ -234,6 +241,7 @@ const chrome = createChromeFeature({
           new Notification({ title: heading, body: text, icon: trayIcon }).show();
         },
         quiet: () => settings.current().general.doNotDisturb,
+        secrets: pluginSecrets,
       }),
     rpc: {
       ...RPC_OPTIONS,
