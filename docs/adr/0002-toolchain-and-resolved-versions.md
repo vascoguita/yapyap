@@ -68,13 +68,14 @@ Releases API. Pre-release, beta and nightly versions are never used.
 
 #### Runtime dependencies
 
-| Package          | Version | Justification                                                                                                                                           |
-| ---------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| preact           | 11.0.1  | About 4 KB UI runtime for app chrome. TSX type-checks under strict lint. Unlike shadow-DOM component libraries, ARIA references work across components. |
-| @preact/signals  | 2.11.3  | Fine-grained state for chrome UI without a store library                                                                                                |
-| typebox          | 1.4.2   | One schema source gives TS types and publishable JSON Schema (plugin manifest, RPC, settings). Its interpreter-mode validation needs no `eval`.         |
-| fflate           | 0.8.3   | Zero-dependency zip reader for `.yapyap-plugin` bundles                                                                                                 |
-| electron-updater | 6.8.9   | Signed update metadata for AppImage, NSIS and macOS only                                                                                                |
+| Package           | Version | Justification                                                                                                                                                                                                            |
+| ----------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| preact            | 11.0.1  | About 4 KB UI runtime for app chrome. TSX type-checks under strict lint. Unlike shadow-DOM component libraries, ARIA references work across components.                                                                  |
+| @preact/signals   | 2.11.3  | Fine-grained state for chrome UI without a store library                                                                                                                                                                 |
+| typebox           | 1.4.2   | One schema source gives TS types and publishable JSON Schema (plugin manifest, RPC, settings). Its interpreter-mode validation needs no `eval`.                                                                          |
+| fflate            | 0.8.3   | Zero-dependency zip reader for `.yapyap-plugin` bundles                                                                                                                                                                  |
+| electron-updater  | 6.8.9   | Signed update metadata for AppImage, NSIS and macOS only                                                                                                                                                                 |
+| @anthropic-ai/sdk | 1.2.0   | The AI assistant plugin's Anthropic provider (#103): the vendor's own streaming, error types, retries and timeouts, bundled into the plugin only; 1.2.0 because pnpm's one-day release-age policy still holds back 1.3.0 |
 
 Everything else is written in-house and kept small: logging with redaction,
 settings store, i18n catalogs, and the RPC layer.

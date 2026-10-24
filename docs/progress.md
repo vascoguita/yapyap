@@ -544,6 +544,16 @@ not edit the same lines.
   `e2e/plugin-helpers.ts`. The suite found that Electron spreads CPU usage
   over every core, which #97's guard now accounts for.
 
+- AI providers (#103, first part): `plugins/ai-assistant/src/providers/`
+  defines one `Provider` interface (stream text, cancel through an
+  `AbortSignal`, fail with a `ProviderError` whose kind, never the provider's
+  own words, says why) and the Anthropic provider on the official SDK. It
+  defaults to `claude-opus-5-5`, asks models that support it for
+  server-side refusal fallbacks, retries twice, times out after a minute,
+  and maps the SDK's typed errors to auth, rate-limited, network, timeout,
+  refused, bad-request, cancelled or failed. Tests stream through a fake
+  `fetch`; nothing reaches the network.
+
 - Account budgets (#109, first part): `bench/accounts.spec.ts` measures the
   memory a second account adds and the CPU a hidden account uses while
   idle, from cumulative CPU time, and the nightly run holds them to budgets
