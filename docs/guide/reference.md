@@ -37,6 +37,8 @@ the [profile folder](#files).
 | Blur when not in front                  | `privacy.blurWhenUnfocused`         | Off                | The privacy screen covers WhatsApp while another window is in front                       |
 | Blur when you are away                  | `privacy.blurWhenIdle`              | Off                | After five minutes without using the computer                                             |
 | Show message text in notifications      | `privacy.notificationText`          | On                 | Off shows “New message”; the text never reaches the system                                |
+| Proxy                                   | `network.proxyMode`                 | Same as the system | `system`, `direct` or `manual`; see [Proxy](/guide/#proxy)                                |
+| Proxy address                           | `network.proxyServer`               | Empty              | With `manual`: `http://`, `https://` or `socks5://`, a host and a port                    |
 | Ask where to save each file             | `downloads.askWhere`                | Off                | Off saves to the Downloads folder; on starts the dialog in the last folder chosen         |
 | Open files when they finish downloading | `downloads.openWhenDone`            | Off                | PDFs, pictures, sound, video and text only; nothing that could run                        |
 
@@ -98,11 +100,12 @@ out of WhatsApp.
 
 ## Command line
 
-| Option                               | Effect                                                                                                          |
-| ------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
-| `--safe-mode`                        | Starts without hardware acceleration, for this launch only (see [graphics problems](/guide/#graphics-problems)) |
-| `--ozone-platform=wayland` or `=x11` | Linux: uses that display backend for this launch, over the setting and `ELECTRON_OZONE_PLATFORM_HINT`           |
-| A chat link                          | Opens that chat, for example `yapyap "https://wa.me/15551234567?text=Hi"` (see [chat links](#chat-links))       |
+| Option                                                                                                | Effect                                                                                                          |
+| ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `--safe-mode`                                                                                         | Starts without hardware acceleration, for this launch only (see [graphics problems](/guide/#graphics-problems)) |
+| `--ozone-platform=wayland` or `=x11`                                                                  | Linux: uses that display backend for this launch, over the setting and `ELECTRON_OZONE_PLATFORM_HINT`           |
+| `--proxy-server=<proxy>`, `--proxy-bypass-list=<hosts>`, `--proxy-pac-url=<url>`, `--no-proxy-server` | Chromium's proxy options: used for this launch while Settings → Network → Proxy follows the system              |
+| A chat link                                                                                           | Opens that chat, for example `yapyap "https://wa.me/15551234567?text=Hi"` (see [chat links](#chat-links))       |
 
 The executable is `yapyap` on Linux and `YapYap.exe` on Windows. On macOS,
 pass options with `open -a YapYap --args <options>`.

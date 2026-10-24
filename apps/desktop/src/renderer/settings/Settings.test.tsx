@@ -252,3 +252,44 @@ describe('Settings', () => {
     close.mockRestore();
   });
 });
+
+describe('a text setting', () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  const field = {
+    id: 'network.proxyServer' as const,
+    label: 'Proxy address',
+    description: 'A proxy.',
+    restart: false,
+    text: { placeholder: 'socks5://127.0.0.1:1080' },
+  };
+
+  it('saves on Enter or when focus leaves, trimmed, and only when it changed', () => {
+    const onChange = vi.fn();
+    render(
+      <Field
+        field={field}
+        snapshot={snapshot({ values: { 'network.proxyServer': '' } })}
+        onChange={onChange}
+      />,
+    );
+    const input = screen.getByLabelText<HTMLInputElement>('Proxy address');
+    expect(input.placeholder).toBe('socks5://127.0.0.1:1080');
+    fireEvent.keyDown(input, { key: 'a' });
+    fireEvent.blur(input);
+    expect(onChange).not.toHaveBeenCalled();
+    input.value = ' socks5://10.0.0.2:1080 ';
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onChange).toHaveBeenCalledWith('network.proxyServer', 'socks5://10.0.0.2:1080');
+    input.value = 'http://p:8080';
+    fireEvent.blur(input);
+    expect(onChange).toHaveBeenLastCalledWith('network.proxyServer', 'http://p:8080');
+  });
+
+  it('starts empty for a value it does not have', () => {
+    render(<Field field={field} snapshot={snapshot()} onChange={vi.fn()} />);
+    expect(screen.getByLabelText<HTMLInputElement>('Proxy address').value).toBe('');
+  });
+});

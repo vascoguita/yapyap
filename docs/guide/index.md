@@ -275,6 +275,20 @@ If a touchpad pinch zooms by accident, turn off **Zoom with a pinch, or Ctrl
 and the wheel** in Settings → Appearance; the View menu and its shortcuts
 still zoom.
 
+## Proxy
+
+By default YapYap connects the way your system is set up, proxy included,
+unless you start it with one of Chromium's proxy options (see the
+[command line](reference.md#command-line)).
+Under Settings → Network, **Proxy** can instead connect directly, or through
+a proxy you name, such as `socks5://127.0.0.1:1080` or
+`http://proxy.example.org:3128`. Update checks use the same proxy. Changes apply at once, and
+connections made before them are closed. A manual proxy that has no address, or that YapYap
+cannot use, blocks every connection rather than letting WhatsApp go around
+it. With a manual proxy, calls also go only through it, which keeps your
+address hidden but can make them slower or stop them from connecting. Proxies
+that ask for a password are not supported yet (#76).
+
 ## Copy and paste
 
 Paste images straight into a chat: screenshots, images copied in a browser,

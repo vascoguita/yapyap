@@ -102,6 +102,7 @@ const catalog = {
     restartNote: 'Takes effect after a restart.',
     saveFailed: 'Could not save that setting.',
     scale: (factor: number): string => `${String(Math.round(factor * 100))}%`,
+    proxyPlaceholder: 'socks5://127.0.0.1:1080',
     sections: {
       general: 'General',
       spelling: 'Spelling',
@@ -109,6 +110,7 @@ const catalog = {
       reliability: 'Reliability',
       downloads: 'Downloads',
       privacy: 'Privacy',
+      network: 'Network',
       plugins: 'Plugins',
     },
     backup: {
@@ -266,6 +268,17 @@ const catalog = {
         label: 'Show who wrote in notifications',
         description:
           'Turn this off to show “WhatsApp” instead of the contact or group, for example when others can see your screen.',
+      },
+      'network.proxyMode': {
+        label: 'Proxy',
+        description:
+          'How YapYap connects. If a proxy cannot be used, YapYap stops connecting rather than going around it.',
+        options: { system: 'Use the system’s settings', direct: 'No proxy', manual: 'This proxy' },
+      },
+      'network.proxyServer': {
+        label: 'Proxy address',
+        description:
+          'Used when Proxy is set to “This proxy”: http://, https:// or socks5://, a host and a port. Press Enter to save it.',
       },
       'plugins.developerMode': {
         label: 'Developer Mode',

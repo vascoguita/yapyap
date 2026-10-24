@@ -56,10 +56,49 @@ function Choice(props: FieldProps & { readonly options: NonNullable<SettingField
   );
 }
 
+/**
+ * A line of text, saved on Enter or when focus leaves, so a half-typed
+ * address is never checked; YapYap refuses one that does not fit.
+ */
+function TextField(props: FieldProps & { readonly placeholder: string }) {
+  const { field, snapshot, onChange } = props;
+  const save = (value: string): void => {
+    if (value !== snapshot.values[field.id]) {
+      onChange(field.id, value.trim());
+    }
+  };
+  return (
+    <div class="field text">
+      <label for={field.id}>{field.label}</label>
+      <input
+        id={field.id}
+        type="text"
+        spellcheck={false}
+        placeholder={props.placeholder}
+        defaultValue={String(snapshot.values[field.id] ?? '')}
+        disabled={snapshot.readOnly}
+        aria-describedby={`${field.id}-hint`}
+        onBlur={(event) => {
+          save(event.currentTarget.value);
+        }}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') {
+            save(event.currentTarget.value);
+          }
+        }}
+      />
+      <Hint field={field} snapshot={snapshot} />
+    </div>
+  );
+}
+
 export function Field(props: FieldProps): JSX.Element {
   const { field, snapshot, onChange } = props;
   if (field.options !== undefined) {
     return <Choice {...props} options={field.options} />;
+  }
+  if (field.text !== undefined) {
+    return <TextField {...props} placeholder={field.text.placeholder} />;
   }
   const hint = `${field.id}-hint`;
   return (

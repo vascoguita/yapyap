@@ -21,6 +21,13 @@ import {
 import type { SettingsService } from './settings/service.ts';
 import { trackVisibility, type Visibility } from './window/visibility.ts';
 import { applyResourceLimits } from './reliability/resource-limits.ts';
+import {
+  followWebRtcPolicy,
+  type ProxySwitches,
+  type ProxiedSession,
+  type ProxyController,
+  type WebRtcPage,
+} from './network/proxy.ts';
 import { trackShares, type ScreenShares, type ShareIpc } from './capture/shares.ts';
 import {
   createPrivacyScreen,
@@ -62,6 +69,12 @@ import type { Overlay } from './recovery/controller.ts';
 import type { RendererOptions } from './web-preferences.ts';
 import { accountSignals, type AccountSignals } from './accounts/account-signals.ts';
 import { partitionOf, type Account, type Accounts } from './accounts/accounts.ts';
+import {
+  contextMenuFor,
+  followProxy,
+  guardAccountSession,
+  type DictionarySession,
+} from './account-session.ts';
 import { runAccounts, type AccountPage, type RunningAccounts } from './accounts/running.ts';
 import { NOTIFICATION_CHANNELS } from '../shared/notification-api.ts';
 import { listenForNotifications, type NotificationIpc } from './notifications/notification-ipc.ts';
@@ -82,11 +95,7 @@ import {
 } from './instances.ts';
 import { chatLinkInArguments } from './navigation/deep-link.ts';
 import { refuseUnsafeStart, type UnsafeStartDependencies } from './sandbox-check.ts';
-import {
-  guardDownloads,
-  type DownloadDependencies,
-  type DownloadingSession,
-} from './downloads/downloads.ts';
+import { type DownloadDependencies, type DownloadingSession } from './downloads/downloads.ts';
 import { quitOnShutdown, type ShutdownSources } from './shutdown.ts';
 import { showWhenReady, type ReadyPage } from './show-when-ready.ts';
 import {
@@ -112,16 +121,12 @@ import {
 import type { Rect } from './window/window-state.ts';
 import { resolveWhatsAppOrigin } from './whatsapp-origin.ts';
 import { en } from '../shared/messages/en.ts';
-import { attachContextMenu, type ContextMenuItem, type MenuPage } from './spelling/context-menu.ts';
-import {
-  followSpellingSetting,
-  type SpellingController,
-  type SpellingSession,
-} from './spelling/spelling.ts';
+import type { ContextMenuItem, MenuPage } from './spelling/context-menu.ts';
+import { followSpellingSetting, type SpellingController } from './spelling/spelling.ts';
 
 export interface AppPort {
   disableHardwareAcceleration(): void;
-  readonly commandLine: { appendSwitch(name: string, value?: string): void };
+  readonly commandLine: ProxySwitches & { appendSwitch(name: string, value?: string): void };
   userAgentFallback: string;
   enableSandbox(): void;
   whenReady(): Promise<unknown>;
@@ -138,7 +143,10 @@ export interface AppPort {
     event: 'web-contents-created',
     listener: (event: unknown, contents: GuardedContents) => void,
   ): unknown;
-  on(event: 'session-created', listener: (session: GuardedSession) => void): unknown;
+  on(
+    event: 'session-created',
+    listener: (session: GuardedSession & ProxiedSession) => void,
+  ): unknown;
   on(
     event: 'second-instance',
     listener: (event: unknown, argv: readonly string[]) => void,
@@ -152,11 +160,12 @@ export interface AppPort {
 }
 
 /** An account's WhatsApp, in its own view and partition (ADR 0001). */
-type AccountContents = WhatsAppContents &
+export type AccountContents = WhatsAppContents &
   ZoomableContents &
   WatchedRenderer &
   ThrottledContents &
   AudioPage &
+  WebRtcPage &
   ReplyContents &
   CoverablePage &
   ReadyPage &
@@ -206,11 +215,11 @@ export interface StartDependencies<Window extends WindowPort> {
   /** An account's views in the window, hidden until it is the active one. */
   readonly createAccountHost: (window: Window, renderer: RendererOptions) => AccountHostPort;
   /** Nothing loads in the default session, but it is guarded all the same. */
-  readonly defaultSession: () => GuardedSession;
+  readonly defaultSession: () => GuardedSession & ProxiedSession;
   /** The session behind a partition, such as an account's (ADR 0001). */
   readonly sessionOf: (
     partition: string,
-  ) => GuardedSession & DownloadingSession & ClearableSession & DictionarySession;
+  ) => GuardedSession & DownloadingSession & ClearableSession & DictionarySession & ProxiedSession;
   readonly accounts: Accounts;
   readonly saveAccounts: (accounts: Accounts) => void;
   readonly newAccountId: () => string;
@@ -431,59 +440,6 @@ function whatsAppOrigin(
   return origin;
 }
 
-/** A session's own word list, which spelling suggestions leave alone. */
-interface DictionarySession extends SpellingSession {
-  addWordToSpellCheckerDictionary(word: string): boolean;
-}
-
-/**
- * Each account's session gets YapYap's guards, download handling and
- * spelling setting (the `session-created` hook also secures it, before
- * anything loads there).
- */
-function guardAccountSession<Window extends WindowPort>(
-  deps: StartDependencies<Window>,
-  wiring: Pick<AccountWiring<Window>, 'security' | 'spelling'>,
-  account: Account,
-): { readonly session: DictionarySession; readonly permissions: PermissionMemory } {
-  const session = deps.sessionOf(partitionOf(account));
-  const permissions = secureSession(session, wiring.security);
-  guardDownloads(session, {
-    ...deps.downloads,
-    notify: deps.notify,
-    warn: deps.warn,
-    options: () => deps.settings.current().downloads,
-  });
-  wiring.spelling.guard(session);
-  return { session, permissions };
-}
-
-/** The right-click menu of an account's WhatsApp, with spelling suggestions (#73). */
-function contextMenuFor<Window extends WindowPort>(
-  { deps, chrome }: Pick<AccountWiring<Window>, 'deps' | 'chrome'>,
-  contents: AccountContents,
-  session: DictionarySession,
-): void {
-  const actions = {
-    spellingOn: () => deps.settings.current().spelling.enabled,
-    replaceMisspelling: (word: string) => {
-      contents.replaceMisspelling(word);
-    },
-    addToDictionary: (word: string) => {
-      session.addWordToSpellCheckerDictionary(word);
-    },
-    turnSpellingOff: () => {
-      deps.settings.update((current) => ({
-        ...current,
-        spelling: { ...current.spelling, enabled: false },
-      }));
-    },
-    openSettings: chrome.openSettings,
-    openLanguages: chrome.openSpellingLanguages,
-  };
-  attachContextMenu(contents, actions, deps.contextMenu);
-}
-
 /** Opens the main window where the user left it. */
 function openMainWindow<Window extends WindowPort>(deps: StartDependencies<Window>): Window {
   const { state, bounds } = restoreWindowState(deps.windowState, deps.workAreas());
@@ -523,7 +479,7 @@ interface OpenedAccount extends AccountPage {
   readonly loaded: Promise<void>;
 }
 
-interface AccountWiring<Window extends WindowPort> {
+export interface AccountWiring<Window extends WindowPort> {
   readonly deps: StartDependencies<Window>;
   readonly chrome: ReturnType<StartDependencies<Window>['chrome']['afterReady']>;
   readonly security: Parameters<typeof secureSession>[1];
@@ -536,6 +492,7 @@ interface AccountWiring<Window extends WindowPort> {
   readonly firstUrl: (account: Account) => string;
   readonly notifiers: Notifiers;
   readonly spelling: SpellingController;
+  readonly proxy: ProxyController;
 }
 
 /** Each account's notifier, found by its page, and all of them for quitting. */
@@ -640,7 +597,7 @@ function openAccount<Window extends WindowPort>(
   account: Account,
 ): OpenedAccount {
   const { deps, chrome, window, origin } = wiring;
-  const { session, permissions } = guardAccountSession(deps, wiring, account);
+  const { session, proxied, permissions } = guardAccountSession(deps, wiring, account);
   const host = deps.createAccountHost(window, {
     partition: partitionOf(account),
     preload: deps.whatsAppPreload,
@@ -659,9 +616,10 @@ function openAccount<Window extends WindowPort>(
   wiring.security.views.set(contents, view);
   const recovery = chrome.attachRecovery(contents, origin, host.createOverlay);
   watchAccountPage(wiring, contents, account);
-  // A failed load is reported by the recovery monitor.
-  const loaded = contents
-    .loadURL(wiring.firstUrl(account))
+  followWebRtcPolicy(contents, deps.settings);
+  // Nothing loads before the proxy is set; a failed load is reported by the recovery monitor.
+  const loaded = proxied
+    .then(() => contents.loadURL(wiring.firstUrl(account)))
     .then(reportedElsewhere, reportedElsewhere);
   const close = (): void => {
     notifier.closeAll();
@@ -1052,6 +1010,7 @@ async function openWindow<Window extends WindowPort>(
   security: Parameters<typeof secureSession>[1],
   instances: Instances,
   origin: string,
+  proxy: ProxyController,
 ): Promise<void> {
   const window = openMainWindow(deps);
   const running = openAccounts({
@@ -1060,6 +1019,7 @@ async function openWindow<Window extends WindowPort>(
     security,
     window,
     origin,
+    proxy,
     firstUrl: chatLinkOnce(chatLinkInArguments(deps.argv, origin), deps.accounts.active, origin),
     notifiers: listenToNotifications(deps, origin),
     spelling: followSpellingSetting(deps.settings, deps.systemLanguages),
@@ -1121,6 +1081,7 @@ export async function startApp<Window extends WindowPort>(
 
   await app.whenReady();
   secureSession(deps.defaultSession(), security);
+  const proxy = await followProxy(deps);
   followThemeSetting(deps.nativeTheme, deps.settings);
   syncAutostartSetting(deps.autostart, deps.settings, warn);
   const rendering = `${describeGraphics(graphics)}, display ${describeDisplayBackend(display)}`;
@@ -1128,6 +1089,6 @@ export async function startApp<Window extends WindowPort>(
   picker.bind(chrome.pickCaptureSource);
   announceStartup(deps, graphics);
   reportCrash(chrome.technicalDetails);
-  await openWindow(deps, chrome, security, instances, origin);
+  await openWindow(deps, chrome, security, instances, origin, proxy);
   welcomeOnFirstRun(deps, chrome);
 }

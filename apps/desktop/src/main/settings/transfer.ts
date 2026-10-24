@@ -30,6 +30,7 @@ export const EXPORTED_SECTIONS = [
   'reliability',
   'downloads',
   'privacy',
+  'network',
 ] as const;
 
 /**

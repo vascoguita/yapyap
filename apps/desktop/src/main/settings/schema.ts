@@ -106,6 +106,21 @@ export const SettingsSchema = Type.Object(
       },
       { default: {}, additionalProperties: false },
     ),
+    network: Type.Object(
+      {
+        proxyMode: Type.Union(
+          [Type.Literal('system'), Type.Literal('direct'), Type.Literal('manual')],
+          { default: 'system' },
+        ),
+        // A scheme, a host and an optional port; credentials never go here (#76).
+        proxyServer: Type.String({
+          default: '',
+          maxLength: 255,
+          pattern: '^$|^(https?|socks5)://[A-Za-z0-9.-]+(:[0-9]{1,5})?/?$',
+        }),
+      },
+      { default: {}, additionalProperties: false },
+    ),
     plugins: Type.Object(
       {
         developerMode: Type.Boolean({ default: false }),
