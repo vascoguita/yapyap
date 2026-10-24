@@ -38,6 +38,7 @@ function fakeContents() {
     getOSProcessId: () => 4242,
     setBackgroundThrottling: vi.fn(),
     setAudioMuted: vi.fn(),
+    setWebRTCIPHandlingPolicy: vi.fn(),
     insertText: vi.fn(() => Promise.resolve()),
     insertCSS: vi.fn(() => Promise.resolve('privacy')),
     removeInsertedCSS: vi.fn(() => Promise.resolve()),
@@ -61,7 +62,11 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
   const app = {
     userAgentFallback: '',
     disableHardwareAcceleration: vi.fn(),
-    commandLine: { appendSwitch: vi.fn() },
+    commandLine: {
+      appendSwitch: vi.fn(),
+      hasSwitch: vi.fn(() => false),
+      getSwitchValue: vi.fn<(name: string) => string>(() => ''),
+    },
     enableSandbox: vi.fn(),
     whenReady: vi.fn(() => Promise.resolve()),
     setAppUserModelId: vi.fn(),
@@ -175,6 +180,8 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     clearCache: vi.fn(() => Promise.resolve()),
     availableSpellCheckerLanguages: ['en-GB', 'en-US', 'pt-PT'],
     addWordToSpellCheckerDictionary: vi.fn(() => true),
+    setProxy: vi.fn(() => Promise.resolve()),
+    closeAllConnections: vi.fn(() => Promise.resolve()),
   });
   const session = fakeSession();
   const accountSession = fakeSession();
@@ -422,6 +429,27 @@ describe('startApp', () => {
     f.listeners.get('session-created')?.(...([created] as never[]));
     expect(created.setPermissionRequestHandler).toHaveBeenCalledOnce();
     expect(created.setUserAgent).toHaveBeenCalledExactlyOnceWith(f.app.userAgentFallback);
+  });
+
+  it('puts the default session and every new one on the proxy setting', async () => {
+    const f = fakes();
+    await startApp(f);
+    expect(f.session.setProxy).toHaveBeenCalledWith({ mode: 'system' });
+    const created = { ...f.session, setProxy: vi.fn(() => Promise.resolve()) };
+    f.listeners.get('session-created')?.(...([created] as never[]));
+    expect(created.setProxy).toHaveBeenCalledExactlyOnceWith({ mode: 'system' });
+  });
+
+  it('keeps a proxy named on the command line while the setting follows the system', async () => {
+    const f = fakes();
+    f.app.commandLine.getSwitchValue.mockImplementation((name) =>
+      name === 'proxy-server' ? 'http://127.0.0.1:3128' : '',
+    );
+    await startApp(f);
+    expect(f.session.setProxy).toHaveBeenCalledWith({
+      mode: 'fixed_servers',
+      proxyRules: 'http://127.0.0.1:3128',
+    });
   });
 
   it('lets the WhatsApp window send notifications from its own origin', async () => {
@@ -1082,6 +1110,8 @@ describe('startApp', () => {
         spellcheck: true,
       });
       expect(f.hosts[2]?.show).toHaveBeenCalledOnce();
+      // The page loads once its session has the proxy setting.
+      await vi.advanceTimersByTimeAsync(0);
       expect(f.hosts[2]?.webContents.loadURL).toHaveBeenCalledWith(WHATSAPP_ORIGIN);
     });
 

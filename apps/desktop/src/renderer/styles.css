@@ -792,3 +792,18 @@ main.report .diagnostics {
 main.report .actions {
   justify-content: flex-end;
 }
+
+.field.text {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px;
+}
+
+.field.text input {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}

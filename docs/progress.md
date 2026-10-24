@@ -241,6 +241,18 @@ not edit the same lines.
   each listed shortcut is on a menu item. Changing shortcuts and global
   shortcuts come next.
 
+- Proxy, first part (#76): `network.proxyMode` (system, direct or manual)
+  and `network.proxyServer`, in a new Network section with the first text
+  field in Settings. `followProxySetting` applies them to the default
+  session before release checks start, to every session `session-created`
+  reports (electron-updater's included), and to each account's session
+  before it loads. Changes apply at once and close older connections. A
+  manual proxy without an address, or one Electron rejects, blocks
+  connections instead of going direct, and the warning leaves the address
+  out. Chromium's proxy options on the command line stand in for the
+  system's settings, so they keep working. With a manual proxy, WebRTC sends only through it (ADR 0008, C23).
+  Proxy passwords come in the second part.
+
 - Site permissions (#77): each account's session guard now hands back what
   it remembers (`PermissionMemory`), and the Accounts window shows, for a
   running account, whether the camera and microphone are allowed until

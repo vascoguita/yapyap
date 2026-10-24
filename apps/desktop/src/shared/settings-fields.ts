@@ -11,6 +11,7 @@ export const SETTINGS_SECTIONS = [
   { id: 'reliability', title: en.settings.sections.reliability },
   { id: 'downloads', title: en.settings.sections.downloads },
   { id: 'privacy', title: en.settings.sections.privacy },
+  { id: 'network', title: en.settings.sections.network },
   { id: 'plugins', title: en.settings.sections.plugins },
 ] as const;
 
@@ -25,6 +26,8 @@ export interface SettingField {
   readonly restart: boolean;
   /** One of several values; without options, the setting is an on/off switch. */
   readonly options?: readonly { readonly value: string | number; readonly label: string }[];
+  /** A line of text, such as an address, instead of a switch or a choice. */
+  readonly text?: { readonly placeholder: string };
   /** The platforms (`process.platform`) where it does something; all of them when absent. */
   readonly platforms?: readonly string[];
 }
@@ -114,5 +117,15 @@ export const SETTING_FIELDS: readonly SettingField[] = [
   { ...described('privacy.blurWhenIdle'), restart: false },
   { ...described('downloads.askWhere'), restart: false },
   { ...described('downloads.openWhenDone'), restart: false },
+  {
+    ...described('network.proxyMode'),
+    restart: false,
+    options: choices(text['network.proxyMode'].options),
+  },
+  {
+    ...described('network.proxyServer'),
+    restart: false,
+    text: { placeholder: en.settings.proxyPlaceholder },
+  },
   { ...described('plugins.developerMode'), restart: false },
 ];

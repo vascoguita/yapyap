@@ -18,6 +18,8 @@ const DEVELOPER = 'plugins.developerMode';
 const ASK_WHERE = 'downloads.askWhere';
 const OPEN_DONE = 'downloads.openWhenDone';
 const SPELLING = 'spelling.enabled';
+const PROXY = 'network.proxyMode';
+const PROXY_SERVER = 'network.proxyServer';
 const BLUR_UNFOCUSED = 'privacy.blurWhenUnfocused';
 const BLUR_IDLE = 'privacy.blurWhenIdle';
 const BACKEND = 'reliability.displayBackend';
@@ -74,12 +76,23 @@ describe('settingsHandlers', () => {
     expect(values.map(([id]) => id)).toEqual(SETTING_FIELDS.map((field) => field.id));
     SETTING_FIELDS.forEach((field, index) => {
       const value: unknown = values[index]?.[1];
-      if (field.options === undefined) {
-        expect(typeof value).toBe('boolean');
-      } else {
+      if (field.options !== undefined) {
         expect(field.options.map((option) => option.value)).toContain(value);
+      } else {
+        expect(typeof value).toBe(field.text === undefined ? 'boolean' : 'string');
       }
     });
+  });
+
+  it('saves a proxy address that fits, and refuses one that does not', () => {
+    const t = setup();
+    const set = t.handler('settings:set');
+    expect(set.accepts([PROXY_SERVER, 'socks5://127.0.0.1:1080'])).toBe(true);
+    expect(set.accepts([PROXY_SERVER, 'http://proxy.example.org:8080/'])).toBe(true);
+    expect(set.accepts([PROXY_SERVER, ''])).toBe(true);
+    expect(set.accepts([PROXY_SERVER, 'http://user:secret@proxy.example.org:8080'])).toBe(false);
+    expect(set.accepts([PROXY_SERVER, 'ftp://proxy.example.org'])).toBe(false);
+    expect(set.accepts([PROXY_SERVER, 'proxy.example.org:8080'])).toBe(false);
   });
 
   it('accepts each option of a choice and saves it without asking for a restart', () => {
@@ -142,6 +155,8 @@ describe('settingsHandlers', () => {
         [TEXT]: true,
         [BLUR_UNFOCUSED]: false,
         [BLUR_IDLE]: false,
+        [PROXY]: 'system',
+        [PROXY_SERVER]: '',
         [DEVELOPER]: false,
         [ASK_WHERE]: false,
         [OPEN_DONE]: false,
@@ -224,6 +239,8 @@ describe('settingsHandlers', () => {
         [TEXT]: true,
         [BLUR_UNFOCUSED]: false,
         [BLUR_IDLE]: false,
+        [PROXY]: 'system',
+        [PROXY_SERVER]: '',
         [DEVELOPER]: false,
         [ASK_WHERE]: false,
         [OPEN_DONE]: false,

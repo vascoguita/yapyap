@@ -36,6 +36,7 @@ const DEFAULTS = {
     blurWhenUnfocused: false,
     blurWhenIdle: false,
   },
+  network: { proxyMode: 'system', proxyServer: '' },
   plugins: { developerMode: false },
   downloads: { askWhere: false, openWhenDone: false },
   spelling: { enabled: false, languages: [] },
@@ -52,6 +53,7 @@ const CHOICES: Readonly<Record<string, readonly string[]>> = {
   'reliability.jsHeapMb': ['auto', '2048', '4096', '8192'],
   'reliability.displayBackend': ['auto', 'wayland', 'x11'],
   'privacy.crashReports': ['off', 'local', 'ask'],
+  'network.proxyMode': ['system', 'direct', 'manual'],
 };
 
 /** The defaults with one setting changed. */

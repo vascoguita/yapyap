@@ -314,6 +314,8 @@ describe('createChromeFeature', () => {
         'privacy.notificationText': true,
         'privacy.blurWhenUnfocused': false,
         'privacy.blurWhenIdle': false,
+        'network.proxyMode': 'system',
+        'network.proxyServer': '',
         'plugins.developerMode': false,
         'downloads.askWhere': false,
         'downloads.openWhenDone': false,

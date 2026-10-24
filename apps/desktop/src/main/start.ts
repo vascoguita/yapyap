@@ -21,6 +21,15 @@ import {
 import type { SettingsService } from './settings/service.ts';
 import { trackVisibility, type Visibility } from './window/visibility.ts';
 import { applyResourceLimits } from './reliability/resource-limits.ts';
+import {
+  followProxySetting,
+  followWebRtcPolicy,
+  launchProxyOf,
+  type ProxySwitches,
+  type ProxiedSession,
+  type ProxyController,
+  type WebRtcPage,
+} from './network/proxy.ts';
 import { trackShares, type ScreenShares, type ShareIpc } from './capture/shares.ts';
 import {
   createPrivacyScreen,
@@ -121,7 +130,7 @@ import {
 
 export interface AppPort {
   disableHardwareAcceleration(): void;
-  readonly commandLine: { appendSwitch(name: string, value?: string): void };
+  readonly commandLine: ProxySwitches & { appendSwitch(name: string, value?: string): void };
   userAgentFallback: string;
   enableSandbox(): void;
   whenReady(): Promise<unknown>;
@@ -138,7 +147,10 @@ export interface AppPort {
     event: 'web-contents-created',
     listener: (event: unknown, contents: GuardedContents) => void,
   ): unknown;
-  on(event: 'session-created', listener: (session: GuardedSession) => void): unknown;
+  on(
+    event: 'session-created',
+    listener: (session: GuardedSession & ProxiedSession) => void,
+  ): unknown;
   on(
     event: 'second-instance',
     listener: (event: unknown, argv: readonly string[]) => void,
@@ -157,6 +169,7 @@ type AccountContents = WhatsAppContents &
   WatchedRenderer &
   ThrottledContents &
   AudioPage &
+  WebRtcPage &
   ReplyContents &
   CoverablePage &
   ReadyPage &
@@ -206,11 +219,11 @@ export interface StartDependencies<Window extends WindowPort> {
   /** An account's views in the window, hidden until it is the active one. */
   readonly createAccountHost: (window: Window, renderer: RendererOptions) => AccountHostPort;
   /** Nothing loads in the default session, but it is guarded all the same. */
-  readonly defaultSession: () => GuardedSession;
+  readonly defaultSession: () => GuardedSession & ProxiedSession;
   /** The session behind a partition, such as an account's (ADR 0001). */
   readonly sessionOf: (
     partition: string,
-  ) => GuardedSession & DownloadingSession & ClearableSession & DictionarySession;
+  ) => GuardedSession & DownloadingSession & ClearableSession & DictionarySession & ProxiedSession;
   readonly accounts: Accounts;
   readonly saveAccounts: (accounts: Accounts) => void;
   readonly newAccountId: () => string;
@@ -437,15 +450,20 @@ interface DictionarySession extends SpellingSession {
 }
 
 /**
- * Each account's session gets YapYap's guards, download handling and
- * spelling setting (the `session-created` hook also secures it, before
- * anything loads there).
+ * Each account's session gets YapYap's guards, download handling, spelling
+ * setting and proxy (the `session-created` hook also secures it, before
+ * anything loads there). `proxied` resolves once the proxy is set, so loads
+ * may start (#76).
  */
 function guardAccountSession<Window extends WindowPort>(
   deps: StartDependencies<Window>,
-  wiring: Pick<AccountWiring<Window>, 'security' | 'spelling'>,
+  wiring: Pick<AccountWiring<Window>, 'security' | 'spelling' | 'proxy'>,
   account: Account,
-): { readonly session: DictionarySession; readonly permissions: PermissionMemory } {
+): {
+  readonly session: DictionarySession;
+  readonly proxied: Promise<void>;
+  readonly permissions: PermissionMemory;
+} {
   const session = deps.sessionOf(partitionOf(account));
   const permissions = secureSession(session, wiring.security);
   guardDownloads(session, {
@@ -455,7 +473,7 @@ function guardAccountSession<Window extends WindowPort>(
     options: () => deps.settings.current().downloads,
   });
   wiring.spelling.guard(session);
-  return { session, permissions };
+  return { session, proxied: wiring.proxy.guard(session), permissions };
 }
 
 /** The right-click menu of an account's WhatsApp, with spelling suggestions (#73). */
@@ -482,6 +500,21 @@ function contextMenuFor<Window extends WindowPort>(
     openLanguages: chrome.openSpellingLanguages,
   };
   attachContextMenu(contents, actions, deps.contextMenu);
+}
+
+/**
+ * Puts every session on the proxy setting, so update and release checks
+ * cannot go around it either; release checks start right after this (#76).
+ */
+async function followProxy(
+  deps: Pick<StartDependencies<WindowPort>, 'app' | 'defaultSession' | 'settings' | 'warn'>,
+): Promise<ProxyController> {
+  const proxy = followProxySetting(deps.settings, deps.warn, launchProxyOf(deps.app.commandLine));
+  deps.app.on('session-created', (session) => {
+    void proxy.guard(session);
+  });
+  await proxy.guard(deps.defaultSession());
+  return proxy;
 }
 
 /** Opens the main window where the user left it. */
@@ -536,6 +569,7 @@ interface AccountWiring<Window extends WindowPort> {
   readonly firstUrl: (account: Account) => string;
   readonly notifiers: Notifiers;
   readonly spelling: SpellingController;
+  readonly proxy: ProxyController;
 }
 
 /** Each account's notifier, found by its page, and all of them for quitting. */
@@ -640,7 +674,7 @@ function openAccount<Window extends WindowPort>(
   account: Account,
 ): OpenedAccount {
   const { deps, chrome, window, origin } = wiring;
-  const { session, permissions } = guardAccountSession(deps, wiring, account);
+  const { session, proxied, permissions } = guardAccountSession(deps, wiring, account);
   const host = deps.createAccountHost(window, {
     partition: partitionOf(account),
     preload: deps.whatsAppPreload,
@@ -659,9 +693,10 @@ function openAccount<Window extends WindowPort>(
   wiring.security.views.set(contents, view);
   const recovery = chrome.attachRecovery(contents, origin, host.createOverlay);
   watchAccountPage(wiring, contents, account);
-  // A failed load is reported by the recovery monitor.
-  const loaded = contents
-    .loadURL(wiring.firstUrl(account))
+  followWebRtcPolicy(contents, deps.settings);
+  // Nothing loads before the proxy is set; a failed load is reported by the recovery monitor.
+  const loaded = proxied
+    .then(() => contents.loadURL(wiring.firstUrl(account)))
     .then(reportedElsewhere, reportedElsewhere);
   const close = (): void => {
     notifier.closeAll();
@@ -1052,6 +1087,7 @@ async function openWindow<Window extends WindowPort>(
   security: Parameters<typeof secureSession>[1],
   instances: Instances,
   origin: string,
+  proxy: ProxyController,
 ): Promise<void> {
   const window = openMainWindow(deps);
   const running = openAccounts({
@@ -1060,6 +1096,7 @@ async function openWindow<Window extends WindowPort>(
     security,
     window,
     origin,
+    proxy,
     firstUrl: chatLinkOnce(chatLinkInArguments(deps.argv, origin), deps.accounts.active, origin),
     notifiers: listenToNotifications(deps, origin),
     spelling: followSpellingSetting(deps.settings, deps.systemLanguages),
@@ -1121,6 +1158,7 @@ export async function startApp<Window extends WindowPort>(
 
   await app.whenReady();
   secureSession(deps.defaultSession(), security);
+  const proxy = await followProxy(deps);
   followThemeSetting(deps.nativeTheme, deps.settings);
   syncAutostartSetting(deps.autostart, deps.settings, warn);
   const rendering = `${describeGraphics(graphics)}, display ${describeDisplayBackend(display)}`;
@@ -1128,6 +1166,6 @@ export async function startApp<Window extends WindowPort>(
   picker.bind(chrome.pickCaptureSource);
   announceStartup(deps, graphics);
   reportCrash(chrome.technicalDetails);
-  await openWindow(deps, chrome, security, instances, origin);
+  await openWindow(deps, chrome, security, instances, origin, proxy);
   welcomeOnFirstRun(deps, chrome);
 }

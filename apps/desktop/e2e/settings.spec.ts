@@ -136,3 +136,30 @@ test('starts at login through an autostart entry on Linux', async ({ app, profil
   await toggle.uncheck();
   await expect.poll(() => readFile(entry, 'utf8').catch(() => 'gone')).toBe('gone');
 });
+
+/** What WhatsApp's session and the default session would use to reach WhatsApp. */
+const proxiesInUse = (app: ElectronApplication): Promise<string[]> =>
+  app.evaluate(async ({ session, webContents }) => {
+    const account = webContents
+      .getAllWebContents()
+      .find((candidate) => candidate.getURL().startsWith('http://127.0.0.1'));
+    const url = 'https://web.whatsapp.com/';
+    return Promise.all([
+      account?.session.resolveProxy(url) ?? 'no account',
+      session.defaultSession.resolveProxy(url),
+    ]);
+  });
+
+test('sends every connection through the proxy the user names, at once', async ({ app }) => {
+  const settings = await openSettings(app);
+  const address = settings.getByRole('textbox', { name: 'Proxy address' });
+  await expect(address).toHaveAttribute('placeholder', 'socks5://127.0.0.1:1080');
+  await address.fill('http://127.0.0.1:3128');
+  await address.press('Enter');
+  await settings.getByRole('radio', { name: 'This proxy' }).check();
+  await expect
+    .poll(() => proxiesInUse(app))
+    .toEqual(['PROXY 127.0.0.1:3128', 'PROXY 127.0.0.1:3128']);
+  await settings.getByRole('radio', { name: 'No proxy' }).check();
+  await expect.poll(() => proxiesInUse(app)).toEqual(['DIRECT', 'DIRECT']);
+});
