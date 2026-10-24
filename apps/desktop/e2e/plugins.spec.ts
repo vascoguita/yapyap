@@ -2,19 +2,41 @@ import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { ElectronApplication, Page } from '@playwright/test';
 import { signedArchive, testKey, zipArchive } from '../test/plugins.ts';
-import { expect, test } from './fixtures.ts';
+import { expect, test, whatsAppPage } from './fixtures.ts';
 
-/** Clicks a menu item by its label, wherever it sits in the application menu. */
-const clickMenu = (app: ElectronApplication, label: string) =>
-  app.evaluate(({ Menu }, wanted) => {
+/**
+ * Clicks a menu item by its label, wherever it sits in the application menu.
+ * The menu is set just before the WhatsApp window opens, so that comes first;
+ * startup can take a while on a slow machine.
+ */
+const clickMenu = async (app: ElectronApplication, label: string) => {
+  await whatsAppPage(app);
+  await app.evaluate(({ Menu }, wanted) => {
     Menu.getApplicationMenu()
       ?.items.flatMap((menu) => menu.submenu?.items ?? [])
       .find((entry) => entry.label === wanted)
       ?.click();
   }, label);
+};
+
+/** What the app shows and said, so a missing window explains itself. */
+const whatHappened = async (app: ElectronApplication): Promise<string> => {
+  const urls = app.windows().map((page) => page.url());
+  const said = await app.evaluate(
+    () => (globalThis as { pluginMessages?: string[] }).pluginMessages,
+  );
+  return `windows: ${urls.join(', ')}; messages: ${JSON.stringify(said ?? [])}`;
+};
 
 const chromePage = async (app: ElectronApplication, path: string): Promise<Page> => {
-  await expect.poll(() => app.windows().some((page) => page.url().endsWith(path))).toBe(true);
+  await expect
+    .poll(() => app.windows().some((page) => page.url().endsWith(path)), {
+      message: `a window at ${path}`,
+    })
+    .toBe(true)
+    .catch(async (error: unknown) => {
+      throw new Error(`No window at ${path} (${await whatHappened(app)}).`, { cause: error });
+    });
   const page = app.windows().find((candidate) => candidate.url().endsWith(path));
   if (page === undefined) {
     throw new Error(`No ${path}.`);
