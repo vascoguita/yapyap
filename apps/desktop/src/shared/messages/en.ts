@@ -379,7 +379,7 @@ const catalog = {
     run: 'Run this account',
     runHint:
       'An account that is off keeps its login and data on this computer, but receives no messages until you turn it on again.',
-    proxy: 'Proxy for this account',
+    proxy: 'Proxy',
     proxyPlaceholder: 'Same as Settings → Network',
     proxyHint:
       'Empty uses the proxy in Settings → Network. Otherwise http://, https:// or socks5://, a host and a port; calls then go only through it.',

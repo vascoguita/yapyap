@@ -176,7 +176,7 @@ test('sends one account through its own proxy, and leaves the rest alone', async
   if (manage === undefined) {
     throw new Error('The Accounts window did not open.');
   }
-  await manage.getByLabel('Proxy for this account').fill('http://127.0.0.1:3128');
+  await manage.getByLabel('Proxy', { exact: true }).fill('http://127.0.0.1:3128');
   await manage.getByRole('button', { name: 'Save' }).click();
   // What the account's session and the default session would use to reach WhatsApp.
   const proxies = () =>

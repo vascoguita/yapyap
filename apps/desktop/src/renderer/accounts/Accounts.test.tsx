@@ -106,7 +106,7 @@ describe('Accounts', () => {
 
   it('takes a proxy for the account, and refuses to save one that does not fit', async () => {
     const t = await shown();
-    const proxy = screen.getByLabelText<HTMLInputElement>('Proxy for this account');
+    const proxy = screen.getByLabelText<HTMLInputElement>('Proxy');
     fireEvent.input(proxy, { target: { value: 'proxy.example.org' } });
     expect(proxy.getAttribute('aria-invalid')).toBe('true');
     expect(screen.getByText(/^Use http:\/\/, https:\/\/ or socks5:\/\//)).toBeTruthy();
