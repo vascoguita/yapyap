@@ -436,6 +436,13 @@ not edit the same lines.
   another's. Where the system cannot encrypt, the call fails rather than
   keeping the secret in the clear.
 
+- Plugin activity log (#99): `servePluginRpc` reports each call to an
+  operation YapYap offers (operation, capability, outcome) and
+  `createAuditLog` appends it, with the time and plugin ID, to
+  `plugins/audit.log`, rotating it past 256 KiB. Parameters, results and
+  names a plugin makes up are never recorded. The Plugins window lists the
+  latest 50 calls under Recent activity.
+
 - Screen-sharing indicator (#161): the WhatsApp preload's second stand-in
   (`installShareShim`, ADR 0011) reports when a screen share starts and
   ends, by a random ID only, and stops one when YapYap asks. The main

@@ -38,6 +38,7 @@ import { createCustomCode } from './custom-code/custom-code.ts';
 import { PLUGIN_PORT_CHANNEL } from '../shared/plugin-rpc.ts';
 import { hostMethods } from './plugins/host-methods.ts';
 import { RPC_OPTIONS } from './plugins/rpc.ts';
+import { auditFileAt, createAuditLog } from './plugins/audit-log.ts';
 import { homedir, release } from 'node:os';
 import { join } from 'node:path';
 import { createDownloadList } from './downloads/download-list.ts';
@@ -243,6 +244,11 @@ const chrome = createChromeFeature({
         quiet: () => settings.current().general.doNotDisturb,
         secrets: pluginSecrets,
       }),
+    audit: createAuditLog(
+      auditFileAt(join(app.getPath('userData'), 'plugins', 'audit.log')),
+      () => new Date(),
+      warn,
+    ),
     rpc: {
       ...RPC_OPTIONS,
       now: Date.now,

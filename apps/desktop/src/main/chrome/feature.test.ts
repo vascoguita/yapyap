@@ -78,6 +78,7 @@ function setup() {
       createHost: vi.fn(),
       methodsFor: vi.fn(() => ({})),
       rpc: { ...RPC_OPTIONS, now: () => 0, after: vi.fn() },
+      audit: { record: vi.fn(), recent: vi.fn(() => []) },
     },
     spelling: { available: () => ['en-GB', 'pt-PT'], system: () => ['en-GB'] },
     chooseFolder: vi.fn(() => Promise.resolve<string | undefined>(undefined)),

@@ -50,6 +50,7 @@ function setup(root: string, developerMode = false) {
     createHost: vi.fn(),
     methodsFor: vi.fn(() => ({})),
     rpc: { ...RPC_OPTIONS, now: () => 0, after: vi.fn() },
+    audit: { record: vi.fn(), recent: vi.fn(() => []) },
   };
   const settings = defaultSettings();
   const views: ViewRegistry = new WeakMap();
@@ -117,6 +118,7 @@ describe('createPluginChrome', () => {
         { id: 'org.zeta', version: '1.0.0', trust: 'developer' },
       ],
       developerMode: true,
+      activity: [],
     });
   });
 
@@ -125,6 +127,7 @@ describe('createPluginChrome', () => {
     await expect(t.handler('plugins:list').handle({ sender: {} })).resolves.toEqual({
       plugins: [],
       developerMode: false,
+      activity: [],
     });
   });
 
@@ -269,6 +272,7 @@ describe('installFlow', () => {
       createHost: vi.fn(),
       methodsFor: vi.fn(() => ({})),
       rpc: { ...RPC_OPTIONS, now: () => 0, after: vi.fn() },
+      audit: { record: vi.fn(), recent: vi.fn(() => []) },
     };
     const started = vi.fn();
     const flow = installFlow(deps, { current: defaultSettings }, vi.fn(), started);

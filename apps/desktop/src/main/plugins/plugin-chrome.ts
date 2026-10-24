@@ -18,6 +18,7 @@ import {
 } from './install-flow.ts';
 import { commitInstall, prepareInstall } from './installer.ts';
 import { loadRecords } from './records.ts';
+import type { AuditLog } from './audit-log.ts';
 import type { RpcOptions } from './rpc.ts';
 import {
   createPluginRuntime,
@@ -73,6 +74,8 @@ export interface PluginChromeDependencies {
   /** What a plugin may call, behind its capabilities (#93). */
   readonly methodsFor: PluginRuntimeDependencies['methodsFor'];
   readonly rpc: RpcOptions;
+  /** What plugins asked YapYap to do, for the Plugins window (#99). */
+  readonly audit: AuditLog;
 }
 
 /** What the user is told when an install ends; a declined one ends quietly. */
@@ -88,13 +91,17 @@ export function messageOf(outcome: InstallOutcome): PluginMessage {
   }
 }
 
-async function listPlugins(root: string, developerMode: boolean): Promise<PluginList> {
+async function listPlugins(
+  root: string,
+  developerMode: boolean,
+  audit: Pick<AuditLog, 'recent'>,
+): Promise<PluginList> {
   const installed = await loadRecords(root);
   const records = [...installed.values()];
   const plugins = records
     .map((record) => ({ id: record.id, version: record.version, trust: trustOf(record) }))
     .sort((a, b) => compareCodeUnits(a.id, b.id));
-  return { plugins, developerMode };
+  return { plugins, developerMode, activity: audit.recent() };
 }
 
 export interface PluginChrome {
@@ -162,7 +169,7 @@ export function createPluginChrome(
       {
         channel: CHROME_CHANNELS.pluginsList,
         accepts: noArguments,
-        handle: () => listPlugins(deps.root, settings.current().plugins.developerMode),
+        handle: () => listPlugins(deps.root, settings.current().plugins.developerMode, deps.audit),
       },
       ...consent.handlers,
     ],

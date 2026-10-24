@@ -161,7 +161,12 @@ identity.
 
 Each capability use appends `{ time, pluginId, accountId, capability, method,
 outcome }` to a local, rotating, user-visible log. Message content,
-parameters and return values are never logged.
+parameters and return values are never logged. The log is
+`<userData>/plugins/audit.log`, one JSON line per call to an operation
+YapYap offers (names a plugin makes up are never written, since they could
+carry text), moved aside to `audit.log.1` past 256 KiB. The Plugins window
+shows the latest 50 calls. `accountId` joins once grants are per account
+(#94).
 
 ## Consequences
 

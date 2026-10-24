@@ -147,6 +147,9 @@ only what you allow when you install it.
   again; one that asks for nothing new installs without asking.
 - **Plugins…** lists what is installed, marking plugins by other authors as
   **Third-party** and plugins nobody signed as **Unsigned**.
+  Under **Recent activity**, it shows what each plugin asked YapYap to do,
+  and whether YapYap did it or refused, but never what the plugin sent or
+  received.
 - **Developer Mode** (Settings → Plugins) lets you install unsigned plugins
   while you write your own. YapYap warns while it is on. It is never part
   of an exported settings file.

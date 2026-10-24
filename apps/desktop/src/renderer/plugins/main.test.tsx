@@ -6,7 +6,9 @@ describe('plugins entry', () => {
   it('renders the Plugins page', async () => {
     Object.defineProperty(window, 'yapyap', {
       value: {
-        plugins: { list: vi.fn(() => Promise.resolve({ plugins: [], developerMode: false })) },
+        plugins: {
+          list: vi.fn(() => Promise.resolve({ plugins: [], developerMode: false, activity: [] })),
+        },
       },
     });
     await import('./main.tsx');

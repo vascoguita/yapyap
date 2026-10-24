@@ -110,30 +110,48 @@ function errorOf(error: unknown): PluginError {
   return { kind: failure.kind, message: failure.message };
 }
 
+/** A call to an offered operation, as the activity log records it (#99). */
+export interface AuditedCall {
+  readonly method: string;
+  readonly capability: string;
+  readonly outcome: 'ok' | PluginErrorKind;
+}
+
 /**
  * Serves a plugin's calls on its port (ADR 0004). Each message is checked
  * against the envelope and the method's parameters, then the plugin's
  * grants and its rate, and runs with a timeout. Every call gets a result or
- * a typed error; one without a usable ID gets nothing. Parameters and
- * results are never logged.
+ * a typed error; one without a usable ID gets nothing. Each call to an
+ * offered operation is audited by name and outcome; parameters and results
+ * never are, and neither are names the plugin made up.
  */
 export function servePluginRpc(
   port: RpcPort,
   granted: ReadonlySet<string>,
   methods: Readonly<Record<string, RpcMethod>>,
   options: RpcOptions,
+  audit: (call: AuditedCall) => void,
 ): void {
   const take = tokenBucket(options.rate, options.now);
   port.on('message', ({ data }) => {
     if (!Value.Check(Envelope, data)) {
       return;
     }
+    const offered = Object.hasOwn(methods, data.method) ? methods[data.method] : undefined;
+    const report = (outcome: AuditedCall['outcome']): void => {
+      if (offered !== undefined) {
+        audit({ method: data.method, capability: offered.capability, outcome });
+      }
+    };
     dispatch(data, methods, granted, take, options).then(
       (result) => {
+        report('ok');
         port.postMessage({ id: data.id, result });
       },
       (error: unknown) => {
-        port.postMessage({ id: data.id, error: errorOf(error) });
+        const reply = errorOf(error);
+        report(reply.kind);
+        port.postMessage({ id: data.id, error: reply });
       },
     );
   });

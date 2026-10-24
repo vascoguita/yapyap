@@ -28,16 +28,24 @@ function setup(granted: readonly string[] = ['notifications:show']) {
       run: () => Promise.resolve(1),
     },
   };
-  servePluginRpc(port, new Set(granted), methods, {
-    rate: { burst: 2, perSecond: 1 },
-    timeoutMs: 1000,
-    now: () => time,
-    after: (_ms, callback) => {
-      timers.push(callback);
+  const audit = vi.fn();
+  servePluginRpc(
+    port,
+    new Set(granted),
+    methods,
+    {
+      rate: { burst: 2, perSecond: 1 },
+      timeoutMs: 1000,
+      now: () => time,
+      after: (_ms, callback) => {
+        timers.push(callback);
+      },
     },
-  });
+    audit,
+  );
   return {
     port,
+    audit,
     show,
     send: async (data: unknown) => {
       receive?.({ data });
@@ -62,6 +70,11 @@ describe('servePluginRpc', () => {
     await t.send({ id: 1, method: 'notifications.show', params: ['Hi'] });
     expect(t.show).toHaveBeenCalledExactlyOnceWith(['Hi']);
     expect(t.replies()).toEqual([{ id: 1, result: 'shown' }]);
+    expect(t.audit).toHaveBeenCalledExactlyOnceWith({
+      method: 'notifications.show',
+      capability: 'notifications:show',
+      outcome: 'ok',
+    });
   });
 
   it('answers nothing to a message without a usable ID', async () => {
@@ -90,6 +103,11 @@ describe('servePluginRpc', () => {
     const invalid = { kind: 'invalid', message: 'The call does not match the API.' };
     expect(t.replies()).toEqual([1, 2, 3, 4].map((id) => ({ id, error: invalid })));
     expect(t.show).not.toHaveBeenCalled();
+    // Names the plugin made up are never recorded; calls to offered operations are.
+    expect(t.audit.mock.calls).toEqual([
+      [{ method: 'notifications.show', capability: 'notifications:show', outcome: 'invalid' }],
+      [{ method: 'notifications.show', capability: 'notifications:show', outcome: 'invalid' }],
+    ]);
   });
 
   it('refuses a call the plugin holds no capability for', async () => {
@@ -98,6 +116,11 @@ describe('servePluginRpc', () => {
     expect(t.replies()).toEqual([
       { id: 7, error: { kind: 'not-granted', message: 'The plugin does not hold storage:local.' } },
     ]);
+    expect(t.audit).toHaveBeenCalledExactlyOnceWith({
+      method: 'storage.get',
+      capability: 'storage:local',
+      outcome: 'not-granted',
+    });
   });
 
   it('limits how often a plugin calls, and lets it call again later', async () => {
