@@ -212,6 +212,7 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     hosts,
     saveAccounts: vi.fn(),
     whatsAppPreload: '/out/preload/whatsapp.cjs',
+    customCode: { attach: vi.fn() },
     natives,
     notifications: {
       create: vi.fn((options: { title: string; body: string; silent: boolean }) => {
@@ -773,6 +774,12 @@ describe('startApp', () => {
     expect(f.runtime.openSettings).toHaveBeenCalledOnce();
     click('Quit YapYap');
     expect(f.app.quit).toHaveBeenCalledOnce();
+  });
+
+  it('gives each account’s WhatsApp the user’s own CSS and JavaScript', async () => {
+    const f = fakes();
+    await startApp(f);
+    expect(f.customCode.attach).toHaveBeenCalledExactlyOnceWith(f.hosts[0]?.webContents, ACCOUNT);
   });
 
   it('shows the unread count from the page title as the app badge', async () => {

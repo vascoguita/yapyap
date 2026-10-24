@@ -1,4 +1,5 @@
 import type { SettingValue } from './settings-fields.ts';
+import type { CustomCode } from './custom-code.ts';
 import type { ActiveShortcut } from './shortcuts.ts';
 
 /** What the About window shows; built in main, rendered by the chrome renderer. */
@@ -193,11 +194,24 @@ export interface ChromeApi {
     /** Every language must have a dictionary; an empty list means the system's language. */
     readonly choose: (languages: readonly string[]) => Promise<SpellingLanguages>;
   };
+  readonly customCode: {
+    readonly get: () => Promise<CustomCodeView>;
+    /** Saves every scope at once; scopes that are not listed are dropped. */
+    readonly save: (code: CustomCode) => Promise<CustomCodeView>;
+    /** Shows unsaved CSS for one scope in its WhatsApp pages; null goes back to the saved CSS. */
+    readonly preview: (scope: string, css: string | null) => Promise<void>;
+  };
   readonly proxyLogin: {
     readonly request: () => Promise<ProxyLoginRequest>;
     /** Null cancels the sign-in. */
     readonly answer: (credentials: ProxyLoginAnswer | null) => Promise<void>;
   };
+}
+
+/** The custom code, and the scopes it can apply to: all accounts first, then each account. */
+export interface CustomCodeView {
+  readonly code: CustomCode;
+  readonly scopes: readonly { readonly id: string; readonly label: string }[];
 }
 
 /** What the Downloads window can ask of one download. */
@@ -335,6 +349,9 @@ export const CHROME_CHANNELS = {
   downloadsClear: 'downloads:clear',
   spellingLanguages: 'spelling:languages',
   spellingChoose: 'spelling:choose',
+  customCodeGet: 'custom-code:get',
+  customCodeSave: 'custom-code:save',
+  customCodePreview: 'custom-code:preview',
   proxyLoginRequest: 'proxy-login:request',
   proxyLoginAnswer: 'proxy-login:answer',
 } as const;

@@ -808,6 +808,50 @@ main.report .actions {
   font: inherit;
 }
 
+main.custom-code {
+  align-items: stretch;
+  max-width: 640px;
+  margin: 0 auto;
+  text-align: left;
+}
+
+main.custom-code form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+main.custom-code .warning {
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--danger);
+  border-radius: 8px;
+  color: var(--danger);
+}
+
+main.custom-code .hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+main.custom-code textarea.code {
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font-family: ui-monospace, monospace;
+  font-size: 0.85rem;
+  resize: vertical;
+  tab-size: 2;
+}
+
+main.custom-code .actions {
+  align-items: center;
+  justify-content: flex-end;
+}
+
 main.downloads {
   align-items: stretch;
   text-align: left;

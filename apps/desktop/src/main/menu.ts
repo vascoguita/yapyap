@@ -36,6 +36,7 @@ export interface MenuActions {
   readonly openSettings: () => void;
   readonly openPlugins: () => void;
   readonly installPlugin: () => void;
+  readonly openCustomCode: () => void;
   readonly openNewChat: () => void;
   readonly clearCache: () => void;
   readonly resetSession: () => void;
@@ -227,11 +228,15 @@ function commonItems(
   return { about: [about], settings: [settings], help: [shortcuts, report, diagnostics] };
 }
 
-/** Plugins sit beside Settings, as Settings is where Developer Mode lives. */
+/**
+ * Plugins sit beside Settings, as Settings is where Developer Mode lives;
+ * the user's own code is the other way to change WhatsApp.
+ */
 function pluginItems(actions: MenuActions): MenuItemConstructorOptions[] {
   return [
     { label: en.menu.plugins, click: actions.openPlugins },
     { label: en.menu.installPlugin, click: actions.installPlugin },
+    { label: en.menu.customCode, click: actions.openCustomCode },
   ];
 }
 

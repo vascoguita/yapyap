@@ -12,6 +12,8 @@ import { readPageState, type ProbedContents } from '../about/page-state.ts';
 import { newChatHandlers, type ChatTarget } from './new-chat.ts';
 import { folderChoiceHandlers } from '../settings/folder-choice.ts';
 import { shortcutHandlers } from './shortcut-settings.ts';
+import { customCodeHandlers } from './custom-code-window.ts';
+import type { CustomCodeController } from '../custom-code/custom-code.ts';
 import { spellingHandlers, type SpellingSources } from './spelling-languages.ts';
 import { DOWNLOADS_PAGE, downloadsHandlers } from './downloads-window.ts';
 import type { DownloadList } from '../downloads/download-list.ts';
@@ -134,6 +136,18 @@ const SHORTCUTS_PAGE: ChromePage = {
   },
 };
 
+const CUSTOM_CODE_PAGE: ChromePage = {
+  path: 'custom-code.html',
+  window: {
+    title: en.windows.customCode,
+    width: 640,
+    height: 720,
+    minWidth: 480,
+    minHeight: 480,
+    minimizable: false,
+  },
+};
+
 const SPELLING_LANGUAGES_PAGE: ChromePage = {
   path: 'spelling-languages.html',
   window: {
@@ -237,6 +251,8 @@ export interface ChromeFeatureDependencies {
   /** `globalShortcut.isRegistered`: whether the system granted YapYap these keys. */
   readonly isGlobalShortcutRegistered: (accelerator: string) => boolean;
   readonly spelling: SpellingSources;
+  /** The user's own CSS and JavaScript (#72). */
+  readonly customCode: CustomCodeController;
   /** This session's downloads, for the Downloads window. */
   readonly downloads: DownloadList;
   /** Quits and starts YapYap again, to apply settings that need a restart. */
@@ -529,6 +545,7 @@ type ChromeOpeners = Pick<
   | 'openPlugins'
   | 'installPlugin'
   | 'openShortcuts'
+  | 'openCustomCode'
   | 'openDownloads'
   | 'openReport'
 >;
@@ -541,6 +558,7 @@ function chromeOpeners(windows: ChromeWindowDependencies, plugins: PluginChrome)
     openSettings: opener(SETTINGS_PAGE),
     openNewChat: opener(NEW_CHAT_PAGE),
     openShortcuts: opener(SHORTCUTS_PAGE),
+    openCustomCode: opener(CUSTOM_CODE_PAGE),
     openDownloads: opener(DOWNLOADS_PAGE),
     openPlugins: plugins.openPlugins,
     openReport: opener(REPORT_PAGE),
@@ -648,6 +666,7 @@ function allHandlers(
     ...spellingHandlers(deps.settings, deps.spelling),
     ...downloadsHandlers(deps.downloads),
     ...accountsHandlers(() => accounts.current, deps.confirmRemoveAccount),
+    ...customCodeHandlers(deps.customCode, () => accounts.current?.entries ?? []),
     ...sidebarHandlers(sidebar, deps.settings),
     ...picker.handlers,
   ];

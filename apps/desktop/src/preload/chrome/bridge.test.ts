@@ -52,6 +52,10 @@ describe('createChromeBridge', () => {
     expect(await api.downloads.list()).toBe('ignored');
     await api.downloads.act(3, 'pause');
     await api.downloads.clear();
+    const code = { enabled: true, snippets: { all: { css: 'p {}', js: '' } } };
+    expect(await api.customCode.get()).toBe('ignored');
+    expect(await api.customCode.save(code)).toBe('ignored');
+    await api.customCode.preview('all', null);
     expect(await api.report.diagnostics()).toBe('ignored');
     await api.report.open('It froze.');
     const chosen = ['pt-PT'];
@@ -102,6 +106,9 @@ describe('createChromeBridge', () => {
       ['downloads:list'],
       ['downloads:act', 3, 'pause'],
       ['downloads:clear'],
+      ['custom-code:get'],
+      ['custom-code:save', { enabled: true, snippets: { all: { css: 'p {}', js: '' } } }],
+      ['custom-code:preview', 'all', null],
       ['report:diagnostics'],
       ['report:open', 'It froze.'],
       ['spelling:languages'],
@@ -129,8 +136,10 @@ describe('createChromeBridge', () => {
       'picker',
       'shortcuts',
       'downloads',
+      'customCode',
       'proxyLogin',
     ]);
+    expect(Object.keys(api.customCode)).toEqual(['get', 'save', 'preview']);
     expect(Object.keys(api.report)).toEqual(['diagnostics', 'open']);
     expect(Object.keys(api.sidebar)).toEqual([
       'state',

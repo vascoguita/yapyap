@@ -9,6 +9,7 @@ import {
   type PluginList,
   type ShortcutChange,
   type ShortcutList,
+  type CustomCodeView,
   type ProxyLoginRequest,
   type RecoveryProblem,
   type SettingsSnapshot,
@@ -92,6 +93,16 @@ function shortcutsBridge(invoke: Invoke): ChromeApi['shortcuts'] {
   };
 }
 
+function customCodeBridge(invoke: Invoke): ChromeApi['customCode'] {
+  return {
+    get: () => invoke(CHROME_CHANNELS.customCodeGet) as Promise<CustomCodeView>,
+    save: (code) => invoke(CHROME_CHANNELS.customCodeSave, code) as Promise<CustomCodeView>,
+    preview: async (scope, css) => {
+      await invoke(CHROME_CHANNELS.customCodePreview, scope, css);
+    },
+  };
+}
+
 function reportBridge(invoke: Invoke): ChromeApi['report'] {
   return {
     diagnostics: () => invoke(CHROME_CHANNELS.reportDiagnostics) as Promise<string>,
@@ -129,6 +140,21 @@ function proxyLoginBridge(invoke: Invoke): ChromeApi['proxyLogin'] {
   };
 }
 
+function settingsBridge(invoke: Invoke): ChromeApi['settings'] {
+  return {
+    get: () => invoke(CHROME_CHANNELS.settingsGet) as Promise<SettingsSnapshot>,
+    set: (id, value) => invoke(CHROME_CHANNELS.settingsSet, id, value) as Promise<SettingsSnapshot>,
+    restart: async () => {
+      await invoke(CHROME_CHANNELS.settingsRestart);
+    },
+    export: () => invoke(CHROME_CHANNELS.settingsExport) as Promise<TransferResult>,
+    import: () => invoke(CHROME_CHANNELS.settingsImport) as Promise<TransferResult>,
+    chooseFolder: async (id) => {
+      await invoke(CHROME_CHANNELS.settingsChooseFolder, id);
+    },
+  };
+}
+
 /**
  * Builds the chrome API from a single invoke function. Each operation has its
  * own fixed channel, so the page can never choose what it calls.
@@ -148,17 +174,7 @@ export function createChromeBridge(invoke: Invoke, listen: Listen): ChromeApi {
       clearCache: run(CHROME_CHANNELS.recoveryClearCache),
       copyDiagnostics: run(CHROME_CHANNELS.recoveryCopyDiagnostics),
     },
-    settings: {
-      get: () => invoke(CHROME_CHANNELS.settingsGet) as Promise<SettingsSnapshot>,
-      set: (id, value) =>
-        invoke(CHROME_CHANNELS.settingsSet, id, value) as Promise<SettingsSnapshot>,
-      restart: run(CHROME_CHANNELS.settingsRestart),
-      export: () => invoke(CHROME_CHANNELS.settingsExport) as Promise<TransferResult>,
-      import: () => invoke(CHROME_CHANNELS.settingsImport) as Promise<TransferResult>,
-      chooseFolder: async (id) => {
-        await invoke(CHROME_CHANNELS.settingsChooseFolder, id);
-      },
-    },
+    settings: settingsBridge(invoke),
     chat: {
       openNumber: (number) => invoke(CHROME_CHANNELS.chatOpenNumber, number) as Promise<boolean>,
     },
@@ -170,6 +186,7 @@ export function createChromeBridge(invoke: Invoke, listen: Listen): ChromeApi {
     picker: pickerBridge(invoke),
     shortcuts: shortcutsBridge(invoke),
     downloads: downloadsBridge(invoke),
+    customCode: customCodeBridge(invoke),
     proxyLogin: proxyLoginBridge(invoke),
   };
 }

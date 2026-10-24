@@ -131,6 +131,7 @@ import { createProxyLogin, type AuthInfo, type LoginCallback } from './network/p
 import type { SecretStore } from './secrets/secret-store.ts';
 import { useCameraPortal } from './permissions/camera-portal.ts';
 import { sidebarSource } from './accounts/sidebar-source.ts';
+import type { CodePage, CustomCodeController } from './custom-code/custom-code.ts';
 
 export interface AppPort {
   disableHardwareAcceleration(): void;
@@ -188,7 +189,8 @@ export type AccountContents = WhatsAppContents &
   CoverablePage &
   ReadyPage &
   FocusablePage &
-  MenuPage & {
+  MenuPage &
+  CodePage & {
     replaceMisspelling(word: string): void;
     loadURL(url: string): Promise<unknown>;
     on(event: 'page-title-updated', listener: (event: unknown, title: string) => void): unknown;
@@ -243,6 +245,8 @@ export interface StartDependencies<Window extends WindowPort> {
   readonly newAccountId: () => string;
   /** The preload of WhatsApp's views, which hands its notifications to YapYap (ADR 0011). */
   readonly whatsAppPreload: string;
+  /** The user's own CSS and JavaScript, applied to every account's WhatsApp (#72). */
+  readonly customCode: Pick<CustomCodeController, 'attach'>;
   readonly notifications: Pick<NotifierDependencies, 'create' | 'isSupported'>;
   readonly ipc: NotificationIpc & ShareIpc;
   /** `process.versions.chrome`: the identity must match the bundled engine. */
@@ -645,6 +649,7 @@ function watchAccountPage<Window extends WindowPort>(
   });
   followZoomSetting(contents, deps.settings);
   followHiddenReadsSetting(contents, deps.settings);
+  deps.customCode.attach(contents, account.id);
   contents.on('page-title-updated', (_event, title) => {
     signals.pageTitle(account.id, title);
   });

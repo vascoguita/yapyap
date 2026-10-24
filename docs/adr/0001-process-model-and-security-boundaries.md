@@ -167,9 +167,14 @@ world, which this ADR rules out.
 ### Custom CSS and JS
 
 User CSS is applied with `webContents.insertCSS`. User JS runs only through
-`webFrame.executeJavaScriptInIsolatedWorld` in a dedicated world ID, never in
-the main world. The feature is labelled "Advanced" and stays off until the
-user enables it.
+`webContents.executeJavaScriptInIsolatedWorld` in its own world
+(`CUSTOM_CODE_WORLD_ID`, apart from the adapter's), never in the main world,
+and each snippet runs in a function and a call of its own, so one that fails
+stops nothing else. The feature is labelled "Advanced", warns that the code
+can read chats, and stays off until the user enables it. The code lives in
+`custom-code.json`, not in settings, so an imported settings file can never
+bring code that runs in WhatsApp, and logs only ever say that a script
+failed, never what it holds.
 
 ### Electron fuses (applied at package time with `@electron/fuses`)
 

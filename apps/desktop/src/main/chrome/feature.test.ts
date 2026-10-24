@@ -77,6 +77,7 @@ function setup() {
     spelling: { available: () => ['en-GB', 'pt-PT'], system: () => ['en-GB'] },
     chooseFolder: vi.fn(() => Promise.resolve<string | undefined>(undefined)),
     isGlobalShortcutRegistered: vi.fn(() => true),
+    customCode: { attach: vi.fn(), current: vi.fn(), save: vi.fn(), preview: vi.fn() },
     downloads: { add: vi.fn(), entries: vi.fn(() => []), act: vi.fn(() => true), clear: vi.fn() },
     settingsFiles: {
       chooseExport: vi.fn(() => Promise.resolve(undefined)),
@@ -263,6 +264,17 @@ describe('createChromeFeature', () => {
       height: 640,
       minWidth: 400,
       minHeight: 360,
+      minimizable: false,
+      show: false,
+    });
+    clickLabel('Custom CSS and JavaScript…');
+    expect(lastOptions()).toEqual({
+      autoHideMenuBar: true,
+      title: 'Custom CSS and JavaScript',
+      width: 640,
+      height: 720,
+      minWidth: 480,
+      minHeight: 480,
       minimizable: false,
       show: false,
     });
@@ -690,6 +702,8 @@ describe('createChromeFeature', () => {
     t.clickAccount('Manage Accounts…');
     expect(t.window.loadURL).toHaveBeenCalledWith('app://chrome/accounts.html');
     expect(t.call('accounts:list')).toHaveProperty('accounts', []);
+    const scopes = () => (t.call('custom-code:get') as { scopes: { id: string }[] }).scopes;
+    expect(scopes().map((scope) => scope.id)).toEqual(['all']);
     const entries = [
       {
         id: 'a',
@@ -714,6 +728,7 @@ describe('createChromeFeature', () => {
       forgetPermissions: vi.fn(),
     });
     expect(t.call('accounts:list')).toHaveProperty('accounts', entries);
+    expect(scopes().map((scope) => scope.id)).toEqual(['all', 'a']);
   });
 
   it('asks nothing when no account is on screen to remove', () => {

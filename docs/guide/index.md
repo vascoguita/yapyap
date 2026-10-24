@@ -151,6 +151,23 @@ only what you allow when you install it.
   while you write your own. YapYap warns while it is on. It is never part
   of an exported settings file.
 
+## Custom CSS and JavaScript
+
+**Custom CSS and JavaScript…** (beside Plugins) lets you restyle WhatsApp
+or add small scripts of your own. It is meant for people who write code:
+anything you add here runs in WhatsApp and can read your chats, so only add
+code you understand, and never paste code someone sent you.
+
+- It stays off until you tick **Use custom CSS and JavaScript**.
+- **Applies to** picks **All accounts** or one account; an account's own
+  code comes after the code for all accounts.
+- CSS shows in WhatsApp as you type, and is kept only when you **Save**.
+- JavaScript runs each time WhatsApp loads, in a world of its own: it sees
+  WhatsApp's page but not WhatsApp's own scripts. A script with a mistake
+  stops only itself. Reload WhatsApp to run a change.
+- The code is kept apart from your settings and never travels in an
+  exported settings file.
+
 ## Accounts
 
 YapYap can run several WhatsApp accounts side by side, such as a personal

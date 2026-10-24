@@ -54,6 +54,7 @@ function api(offer: () => Promise<PickerOffer> = () => Promise.resolve(OFFER)) {
     shortcuts: { list: vi.fn(), set: vi.fn() },
     downloads: { list: vi.fn(), act: vi.fn(), clear: vi.fn() },
     spelling: { languages: vi.fn(), choose: vi.fn() },
+    customCode: { get: vi.fn(), save: vi.fn(), preview: vi.fn() },
     proxyLogin: { request: vi.fn(), answer: vi.fn() },
   } satisfies ChromeApi;
 }

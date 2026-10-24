@@ -41,6 +41,7 @@ function api(platform: string) {
     spelling: { languages: vi.fn(), choose: vi.fn() },
     downloads: { list: vi.fn(), act: vi.fn(), clear: vi.fn() },
     report: { diagnostics: vi.fn(), open: vi.fn() },
+    customCode: { get: vi.fn(), save: vi.fn(), preview: vi.fn() },
     proxyLogin: { request: vi.fn(), answer: vi.fn() },
     shortcuts: {
       list: vi.fn(() =>
