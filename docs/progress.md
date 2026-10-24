@@ -544,6 +544,13 @@ not edit the same lines.
   `e2e/plugin-helpers.ts`. The suite found that Electron spreads CPU usage
   over every core, which #97's guard now accounts for.
 
+- Account budgets (#109, first part): `bench/accounts.spec.ts` measures the
+  memory a second account adds and the CPU a hidden account uses while
+  idle, from cumulative CPU time, and the nightly run holds them to budgets
+  per OS (ADR 0009): about 200 MB per account and under 0.5% of a core
+  hidden, against budgets of 230–270 MB and 2%. Profiling active use is
+  still to come.
+
 - Accessibility checks (#110, first part): `e2e/accessibility.spec.ts` runs
   axe-core against WCAG 2.2 AA on every chrome page the menu opens, in the
   light and dark themes, and a planted unlabelled button proves the check
