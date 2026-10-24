@@ -182,7 +182,10 @@ describe('createPluginRuntime', () => {
     host.load();
     expect(host.openPort).toHaveBeenCalledTimes(2);
     expect(host.ports.map((port) => port.start.mock.calls.length)).toEqual([1, 1]);
-    expect(t.deps.methodsFor).toHaveBeenCalledExactlyOnceWith({ name: 'Hello' });
+    expect(t.deps.methodsFor).toHaveBeenCalledExactlyOnceWith({
+      id: 'org.example.hello',
+      name: 'Hello',
+    });
   });
 
   it('starts an updated plugin again on the same session, from its new folder', async () => {

@@ -1,5 +1,6 @@
 import { Type } from 'typebox';
 import { en } from '../../shared/messages/en.ts';
+import type { SecretStore } from '../secrets/secret-store.ts';
 import type { RpcMethod } from './rpc.ts';
 
 export interface HostServices {
@@ -7,6 +8,14 @@ export interface HostServices {
   readonly notify: (title: string, body: string) => void;
   /** Do not disturb is on, so nothing may show. */
   readonly quiet: () => boolean;
+  /** Plugins' secrets, kept apart from YapYap's own. */
+  readonly secrets: Pick<SecretStore, 'get' | 'set'>;
+}
+
+/** The plugin whose calls these are. */
+export interface CallingPlugin {
+  readonly id: string;
+  readonly name: string;
 }
 
 const Notification = Type.Object(
@@ -17,14 +26,15 @@ const Notification = Type.Object(
   { additionalProperties: false },
 );
 
-/**
- * The host operations a plugin can call, each behind the capability its
- * SDK documentation names. Operations not listed here are not offered yet.
- */
-export function hostMethods(
-  plugin: { readonly name: string },
-  services: HostServices,
-): Readonly<Record<string, RpcMethod>> {
+const OWN_SECRETS = 'secrets:own';
+
+/** A secret's name: plain, so it cannot reach outside the plugin's own namespace. */
+const SecretName = Type.String({ minLength: 1, maxLength: 64, pattern: '^[A-Za-z0-9._-]+$' });
+
+/** Long enough for any API key or token. */
+const SecretValue = Type.String({ minLength: 1, maxLength: 8192 });
+
+function notifications(plugin: CallingPlugin, services: HostServices): Record<string, RpcMethod> {
   return {
     'notifications.show': {
       capability: 'notifications:show',
@@ -38,4 +48,45 @@ export function hostMethods(
       },
     },
   };
+}
+
+/**
+ * A plugin's secrets (#96), stored under its own ID: the ID comes from
+ * YapYap, never from the call, so one plugin can never name another's.
+ */
+function secrets(plugin: CallingPlugin, services: HostServices): Record<string, RpcMethod> {
+  const key = (name: unknown): string => `${plugin.id}/${String(name)}`;
+  const keep = async (name: unknown, value: string | undefined): Promise<void> => {
+    if (!(await services.secrets.set(key(name), value))) {
+      throw new Error('This system cannot keep secrets safely.');
+    }
+  };
+  return {
+    'secrets.get': {
+      capability: OWN_SECRETS,
+      params: Type.Tuple([SecretName]),
+      run: ([name]) => services.secrets.get(key(name)),
+    },
+    'secrets.set': {
+      capability: OWN_SECRETS,
+      params: Type.Tuple([SecretName, SecretValue]),
+      run: ([name, value]) => keep(name, value as string),
+    },
+    'secrets.delete': {
+      capability: OWN_SECRETS,
+      params: Type.Tuple([SecretName]),
+      run: ([name]) => keep(name, undefined),
+    },
+  };
+}
+
+/**
+ * The host operations a plugin can call, each behind the capability its
+ * SDK documentation names. Operations not listed here are not offered yet.
+ */
+export function hostMethods(
+  plugin: CallingPlugin,
+  services: HostServices,
+): Readonly<Record<string, RpcMethod>> {
+  return { ...notifications(plugin, services), ...secrets(plugin, services) };
 }

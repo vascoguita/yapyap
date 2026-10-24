@@ -1,4 +1,4 @@
-import { writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { ElectronApplication, Page } from '@playwright/test';
 import { signedArchive, testKey, testManifest, zipArchive } from '../test/plugins.ts';
@@ -193,4 +193,56 @@ test('answers a plugin’s calls over its port, only for what it was granted', a
       () => (globalThis as { pluginNotifications?: string[] }).pluginNotifications,
     ),
   ).toEqual(['Hello: Done / Your draft is ready.']);
+});
+
+/** Keeps a secret and reads it back, or only reads it, and writes what it got in its title. */
+const keeper = (store: boolean) => `
+export default {
+  async activate(host) {
+    try {
+      ${store ? "await host.secrets.set('apiKey', 'sk-test');" : ''}
+      document.title = String(await host.secrets.get('apiKey'));
+    } catch (error) {
+      document.title = error.kind;
+    }
+  },
+};
+`;
+
+test('keeps each plugin’s secrets to itself', async ({ app, profile }) => {
+  // The test system has no keyring, so encryption is stood in for, reversibly.
+  await app.evaluate(({ safeStorage }) => {
+    safeStorage.isAsyncEncryptionAvailable = () => Promise.resolve(true);
+    safeStorage.getSelectedStorageBackend = () => 'gnome_libsecret';
+    safeStorage.encryptStringAsync = (text: string) =>
+      Promise.resolve(Buffer.from(`sealed:${text}`));
+    safeStorage.decryptStringAsync = (sealed: Buffer) =>
+      Promise.resolve({
+        result: sealed.toString().slice('sealed:'.length),
+        shouldReEncrypt: false,
+      });
+  });
+  const network = { hosts: [] };
+  await installPlugin(
+    app,
+    profile,
+    testManifest({ capabilities: ['secrets:own'], network }),
+    keeper(true),
+  );
+  await expect
+    .poll(async () => (await pluginPage(app))?.title, { timeout: 20_000 })
+    .toBe('sk-test');
+  const other = testManifest({
+    id: 'org.example.other',
+    name: 'Other',
+    capabilities: ['secrets:own'],
+    network,
+  });
+  await installPlugin(app, profile, other, keeper(false));
+  await expect
+    .poll(async () => (await pluginPage(app, 'org.example.other'))?.title, { timeout: 20_000 })
+    .toBe('undefined');
+  // What the file keeps is what the system's encryption made of the secret.
+  const kept = await readFile(join(profile, 'plugins', '.secrets.json'), 'utf8');
+  expect(kept).not.toContain('sk-test');
 });
