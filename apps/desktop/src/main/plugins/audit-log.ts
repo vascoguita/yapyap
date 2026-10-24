@@ -4,10 +4,10 @@ import { Type } from 'typebox';
 import { Value } from 'typebox/value';
 
 /** How a call ended: done, or the error kind the plugin got. */
-export type AuditOutcome = 'ok' | PluginErrorKind;
+type AuditOutcome = 'ok' | PluginErrorKind;
 
 /** One call a plugin made, without its parameters or result (ADR 0004). */
-export interface AuditEntry {
+interface AuditEntry {
   readonly time: string;
   readonly plugin: string;
   readonly capability: string;
