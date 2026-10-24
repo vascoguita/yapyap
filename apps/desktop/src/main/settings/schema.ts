@@ -1,5 +1,6 @@
 import { Type, type Static, type TString } from 'typebox';
 import { MAX_SPELLING_LANGUAGES } from '../../shared/chrome-api.ts';
+import { MAX_PROXY_ADDRESS, PROXY_ADDRESS } from '../../shared/proxy-address.ts';
 import { SHORTCUT_IDS, type ShortcutId } from '../../shared/shortcuts.ts';
 
 /**
@@ -118,8 +119,8 @@ export const SettingsSchema = Type.Object(
         // A scheme, a host and an optional port; credentials never go here (#76).
         proxyServer: Type.String({
           default: '',
-          maxLength: 255,
-          pattern: '^$|^(https?|socks5)://[A-Za-z0-9.-]+(:[0-9]{1,5})?/?$',
+          maxLength: MAX_PROXY_ADDRESS,
+          pattern: PROXY_ADDRESS,
         }),
       },
       { default: {}, additionalProperties: false },

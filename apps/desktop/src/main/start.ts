@@ -22,7 +22,6 @@ import type { SettingsService } from './settings/service.ts';
 import { trackVisibility, type Visibility } from './window/visibility.ts';
 import { applyResourceLimits } from './reliability/resource-limits.ts';
 import {
-  followWebRtcPolicy,
   type ProxySwitches,
   type ProxiedSession,
   type ProxyController,
@@ -675,7 +674,7 @@ function openAccount<Window extends WindowPort>(
   wiring.security.views.set(contents, view);
   const recovery = chrome.attachRecovery(contents, origin, host.createOverlay);
   watchAccountPage(wiring, contents, account);
-  followWebRtcPolicy(contents, deps.settings);
+  wiring.proxy.guardCalls(contents, account.id);
   // Nothing loads before the proxy is set; a failed load is reported by the recovery monitor.
   const loaded = proxied
     .then(() => contents.loadURL(wiring.firstUrl(account)))
@@ -709,6 +708,7 @@ function summaries(running: RunningAccounts<OpenedAccount>): AccountSummary[] {
   return running.list().map((account) => ({
     ...account,
     muted: account.muted === true,
+    proxy: account.proxy ?? '',
     active: account.id === active,
   }));
 }
@@ -966,10 +966,14 @@ function openAccounts<Window extends WindowPort>(
     indicators.refresh();
     keepQuiet(deps, running, indicators.visibility);
   };
+  wiring.proxy.useAccounts(deps.accounts.accounts);
   const running: RunningAccounts<OpenedAccount> = runAccounts({
     accounts: deps.accounts,
     open: (account) => openAccount({ ...wiring, signals, running: () => running }, account),
-    save: deps.saveAccounts,
+    save: (accounts) => {
+      deps.saveAccounts(accounts);
+      wiring.proxy.useAccounts(accounts.accounts);
+    },
     forget: (account) => forgetAccount(deps, signals, account),
     newId: deps.newAccountId,
     onChange: changed,

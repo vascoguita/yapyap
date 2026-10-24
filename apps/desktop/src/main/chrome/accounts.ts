@@ -1,6 +1,7 @@
 import { CHROME_CHANNELS, type AccountList, type AccountSummary } from '../../shared/chrome-api.ts';
 import { ACCOUNT_COLORS, isAccountColor, MAX_ACCOUNT_NAME } from '../accounts/accounts.ts';
 import type { AccountChange } from '../accounts/running.ts';
+import { isProxyAddress } from '../../shared/proxy-address.ts';
 import { noArguments, type ChromeHandler } from './ipc.ts';
 
 /** The accounts as the Accounts window manages them. */
@@ -19,13 +20,13 @@ function isName(value: unknown): value is string {
   return typeof value === 'string' && value.trim() !== '' && value.length <= MAX_ACCOUNT_NAME;
 }
 
-/** Exactly a name, a known color and two switches: nothing else gets through. */
+/** Exactly a name, a known color, two switches and a proxy address: nothing else gets through. */
 function parseChange(value: unknown): AccountChange | undefined {
-  const { name, color, enabled, muted, ...rest } = Object(value) as Record<string, unknown>;
+  const { name, color, enabled, muted, proxy, ...rest } = Object(value) as Record<string, unknown>;
   const switches = typeof enabled === 'boolean' && typeof muted === 'boolean';
-  const complete = isName(name) && isAccountColor(color) && switches;
+  const complete = isName(name) && isAccountColor(color) && switches && isProxyAddress(proxy);
   return complete && Object.keys(rest).length === 0
-    ? { name: name.trim(), color, enabled, muted }
+    ? { name: name.trim(), color, enabled, muted, proxy }
     : undefined;
 }
 

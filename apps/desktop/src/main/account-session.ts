@@ -36,7 +36,7 @@ export function guardAccountSession<Window extends WindowPort>(
     options: () => deps.settings.current().downloads,
   });
   wiring.spelling.guard(session);
-  return { session, permissions, proxied: wiring.proxy.guard(session) };
+  return { session, permissions, proxied: wiring.proxy.guard(session, account.id) };
 }
 
 /** The right-click menu of an account's WhatsApp, with spelling suggestions (#73). */

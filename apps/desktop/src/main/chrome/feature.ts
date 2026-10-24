@@ -456,8 +456,8 @@ function quietActions(
     setMuted: (muted) => {
       const entry = menu?.entries.find((candidate) => candidate.active);
       if (menu !== undefined && entry !== undefined && isAccountColor(entry.color)) {
-        const { name, color, enabled } = entry;
-        menu.update(entry.id, { name, color, enabled, muted });
+        const { name, color, enabled, proxy } = entry;
+        menu.update(entry.id, { name, color, enabled, muted, proxy });
       }
     },
   };

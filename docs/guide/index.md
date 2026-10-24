@@ -302,6 +302,11 @@ desktop without a keychain YapYap cannot keep them safely, so it asks each
 time. If the proxy refuses saved details, YapYap asks again. After you cancel,
 it waits a minute before asking again.
 
+An account can also have a proxy of its own: in **Account → Manage
+Accounts…**, fill in **Proxy for this account** and save. That account then
+connects only through it, calls included, while the others keep using the
+proxy in Settings. Leave it empty to use Settings again.
+
 ## Copy and paste
 
 Paste images straight into a chat: screenshots, images copied in a browser,

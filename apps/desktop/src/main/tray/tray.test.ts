@@ -8,10 +8,27 @@ const PERSONAL = {
   color: 'green',
   enabled: true,
   muted: false,
+  proxy: '',
   active: true,
 };
-const WORK = { id: 'b', name: 'Work', color: 'blue', enabled: true, muted: false, active: false };
-const OFF = { id: 'c', name: 'Old', color: 'red', enabled: false, muted: false, active: false };
+const WORK = {
+  id: 'b',
+  name: 'Work',
+  color: 'blue',
+  enabled: true,
+  muted: false,
+  proxy: '',
+  active: false,
+};
+const OFF = {
+  id: 'c',
+  name: 'Old',
+  color: 'red',
+  enabled: false,
+  muted: false,
+  proxy: '',
+  active: false,
+};
 
 function setup(platform = 'linux', minimized = false) {
   let click: (() => void) | undefined;

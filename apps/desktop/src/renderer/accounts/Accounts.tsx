@@ -7,17 +7,19 @@ import type {
   ChromeApi,
 } from '../../shared/chrome-api.ts';
 import { en } from '../../shared/messages/en.ts';
+import { isProxyAddress } from '../../shared/proxy-address.ts';
 
 const text = en.accounts;
 
 /** Where the user asked to go while an edit was unsaved: another account, or away. */
 type Pending = { readonly kind: 'select'; readonly id: string } | { readonly kind: 'close' };
 
-const changeOf = ({ name, color, enabled, muted }: AccountSummary): AccountChange => ({
+const changeOf = ({ name, color, enabled, muted, proxy }: AccountSummary): AccountChange => ({
   name,
   color,
   enabled,
   muted,
+  proxy,
 });
 
 function isDirty(draft: AccountChange, account: AccountSummary): boolean {
@@ -105,6 +107,31 @@ function NameField({ draft, onChange }: DraftProps): JSX.Element {
   );
 }
 
+/** The account's own proxy; empty uses the one in Settings (#76). */
+function ProxyField({ draft, onChange }: DraftProps): JSX.Element {
+  const valid = isProxyAddress(draft.proxy);
+  return (
+    <div class="field text">
+      <label htmlFor="proxy">{text.proxy}</label>
+      <input
+        id="proxy"
+        type="text"
+        spellcheck={false}
+        placeholder={text.proxyPlaceholder}
+        value={draft.proxy}
+        aria-invalid={!valid}
+        aria-describedby="proxy-hint"
+        onInput={(event) => {
+          onChange({ ...draft, proxy: event.currentTarget.value.trim() });
+        }}
+      />
+      <p id="proxy-hint" class="hint">
+        {valid ? text.proxyHint : text.proxyInvalid}
+      </p>
+    </div>
+  );
+}
+
 /** An on/off switch of the draft, with its explanation. */
 function SwitchField(
   props: DraftProps & {
@@ -183,6 +210,7 @@ function Editor(
       <NameField draft={draft} onChange={onChange} />
       <ColorChoice colors={props.colors} value={draft.color} onChange={pickColor} />
       <Switches draft={draft} onChange={onChange} />
+      <ProxyField draft={draft} onChange={onChange} />
       <EditorActions
         id={id}
         draft={draft}
@@ -213,7 +241,12 @@ function EditorActions(props: {
       <button type="button" disabled={!props.dirty} onClick={props.onRevert}>
         {en.common.cancel}
       </button>
-      <button type="submit" disabled={!props.dirty || props.draft.name.trim() === ''}>
+      <button
+        type="submit"
+        disabled={
+          !props.dirty || props.draft.name.trim() === '' || !isProxyAddress(props.draft.proxy)
+        }
+      >
         {text.save}
       </button>
     </div>
