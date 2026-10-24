@@ -46,3 +46,19 @@ export function mutationTargets(changedFiles: readonly string[]): string[] {
     ),
   ];
 }
+
+/**
+ * The in-scope files that shard `shard` of `shards` (counted from 1)
+ * mutates in the nightly run. Files are dealt out in turn, sorted, so
+ * neighbouring files from one busy folder land in different shards.
+ */
+export function mutationShard(files: readonly string[], shard: number, shards: number): string[] {
+  const counted = (value: number) => Number.isInteger(value) && value >= 1;
+  if (!counted(shards) || !counted(shard) || shard > shards) {
+    throw new Error(`No shard ${String(shard)} of ${String(shards)}.`);
+  }
+  return mutationTargets(files)
+    .filter((file) => file.endsWith('.ts'))
+    .toSorted((a, b) => a.localeCompare(b))
+    .filter((_, index) => index % shards === shard - 1);
+}

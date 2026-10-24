@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { inMutationScope, MUTATION_SCOPE, mutationTargets } from './scope.ts';
+import { inMutationScope, MUTATION_SCOPE, mutationShard, mutationTargets } from './scope.ts';
 
 describe('inMutationScope', () => {
   it.each([
@@ -49,5 +49,39 @@ describe('mutationTargets', () => {
         'scripts/src/licenses/check.ts',
       ]),
     ).toEqual(['scripts/src/licenses/check.ts', 'apps/desktop/src/main/whatsapp-origin.ts']);
+  });
+});
+
+describe('mutationShard', () => {
+  const files = [
+    'apps/desktop/src/main/settings/store.ts',
+    'apps/desktop/src/adapter/composer.ts',
+    'apps/desktop/src/adapter/composer.test.ts',
+    'apps/desktop/src/main/start.ts',
+    'apps/desktop/src/adapter/page-state.ts',
+    'packages/plugin-sign/src/cli.ts',
+    'packages/sdk/schema/manifest.schema.json',
+  ];
+
+  it('deals the in-scope modules out in turn, so every one lands in exactly one shard', () => {
+    expect(mutationShard(files, 1, 2)).toEqual([
+      'apps/desktop/src/adapter/composer.ts',
+      'apps/desktop/src/main/settings/store.ts',
+    ]);
+    expect(mutationShard(files, 2, 2)).toEqual([
+      'apps/desktop/src/adapter/page-state.ts',
+      'packages/plugin-sign/src/cli.ts',
+    ]);
+    expect(mutationShard(files, 1, 1)).toHaveLength(4);
+  });
+
+  it.each([
+    [0, 2],
+    [3, 2],
+    [1, 0],
+    [1.5, 2],
+    [1, Number.NaN],
+  ])('refuses shard %d of %d', (shard, shards) => {
+    expect(() => mutationShard(files, shard, shards)).toThrow('No shard');
   });
 });

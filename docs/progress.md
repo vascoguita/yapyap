@@ -682,6 +682,11 @@ not edit the same lines.
   readable by the user alone. The audit log records the calls, never keys
   or values.
 
+- Nightly mutation shards (#312): the full mutation run had timed out at two
+  hours every night since 2026-10-21. It now runs as 16 shards, each
+  mutating a sixteenth of the in-scope modules
+  (`mutation-targets.ts --shard i/16`) and running only their related tests, as pull requests do.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).
