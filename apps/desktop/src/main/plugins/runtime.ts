@@ -9,7 +9,8 @@ import {
   servePluginFiles,
   type PluginSource,
 } from './plugin-files.ts';
-import { loadRecords, type PluginRecord } from './records.ts';
+import { hostPolicy } from './network-policy.ts';
+import { loadRecords, saveRecords, type PluginRecord } from './records.ts';
 import type { AuditLog } from './audit-log.ts';
 import type { CallingPlugin } from './host-methods.ts';
 import {
@@ -73,6 +74,8 @@ export interface PluginRuntimeDependencies {
     ResourceGuardDependencies,
     'metrics' | 'notify' | 'every' | 'now' | 'cores'
   >;
+  /** Asks the user whether `plugin` may connect to `host` (#95). */
+  readonly askHost: (plugin: string, host: string) => Promise<boolean>;
 }
 
 export interface PluginRuntime {
@@ -121,10 +124,29 @@ function connect(
   });
 }
 
+interface KnownPlugin {
+  name: string;
+  hosts: readonly string[];
+}
+
+/** Adds `host` to the plugin's record, so the approval outlives a restart. */
+async function approveHost(root: string, id: string, host: string): Promise<void> {
+  const records = await loadRecords(root);
+  const record = records.get(id);
+  if (record !== undefined) {
+    await saveRecords(
+      root,
+      new Map(records).set(id, { ...record, hosts: [...record.hosts, host] }),
+    );
+  }
+}
+
 interface RuntimeState {
   /** Each running plugin's window, and its name from its manifest. */
   readonly hosts: Map<string, { readonly host: PluginHost; readonly name: string }>;
   readonly sources: Map<string, PluginSource>;
+  /** Each plugin's name and approved hosts, which its session's request policy reads. */
+  readonly known: Map<string, KnownPlugin>;
   /** Sessions that already serve their plugin: a scheme is handled once per session. */
   readonly served: Set<string>;
 }
@@ -135,6 +157,7 @@ function serve(
   state: RuntimeState,
   id: string,
   partition: string,
+  known: KnownPlugin,
 ) {
   if (state.served.has(partition)) {
     return;
@@ -145,7 +168,17 @@ function serve(
     PLUGIN_SCHEME,
     servePluginFiles(id, () => state.sources.get(id), deps.readFile),
   );
-  session.webRequest.onBeforeRequest(confinePluginRequests(id));
+  const decide = hostPolicy({
+    id,
+    name: () => known.name,
+    approved: () => known.hosts,
+    ask: deps.askHost,
+    approve: async (host) => {
+      known.hosts = [...known.hosts, host];
+      await approveHost(deps.root, id, host);
+    },
+  });
+  session.webRequest.onBeforeRequest(confinePluginRequests(decide));
 }
 
 async function start(
@@ -162,8 +195,12 @@ async function start(
     return;
   }
   state.sources.set(record.id, { folder, entry: manifest.entry });
+  const known = state.known.get(record.id) ?? { name: manifest.name, hosts: [] };
+  known.name = manifest.name;
+  known.hosts = record.hosts;
+  state.known.set(record.id, known);
   const partition = pluginPartition(record);
-  serve(deps, state, record.id, partition);
+  serve(deps, state, record.id, partition, known);
   const host = deps.createHost(partition);
   const home = pluginOrigin(record.id);
   deps.views.set(host.webContents, { home, zone: 'plugin', label: record.id });
@@ -192,6 +229,7 @@ export function createPluginRuntime(deps: PluginRuntimeDependencies): PluginRunt
   const state: RuntimeState = {
     hosts: new Map(),
     sources: new Map(),
+    known: new Map(),
     served: new Set(),
   };
   const restart = async (id: string): Promise<void> => {

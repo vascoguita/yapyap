@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import type { ViewRegistry } from '../views.ts';
-import { saveRecords, type PluginRecord } from './records.ts';
+import { loadRecords, saveRecords, type PluginRecord } from './records.ts';
 import { Type } from 'typebox';
 import type { ProcessMetrics } from './resource-guard.ts';
 import { RPC_OPTIONS } from './rpc.ts';
@@ -145,6 +145,9 @@ function setup() {
       now: () => 0,
       cores: 1,
     },
+    askHost: vi.fn<(plugin: string, host: string) => Promise<boolean>>(() =>
+      Promise.resolve(false),
+    ),
   };
   const only = <T>(items: readonly T[]): T => {
     const [item] = items;
@@ -269,6 +272,34 @@ describe('createPluginRuntime', () => {
     await vi.waitFor(() => {
       expect(t.deps.warn).toHaveBeenCalledWith('Plugin org.example.hello could not be restarted.');
     });
+  });
+
+  it('lets a plugin reach a host the user allows, and keeps that for good', async () => {
+    await install(record());
+    await saveRecords(root, new Map([['org.example.hello', record()]]));
+    const t = setup();
+    t.deps.askHost.mockResolvedValue(true);
+    await t.runtime.startAll();
+    const session = t.only([...t.sessions.values()]);
+    const filter = session.webRequest.onBeforeRequest.mock.calls[0]?.[0] as (
+      details: { url: string },
+      callback: (response: { cancel: boolean }) => void,
+    ) => void;
+    const request = (url: string) =>
+      new Promise<boolean>((resolve) => {
+        filter({ url }, ({ cancel }) => {
+          resolve(!cancel);
+        });
+      });
+    expect(await request('https://llm.example.net/v1')).toBe(true);
+    expect(t.deps.askHost).toHaveBeenCalledExactlyOnceWith('Hello', 'llm.example.net');
+    expect((await loadRecords(root)).get('org.example.hello')?.hosts).toEqual(['llm.example.net']);
+    expect(await request('https://llm.example.net/v2')).toBe(true);
+    expect(t.deps.askHost).toHaveBeenCalledOnce();
+    // An approval that lands after the plugin was removed records nothing.
+    await saveRecords(root, new Map());
+    expect(await request('https://other.example.net/')).toBe(true);
+    expect(await loadRecords(root)).toEqual(new Map());
   });
 
   it('starts an updated plugin again on the same session, from its new folder', async () => {

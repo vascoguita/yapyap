@@ -6,7 +6,7 @@ export const PLUGIN_SCHEME = 'plugin';
 
 /** ADR 0004: no eval, no inline or remote code, nothing but the plugin's own files. */
 export const PLUGIN_CSP =
-  "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:";
+  "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src https:";
 
 export const pluginOrigin = (id: string): string => `${PLUGIN_SCHEME}://${id}`;
 
@@ -114,14 +114,21 @@ export function servePluginFiles(
 }
 
 /**
- * Cancels every request a plugin page makes except for its own files; the
- * hosts a plugin may reach join in with the network allowlist (#95).
+ * Cancels every request a plugin page makes unless `decide` allows it:
+ * the CSP lets HTTPS requests reach this filter, which only lets approved
+ * hosts through (#95).
  */
 export function confinePluginRequests(
-  id: string,
+  decide: (url: string) => Promise<boolean>,
 ): (details: { readonly url: string }, callback: (response: { cancel: boolean }) => void) => void {
-  const home = `${pluginOrigin(id)}/`;
   return ({ url }, callback) => {
-    callback({ cancel: !url.startsWith(home) });
+    decide(url).then(
+      (allowed) => {
+        callback({ cancel: !allowed });
+      },
+      () => {
+        callback({ cancel: true });
+      },
+    );
   };
 }

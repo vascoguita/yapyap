@@ -1,13 +1,7 @@
 import { join, resolve } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { hostScript } from './host-script.ts';
-import {
-  confinePluginRequests,
-  HOST_PAGE,
-  PLUGIN_CSP,
-  pluginOrigin,
-  servePluginFiles,
-} from './plugin-files.ts';
+import { confinePluginRequests, HOST_PAGE, PLUGIN_CSP, servePluginFiles } from './plugin-files.ts';
 
 const ID = 'org.example.hello';
 const FOLDER = resolve('/plugins', ID, '1.0.0');
@@ -83,17 +77,27 @@ describe('servePluginFiles', () => {
 });
 
 describe('confinePluginRequests', () => {
-  it('lets a plugin load only its own files', () => {
-    const filter = confinePluginRequests(ID);
-    const decide = (url: string) => {
+  it('lets through only what the policy allows, and nothing when the policy fails', async () => {
+    const decide = vi.fn((url: string) =>
+      url === 'boom' ? Promise.reject(new Error('boom')) : Promise.resolve(url === 'ok'),
+    );
+    const filter = confinePluginRequests(decide);
+    const answer = async (url: string) => {
       const callback = vi.fn();
       filter({ url }, callback);
+      await vi.waitFor(() => {
+        expect(callback).toHaveBeenCalledOnce();
+      });
       return callback.mock.calls[0]?.[0] as { cancel: boolean };
     };
-    expect(decide(`${pluginOrigin(ID)}/main.js`)).toEqual({ cancel: false });
-    expect(decide('https://example.com/')).toEqual({ cancel: true });
-    expect(decide('plugin://org.example.hello.evil/main.js')).toEqual({ cancel: true });
-    expect(decide('plugin://org.example.other/main.js')).toEqual({ cancel: true });
-    expect(decide('wss://example.com/')).toEqual({ cancel: true });
+    expect(await answer('ok')).toEqual({ cancel: false });
+    expect(await answer('no')).toEqual({ cancel: true });
+    expect(await answer('boom')).toEqual({ cancel: true });
+  });
+
+  it('lets HTTPS requests reach the policy, and keeps everything else to the plugin', () => {
+    expect(PLUGIN_CSP).toBe(
+      "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src https:",
+    );
   });
 });

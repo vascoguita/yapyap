@@ -150,6 +150,10 @@ only what you allow when you install it.
   Under **Recent activity**, it shows what each plugin asked YapYap to do,
   and whether YapYap did it or refused, but never what the plugin sent or
   received.
+- A plugin reaches only the internet hosts you allowed when you installed
+  it. If it tries another one, such as an AI service you set it up to use,
+  YapYap asks you first; **Deny** is the default, and YapYap remembers your
+  answer.
 - A plugin that keeps using too much of your computer's processor or
   memory is restarted. If that keeps happening, YapYap stops it and tells
   you; install it again to start it.

@@ -438,6 +438,14 @@ not edit the same lines.
   `hostMethods` offers `notifications.show` first, which names the plugin
   and respects Do not disturb; the other operations come with their issues.
 
+- Plugin network allowlist (#95): `hostPolicy` decides every request on a
+  plugin's session: its own files and plain HTTPS to approved hosts pass;
+  a new host the manifest schema would accept asks the user
+  (`askHost`, Deny by default, one host at a time), an allowed one joins
+  the plugin's record and a refused one is not asked about again until
+  restart; everything else is cancelled. The plugin CSP gains
+  `connect-src https:` so those requests reach the filter.
+
 - Plugin secrets (#96): `secrets.get`, `secrets.set` and `secrets.delete`
   behind `secrets:own`, kept with `safeStorage` in `plugins/.secrets.json`,
   apart from YapYap's own secrets. Each key is the calling plugin's ID, which
