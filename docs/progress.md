@@ -292,6 +292,17 @@ not edit the same lines.
   Notifications are always allowed and screen sharing asks every time, so
   there is nothing else to reset.
 
+- Calls, microphone and camera (#78): on macOS, after YapYap's own question,
+  `askMediaWithDialog` asks the system with `askForMediaAccess` and, if it
+  refuses, says where to change that. The app bundle carries
+  `NSMicrophoneUsageDescription`, `NSCameraUsageDescription` and its own
+  entitlements (`build/entitlements.mac.plist`: JIT, audio input and camera,
+  without electron-builder's default `disable-library-validation`). In
+  Flatpak, `useCameraPortal` enables Chromium's `WebRtcPipeWireCamera`, so
+  the camera goes through the Camera portal instead of a device grant. An
+  E2E test with Chromium's fake devices checks that echo cancellation, noise
+  suppression and gain control stay on.
+
 - Account → New Chat with Number… (#80) opens a small chrome window; the
   number is parsed by `src/shared/phone-number.ts` in the window and again in
   main, then opened as WhatsApp's own chat link. Nothing is stored.

@@ -83,6 +83,13 @@ Voice and video calls open in a window of their own, which belongs to the
 account the call is in: it uses that account's login, and closes when you
 hang up or when the account is turned off or removed.
 
+The first time an account wants your microphone or camera, YapYap asks, and
+on macOS the system then asks too: allow YapYap in **System Settings →
+Privacy & Security** if you said no there before. In the Flatpak, the camera
+is reached through your desktop's camera portal, which asks once as well.
+YapYap leaves echo cancellation, noise suppression and automatic gain on, as
+WhatsApp requests them.
+
 ## Screen sharing
 
 When you share your screen in a WhatsApp call, YapYap asks what to share

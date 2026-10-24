@@ -130,6 +130,7 @@ import type { ContextMenuItem, MenuPage } from './spelling/context-menu.ts';
 import { followSpellingSetting, type SpellingController } from './spelling/spelling.ts';
 import { createProxyLogin, type AuthInfo, type LoginCallback } from './network/proxy-login.ts';
 import type { SecretStore } from './secrets/secret-store.ts';
+import { useCameraPortal } from './permissions/camera-portal.ts';
 
 export interface AppPort {
   disableHardwareAcceleration(): void;
@@ -377,6 +378,7 @@ function beforeReady<Window extends WindowPort>(
   });
   installSecurity(app, security);
   applyResourceLimits(app.commandLine, deps.settings.current().reliability);
+  useCameraPortal(app.commandLine, deps.env);
   deps.chrome.beforeReady();
   // Windows groups notifications and taskbar entries by this ID.
   app.setAppUserModelId(APP_ID);

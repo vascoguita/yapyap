@@ -612,6 +612,15 @@ describe('startApp', () => {
     );
   });
 
+  it('reaches the camera through the portal inside Flatpak, before ready', async () => {
+    const f = fakes({ FLATPAK_ID: 'org.guita.YapYap' });
+    await startApp(f);
+    expect(f.app.commandLine.appendSwitch).toHaveBeenCalledWith(
+      'enable-features',
+      'WebRtcPipeWireCamera',
+    );
+  });
+
   it('uses the portal picker when Chromium runs natively on Wayland', async () => {
     const f = fakes({ WAYLAND_DISPLAY: 'wayland-0' });
     await startApp(f);

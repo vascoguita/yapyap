@@ -666,6 +666,8 @@ const catalog = {
       detail: 'YapYap remembers your answer until you quit.',
       allow: 'Allow',
       deny: 'Deny',
+      systemRefused: (device: string): string => `macOS does not let YapYap use your ${device}.`,
+      systemRefusedDetail: 'Allow YapYap in System Settings → Privacy & Security, then try again.',
     },
   },
   notices: {
