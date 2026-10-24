@@ -189,6 +189,13 @@ const chrome = createChromeFeature({
     ...electronPluginDialogs,
     root: join(app.getPath('userData'), 'plugins'),
     anchors: anchorFingerprints(TRUST_ANCHORS),
+    sessionOf: (partition) => session.fromPartition(partition),
+    // A plugin has no window of its own to show; its UI is YapYap's (ADR 0004).
+    createHost: (partition) =>
+      createSecureWindow(
+        { show: false, skipTaskbar: true, focusable: false, paintWhenInitiallyHidden: false },
+        { partition },
+      ),
   },
   restart: () => {
     app.relaunch();

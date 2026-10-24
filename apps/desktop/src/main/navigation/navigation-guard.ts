@@ -55,6 +55,8 @@ export interface NavigationContents {
 export interface NavigationDependencies {
   /** The origin a web contents was created for; undefined for popups and DevTools. */
   readonly homeOf: (contents: NavigationContents) => string | undefined;
+  /** Views that may open no windows and no links elsewhere, such as plugins (ADR 0004). */
+  readonly confined: (contents: NavigationContents) => boolean;
   readonly openExternal: (url: string) => Promise<unknown>;
   /** A popup's preferences, which depend on the view that opens it. */
   readonly popupPreferences: (opener: NavigationContents) => WebPreferences;
@@ -212,7 +214,9 @@ export function createNavigationGuard(
         return;
       }
       event.preventDefault();
-      follow(contents, event.url, deps);
+      if (!deps.confined(contents)) {
+        follow(contents, event.url, deps);
+      }
     });
     contents.on('will-redirect', (event) => {
       // A redirect is not a click, so it is blocked rather than opened elsewhere.
@@ -221,6 +225,9 @@ export function createNavigationGuard(
       }
     });
     contents.setWindowOpenHandler(({ url }) => {
+      if (deps.confined(contents)) {
+        return { action: 'deny' };
+      }
       // WhatsApp opens its own pages, such as calls, in windows of their own.
       if (isBlank(url) || isSameOrigin(url, deps.homeOf(contents))) {
         const webPreferences = deps.popupPreferences(contents);

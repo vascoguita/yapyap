@@ -1,7 +1,7 @@
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { ElectronApplication, Page } from '@playwright/test';
-import { signedArchive, testKey, zipArchive } from '../test/plugins.ts';
+import { signedArchive, testKey, testManifest, zipArchive } from '../test/plugins.ts';
 import { expect, test, whatsAppPage } from './fixtures.ts';
 
 /**
@@ -79,4 +79,61 @@ test('installs a third-party plugin only once the user accepts the risk, and mar
   const plugins = await chromePage(app, '/plugins.html');
   await expect(plugins.getByText('org.example.hello')).toBeVisible();
   await expect(plugins.getByText('Third-party')).toBeVisible();
+});
+
+/** What the plugin's script found it could and could not do, as it wrote in its title. */
+const PROBE = `
+const tried = [];
+try { eval('1'); tried.push('eval'); } catch { tried.push('no-eval'); }
+try { await fetch('https://example.com/'); tried.push('online'); } catch { tried.push('offline'); }
+tried.push(window.open('https://example.com/') === null ? 'no-popup' : 'popup');
+document.title = tried.join(' ');
+export {};
+`;
+
+/** The plugin's page, if one runs: its title, whether it shows, and its session. */
+const pluginPage = (app: ElectronApplication) =>
+  app.evaluate(({ BrowserWindow, session, webContents }) => {
+    const page = webContents
+      .getAllWebContents()
+      .find((contents) => contents.getURL().startsWith('plugin://'));
+    if (page === undefined) {
+      return null;
+    }
+    return {
+      url: page.getURL(),
+      title: page.getTitle(),
+      shown: BrowserWindow.fromWebContents(page)?.isVisible() ?? true,
+      persistent: page.session.isPersistent(),
+      ownSession: page.session !== session.defaultSession,
+    };
+  });
+
+test('runs an installed plugin hidden, on its own session, with no eval and no network', async ({
+  app,
+  profile,
+}) => {
+  const archive = join(profile, 'probe.yapyap-plugin');
+  const manifest = testManifest({ capabilities: [], network: { hosts: [] } });
+  await writeFile(archive, zipArchive(signedArchive(testKey(), manifest, { 'main.js': PROBE })));
+  await app.evaluate(({ dialog }, path) => {
+    dialog.showOpenDialog = () => Promise.resolve({ canceled: false, filePaths: [path] });
+    dialog.showMessageBox = () => Promise.resolve({ response: 0, checkboxChecked: false });
+  }, archive);
+  await clickMenu(app, 'Install Plugin…');
+  const consent = await chromePage(app, '/plugin-consent.html');
+  await consent.getByLabel('I understand that I install this plugin at my own risk').check();
+  const install = consent.getByRole('button', { name: 'Install' });
+  await Promise.all([consent.waitForEvent('close'), install.click().catch(() => undefined)]);
+  await expect
+    .poll(() => pluginPage(app), { timeout: 20_000 })
+    .toEqual({
+      url: 'plugin://org.example.hello/',
+      title: 'no-eval offline no-popup',
+      shown: false,
+      persistent: false,
+      ownSession: true,
+    });
+  // Its window stays hidden: nothing a plugin does can show it.
+  expect((await pluginPage(app))?.shown).toBe(false);
 });

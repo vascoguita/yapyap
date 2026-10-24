@@ -66,6 +66,7 @@ export function secureSession(
 export function installSecurity(app: SecurityApp, deps: SecurityDependencies): void {
   const navigation = createNavigationGuard({
     homeOf: (contents) => deps.views.get(contents)?.home,
+    confined: (contents) => deps.views.get(contents)?.zone === 'plugin',
     openExternal: deps.openExternal,
     popupPreferences: (opener) =>
       rendererPreferences(

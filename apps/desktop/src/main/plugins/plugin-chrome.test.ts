@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -45,13 +45,16 @@ function setup(root: string, developerMode = false) {
     chooseArchive: vi.fn(() => Promise.resolve<string | undefined>(undefined)),
     readFile: vi.fn(() => Promise.resolve<Uint8Array>(new Uint8Array())),
     showMessage: vi.fn(),
+    sessionOf: vi.fn(),
+    createHost: vi.fn(),
   };
   const settings = defaultSettings();
   const views: ViewRegistry = new WeakMap();
+  const warn = vi.fn();
   const chrome = createPluginChrome(
     deps,
     { current: () => ({ ...settings, plugins: { developerMode } }) },
-    { createWindow, views, warn: vi.fn() },
+    { createWindow, views, warn },
   );
   const handler = (channel: string) => {
     const found = chrome.handlers.find((candidate) => candidate.channel === channel);
@@ -60,7 +63,7 @@ function setup(root: string, developerMode = false) {
     }
     return found;
   };
-  return { deps, chrome, windows, handler };
+  return { deps, chrome, windows, handler, warn };
 }
 
 describe('createPluginChrome', () => {
@@ -72,6 +75,18 @@ describe('createPluginChrome', () => {
 
   afterEach(() => {
     rmSync(root, { recursive: true, force: true });
+  });
+
+  it('says when the installed plugins cannot be read, and starts none', async () => {
+    // A folder where the records file should be cannot be read as one.
+    mkdirSync(join(root, RECORDS_FILE));
+    const t = setup(root);
+    await vi.waitFor(() => {
+      expect(t.warn).toHaveBeenCalledExactlyOnceWith(
+        'Could not read the installed plugins, so none was started.',
+      );
+    });
+    expect(t.deps.createHost).not.toHaveBeenCalled();
   });
 
   it('lists installed plugins by ID, marked by who vouches for them', async () => {
@@ -247,8 +262,11 @@ describe('installFlow', () => {
       chooseArchive: vi.fn(),
       readFile: vi.fn(),
       showMessage,
+      sessionOf: vi.fn(),
+      createHost: vi.fn(),
     };
-    const flow = installFlow(deps, { current: defaultSettings }, vi.fn());
+    const started = vi.fn();
+    const flow = installFlow(deps, { current: defaultSettings }, vi.fn(), started);
     const prepared = await flow.prepare(new Uint8Array([1, 2, 3]));
     expect(prepared.decision.kind).toBe('rejected');
     const request = {
@@ -268,6 +286,7 @@ describe('installFlow', () => {
       archive: { manifest, files: new Map([['index.js', new Uint8Array([65])]]) },
     });
     expect(readFileSync(join(root, 'org.example.hello', '1.0.0', 'index.js'), 'utf8')).toBe('A');
+    expect(started).toHaveBeenCalledExactlyOnceWith('org.example.hello');
     flow.report({ kind: 'failed' });
     expect(showMessage).toHaveBeenCalledWith(expect.objectContaining({ type: 'error' }));
   });

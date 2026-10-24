@@ -14,7 +14,7 @@ const EMAIL = /^[\w.+-]+@[\w-]+(?:\.[\w-]+)+$/;
  * Schemes YapYap registers with Chromium as standard: Chromium gives them a
  * real origin, while the WHATWG parser in Node treats them as opaque.
  */
-const STANDARD_APP_SCHEMES = new Set(['app:']);
+const STANDARD_APP_SCHEMES = new Set(['app:', 'plugin:']);
 
 function originOf(url: URL): string {
   return STANDARD_APP_SCHEMES.has(url.protocol) ? `${url.protocol}//${url.host}` : url.origin;

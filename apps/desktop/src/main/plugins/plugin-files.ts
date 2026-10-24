@@ -1,0 +1,113 @@
+import { extname, resolve, sep } from 'node:path';
+
+export const PLUGIN_SCHEME = 'plugin';
+
+/** ADR 0004: no eval, no inline or remote code, nothing but the plugin's own files. */
+export const PLUGIN_CSP =
+  "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:";
+
+export const pluginOrigin = (id: string): string => `${PLUGIN_SCHEME}://${id}`;
+
+/** Static files a plugin may ship; anything else is served as opaque bytes. */
+const TYPES: Readonly<Record<string, string>> = {
+  '.js': 'text/javascript',
+  '.mjs': 'text/javascript',
+  '.css': 'text/css',
+  '.json': 'application/json',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.woff2': 'font/woff2',
+  '.txt': 'text/plain; charset=utf-8',
+};
+
+const NOT_FOUND = 404;
+
+function respond(
+  body: ConstructorParameters<typeof Response>[0],
+  type: string,
+  status = 200,
+): Response {
+  return new Response(body, {
+    status,
+    headers: {
+      'Content-Type': type,
+      'Content-Security-Policy': PLUGIN_CSP,
+      'X-Content-Type-Options': 'nosniff',
+      'Cache-Control': 'no-store',
+    },
+  });
+}
+
+const notFound = (): Response => respond(null, 'text/plain', NOT_FOUND);
+
+/** The page that loads the plugin's entry module: plugins ship no HTML of their own. */
+export function hostPage(entry: string): string {
+  return `<!doctype html><html><head><meta charset="utf-8"><script type="module" src="/${encodeURI(entry)}"></script></head></html>`;
+}
+
+/** The file `pathname` names inside `folder`, or undefined when it would leave it. */
+function fileIn(folder: string, pathname: string): string | undefined {
+  let relative: string;
+  try {
+    relative = decodeURIComponent(pathname.slice(1));
+  } catch {
+    return undefined;
+  }
+  const path = resolve(folder, relative);
+  return path.startsWith(folder + sep) ? path : undefined;
+}
+
+/** Where a running plugin's files are, and the module it starts from. */
+export interface PluginSource {
+  readonly folder: string;
+  readonly entry: string;
+}
+
+/**
+ * Serves `plugin://<id>/` strictly from the plugin's install folder, every
+ * response under the plugin CSP. `source` is read per request, so an
+ * update takes effect without a new handler.
+ */
+export function servePluginFiles(
+  id: string,
+  source: () => PluginSource | undefined,
+  readFile: (path: string) => Promise<Uint8Array>,
+): (request: { readonly url: string }) => Promise<Response> {
+  return async (request) => {
+    const url = new URL(request.url);
+    const current = source();
+    if (url.protocol !== `${PLUGIN_SCHEME}:` || url.host !== id || current === undefined) {
+      return notFound();
+    }
+    if (url.pathname === '/') {
+      return respond(hostPage(current.entry), 'text/html; charset=utf-8');
+    }
+    const path = fileIn(resolve(current.folder), url.pathname);
+    if (path === undefined) {
+      return notFound();
+    }
+    try {
+      const bytes = await readFile(path);
+      return respond(bytes, TYPES[extname(path).toLowerCase()] ?? 'application/octet-stream');
+    } catch {
+      return notFound();
+    }
+  };
+}
+
+/**
+ * Cancels every request a plugin page makes except for its own files; the
+ * hosts a plugin may reach join in with the network allowlist (#95).
+ */
+export function confinePluginRequests(
+  id: string,
+): (details: { readonly url: string }, callback: (response: { cancel: boolean }) => void) => void {
+  const home = `${pluginOrigin(id)}/`;
+  return ({ url }, callback) => {
+    callback({ cancel: !url.startsWith(home) });
+  };
+}
