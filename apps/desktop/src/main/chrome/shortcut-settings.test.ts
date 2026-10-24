@@ -71,6 +71,9 @@ describe('shortcutHandlers', () => {
     expect(accepts(['nothing', 'CmdOrCtrl+K'])).toBe(false);
     expect(accepts(['settings', 7])).toBe(false);
     expect(accepts(['settings', 'K'.repeat(65)])).toBe(false);
+    expect(accepts(['settings', 'K'.repeat(64)])).toBe(true);
+    expect(accepts(['settings', ['CmdOrCtrl+K']])).toBe(false);
+    expect(accepts(['toggleWindow', 'F9'])).toBe(true);
     expect(accepts(['settings', 'CmdOrCtrl+K', 'extra'])).toBe(false);
   });
 });
@@ -107,8 +110,10 @@ describe('the shortcut that works from any app', () => {
     );
   });
 
-  it('says when the system did not grant the keys', () => {
+  it('says when the system did not grant the keys, and never for no keys', () => {
     const t = setup(false, 'linux', false);
+    const list = t.handler(CHROME_CHANNELS.shortcutsList).handle({ sender: {} }) as ShortcutChange;
+    expect(list.global[0]?.registered).toBe(true);
     expect(t.set('toggleWindow', 'F9').global[0]?.registered).toBe(false);
   });
 });

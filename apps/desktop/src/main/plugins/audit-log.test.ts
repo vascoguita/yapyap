@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -69,5 +69,46 @@ describe('createAuditLog', () => {
     }).not.toThrow();
     expect(warn).toHaveBeenCalledExactlyOnceWith('Could not write the plugin activity log.');
     expect(log.recent()).toEqual([]);
+  });
+
+  it('shows only entries of the exact shape it writes, with every outcome a call can have', () => {
+    const path = join(folder, 'audit.log');
+    const entry = (fields: object) => JSON.stringify({ time: 't', ...CALL, ...fields });
+    const outcomes = ['ok', 'invalid', 'not-granted', 'rate-limited', 'timeout', 'failed'];
+    writeFileSync(
+      path,
+      [
+        ...outcomes.map((outcome) => entry({ outcome })),
+        entry({ outcome: 'sent' }),
+        entry({ extra: 'chat text' }),
+        entry({ time: 'x'.repeat(41) }),
+        entry({ plugin: 'x'.repeat(129) }),
+        entry({ capability: 'x'.repeat(65) }),
+        entry({ method: 'x'.repeat(65) }),
+        entry({ time: 'x'.repeat(40), plugin: 'x'.repeat(128), capability: 'x'.repeat(64) }),
+      ].join('\n'),
+    );
+    const log = createAuditLog(auditFileAt(path), () => new Date(0), vi.fn());
+    expect(log.recent().map(({ outcome }) => outcome)).toEqual(['ok', ...outcomes.toReversed()]);
+  });
+
+  it('keeps writing to a log exactly at its limit, and only moves aside one past it', () => {
+    const path = join(folder, 'audit.log');
+    writeFileSync(path, 'x'.repeat(MAX_LOG_BYTES));
+    createAuditLog(auditFileAt(path), () => new Date(0), vi.fn()).record(CALL);
+    expect(auditFileAt(`${path}.1`).size()).toBe(0);
+    expect(auditFileAt(path).size()).toBeGreaterThan(MAX_LOG_BYTES);
+  });
+});
+
+describe('auditFileAt', () => {
+  it('reads nothing from a missing log', () => {
+    expect(auditFileAt(join(folder, 'missing.log')).read()).toBe('');
+  });
+
+  it.skipIf(process.platform === 'win32')('keeps the log readable by the user alone', () => {
+    const path = join(folder, 'audit.log');
+    auditFileAt(path).append('line\n');
+    expect(statSync(path).mode & 0o777).toBe(0o600);
   });
 });

@@ -685,7 +685,11 @@ not edit the same lines.
 - Nightly mutation shards (#312): the full mutation run had timed out at two
   hours every night since 2026-10-21. It now runs as 16 shards, each
   mutating a sixteenth of the in-scope modules
-  (`mutation-targets.ts --shard i/16`) and running only their related tests, as pull requests do.
+  (`mutation-targets.ts --shard i/16`) and running only their related
+  tests, as pull requests do. The first sharded run found surviving mutants
+  the timed-out runs had never reported, in `audit-log.ts` (74.6%) and
+  `shortcut-settings.ts`; new tests kill them, and the remaining survivors
+  are equivalent.
 
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
