@@ -1,5 +1,6 @@
-import { Type, type Static } from 'typebox';
+import { Type, type Static, type TString } from 'typebox';
 import { MAX_SPELLING_LANGUAGES } from '../../shared/chrome-api.ts';
+import { SHORTCUT_IDS, type ShortcutId } from '../../shared/shortcuts.ts';
 
 /**
  * The settings file's shape (ADR 0006). The TypeScript type is derived from
@@ -120,6 +121,21 @@ export const SettingsSchema = Type.Object(
           maxLength: 255,
           pattern: '^$|^(https?|socks5)://[A-Za-z0-9.-]+(:[0-9]{1,5})?/?$',
         }),
+      },
+      { default: {}, additionalProperties: false },
+    ),
+    shortcuts: Type.Object(
+      {
+        // Keys the user chose, by shortcut; YapYap's own apply to the rest.
+        custom: Type.Partial(
+          Type.Object(
+            Object.fromEntries(
+              SHORTCUT_IDS.map((id) => [id, Type.String({ maxLength: 64 })]),
+            ) as Record<ShortcutId, TString>,
+            { additionalProperties: false },
+          ),
+          { default: {} },
+        ),
       },
       { default: {}, additionalProperties: false },
     ),

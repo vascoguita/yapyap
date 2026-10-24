@@ -38,6 +38,7 @@ const DEFAULTS = {
   },
   network: { proxyMode: 'system', proxyServer: '' },
   plugins: { developerMode: false },
+  shortcuts: { custom: {} },
   downloads: { askWhere: false, openWhenDone: false, folder: '' },
   spelling: { enabled: false, languages: [] },
 };
@@ -176,6 +177,19 @@ describe('decodeSettings', () => {
       settings: { spelling: { languages: [] } },
     });
     expect(decode({ ...valid, extra: 1 })).toMatchObject({ settings: { spelling: valid } });
+  });
+
+  it('keeps chosen keys only for shortcuts YapYap has, and only short ones', () => {
+    const decode = (custom: object) =>
+      decodeSettings(JSON.stringify({ ...DEFAULTS, shortcuts: { custom } }));
+    expect(decode({ settings: 'Alt+S' })).toMatchObject({
+      settings: { shortcuts: { custom: { settings: 'Alt+S' } } },
+      reset: [],
+    });
+    expect(decode({ nothing: 'Alt+S' })).toMatchObject({ settings: { shortcuts: { custom: {} } } });
+    expect(decode({ settings: 'K'.repeat(65) })).toMatchObject({
+      reset: ['/shortcuts/custom/settings'],
+    });
   });
 
   it('drops unknown keys inside every section', () => {

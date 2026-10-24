@@ -2,6 +2,7 @@ import type { MenuItemConstructorOptions } from 'electron';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { defaultSettings } from '../settings/decode.ts';
+import type { Settings } from '../settings/schema.ts';
 import type { ViewInfo } from '../views.ts';
 import {
   CHROME_PARTITION,
@@ -184,6 +185,25 @@ describe('createChromeFeature', () => {
     expect(t.deps.writeClipboard).toHaveBeenCalledExactlyOnceWith(
       'YapYap 0.1.0 (deb)\nElectron 44.9.0\nChromium 152\nNode.js 24.22.0\nOS linux 7.0.0 (x64)\nGraphics hardware accelerated',
     );
+  });
+
+  it('builds the menu again when the user changes a shortcut, and only then', () => {
+    const t = setup();
+    t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    const listeners = t.deps.settings.onChange.mock.calls.map(
+      ([listener]) => listener as (settings: Settings) => void,
+    );
+    const builds = t.deps.setMenu.mock.calls.length;
+    const settings = defaultSettings();
+    for (const listener of listeners) {
+      listener(settings);
+    }
+    expect(t.deps.setMenu).toHaveBeenCalledTimes(builds);
+    const custom = { ...settings, shortcuts: { custom: { settings: 'Alt+S' } } };
+    for (const listener of listeners) {
+      listener(custom);
+    }
+    expect(t.deps.setMenu).toHaveBeenCalledTimes(builds + 1);
   });
 
   it('lists the shortcuts of the platform it runs on', () => {

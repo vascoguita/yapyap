@@ -140,7 +140,12 @@ already running passes the link to the open window.
 ## Keyboard shortcuts
 
 **Help → Keyboard Shortcuts…** (<kbd>Ctrl</kbd>+<kbd>/</kbd>, <kbd>⌘</kbd><kbd>/</kbd>
-on macOS) lists every shortcut with the keys of your system. On macOS, use
+on macOS) lists every shortcut with the keys of your system. **Change** next to one
+waits for the new keys: press them, or Escape to keep the old ones. YapYap
+refuses keys another action already uses, and keys without Ctrl, Alt,
+Shift or ⌘, unless they are a function key. **Reset** goes back to YapYap's own keys.
+Switching accounts keeps its digits: give it keys ending in 1, and 2 to 9
+follow. On macOS, use
 <kbd>⌘</kbd> where this table says <kbd>Ctrl</kbd>, unless it names other keys.
 
 | Shortcut                                                                                                | Action                                                      |

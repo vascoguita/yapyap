@@ -7,6 +7,7 @@ import {
   type PickerOffer,
   type PluginConsent,
   type PluginList,
+  type ShortcutChange,
   type ShortcutList,
   type ProxyLoginRequest,
   type RecoveryProblem,
@@ -84,7 +85,11 @@ function downloadsBridge(invoke: Invoke): ChromeApi['downloads'] {
 }
 
 function shortcutsBridge(invoke: Invoke): ChromeApi['shortcuts'] {
-  return { list: () => invoke(CHROME_CHANNELS.shortcutsList) as Promise<ShortcutList> };
+  return {
+    list: () => invoke(CHROME_CHANNELS.shortcutsList) as Promise<ShortcutList>,
+    set: (id, accelerator) =>
+      invoke(CHROME_CHANNELS.shortcutsSet, id, accelerator) as Promise<ShortcutChange>,
+  };
 }
 
 function reportBridge(invoke: Invoke): ChromeApi['report'] {

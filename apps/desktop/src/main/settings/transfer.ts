@@ -31,6 +31,7 @@ export const EXPORTED_SECTIONS = [
   'downloads',
   'privacy',
   'network',
+  'shortcuts',
 ] as const;
 
 /**

@@ -51,7 +51,7 @@ function api(offer: () => Promise<PickerOffer> = () => Promise.resolve(OFFER)) {
       choose: vi.fn(() => Promise.resolve()),
       cancel: vi.fn(() => Promise.resolve()),
     },
-    shortcuts: { list: vi.fn() },
+    shortcuts: { list: vi.fn(), set: vi.fn() },
     downloads: { list: vi.fn(), act: vi.fn(), clear: vi.fn() },
     spelling: { languages: vi.fn(), choose: vi.fn() },
     proxyLogin: { request: vi.fn(), answer: vi.fn() },

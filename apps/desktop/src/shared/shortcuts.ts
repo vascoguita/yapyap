@@ -1,4 +1,5 @@
 import { en } from './messages/en.ts';
+import { isValidShortcut } from './shortcut-keys.ts';
 
 /** A keyboard shortcut YapYap's menus answer to. */
 export interface Shortcut {
@@ -54,20 +55,49 @@ export type ShortcutId = (typeof TABLE)[number]['id'];
  */
 export const SHORTCUTS: readonly Shortcut[] = TABLE;
 
-/** The shortcuts a platform has, with its own keys. */
-export function shortcutsFor(platform: string): readonly Shortcut[] {
+/** The ids of every shortcut, for checking what a settings file names. */
+export const SHORTCUT_IDS: readonly ShortcutId[] = TABLE.map((shortcut) => shortcut.id);
+
+/** Keys the user chose instead of YapYap's, by shortcut. */
+export type CustomShortcuts = Readonly<Partial<Record<ShortcutId, string>>>;
+
+/** A shortcut as a platform has it, with the keys in use and YapYap's own. */
+export interface ActiveShortcut extends Shortcut {
+  /** YapYap's keys for this platform, which Reset goes back to. */
+  readonly standard: string;
+  /** Whether the user chose `accelerator`. */
+  readonly custom: boolean;
+}
+
+/** Keys the user may give a shortcut; account switching must end in 1, as it takes 1 to 9. */
+export function fitsShortcut(id: ShortcutId, accelerator: string): boolean {
+  return isValidShortcut(accelerator) && (id !== 'switchAccount' || accelerator.endsWith('+1'));
+}
+
+/** The shortcuts a platform has, with its own keys or the ones the user chose. */
+export function shortcutsFor(
+  platform: string,
+  custom: CustomShortcuts = {},
+): readonly ActiveShortcut[] {
   return SHORTCUTS.filter((shortcut) => shortcut.platforms?.includes(platform) ?? true).map(
-    (shortcut) => ({
-      ...shortcut,
-      accelerator:
-        platform === 'darwin' ? (shortcut.mac ?? shortcut.accelerator) : shortcut.accelerator,
-    }),
+    (shortcut) => {
+      const standard =
+        platform === 'darwin' ? (shortcut.mac ?? shortcut.accelerator) : shortcut.accelerator;
+      // A hand-edited file can hold anything; only keys that fit are used.
+      const chosen = custom[shortcut.id];
+      const fits = chosen !== undefined && fitsShortcut(shortcut.id, chosen);
+      return { ...shortcut, standard, accelerator: fits ? chosen : standard, custom: fits };
+    },
   );
 }
 
 /** The accelerator of `id` on `platform`; undefined where the platform has none. */
-export function acceleratorOf(id: ShortcutId, platform: string): string | undefined {
-  return shortcutsFor(platform).find((shortcut) => shortcut.id === id)?.accelerator;
+export function acceleratorOf(
+  id: ShortcutId,
+  platform: string,
+  custom: CustomShortcuts = {},
+): string | undefined {
+  return shortcutsFor(platform, custom).find((shortcut) => shortcut.id === id)?.accelerator;
 }
 
 const MAC_KEYS: Readonly<Record<string, string>> = {

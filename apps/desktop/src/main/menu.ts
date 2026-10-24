@@ -3,14 +3,20 @@ import type { ZoomStep } from './appearance/zoom.ts';
 import { PRODUCT_NAME } from './identity.ts';
 import type { AccountSummary } from '../shared/chrome-api.ts';
 import { en } from '../shared/messages/en.ts';
-import { acceleratorOf, type ShortcutId } from '../shared/shortcuts.ts';
+import { acceleratorOf, type CustomShortcuts, type ShortcutId } from '../shared/shortcuts.ts';
+
+/** The platform the menu is for, and the keys the user chose instead of YapYap's. */
+interface Keys {
+  readonly platform: string;
+  readonly custom: CustomShortcuts;
+}
 
 /** Positions with a shortcut: the digits 1 to 9. */
 const SHORTCUT_POSITIONS = 9;
 
 /** The accelerator a platform gives `id`, ready to spread into a menu item. */
-function keyed(id: ShortcutId, platform: string): Pick<MenuItemConstructorOptions, 'accelerator'> {
-  const accelerator = acceleratorOf(id, platform);
+function keyed(id: ShortcutId, keys: Keys): Pick<MenuItemConstructorOptions, 'accelerator'> {
+  const accelerator = acceleratorOf(id, keys.platform, keys.custom);
   return accelerator === undefined ? {} : { accelerator };
 }
 
@@ -45,10 +51,10 @@ export interface MenuActions {
 }
 
 /** Zoom in YapYap's own 5% steps, kept per account. */
-function zoomItems(actions: MenuActions, platform: string): MenuItemConstructorOptions[] {
+function zoomItems(actions: MenuActions, keys: Keys): MenuItemConstructorOptions[] {
   const step = (label: string, id: ShortcutId, zoom: ZoomStep) => ({
     label,
-    ...keyed(id, platform),
+    ...keyed(id, keys),
     click: () => {
       actions.zoom(zoom);
     },
@@ -61,59 +67,59 @@ function zoomItems(actions: MenuActions, platform: string): MenuItemConstructorO
 }
 
 /** The standard View menu, with YapYap's zoom and its privacy screen. */
-function viewMenu(actions: MenuActions, platform: string): MenuItemConstructorOptions {
+function viewMenu(actions: MenuActions, keys: Keys): MenuItemConstructorOptions {
   return {
     label: en.menu.view,
     submenu: [
-      { role: 'reload', ...keyed('reload', platform) },
-      { role: 'forceReload', ...keyed('forceReload', platform) },
-      { role: 'toggleDevTools', ...keyed('devTools', platform) },
+      { role: 'reload', ...keyed('reload', keys) },
+      { role: 'forceReload', ...keyed('forceReload', keys) },
+      { role: 'toggleDevTools', ...keyed('devTools', keys) },
       { type: 'separator' },
-      ...zoomItems(actions, platform),
+      ...zoomItems(actions, keys),
       { type: 'separator' },
       {
         label: en.menu.privacyScreen,
         type: 'checkbox',
         checked: actions.privacyScreen,
-        ...keyed('privacyScreen', platform),
+        ...keyed('privacyScreen', keys),
         click: actions.togglePrivacyScreen,
       },
-      { role: 'togglefullscreen', ...keyed('fullScreen', platform) },
+      { role: 'togglefullscreen', ...keyed('fullScreen', keys) },
     ],
   };
 }
 
 /** Editing, with each shortcut from the shared table, plain-text paste included. */
-function editMenu(platform: string): MenuItemConstructorOptions {
+function editMenu(keys: Keys): MenuItemConstructorOptions {
   return {
     label: en.menu.edit,
     submenu: [
-      { role: 'undo', ...keyed('undo', platform) },
-      { role: 'redo', ...keyed('redo', platform) },
+      { role: 'undo', ...keyed('undo', keys) },
+      { role: 'redo', ...keyed('redo', keys) },
       { type: 'separator' },
-      { role: 'cut', ...keyed('cut', platform) },
-      { role: 'copy', ...keyed('copy', platform) },
-      { role: 'paste', ...keyed('paste', platform) },
-      { role: 'pasteAndMatchStyle', ...keyed('pastePlain', platform) },
-      { role: 'selectAll', ...keyed('selectAll', platform) },
+      { role: 'cut', ...keyed('cut', keys) },
+      { role: 'copy', ...keyed('copy', keys) },
+      { role: 'paste', ...keyed('paste', keys) },
+      { role: 'pasteAndMatchStyle', ...keyed('pastePlain', keys) },
+      { role: 'selectAll', ...keyed('selectAll', keys) },
     ],
   };
 }
 
 /** The window, and the Downloads window YapYap keeps for this session (#74). */
-function windowMenu(actions: MenuActions, platform: string): MenuItemConstructorOptions {
+function windowMenu(actions: MenuActions, keys: Keys): MenuItemConstructorOptions {
   const mac: MenuItemConstructorOptions[] =
-    platform === 'darwin' ? [{ role: 'zoom' }, { type: 'separator' }, { role: 'front' }] : [];
+    keys.platform === 'darwin' ? [{ role: 'zoom' }, { type: 'separator' }, { role: 'front' }] : [];
   return {
     label: en.menu.window,
     // On macOS this role adds the open windows to the menu.
-    ...(platform === 'darwin' ? { role: 'windowMenu' as const } : {}),
+    ...(keys.platform === 'darwin' ? { role: 'windowMenu' as const } : {}),
     submenu: [
-      { role: 'minimize', ...keyed('minimize', platform) },
-      { role: 'close', ...keyed('close', platform) },
+      { role: 'minimize', ...keyed('minimize', keys) },
+      { role: 'close', ...keyed('close', keys) },
       ...mac,
       { type: 'separator' },
-      { label: en.menu.downloads, ...keyed('downloads', platform), click: actions.openDownloads },
+      { label: en.menu.downloads, ...keyed('downloads', keys), click: actions.openDownloads },
     ],
   };
 }
@@ -123,8 +129,8 @@ function running(actions: MenuActions): readonly AccountSummary[] {
 }
 
 /** The accounts, switched by position with Ctrl or Cmd and a digit. */
-function accountItems(actions: MenuActions, platform: string): MenuItemConstructorOptions[] {
-  const first = String(acceleratorOf('switchAccount', platform));
+function accountItems(actions: MenuActions, keys: Keys): MenuItemConstructorOptions[] {
+  const first = String(acceleratorOf('switchAccount', keys.platform, keys.custom));
   return running(actions).map((entry, index) => ({
     label: entry.name,
     type: 'radio',
@@ -162,11 +168,11 @@ function quietItems(actions: MenuActions): MenuItemConstructorOptions[] {
 }
 
 /** The accounts, and maintenance for the active one, for when it misbehaves. */
-function accountMenu(actions: MenuActions, platform: string): MenuItemConstructorOptions {
+function accountMenu(actions: MenuActions, keys: Keys): MenuItemConstructorOptions {
   return {
     label: en.menu.account,
     submenu: [
-      ...accountItems(actions, platform),
+      ...accountItems(actions, keys),
       { type: 'separator' },
       { label: en.menu.addAccount, click: actions.addAccount },
       { label: en.menu.manageAccounts, click: actions.openAccounts },
@@ -194,7 +200,7 @@ function accountMenu(actions: MenuActions, platform: string): MenuItemConstructo
  */
 function commonItems(
   actions: MenuActions,
-  platform: string,
+  keys: Keys,
 ): Record<'about' | 'settings' | 'help', MenuItemConstructorOptions[]> {
   const about: MenuItemConstructorOptions = {
     label: en.menu.about(PRODUCT_NAME),
@@ -206,12 +212,12 @@ function commonItems(
   };
   const settings: MenuItemConstructorOptions = {
     label: en.menu.settings,
-    ...keyed('settings', platform),
+    ...keyed('settings', keys),
     click: actions.openSettings,
   };
   const shortcuts: MenuItemConstructorOptions = {
     label: en.menu.shortcuts,
-    ...keyed('shortcuts', platform),
+    ...keyed('shortcuts', keys),
     click: actions.openShortcuts,
   };
   const report: MenuItemConstructorOptions = {
@@ -232,13 +238,15 @@ function pluginItems(actions: MenuActions): MenuItemConstructorOptions[] {
 export function buildMenuTemplate(
   platform: string,
   actions: MenuActions,
+  custom: CustomShortcuts = {},
 ): MenuItemConstructorOptions[] {
-  const { about, settings, help } = commonItems(actions, platform);
-  const quit: MenuItemConstructorOptions = { role: 'quit', ...keyed('quit', platform) };
+  const keys = { platform, custom };
+  const { about, settings, help } = commonItems(actions, keys);
+  const quit: MenuItemConstructorOptions = { role: 'quit', ...keyed('quit', keys) };
   const standard: MenuItemConstructorOptions[] = [
-    editMenu(platform),
-    viewMenu(actions, platform),
-    windowMenu(actions, platform),
+    editMenu(keys),
+    viewMenu(actions, keys),
+    windowMenu(actions, keys),
   ];
   if (platform !== 'darwin') {
     const file: MenuItemConstructorOptions = {
@@ -247,15 +255,15 @@ export function buildMenuTemplate(
     };
     return [
       file,
-      accountMenu(actions, platform),
+      accountMenu(actions, keys),
       ...standard,
       { role: 'help', submenu: [...about, { type: 'separator' }, ...help] },
     ];
   }
   return [
-    macAppMenu([...about], [...settings, ...pluginItems(actions)], quit),
+    macAppMenu([...about], [...settings, ...pluginItems(actions)], quit, keys),
     { role: 'fileMenu' },
-    accountMenu(actions, platform),
+    accountMenu(actions, keys),
     ...standard,
     { role: 'help', submenu: help },
   ];
@@ -265,6 +273,7 @@ function macAppMenu(
   about: MenuItemConstructorOptions[],
   settings: MenuItemConstructorOptions[],
   quit: MenuItemConstructorOptions,
+  keys: Keys,
 ): MenuItemConstructorOptions {
   return {
     label: PRODUCT_NAME,
@@ -275,7 +284,7 @@ function macAppMenu(
       { type: 'separator' },
       { role: 'services' },
       { type: 'separator' },
-      { role: 'hide', ...keyed('hide', 'darwin') },
+      { role: 'hide', ...keyed('hide', keys) },
       { role: 'hideOthers' },
       { role: 'unhide' },
       { type: 'separator' },

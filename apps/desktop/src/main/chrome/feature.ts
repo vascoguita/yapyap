@@ -11,7 +11,7 @@ import {
 import { readPageState, type ProbedContents } from '../about/page-state.ts';
 import { newChatHandlers, type ChatTarget } from './new-chat.ts';
 import { folderChoiceHandlers } from '../settings/folder-choice.ts';
-import { shortcutsFor } from '../../shared/shortcuts.ts';
+import { shortcutHandlers } from './shortcut-settings.ts';
 import { spellingHandlers, type SpellingSources } from './spelling-languages.ts';
 import { DOWNLOADS_PAGE, downloadsHandlers } from './downloads-window.ts';
 import type { DownloadList } from '../downloads/download-list.ts';
@@ -581,19 +581,32 @@ function accountMenuSetter(
 ): (menu: AccountMenu) => void {
   const set = (menu: AccountMenu | undefined): void => {
     deps.setMenu(
-      buildMenuTemplate(deps.platform, {
-        ...menuAccounts(menu),
-        ...openers,
-        ...accountActions(deps, recoveries, menu, warn),
-        ...quietActions(deps.settings, menu),
-        zoom: (step) => {
-          changeZoom(deps.settings, step);
+      buildMenuTemplate(
+        deps.platform,
+        {
+          ...menuAccounts(menu),
+          ...openers,
+          ...accountActions(deps, recoveries, menu, warn),
+          ...quietActions(deps.settings, menu),
+          zoom: (step) => {
+            changeZoom(deps.settings, step);
+          },
+          copyDiagnostics,
         },
-        copyDiagnostics,
-      }),
+        deps.settings.current().shortcuts.custom,
+      ),
     );
   };
   set(undefined);
+  // The menu holds the keys, so it is built again when the user changes one.
+  let keys = JSON.stringify(deps.settings.current().shortcuts.custom);
+  deps.settings.onChange((current) => {
+    const changed = JSON.stringify(current.shortcuts.custom);
+    if (changed !== keys) {
+      keys = changed;
+      set(accounts.current);
+    }
+  });
   return (menu) => {
     accounts.current = menu;
     set(menu);
@@ -629,11 +642,7 @@ function allHandlers(
     ...settingsTransferHandlers(deps.settings, deps.settingsFiles),
     ...folderChoiceHandlers(deps.settings, deps.chooseFolder),
     ...newChatHandlers(chats),
-    {
-      channel: CHROME_CHANNELS.shortcutsList,
-      accepts: noArguments,
-      handle: () => ({ platform: deps.platform, shortcuts: shortcutsFor(deps.platform) }),
-    },
+    ...shortcutHandlers(deps.settings, deps.platform),
     ...spellingHandlers(deps.settings, deps.spelling),
     ...downloadsHandlers(deps.downloads),
     ...accountsHandlers(() => accounts.current, deps.confirmRemoveAccount),
