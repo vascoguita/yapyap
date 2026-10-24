@@ -33,6 +33,8 @@ const CLOSE_TO_TRAY = 'general.closeToTray';
 const AUTOSTART = 'general.autostart';
 const BETA = 'general.betaUpdates';
 const DND = 'general.doNotDisturb';
+const PANEL = 'general.quickPanel';
+const PANEL_PLACE = 'general.quickPanelPlace';
 
 function setup(readOnly = false, effects: Readonly<Record<string, SettingEffect>> = {}) {
   let settings: Settings = defaultSettings();
@@ -174,11 +176,14 @@ describe('settingsHandlers', () => {
         [START_MINIMIZED]: false,
         [BETA]: false,
         [DND]: false,
+        [PANEL]: 'off',
+        [PANEL_PLACE]: 'free',
         [CLOSE_TO_TRAY]: false,
       },
       restartPending: false,
       readOnly: true,
       problems: {},
+      unavailable: {},
     });
   });
 
@@ -196,6 +201,7 @@ describe('settingsHandlers', () => {
     expect(set.handle(t.call, AUTOSTART, true)).toMatchObject({
       values: { [AUTOSTART]: true },
       problems: {},
+      unavailable: {},
     });
   });
 
@@ -217,6 +223,21 @@ describe('settingsHandlers', () => {
       expect.not.objectContaining({ [BETA]: false }),
     );
     expect(set?.accepts([BETA, true])).toBe(false);
+  });
+
+  it('shows a setting it cannot act on here, says why, and refuses to change it', () => {
+    const service = { ...setup().service };
+    const handlers = settingsHandlers(service, vi.fn(), 'linux', {}, [], {
+      [PANEL_PLACE]: 'On Wayland, your desktop decides where windows go.',
+    });
+    const get = handlers.find(({ channel }) => channel === 'settings:get');
+    const set = handlers.find(({ channel }) => channel === 'settings:set');
+    expect(get?.handle({ sender: {} })).toMatchObject({
+      values: { [PANEL_PLACE]: 'free' },
+      unavailable: { [PANEL_PLACE]: 'On Wayland, your desktop decides where windows go.' },
+    });
+    expect(set?.accepts([PANEL_PLACE, 'topLeft'])).toBe(false);
+    expect(set?.accepts([PANEL, 'always'])).toBe(true);
   });
 
   it('leaves the system alone when a newer YapYap owns the settings', () => {
@@ -259,11 +280,14 @@ describe('settingsHandlers', () => {
         [START_MINIMIZED]: false,
         [BETA]: false,
         [DND]: false,
+        [PANEL]: 'off',
+        [PANEL_PLACE]: 'free',
         [CLOSE_TO_TRAY]: false,
       },
       restartPending: true,
       readOnly: false,
       problems: {},
+      unavailable: {},
     });
     expect(t.settings().reliability.hardwareAcceleration).toBe(false);
     expect(t.settings().reliability.memoryWatchdogMb).toBe(2048);

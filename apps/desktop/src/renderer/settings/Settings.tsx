@@ -23,10 +23,12 @@ interface FieldProps {
 
 /** The field's description, then why its last change did not take effect. */
 function Hint({ field, snapshot }: Omit<FieldProps, 'onChange'>): JSX.Element {
+  const unavailable = snapshot.unavailable[field.id];
   return (
     <p id={`${field.id}-hint`} class="hint">
       {field.description}
       {field.restart ? ` ${text.restartNote}` : ''}
+      {unavailable === undefined ? '' : ` ${unavailable}`}
       <span class="problem" aria-live="polite">
         {snapshot.problems[field.id]}
       </span>
@@ -37,7 +39,11 @@ function Hint({ field, snapshot }: Omit<FieldProps, 'onChange'>): JSX.Element {
 function Choice(props: FieldProps & { readonly options: NonNullable<SettingField['options']> }) {
   const { field, snapshot, onChange, options } = props;
   return (
-    <fieldset class="choice" aria-describedby={`${field.id}-hint`} disabled={snapshot.readOnly}>
+    <fieldset
+      class="choice"
+      aria-describedby={`${field.id}-hint`}
+      disabled={snapshot.readOnly || field.id in snapshot.unavailable}
+    >
       <legend>{field.label}</legend>
       {options.map(({ value, label }) => (
         <label key={String(value)}>

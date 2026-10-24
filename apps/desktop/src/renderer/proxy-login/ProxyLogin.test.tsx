@@ -31,6 +31,7 @@ function api(request: Partial<ProxyLoginRequest> = {}) {
       stopSharing: vi.fn(),
       onState: vi.fn(),
     },
+    quickPanel: { open: vi.fn(), setDoNotDisturb: vi.fn() },
     plugins: { list: vi.fn(), consent: vi.fn(), answer: vi.fn() },
     picker: { offer: vi.fn(), choose: vi.fn(), cancel: vi.fn() },
     spelling: { languages: vi.fn(), choose: vi.fn() },

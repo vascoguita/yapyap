@@ -16,13 +16,17 @@ type Listener = (event: IpcInvokeEvent, ...args: unknown[]) => unknown;
 function setup() {
   const listeners = new Map<string, Listener>();
   const window = {
-    webContents: {},
+    webContents: { send: vi.fn() },
     isDestroyed: () => false,
     focus: vi.fn(),
     once: vi.fn(),
+    on: vi.fn(),
     show: vi.fn(),
     close: vi.fn(),
+    destroy: vi.fn(),
     loadURL: vi.fn(() => Promise.resolve()),
+    setPosition: vi.fn(),
+    getBounds: vi.fn(() => ({ x: 0, y: 0, width: 260, height: 360 })),
   };
   let handler: ((request: { url: string }) => Promise<Response>) | undefined;
   let menu: MenuItemConstructorOptions[] = [];
@@ -99,6 +103,8 @@ function setup() {
     confirmRemoveAccount: vi.fn(() => Promise.resolve(true)),
     captureSources: vi.fn<ChromeFeatureDependencies['captureSources']>(() => Promise.resolve([])),
     windowOf: vi.fn<ChromeFeatureDependencies['windowOf']>(() => null),
+    screens: vi.fn(() => [{ x: 0, y: 0, width: 1920, height: 1040 }]),
+    quickPanelPlace: { get: vi.fn(() => undefined), set: vi.fn() },
   } satisfies ChromeFeatureDependencies;
   const views = new WeakMap<object, ViewInfo>();
   const feature = createChromeFeature(deps);
@@ -146,7 +152,7 @@ describe('createChromeFeature', () => {
 
   it('serves the renderer folder on the chrome session', async () => {
     const t = setup();
-    t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated', false);
     const response = await t.handler()?.({ url: 'app://chrome/about.html' });
     expect(response?.status).toBe(200);
     expect(t.deps.readFile).toHaveBeenCalledWith(join('/app/renderer', 'about.html'));
@@ -154,7 +160,7 @@ describe('createChromeFeature', () => {
 
   it('opens About from the menu as a chrome window with the chrome preload and partition', () => {
     const t = setup();
-    t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated', false);
     t.clickAbout();
     expect(t.deps.createWindow).toHaveBeenCalledWith(
       {
@@ -178,7 +184,7 @@ describe('createChromeFeature', () => {
 
   it('answers About IPC calls from the About window', async () => {
     const t = setup();
-    t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated', false);
     t.clickAbout();
     expect(t.call('about:info')).toEqual(
       expect.objectContaining({ version: '0.1.0', channel: 'deb' }),
@@ -191,7 +197,7 @@ describe('createChromeFeature', () => {
 
   it('builds the menu again when the user changes a shortcut, and only then', () => {
     const t = setup();
-    t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated', false);
     const listeners = t.deps.settings.onChange.mock.calls.map(
       ([listener]) => listener as (settings: Settings) => void,
     );
@@ -213,7 +219,7 @@ describe('createChromeFeature', () => {
 
   it('lists the shortcuts of the platform it runs on', () => {
     const t = setup();
-    t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated', false);
     const help = t.menu().find((menu) => menu.role === 'help');
     const open = Array.isArray(help?.submenu)
       ? help.submenu.find((item) => item.label === 'Keyboard Shortcuts…')
@@ -225,9 +231,48 @@ describe('createChromeFeature', () => {
     expect(list.shortcuts.map((shortcut) => shortcut.id)).toContain('settings');
   });
 
+  it('opens the quick-access panel on top of other apps, once the user turns it on', () => {
+    const t = setup();
+    const listeners: ((settings: Settings) => void)[] = [];
+    t.deps.settings.onChange = vi.fn((listener: (settings: Settings) => void) => {
+      listeners.push(listener);
+    });
+    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated', true);
+    runtime.attachQuickPanel({ visible: () => true, bringToFront: vi.fn() });
+    const settings = defaultSettings();
+    const on: Settings = { ...settings, general: { ...settings.general, quickPanel: 'always' } };
+    t.deps.settings.current = () => on;
+    for (const listener of listeners) {
+      listener(on);
+    }
+    expect(t.deps.createWindow).toHaveBeenLastCalledWith(
+      {
+        autoHideMenuBar: true,
+        title: 'YapYap',
+        width: 260,
+        height: 360,
+        resizable: false,
+        minimizable: false,
+        maximizable: false,
+        fullscreenable: false,
+        closable: false,
+        alwaysOnTop: true,
+        skipTaskbar: true,
+        show: false,
+      },
+      expect.anything(),
+    );
+    expect(t.window.loadURL).toHaveBeenLastCalledWith('app://chrome/quick-panel.html');
+    // On Wayland the desktop places the panel, so Settings says so.
+    const snapshot = t.call('settings:get') as { unavailable: Record<string, string> };
+    expect(snapshot.unavailable).toEqual({
+      'general.quickPanelPlace': 'On Wayland, your desktop decides where windows go.',
+    });
+  });
+
   it('gives each of YapYap’s windows its own size and controls', () => {
     const t = setup();
-    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated', false);
     const clickLabel = (label: string): void => {
       const item = t
         .menu()
@@ -329,7 +374,7 @@ describe('createChromeFeature', () => {
 
   it('asks for a proxy password in a window of its own', async () => {
     const t = setup();
-    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated', false);
     const request = { host: 'proxy.example.org', port: 3128, failed: false, canRemember: true };
     const asked = runtime.askProxyLogin(request);
     expect(t.window.loadURL).toHaveBeenCalledWith('app://chrome/proxy-login.html');
@@ -353,7 +398,7 @@ describe('createChromeFeature', () => {
 
   it('opens Settings from the menu and answers its IPC calls', async () => {
     const t = setup();
-    t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated', false);
     t.clickSettings();
     expect(t.deps.createWindow).toHaveBeenCalledWith(
       {
@@ -398,11 +443,14 @@ describe('createChromeFeature', () => {
         'general.startMinimized': false,
         'general.betaUpdates': false,
         'general.doNotDisturb': false,
+        'general.quickPanel': 'off',
+        'general.quickPanelPlace': 'free',
         'general.closeToTray': false,
       },
       restartPending: false,
       readOnly: false,
       problems: {},
+      unavailable: {},
     });
     t.call('settings:restart');
     expect(t.deps.restart).toHaveBeenCalledOnce();
@@ -417,7 +465,7 @@ describe('createChromeFeature', () => {
     t.deps.windowOf.mockReturnValueOnce(parent as never);
     const source = { id: 'screen:1:0', name: 'Screen', thumbnail: { toDataURL: () => 'data:' } };
     t.deps.captureSources.mockResolvedValueOnce([source]);
-    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated', false);
     const owner = {};
     const choice = runtime.pickCaptureSource(owner);
     await new Promise((resolve) => setTimeout(resolve));
@@ -458,6 +506,7 @@ describe('createChromeFeature', () => {
       t.views,
       vi.fn(),
       'hardware accelerated',
+      false,
     );
     const choice = runtime.pickCaptureSource({});
     await new Promise((resolve) => setTimeout(resolve));
@@ -471,7 +520,7 @@ describe('createChromeFeature', () => {
     t.deps.captureSources.mockResolvedValueOnce([
       { id: 'screen:1:0', name: 'Screen', thumbnail: { toDataURL: () => 'data:' } },
     ]);
-    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated', false);
     const choice = runtime.pickCaptureSource({});
     await new Promise((resolve) => setTimeout(resolve));
     t.window.isDestroyed = () => true;
@@ -485,7 +534,7 @@ describe('createChromeFeature', () => {
     try {
       const t = setup();
       t.deps.captureSources.mockResolvedValueOnce([]);
-      const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+      const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated', false);
       void runtime.pickCaptureSource({});
       await vi.advanceTimersByTimeAsync(199);
       expect(t.deps.captureSources.mock.calls).toEqual([['screen'], ['window']]);
@@ -501,7 +550,7 @@ describe('createChromeFeature', () => {
     t.deps.captureSources.mockResolvedValueOnce([
       { id: 'screen:1:0', name: 'Screen', thumbnail: { toDataURL: () => 'data:' } },
     ]);
-    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated', false);
     void runtime.pickCaptureSource({});
     await new Promise((resolve) => setTimeout(resolve));
     expect(t.deps.createWindow.mock.lastCall).not.toHaveProperty(['0', 'parent']);
@@ -510,7 +559,7 @@ describe('createChromeFeature', () => {
   it('clears the cache or, once confirmed, resets the session of the WhatsApp view', async () => {
     const t = setup();
     const warn = vi.fn();
-    const runtime = t.feature.afterReady(t.views, warn, 'hardware accelerated');
+    const runtime = t.feature.afterReady(t.views, warn, 'hardware accelerated', false);
     t.clickAccount('Clear Cache and Reload');
     t.clickAccount('Reset Session…');
     await new Promise((resolve) => setTimeout(resolve));
@@ -574,7 +623,7 @@ describe('createChromeFeature', () => {
   it('lists the accounts, and removes the active one once the user agrees', async () => {
     const t = setup();
     const warn = vi.fn();
-    const runtime = t.feature.afterReady(t.views, warn, 'hardware accelerated');
+    const runtime = t.feature.afterReady(t.views, warn, 'hardware accelerated', false);
     t.clickAccount('Add Account');
     t.clickAccount('Remove Account…');
     expect(t.deps.confirmRemoveAccount).not.toHaveBeenCalled();
@@ -630,7 +679,7 @@ describe('createChromeFeature', () => {
 
   it('opens the welcome in its own window, once', () => {
     const t = setup();
-    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated', false);
     runtime.openWelcome();
     runtime.openWelcome();
     expect(t.window.loadURL).toHaveBeenCalledExactlyOnceWith('app://chrome/welcome.html');
@@ -638,7 +687,7 @@ describe('createChromeFeature', () => {
 
   it('opens Report a Problem from the Help menu, describing the first WhatsApp view', async () => {
     const t = setup();
-    t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated', false);
     const help = t.menu().at(-1)?.submenu;
     const report = Array.isArray(help)
       ? help.find((item) => item.label === 'Report a Problem…')
@@ -663,7 +712,7 @@ describe('createChromeFeature', () => {
 
   it('docks the account sidebar as a chrome page and answers its calls', () => {
     const t = setup();
-    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated', false);
     const port = {
       webContents: { loadURL: vi.fn(() => Promise.resolve()), send: vi.fn() },
       setWidth: vi.fn(),
@@ -698,7 +747,7 @@ describe('createChromeFeature', () => {
 
   it('opens the Accounts window from the Account menu, listing the current accounts', () => {
     const t = setup();
-    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated', false);
     t.clickAccount('Manage Accounts…');
     expect(t.window.loadURL).toHaveBeenCalledWith('app://chrome/accounts.html');
     expect(t.call('accounts:list')).toHaveProperty('accounts', []);
@@ -733,7 +782,7 @@ describe('createChromeFeature', () => {
 
   it('asks nothing when no account is on screen to remove', () => {
     const t = setup();
-    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated', false);
     runtime.setAccountMenu({
       entries: [
         {
@@ -771,7 +820,7 @@ describe('createChromeFeature', () => {
 
   it('turns do not disturb on and mutes the account on screen from the Account menu', () => {
     const t = setup();
-    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated', false);
     t.clickAccount('Do Not Disturb');
     t.clickAccount('Mute This Account');
     expect(t.deps.settings.update).toHaveBeenCalledOnce();
@@ -806,7 +855,7 @@ describe('createChromeFeature', () => {
 
   it('opens New Chat from the Account menu and its chats in WhatsApp once there is a window', () => {
     const t = setup();
-    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated', false);
     t.clickAccount('New Chat with Number…');
     expect(t.window.loadURL).toHaveBeenCalledWith('app://chrome/new-chat.html');
     expect(t.call('chat:open-number', t.window.webContents, '+44 7700 900123')).toBe(false);
@@ -818,7 +867,7 @@ describe('createChromeFeature', () => {
 
   it('zooms through the settings from the View menu', () => {
     const t = setup();
-    t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated', false);
     const view = t.menu().find((menu) => menu.label === '&View');
     const zoomIn = Array.isArray(view?.submenu)
       ? view.submenu.find((item) => item.label === 'Zoom In')
@@ -829,7 +878,7 @@ describe('createChromeFeature', () => {
 
   it('gives crash reports the About window’s technical details', () => {
     const t = setup();
-    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated', false);
     expect(runtime.technicalDetails()).toMatch(
       /^YapYap 0\.1\.0 \(deb\)\n[\s\S]*\nGraphics hardware accelerated$/,
     );
@@ -837,7 +886,7 @@ describe('createChromeFeature', () => {
 
   it('copies diagnostics with the GPU summary and recent log from the Help menu', async () => {
     const t = setup();
-    t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated', false);
     const help = t.menu().at(-1)?.submenu;
     const copy = Array.isArray(help)
       ? help.find((item) => item.label === 'Copy Diagnostics')
@@ -853,7 +902,7 @@ describe('createChromeFeature', () => {
 
   it('describes the first WhatsApp view in the diagnostics', async () => {
     const t = setup();
-    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated', false);
     const contents = {
       on: vi.fn(),
       executeJavaScriptInIsolatedWorld: vi.fn(() =>
@@ -885,7 +934,7 @@ describe('createChromeFeature', () => {
     const t = setup();
     const warn = vi.fn();
     t.deps.writeClipboard.mockRejectedValueOnce(new Error('denied'));
-    t.feature.afterReady(t.views, warn, 'hardware accelerated');
+    t.feature.afterReady(t.views, warn, 'hardware accelerated', false);
     const help = t.menu().at(-1)?.submenu;
     const copy = Array.isArray(help)
       ? help.find((item) => item.label === 'Copy Diagnostics')
@@ -901,7 +950,7 @@ describe('createChromeFeature', () => {
 
   it('shows the recovery screen over a failing WhatsApp view and routes its actions to it', async () => {
     const t = setup();
-    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated', false);
     const handlers = new Map<string, (...args: never[]) => void>();
     const contents = {
       on: vi.fn((event: string, listener: (...args: never[]) => void) => {
@@ -948,7 +997,7 @@ describe('createChromeFeature', () => {
 
   it('refuses recovery calls from chrome views that are not a recovery screen', () => {
     const t = setup();
-    t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated', false);
     t.clickAbout();
     expect(() => t.call('recovery:retry')).toThrow('No recovery screen belongs to this window.');
   });

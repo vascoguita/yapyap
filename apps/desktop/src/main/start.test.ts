@@ -7,6 +7,7 @@ import type { AccountMenu } from './chrome/feature.ts';
 import type { CaptureChoice } from './permissions/session-guard.ts';
 import { defaultSettings } from './settings/decode.ts';
 import type { Settings } from './settings/schema.ts';
+import type { PanelOwner } from './chrome/quick-panel.ts';
 import type { SidebarSource } from './chrome/sidebar.ts';
 import type { ContextMenuItem, ContextMenuParams } from './spelling/context-menu.ts';
 import type { ProxyLoginAnswer } from '../shared/chrome-api.ts';
@@ -109,6 +110,7 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     isVisible: vi.fn(() => true),
   } satisfies WindowPort;
   const createWindow = vi.fn<(options: WindowOptions) => WindowPort>(() => window);
+  const panel = vi.fn<(source: SidebarSource) => void>();
   const runtime = {
     attachRecovery: vi.fn<
       (
@@ -138,6 +140,8 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
       create({ preload: '/app/preload/chrome.cjs' });
       return runtime.sidebar;
     }),
+    panel,
+    attachQuickPanel: vi.fn<(owner: PanelOwner) => typeof panel>(() => panel),
   };
   const createSidebar = vi.fn(() => ({
     webContents: { loadURL: vi.fn(() => Promise.resolve()), send: vi.fn() },
@@ -404,6 +408,7 @@ describe('startApp', () => {
       expect.any(WeakMap),
       f.warn,
       'hardware accelerated, display X11 (automatic)',
+      false,
     );
   });
 
@@ -593,6 +598,7 @@ describe('startApp', () => {
       expect.anything(),
       f.warn,
       'software rendering (turned off in settings), display X11 (automatic)',
+      false,
     );
     expect(f.notify).not.toHaveBeenCalled();
   });
@@ -611,6 +617,7 @@ describe('startApp', () => {
       expect.anything(),
       f.warn,
       'hardware accelerated, display X11 (settings)',
+      false,
     );
   });
 
@@ -628,6 +635,12 @@ describe('startApp', () => {
     await startApp(f);
     expect(f.app.commandLine.appendSwitch).not.toHaveBeenCalled();
     expect(f.capture).toHaveBeenCalledExactlyOnceWith(expect.any(Function), true);
+    expect(f.chrome.afterReady).toHaveBeenCalledWith(
+      expect.anything(),
+      f.warn,
+      expect.any(String),
+      true,
+    );
   });
 
   it('logs why a display backend chosen in settings could not be used', async () => {
@@ -654,6 +667,7 @@ describe('startApp', () => {
       expect.anything(),
       f.warn,
       'hardware accelerated, display X11 (automatic)',
+      false,
     );
     expect(f.notify).toHaveBeenCalledExactlyOnceWith(
       'Some settings were invalid and were reset to their defaults.',
@@ -780,6 +794,20 @@ describe('startApp', () => {
     const f = fakes();
     await startApp(f);
     expect(f.customCode.attach).toHaveBeenCalledExactlyOnceWith(f.hosts[0]?.webContents, ACCOUNT);
+  });
+
+  it('lets the quick-access panel stand in for a window out of sight, and bring it back', async () => {
+    const f = fakes();
+    await startApp(f);
+    const owner = f.runtime.attachQuickPanel.mock.calls[0]?.[0];
+    expect(owner?.visible()).toBe(true);
+    f.window.isMinimized.mockReturnValue(true);
+    expect(owner?.visible()).toBe(false);
+    owner?.bringToFront();
+    expect(f.window.restore).toHaveBeenCalledOnce();
+    expect(f.window.show).toHaveBeenCalled();
+    f.web.fire('page-title-updated', {}, '(2) WhatsApp');
+    expect(f.runtime.panel).toHaveBeenLastCalledWith(f.runtime.sidebar.mock.calls.at(-1)?.[0]);
   });
 
   it('shows the unread count from the page title as the app badge', async () => {

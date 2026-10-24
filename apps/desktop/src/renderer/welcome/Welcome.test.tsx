@@ -14,6 +14,7 @@ const SNAPSHOT: SettingsSnapshot = {
   restartPending: false,
   readOnly: false,
   problems: {},
+  unavailable: {},
 };
 
 function setup(get: () => Promise<SettingsSnapshot> = () => Promise.resolve(SNAPSHOT)) {

@@ -39,6 +39,7 @@ import { join } from 'node:path';
 import { createDownloadList } from './downloads/download-list.ts';
 import { downloadsFolder } from './downloads/downloads.ts';
 import { lastFolderIn } from './downloads/last-folder.ts';
+import { panelPlaceIn } from './chrome/quick-panel.ts';
 import { openSecretStore, secretFileAt } from './secrets/secret-store.ts';
 import { readInstallChannel } from './about/about-info.ts';
 import { loadAccounts, saveAccounts } from './accounts/accounts-file.ts';
@@ -77,6 +78,7 @@ const WINDOW_STATE = join(app.getPath('userData'), 'window-state.json');
 const DOWNLOADS_STATE = join(app.getPath('userData'), 'downloads.json');
 // Kept apart from settings, so importing a settings file can never bring code that runs in WhatsApp.
 const CUSTOM_CODE = join(app.getPath('userData'), 'custom-code.json');
+const QUICK_PANEL_STATE = join(app.getPath('userData'), 'quick-panel.json');
 
 // Holds the tray for the app's lifetime; a collected Tray disappears from the panel.
 let tray: Tray | undefined;
@@ -167,6 +169,14 @@ const chrome = createChromeFeature({
   settings,
   chooseFolder,
   installEvidence,
+  screens: () =>
+    [screen.getPrimaryDisplay(), ...screen.getAllDisplays()].map((display) => display.workArea),
+  quickPanelPlace: panelPlaceIn({
+    read: () => readFileSync(QUICK_PANEL_STATE, 'utf8'),
+    write: (text) => {
+      writeFileSync(QUICK_PANEL_STATE, text);
+    },
+  }),
   settingEffects: { 'general.autostart': applyAutostart(autostart, warn) },
   hiddenSettings: settingsIgnoredBy(updatePolicy),
   registerSchemesAsPrivileged: (schemes) => {

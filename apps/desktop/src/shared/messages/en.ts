@@ -100,6 +100,7 @@ const catalog = {
     restartNeeded: 'Restart YapYap to apply your changes.',
     restartNow: 'Restart now',
     restartNote: 'Takes effect after a restart.',
+    waylandPlacement: 'On Wayland, your desktop decides where windows go.',
     saveFailed: 'Could not save that setting.',
     scale: (factor: number): string => `${String(Math.round(factor * 100))}%`,
     proxyPlaceholder: 'socks5://127.0.0.1:1080',
@@ -181,6 +182,27 @@ const catalog = {
         label: 'Check spelling',
         description:
           'Underline misspelled words as you type, in your system’s language. On Windows and Linux, turning this on downloads that language’s dictionary from Google once.',
+      },
+      'general.quickPanel': {
+        label: 'Quick access panel',
+        description:
+          'A small window that stays on top of other apps, to switch accounts and turn Do not disturb on or off.',
+        options: {
+          off: 'Off',
+          always: 'Always',
+          whenHidden: 'While YapYap’s window is hidden',
+        },
+      },
+      'general.quickPanelPlace': {
+        label: 'Quick access panel position',
+        description: 'Where the panel sits on your main screen.',
+        options: {
+          free: 'Where I leave it',
+          topLeft: 'Top left',
+          topRight: 'Top right',
+          bottomLeft: 'Bottom left',
+          bottomRight: 'Bottom right',
+        },
       },
       'general.closeToTray': {
         label: 'Close to the tray',
@@ -640,6 +662,7 @@ const catalog = {
     plugins: 'Plugins',
     shortcuts: 'Keyboard Shortcuts',
     customCode: 'Custom CSS and JavaScript',
+    quickPanel: 'YapYap',
     downloads: 'Downloads',
     pluginConsent: 'Install Plugin',
     welcome: 'Welcome',

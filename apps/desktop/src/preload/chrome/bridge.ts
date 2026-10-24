@@ -103,6 +103,17 @@ function customCodeBridge(invoke: Invoke): ChromeApi['customCode'] {
   };
 }
 
+function quickPanelBridge(invoke: Invoke): ChromeApi['quickPanel'] {
+  return {
+    open: async (id) => {
+      await invoke(CHROME_CHANNELS.quickPanelOpen, id);
+    },
+    setDoNotDisturb: async (on) => {
+      await invoke(CHROME_CHANNELS.quickPanelSetDoNotDisturb, on);
+    },
+  };
+}
+
 function reportBridge(invoke: Invoke): ChromeApi['report'] {
   return {
     diagnostics: () => invoke(CHROME_CHANNELS.reportDiagnostics) as Promise<string>,
@@ -180,6 +191,7 @@ export function createChromeBridge(invoke: Invoke, listen: Listen): ChromeApi {
     },
     accounts: accountsBridge(invoke),
     sidebar: sidebarBridge(invoke, listen),
+    quickPanel: quickPanelBridge(invoke),
     plugins: pluginsBridge(invoke),
     report: reportBridge(invoke),
     spelling: spellingBridge(invoke),

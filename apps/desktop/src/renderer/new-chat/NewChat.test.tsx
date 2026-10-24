@@ -33,6 +33,7 @@ function api(opened: boolean) {
       stopSharing: vi.fn(),
       onState: vi.fn(),
     },
+    quickPanel: { open: vi.fn(), setDoNotDisturb: vi.fn() },
     plugins: { list: vi.fn(), consent: vi.fn(), answer: vi.fn() },
     report: { diagnostics: vi.fn(), open: vi.fn() },
     picker: { offer: vi.fn(), choose: vi.fn(), cancel: vi.fn() },

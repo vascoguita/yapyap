@@ -13,6 +13,7 @@ const snapshot = (overrides: Partial<SettingsSnapshot> = {}): SettingsSnapshot =
   restartPending: false,
   readOnly: false,
   problems: {},
+  unavailable: {},
   ...overrides,
 });
 
@@ -55,6 +56,7 @@ function api(overrides: Partial<ChromeApi['settings']> = {}) {
       stopSharing: vi.fn(),
       onState: vi.fn(),
     },
+    quickPanel: { open: vi.fn(), setDoNotDisturb: vi.fn() },
     plugins: { list: vi.fn(), consent: vi.fn(), answer: vi.fn() },
     report: { diagnostics: vi.fn(), open: vi.fn() },
     picker: { offer: vi.fn(), choose: vi.fn(), cancel: vi.fn() },
@@ -181,6 +183,33 @@ describe('Settings', () => {
     );
     expect(document.getElementById('general.example-hint')?.textContent).toBe(
       'Does something.The system refused.',
+    );
+  });
+
+  it('shows a choice it cannot change here, and why', () => {
+    const field = {
+      id: 'general.example',
+      label: 'Example',
+      description: 'Where it goes.',
+      restart: false,
+      options: [
+        { value: 'left', label: 'Left' },
+        { value: 'right', label: 'Right' },
+      ],
+    } as const;
+    render(
+      <Field
+        field={field}
+        snapshot={snapshot({
+          values: { 'general.example': 'left' },
+          unavailable: { 'general.example': 'Your desktop decides.' },
+        })}
+        onChange={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole<HTMLFieldSetElement>('group').disabled).toBe(true);
+    expect(document.getElementById('general.example-hint')?.textContent).toBe(
+      'Where it goes. Your desktop decides.',
     );
   });
 

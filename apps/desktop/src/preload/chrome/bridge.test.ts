@@ -44,6 +44,8 @@ describe('createChromeBridge', () => {
     await api.sidebar.switchTo('a');
     await api.sidebar.setCompact(true);
     await api.sidebar.stopSharing('a');
+    await api.quickPanel.open('a');
+    await api.quickPanel.setDoNotDisturb(true);
     expect(await api.plugins.list()).toBe('ignored');
     expect(await api.plugins.consent()).toBe('ignored');
     await api.plugins.answer(true, false);
@@ -98,6 +100,8 @@ describe('createChromeBridge', () => {
       ['sidebar:switch', 'a'],
       ['sidebar:set-compact', true],
       ['sidebar:stop-sharing', 'a'],
+      ['quick-panel:open', 'a'],
+      ['quick-panel:set-do-not-disturb', true],
       ['plugins:list'],
       ['plugins:consent'],
       ['plugins:answer', true, false],
@@ -130,6 +134,7 @@ describe('createChromeBridge', () => {
       'chat',
       'accounts',
       'sidebar',
+      'quickPanel',
       'plugins',
       'report',
       'spelling',
@@ -149,6 +154,7 @@ describe('createChromeBridge', () => {
       'onState',
     ]);
     expect(Object.keys(api.plugins)).toEqual(['list', 'consent', 'answer']);
+    expect(Object.keys(api.quickPanel)).toEqual(['open', 'setDoNotDisturb']);
     expect(Object.keys(api.chat)).toEqual(['openNumber']);
     expect(Object.keys(api.shortcuts)).toEqual(['list', 'set']);
     expect(Object.keys(api.downloads)).toEqual(['list', 'act', 'clear']);
