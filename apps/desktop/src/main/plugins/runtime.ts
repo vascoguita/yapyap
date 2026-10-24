@@ -29,6 +29,9 @@ import { servePluginRpc, type RpcMethod, type RpcOptions, type RpcPort } from '.
  * no process, storage, cookies or cache with each other or with WhatsApp.
  * Only `storage:local` makes it outlive a quit.
  */
+/** Lets a plugin reach servers on this computer, such as a local AI model. */
+const LOCAL_NETWORK = 'local-network';
+
 export function pluginPartition(record: Pick<PluginRecord, 'id' | 'capabilities'>): string {
   const partition = `plugin:${record.id}`;
   return record.capabilities.includes('storage:local') ? `persist:${partition}` : partition;
@@ -255,6 +258,7 @@ function serve(
     id,
     name: () => known.name,
     approved: () => grantedHosts(known.record),
+    local: () => holds(known.record, LOCAL_NETWORK, undefined),
     ask: deps.askHost,
     approve: async (host) => {
       known.record = { ...known.record, hosts: [...known.record.hosts, host] };

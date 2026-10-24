@@ -569,6 +569,12 @@ not edit the same lines.
   and forgets a key through the panel. `pnpm test:e2e` builds every plugin
   first.
 
+- Local servers for plugins (#103, part): the `local-network` capability
+  lets a plugin reach servers on this computer (`localhost`, `127.0.0.1`,
+  `[::1]`, any port, HTTP or HTTPS, no credentials) and nothing else on
+  the local network; the plugin CSP lets loopback HTTP reach the network
+  filter, which allows it only with the grant (ADR 0008, C29).
+
 - Suggested replies with consent (#104, #107): the assistant's panel
   offers **Look at this chat**. Nothing of a chat goes anywhere until the
   user allows the assistant in it (allowed chats are kept by SHA-256

@@ -15,6 +15,25 @@ export interface HostPolicyDependencies {
   readonly ask: (plugin: string, host: string) => Promise<boolean>;
   /** Adds `host` to the plugin's approved hosts, for good. */
   readonly approve: (host: string) => Promise<void>;
+  /** Whether the user lets the plugin reach servers on this computer (`local-network`). */
+  readonly local: () => boolean;
+}
+
+/** This computer, by the names a local server answers on. */
+const LOOPBACK: ReadonlySet<string> = new Set(['localhost', '127.0.0.1', '[::1]']);
+
+/**
+ * Whether `url` reaches a server on this computer, over HTTP or HTTPS on any
+ * port, without credentials. Only loopback counts: other machines on the
+ * local network are not this computer.
+ */
+function isLocalServer(url: string): boolean {
+  if (!URL.canParse(url)) {
+    return false;
+  }
+  const { protocol, username, password, hostname } = new URL(url);
+  const web = protocol === 'http:' || protocol === 'https:';
+  return web && username === '' && password === '' && LOOPBACK.has(hostname);
 }
 
 /** The host of a plain `https://` URL on the default port, or undefined for anything else. */
@@ -25,6 +44,21 @@ function httpsHost(url: string): string | undefined {
   const { protocol, port, username, password, hostname } = new URL(url);
   const plain = protocol === 'https:' && port === '' && username === '' && password === '';
   return plain ? hostname : undefined;
+}
+
+/**
+ * A request's fate without asking anyone: allowed or refused, or the host
+ * the user would have to approve.
+ */
+function settled(url: string, home: string, deps: HostPolicyDependencies): boolean | string {
+  if (url.startsWith(home)) {
+    return true;
+  }
+  if (isLocalServer(url)) {
+    return deps.local();
+  }
+  const host = httpsHost(url);
+  return host === undefined ? false : deps.approved().includes(host) || host;
 }
 
 /**
@@ -47,15 +81,8 @@ export function hostPolicy(deps: HostPolicyDependencies): (url: string) => Promi
     }
     return allowed;
   };
-  const settled = (url: string): boolean | string => {
-    if (url.startsWith(home)) {
-      return true;
-    }
-    const host = httpsHost(url);
-    return host === undefined ? false : deps.approved().includes(host) || host;
-  };
   return (url) => {
-    const host = settled(url);
+    const host = settled(url, home, deps);
     if (typeof host === 'boolean') {
       return Promise.resolve(host);
     }

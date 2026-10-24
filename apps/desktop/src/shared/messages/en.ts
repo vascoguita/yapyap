@@ -521,6 +521,7 @@ const catalog = {
       'chat:read-active': 'Read the messages of the chat you have open',
       'chat:read-unread-summary': 'See which chats have unread messages',
       'composer:insert-draft': 'Write drafts in the message box, which you send yourself',
+      'local-network': 'Connect to servers running on this computer, such as a local AI model',
       'notifications:show': 'Show notifications',
       'storage:local': 'Keep its own data on this computer',
       'secrets:own': 'Keep its own secrets, such as API keys, encrypted',

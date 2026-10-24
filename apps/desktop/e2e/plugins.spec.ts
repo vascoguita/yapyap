@@ -518,3 +518,42 @@ test('reads the open chat for a plugin allowed to, as plain data', async ({
     ],
   });
 });
+
+/** Asks a server on this computer for a page, and writes in its title whether it got through. */
+const LOCAL = `
+export default {
+  async activate() {
+    try {
+      // No CORS headers here, so the answer is opaque; getting one at all is what counts.
+      await fetch('__LOCAL__', { mode: 'no-cors' });
+      document.title = 'reached';
+    } catch {
+      document.title = 'blocked';
+    }
+  },
+};
+`;
+
+test('lets a plugin reach a server on this computer only with local-network', async ({
+  app,
+  fakeWhatsApp,
+  profile,
+}) => {
+  const local = LOCAL.replace('__LOCAL__', `${fakeWhatsApp.origin}/`);
+  const network = { hosts: [] };
+  await installPlugin(app, profile, testManifest({ capabilities: [], network }), local);
+  await expect
+    .poll(async () => (await pluginPage(app))?.title, { timeout: 20_000 })
+    .toBe('blocked');
+  const granted = testManifest({
+    id: 'org.example.local',
+    name: 'Local',
+    capabilities: ['local-network'],
+    network,
+  });
+  await installPlugin(app, profile, granted, local);
+  await expect
+    .poll(async () => (await pluginPage(app, 'org.example.local'))?.title, { timeout: 20_000 })
+    .toBe('reached');
+  expect((await pluginPage(app))?.title).toBe('blocked');
+});

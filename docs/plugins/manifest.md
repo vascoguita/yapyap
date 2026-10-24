@@ -52,14 +52,15 @@ which shares its origin, with a `BroadcastChannel`.
 
 ## Capabilities
 
-| Capability                 | Lets the plugin                                              |
-| -------------------------- | ------------------------------------------------------------ |
-| `chat:read-active`         | Read the open chat's name and its most recent messages       |
-| `chat:read-unread-summary` | Read unread counts and the latest unread messages per chat   |
-| `composer:insert-draft`    | Put text in the composer for you to edit and send            |
-| `notifications:show`       | Show notifications with its name                             |
-| `storage:local`            | Keep its own data between sessions                           |
-| `secrets:own`              | Keep its own secrets, such as API keys, encrypted by your OS |
+| Capability                 | Lets the plugin                                               |
+| -------------------------- | ------------------------------------------------------------- |
+| `chat:read-active`         | Read the open chat's name and its most recent messages        |
+| `chat:read-unread-summary` | Read unread counts and the latest unread messages per chat    |
+| `composer:insert-draft`    | Put text in the composer for you to edit and send             |
+| `notifications:show`       | Show notifications with its name                              |
+| `storage:local`            | Keep its own data between sessions                            |
+| `secrets:own`              | Keep its own secrets, such as API keys, encrypted by your OS  |
+| `local-network`            | Reach servers on this computer only, such as a local AI model |
 
 No capability lets a plugin send a message, see WhatsApp's page, or run code
 in it. Plugins only ever get chat content as plain data, and only what you

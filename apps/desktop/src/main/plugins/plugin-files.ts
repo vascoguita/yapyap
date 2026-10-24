@@ -4,9 +4,13 @@ import { hostScript } from './host-script.ts';
 
 export const PLUGIN_SCHEME = 'plugin';
 
-/** ADR 0004: no eval, no inline or remote code, nothing but the plugin's own files. */
+/**
+ * ADR 0004: no eval, no inline or remote code, nothing but the plugin's own
+ * files. Requests may go to HTTPS, or to plain HTTP on this computer, which
+ * the network policy then allows only with `local-network`.
+ */
 export const PLUGIN_CSP =
-  "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src https:";
+  "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src https: http://localhost:* http://127.0.0.1:* http://[::1]:*";
 
 export const pluginOrigin = (id: string): string => `${PLUGIN_SCHEME}://${id}`;
 
