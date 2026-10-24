@@ -73,6 +73,8 @@ function setup() {
       chooseArchive: vi.fn(() => Promise.resolve<string | undefined>(undefined)),
       readFile: vi.fn(() => Promise.resolve(new Uint8Array())),
       showMessage: vi.fn(),
+      sessionOf: vi.fn(),
+      createHost: vi.fn(),
     },
     spelling: { available: () => ['en-GB', 'pt-PT'], system: () => ['en-GB'] },
     chooseFolder: vi.fn(() => Promise.resolve<string | undefined>(undefined)),
@@ -136,11 +138,12 @@ function setup() {
 }
 
 describe('createChromeFeature', () => {
-  it('registers app: as a standard, secure scheme before the app is ready', () => {
+  it('registers app: and plugin: as standard, secure schemes before the app is ready', () => {
     const t = setup();
     t.feature.beforeReady();
     expect(t.deps.registerSchemesAsPrivileged).toHaveBeenCalledExactlyOnceWith([
       { scheme: 'app', privileges: { standard: true, secure: true } },
+      { scheme: 'plugin', privileges: { standard: true, secure: true } },
     ]);
   });
 

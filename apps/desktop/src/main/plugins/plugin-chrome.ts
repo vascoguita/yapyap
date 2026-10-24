@@ -18,6 +18,7 @@ import {
 } from './install-flow.ts';
 import { commitInstall, prepareInstall } from './installer.ts';
 import { loadRecords } from './records.ts';
+import { createPluginRuntime, type PluginHost, type PluginSession } from './runtime.ts';
 
 const PLUGINS_PAGE: ChromePage = {
   path: 'plugins.html',
@@ -60,6 +61,9 @@ export interface PluginChromeDependencies {
   readonly chooseArchive: () => Promise<string | undefined>;
   readonly readFile: (path: string) => Promise<Uint8Array>;
   readonly showMessage: (message: PluginMessage) => void;
+  readonly sessionOf: (partition: string) => PluginSession;
+  /** A hidden, sandboxed window on `partition`, which is never shown. */
+  readonly createHost: (partition: string) => PluginHost;
 }
 
 /** What the user is told when an install ends; a declined one ends quietly. */
@@ -101,6 +105,7 @@ export function installFlow(
   deps: PluginChromeDependencies,
   settings: Pick<SettingsService, 'current'>,
   ask: InstallFlowDependencies['ask'],
+  started: (id: string) => void,
 ): InstallFlowDependencies {
   return {
     chooseArchive: deps.chooseArchive,
@@ -112,7 +117,11 @@ export function installFlow(
         developerMode: settings.current().plugins.developerMode,
         bytes,
       }),
-    commit: (install) => commitInstall(deps.root, install),
+    commit: async (install) => {
+      const folder = await commitInstall(deps.root, install);
+      started(install.decision.request.id);
+      return folder;
+    },
     report: (outcome) => {
       deps.showMessage(messageOf(outcome));
     },
@@ -120,14 +129,25 @@ export function installFlow(
   };
 }
 
-/** The Plugins window, the install command and its consent window (ADR 0004). */
+/**
+ * The Plugins window, the install command and its consent window, and the
+ * runtime that runs every installed plugin, starting a new one or a new
+ * version as soon as it is installed (ADR 0004).
+ */
 export function createPluginChrome(
   deps: PluginChromeDependencies,
   settings: Pick<SettingsService, 'current'>,
   windows: ChromeWindowDependencies,
 ): PluginChrome {
+  const runtime = createPluginRuntime({ ...deps, views: windows.views, warn: windows.warn });
+  const failed = (): void => {
+    windows.warn('Could not read the installed plugins, so none was started.');
+  };
+  runtime.startAll().catch(failed);
   const consent = createPluginConsent(() => openConsentWindow(windows));
-  const flow = installFlow(deps, settings, consent.ask);
+  const flow = installFlow(deps, settings, consent.ask, (id) => {
+    runtime.restart(id).catch(failed);
+  });
   return {
     handlers: [
       {

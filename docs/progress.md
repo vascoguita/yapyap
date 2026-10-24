@@ -409,6 +409,17 @@ not edit the same lines.
   local: never exported, and kept as it is on import (`LOCAL_SECTIONS`).
   Running plugins comes with the plugin runtime.
 
+- Plugin runtime (#92): `createPluginRuntime` starts every installed plugin
+  at launch, and a new or updated one as soon as it is installed, in a
+  hidden sandboxed window (`createHost`, never shown) on its own partition,
+  `plugin:<id>` or `persist:plugin:<id>` with `storage:local`. Each
+  plugin's session serves `plugin://<id>/` only from its install folder
+  (`servePluginFiles`: a generated host page that loads `entry`, the plugin
+  CSP and `nosniff` on every response, nothing outside the folder) and
+  cancels every other request (`confinePluginRequests`; approved hosts
+  follow in #95). `plugin` is a new view zone: permissions deny it
+  everything, and the navigation guard lets it open no windows or links.
+
 - Screen-sharing indicator (#161): the WhatsApp preload's second stand-in
   (`installShareShim`, ADR 0011) reports when a screen share starts and
   ends, by a random ID only, and stops one when YapYap asks. The main

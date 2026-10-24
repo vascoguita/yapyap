@@ -58,6 +58,7 @@ import {
 import { guardCrashes, type CrashableContents } from '../recovery/crash-guard.ts';
 import { monitorPage, type MonitoredContents } from '../recovery/monitor.ts';
 import { isAccountColor } from '../accounts/accounts.ts';
+import { PLUGIN_SCHEME } from '../plugins/plugin-files.ts';
 import { setDoNotDisturb } from '../notifications/quiet.ts';
 import { settingsHandlers, type SettingEffect } from '../settings/handlers.ts';
 import type { SettingsService } from '../settings/service.ts';
@@ -733,6 +734,8 @@ export function createChromeFeature(deps: ChromeFeatureDependencies): ChromeFeat
     beforeReady: () => {
       deps.registerSchemesAsPrivileged([
         { scheme: CHROME_SCHEME, privileges: { standard: true, secure: true } },
+        // Served only on each plugin's own session (ADR 0004).
+        { scheme: PLUGIN_SCHEME, privileges: { standard: true, secure: true } },
       ]);
     },
     afterReady: (views, warn, graphics) => {

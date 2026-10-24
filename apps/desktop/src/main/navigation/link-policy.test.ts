@@ -14,11 +14,16 @@ describe('isSameOrigin', () => {
     expect(isSameOrigin('not a url', HOME)).toBe(false);
   });
 
-  it('gives app: URLs the scheme-and-host origin Chromium gives registered schemes', () => {
+  it('gives app: and plugin: URLs the scheme-and-host origin Chromium gives registered schemes', () => {
     expect(isSameOrigin('app://chrome/about.html', 'app://chrome')).toBe(true);
     expect(isSameOrigin('app://chrome:1/about.html', 'app://chrome')).toBe(false);
     expect(isSameOrigin('app://evil/about.html', 'app://chrome')).toBe(false);
-    expect(isSameOrigin('plugin://chrome/x', 'plugin://chrome')).toBe(false);
+    expect(isSameOrigin('plugin://chrome/x', 'app://chrome')).toBe(false);
+    expect(isSameOrigin('plugin://org.example.hello/main.js', 'plugin://org.example.hello')).toBe(
+      true,
+    );
+    expect(isSameOrigin('plugin://org.example.other/', 'plugin://org.example.hello')).toBe(false);
+    expect(isSameOrigin('other://chrome/x', 'other://chrome')).toBe(false);
   });
 });
 
