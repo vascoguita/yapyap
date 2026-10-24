@@ -47,6 +47,9 @@ describe('createChromeBridge', () => {
     expect(await api.plugins.consent()).toBe('ignored');
     await api.plugins.answer(true, false);
     expect(await api.shortcuts.list()).toBe('ignored');
+    expect(await api.downloads.list()).toBe('ignored');
+    await api.downloads.act(3, 'pause');
+    await api.downloads.clear();
     expect(await api.report.diagnostics()).toBe('ignored');
     await api.report.open('It froze.');
     const chosen = ['pt-PT'];
@@ -88,6 +91,9 @@ describe('createChromeBridge', () => {
       ['plugins:consent'],
       ['plugins:answer', true, false],
       ['shortcuts:list'],
+      ['downloads:list'],
+      ['downloads:act', 3, 'pause'],
+      ['downloads:clear'],
       ['report:diagnostics'],
       ['report:open', 'It froze.'],
       ['spelling:languages'],
@@ -114,6 +120,7 @@ describe('createChromeBridge', () => {
       'spelling',
       'picker',
       'shortcuts',
+      'downloads',
       'proxyLogin',
     ]);
     expect(Object.keys(api.report)).toEqual(['diagnostics', 'open']);
@@ -127,6 +134,7 @@ describe('createChromeBridge', () => {
     expect(Object.keys(api.plugins)).toEqual(['list', 'consent', 'answer']);
     expect(Object.keys(api.chat)).toEqual(['openNumber']);
     expect(Object.keys(api.shortcuts)).toEqual(['list']);
+    expect(Object.keys(api.downloads)).toEqual(['list', 'act', 'clear']);
     expect(Object.keys(api.spelling)).toEqual(['languages', 'choose']);
     expect(Object.keys(api.proxyLogin)).toEqual(['request', 'answer']);
     expect(Object.keys(api.accounts)).toEqual([

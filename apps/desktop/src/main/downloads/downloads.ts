@@ -1,11 +1,12 @@
 import { basename, dirname, join } from 'node:path';
 import { numberedName, safeFileName } from './file-name.ts';
 import type { LastFolder } from './last-folder.ts';
+import type { TrackedItem } from './download-list.ts';
 import { opensSafely } from './open-safely.ts';
 import { en } from '../../shared/messages/en.ts';
 import type { Settings } from '../settings/schema.ts';
 
-export interface DownloadItem {
+export interface DownloadItem extends TrackedItem {
   getFilename(): string;
   getSavePath(): string;
   setSavePath(path: string): void;
@@ -28,6 +29,8 @@ export interface DownloadDependencies {
   readonly lastFolder: LastFolder;
   /** `shell.openPath`: resolves with an error message, empty on success. */
   readonly openPath: (path: string) => Promise<string>;
+  /** Lists the download in the Downloads window. */
+  readonly track: (item: TrackedItem) => void;
 }
 
 /** Gives up numbering long before anyone has a hundred copies of one file. */
@@ -113,6 +116,7 @@ function askWhere(item: DownloadItem, deps: DownloadDependencies): void {
  */
 export function guardDownloads(session: DownloadingSession, deps: DownloadDependencies): void {
   session.on('will-download', (_event, item) => {
+    deps.track(item);
     let asked = deps.options().askWhere;
     if (asked) {
       askWhere(item, deps);

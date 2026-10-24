@@ -28,6 +28,7 @@ function api(platform: string) {
     plugins: { list: vi.fn(), consent: vi.fn(), answer: vi.fn() },
     picker: { offer: vi.fn(), choose: vi.fn(), cancel: vi.fn() },
     spelling: { languages: vi.fn(), choose: vi.fn() },
+    downloads: { list: vi.fn(), act: vi.fn(), clear: vi.fn() },
     report: { diagnostics: vi.fn(), open: vi.fn() },
     proxyLogin: { request: vi.fn(), answer: vi.fn() },
     shortcuts: {

@@ -12,6 +12,8 @@ import { readPageState, type ProbedContents } from '../about/page-state.ts';
 import { newChatHandlers, type ChatTarget } from './new-chat.ts';
 import { shortcutsFor } from '../../shared/shortcuts.ts';
 import { spellingHandlers, type SpellingSources } from './spelling-languages.ts';
+import { DOWNLOADS_PAGE, downloadsHandlers } from './downloads-window.ts';
+import type { DownloadList } from '../downloads/download-list.ts';
 import {
   createProxyLoginPrompt,
   PROXY_LOGIN_PAGE,
@@ -230,6 +232,8 @@ export interface ChromeFeatureDependencies {
   readonly hiddenSettings: readonly string[];
   readonly settingsFiles: SettingsFiles;
   readonly spelling: SpellingSources;
+  /** This session's downloads, for the Downloads window. */
+  readonly downloads: DownloadList;
   /** Quits and starts YapYap again, to apply settings that need a restart. */
   readonly restart: () => void;
   /** Asks before logging the account out; true when the user agrees. */
@@ -520,6 +524,7 @@ type ChromeOpeners = Pick<
   | 'openPlugins'
   | 'installPlugin'
   | 'openShortcuts'
+  | 'openDownloads'
   | 'openReport'
 >;
 
@@ -531,6 +536,7 @@ function chromeOpeners(windows: ChromeWindowDependencies, plugins: PluginChrome)
     openSettings: opener(SETTINGS_PAGE),
     openNewChat: opener(NEW_CHAT_PAGE),
     openShortcuts: opener(SHORTCUTS_PAGE),
+    openDownloads: opener(DOWNLOADS_PAGE),
     openPlugins: plugins.openPlugins,
     openReport: opener(REPORT_PAGE),
     installPlugin: plugins.install,
@@ -625,6 +631,7 @@ function allHandlers(
       handle: () => ({ platform: deps.platform, shortcuts: shortcutsFor(deps.platform) }),
     },
     ...spellingHandlers(deps.settings, deps.spelling),
+    ...downloadsHandlers(deps.downloads),
     ...accountsHandlers(() => accounts.current, deps.confirmRemoveAccount),
     ...sidebarHandlers(sidebar, deps.settings),
     ...picker.handlers,

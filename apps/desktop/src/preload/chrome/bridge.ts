@@ -3,6 +3,7 @@ import {
   type AboutInfo,
   type AccountList,
   type ChromeApi,
+  type DownloadEntry,
   type PickerOffer,
   type PluginConsent,
   type PluginList,
@@ -66,6 +67,18 @@ function pickerBridge(invoke: Invoke): ChromeApi['picker'] {
     },
     cancel: async () => {
       await invoke(CHROME_CHANNELS.pickerCancel);
+    },
+  };
+}
+
+function downloadsBridge(invoke: Invoke): ChromeApi['downloads'] {
+  return {
+    list: () => invoke(CHROME_CHANNELS.downloadsList) as Promise<readonly DownloadEntry[]>,
+    act: async (id, action) => {
+      await invoke(CHROME_CHANNELS.downloadsAct, id, action);
+    },
+    clear: async () => {
+      await invoke(CHROME_CHANNELS.downloadsClear);
     },
   };
 }
@@ -148,6 +161,7 @@ export function createChromeBridge(invoke: Invoke, listen: Listen): ChromeApi {
     spelling: spellingBridge(invoke),
     picker: pickerBridge(invoke),
     shortcuts: shortcutsBridge(invoke),
+    downloads: downloadsBridge(invoke),
     proxyLogin: proxyLoginBridge(invoke),
   };
 }

@@ -265,7 +265,10 @@ export interface StartDependencies<Window extends WindowPort> {
   /** Whether Chromium's sandbox was turned off on the command line or in the environment. */
   readonly sandboxDisabled: boolean;
   readonly explainUnsafeStart: UnsafeStartDependencies['explain'];
-  readonly downloads: Pick<DownloadDependencies, 'folder' | 'taken' | 'lastFolder' | 'openPath'>;
+  readonly downloads: Pick<
+    DownloadDependencies,
+    'folder' | 'taken' | 'lastFolder' | 'openPath' | 'track'
+  >;
   /** `app.getAppMetrics()`: memory per process, for the memory watchdog. */
   readonly appMetrics: () => readonly ProcessMemory[];
   /** Seconds since the last keyboard or mouse input. */

@@ -25,6 +25,7 @@ function actions(accounts: AccountSummary[] = []) {
     togglePrivacyScreen: vi.fn(),
     copyDiagnostics: vi.fn(),
     openShortcuts: vi.fn(),
+    openDownloads: vi.fn(),
     openReport: vi.fn(),
   };
 }
@@ -258,21 +259,27 @@ describe('the standard menus', () => {
     expect(keys(mac)[1]).toEqual(['redo', 'Shift+Cmd+Z']);
   });
 
-  it('keeps the window list in the Window menu on macOS only', () => {
-    const linux = buildMenuTemplate('linux', actions()).find((menu) => menu.label === '&Window');
+  it('keeps the window list in the Window menu on macOS only, and Downloads in every one', () => {
+    const a = actions();
+    const linux = buildMenuTemplate('linux', a).find((menu) => menu.label === '&Window');
     expect(linux?.role).toBeUndefined();
     expect(keys(linux)).toEqual([
       ['minimize', 'CmdOrCtrl+M'],
       ['close', 'CmdOrCtrl+W'],
+      ['separator', undefined],
+      [undefined, 'CmdOrCtrl+J'],
     ]);
+    expect(items(linux).at(-1)).toMatchObject({ label: 'Downloads…', click: a.openDownloads });
     const mac = buildMenuTemplate('darwin', actions()).find((menu) => menu.label === '&Window');
     expect(mac?.role).toBe('windowMenu');
-    expect(keys(mac).map(([role]) => role)).toEqual([
-      'minimize',
-      'close',
-      'zoom',
-      'separator',
-      'front',
+    expect(keys(mac)).toEqual([
+      ['minimize', 'CmdOrCtrl+M'],
+      ['close', 'CmdOrCtrl+W'],
+      ['zoom', undefined],
+      ['separator', undefined],
+      ['front', undefined],
+      ['separator', undefined],
+      [undefined, 'Shift+Cmd+J'],
     ]);
   });
 

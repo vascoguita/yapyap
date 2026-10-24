@@ -40,6 +40,7 @@ const TABLE = [
   { id: 'selectAll', label: text.selectAll, accelerator: 'CmdOrCtrl+A' },
   { id: 'minimize', label: text.minimize, accelerator: 'CmdOrCtrl+M' },
   { id: 'close', label: text.close, accelerator: 'CmdOrCtrl+W' },
+  { id: 'downloads', label: text.downloads, accelerator: 'CmdOrCtrl+J', mac: 'Shift+Cmd+J' },
   { id: 'hide', label: text.hide, accelerator: 'Cmd+H', platforms: ['darwin'] },
   // Windows closes apps with Alt+F4, which needs no menu item.
   { id: 'quit', label: text.quit, accelerator: 'CmdOrCtrl+Q', platforms: ['darwin', 'linux'] },
