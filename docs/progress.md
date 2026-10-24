@@ -569,6 +569,19 @@ not edit the same lines.
   and forgets a key through the panel. `pnpm test:e2e` builds every plugin
   first.
 
+- Suggested replies with consent (#104, #107): the assistant's panel
+  offers **Look at this chat**. Nothing of a chat goes anywhere until the
+  user allows the assistant in it (allowed chats are kept by SHA-256
+  fingerprint in `storage:local`, never by name, at most 500). The panel
+  then shows exactly what would be sent: the instructions and the last
+  messages, as many as the new **Messages to send** setting (5, 10 or 20)
+  and YapYap's own limit allow. **Send** sends that text, kept by the hidden
+  page rather than taken back from the panel; the answer streams in, can be
+  stopped, and becomes up to three replies, and the one the user picks goes
+  into the message box as a draft. Panel requests run one at a time, in
+  order, except Stop. `e2e/ai-assistant.spec.ts` plays Claude with a
+  handler on the plugin's session and walks the whole flow.
+
 - Account budgets (#109, first part): `bench/accounts.spec.ts` measures the
   memory a second account adds and the CPU a hidden account uses while
   idle, from cumulative CPU time, and the nightly run holds them to budgets

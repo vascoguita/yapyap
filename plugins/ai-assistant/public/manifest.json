@@ -3,13 +3,21 @@
   "name": "AI assistant",
   "version": "0.1.0",
   "description": "Suggests replies and rewrites drafts with the AI model you choose, using your own key. Nothing is sent without your say.",
-  "author": { "name": "YapYap", "url": "https://yapyap.guita.org" },
+  "author": {
+    "name": "YapYap",
+    "url": "https://yapyap.guita.org"
+  },
   "apiVersion": "^1.0.0",
   "entry": "main.js",
-  "capabilities": ["secrets:own"],
-  "network": { "hosts": ["api.anthropic.com", "api.openai.com"] },
+  "capabilities": ["chat:read-active", "composer:insert-draft", "secrets:own", "storage:local"],
+  "network": {
+    "hosts": ["api.anthropic.com", "api.openai.com"]
+  },
   "contributes": {
-    "panel": { "title": "Assistant", "entry": "panel.js" },
+    "panel": {
+      "title": "Assistant",
+      "entry": "panel.js"
+    },
     "settings": {
       "type": "object",
       "properties": {
@@ -30,6 +38,12 @@
           "title": "Server address",
           "description": "For a compatible server only: its https:// address, such as https://llm.example.org/v1.",
           "maxLength": 300
+        },
+        "context": {
+          "type": "integer",
+          "title": "Messages to send",
+          "description": "How many of the chat's latest messages the assistant sends, at most. YapYap's own limit in Settings → Plugins still applies.",
+          "enum": [5, 10, 20]
         }
       }
     }

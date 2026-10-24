@@ -1,27 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 import { servePanel, stateOf, type Channel } from './assistant.ts';
-
-function fakeHost(values: Record<string, string> = {}) {
-  const secrets = new Map<string, string>();
-  return {
-    secrets: {
-      get: vi.fn((name: string) => Promise.resolve(secrets.get(name))),
-      set: vi.fn((name: string, value: string) => {
-        secrets.set(name, value);
-        return Promise.resolve();
-      }),
-      delete: vi.fn((name: string) => {
-        secrets.delete(name);
-        return Promise.resolve();
-      }),
-    },
-    settings: { get: vi.fn(() => Promise.resolve(values)) },
-    stored: secrets,
-  };
-}
+import type { Update } from './bus.ts';
+import { ProviderError, type Provider } from './providers/provider.ts';
+import { fakeHost } from './testing/fake-host.ts';
 
 function fakeChannel() {
-  const sent: unknown[] = [];
+  const sent: Update[] = [];
   const channel: Channel & { send: (data: unknown) => void } = {
     onmessage: null,
     postMessage: (message) => sent.push(message),
@@ -32,61 +16,146 @@ function fakeChannel() {
 
 describe('stateOf', () => {
   it('says what is missing, never the key', async () => {
-    const host = fakeHost();
+    const { host, secrets } = fakeHost();
     await expect(stateOf(host)).resolves.toEqual({
       type: 'state',
       provider: 'anthropic',
       model: 'claude-opus-5-5',
       missing: 'key',
     });
-    host.stored.set('apiKey.anthropic', 'sk-secret');
+    secrets.set('apiKey.anthropic', 'sk-secret');
     const state = await stateOf(host);
     expect(state.missing).toBe('');
     expect(JSON.stringify(state)).not.toContain('sk-secret');
   });
 });
 
+/** Serves the panel, then forgets the state this page announces as it starts. */
+async function serve(
+  host: Parameters<typeof servePanel>[0],
+  { channel, sent }: ReturnType<typeof fakeChannel>,
+  make?: () => Provider,
+): Promise<void> {
+  servePanel(host, channel, make);
+  await vi.waitFor(() => {
+    expect(sent).toHaveLength(1);
+  });
+  sent.length = 0;
+}
+
 describe('servePanel', () => {
-  it('saves and forgets the chosen provider’s key, answering with the new state', async () => {
-    const host = fakeHost({ provider: 'openai', model: 'gpt-x' });
+  it('announces its state as it starts, for a panel that asked before it listened', async () => {
+    const { host } = fakeHost();
     const { channel, sent } = fakeChannel();
     servePanel(host, channel);
-    // It announces its state at once, for a panel that asked before it was listening.
     await vi.waitFor(() => {
-      expect(sent).toEqual([{ type: 'state', provider: 'openai', model: 'gpt-x', missing: 'key' }]);
+      expect(sent).toEqual([
+        { type: 'state', provider: 'anthropic', model: 'claude-opus-5-5', missing: 'key' },
+      ]);
     });
+    const broken = fakeHost();
+    broken.host.settings.get.mockRejectedValueOnce(new Error('gone'));
+    const other = fakeChannel();
+    servePanel(broken.host, other.channel);
+    await vi.waitFor(() => {
+      expect(other.sent).toEqual([
+        { type: 'state', provider: '', model: '', missing: 'unavailable' },
+      ]);
+    });
+  });
+
+  it('saves and forgets the chosen provider’s key, answering with the new state', async () => {
+    const { host, secrets } = fakeHost({ settings: { provider: 'openai', model: 'gpt-x' } });
+    const ends = fakeChannel();
+    const { channel, sent } = ends;
+    await serve(host, ends);
     channel.send({ type: 'save-key', key: 'sk-openai' });
+    await vi.waitFor(() => {
+      expect(sent).toHaveLength(1);
+    });
+    expect(secrets.get('apiKey.openai')).toBe('sk-openai');
+    expect(sent[0]).toMatchObject({ provider: 'openai', missing: '' });
+    channel.send({ type: 'forget-key' });
     await vi.waitFor(() => {
       expect(sent).toHaveLength(2);
     });
-    expect(host.stored.get('apiKey.openai')).toBe('sk-openai');
-    expect(sent[1]).toMatchObject({ provider: 'openai', missing: '' });
-    channel.send({ type: 'forget-key' });
-    await vi.waitFor(() => {
-      expect(sent).toHaveLength(3);
-    });
-    expect(host.stored.has('apiKey.openai')).toBe(false);
+    expect(secrets.has('apiKey.openai')).toBe(false);
     channel.send({ type: 'state?' });
     await vi.waitFor(() => {
-      expect(sent).toHaveLength(4);
+      expect(sent).toHaveLength(3);
     });
     expect(host.secrets.set).toHaveBeenCalledOnce();
   });
 
-  it('ignores anything that is not a panel request, and tells the panel when the host fails', async () => {
-    const host = fakeHost();
-    const { channel, sent } = fakeChannel();
-    host.settings.get.mockRejectedValueOnce(new Error('gone'));
-    servePanel(host, channel);
-    channel.send({ type: 'send', text: 'hi' });
-    const unavailable = { type: 'state', provider: '', model: '', missing: 'unavailable' };
+  it('ignores anything that is not a panel request, and names a failure’s kind', async () => {
+    const { host } = fakeHost();
+    const ends = fakeChannel();
+    const { channel, sent } = ends;
+    await serve(host, ends);
+    channel.send({ type: 'send-message', text: 'hi' });
+    host.chat.readActive.mockRejectedValueOnce({ kind: 'not-granted', message: 'no' });
+    channel.send({ type: 'prepare' });
     await vi.waitFor(() => {
-      expect(sent).toEqual([unavailable]);
+      expect(sent).toEqual([{ type: 'problem', reason: 'not-granted' }]);
     });
     host.settings.get.mockRejectedValueOnce(new Error('gone'));
     channel.send({ type: 'state?' });
     await vi.waitFor(() => {
-      expect(sent).toEqual([unavailable, unavailable]);
+      expect(sent.at(-1)).toEqual({ type: 'problem', reason: 'failed' });
+    });
+  });
+
+  it('runs the reply flow: preview, allow, send, stop, use', async () => {
+    const chat = { name: 'Team', group: true, messages: [{ outgoing: false, text: 'Lunch?' }] };
+    const { host, secrets, drafts } = fakeHost({ chat });
+    secrets.set('apiKey.anthropic', 'sk');
+    const provider: Provider = {
+      complete: vi.fn((_request, onText: (text: string) => void) => {
+        onText('Sure!\nCan’t today');
+        return Promise.resolve({ text: 'Sure!\nCan’t today', truncated: false });
+      }),
+    };
+    const ends = fakeChannel();
+    const { channel, sent } = ends;
+    await serve(host, ends, () => provider);
+    const next = async (data: unknown, count: number) => {
+      channel.send(data);
+      await vi.waitFor(() => {
+        expect(sent.length).toBeGreaterThanOrEqual(count);
+      });
+      return sent.at(-1);
+    };
+    await expect(next({ type: 'prepare' }, 1)).resolves.toMatchObject({ allowed: false });
+    await expect(next({ type: 'allow-chat', allowed: true }, 2)).resolves.toMatchObject({
+      allowed: true,
+    });
+    await expect(next({ type: 'send' }, 4)).resolves.toEqual({
+      type: 'suggestions',
+      items: ['Sure!', 'Can’t today'],
+    });
+    channel.send({ type: 'cancel' });
+    await expect(next({ type: 'use', index: 1 }, 5)).resolves.toEqual({ type: 'used' });
+    expect(drafts).toEqual(['Can’t today']);
+  });
+
+  it('tells the panel a provider failure by its kind', async () => {
+    const chat = { name: 'Team', group: false, messages: [] };
+    const { host, secrets } = fakeHost({ chat });
+    secrets.set('apiKey.anthropic', 'sk');
+    const provider: Provider = {
+      complete: vi.fn(() => Promise.reject(new ProviderError('rate-limited'))),
+    };
+    const ends = fakeChannel();
+    const { channel, sent } = ends;
+    await serve(host, ends, () => provider);
+    channel.send({ type: 'prepare' });
+    channel.send({ type: 'allow-chat', allowed: true });
+    await vi.waitFor(() => {
+      expect(sent).toHaveLength(2);
+    });
+    channel.send({ type: 'send' });
+    await vi.waitFor(() => {
+      expect(sent.at(-1)).toEqual({ type: 'problem', reason: 'rate-limited' });
     });
   });
 });

@@ -7,15 +7,21 @@ describe('assistantSettings', () => {
       provider: 'anthropic',
       model: 'claude-opus-5-5',
       endpoint: '',
-    });
-    expect(assistantSettings({ provider: 'openai', model: ' gpt-x ', endpoint: 7 })).toEqual({
-      provider: 'openai',
-      model: 'gpt-x',
-      endpoint: '',
+      context: 10,
     });
     expect(
+      assistantSettings({ provider: 'openai', model: ' gpt-x ', endpoint: 7, context: 20 }),
+    ).toEqual({ provider: 'openai', model: 'gpt-x', endpoint: '', context: 20 });
+    expect(assistantSettings({ context: 7 }).context).toBe(10);
+    expect(assistantSettings({ context: 5 }).context).toBe(5);
+    expect(
       assistantSettings({ provider: 'compatible', endpoint: ' https://llm.example.org/v1 ' }),
-    ).toEqual({ provider: 'compatible', model: '', endpoint: 'https://llm.example.org/v1' });
+    ).toEqual({
+      provider: 'compatible',
+      model: '',
+      endpoint: 'https://llm.example.org/v1',
+      context: 10,
+    });
     expect(assistantSettings({ provider: 'other', model: 'claude-haiku-5-5' })).toMatchObject({
       provider: 'anthropic',
       model: 'claude-haiku-5-5',
