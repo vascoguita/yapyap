@@ -458,6 +458,15 @@ not edit the same lines.
   names a plugin makes up are never recorded. The Plugins window lists the
   latest 50 calls under Recent activity.
 
+- Malicious-plugin suite (#102): `e2e/malicious-plugin.spec.ts` installs a
+  hostile plugin next to a victim. It cannot reach WhatsApp's page or
+  origin, an undeclared host over `fetch` or WebSocket, the victim's
+  secrets or local storage, a send operation (through the SDK or YapYap's
+  port), a window of its own, or more calls than its rate allows. A plugin
+  that keeps a core busy is restarted. The shared install helpers moved to
+  `e2e/plugin-helpers.ts`. The suite found that Electron spreads CPU usage
+  over every core, which #97's guard now accounts for.
+
 - Screen-sharing indicator (#161): the WhatsApp preload's second stand-in
   (`installShareShim`, ADR 0011) reports when a screen share starts and
   ends, by a random ID only, and stops one when YapYap asks. The main
