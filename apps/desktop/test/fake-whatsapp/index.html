@@ -9,7 +9,7 @@
     <div id="app" data-testid="fake-whatsapp">
       Fake WhatsApp for automated tests
       <div id="pane-side" aria-label="Chat list">
-        <div role="row">Test Chat One</div>
+        <div role="row" data-testid="chat">Test Chat One</div>
         <div role="row">Test Chat Two</div>
       </div>
     </div>
@@ -36,6 +36,7 @@
     <output data-testid="share-status"></output>
     <div id="main">
       <header>Test Chat One</header>
+      <div role="row" data-testid="message">See you at 8</div>
       <footer>
         <div data-testid="composer" contenteditable="true" aria-label="Type a message"></div>
       </footer>

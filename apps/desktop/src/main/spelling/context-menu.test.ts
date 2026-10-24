@@ -4,6 +4,8 @@ import { attachContextMenu, contextMenuOf, type ContextMenuParams } from './cont
 const ALL_FLAGS = { canCut: true, canCopy: true, canPaste: true, canSelectAll: true };
 
 const params = (overrides: Partial<ContextMenuParams> = {}): ContextMenuParams => ({
+  x: 10,
+  y: 20,
   isEditable: true,
   selectionText: '',
   misspelledWord: '',
@@ -95,18 +97,59 @@ describe('contextMenuOf', () => {
 });
 
 describe('attachContextMenu', () => {
-  it('shows the menu on a right click, and nothing where there is nothing to offer', () => {
+  function page() {
     let rightClick: ((event: unknown, details: ContextMenuParams) => void) | undefined;
-    const page = {
+    return {
       on: vi.fn((_event: 'context-menu', listener: typeof rightClick) => {
         rightClick = listener;
       }),
+      click: (details: ContextMenuParams) => {
+        rightClick?.({}, details);
+      },
     };
+  }
+
+  it('shows the menu on a right click, and nothing where there is nothing to offer', async () => {
+    const clicked = page();
     const popup = vi.fn();
-    attachContextMenu(page, actions(), popup);
-    rightClick?.({}, params({ isEditable: false }));
+    attachContextMenu(clicked, actions(), popup);
+    clicked.click(params({ isEditable: false }));
+    await Promise.resolve();
     expect(popup).not.toHaveBeenCalled();
-    rightClick?.({}, params());
-    expect(popup).toHaveBeenCalledOnce();
+    clicked.click(params());
+    await vi.waitFor(() => {
+      expect(popup).toHaveBeenCalledOnce();
+    });
+  });
+
+  it('adds others’ items after its own, apart, or alone where it offers nothing', async () => {
+    const clicked = page();
+    const popup = vi.fn();
+    const plugin = { label: 'Hello: Translate' };
+    const added = vi.fn(() => Promise.resolve([plugin]));
+    attachContextMenu(clicked, actions(), popup, added);
+    clicked.click(params({ isEditable: false }));
+    await vi.waitFor(() => {
+      expect(popup).toHaveBeenLastCalledWith([plugin]);
+    });
+    expect(added).toHaveBeenCalledWith(params({ isEditable: false }));
+    clicked.click(params());
+    await vi.waitFor(() => {
+      expect(popup).toHaveBeenCalledTimes(2);
+    });
+    const [items] = popup.mock.lastCall as [{ label?: string; type?: string }[]];
+    expect(items.slice(-2)).toEqual([{ type: 'separator' }, plugin]);
+  });
+
+  it('still shows its own items when the others fail', async () => {
+    const clicked = page();
+    const popup = vi.fn();
+    attachContextMenu(clicked, actions(), popup, () => Promise.reject(new Error('gone')));
+    clicked.click(params());
+    await vi.waitFor(() => {
+      expect(popup).toHaveBeenCalledOnce();
+    });
+    const [items] = popup.mock.lastCall as [{ role?: string }[]];
+    expect(items.at(0)?.role).toBe('cut');
   });
 });

@@ -131,6 +131,7 @@ import {
   type GlobalShortcutPort,
 } from './shortcuts/global-shortcuts.ts';
 import type { ContextMenuItem, MenuPage } from './spelling/context-menu.ts';
+import type { ClickedPage } from './plugins/plugin-menu-items.ts';
 import { followSpellingSetting, type SpellingController } from './spelling/spelling.ts';
 import { createProxyLogin, type AuthInfo, type LoginCallback } from './network/proxy-login.ts';
 import type { SecretStore } from './secrets/secret-store.ts';
@@ -196,6 +197,7 @@ export type AccountContents = WhatsAppContents &
   ReadyPage &
   FocusablePage &
   MenuPage &
+  ClickedPage &
   CodePage & {
     replaceMisspelling(word: string): void;
     loadURL(url: string): Promise<unknown>;

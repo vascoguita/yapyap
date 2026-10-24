@@ -484,6 +484,15 @@ not edit the same lines.
   values across updates, and the SDK's new `settings.get` (no capability)
   returns those that still fit.
 
+- Plugin menu items (#98, third part): a right click in WhatsApp adds the
+  running plugins' composer actions (in the message box) and context-menu
+  items (on a message, or on a chat in the list) to YapYap's native menu,
+  named `<plugin>: <title>`, after YapYap's own items. The adapter's
+  `clickTarget` probe says only which landmark holds the point, scaled for
+  zoom, and runs only when some plugin has items. Items naming a command
+  the plugin does not declare are dropped. The context menu is now built
+  asynchronously.
+
 - Plugin activity log (#99): `servePluginRpc` reports each call to an
   operation YapYap offers (operation, capability, outcome) and
   `createAuditLog` appends it, with the time and plugin ID, to

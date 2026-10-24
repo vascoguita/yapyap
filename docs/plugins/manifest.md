@@ -34,6 +34,16 @@ install it. [Writing a plugin](./) walks through a complete example.
 | `contributes`  | Commands, composer actions, context-menu items, a settings form and an optional panel         |
 | `signature`    | Written by `yapyap-plugin-sign`: the author's Ed25519 public key and the signature (ADR 0004) |
 
+## Commands and menu items
+
+Each entry of `contributes.commands` appears in YapYap's menu under
+**Plugin Commands** as `<plugin name>: <title>`, and runs the handler the
+plugin registered with `host.commands.onRun`. `composerActions` and
+`contextMenu` items run one of those commands from a right click in
+WhatsApp: composer actions on the message box, and context-menu items on a
+message (`"on": "message"`) or on a chat in the list (`"on": "chat"`). An
+item that names a command the plugin does not declare is not shown.
+
 ## Capabilities
 
 | Capability                 | Lets the plugin                                              |

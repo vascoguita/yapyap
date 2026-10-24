@@ -310,6 +310,9 @@ interface ChromeRuntime {
   readonly askProxyLogin: ProxyLoginPrompt['ask'];
   /** Shows the quick-access panel as the settings ask, beside `owner`; returns how to show it the accounts. */
   readonly attachQuickPanel: (owner: PanelOwner) => (source: SidebarSource) => void;
+  /** The running plugins' right-click items, and how to run one (#98). */
+  readonly pluginActions: PluginChrome['actions'];
+  readonly runPluginCommand: PluginChrome['runCommand'];
   /** Docks the account sidebar; returns how to show it the accounts. */
   readonly attachSidebar: (
     create: (renderer: RendererOptions) => SidebarPort,
@@ -826,6 +829,8 @@ function startChrome(
     askProxyLogin: proxyLogin.ask,
     attachQuickPanel: quickPanel.attach,
     attachSidebar: (create) => attachSidebar(create(renderer), views, sidebar, warn),
+    pluginActions: plugins.actions,
+    runPluginCommand: plugins.runCommand,
   };
 }
 

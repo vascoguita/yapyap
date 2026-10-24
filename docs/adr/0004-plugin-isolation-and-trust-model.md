@@ -196,6 +196,16 @@ beyond labels and simple inputs. Values are checked against the form when
 saved and again when the plugin reads them with `settings.get`, which needs
 no capability because the user filled them in for that plugin.
 
+Composer actions and context-menu items are the third (#98). They join
+YapYap's native right-click menu in WhatsApp, after YapYap's own items,
+labelled `<plugin name>: <title>`: composer actions on the message box,
+`message` items on the open conversation, `chat` items on the chat list.
+To tell these apart, the adapter checks which landmark holds the clicked
+point and returns only that, never page text, and only when some plugin
+has items. Picking one runs the plugin's command, as the menu does; the
+plugin then reads what its capabilities allow. Where WhatsApp shows a menu
+of its own, Chromium shows none, and so neither do plugin items.
+
 ### Audit log
 
 Each capability use appends `{ time, pluginId, accountId, capability, method,

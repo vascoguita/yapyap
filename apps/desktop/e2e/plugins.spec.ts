@@ -9,6 +9,7 @@ import {
   pluginPage,
   runPluginCommand,
 } from './plugin-helpers.ts';
+import { clickLastItem, lastMenu, recordMenus, shownMenus } from './menu-helpers.ts';
 
 test('installs a third-party plugin only once the user accepts the risk, and marks it', async ({
   app,
@@ -367,4 +368,62 @@ test('gives a plugin the settings the user chose in its form', async ({ app, pro
   await plugins.getByLabel('Model').selectOption('large');
   await expect.poll(async () => (await pluginPage(app))?.title).toBe('{"model":"large"}');
   await expect(plugins.getByLabel('Model')).toHaveValue('large');
+});
+
+/** Writes in its title which of its commands the user ran. */
+const ACTOR = `
+export default {
+  activate(host) {
+    document.title = 'waiting';
+    for (const id of ['fix', 'explain', 'summarize']) {
+      host.commands.onRun(id, () => {
+        document.title = id;
+      });
+    }
+  },
+};
+`;
+
+test('adds a plugin’s items to right clicks on the message box, a message and a chat', async ({
+  app,
+  profile,
+  window,
+}) => {
+  const manifest = testManifest({
+    capabilities: [],
+    network: { hosts: [] },
+    contributes: {
+      commands: [
+        { id: 'fix', title: 'Fix spelling' },
+        { id: 'explain', title: 'Explain message' },
+        { id: 'summarize', title: 'Summarize chat' },
+      ],
+      composerActions: [{ title: 'Fix spelling', command: 'fix' }],
+      contextMenu: [
+        { title: 'Explain', command: 'explain', on: 'message' },
+        { title: 'Summarize', command: 'summarize', on: 'chat' },
+      ],
+    },
+  });
+  await installPlugin(app, profile, manifest, ACTOR);
+  await expect
+    .poll(async () => (await pluginPage(app))?.title, { timeout: 20_000 })
+    .toBe('waiting');
+  await recordMenus(app);
+  const rightClick = async (testId: string) => {
+    const before = await shownMenus(app);
+    await window.getByTestId(testId).click({ button: 'right' });
+    await expect.poll(() => shownMenus(app)).toBeGreaterThan(before);
+    return lastMenu(app);
+  };
+  expect((await rightClick('composer'))?.at(-1)).toBe('Hello: Fix spelling');
+  await clickLastItem(app);
+  await expect.poll(async () => (await pluginPage(app))?.title).toBe('fix');
+  // macOS selects the word under the pointer, so Copy may come first.
+  expect((await rightClick('message'))?.at(-1)).toBe('Hello: Explain');
+  await clickLastItem(app);
+  await expect.poll(async () => (await pluginPage(app))?.title).toBe('explain');
+  expect((await rightClick('chat'))?.at(-1)).toBe('Hello: Summarize');
+  await clickLastItem(app);
+  await expect.poll(async () => (await pluginPage(app))?.title).toBe('summarize');
 });
