@@ -8,6 +8,8 @@ import type { ViewInfo } from '../views.ts';
 import {
   CHROME_PARTITION,
   createChromeFeature,
+  draftsTo,
+  type AccountMenu,
   type ChromeFeatureDependencies,
 } from './feature.ts';
 import type { IpcInvokeEvent } from './ipc.ts';
@@ -601,6 +603,7 @@ describe('createChromeFeature', () => {
         },
       ],
       activeContents: () => contents,
+      insertDraft: vi.fn(() => Promise.resolve(true)),
       switchTo: vi.fn(),
       add: vi.fn(),
       privacyScreen: false,
@@ -658,6 +661,7 @@ describe('createChromeFeature', () => {
         },
       ],
       activeContents: () => ({}),
+      insertDraft: vi.fn(() => Promise.resolve(true)),
       switchTo: vi.fn(),
       add: vi.fn(),
       privacyScreen: false,
@@ -776,6 +780,7 @@ describe('createChromeFeature', () => {
     runtime.setAccountMenu({
       entries,
       activeContents: () => ({}),
+      insertDraft: vi.fn(() => Promise.resolve(true)),
       switchTo: vi.fn(),
       add: vi.fn(),
       privacyScreen: false,
@@ -814,6 +819,7 @@ describe('createChromeFeature', () => {
         },
       ],
       activeContents: () => ({}),
+      insertDraft: vi.fn(() => Promise.resolve(true)),
       switchTo: vi.fn(),
       add: vi.fn(),
       privacyScreen: false,
@@ -837,6 +843,7 @@ describe('createChromeFeature', () => {
     const menu = {
       entries: [{ ...work, color: 'pink', id: 'a', active: false }],
       activeContents: () => ({}),
+      insertDraft: vi.fn(() => Promise.resolve(true)),
       switchTo: vi.fn(),
       add: vi.fn(),
       privacyScreen: false,
@@ -1009,5 +1016,15 @@ describe('createChromeFeature', () => {
     t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated', false);
     t.clickAbout();
     expect(() => t.call('recovery:retry')).toThrow('No recovery screen belongs to this window.');
+  });
+
+  it('sends a plugin’s draft to the active account, and nowhere before there are accounts', async () => {
+    const slot: { current?: AccountMenu } = {};
+    const drafts = draftsTo(slot);
+    await expect(drafts('Hi')).resolves.toBe(false);
+    const insertDraft = vi.fn(() => Promise.resolve(true));
+    slot.current = { insertDraft } as unknown as AccountMenu;
+    await expect(drafts('Hi')).resolves.toBe(true);
+    expect(insertDraft).toHaveBeenCalledExactlyOnceWith('Hi');
   });
 });

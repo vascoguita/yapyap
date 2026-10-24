@@ -83,7 +83,12 @@ import {
   type NotifierAccount,
   type NotifierDependencies,
 } from './notifications/notifier.ts';
-import { draftReply, supportsInlineReply, type ReplyContents } from './notifications/reply.ts';
+import {
+  draftReply,
+  insertDraft,
+  supportsInlineReply,
+  type ReplyContents,
+} from './notifications/reply.ts';
 import type { WindowOptions } from './windows.ts';
 import {
   bringToFront,
@@ -735,6 +740,7 @@ function accountMenu(
     togglePrivacyScreen: privacy.toggle,
     entries: summaries(running),
     activeContents: () => running.active().page.contents,
+    insertDraft: (text) => insertDraft(running.active().page.contents, text),
     switchTo: running.switchTo,
     add: running.add,
     update: running.update,

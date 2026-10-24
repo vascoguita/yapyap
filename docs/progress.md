@@ -467,6 +467,13 @@ not edit the same lines.
   names a plugin makes up are never recorded. The Plugins window lists the
   latest 50 calls under Recent activity.
 
+- Plugin drafts (#100, first part): `composer.insertDraft`, behind
+  `composer:insert-draft`, focuses the active account's open chat's message
+  box with the adapter's `FOCUS_COMPOSER` probe and types the text there
+  with `insertText`, as a notification reply does; it fails when no chat is
+  open, and nothing sends. Reading chats follows once the adapter can read
+  messages as plain data.
+
 - Malicious-plugin suite (#102): `e2e/malicious-plugin.spec.ts` installs a
   hostile plugin next to a victim. It cannot reach WhatsApp's page or
   origin, an undeclared host over `fetch` or WebSocket, the victim's

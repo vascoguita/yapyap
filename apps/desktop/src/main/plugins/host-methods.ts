@@ -10,6 +10,8 @@ export interface HostServices {
   readonly quiet: () => boolean;
   /** Plugins' secrets, kept apart from YapYap's own. */
   readonly secrets: Pick<SecretStore, 'get' | 'set'>;
+  /** Puts a draft in the active account's open chat; false when none is open. */
+  readonly insertDraft: (text: string) => Promise<boolean>;
 }
 
 /** The plugin whose calls these are. */
@@ -80,6 +82,24 @@ function secrets(plugin: CallingPlugin, services: HostServices): Record<string, 
   };
 }
 
+/** Long enough for any reply a plugin drafts, short of what WhatsApp itself allows. */
+const Draft = Type.String({ minLength: 1, maxLength: 4096 });
+
+/** Drafts only: the user reads, edits and sends them; nothing here sends (ADR 0004). */
+function composer(services: HostServices): Record<string, RpcMethod> {
+  return {
+    'composer.insertDraft': {
+      capability: 'composer:insert-draft',
+      params: Type.Tuple([Draft]),
+      run: async ([text]) => {
+        if (!(await services.insertDraft(text as string))) {
+          throw new Error('No chat is open.');
+        }
+      },
+    },
+  };
+}
+
 /**
  * The host operations a plugin can call, each behind the capability its
  * SDK documentation names. Operations not listed here are not offered yet.
@@ -88,5 +108,9 @@ export function hostMethods(
   plugin: CallingPlugin,
   services: HostServices,
 ): Readonly<Record<string, RpcMethod>> {
-  return { ...notifications(plugin, services), ...secrets(plugin, services) };
+  return {
+    ...notifications(plugin, services),
+    ...secrets(plugin, services),
+    ...composer(services),
+  };
 }

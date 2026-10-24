@@ -246,8 +246,9 @@ const chrome = createChromeFeature({
         },
       };
     },
-    methodsFor: (plugin) =>
+    methodsFor: (plugin, insertDraft) =>
       hostMethods(plugin, {
+        insertDraft,
         notify: (heading, text) => {
           new Notification({ title: heading, body: text, icon: trayIcon }).show();
         },

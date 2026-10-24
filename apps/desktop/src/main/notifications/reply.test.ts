@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { draftReply, supportsInlineReply } from './reply.ts';
+import { draftReply, insertDraft, supportsInlineReply } from './reply.ts';
 
 function setup(answers: unknown[]) {
   const contents = {
@@ -35,6 +35,16 @@ describe('draftReply', () => {
     expect(t.deps.warn).toHaveBeenCalledExactlyOnceWith(
       'Could not put a notification reply in WhatsApp’s message box.',
     );
+  });
+});
+
+describe('insertDraft', () => {
+  it('types a plugin’s draft into the open chat’s message box, and nothing when none is open', async () => {
+    const t = setup([true, false]);
+    await expect(insertDraft(t.contents, 'Draft')).resolves.toBe(true);
+    expect(t.contents.insertText).toHaveBeenCalledExactlyOnceWith('Draft');
+    await expect(insertDraft(t.contents, 'Again')).resolves.toBe(false);
+    expect(t.contents.insertText).toHaveBeenCalledOnce();
   });
 });
 

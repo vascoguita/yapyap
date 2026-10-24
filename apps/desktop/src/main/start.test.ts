@@ -810,6 +810,15 @@ describe('startApp', () => {
     expect(f.runtime.panel).toHaveBeenLastCalledWith(f.runtime.sidebar.mock.calls.at(-1)?.[0]);
   });
 
+  it('puts a plugin’s draft in the active account’s open chat, and only there', async () => {
+    const f = fakes();
+    await startApp(f);
+    const [menu] = f.runtime.setAccountMenu.mock.calls.at(-1) ?? [];
+    f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValueOnce(true);
+    await expect(menu?.insertDraft('Draft')).resolves.toBe(true);
+    expect(f.web.contents.insertText).toHaveBeenCalledExactlyOnceWith('Draft');
+  });
+
   it('shows the unread count from the page title as the app badge', async () => {
     const f = fakes();
     await startApp(f);
