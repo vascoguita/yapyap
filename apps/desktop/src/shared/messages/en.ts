@@ -379,6 +379,12 @@ const catalog = {
     run: 'Run this account',
     runHint:
       'An account that is off keeps its login and data on this computer, but receives no messages until you turn it on again.',
+    proxy: 'Proxy',
+    proxyPlaceholder: 'Same as Settings → Network',
+    proxyHint:
+      'Empty uses the proxy in Settings → Network. Otherwise http://, https:// or socks5://, a host and a port; calls then go only through it.',
+    proxyInvalid:
+      'Use http://, https:// or socks5://, then a host and a port, such as socks5://127.0.0.1:1080.',
     save: 'Save',
     remove: 'Remove Account…',
     refused: 'At least one account must keep running, so this one cannot be turned off.',

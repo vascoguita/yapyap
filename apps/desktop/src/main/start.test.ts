@@ -44,6 +44,7 @@ function fakeContents() {
     insertCSS: vi.fn(() => Promise.resolve('privacy')),
     removeInsertedCSS: vi.fn(() => Promise.resolve()),
     replaceMisspelling: vi.fn(),
+    isDestroyed: vi.fn(() => false),
     session: {
       clearCache: vi.fn(() => Promise.resolve()),
       clearStorageData: vi.fn(() => Promise.resolve()),
@@ -849,9 +850,18 @@ describe('startApp', () => {
           color: 'green',
           enabled: true,
           muted: false,
+          proxy: '',
           active: false,
         },
-        { id: SECOND, name: 'Work', color: 'blue', enabled: true, muted: false, active: true },
+        {
+          id: SECOND,
+          name: 'Work',
+          color: 'blue',
+          enabled: true,
+          muted: false,
+          proxy: '',
+          active: true,
+        },
       ]);
       expect(menu(f).activeContents()).toBe(work?.webContents);
     });

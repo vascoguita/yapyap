@@ -284,6 +284,11 @@ not edit the same lines.
   credentials live in `secrets.json` through `openSecretStore` (`safeStorage`,
   file mode 0600), which keeps nothing where Linux falls back to
   `basic_text`. Neither the username nor the password is ever logged.
+  Third part: an account can name its own proxy (`proxy` in accounts.json,
+  same address rules, kept only when set) in the Accounts window. The proxy
+  controller applies it to that account's session alone (`useAccounts`,
+  re-applied when the account changes), and keeps that page's calls inside
+  it (`guardCalls`). Pages that are gone are skipped.
 
 - Site permissions (#77): each account's session guard now hands back what
   it remembers (`PermissionMemory`), and the Accounts window shows, for a

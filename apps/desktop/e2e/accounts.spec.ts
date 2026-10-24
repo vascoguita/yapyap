@@ -162,3 +162,34 @@ test('renames an account and turns another off from the Accounts window', async 
   expect(menuLabels).toContain('Personal');
   expect(menuLabels).not.toContain('Work');
 });
+
+test('sends one account through its own proxy, and leaves the rest alone', async ({
+  app,
+  window,
+}) => {
+  await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
+  await clickAccountMenu(app, 'Manage Accounts…');
+  await expect
+    .poll(() => app.windows().some((page) => page.url() === 'app://chrome/accounts.html'))
+    .toBe(true);
+  const manage = app.windows().find((page) => page.url() === 'app://chrome/accounts.html');
+  if (manage === undefined) {
+    throw new Error('The Accounts window did not open.');
+  }
+  await manage.getByLabel('Proxy', { exact: true }).fill('http://127.0.0.1:3128');
+  await manage.getByRole('button', { name: 'Save' }).click();
+  // What the account's session and the default session would use to reach WhatsApp.
+  const proxies = () =>
+    app.evaluate(async ({ session, webContents }) => {
+      const account = webContents
+        .getAllWebContents()
+        .find((contents) => contents.getURL().startsWith('http://127.0.0.1'));
+      const url = 'https://web.whatsapp.com/';
+      return Promise.all([
+        account?.session.resolveProxy(url) ?? 'no account',
+        session.defaultSession.resolveProxy(url),
+      ]);
+    });
+  await expect.poll(async () => (await proxies())[0]).toBe('PROXY 127.0.0.1:3128');
+  expect((await proxies())[1]).not.toBe('PROXY 127.0.0.1:3128');
+});

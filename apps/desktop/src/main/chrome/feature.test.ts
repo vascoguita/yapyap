@@ -520,7 +520,15 @@ describe('createChromeFeature', () => {
     runtime.attachRecovery(contents, 'https://web.whatsapp.com', vi.fn());
     runtime.setAccountMenu({
       entries: [
-        { id: 'a', name: 'WhatsApp', color: 'green', enabled: true, muted: false, active: true },
+        {
+          id: 'a',
+          name: 'WhatsApp',
+          color: 'green',
+          enabled: true,
+          muted: false,
+          proxy: '',
+          active: true,
+        },
       ],
       activeContents: () => contents,
       switchTo: vi.fn(),
@@ -560,8 +568,24 @@ describe('createChromeFeature', () => {
     expect(t.deps.confirmRemoveAccount).not.toHaveBeenCalled();
     const menu = {
       entries: [
-        { id: 'a', name: 'Personal', color: 'green', enabled: true, muted: false, active: false },
-        { id: 'b', name: 'Work', color: 'blue', enabled: true, muted: false, active: true },
+        {
+          id: 'a',
+          name: 'Personal',
+          color: 'green',
+          enabled: true,
+          muted: false,
+          proxy: '',
+          active: false,
+        },
+        {
+          id: 'b',
+          name: 'Work',
+          color: 'blue',
+          enabled: true,
+          muted: false,
+          proxy: '',
+          active: true,
+        },
       ],
       activeContents: () => ({}),
       switchTo: vi.fn(),
@@ -643,6 +667,7 @@ describe('createChromeFeature', () => {
       color: 'green',
       unread: 0,
       muted: false,
+      proxy: '',
       active: true,
       sharing: false,
     };
@@ -666,7 +691,15 @@ describe('createChromeFeature', () => {
     expect(t.window.loadURL).toHaveBeenCalledWith('app://chrome/accounts.html');
     expect(t.call('accounts:list')).toHaveProperty('accounts', []);
     const entries = [
-      { id: 'a', name: 'Personal', color: 'green', enabled: true, muted: false, active: true },
+      {
+        id: 'a',
+        name: 'Personal',
+        color: 'green',
+        enabled: true,
+        muted: false,
+        proxy: '',
+        active: true,
+      },
     ];
     runtime.setAccountMenu({
       entries,
@@ -688,8 +721,24 @@ describe('createChromeFeature', () => {
     const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
     runtime.setAccountMenu({
       entries: [
-        { id: 'a', name: 'Personal', color: 'green', enabled: true, muted: false, active: false },
-        { id: 'b', name: 'Work', color: 'blue', enabled: true, muted: false, active: false },
+        {
+          id: 'a',
+          name: 'Personal',
+          color: 'green',
+          enabled: true,
+          muted: false,
+          proxy: '',
+          active: false,
+        },
+        {
+          id: 'b',
+          name: 'Work',
+          color: 'blue',
+          enabled: true,
+          muted: false,
+          proxy: '',
+          active: false,
+        },
       ],
       activeContents: () => ({}),
       switchTo: vi.fn(),
@@ -711,7 +760,7 @@ describe('createChromeFeature', () => {
     t.clickAccount('Do Not Disturb');
     t.clickAccount('Mute This Account');
     expect(t.deps.settings.update).toHaveBeenCalledOnce();
-    const work = { id: 'b', name: 'Work', color: 'blue', enabled: true, muted: false };
+    const work = { id: 'b', name: 'Work', color: 'blue', enabled: true, muted: false, proxy: '' };
     const menu = {
       entries: [{ ...work, color: 'pink', id: 'a', active: false }],
       activeContents: () => ({}),
@@ -736,6 +785,7 @@ describe('createChromeFeature', () => {
       color: 'blue',
       enabled: true,
       muted: true,
+      proxy: '',
     });
   });
 

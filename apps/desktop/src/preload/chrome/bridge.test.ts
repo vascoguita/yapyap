@@ -35,7 +35,7 @@ describe('createChromeBridge', () => {
     await api.picker.cancel();
     expect(await api.chat.openNumber('+44 7700 900123')).toBe(true);
     expect(await api.accounts.list()).toBe('ignored');
-    const change = { name: 'Work', color: 'blue', enabled: true, muted: false };
+    const change = { name: 'Work', color: 'blue', enabled: true, muted: false, proxy: '' };
     expect(await api.accounts.save('a', change)).toBe('ignored');
     expect(await api.accounts.remove('a')).toBe('ignored');
     expect(await api.accounts.permissions('a')).toBe('ignored');
@@ -82,7 +82,11 @@ describe('createChromeBridge', () => {
       ['picker:cancel'],
       ['chat:open-number', '+44 7700 900123'],
       ['accounts:list'],
-      ['accounts:save', 'a', { name: 'Work', color: 'blue', enabled: true, muted: false }],
+      [
+        'accounts:save',
+        'a',
+        { name: 'Work', color: 'blue', enabled: true, muted: false, proxy: '' },
+      ],
       ['accounts:remove', 'a'],
       ['accounts:permissions', 'a'],
       ['accounts:forget-permissions', 'a'],

@@ -1,13 +1,29 @@
 import { describe, expect, it, vi } from 'vitest';
 import { accountsHandlers, type AccountManager } from './accounts.ts';
 
-const WORK = { id: 'b', name: 'Work', color: 'blue', enabled: true, muted: false, active: true };
+const WORK = {
+  id: 'b',
+  name: 'Work',
+  color: 'blue',
+  enabled: true,
+  muted: false,
+  proxy: '',
+  active: true,
+};
 
 function setup(confirmed = true, open = true) {
   const holder: { current: AccountManager } = {
     current: {
       entries: [
-        { id: 'a', name: 'Personal', color: 'green', enabled: false, muted: false, active: false },
+        {
+          id: 'a',
+          name: 'Personal',
+          color: 'green',
+          enabled: false,
+          muted: false,
+          proxy: '',
+          active: false,
+        },
         WORK,
       ],
       update: vi.fn(() => true),
@@ -56,7 +72,13 @@ describe('accountsHandlers', () => {
   it('saves a checked change, with the name trimmed, and lists the result', () => {
     const t = setup();
     const save = t.handler('accounts:save');
-    const change = { name: '  Office ', color: 'teal', enabled: false, muted: true };
+    const change = {
+      name: '  Office ',
+      color: 'teal',
+      enabled: false,
+      muted: true,
+      proxy: 'socks5://10.0.0.2:1080',
+    };
     expect(save.accepts(['b', change])).toBe(true);
     expect(save.handle(t.call, 'b', change)).toHaveProperty('accounts');
     expect(t.holder.current.update).toHaveBeenCalledWith('b', {
@@ -64,6 +86,7 @@ describe('accountsHandlers', () => {
       color: 'teal',
       enabled: false,
       muted: true,
+      proxy: 'socks5://10.0.0.2:1080',
     });
   });
 
@@ -71,9 +94,13 @@ describe('accountsHandlers', () => {
     const t = setup();
     vi.mocked(t.holder.current.update).mockReturnValueOnce(false);
     expect(
-      t
-        .handler('accounts:save')
-        .handle(t.call, 'b', { name: 'Work', color: 'blue', enabled: false, muted: false }),
+      t.handler('accounts:save').handle(t.call, 'b', {
+        name: 'Work',
+        color: 'blue',
+        enabled: false,
+        muted: false,
+        proxy: '',
+      }),
     ).toBeNull();
     expect(t.handler('accounts:save').handle(t.call, 'b', { name: '' })).toBeNull();
   });
@@ -85,7 +112,9 @@ describe('accountsHandlers', () => {
     [['b', { name: 'Work', color: 'pink', enabled: true, muted: false }]],
     [['b', { name: 'Work', color: 'blue', enabled: 'yes', muted: false }]],
     [['b', { name: 'Work', color: 'blue', enabled: true, muted: 'yes' }]],
-    [['b', { name: 'Work', color: 'blue', enabled: true }]],
+    [['b', { name: 'Work', color: 'blue', enabled: true, muted: false }]],
+    [['b', { name: 'Work', color: 'blue', enabled: true, muted: false, proxy: 'ftp://x' }]],
+    [['b', { name: 'Work', color: 'blue', enabled: true, muted: false, proxy: 7 }]],
     [['b', { name: 'Work', color: 'blue', enabled: true, muted: false, avatar: 'x' }]],
     [['b', null]],
     [[1, { name: 'Work', color: 'blue', enabled: true, muted: false }]],

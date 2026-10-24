@@ -1,6 +1,7 @@
 import { Type, type Static } from 'typebox';
 import { Value } from 'typebox/value';
 import { en } from '../../shared/messages/en.ts';
+import { MAX_PROXY_ADDRESS, PROXY_ADDRESS } from '../../shared/proxy-address.ts';
 
 /** Colors an account can take; the chrome maps each to a shade that suits the theme. */
 export const ACCOUNT_COLORS = ['green', 'blue', 'purple', 'orange', 'red', 'teal'] as const;
@@ -27,6 +28,8 @@ const AccountSchema = Type.Object(
     enabled: Type.Boolean(),
     // Optional, so files written before muting existed stay valid (#61).
     muted: Type.Optional(Type.Boolean()),
+    // The account's own proxy; absent or empty uses Settings → Network (#76).
+    proxy: Type.Optional(Type.String({ maxLength: MAX_PROXY_ADDRESS, pattern: PROXY_ADDRESS })),
   },
   { additionalProperties: false },
 );

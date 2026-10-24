@@ -138,14 +138,31 @@ describe('runAccounts', () => {
 });
 
 describe('update', () => {
+  it('keeps an account’s own proxy, and forgets it when emptied', () => {
+    const t = setup(two);
+    const change = { name: 'Work', color: 'blue' as const, enabled: true, muted: false };
+    t.running.update(B, { ...change, proxy: 'socks5://10.0.0.2:1080' });
+    expect(t.running.list().find((account) => account.id === B)?.proxy).toBe(
+      'socks5://10.0.0.2:1080',
+    );
+    t.running.update(B, { ...change, proxy: '' });
+    expect(t.running.list().find((account) => account.id === B)).not.toHaveProperty('proxy');
+  });
+
   it('renames and recolors an account, on screen or not', () => {
     const t = setup(two);
     expect(
-      t.running.update(B, { name: 'Office', color: 'teal', enabled: true, muted: false }),
+      t.running.update(B, {
+        name: 'Office',
+        color: 'teal',
+        enabled: true,
+        muted: false,
+        proxy: '',
+      }),
     ).toBe(true);
-    expect(t.running.update(A, { name: 'Home', color: 'red', enabled: true, muted: false })).toBe(
-      true,
-    );
+    expect(
+      t.running.update(A, { name: 'Home', color: 'red', enabled: true, muted: false, proxy: '' }),
+    ).toBe(true);
     expect(t.running.active().account).toEqual({
       id: B,
       name: 'Office',
@@ -165,7 +182,13 @@ describe('update', () => {
   it('turns the active account off: shows another, closes its views and keeps its data', () => {
     const t = setup(two);
     expect(
-      t.running.update(B, { name: 'Work', color: 'green', enabled: false, muted: false }),
+      t.running.update(B, {
+        name: 'Work',
+        color: 'green',
+        enabled: false,
+        muted: false,
+        proxy: '',
+      }),
     ).toBe(true);
     expect(t.running.active().account.id).toBe(A);
     expect(t.page(B)?.close).toHaveBeenCalledOnce();
@@ -179,9 +202,9 @@ describe('update', () => {
       accounts: [account(A, 'Personal'), account(B, 'Work', false)],
       active: A,
     });
-    expect(t.running.update(B, { name: 'Work', color: 'green', enabled: true, muted: false })).toBe(
-      true,
-    );
+    expect(
+      t.running.update(B, { name: 'Work', color: 'green', enabled: true, muted: false, proxy: '' }),
+    ).toBe(true);
     expect(t.deps.open).toHaveBeenCalledTimes(2);
     expect(t.page(B)?.show).not.toHaveBeenCalled();
     expect(t.running.opened()).toHaveLength(2);
@@ -190,10 +213,22 @@ describe('update', () => {
   it('refuses to turn off the last open account, or to change one it does not know', () => {
     const t = setup({ ...two, accounts: [account(A, 'Personal')], active: A });
     expect(
-      t.running.update(A, { name: 'Personal', color: 'green', enabled: false, muted: false }),
+      t.running.update(A, {
+        name: 'Personal',
+        color: 'green',
+        enabled: false,
+        muted: false,
+        proxy: '',
+      }),
     ).toBe(false);
     expect(
-      t.running.update(C, { name: 'Nobody', color: 'green', enabled: true, muted: false }),
+      t.running.update(C, {
+        name: 'Nobody',
+        color: 'green',
+        enabled: true,
+        muted: false,
+        proxy: '',
+      }),
     ).toBe(false);
     expect(t.deps.save).not.toHaveBeenCalled();
   });

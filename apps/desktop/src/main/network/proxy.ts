@@ -23,6 +23,7 @@ export type WebRtcPolicy = 'default_public_interface_only' | 'disable_non_proxie
 
 export interface WebRtcPage {
   setWebRTCIPHandlingPolicy(policy: WebRtcPolicy): void;
+  isDestroyed(): boolean;
 }
 
 /**
@@ -101,39 +102,97 @@ async function applyTo(
 }
 
 export interface ProxyController {
-  /** Applies the setting to a session; resolves once its loads may start. */
-  readonly guard: (session: ProxiedSession) => Promise<void>;
+  /** Applies the proxy to a session, its account's own if it has one; resolves once loads may start. */
+  readonly guard: (session: ProxiedSession, account?: string) => Promise<void>;
+  /** Keeps an account page's WebRTC policy in step with the proxy it uses. */
+  readonly guardCalls: (page: WebRtcPage, account: string) => void;
+  /** Learns each account's own proxy (#76), and applies the ones that changed. */
+  readonly useAccounts: (
+    accounts: readonly { readonly id: string; readonly proxy?: string }[],
+  ) => void;
 }
 
-/** Keeps every account's session on the proxy the settings name, through every change (#76). */
+/** The sessions and pages to keep on a proxy, and the proxy each account names. */
+function proxyState(
+  settings: Pick<SettingsService, 'current'>,
+  launch: ProxyConfig,
+  warn: (message: string) => void,
+) {
+  const sessions = new Map<ProxiedSession, string | undefined>();
+  const pages = new Map<WebRtcPage, string>();
+  const own = new Map<string, string>();
+  const ownOf = (account: string | undefined): string =>
+    account === undefined ? '' : (own.get(account) ?? '');
+  const configFor = (account: string | undefined): ProxyConfig => {
+    const server = ownOf(account);
+    return server === ''
+      ? proxyConfigOf(settings.current().network, launch)
+      : { mode: 'fixed_servers', proxyRules: server };
+  };
+  const callPolicy = (page: WebRtcPage, account: string): void => {
+    // An account's own proxy is manual, so calls stay inside it too (C23).
+    const policy =
+      ownOf(account) === ''
+        ? webRtcPolicyOf(settings.current().network)
+        : 'disable_non_proxied_udp';
+    page.setWebRTCIPHandlingPolicy(policy);
+  };
+  const refreshSession = (session: ProxiedSession, account: string | undefined): void => {
+    void applyTo(session, configFor(account), warn).then(() => session.closeAllConnections());
+  };
+  return { sessions, pages, own, ownOf, configFor, callPolicy, refreshSession };
+}
+
+/** Everything, or only what belongs to one account. */
+const matches = (account: string | undefined, only: string | undefined): boolean =>
+  only === undefined || account === only;
+
+/** Applies the proxy again to everything, or to one account's session and pages. */
+function refresh(state: ReturnType<typeof proxyState>, only?: string): void {
+  for (const [session, account] of state.sessions) {
+    if (matches(account, only)) {
+      state.refreshSession(session, account);
+    }
+  }
+  for (const [page, account] of state.pages) {
+    if (page.isDestroyed()) {
+      state.pages.delete(page);
+    }
+    if (!page.isDestroyed() && matches(account, only)) {
+      state.callPolicy(page, account);
+    }
+  }
+}
+
+/**
+ * Keeps every session on its proxy through every change (#76): an account
+ * with its own proxy uses that, everything else the proxy the settings name.
+ */
 export function followProxySetting(
   settings: Pick<SettingsService, 'current' | 'onChange'>,
   warn: (message: string) => void,
   launch: ProxyConfig,
 ): ProxyController {
-  const sessions = new Set<ProxiedSession>();
-  settings.onChange((current) => {
-    const config = proxyConfigOf(current.network, launch);
-    for (const session of sessions) {
-      void applyTo(session, config, warn).then(() => session.closeAllConnections());
-    }
+  const state = proxyState(settings, launch, warn);
+  settings.onChange(() => {
+    refresh(state);
   });
   return {
-    guard: (session) => {
-      sessions.add(session);
-      return applyTo(session, proxyConfigOf(settings.current().network, launch), warn);
+    guard: (session, account) => {
+      state.sessions.set(session, account);
+      return applyTo(session, state.configFor(account), warn);
+    },
+    guardCalls: (page, account) => {
+      state.pages.set(page, account);
+      state.callPolicy(page, account);
+    },
+    useAccounts: (accounts) => {
+      for (const { id, proxy = '' } of accounts) {
+        if (state.ownOf(id) !== proxy) {
+          state.own.set(id, proxy);
+          refresh(state, id);
+        }
+      }
     },
   };
-}
-
-/** Keeps a page's WebRTC policy in step with the proxy setting. */
-export function followWebRtcPolicy(
-  page: WebRtcPage,
-  settings: Pick<SettingsService, 'current' | 'onChange'>,
-): void {
-  const apply = (current: Settings): void => {
-    page.setWebRTCIPHandlingPolicy(webRtcPolicyOf(current.network));
-  };
-  apply(settings.current());
-  settings.onChange(apply);
 }

@@ -1,13 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { defaultSettings } from '../settings/decode.ts';
 import type { Settings } from '../settings/schema.ts';
-import {
-  followProxySetting,
-  followWebRtcPolicy,
-  launchProxyOf,
-  proxyConfigOf,
-  webRtcPolicyOf,
-} from './proxy.ts';
+import { followProxySetting, launchProxyOf, proxyConfigOf, webRtcPolicyOf } from './proxy.ts';
 
 const network = (proxyMode: Settings['network']['proxyMode'], proxyServer = '') => ({
   proxyMode,
@@ -137,15 +131,66 @@ describe('followProxySetting', () => {
   });
 });
 
-describe('followWebRtcPolicy', () => {
-  it('keeps a page’s WebRTC policy in step with the proxy setting', () => {
+describe('calls and accounts with their own proxy', () => {
+  const page = () => ({ setWebRTCIPHandlingPolicy: vi.fn(), isDestroyed: vi.fn(() => false) });
+
+  it('keeps a page’s WebRTC policy in step with the proxy it uses', () => {
     const settings = settingsHolder(network('system'));
-    const page = { setWebRTCIPHandlingPolicy: vi.fn() };
-    followWebRtcPolicy(page, settings);
+    const proxy = followProxySetting(settings, vi.fn(), SYSTEM);
+    const work = page();
+    proxy.guardCalls(work, 'work');
     settings.change(network('manual', 'http://p:8080'));
-    expect(page.setWebRTCIPHandlingPolicy.mock.calls).toEqual([
+    expect(work.setWebRTCIPHandlingPolicy.mock.calls).toEqual([
       ['default_public_interface_only'],
       ['disable_non_proxied_udp'],
     ]);
+  });
+
+  it('puts an account with its own proxy on it, and the others on the setting', async () => {
+    const settings = settingsHolder(network('direct'));
+    const proxy = followProxySetting(settings, vi.fn(), SYSTEM);
+    proxy.useAccounts([{ id: 'work', proxy: 'socks5://10.0.0.2:1080' }, { id: 'home' }]);
+    const work = session();
+    const home = session();
+    const shared = session();
+    await proxy.guard(work, 'work');
+    await proxy.guard(home, 'home');
+    await proxy.guard(shared);
+    expect(work.setProxy).toHaveBeenLastCalledWith({
+      mode: 'fixed_servers',
+      proxyRules: 'socks5://10.0.0.2:1080',
+    });
+    expect(home.setProxy).toHaveBeenLastCalledWith({ mode: 'direct' });
+    expect(shared.setProxy).toHaveBeenLastCalledWith({ mode: 'direct' });
+    const calls = page();
+    proxy.guardCalls(calls, 'work');
+    expect(calls.setWebRTCIPHandlingPolicy).toHaveBeenLastCalledWith('disable_non_proxied_udp');
+  });
+
+  it('applies a changed account proxy to that account alone, and skips pages that are gone', async () => {
+    const settings = settingsHolder(network('system'));
+    const proxy = followProxySetting(settings, vi.fn(), SYSTEM);
+    proxy.useAccounts([{ id: 'work' }, { id: 'home' }]);
+    const work = session();
+    const home = session();
+    await proxy.guard(work, 'work');
+    await proxy.guard(home, 'home');
+    const gone = page();
+    gone.isDestroyed.mockReturnValue(true);
+    proxy.guardCalls(gone, 'work');
+    const homeCalls = page();
+    proxy.guardCalls(homeCalls, 'home');
+    proxy.useAccounts([{ id: 'work', proxy: 'http://proxy.example.org:3128' }, { id: 'home' }]);
+    await settle();
+    expect(work.setProxy).toHaveBeenLastCalledWith({
+      mode: 'fixed_servers',
+      proxyRules: 'http://proxy.example.org:3128',
+    });
+    expect(work.closeAllConnections).toHaveBeenCalledOnce();
+    expect(home.setProxy).toHaveBeenCalledOnce();
+    expect(gone.setWebRTCIPHandlingPolicy).toHaveBeenCalledOnce();
+    expect(homeCalls.setWebRTCIPHandlingPolicy).toHaveBeenCalledOnce();
+    proxy.useAccounts([{ id: 'work', proxy: 'http://proxy.example.org:3128' }]);
+    expect(work.setProxy).toHaveBeenCalledTimes(2);
   });
 });

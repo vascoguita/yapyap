@@ -6,9 +6,17 @@ import { Accounts } from './Accounts.tsx';
 
 const LIST: AccountList = {
   accounts: [
-    { id: 'a', name: 'Personal', color: 'green', enabled: true, muted: true, active: false },
-    { id: 'b', name: 'Work', color: 'blue', enabled: true, muted: false, active: true },
-    { id: 'c', name: 'Old', color: 'pink', enabled: false, muted: false, active: false },
+    {
+      id: 'a',
+      name: 'Personal',
+      color: 'green',
+      enabled: true,
+      muted: true,
+      proxy: '',
+      active: false,
+    },
+    { id: 'b', name: 'Work', color: 'blue', enabled: true, muted: false, proxy: '', active: true },
+    { id: 'c', name: 'Old', color: 'pink', enabled: false, muted: false, proxy: '', active: false },
   ],
   // A color this YapYap has no name for still shows, by its key.
   colors: ['green', 'blue', 'teal', 'pink'],
@@ -96,6 +104,22 @@ describe('Accounts', () => {
     await screen.findByText('Accounts are unavailable.');
   });
 
+  it('takes a proxy for the account, and refuses to save one that does not fit', async () => {
+    const t = await shown();
+    const proxy = screen.getByLabelText<HTMLInputElement>('Proxy');
+    fireEvent.input(proxy, { target: { value: 'proxy.example.org' } });
+    expect(proxy.getAttribute('aria-invalid')).toBe('true');
+    expect(screen.getByText(/^Use http:\/\/, https:\/\/ or socks5:\/\//)).toBeTruthy();
+    expect(button('Save').disabled).toBe(true);
+    fireEvent.input(proxy, { target: { value: ' socks5://10.0.0.2:1080 ' } });
+    expect(button('Save').disabled).toBe(false);
+    fireEvent.click(button('Save'));
+    expect(t.accounts.save).toHaveBeenCalledWith(
+      'b',
+      expect.objectContaining({ proxy: 'socks5://10.0.0.2:1080' }),
+    );
+  });
+
   it('keeps edits as a draft until saved, then shows what YapYap saved', async () => {
     const t = await shown();
     expect(button('Save').disabled).toBe(true);
@@ -109,6 +133,7 @@ describe('Accounts', () => {
       color: 'teal',
       enabled: false,
       muted: true,
+      proxy: '',
     });
     await waitFor(() => {
       expect(name().value).toBe('Work');

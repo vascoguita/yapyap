@@ -162,7 +162,19 @@ function keepOpen<Page extends AccountPage>(
 }
 
 /** What the user can change about an account. */
-export type AccountChange = Required<Pick<Account, 'name' | 'color' | 'enabled' | 'muted'>>;
+export type AccountChange = Required<
+  Pick<Account, 'name' | 'color' | 'enabled' | 'muted' | 'proxy'>
+>;
+
+/** The account after a change; an empty proxy means none of its own, so none is kept. */
+function withChange(current: Account, change: AccountChange): Account {
+  const { proxy, ...rest } = change;
+  const account: Account = { ...current, ...rest, proxy };
+  if (proxy === '') {
+    delete account.proxy;
+  }
+  return account;
+}
 
 /**
  * Applies a change: turning an account off closes its views but keeps its
@@ -179,7 +191,7 @@ function updateAccount<Page extends AccountPage>(
   if (current === undefined) {
     return false;
   }
-  const account: Account = { ...current, ...change };
+  const account = withChange(current, change);
   const opened = state.open.get(id);
   if (opened !== undefined && !account.enabled && !closeAccount(deps, state, opened)) {
     return false;

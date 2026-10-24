@@ -65,6 +65,7 @@ describe('buildMenuTemplate', () => {
       color: 'green',
       enabled: true,
       muted: false,
+      proxy: '',
       active: index === 1,
     }));
     accounts.push({
@@ -73,6 +74,7 @@ describe('buildMenuTemplate', () => {
       color: 'red',
       enabled: false,
       muted: false,
+      proxy: '',
       active: false,
     });
     const a = actions(accounts);
@@ -167,7 +169,7 @@ describe('buildMenuTemplate', () => {
   });
 
   it('turns do not disturb on and off, and mutes or unmutes the account on screen', () => {
-    const entry = { id: 'a', name: 'Work', color: 'blue', enabled: true, active: true };
+    const entry = { id: 'a', name: 'Work', color: 'blue', enabled: true, proxy: '', active: true };
     const item = (a: ReturnType<typeof actions>, label: string) => {
       const found = items(buildMenuTemplate('linux', a)[1]).find((each) => each.label === label);
       if (found?.click === undefined) {
@@ -292,8 +294,24 @@ describe('the standard menus', () => {
 describe('custom shortcuts in the menus', () => {
   it('puts the keys the user chose on the menu items, switching accounts included', () => {
     const accounts = [
-      { id: 'a', name: 'Work', color: 'blue', enabled: true, muted: false, active: true },
-      { id: 'b', name: 'Home', color: 'red', enabled: true, muted: false, active: false },
+      {
+        id: 'a',
+        name: 'Work',
+        color: 'blue',
+        enabled: true,
+        muted: false,
+        proxy: '',
+        active: true,
+      },
+      {
+        id: 'b',
+        name: 'Home',
+        color: 'red',
+        enabled: true,
+        muted: false,
+        proxy: '',
+        active: false,
+      },
     ];
     const template = buildMenuTemplate('linux', actions(accounts), {
       settings: 'Alt+S',

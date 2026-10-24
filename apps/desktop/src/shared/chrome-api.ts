@@ -276,6 +276,8 @@ export interface AccountSummary {
   readonly enabled: boolean;
   /** A muted account shows no notifications and plays no sounds while out of sight. */
   readonly muted: boolean;
+  /** The account's own proxy; empty uses Settings → Network. */
+  readonly proxy: string;
   /** The account the main window shows. */
   readonly active: boolean;
 }
@@ -292,6 +294,7 @@ export interface AccountChange {
   readonly color: string;
   readonly enabled: boolean;
   readonly muted: boolean;
+  readonly proxy: string;
 }
 
 export const CHROME_CHANNELS = {
