@@ -14,7 +14,15 @@ export interface AssistantSettings {
   readonly model: string;
   /** The compatible server's address; unused for the others. */
   readonly endpoint: string;
+  /** How many of the chat's latest messages to send, at most (#107). */
+  readonly context: number;
 }
+
+/** The context sizes the settings form offers: a few messages, the default, or more. */
+const FEW = 5;
+const DEFAULT_CONTEXT = 10;
+const MANY = 20;
+const CONTEXTS: ReadonlySet<unknown> = new Set([FEW, DEFAULT_CONTEXT, MANY]);
 
 const text = (value: SettingValue | undefined): string =>
   typeof value === 'string' ? value.trim() : '';
@@ -31,6 +39,7 @@ export function assistantSettings(
     provider,
     model: model === '' && provider === 'anthropic' ? DEFAULT_ANTHROPIC_MODEL : model,
     endpoint: text(values['endpoint']),
+    context: CONTEXTS.has(values['context']) ? (values['context'] as number) : DEFAULT_CONTEXT,
   };
 }
 

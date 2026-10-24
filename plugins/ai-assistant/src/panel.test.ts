@@ -1,15 +1,24 @@
 /** @vitest-environment happy-dom */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { describe as describeState, mountPanel } from './panel.ts';
+import { describe as describeState, mountPanel, problemText } from './panel.ts';
 
-function fakePort() {
+function setup() {
   const sent: unknown[] = [];
   const port = {
     onmessage: null as ((event: MessageEvent) => void) | null,
     postMessage: vi.fn((message: unknown) => sent.push(message)),
-    receive: (data: unknown) => port.onmessage?.({ data } as MessageEvent),
   };
-  return { port, sent };
+  mountPanel(document, port);
+  const receive = (data: unknown) => port.onmessage?.({ data } as MessageEvent);
+  const button = (name: string) => {
+    const found = [...document.querySelectorAll('button')].find((b) => b.textContent === name);
+    if (found === undefined) {
+      throw new Error(`No ${name} button.`);
+    }
+    return found;
+  };
+  const replies = () => document.querySelector('#replies')?.textContent ?? '';
+  return { sent, receive, button, replies };
 }
 
 beforeEach(() => {
@@ -40,39 +49,47 @@ describe('describe', () => {
   });
 });
 
+describe('problemText', () => {
+  it('explains each problem, and anything else generally', () => {
+    expect(problemText('no-chat')).toBe('Open a chat first.');
+    expect(problemText('auth')).toBe('The provider did not accept your key.');
+    expect(problemText('mystery')).toBe('Something went wrong. Try again.');
+  });
+});
+
 describe('mountPanel', () => {
   it('asks again each second until the hidden page answers, as it may still be loading', () => {
     vi.useFakeTimers();
     try {
-      const { port, sent } = fakePort();
-      mountPanel(document, port);
+      const t = setup();
       vi.advanceTimersByTime(2500);
-      expect(sent).toHaveLength(3);
-      port.receive({ type: 'state', provider: 'openai', model: 'm', missing: '' });
+      expect(t.sent).toHaveLength(3);
+      t.receive({ type: 'progress', text: 'x' });
+      vi.advanceTimersByTime(1000);
+      expect(t.sent).toHaveLength(4);
+      t.receive({ type: 'state', provider: 'openai', model: 'm', missing: '' });
       vi.advanceTimersByTime(5000);
-      expect(sent).toHaveLength(3);
+      expect(t.sent).toHaveLength(4);
     } finally {
       vi.useRealTimers();
     }
   });
 
   it('asks for the state, then shows it', () => {
-    const { port, sent } = fakePort();
-    mountPanel(document, port);
-    expect(sent).toEqual([{ type: 'state?' }]);
+    const t = setup();
+    expect(t.sent).toEqual([{ type: 'state?' }]);
     expect(document.querySelector('h1')?.textContent).toBe('AI assistant');
     const status = document.querySelector('[role="status"]');
     expect(status?.textContent).toBe('Loading…');
-    port.receive({ type: 'state', provider: 'openai', model: 'gpt-x', missing: 'key' });
+    t.receive({ type: 'state', provider: 'openai', model: 'gpt-x', missing: 'key' });
     expect(status?.textContent).toBe('Using OpenAI, model gpt-x. Paste your API key to start.');
-    expect(document.querySelector<HTMLButtonElement>('button[type="button"]')?.disabled).toBe(true);
-    port.receive({ type: 'other' });
+    expect(t.button('Forget key').disabled).toBe(true);
+    t.receive({ type: 'other' });
     expect(status?.textContent).toContain('Paste your API key');
   });
 
   it('sends the key once and clears the field, and can forget it', () => {
-    const { port, sent } = fakePort();
-    mountPanel(document, port);
+    const t = setup();
     const input = document.querySelector<HTMLInputElement>('#key');
     if (input === null) {
       throw new Error('No key field.');
@@ -81,12 +98,54 @@ describe('mountPanel', () => {
     expect(document.querySelector('label')?.htmlFor).toBe('key');
     input.value = 'sk-secret';
     document.querySelector('form')?.dispatchEvent(new Event('submit', { cancelable: true }));
-    expect(sent.at(-1)).toEqual({ type: 'save-key', key: 'sk-secret' });
+    expect(t.sent.at(-1)).toEqual({ type: 'save-key', key: 'sk-secret' });
     expect(input.value).toBe('');
-    port.receive({ type: 'state', provider: 'openai', model: 'gpt-x', missing: '' });
-    const forget = document.querySelector<HTMLButtonElement>('button[type="button"]');
-    expect(forget?.disabled).toBe(false);
-    forget?.click();
-    expect(sent.at(-1)).toEqual({ type: 'forget-key' });
+    t.receive({ type: 'state', provider: 'openai', model: 'gpt-x', missing: '' });
+    expect(t.button('Forget key').disabled).toBe(false);
+    t.button('Forget key').click();
+    expect(t.sent.at(-1)).toEqual({ type: 'forget-key' });
+  });
+
+  it('offers to allow the assistant in a chat before showing anything of it', () => {
+    const t = setup();
+    t.button('Look at this chat').click();
+    expect(t.sent.at(-1)).toEqual({ type: 'prepare' });
+    t.receive({ type: 'preview', chat: 'Ana', allowed: false, instructions: '', transcript: '' });
+    expect(t.replies()).toContain('The assistant is off in “Ana”.');
+    t.button('Allow in this chat').click();
+    expect(t.sent.at(-1)).toEqual({ type: 'allow-chat', allowed: true });
+  });
+
+  it('shows exactly what will be sent, streams the answer, and puts the picked reply in the draft', () => {
+    const t = setup();
+    t.receive({
+      type: 'preview',
+      chat: 'Ana',
+      allowed: true,
+      instructions: 'Suggest replies.',
+      transcript: 'Chat: Ana\nThem: Hi',
+    });
+    expect(document.querySelector('#preview')?.textContent).toBe(
+      'Suggest replies.\n\nChat: Ana\nThem: Hi',
+    );
+    t.button('Stop allowing in this chat').click();
+    expect(t.sent.at(-1)).toEqual({ type: 'allow-chat', allowed: false });
+    t.button('Send').click();
+    expect(t.sent.at(-1)).toEqual({ type: 'send' });
+    t.receive({ type: 'progress', text: 'Hel' });
+    t.receive({ type: 'progress', text: 'lo' });
+    expect(t.replies()).toContain('Hello');
+    t.button('Stop').click();
+    expect(t.sent.at(-1)).toEqual({ type: 'cancel' });
+    t.receive({ type: 'suggestions', items: ['Hello!', 'Hi there'] });
+    expect(t.replies()).toContain('Pick a reply');
+    t.button('Hi there').click();
+    expect(t.sent.at(-1)).toEqual({ type: 'use', index: 1 });
+    t.receive({ type: 'used' });
+    expect(t.replies()).toBe('The reply is in the message box. Edit it and send it yourself.');
+    t.receive({ type: 'progress', text: 'New' });
+    expect(t.replies()).toBe('NewStop');
+    t.receive({ type: 'problem', reason: 'timeout' });
+    expect(t.replies()).toBe('The provider took too long to answer.');
   });
 });

@@ -1,20 +1,28 @@
 import { describe, expect, it } from 'vitest';
-import { assistantState, panelRequest } from './bus.ts';
+import { assistantState, panelRequest, update } from './bus.ts';
 
 describe('panelRequest', () => {
-  it('takes the panel’s three requests, with a trimmed key, and nothing else', () => {
-    expect(panelRequest({ type: 'state?' })).toEqual({ type: 'state?' });
-    expect(panelRequest({ type: 'forget-key', key: 'x' })).toEqual({ type: 'forget-key' });
+  it('takes the panel’s requests, with a trimmed key, and nothing else', () => {
+    for (const type of ['state?', 'forget-key', 'prepare', 'send', 'cancel']) {
+      expect(panelRequest({ type, extra: 1 })).toEqual({ type });
+    }
     expect(panelRequest({ type: 'save-key', key: ' sk-1 ' })).toEqual({
       type: 'save-key',
       key: 'sk-1',
     });
     expect(panelRequest({ type: 'save-key', key: 'k'.repeat(8192) })).toBeDefined();
+    expect(panelRequest({ type: 'allow-chat', allowed: false })).toEqual({
+      type: 'allow-chat',
+      allowed: false,
+    });
+    expect(panelRequest({ type: 'use', index: 2 })).toEqual({ type: 'use', index: 2 });
     for (const data of [
       { type: 'save-key', key: 'k'.repeat(8193) },
       { type: 'save-key', key: '  ' },
       { type: 'save-key', key: 7 },
-      { type: 'send', key: 'x' },
+      { type: 'allow-chat', allowed: 'yes' },
+      { type: 'use', index: 1.5 },
+      { type: 'send-message', text: 'x' },
       null,
       'state?',
     ]) {
@@ -31,5 +39,42 @@ describe('assistantState', () => {
     expect(assistantState({ ...state, provider: 1 })).toBeUndefined();
     expect(assistantState({ ...state, model: null })).toBeUndefined();
     expect(assistantState({ ...state, missing: false })).toBeUndefined();
+  });
+});
+
+describe('update', () => {
+  it('takes each kind of news from the hidden page, in its exact shape', () => {
+    const preview = {
+      type: 'preview',
+      chat: 'Ana',
+      allowed: true,
+      instructions: 'i',
+      transcript: 't',
+    };
+    const news = [
+      { type: 'state', provider: 'openai', model: 'm', missing: '' },
+      preview,
+      { type: 'progress', text: 'Hi' },
+      { type: 'suggestions', items: ['a', 'b'] },
+      { type: 'used' },
+      { type: 'problem', reason: 'auth' },
+    ];
+    for (const item of news) {
+      expect(update(item)).toEqual(item);
+    }
+    for (const bad of [
+      { ...preview, chat: 1 },
+      { ...preview, allowed: 'yes' },
+      { ...preview, instructions: null },
+      { ...preview, transcript: [] },
+      { type: 'progress', text: 1 },
+      { type: 'suggestions', items: ['a', 2] },
+      { type: 'suggestions', items: 'a' },
+      { type: 'problem' },
+      { type: 'other' },
+      null,
+    ]) {
+      expect(update(bad)).toBeUndefined();
+    }
   });
 });

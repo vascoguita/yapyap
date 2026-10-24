@@ -1,0 +1,143 @@
+import { describe, expect, it, vi } from 'vitest';
+import type { Update } from './bus.ts';
+import { chatKey } from './chats.ts';
+import type { CompletionRequest, Provider } from './providers/provider.ts';
+import { INSTRUCTIONS } from './replies.ts';
+import { replyFlow } from './reply-flow.ts';
+import { fakeHost } from './testing/fake-host.ts';
+
+const CHAT = {
+  name: 'Ana',
+  group: false,
+  messages: [
+    { outgoing: true, text: 'Are we still on?' },
+    { outgoing: false, text: 'Yes, 8pm' },
+  ],
+};
+
+function setup(options: Parameters<typeof fakeHost>[0] = { chat: CHAT }) {
+  const fake = fakeHost(options);
+  fake.secrets.set('apiKey.anthropic', 'sk');
+  const sent: Update[] = [];
+  const requests: CompletionRequest[] = [];
+  const provider: Provider = {
+    complete: vi.fn((request: CompletionRequest, onText: (text: string) => void) => {
+      requests.push(request);
+      onText('1. See you then!');
+      return Promise.resolve({
+        text: '1. See you then!\n2. "Great"\n\n- Perfect\n- Extra',
+        truncated: false,
+      });
+    }),
+  };
+  const make = vi.fn(() => provider);
+  const flow = replyFlow(fake.host, (update) => sent.push(update), make);
+  return { ...fake, sent, requests, provider, make, flow };
+}
+
+describe('replyFlow', () => {
+  it('shows nothing of a chat until the user allows the assistant there', async () => {
+    const t = setup();
+    await t.flow.prepare();
+    expect(t.sent).toEqual([
+      { type: 'preview', chat: 'Ana', allowed: false, instructions: '', transcript: '' },
+    ]);
+    await t.flow.send();
+    expect(t.sent.at(-1)).toEqual({ type: 'problem', reason: 'not-prepared' });
+    expect(t.provider.complete).not.toHaveBeenCalled();
+  });
+
+  it('sends exactly what it previewed, and offers the replies it got', async () => {
+    const t = setup();
+    await t.flow.prepare();
+    await t.flow.allow(true);
+    expect(t.stored.get('allowedChats')).toEqual([await chatKey('Ana')]);
+    const preview = t.sent.at(-1);
+    expect(preview).toEqual({
+      type: 'preview',
+      chat: 'Ana',
+      allowed: true,
+      instructions: INSTRUCTIONS,
+      transcript: 'Chat: Ana\nMe: Are we still on?\nThem: Yes, 8pm',
+    });
+    await t.flow.send();
+    expect(t.requests[0]).toMatchObject({
+      instructions: INSTRUCTIONS,
+      turns: [{ role: 'user', text: 'Chat: Ana\nMe: Are we still on?\nThem: Yes, 8pm' }],
+    });
+    expect(t.requests[0]?.signal).toBeInstanceOf(AbortSignal);
+    expect(t.sent.slice(-2)).toEqual([
+      { type: 'progress', text: '1. See you then!' },
+      { type: 'suggestions', items: ['See you then!', 'Great', 'Perfect'] },
+    ]);
+    await t.flow.use(2);
+    expect(t.drafts).toEqual(['Perfect']);
+    expect(t.sent.at(-1)).toEqual({ type: 'used' });
+  });
+
+  it('sends only as many messages as the settings allow', async () => {
+    const t = setup({ chat: CHAT, settings: { context: 5 } });
+    const long = {
+      ...CHAT,
+      messages: Array.from({ length: 8 }, (_, i) => ({ outgoing: false, text: `m${String(i)}` })),
+    };
+    t.host.chat.readActive.mockResolvedValue(long);
+    await t.flow.prepare();
+    await t.flow.allow(true);
+    const preview = t.sent.at(-1) as { transcript: string };
+    expect(preview.transcript.split('\n')).toEqual([
+      'Chat: Ana',
+      'Them: m3',
+      'Them: m4',
+      'Them: m5',
+      'Them: m6',
+      'Them: m7',
+    ]);
+  });
+
+  it('stops allowing a chat, and forgets what it previewed there', async () => {
+    const t = setup();
+    await t.flow.prepare();
+    await t.flow.allow(true);
+    await t.flow.allow(false);
+    expect(t.stored.get('allowedChats')).toEqual([]);
+    expect(t.sent.at(-1)).toMatchObject({ allowed: false, transcript: '' });
+  });
+
+  it('says when no chat is open, nothing is set up, or no reply was offered', async () => {
+    const t = setup({ chat: null });
+    await t.flow.prepare();
+    await t.flow.allow(true);
+    expect(t.sent).toEqual([
+      { type: 'problem', reason: 'no-chat' },
+      { type: 'problem', reason: 'no-chat' },
+    ]);
+    const unset = setup();
+    unset.secrets.clear();
+    await unset.flow.prepare();
+    await unset.flow.allow(true);
+    await unset.flow.send();
+    expect(unset.sent.at(-1)).toEqual({ type: 'problem', reason: 'setup' });
+    expect(unset.make).not.toHaveBeenCalled();
+    const unnamed = setup({ chat: CHAT, settings: { provider: 'openai' } });
+    unnamed.secrets.set('apiKey.openai', 'sk');
+    await unnamed.flow.prepare();
+    await unnamed.flow.allow(true);
+    await unnamed.flow.send();
+    expect(unnamed.sent.at(-1)).toEqual({ type: 'problem', reason: 'setup' });
+    await unset.flow.use(0);
+    expect(unset.sent.at(-1)).toEqual({ type: 'problem', reason: 'invalid' });
+  });
+
+  it('stops a request when asked, or when another starts', async () => {
+    const t = setup();
+    await t.flow.prepare();
+    await t.flow.allow(true);
+    t.flow.cancel();
+    await t.flow.send();
+    await t.flow.send();
+    expect(t.requests[0]?.signal?.aborted).toBe(true);
+    t.flow.cancel();
+    expect(t.requests[1]?.signal?.aborted).toBe(true);
+  });
+});
