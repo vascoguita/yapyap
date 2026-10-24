@@ -580,7 +580,9 @@ not edit the same lines.
   stopped, and becomes up to three replies, and the one the user picks goes
   into the message box as a draft. Panel requests run one at a time, in
   order, except Stop. `e2e/ai-assistant.spec.ts` plays Claude with a
-  handler on the plugin's session and walks the whole flow.
+  handler on the plugin's session and walks the whole flow. The user guide's
+  **AI assistant** page (`/guide/ai-assistant`) walks users through the
+  provider, the key and the flow.
 
 - Account budgets (#109, first part): `bench/accounts.spec.ts` measures the
   memory a second account adds and the CPU a hidden account uses while
