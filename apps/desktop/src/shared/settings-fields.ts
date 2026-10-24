@@ -28,6 +28,8 @@ export interface SettingField {
   readonly options?: readonly { readonly value: string | number; readonly label: string }[];
   /** A line of text, such as an address, instead of a switch or a choice. */
   readonly text?: { readonly placeholder: string };
+  /** A folder, picked in the system's folder dialog; empty is the default folder. */
+  readonly folder?: true;
   /** The platforms (`process.platform`) where it does something; all of them when absent. */
   readonly platforms?: readonly string[];
 }
@@ -116,6 +118,7 @@ export const SETTING_FIELDS: readonly SettingField[] = [
   { ...described('privacy.blurWhenUnfocused'), restart: false },
   { ...described('privacy.blurWhenIdle'), restart: false },
   { ...described('downloads.askWhere'), restart: false },
+  { ...described('downloads.folder'), restart: false, folder: true },
   { ...described('downloads.openWhenDone'), restart: false },
   {
     ...described('network.proxyMode'),

@@ -67,3 +67,15 @@ export const electronSettingsFiles: SettingsFiles = {
   read: readPrefix,
   write: (path, text) => writeFile(path, text),
 };
+
+/** Asks for a folder over the settings window, where new folders can be made too (#74). */
+export async function chooseFolder(owner: object): Promise<string | undefined> {
+  const window = windowOf(owner);
+  if (window === null) {
+    return undefined;
+  }
+  const { canceled, filePaths } = await dialog.showOpenDialog(window, {
+    properties: ['openDirectory', 'createDirectory'],
+  });
+  return canceled ? undefined : filePaths[0];
+}

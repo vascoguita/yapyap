@@ -1,6 +1,6 @@
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
-import { downloadTarget, guardDownloads, type DownloadItem } from './downloads.ts';
+import { downloadsFolder, downloadTarget, guardDownloads, type DownloadItem } from './downloads.ts';
 
 const FOLDER = join('/home', 'someone', 'Downloads');
 
@@ -27,7 +27,7 @@ describe('downloadTarget', () => {
 
 function setup(
   taken: (path: string) => boolean = () => false,
-  options: { askWhere?: boolean; openWhenDone?: boolean } = {},
+  options: { askWhere?: boolean; openWhenDone?: boolean; folder?: string } = {},
 ) {
   let willDownload: (event: unknown, item: DownloadItem) => void = () => undefined;
   const session = {
@@ -41,7 +41,7 @@ function setup(
     taken,
     notify: vi.fn(),
     warn: vi.fn(),
-    options: () => ({ askWhere: false, openWhenDone: false, ...options }),
+    options: () => ({ askWhere: false, openWhenDone: false, folder: '', ...options }),
     lastFolder: {
       get: () => last,
       set: vi.fn((folder: string) => {
@@ -164,5 +164,37 @@ describe('download options', () => {
     const t = setup();
     t.download('Invoice.pdf').finish('completed');
     expect(t.deps.openPath).not.toHaveBeenCalled();
+  });
+});
+
+describe('downloadsFolder', () => {
+  const fs = (folders: readonly string[]) => ({
+    realpath: (path: string) => {
+      if (path.includes('gone')) {
+        throw new Error('ENOENT');
+      }
+      return `/real${path}`;
+    },
+    isFolder: (path: string) => folders.includes(path),
+  });
+
+  it('uses the chosen folder, else the Downloads folder', () => {
+    const system = () => '/home/someone/Downloads';
+    expect(downloadsFolder('/home/someone/Saved', system, fs(['/real/home/someone/Saved']))).toBe(
+      '/real/home/someone/Saved',
+    );
+    expect(downloadsFolder('', system, fs([]))).toBe('/real/home/someone/Downloads');
+    expect(downloadsFolder('/home/someone/gone', system, fs([]))).toBe(
+      '/real/home/someone/Downloads',
+    );
+    expect(downloadsFolder('/home/someone/notes.txt', system, fs([]))).toBe(
+      '/real/home/someone/Downloads',
+    );
+  });
+
+  it('names the folder only when it is the Downloads folder', () => {
+    const t = setup(undefined, { folder: '/home/someone/Saved' });
+    t.download('a.pdf').finish('completed');
+    expect(t.deps.notify).toHaveBeenCalledExactlyOnceWith('Saved a.pdf.');
   });
 });

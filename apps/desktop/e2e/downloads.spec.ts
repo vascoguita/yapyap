@@ -141,3 +141,27 @@ test('lists the session’s downloads and shows a finished one in its folder', a
   };
   await expect.poll(shown).toEqual([await realpath(join(folder, 'Invoice.pdf'))]);
 });
+
+test('saves into the folder chosen in Settings', async ({ app, window, profile }) => {
+  await useDownloads(app, profile);
+  const chosen = join(profile, 'Saved');
+  await mkdir(chosen);
+  // The system's folder dialog answers with the test's folder.
+  await app.evaluate(({ dialog }, path) => {
+    dialog.showOpenDialog = () => Promise.resolve({ canceled: false, filePaths: [path] });
+  }, chosen);
+  await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
+  const opened = app.waitForEvent('window');
+  await app.evaluate(({ Menu }) => {
+    Menu.getApplicationMenu()
+      ?.items.flatMap((menu) => menu.submenu?.items ?? [])
+      .find((item) => item.label === 'Settings…')
+      ?.click();
+  });
+  const settings = await opened;
+  await settings.waitForURL('app://chrome/settings.html');
+  await settings.getByRole('button', { name: 'Choose…' }).click();
+  await expect(settings.getByText(chosen)).toBeVisible();
+  await download(window, 'Ticket.pdf');
+  await expect.poll(() => readdir(chosen)).toEqual(['Ticket.pdf']);
+});

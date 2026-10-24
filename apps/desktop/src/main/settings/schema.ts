@@ -87,6 +87,8 @@ export const SettingsSchema = Type.Object(
       {
         askWhere: Type.Boolean({ default: false }),
         openWhenDone: Type.Boolean({ default: false }),
+        // Empty means the system's Downloads folder; set only through the folder picker.
+        folder: Type.String({ maxLength: 4096, default: '' }),
       },
       { default: {}, additionalProperties: false },
     ),

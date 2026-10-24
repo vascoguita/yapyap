@@ -18,7 +18,14 @@ function api(entries: readonly DownloadEntry[]) {
   return {
     about: { info: vi.fn(), copyTechnicalDetails: vi.fn() },
     recovery: { problem: vi.fn(), retry: vi.fn(), clearCache: vi.fn(), copyDiagnostics: vi.fn() },
-    settings: { get: vi.fn(), set: vi.fn(), restart: vi.fn(), export: vi.fn(), import: vi.fn() },
+    settings: {
+      get: vi.fn(),
+      set: vi.fn(),
+      restart: vi.fn(),
+      export: vi.fn(),
+      import: vi.fn(),
+      chooseFolder: vi.fn(),
+    },
     chat: { openNumber: vi.fn() },
     accounts: {
       list: vi.fn(),

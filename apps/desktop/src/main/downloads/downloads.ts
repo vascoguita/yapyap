@@ -77,7 +77,9 @@ function finish(deps: DownloadDependencies, path: string, state: string, asked: 
   if (state !== 'completed') {
     return;
   }
-  deps.notify(asked ? en.notices.saved(name) : en.notices.downloaded(name));
+  // Only the system's Downloads folder is named; another is the user's own choice.
+  const inDownloads = !asked && deps.options().folder === '';
+  deps.notify(inDownloads ? en.notices.downloaded(name) : en.notices.saved(name));
   if (asked) {
     deps.lastFolder.set(dirname(path));
   }
@@ -133,4 +135,29 @@ export function guardDownloads(session: DownloadingSession, deps: DownloadDepend
       finish(deps, item.getSavePath(), state, asked);
     });
   });
+}
+
+/** The file system calls that find a real folder. */
+export interface FolderChecks {
+  readonly realpath: (path: string) => string;
+  readonly isFolder: (path: string) => boolean;
+}
+
+/**
+ * Where automatic downloads go: the folder the user chose, resolved through
+ * any symlinks, or the system's Downloads folder when none is chosen or the
+ * chosen one is gone or no longer a folder.
+ */
+export function downloadsFolder(chosen: string, system: () => string, fs: FolderChecks): string {
+  if (chosen !== '') {
+    try {
+      const real = fs.realpath(chosen);
+      if (fs.isFolder(real)) {
+        return real;
+      }
+    } catch {
+      // Gone since it was chosen: the Downloads folder takes over.
+    }
+  }
+  return fs.realpath(system());
 }

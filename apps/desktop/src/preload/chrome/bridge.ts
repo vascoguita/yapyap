@@ -150,6 +150,9 @@ export function createChromeBridge(invoke: Invoke, listen: Listen): ChromeApi {
       restart: run(CHROME_CHANNELS.settingsRestart),
       export: () => invoke(CHROME_CHANNELS.settingsExport) as Promise<TransferResult>,
       import: () => invoke(CHROME_CHANNELS.settingsImport) as Promise<TransferResult>,
+      chooseFolder: async (id) => {
+        await invoke(CHROME_CHANNELS.settingsChooseFolder, id);
+      },
     },
     chat: {
       openNumber: (number) => invoke(CHROME_CHANNELS.chatOpenNumber, number) as Promise<boolean>,

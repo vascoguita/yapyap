@@ -1,5 +1,5 @@
 import type { JSX } from 'preact';
-import { useEffect, useState } from 'preact/hooks';
+import { useCallback, useEffect, useState } from 'preact/hooks';
 import type { ChromeApi, SettingsSnapshot, TransferResult } from '../../shared/chrome-api.ts';
 import { en } from '../../shared/messages/en.ts';
 import {
@@ -17,6 +17,8 @@ interface FieldProps {
   readonly field: SettingField;
   readonly snapshot: SettingsSnapshot;
   readonly onChange: Change;
+  /** Opens the system's folder dialog for a folder field. */
+  readonly onChooseFolder?: (id: string) => void;
 }
 
 /** The field's description, then why its last change did not take effect. */
@@ -92,8 +94,48 @@ function TextField(props: FieldProps & { readonly placeholder: string }) {
   );
 }
 
+/** A folder chosen in the system's dialog; the page never types a path itself. */
+function FolderField(props: FieldProps) {
+  const { field, snapshot, onChange, onChooseFolder } = props;
+  const folder = String(snapshot.values[field.id] ?? '');
+  return (
+    <div class="field text">
+      <span id={`${field.id}-label`}>{field.label}</span>
+      <output aria-labelledby={`${field.id}-label`}>
+        {folder === '' ? text.defaultFolder : folder}
+      </output>
+      <div class="actions">
+        <button
+          type="button"
+          disabled={snapshot.readOnly}
+          onClick={() => {
+            onChooseFolder?.(field.id);
+          }}
+        >
+          {text.chooseFolder}
+        </button>
+        {folder === '' ? null : (
+          <button
+            type="button"
+            disabled={snapshot.readOnly}
+            onClick={() => {
+              onChange(field.id, '');
+            }}
+          >
+            {text.useDefaultFolder}
+          </button>
+        )}
+      </div>
+      <Hint field={field} snapshot={snapshot} />
+    </div>
+  );
+}
+
 export function Field(props: FieldProps): JSX.Element {
   const { field, snapshot, onChange } = props;
+  if (field.folder === true) {
+    return <FolderField {...props} />;
+  }
   if (field.options !== undefined) {
     return <Choice {...props} options={field.options} />;
   }
@@ -122,6 +164,7 @@ export function Field(props: FieldProps): JSX.Element {
 function Sections(props: {
   readonly snapshot: SettingsSnapshot;
   readonly onChange: Change;
+  readonly onChooseFolder: (id: string) => void;
 }): JSX.Element[] {
   return SETTINGS_SECTIONS.flatMap(({ id, title }) => {
     // Main lists only the settings that do something on this platform.
@@ -248,6 +291,12 @@ export function closeOnEscape(event: KeyboardEvent): void {
 
 export function Settings({ api }: { readonly api: ChromeApi }): JSX.Element {
   const [snapshot, error, change, reload] = useSnapshot(api);
+  const chooseFolder = useCallback(
+    (id: string) => {
+      void api.settings.chooseFolder(id).then(reload);
+    },
+    [api, reload],
+  );
   if (snapshot == null) {
     return (
       <main class="settings">
@@ -261,7 +310,7 @@ export function Settings({ api }: { readonly api: ChromeApi }): JSX.Element {
       <h1>{text.title}</h1>
       {snapshot.readOnly ? <p class="notice">{text.readOnly}</p> : null}
       {snapshot.restartPending ? <RestartNotice api={api} /> : null}
-      <Sections snapshot={snapshot} onChange={change} />
+      <Sections snapshot={snapshot} onChange={change} onChooseFolder={chooseFolder} />
       <Backup api={api} readOnly={snapshot.readOnly} onImported={reload} />
       <p role="alert">{error}</p>
     </main>

@@ -10,6 +10,7 @@ import {
 } from '../about/about-info.ts';
 import { readPageState, type ProbedContents } from '../about/page-state.ts';
 import { newChatHandlers, type ChatTarget } from './new-chat.ts';
+import { folderChoiceHandlers } from '../settings/folder-choice.ts';
 import { shortcutsFor } from '../../shared/shortcuts.ts';
 import { spellingHandlers, type SpellingSources } from './spelling-languages.ts';
 import { DOWNLOADS_PAGE, downloadsHandlers } from './downloads-window.ts';
@@ -231,6 +232,8 @@ export interface ChromeFeatureDependencies {
   /** Settings this build ignores, so the settings window leaves them out. */
   readonly hiddenSettings: readonly string[];
   readonly settingsFiles: SettingsFiles;
+  /** The system's folder dialog over the given window; undefined when cancelled. */
+  readonly chooseFolder: (owner: object) => Promise<string | undefined>;
   readonly spelling: SpellingSources;
   /** This session's downloads, for the Downloads window. */
   readonly downloads: DownloadList;
@@ -624,6 +627,7 @@ function allHandlers(
       deps.hiddenSettings,
     ),
     ...settingsTransferHandlers(deps.settings, deps.settingsFiles),
+    ...folderChoiceHandlers(deps.settings, deps.chooseFolder),
     ...newChatHandlers(chats),
     {
       channel: CHROME_CHANNELS.shortcutsList,

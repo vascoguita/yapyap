@@ -17,6 +17,7 @@ const TRAY_ICON = 'appearance.trayIcon';
 const DEVELOPER = 'plugins.developerMode';
 const ASK_WHERE = 'downloads.askWhere';
 const OPEN_DONE = 'downloads.openWhenDone';
+const FOLDER = 'downloads.folder';
 const SPELLING = 'spelling.enabled';
 const PROXY = 'network.proxyMode';
 const PROXY_SERVER = 'network.proxyServer';
@@ -79,9 +80,16 @@ describe('settingsHandlers', () => {
       if (field.options !== undefined) {
         expect(field.options.map((option) => option.value)).toContain(value);
       } else {
-        expect(typeof value).toBe(field.text === undefined ? 'boolean' : 'string');
+        const text = field.text !== undefined || field.folder === true;
+        expect(typeof value).toBe(text ? 'string' : 'boolean');
       }
     });
+  });
+
+  it('lets the page reset a folder, but never name one', () => {
+    const set = setup().handler('settings:set');
+    expect(set.accepts([FOLDER, ''])).toBe(true);
+    expect(set.accepts([FOLDER, '/home/someone/Elsewhere'])).toBe(false);
   });
 
   it('saves a proxy address that fits, and refuses one that does not', () => {
@@ -160,6 +168,7 @@ describe('settingsHandlers', () => {
         [DEVELOPER]: false,
         [ASK_WHERE]: false,
         [OPEN_DONE]: false,
+        [FOLDER]: '',
         [SPELLING]: false,
         [AUTOSTART]: false,
         [START_MINIMIZED]: false,
@@ -244,6 +253,7 @@ describe('settingsHandlers', () => {
         [DEVELOPER]: false,
         [ASK_WHERE]: false,
         [OPEN_DONE]: false,
+        [FOLDER]: '',
         [SPELLING]: false,
         [AUTOSTART]: false,
         [START_MINIMIZED]: false,

@@ -18,7 +18,7 @@ vi.mock('electron', () => ({
   },
 }));
 
-const { electronSettingsFiles: files } = await import('./transfer-dialogs.ts');
+const { chooseFolder, electronSettingsFiles: files } = await import('./transfer-dialogs.ts');
 const { MAX_IMPORT_BYTES } = await import('./transfer.ts');
 
 const FILTERS = [{ name: 'YapYap settings', extensions: ['json'] }];
@@ -83,6 +83,19 @@ describe('electronSettingsFiles', () => {
       defaultId: 1,
       cancelId: 1,
     });
+  });
+
+  it('asks for a folder, where new ones can be made', async () => {
+    electron.showOpenDialog
+      .mockResolvedValueOnce({ canceled: false, filePaths: ['/home/me/Saved'] })
+      .mockResolvedValueOnce({ canceled: true, filePaths: [] });
+    expect(await chooseFolder(owner)).toBe('/home/me/Saved');
+    expect(await chooseFolder(owner)).toBeUndefined();
+    expect(electron.showOpenDialog).toHaveBeenCalledWith(window, {
+      properties: ['openDirectory', 'createDirectory'],
+    });
+    electron.fromWebContents.mockReturnValueOnce(null);
+    expect(await chooseFolder(owner)).toBeUndefined();
   });
 
   it('asks nothing without a window to ask over', async () => {
