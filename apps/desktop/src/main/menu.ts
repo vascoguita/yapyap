@@ -3,6 +3,7 @@ import type { ZoomStep } from './appearance/zoom.ts';
 import { PRODUCT_NAME } from './identity.ts';
 import type { AccountSummary } from '../shared/chrome-api.ts';
 import { en } from '../shared/messages/en.ts';
+import type { PluginCommand } from './plugins/runtime.ts';
 import { acceleratorOf, type CustomShortcuts, type ShortcutId } from '../shared/shortcuts.ts';
 
 /** The platform the menu is for, and the keys the user chose instead of YapYap's. */
@@ -37,6 +38,9 @@ export interface MenuActions {
   readonly openPlugins: () => void;
   readonly installPlugin: () => void;
   readonly openCustomCode: () => void;
+  /** Commands of the running plugins, each under its plugin's name (#98). */
+  readonly pluginCommands: readonly PluginCommand[];
+  readonly runPluginCommand: (plugin: string, command: string) => void;
   readonly openNewChat: () => void;
   readonly clearCache: () => void;
   readonly resetSession: () => void;
@@ -229,6 +233,23 @@ function commonItems(
 }
 
 /**
+ * A plugin's commands never pass for YapYap's own: they sit in their own
+ * submenu, each named after its plugin.
+ */
+function pluginCommandItems(actions: MenuActions): MenuItemConstructorOptions[] {
+  if (actions.pluginCommands.length === 0) {
+    return [];
+  }
+  const submenu = actions.pluginCommands.map(({ plugin, pluginName, id, title }) => ({
+    label: en.menu.pluginCommand(pluginName, title),
+    click: () => {
+      actions.runPluginCommand(plugin, id);
+    },
+  }));
+  return [{ label: en.menu.pluginCommands, submenu }];
+}
+
+/**
  * Plugins sit beside Settings, as Settings is where Developer Mode lives;
  * the user's own code is the other way to change WhatsApp.
  */
@@ -237,6 +258,7 @@ function pluginItems(actions: MenuActions): MenuItemConstructorOptions[] {
     { label: en.menu.plugins, click: actions.openPlugins },
     { label: en.menu.installPlugin, click: actions.installPlugin },
     { label: en.menu.customCode, click: actions.openCustomCode },
+    ...pluginCommandItems(actions),
   ];
 }
 

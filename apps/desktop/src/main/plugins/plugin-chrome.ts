@@ -185,6 +185,10 @@ export interface PluginChrome {
   /** File → Install Plugin…: pick an archive, check it, ask, install. */
   readonly install: () => void;
   readonly openPlugins: () => void;
+  /** The running plugins' commands, for the menu (#98). */
+  readonly commands: PluginRuntime['commands'];
+  readonly runCommand: PluginRuntime['runCommand'];
+  readonly onCommandsChange: PluginRuntime['onChange'];
 }
 
 /** The consent window, as the consent prompt drives it. */
@@ -253,5 +257,8 @@ export function createPluginChrome(
       void installPlugin(flow);
     },
     openPlugins: createChromeWindowOpener(windows, PLUGINS_PAGE),
+    commands: runtime.commands,
+    runCommand: runtime.runCommand,
+    onCommandsChange: runtime.onChange,
   };
 }

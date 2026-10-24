@@ -317,6 +317,36 @@ describe('createPluginRuntime', () => {
     expect(await loadRecords(root)).toEqual(new Map());
   });
 
+  it('lists the running plugins’ commands, runs one over the port, and says when they change', async () => {
+    const commands = [{ id: 'translate', title: 'Translate draft' }];
+    await install(record(), { ...MANIFEST, contributes: { commands } });
+    await saveRecords(root, new Map([['org.example.hello', record()]]));
+    const t = setup();
+    const changes = vi.fn();
+    t.runtime.onChange(changes);
+    await t.runtime.startAll();
+    expect(changes).toHaveBeenCalledOnce();
+    expect(t.runtime.commands()).toEqual([
+      {
+        plugin: 'org.example.hello',
+        pluginName: 'Hello',
+        id: 'translate',
+        title: 'Translate draft',
+      },
+    ]);
+    // Before its page has loaded, the plugin has no port to take the command.
+    expect(t.runtime.runCommand('org.example.hello', 'translate')).toBe(false);
+    const host = t.only(t.hosts);
+    host.load();
+    expect(t.runtime.runCommand('org.example.hello', 'translate')).toBe(true);
+    expect(host.ports[0]?.postMessage).toHaveBeenCalledExactlyOnceWith({ command: 'translate' });
+    expect(t.runtime.runCommand('org.example.hello', 'unknown')).toBe(false);
+    expect(t.runtime.runCommand('org.example.other', 'translate')).toBe(false);
+    t.runtime.stop('org.example.hello');
+    expect(changes).toHaveBeenCalledTimes(2);
+    expect(t.runtime.commands()).toEqual([]);
+  });
+
   it('starts an updated plugin again on the same session, from its new folder', async () => {
     await install(record());
     await saveRecords(root, new Map([['org.example.hello', record()]]));

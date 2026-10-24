@@ -150,6 +150,8 @@ only what you allow when you install it.
   Under **Recent activity**, it shows what each plugin asked YapYap to do,
   and whether YapYap did it or refused, but never what the plugin sent or
   received.
+- A plugin's commands appear in the File menu (the YapYap menu on macOS)
+  under **Plugin Commands**, each named after its plugin.
 - Under **Permissions**, each plugin lists what you allowed it to do. Turn
   anything off at any time, for the plugin or, for reading chats and
   writing drafts, account by account; it applies to the plugin's very next

@@ -1,7 +1,14 @@
 import { runInNewContext } from 'node:vm';
 import type { PluginHost } from '@yapyap/plugin-sdk';
 import { describe, expect, it, vi } from 'vitest';
-import { bootPlugin, hostApi, hostScript, rpcClient, type PagePort } from './host-script.ts';
+import {
+  bootPlugin,
+  hostApi,
+  hostScript,
+  rpcClient,
+  settleReply,
+  type PagePort,
+} from './host-script.ts';
 
 type Listener = (event: { readonly data: unknown; readonly ports: readonly PagePort[] }) => void;
 
@@ -27,7 +34,7 @@ function page() {
   };
 }
 
-const helpers = { hostApi, rpcClient };
+const helpers = { hostApi, rpcClient, settleReply };
 
 describe('bootPlugin', () => {
   it('activates the entry with the host API, whose calls wait for YapYap’s port', async () => {
@@ -71,6 +78,37 @@ describe('bootPlugin', () => {
     p.reply(null);
   });
 
+  it('runs the handler of a command YapYap sends, and survives one that fails', async () => {
+    const p = page();
+    const ran: string[] = [];
+    await bootPlugin(
+      p.scope,
+      () =>
+        Promise.resolve({
+          default: {
+            activate: (api: PluginHost) => {
+              api.commands.onRun('translate', () => {
+                ran.push('translate');
+              });
+              api.commands.onRun('broken', () => {
+                throw new Error('bug');
+              });
+            },
+          },
+        }),
+      '/main.js',
+      'yapyap:plugin-port',
+      helpers,
+    );
+    p.deliver('yapyap:plugin-port');
+    p.reply({ command: 'translate' });
+    p.reply({ command: 'broken' });
+    p.reply({ command: 'unknown' });
+    await vi.waitFor(() => {
+      expect(ran).toEqual(['translate']);
+    });
+  });
+
   it('loads an entry without an activate function, and does nothing with it', async () => {
     const p = page();
     for (const module of [{}, null, { default: { activate: 'no' } }]) {
@@ -82,9 +120,10 @@ describe('bootPlugin', () => {
 });
 
 describe('hostApi', () => {
-  it('turns every SDK method into one call, and runs no commands yet', async () => {
+  it('turns every SDK method into one call, and keeps command handlers by ID', async () => {
     const call = vi.fn(() => Promise.resolve(undefined as never));
-    const api = hostApi(call);
+    const commands = new Map<string, () => unknown>();
+    const api = hostApi(call, commands);
     await api.chat.readActive();
     await api.chat.readUnreadSummary();
     await api.composer.insertDraft('Hi');
@@ -95,7 +134,9 @@ describe('hostApi', () => {
     await api.secrets.get('s');
     await api.secrets.set('s', 'v');
     await api.secrets.delete('s');
-    api.commands.onRun('translate', vi.fn());
+    const translate = vi.fn();
+    api.commands.onRun('translate', translate);
+    expect(commands.get('translate')).toBe(translate);
     expect(call.mock.calls).toEqual([
       ['chat.readActive'],
       ['chat.readUnreadSummary'],
