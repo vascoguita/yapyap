@@ -45,6 +45,7 @@ describe('ManifestSchema', () => {
       'chat:read-active',
       'chat:read-unread-summary',
       'composer:insert-draft',
+      'composer:read-draft',
       'notifications:show',
       'storage:local',
       'secrets:own',

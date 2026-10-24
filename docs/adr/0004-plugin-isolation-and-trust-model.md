@@ -151,7 +151,7 @@ any time in settings.
 At install the user approves the manifest's capabilities and hosts for the
 whole plugin. The Plugins window can then take any of them back, and the
 ones that act on the account on screen (`chat:read-active`,
-`chat:read-unread-summary`, `composer:insert-draft`) account by account.
+`chat:read-unread-summary`, `composer:insert-draft`, `composer:read-draft`) account by account.
 The record keeps these as `revoked` and `revokedIn`; an update keeps them,
 and turning a grant back on can never give more than was approved. Grants
 are read on every call and request, so a change applies to the next one.
@@ -162,7 +162,8 @@ starts to.
 | -------------------------- | ---------------------------------------------------------------------------------------- |
 | `chat:read-active`         | The active chat's metadata and its last N messages (N capped by the user), as plain data |
 | `chat:read-unread-summary` | Unread counts and the last N unread messages per chat                                    |
-| `composer:insert-draft`    | Insert text into the composer of the active chat. Never sends.                           |
+| `composer:insert-draft`    | Insert text into the composer of the active chat, or replace what is there. Never sends. |
+| `composer:read-draft`      | Read what the user typed so far in the active chat's composer, as plain text             |
 | `notifications:show`       | Show a native notification attributed to the plugin                                      |
 | `storage:local`            | A persistent private partition and a key-value store API                                 |
 | `secrets:own`              | Read and write the plugin's own secrets namespace (Electron `safeStorage`)               |

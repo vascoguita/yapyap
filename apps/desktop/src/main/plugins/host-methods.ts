@@ -18,6 +18,10 @@ export interface HostServices {
   readonly insertDraft: (text: string) => Promise<boolean>;
   /** The active account's open chat, as many messages as the user allows; null when none is open. */
   readonly readActiveChat: () => Promise<ActiveChat | null>;
+  /** Replaces the draft in the active account's open chat; false when none is open. */
+  readonly replaceDraft: (text: string) => Promise<boolean>;
+  /** The draft in the active account's open chat; null when none is open. */
+  readonly readDraft: () => Promise<string | null>;
 }
 
 /** The plugin whose calls these are. */
@@ -144,16 +148,28 @@ function chat(services: HostServices): Record<string, RpcMethod> {
 const Draft = Type.String({ minLength: 1, maxLength: 4096 });
 
 /** Drafts only: the user reads, edits and sends them; nothing here sends (ADR 0004). */
+/** Writes a draft with `write`, failing the call when no chat is open to take it. */
+function drafting(write: (text: string) => Promise<boolean>): RpcMethod {
+  return {
+    capability: 'composer:insert-draft',
+    params: Type.Tuple([Draft]),
+    run: async ([text]) => {
+      if (!(await write(text as string))) {
+        throw new Error('No chat is open.');
+      }
+    },
+  };
+}
+
 function composer(services: HostServices): Record<string, RpcMethod> {
   return {
-    'composer.insertDraft': {
-      capability: 'composer:insert-draft',
-      params: Type.Tuple([Draft]),
-      run: async ([text]) => {
-        if (!(await services.insertDraft(text as string))) {
-          throw new Error('No chat is open.');
-        }
-      },
+    'composer.insertDraft': drafting(services.insertDraft),
+    'composer.replaceDraft': drafting(services.replaceDraft),
+    // Reading what the user types is a grant of its own, apart from writing drafts (#105).
+    'composer.readDraft': {
+      capability: 'composer:read-draft',
+      params: Type.Tuple([]),
+      run: () => services.readDraft(),
     },
   };
 }

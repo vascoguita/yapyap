@@ -522,6 +522,7 @@ const catalog = {
       'chat:read-unread-summary': 'See which chats have unread messages',
       'composer:insert-draft': 'Write drafts in the message box, which you send yourself',
       'local-network': 'Connect to servers running on this computer, such as a local AI model',
+      'composer:read-draft': 'Read what you type in the message box',
       'notifications:show': 'Show notifications',
       'storage:local': 'Keep its own data on this computer',
       'secrets:own': 'Keep its own secrets, such as API keys, encrypted',

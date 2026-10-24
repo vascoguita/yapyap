@@ -608,6 +608,8 @@ describe('createChromeFeature', () => {
       activeContents: () => contents,
       insertDraft: vi.fn(() => Promise.resolve(true)),
       readActiveChat: vi.fn(() => Promise.resolve(null)),
+      replaceDraft: vi.fn(() => Promise.resolve(true)),
+      readDraft: vi.fn(() => Promise.resolve(null)),
       switchTo: vi.fn(),
       add: vi.fn(),
       privacyScreen: false,
@@ -667,6 +669,8 @@ describe('createChromeFeature', () => {
       activeContents: () => ({}),
       insertDraft: vi.fn(() => Promise.resolve(true)),
       readActiveChat: vi.fn(() => Promise.resolve(null)),
+      replaceDraft: vi.fn(() => Promise.resolve(true)),
+      readDraft: vi.fn(() => Promise.resolve(null)),
       switchTo: vi.fn(),
       add: vi.fn(),
       privacyScreen: false,
@@ -787,6 +791,8 @@ describe('createChromeFeature', () => {
       activeContents: () => ({}),
       insertDraft: vi.fn(() => Promise.resolve(true)),
       readActiveChat: vi.fn(() => Promise.resolve(null)),
+      replaceDraft: vi.fn(() => Promise.resolve(true)),
+      readDraft: vi.fn(() => Promise.resolve(null)),
       switchTo: vi.fn(),
       add: vi.fn(),
       privacyScreen: false,
@@ -827,6 +833,8 @@ describe('createChromeFeature', () => {
       activeContents: () => ({}),
       insertDraft: vi.fn(() => Promise.resolve(true)),
       readActiveChat: vi.fn(() => Promise.resolve(null)),
+      replaceDraft: vi.fn(() => Promise.resolve(true)),
+      readDraft: vi.fn(() => Promise.resolve(null)),
       switchTo: vi.fn(),
       add: vi.fn(),
       privacyScreen: false,
@@ -852,6 +860,8 @@ describe('createChromeFeature', () => {
       activeContents: () => ({}),
       insertDraft: vi.fn(() => Promise.resolve(true)),
       readActiveChat: vi.fn(() => Promise.resolve(null)),
+      replaceDraft: vi.fn(() => Promise.resolve(true)),
+      readDraft: vi.fn(() => Promise.resolve(null)),
       switchTo: vi.fn(),
       add: vi.fn(),
       privacyScreen: false,
@@ -1031,14 +1041,20 @@ describe('createChromeFeature', () => {
     const accounts = pluginAccounts(slot);
     await expect(accounts.insertDraft('Hi')).resolves.toBe(false);
     await expect(accounts.readActiveChat(5)).resolves.toBeNull();
+    await expect(accounts.replaceDraft('Hi')).resolves.toBe(false);
+    await expect(accounts.readDraft()).resolves.toBeNull();
     expect(accounts.active()).toBeUndefined();
     expect(accounts.list()).toEqual([]);
     const insertDraft = vi.fn(() => Promise.resolve(true));
     const chat = { name: 'Team', group: false, messages: [] };
     const readActiveChat = vi.fn(() => Promise.resolve(chat));
+    const replaceDraft = vi.fn(() => Promise.resolve(true));
+    const readDraft = vi.fn(() => Promise.resolve('Draft'));
     slot.current = {
       insertDraft,
       readActiveChat,
+      replaceDraft,
+      readDraft,
       entries: [
         { id: 'a', name: 'Home', active: false },
         { id: 'b', name: 'Work', active: true },
@@ -1048,6 +1064,9 @@ describe('createChromeFeature', () => {
     expect(insertDraft).toHaveBeenCalledExactlyOnceWith('Hi');
     await expect(accounts.readActiveChat(5)).resolves.toBe(chat);
     expect(readActiveChat).toHaveBeenCalledExactlyOnceWith(5);
+    await expect(accounts.replaceDraft('New')).resolves.toBe(true);
+    expect(replaceDraft).toHaveBeenCalledExactlyOnceWith('New');
+    await expect(accounts.readDraft()).resolves.toBe('Draft');
     expect(accounts.active()).toBe('b');
     expect(accounts.list()).toEqual([
       { id: 'a', name: 'Home' },

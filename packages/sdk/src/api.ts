@@ -58,6 +58,16 @@ export interface ChatApi {
 export interface ComposerApi {
   /** Puts `text` in the open chat's composer for the user to edit and send. Needs `composer:insert-draft`. */
   readonly insertDraft: (text: string) => Promise<void>;
+  /**
+   * Replaces what the user typed in the open chat's composer with `text`, as
+   * a rewritten draft for them to edit and send. Needs `composer:insert-draft`.
+   */
+  readonly replaceDraft: (text: string) => Promise<void>;
+  /**
+   * What the user typed in the open chat's composer so far, or null when no
+   * chat is open. Needs `composer:read-draft`.
+   */
+  readonly readDraft: () => Promise<string | null>;
 }
 
 /** Native notifications attributed to the plugin. */

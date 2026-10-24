@@ -67,7 +67,14 @@ function setup(root: string, developerMode = false, overrides: object = {}) {
     deps,
     { current: () => ({ ...settings, plugins: { ...settings.plugins, developerMode } }) },
     { createWindow, views, warn },
-    { insertDraft, readActiveChat: vi.fn(), active: () => undefined, list: () => accounts },
+    {
+      insertDraft,
+      readActiveChat: vi.fn(),
+      replaceDraft: vi.fn(),
+      readDraft: vi.fn(),
+      active: () => undefined,
+      list: () => accounts,
+    },
   );
   const handler = (channel: string) => {
     const found = chrome.handlers.find((candidate) => candidate.channel === channel);

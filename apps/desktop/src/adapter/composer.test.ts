@@ -1,7 +1,13 @@
 /** @vitest-environment happy-dom */
 import { runInNewContext } from 'node:vm';
 import { afterEach, describe, expect, it } from 'vitest';
-import { FOCUS_COMPOSER, focusComposer } from './composer.ts';
+import {
+  FOCUS_COMPOSER,
+  focusComposer,
+  parseDraft,
+  READ_COMPOSER,
+  readComposer,
+} from './composer.ts';
 import { LANDMARKS } from './page-state.ts';
 
 afterEach(() => {
@@ -29,5 +35,37 @@ describe('focusComposer', () => {
     // Only `document` is in scope, as in the isolated world the probe runs in.
     const result: unknown = runInNewContext(FOCUS_COMPOSER, { document });
     expect(result).toBe(true);
+  });
+});
+
+describe('readComposer', () => {
+  it('reads what the user typed, without the line breaks the box ends with', () => {
+    document.body.innerHTML =
+      '<div id="main"><footer><div contenteditable="true">Running late,<br>sorry  </div></footer></div>';
+    expect(readComposer(document, LANDMARKS.composer, 100)).toMatch(/^Running late,\n?sorry$/);
+    expect(readComposer(document, LANDMARKS.composer, 7)).toBe('Running');
+  });
+
+  it('reads nothing when no chat is open, and what a box without innerText offers', () => {
+    expect(readComposer(document, LANDMARKS.composer, 100)).toBeNull();
+    expect(readComposer({ querySelector: () => ({ textContent: 'Hi ' }) }, 'x', 100)).toBe('Hi');
+    expect(readComposer({ querySelector: () => ({ textContent: null }) }, 'x', 100)).toBe('');
+  });
+
+  it.skipIf(READ_COMPOSER.includes('stryMutAct'))('runs as standalone source text', () => {
+    document.body.innerHTML =
+      '<div id="main"><footer><div contenteditable="true">Hello</div></footer></div>';
+    expect(runInNewContext(READ_COMPOSER, { document })).toBe('Hello');
+  });
+});
+
+describe('parseDraft', () => {
+  it('takes text or null, and nothing else', () => {
+    expect(parseDraft('Hi')).toBe('Hi');
+    expect(parseDraft('')).toBe('');
+    expect(parseDraft(null)).toBeNull();
+    expect(parseDraft('x'.repeat(65_536))).toHaveLength(65_536);
+    expect(parseDraft('x'.repeat(65_537))).toBeUndefined();
+    expect(parseDraft({ html: '<b>' })).toBeUndefined();
   });
 });

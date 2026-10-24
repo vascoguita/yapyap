@@ -77,6 +77,10 @@
           },
           {
             "type": "string",
+            "const": "composer:read-draft"
+          },
+          {
+            "type": "string",
             "const": "notifications:show"
           },
           {

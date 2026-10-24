@@ -54,9 +54,10 @@ and an ESLint restriction forbids constructing `BrowserWindow` or
   content.
 - The WhatsApp adapter sends only plain data objects (unread count,
   notification fields, active-chat metadata). It never sends DOM nodes or HTML.
-  Its probes return flags, never page text. The one reader that returns
-  text, the open chat's latest messages (#100), runs only when a plugin
-  holding `chat:read-active` for the account on screen asks. It returns as
+  Its probes return flags, never page text. The readers that return text,
+  the open chat's latest messages (#100) and the draft in its composer
+  (#105), run only when a plugin holding `chat:read-active` or
+  `composer:read-draft` for the account on screen asks. It returns as
   many messages as the user allows, checked against a schema, and nothing
   logs it (C26 in ADR 0008).
 - WhatsApp's views have one preload, for notifications only, whose design is
