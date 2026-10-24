@@ -76,6 +76,8 @@ export interface PluginChromeDependencies {
   readonly rpc: RpcOptions;
   /** What plugins asked YapYap to do, for the Plugins window (#99). */
   readonly audit: AuditLog;
+  /** What the plugins' CPU and memory limits need (#97). */
+  readonly limits: PluginRuntimeDependencies['limits'];
 }
 
 /** What the user is told when an install ends; a declined one ends quietly. */

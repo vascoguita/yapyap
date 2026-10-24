@@ -39,7 +39,7 @@ import { PLUGIN_PORT_CHANNEL } from '../shared/plugin-rpc.ts';
 import { hostMethods } from './plugins/host-methods.ts';
 import { RPC_OPTIONS } from './plugins/rpc.ts';
 import { auditFileAt, createAuditLog } from './plugins/audit-log.ts';
-import { homedir, release } from 'node:os';
+import { availableParallelism, homedir, release } from 'node:os';
 import { join } from 'node:path';
 import { createDownloadList } from './downloads/download-list.ts';
 import { downloadsFolder } from './downloads/downloads.ts';
@@ -254,6 +254,15 @@ const chrome = createChromeFeature({
         quiet: () => settings.current().general.doNotDisturb,
         secrets: pluginSecrets,
       }),
+    limits: {
+      metrics: () => app.getAppMetrics(),
+      notify: (message) => {
+        new Notification({ title: PRODUCT_NAME, body: message, icon: trayIcon }).show();
+      },
+      every: (callback, ms) => setInterval(callback, ms),
+      now: Date.now,
+      cores: availableParallelism(),
+    },
     audit: createAuditLog(
       auditFileAt(join(app.getPath('userData'), 'plugins', 'audit.log')),
       () => new Date(),

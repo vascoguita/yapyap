@@ -445,6 +445,13 @@ not edit the same lines.
   another's. Where the system cannot encrypt, the call fails rather than
   keeping the secret in the clear.
 
+- Plugin resource limits (#97): `guardPluginResources` samples each
+  plugin's renderer every 5 s through `app.getAppMetrics()`; more than 50%
+  CPU or 256 MB in 3 samples in a row restarts the plugin, and a third
+  restart within 10 minutes stops it (until YapYap restarts or the plugin is
+  installed again) with a system notification. The runtime lists its
+  plugins' processes and can stop one.
+
 - Plugin activity log (#99): `servePluginRpc` reports each call to an
   operation YapYap offers (operation, capability, outcome) and
   `createAuditLog` appends it, with the time and plugin ID, to

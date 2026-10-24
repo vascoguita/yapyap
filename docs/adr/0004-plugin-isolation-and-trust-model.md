@@ -128,6 +128,10 @@ to `<userData>/plugins/<id>/<version>/` only after the signature verifies.
 - **Resource limits.** `app.getAppMetrics()` samples each plugin's renderer
   PID. Sustained CPU or working-set overruns terminate the renderer. Three
   terminations within a window disable the plugin and notify the user.
+  YapYap samples every 5 seconds; more than 50% CPU or 256 MB of working
+  set in 3 samples in a row restarts the plugin, and a third restart within
+  10 minutes stops it until YapYap restarts or the plugin is installed
+  again.
 
 ### Capabilities
 

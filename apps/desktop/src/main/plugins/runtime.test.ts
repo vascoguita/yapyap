@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vite
 import type { ViewRegistry } from '../views.ts';
 import { saveRecords, type PluginRecord } from './records.ts';
 import { Type } from 'typebox';
+import type { ProcessMetrics } from './resource-guard.ts';
 import { RPC_OPTIONS } from './rpc.ts';
 import { createPluginRuntime, pluginPartition } from './runtime.ts';
 
@@ -66,6 +67,7 @@ interface FakeHost {
   readonly partition: string;
   readonly webContents: {
     readonly on: Mock<(event: 'did-finish-load', listener: () => void) => void>;
+    readonly getOSProcessId: () => number;
   };
   readonly loadURL: Mock<(url: string) => Promise<unknown>>;
   readonly destroy: Mock<() => void>;
@@ -84,6 +86,7 @@ const fakeHost = (partition: string, loaded: Promise<unknown> = Promise.resolve(
       on: vi.fn((_event: 'did-finish-load', listener: () => void) => {
         listeners.push(listener);
       }),
+      getOSProcessId: () => 4242,
     },
     loadURL: vi.fn(() => loaded),
     destroy: vi.fn(),
@@ -102,6 +105,7 @@ const fakeHost = (partition: string, loaded: Promise<unknown> = Promise.resolve(
 };
 
 function setup() {
+  const sampled: (() => void)[] = [];
   const sessions = new Map<string, FakeSession>();
   const hosts: FakeHost[] = [];
   const views: ViewRegistry = new WeakMap();
@@ -132,6 +136,15 @@ function setup() {
     })),
     rpc: { ...RPC_OPTIONS, now: () => 0, after: vi.fn() },
     audit: { record: vi.fn() },
+    limits: {
+      metrics: vi.fn((): ProcessMetrics[] => []),
+      notify: vi.fn(),
+      every: vi.fn((callback: () => void) => {
+        sampled.push(callback);
+      }),
+      now: () => 0,
+      cores: 1,
+    },
   };
   const only = <T>(items: readonly T[]): T => {
     const [item] = items;
@@ -140,7 +153,12 @@ function setup() {
     }
     return item;
   };
-  return { deps, sessions, hosts, views, only, runtime: createPluginRuntime(deps) };
+  const sample = (): void => {
+    for (const callback of sampled) {
+      callback();
+    }
+  };
+  return { deps, sessions, hosts, views, only, sample, runtime: createPluginRuntime(deps) };
 }
 
 describe('pluginPartition', () => {
@@ -205,6 +223,51 @@ describe('createPluginRuntime', () => {
         capability: 'notifications:show',
         outcome: 'ok',
       });
+    });
+  });
+
+  it('restarts a plugin over its limits, stops one that keeps going over, and lists processes', async () => {
+    await install(record());
+    await saveRecords(root, new Map([['org.example.hello', record()]]));
+    const t = setup();
+    await t.runtime.startAll();
+    expect(t.runtime.processes()).toEqual([{ id: 'org.example.hello', name: 'Hello', pid: 4242 }]);
+    t.deps.limits.metrics.mockReturnValue([
+      { pid: 4242, cpu: { percentCPUUsage: 100 }, memory: { workingSetSize: 0 } },
+    ]);
+    for (let index = 0; index < 3; index += 1) {
+      t.sample();
+    }
+    await vi.waitFor(() => {
+      expect(t.hosts).toHaveLength(2);
+    });
+    expect(t.hosts[0]?.destroy).toHaveBeenCalledOnce();
+    for (let index = 0; index < 6; index += 1) {
+      t.sample();
+    }
+    await vi.waitFor(() => {
+      expect(t.runtime.running()).toEqual([]);
+    });
+    expect(t.deps.limits.notify).toHaveBeenCalledOnce();
+    t.runtime.stop('org.example.missing');
+  });
+
+  it('says when a plugin over its limits cannot be restarted', async () => {
+    await install(record());
+    await saveRecords(root, new Map([['org.example.hello', record()]]));
+    const t = setup();
+    await t.runtime.startAll();
+    t.deps.limits.metrics.mockReturnValue([
+      { pid: 4242, cpu: { percentCPUUsage: 100 }, memory: { workingSetSize: 0 } },
+    ]);
+    // The records file became unreadable, as a folder in its place is.
+    await rm(join(root, '.plugins.json'));
+    await mkdir(join(root, '.plugins.json'));
+    for (let index = 0; index < 3; index += 1) {
+      t.sample();
+    }
+    await vi.waitFor(() => {
+      expect(t.deps.warn).toHaveBeenCalledWith('Plugin org.example.hello could not be restarted.');
     });
   });
 

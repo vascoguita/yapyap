@@ -448,6 +448,8 @@ const catalog = {
   plugins: {
     /** A plugin's notification names the plugin, so it never passes for WhatsApp's. */
     notificationTitle: (plugin: string, title: string): string => `${plugin}: ${title}`,
+    stopped: (plugin: string): string =>
+      `${plugin} kept using too much of your computer, so YapYap stopped it. Install it again to start it.`,
     title: 'Plugins',
     hint: 'Each plugin runs in its own sandbox and can do only what you allowed when you installed it.',
     empty: 'No plugins are installed.',
