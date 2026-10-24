@@ -2,7 +2,7 @@
  * Bump whenever a landmark below changes, so diagnostics show which table a
  * report came from.
  */
-export const LANDMARKS_VERSION = 2;
+export const LANDMARKS_VERSION = 3;
 
 /**
  * Structural landmarks of WhatsApp Web: element ids and attributes that have
@@ -20,6 +20,15 @@ export const LANDMARKS = {
   conversation: '#main',
   /** The open conversation's message box, where a reply from a notification goes (#60). */
   composer: '#main footer [contenteditable="true"]',
+  /** The open chat's name, first in its header (#100). */
+  chatName: '#main header span[dir="auto"]',
+  /**
+   * A message in the open chat. Its ID starts with `true_` when the account
+   * sent it, and names a `@g.us` chat in groups (#100).
+   */
+  message: '#main [data-id]',
+  /** The text of a message, which WhatsApp marks for copying with its sender and time. */
+  messageText: '[data-pre-plain-text]',
 } as const;
 
 type Landmarks = Readonly<Record<keyof typeof LANDMARKS, string>>;

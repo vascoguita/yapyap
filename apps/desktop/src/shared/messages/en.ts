@@ -310,6 +310,12 @@ const catalog = {
         description:
           'Lets you install unsigned plugins while you write them. Nobody vouches for an unsigned plugin, so YapYap marks it wherever it appears.',
       },
+      'plugins.chatMessages': {
+        label: 'Messages a plugin may read',
+        description:
+          'How many of the open chat’s latest messages a plugin you allowed to read chats receives when it asks.',
+        options: { '5': '5', '10': '10', '20': '20', '50': '50' },
+      },
       'privacy.notificationText': {
         label: 'Show message text in notifications',
         description:

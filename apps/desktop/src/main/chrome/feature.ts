@@ -325,6 +325,8 @@ export interface AccountMenu extends AccountManager {
   readonly activeContents: () => object;
   /** Puts a plugin's draft in the active account's open chat; false when none is open. */
   readonly insertDraft: (text: string) => Promise<boolean>;
+  /** The active account's open chat, for a plugin that may read it (#100). */
+  readonly readActiveChat: PluginAccounts['readActiveChat'];
   readonly switchTo: (id: string) => void;
   readonly add: () => void;
   readonly privacyScreen: boolean;
@@ -745,6 +747,10 @@ export function pluginAccounts(accounts: AccountsSlot): PluginAccounts {
   return {
     insertDraft: (text) =>
       accounts.current === undefined ? Promise.resolve(false) : accounts.current.insertDraft(text),
+    readActiveChat: (messages) =>
+      accounts.current === undefined
+        ? Promise.resolve(null)
+        : accounts.current.readActiveChat(messages),
     active: () => accounts.current?.entries.find((entry) => entry.active)?.id,
     list: () => (accounts.current?.entries ?? []).map(({ id, name }) => ({ id, name })),
   };

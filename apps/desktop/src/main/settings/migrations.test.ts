@@ -51,6 +51,25 @@ describe('migrate', () => {
   });
 });
 
+describe('version 13 to 14', () => {
+  const toVersion14 = MIGRATIONS[12];
+
+  it('lets plugins read 20 messages, keeping the other plugin settings', () => {
+    expect(toVersion14?.({ schemaVersion: 13, plugins: { developerMode: true } })).toEqual({
+      schemaVersion: 13,
+      plugins: { chatMessages: '20', developerMode: true },
+    });
+  });
+
+  it('keeps a choice that is already there, and leaves a broken section to validation', () => {
+    expect(toVersion14?.({ plugins: { chatMessages: '5' } })).toEqual({
+      plugins: { chatMessages: '5' },
+    });
+    const settings = { schemaVersion: 13, plugins: 7 };
+    expect(toVersion14?.(settings)).toBe(settings);
+  });
+});
+
 describe('version 12 to 13', () => {
   const toVersion13 = MIGRATIONS[11];
 

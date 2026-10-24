@@ -24,6 +24,9 @@ function services() {
     notify: vi.fn(),
     quiet: vi.fn(() => false),
     insertDraft: vi.fn<(text: string) => Promise<boolean>>(() => Promise.resolve(true)),
+    readActiveChat: vi.fn(() =>
+      Promise.resolve({ name: 'Team', group: true, messages: [{ outgoing: false, text: 'Hi' }] }),
+    ),
     stored,
     secrets: {
       get: vi.fn((name: string) => Promise.resolve(stored.get(name))),
@@ -153,6 +156,7 @@ describe('hostMethods', () => {
       'storage.get',
       'storage.set',
       'storage.delete',
+      'chat.readActive',
       'composer.insertDraft',
     ]);
   });
@@ -187,5 +191,20 @@ describe('storage', () => {
     expect(accepts('storage.get', ['x'.repeat(256)])).toBe(true);
     expect(accepts('storage.delete', [7])).toBe(false);
     expect(accepts('storage.get', ['a', 'b'])).toBe(false);
+  });
+});
+
+describe('chat.readActive', () => {
+  it('reads the open chat for a plugin holding chat:read-active, and takes no parameters', async () => {
+    const given = services();
+    const read = method('chat.readActive', HELLO, given);
+    expect(read.capability).toBe('chat:read-active');
+    await expect(read.run([])).resolves.toEqual({
+      name: 'Team',
+      group: true,
+      messages: [{ outgoing: false, text: 'Hi' }],
+    });
+    expect(accepts('chat.readActive', [])).toBe(true);
+    expect(accepts('chat.readActive', [50])).toBe(false);
   });
 });

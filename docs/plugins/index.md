@@ -89,10 +89,13 @@ Every host call returns a promise. A call that fails rejects with a
 the account on screen), `invalid`, `rate-limited` (more than 20 calls in a
 burst, refilling at 5 a second), `timeout` (10 seconds) or `failed`.
 
-The [API reference](/api/) documents the whole host API. The chat reading
-API is declared but not served yet: it arrives with
-[#100](https://github.com/vascoguita/yapyap/issues/100), and until then its
-calls fail with `invalid`.
+The [API reference](/api/) documents the whole host API. Of the chat
+reading API, `host.chat.readActive()` is served: with `chat:read-active`,
+it returns the open chat's name, whether it is a group, and the text of its
+latest messages (as many as the user allows in Settings), or `null` when no
+chat is open. `readUnreadSummary` is not served yet
+([#100](https://github.com/vascoguita/yapyap/issues/100)), and its calls fail
+with `invalid`.
 
 ### Keeping data
 

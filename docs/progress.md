@@ -515,6 +515,16 @@ not edit the same lines.
   open, and nothing sends. Reading chats follows once the adapter can read
   messages as plain data.
 
+- Plugin chat reading (#100, second part): `chat.readActive`, behind
+  `chat:read-active` for the account on screen, runs the adapter's
+  `readActiveChat` reader (landmarks v3: `chatName`, `message`,
+  `messageText`) and returns the open chat's name, whether it is a group
+  (a `@g.us` message ID) and its last messages' text, oldest first, outgoing
+  ones marked. The new `plugins.chatMessages` setting (5, 10, 20 or 50,
+  default 20; settings v14) caps how many, and the main process checks the
+  result before the plugin sees it. Nothing logs it (ADR 0008, C26). The
+  unread summary is still to come.
+
 - Example plugin and author guide (#101): `plugins/example` is Greeter, a
   third-party plugin that drafts a greeting the user sets in its settings
   form when they run its command. `tsc` builds it into `dist/` with its

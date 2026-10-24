@@ -1,4 +1,4 @@
-import type { SettingValue } from '@yapyap/plugin-sdk';
+import type { ActiveChat, SettingValue } from '@yapyap/plugin-sdk';
 import { Type } from 'typebox';
 import { en } from '../../shared/messages/en.ts';
 import type { SecretStore } from '../secrets/secret-store.ts';
@@ -16,6 +16,8 @@ export interface HostServices {
   readonly storage: KeyValueStore;
   /** Puts a draft in the active account's open chat; false when none is open. */
   readonly insertDraft: (text: string) => Promise<boolean>;
+  /** The active account's open chat, as many messages as the user allows; null when none is open. */
+  readonly readActiveChat: () => Promise<ActiveChat | null>;
 }
 
 /** The plugin whose calls these are. */
@@ -124,6 +126,20 @@ function storage(services: HostServices): Record<string, RpcMethod> {
   };
 }
 
+/**
+ * Reading the open chat (#100): only through the adapter, as plain data,
+ * for the account on screen, and as many messages as the user allows.
+ */
+function chat(services: HostServices): Record<string, RpcMethod> {
+  return {
+    'chat.readActive': {
+      capability: 'chat:read-active',
+      params: Type.Tuple([]),
+      run: () => services.readActiveChat(),
+    },
+  };
+}
+
 /** Long enough for any reply a plugin drafts, short of what WhatsApp itself allows. */
 const Draft = Type.String({ minLength: 1, maxLength: 4096 });
 
@@ -156,6 +172,7 @@ export function hostMethods(
     ...notifications(plugin, services),
     ...secrets(plugin, services),
     ...storage(services),
+    ...chat(services),
     ...composer(services),
   };
 }

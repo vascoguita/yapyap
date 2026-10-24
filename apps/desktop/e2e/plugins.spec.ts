@@ -475,3 +475,39 @@ test('opens a plugin’s panel in a window of its own, titled with the plugin’
     1,
   );
 });
+
+/** Reads the open chat, and writes in its title what it got. */
+const READER = `
+export default {
+  async activate(host) {
+    try {
+      document.title = JSON.stringify(await host.chat.readActive());
+    } catch (error) {
+      document.title = error.kind;
+    }
+  },
+};
+`;
+
+test('reads the open chat for a plugin allowed to, as plain data', async ({
+  app,
+  profile,
+  window,
+}) => {
+  await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
+  await installPlugin(
+    app,
+    profile,
+    testManifest({ capabilities: ['chat:read-active'], network: { hosts: [] } }),
+    READER,
+  );
+  const read = async () => JSON.parse((await pluginPage(app))?.title ?? 'null') as unknown;
+  await expect.poll(read, { timeout: 20_000 }).toEqual({
+    name: 'Test Chat One',
+    group: false,
+    messages: [
+      { outgoing: false, text: 'Dinner tonight?' },
+      { outgoing: true, text: 'See you at 8' },
+    ],
+  });
+});
