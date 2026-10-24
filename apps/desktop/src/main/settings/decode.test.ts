@@ -37,6 +37,7 @@ const DEFAULTS = {
     blurWhenIdle: false,
   },
   plugins: { developerMode: false },
+  downloads: { askWhere: false, openWhenDone: false },
 };
 
 /**

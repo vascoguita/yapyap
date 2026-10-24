@@ -297,7 +297,12 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     sandboxDisabled: false,
     explainUnsafeStart: vi.fn(() => Promise.resolve(false)),
     logError: vi.fn(),
-    downloads: { folder: () => '/home/someone/Downloads', taken: () => false },
+    downloads: {
+      folder: () => '/home/someone/Downloads',
+      taken: () => false,
+      lastFolder: { get: () => undefined, set: vi.fn() },
+      openPath: vi.fn(() => Promise.resolve('')),
+    },
     crashes: {
       files: {
         read: (name: string) => stored.get(name),
@@ -1211,6 +1216,19 @@ describe('startApp', () => {
     await startApp(f);
     expect(f.accountSession.on).toHaveBeenCalledWith('will-download', expect.any(Function));
     expect(f.session.on).not.toHaveBeenCalledWith('will-download', expect.any(Function));
+    const [, willDownload] = f.accountSession.on.mock.calls.find(
+      ([event]) => event === 'will-download',
+    ) as unknown as [string, (event: unknown, item: object) => void];
+    // The settings' download options apply: the default saves straight away.
+    const item = {
+      getFilename: () => 'a.pdf',
+      getSavePath: () => '',
+      setSavePath: vi.fn(),
+      setSaveDialogOptions: vi.fn(),
+      once: vi.fn(),
+    };
+    willDownload({}, item);
+    expect(item.setSavePath).toHaveBeenCalledWith(expect.stringMatching(/a\.pdf$/));
   });
 
   it('follows the theme setting once ready', async () => {

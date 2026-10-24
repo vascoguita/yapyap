@@ -8,6 +8,7 @@ export const SETTINGS_SECTIONS = [
   { id: 'general', title: en.settings.sections.general },
   { id: 'appearance', title: en.settings.sections.appearance },
   { id: 'reliability', title: en.settings.sections.reliability },
+  { id: 'downloads', title: en.settings.sections.downloads },
   { id: 'privacy', title: en.settings.sections.privacy },
   { id: 'plugins', title: en.settings.sections.plugins },
 ] as const;
@@ -109,5 +110,7 @@ export const SETTING_FIELDS: readonly SettingField[] = [
   { ...described('privacy.notificationText'), restart: false },
   { ...described('privacy.blurWhenUnfocused'), restart: false },
   { ...described('privacy.blurWhenIdle'), restart: false },
+  { ...described('downloads.askWhere'), restart: false },
+  { ...described('downloads.openWhenDone'), restart: false },
   { ...described('plugins.developerMode'), restart: false },
 ];

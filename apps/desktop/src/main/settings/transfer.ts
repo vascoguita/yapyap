@@ -23,7 +23,13 @@ export type ImportResult =
  * it is known to hold nothing private, such as partitions or pinned keys,
  * and a test fails until it is listed here or excluded on purpose.
  */
-export const EXPORTED_SECTIONS = ['general', 'appearance', 'reliability', 'privacy'] as const;
+export const EXPORTED_SECTIONS = [
+  'general',
+  'appearance',
+  'reliability',
+  'downloads',
+  'privacy',
+] as const;
 
 /**
  * Sections that stay with this installation: never exported, and kept as
