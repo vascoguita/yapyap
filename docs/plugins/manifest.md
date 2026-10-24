@@ -4,12 +4,10 @@ Every plugin carries a `manifest.json` that says who made it, what it needs
 and what it adds to YapYap. YapYap checks it against the
 [manifest schema](/schema/manifest.schema.json) before it shows the plugin
 to you, and shows you every capability and host it asks for before you
-install it. Plugins are still being built (milestone M5); this page
-describes the format they will use.
+install it. [Writing a plugin](./) walks through a complete example.
 
 ```json
 {
-  "$schema": "https://yapyap.guita.org/schema/manifest.schema.json",
   "id": "org.example.translate",
   "name": "Translate",
   "version": "1.2.0",
@@ -70,19 +68,5 @@ Keep API keys out of settings and in `host.secrets`.
 ## Writing a plugin
 
 The `@yapyap/plugin-sdk` package has the TypeScript types for the manifest
-and for the host API a plugin receives:
-
-```ts
-import { definePlugin } from '@yapyap/plugin-sdk';
-
-export default definePlugin({
-  activate(host) {
-    host.commands.onRun('translate', async () => {
-      const chat = await host.chat.readActive();
-      if (chat !== null) {
-        await host.composer.insertDraft(`Hello, ${chat.name}!`);
-      }
-    });
-  },
-});
-```
+and for the host API a plugin receives. See [Writing a plugin](./) for a
+complete example, and the [SDK API reference](/api/) for every call.
