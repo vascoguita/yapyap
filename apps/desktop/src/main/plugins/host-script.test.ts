@@ -114,8 +114,10 @@ describe('hostApi', () => {
 describe('hostScript', () => {
   it('runs the bootstrap with the entry’s path and YapYap’s channel', () => {
     const script = hostScript('dist/my entry.js');
-    expect(script).toContain('"/dist/my%20entry.js"');
+    expect(script).toContain(String.raw`"\u002fdist\u002fmy%20entry.js"`);
     expect(script).toContain('"yapyap:plugin-port"');
+    // Nothing in a literal can close it or the script: <, >, / and line separators are escaped.
+    expect(hostScript('a\u2028b\u2029.js')).toContain(String.raw`"\u002fa%E2%80%A8b%E2%80%A9.js"`);
   });
 
   // Mutation testing instruments the functions with helpers from outside them,

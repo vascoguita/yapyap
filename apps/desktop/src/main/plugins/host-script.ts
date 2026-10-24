@@ -107,9 +107,21 @@ export function bootPlugin(
   });
 }
 
+/**
+ * A string as a JavaScript literal that nothing in it can end early: the
+ * manifest already limits the entry's characters, and this holds even if
+ * that check ever changes.
+ */
+function literal(value: string): string {
+  return JSON.stringify(value).replaceAll(
+    /[<>/\u2028\u2029]/gu,
+    (char) => String.raw`\u` + Number(char.codePointAt(0)).toString(16).padStart(4, '0'),
+  );
+}
+
 /** The bootstrap as the module YapYap serves for every plugin page. */
 export function hostScript(entry: string): string {
-  const path = JSON.stringify(`/${encodeURI(entry)}`);
+  const path = literal(`/${encodeURI(entry)}`);
   const helpers = `{ hostApi: ${hostApi.toString()}, rpcClient: ${rpcClient.toString()} }`;
-  return `(${bootPlugin.toString()})(globalThis, (path) => import(path), ${path}, ${JSON.stringify(PLUGIN_PORT_CHANNEL)}, ${helpers});`;
+  return `(${bootPlugin.toString()})(globalThis, (path) => import(path), ${path}, ${literal(PLUGIN_PORT_CHANNEL)}, ${helpers});`;
 }
