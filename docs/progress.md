@@ -379,6 +379,14 @@ not edit the same lines.
   memory per run. Signing first-party plugins in CI waits for the first real
   plugin (#101).
 
+- First-party plugins signed in CI (#89, second part): the packaging
+  workflow's **First-party plugins** job builds every plugin, and for a
+  release signs each one under `org.guita.yapyap.` with the
+  `PLUGIN_SIGNING_KEY` secret, which stays in memory
+  (`scripts/src/bin/sign-plugins.ts`), refuses a key that is not a trust
+  anchor, and packs `<id>-<version>.yapyap-plugin`. The publish job uploads,
+  checksums and attests it with the other release assets.
+
 - Plugin trust (#90): `packages/plugin-sign` now decides trust (`decideTrust`:
   first-party IDs need an embedded anchor, third-party keys are pinned on
   first install, other keys are rejected), checks URL-install integrity and

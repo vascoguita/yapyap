@@ -166,3 +166,4 @@ docs/api/
 .flatpak-builder/
 flatpak-build/
 *.flatpak
+plugins-out/
