@@ -40,6 +40,26 @@ timings in PRs would flap.
   | windows-latest | 936 ms, 771 ms        | 313 MB      | 2000 ms, 390 MB |
   | macos-latest   | 1444 ms, 1252 ms      | 411 MB      | 3500 ms, 510 MB |
 
+- **Accounts (#109).** A second benchmark (`bench/accounts.spec.ts`)
+  launches three times and takes the median of two more numbers:
+  - **Memory per account:** what all of YapYap's processes hold more after
+    **Add Account**, both measured once settled.
+  - **Hidden-account CPU:** the first account's renderer while the second is
+    in front, as a share of one core over ten seconds. It uses the
+    cumulative CPU time, because the per-call percentage restarts whenever
+    anything reads the metrics, which YapYap's memory watchdog does.
+
+  Memory per account sits 25% above its median, like idle memory. A hidden
+  account barely runs (at most 0.4% of a core), so its budget is 2%: room
+  for noise, but a hidden page that keeps animating or polling would cross
+  it. Calibrated on 2026-10-24:
+
+  | Runner         | Per account | Hidden CPU | Budget     |
+  | -------------- | ----------- | ---------- | ---------- |
+  | ubuntu-latest  | 213 MB      | 0–0.2%     | 270 MB, 2% |
+  | windows-latest | 183 MB      | 0.2%       | 230 MB, 2% |
+  | macos-latest   | 199 MB      | 0.2–0.4%   | 250 MB, 2% |
+
 - **Warm-up.** The first launch on a fresh runner takes 3–7 s while the disk
   cache fills. The benchmark makes one warm-up launch and leaves it out, then
   takes the median of seven.
@@ -57,4 +77,4 @@ timings in PRs would flap.
   the next morning. That trades a day's delay for PRs that never fail on
   runner noise.
 - Budgets must be revisited when the measured setup changes, for example
-  when accounts arrive or the fake page grows.
+  when the fake page grows.
