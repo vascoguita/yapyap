@@ -1,6 +1,6 @@
 import type { AccountSummary } from '../shared/chrome-api.ts';
 import type { AccountMenu, ChromeFeature, WhatsAppContents } from './chrome/feature.ts';
-import type { SidebarPort, SidebarSource } from './chrome/sidebar.ts';
+import type { SidebarPort } from './chrome/sidebar.ts';
 import { watchConnectivity } from './connectivity/connectivity.ts';
 import { APP_ID, PRODUCT_NAME } from './identity.ts';
 import type {
@@ -130,6 +130,7 @@ import { followSpellingSetting, type SpellingController } from './spelling/spell
 import { createProxyLogin, type AuthInfo, type LoginCallback } from './network/proxy-login.ts';
 import type { SecretStore } from './secrets/secret-store.ts';
 import { useCameraPortal } from './permissions/camera-portal.ts';
+import { sidebarSource } from './accounts/sidebar-source.ts';
 
 export interface AppPort {
   disableHardwareAcceleration(): void;
@@ -844,36 +845,6 @@ function keepQuiet<Window extends WindowPort>(
   );
 }
 
-/** The running accounts in the sidebar, in their menu order, with their unread chats. */
-function sidebarSource<Window extends WindowPort>(
-  deps: StartDependencies<Window>,
-  running: RunningAccounts<OpenedAccount>,
-  signals: AccountSignals,
-  shares: ScreenShares,
-): SidebarSource {
-  const { appearance, general } = deps.settings.current();
-  const open = new Set(running.opened().map(({ account }) => account.id));
-  const active = running.active().account.id;
-  const sharing = shares.sharing();
-  const accounts = running
-    .list()
-    .filter((account) => open.has(account.id))
-    .map(({ id, name, color, muted = false }) => ({
-      id,
-      name,
-      color,
-      muted,
-      unread: muted ? 0 : signals.unreadOf(id),
-      active: id === active,
-      sharing: sharing.has(id),
-    }));
-  return {
-    state: { accounts, compact: appearance.compactSidebar, doNotDisturb: general.doNotDisturb },
-    switchTo: running.switchTo,
-    stopSharing: shares.stop,
-  };
-}
-
 interface AccountIndicators {
   readonly visibility: Visibility;
   /** Shows the accounts, their shares and do not disturb anew. */
@@ -913,7 +884,7 @@ function accountIndicators<Window extends WindowPort>(
   const sidebar = chrome.attachSidebar((renderer) => deps.createSidebar(window, renderer));
   const refresh = (): void => {
     tray.refresh();
-    sidebar(sidebarSource(deps, running(), signals(), shares));
+    sidebar(sidebarSource(deps.settings.current(), running(), signals(), shares));
   };
   const setUnread = (total: number): void => {
     tray.setUnread(total);
