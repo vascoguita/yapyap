@@ -22,9 +22,7 @@ import type { SettingsService } from './settings/service.ts';
 import { trackVisibility, type Visibility } from './window/visibility.ts';
 import { applyResourceLimits } from './reliability/resource-limits.ts';
 import {
-  followProxySetting,
   followWebRtcPolicy,
-  launchProxyOf,
   type ProxySwitches,
   type ProxiedSession,
   type ProxyController,
@@ -71,6 +69,12 @@ import type { Overlay } from './recovery/controller.ts';
 import type { RendererOptions } from './web-preferences.ts';
 import { accountSignals, type AccountSignals } from './accounts/account-signals.ts';
 import { partitionOf, type Account, type Accounts } from './accounts/accounts.ts';
+import {
+  contextMenuFor,
+  followProxy,
+  guardAccountSession,
+  type DictionarySession,
+} from './account-session.ts';
 import { runAccounts, type AccountPage, type RunningAccounts } from './accounts/running.ts';
 import { NOTIFICATION_CHANNELS } from '../shared/notification-api.ts';
 import { listenForNotifications, type NotificationIpc } from './notifications/notification-ipc.ts';
@@ -91,11 +95,7 @@ import {
 } from './instances.ts';
 import { chatLinkInArguments } from './navigation/deep-link.ts';
 import { refuseUnsafeStart, type UnsafeStartDependencies } from './sandbox-check.ts';
-import {
-  guardDownloads,
-  type DownloadDependencies,
-  type DownloadingSession,
-} from './downloads/downloads.ts';
+import { type DownloadDependencies, type DownloadingSession } from './downloads/downloads.ts';
 import { quitOnShutdown, type ShutdownSources } from './shutdown.ts';
 import { showWhenReady, type ReadyPage } from './show-when-ready.ts';
 import {
@@ -121,12 +121,8 @@ import {
 import type { Rect } from './window/window-state.ts';
 import { resolveWhatsAppOrigin } from './whatsapp-origin.ts';
 import { en } from '../shared/messages/en.ts';
-import { attachContextMenu, type ContextMenuItem, type MenuPage } from './spelling/context-menu.ts';
-import {
-  followSpellingSetting,
-  type SpellingController,
-  type SpellingSession,
-} from './spelling/spelling.ts';
+import type { ContextMenuItem, MenuPage } from './spelling/context-menu.ts';
+import { followSpellingSetting, type SpellingController } from './spelling/spelling.ts';
 
 export interface AppPort {
   disableHardwareAcceleration(): void;
@@ -164,7 +160,7 @@ export interface AppPort {
 }
 
 /** An account's WhatsApp, in its own view and partition (ADR 0001). */
-type AccountContents = WhatsAppContents &
+export type AccountContents = WhatsAppContents &
   ZoomableContents &
   WatchedRenderer &
   ThrottledContents &
@@ -444,79 +440,6 @@ function whatsAppOrigin(
   return origin;
 }
 
-/** A session's own word list, which spelling suggestions leave alone. */
-interface DictionarySession extends SpellingSession {
-  addWordToSpellCheckerDictionary(word: string): boolean;
-}
-
-/**
- * Each account's session gets YapYap's guards, download handling, spelling
- * setting and proxy (the `session-created` hook also secures it, before
- * anything loads there). `proxied` resolves once the proxy is set, so loads
- * may start (#76).
- */
-function guardAccountSession<Window extends WindowPort>(
-  deps: StartDependencies<Window>,
-  wiring: Pick<AccountWiring<Window>, 'security' | 'spelling' | 'proxy'>,
-  account: Account,
-): {
-  readonly session: DictionarySession;
-  readonly proxied: Promise<void>;
-  readonly permissions: PermissionMemory;
-} {
-  const session = deps.sessionOf(partitionOf(account));
-  const permissions = secureSession(session, wiring.security);
-  guardDownloads(session, {
-    ...deps.downloads,
-    notify: deps.notify,
-    warn: deps.warn,
-    options: () => deps.settings.current().downloads,
-  });
-  wiring.spelling.guard(session);
-  return { session, proxied: wiring.proxy.guard(session), permissions };
-}
-
-/** The right-click menu of an account's WhatsApp, with spelling suggestions (#73). */
-function contextMenuFor<Window extends WindowPort>(
-  { deps, chrome }: Pick<AccountWiring<Window>, 'deps' | 'chrome'>,
-  contents: AccountContents,
-  session: DictionarySession,
-): void {
-  const actions = {
-    spellingOn: () => deps.settings.current().spelling.enabled,
-    replaceMisspelling: (word: string) => {
-      contents.replaceMisspelling(word);
-    },
-    addToDictionary: (word: string) => {
-      session.addWordToSpellCheckerDictionary(word);
-    },
-    turnSpellingOff: () => {
-      deps.settings.update((current) => ({
-        ...current,
-        spelling: { ...current.spelling, enabled: false },
-      }));
-    },
-    openSettings: chrome.openSettings,
-    openLanguages: chrome.openSpellingLanguages,
-  };
-  attachContextMenu(contents, actions, deps.contextMenu);
-}
-
-/**
- * Puts every session on the proxy setting, so update and release checks
- * cannot go around it either; release checks start right after this (#76).
- */
-async function followProxy(
-  deps: Pick<StartDependencies<WindowPort>, 'app' | 'defaultSession' | 'settings' | 'warn'>,
-): Promise<ProxyController> {
-  const proxy = followProxySetting(deps.settings, deps.warn, launchProxyOf(deps.app.commandLine));
-  deps.app.on('session-created', (session) => {
-    void proxy.guard(session);
-  });
-  await proxy.guard(deps.defaultSession());
-  return proxy;
-}
-
 /** Opens the main window where the user left it. */
 function openMainWindow<Window extends WindowPort>(deps: StartDependencies<Window>): Window {
   const { state, bounds } = restoreWindowState(deps.windowState, deps.workAreas());
@@ -556,7 +479,7 @@ interface OpenedAccount extends AccountPage {
   readonly loaded: Promise<void>;
 }
 
-interface AccountWiring<Window extends WindowPort> {
+export interface AccountWiring<Window extends WindowPort> {
   readonly deps: StartDependencies<Window>;
   readonly chrome: ReturnType<StartDependencies<Window>['chrome']['afterReady']>;
   readonly security: Parameters<typeof secureSession>[1];
