@@ -105,3 +105,39 @@ test('opens a finished PDF when asked to, and never a program', async ({
     await closeApp(app);
   }
 });
+
+test('lists the session’s downloads and shows a finished one in its folder', async ({
+  app,
+  window,
+  profile,
+}) => {
+  const folder = await useDownloads(app, profile);
+  await app.evaluate(({ shell }) => {
+    const shown: string[] = [];
+    Object.assign(globalThis, { shownPaths: shown });
+    shell.showItemInFolder = (path) => {
+      shown.push(path);
+    };
+  });
+  await download(window, 'Invoice.pdf');
+  await expect.poll(() => readdir(folder)).toEqual(['Invoice.pdf']);
+  const opened = app.waitForEvent('window');
+  await app.evaluate(({ Menu }) => {
+    Menu.getApplicationMenu()
+      ?.items.flatMap((menu) => menu.submenu?.items ?? [])
+      .find((item) => item.label === 'Downloads…')
+      ?.click();
+  });
+  const downloads = await opened;
+  await downloads.waitForURL('app://chrome/downloads.html');
+  await expect(downloads.getByText('Invoice.pdf')).toBeVisible();
+  await expect(downloads.getByText('Done')).toBeVisible();
+  await downloads.getByRole('button', { name: 'Show in Folder' }).click();
+  const shown = async (): Promise<string[]> => {
+    const paths = await app.evaluate(
+      () => (globalThis as unknown as { shownPaths: string[] }).shownPaths,
+    );
+    return Promise.all(paths.map((path) => realpath(path)));
+  };
+  await expect.poll(shown).toEqual([await realpath(join(folder, 'Invoice.pdf'))]);
+});

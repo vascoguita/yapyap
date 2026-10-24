@@ -29,6 +29,7 @@ function api(request: Partial<ProxyLoginRequest> = {}) {
     spelling: { languages: vi.fn(), choose: vi.fn() },
     report: { diagnostics: vi.fn(), open: vi.fn() },
     shortcuts: { list: vi.fn() },
+    downloads: { list: vi.fn(), act: vi.fn(), clear: vi.fn() },
     proxyLogin: {
       request: vi.fn(() =>
         Promise.resolve({

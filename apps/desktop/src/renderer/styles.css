@@ -807,3 +807,47 @@ main.report .actions {
   color: var(--text);
   font: inherit;
 }
+
+main.downloads {
+  align-items: stretch;
+  text-align: left;
+}
+
+main.downloads ul {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+main.downloads > .actions {
+  justify-content: flex-end;
+}
+
+main.downloads .download {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+main.downloads .download .name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+main.downloads .download progress {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
+main.downloads .download .actions {
+  display: flex;
+  grid-column: 2;
+  grid-row: 1;
+  gap: 6px;
+}

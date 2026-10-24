@@ -164,6 +164,7 @@ on macOS) lists every shortcut with the keys of your system. On macOS, use
 | <kbd>Ctrl</kbd>+<kbd>A</kbd>                                                                            | Select all                                                  |
 | <kbd>Ctrl</kbd>+<kbd>M</kbd>                                                                            | Minimize the window                                         |
 | <kbd>Ctrl</kbd>+<kbd>W</kbd>                                                                            | Close the window                                            |
+| <kbd>Ctrl</kbd>+<kbd>J</kbd> (macOS: <kbd>⇧</kbd><kbd>⌘</kbd><kbd>J</kbd>)                              | Show downloads                                              |
 | <kbd>⌘</kbd><kbd>H</kbd> (macOS)                                                                        | Hide YapYap                                                 |
 | <kbd>Ctrl</kbd>+<kbd>Q</kbd> (not on Windows)                                                           | Quit YapYap                                                 |
 | <kbd>Alt</kbd>                                                                                          | Show a hidden menu bar (Windows and Linux)                  |

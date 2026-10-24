@@ -329,6 +329,7 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
       taken: () => false,
       lastFolder: { get: () => undefined, set: vi.fn() },
       openPath: vi.fn(() => Promise.resolve('')),
+      track: vi.fn(),
     },
     crashes: {
       files: {

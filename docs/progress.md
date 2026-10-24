@@ -231,6 +231,12 @@ not edit the same lines.
   that display and never run (`opensSafely`). A download YapYap cannot
   place safely is now asked about, and reported as saved. The downloads
   window with progress, pause and resume comes next.
+  Second part: Window → Downloads… (Ctrl+J, ⇧⌘J on macOS) opens a window
+  listing this session's downloads (`createDownloadList`, newest first, at
+  most fifty, in memory only) with progress and the actions each state
+  allows: pause, resume, cancel, show in folder. A download is named to the
+  page by an id, never by its path; the page refreshes every half second
+  while open.
 
 - Keyboard shortcuts, first part (#75): `shared/shortcuts.ts` is the one
   table of shortcuts, with macOS keys where they differ and platforms where

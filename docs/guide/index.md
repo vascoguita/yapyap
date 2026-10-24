@@ -334,6 +334,12 @@ video and plain text in their usual app. Anything else, programs, scripts,
 installers and office documents among them, is only saved, so a file
 someone sends you can never start a program by itself.
 
+**Window → Downloads…** (<kbd>Ctrl</kbd>+<kbd>J</kbd>, or <kbd>⇧</kbd><kbd>⌘</kbd><kbd>J</kbd>
+on macOS) lists this session's downloads with their progress. Pause, resume
+or cancel one that is still running, and show a finished one in its folder.
+**Clear Finished** empties the list; the files stay where they are. YapYap
+keeps the list only while it runs.
+
 ## Voice notes and videos
 
 Voice notes, videos, GIFs and status videos play with sound in every YapYap

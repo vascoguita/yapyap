@@ -39,6 +39,7 @@ export interface MenuActions {
   /** Copies versions, platform, GPU summary and recent redacted log lines for bug reports. */
   readonly copyDiagnostics: () => void;
   readonly openShortcuts: () => void;
+  readonly openDownloads: () => void;
   /** Help → Report a Problem: the guided report (#82). */
   readonly openReport: () => void;
 }
@@ -99,7 +100,8 @@ function editMenu(platform: string): MenuItemConstructorOptions {
   };
 }
 
-function windowMenu(platform: string): MenuItemConstructorOptions {
+/** The window, and the Downloads window YapYap keeps for this session (#74). */
+function windowMenu(actions: MenuActions, platform: string): MenuItemConstructorOptions {
   const mac: MenuItemConstructorOptions[] =
     platform === 'darwin' ? [{ role: 'zoom' }, { type: 'separator' }, { role: 'front' }] : [];
   return {
@@ -110,6 +112,8 @@ function windowMenu(platform: string): MenuItemConstructorOptions {
       { role: 'minimize', ...keyed('minimize', platform) },
       { role: 'close', ...keyed('close', platform) },
       ...mac,
+      { type: 'separator' },
+      { label: en.menu.downloads, ...keyed('downloads', platform), click: actions.openDownloads },
     ],
   };
 }
@@ -234,7 +238,7 @@ export function buildMenuTemplate(
   const standard: MenuItemConstructorOptions[] = [
     editMenu(platform),
     viewMenu(actions, platform),
-    windowMenu(platform),
+    windowMenu(actions, platform),
   ];
   if (platform !== 'darwin') {
     const file: MenuItemConstructorOptions = {

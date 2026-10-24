@@ -55,6 +55,7 @@ function api(initial: Partial<SpellingLanguages>) {
     proxyLogin: { request: vi.fn(), answer: vi.fn() },
     report: { diagnostics: vi.fn(), open: vi.fn() },
     shortcuts: { list: vi.fn() },
+    downloads: { list: vi.fn(), act: vi.fn(), clear: vi.fn() },
     spelling: { languages: vi.fn(() => Promise.resolve(state)), choose },
   } satisfies ChromeApi;
 }

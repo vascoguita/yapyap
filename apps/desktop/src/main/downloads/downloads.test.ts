@@ -49,6 +49,7 @@ function setup(
       }),
     },
     openPath: vi.fn<(path: string) => Promise<string>>(() => Promise.resolve('')),
+    track: vi.fn(),
   };
   guardDownloads(session, deps);
   const download = (name: string, chosen = join(FOLDER, name)) => {
@@ -61,6 +62,14 @@ function setup(
         savePath = path;
       }),
       setSaveDialogOptions: vi.fn(),
+      getReceivedBytes: () => 0,
+      getTotalBytes: () => 0,
+      getState: () => 'progressing' as const,
+      isPaused: () => false,
+      canResume: () => false,
+      pause: vi.fn(),
+      resume: vi.fn(),
+      cancel: vi.fn(),
       once: vi.fn((_event: 'done', listener: typeof done) => {
         done = listener;
       }),
@@ -81,6 +90,7 @@ describe('guardDownloads', () => {
     const t = setup();
     const { item, finish } = t.download('Invoice.PDF');
     expect(item.setSavePath).toHaveBeenCalledExactlyOnceWith(join(FOLDER, 'Invoice.PDF'));
+    expect(t.deps.track).toHaveBeenCalledExactlyOnceWith(item);
     expect(item.once).toHaveBeenCalledWith('done', expect.any(Function));
     finish('completed');
     expect(t.deps.notify).toHaveBeenCalledExactlyOnceWith(

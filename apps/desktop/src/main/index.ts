@@ -32,6 +32,7 @@ import {
 import { readFile } from 'node:fs/promises';
 import { homedir, release } from 'node:os';
 import { join } from 'node:path';
+import { createDownloadList } from './downloads/download-list.ts';
 import { lastFolderIn } from './downloads/last-folder.ts';
 import { openSecretStore, secretFileAt } from './secrets/secret-store.ts';
 import { readInstallChannel } from './about/about-info.ts';
@@ -138,6 +139,11 @@ const autostart = chooseAutostart({
     }),
 });
 
+/** Shared by the download handling and the Downloads window. */
+const downloadList = createDownloadList((path) => {
+  shell.showItemInFolder(path);
+});
+
 const chrome = createChromeFeature({
   notify,
   settings,
@@ -190,6 +196,7 @@ const chrome = createChromeFeature({
     desktopCapturer.getSources({ types: [kind], thumbnailSize: PICKER_THUMBNAIL }),
   // The picker's owner is a web contents Electron itself handed to the capture handler.
   windowOf: (contents) => BrowserWindow.fromWebContents(contents as WebContents),
+  downloads: downloadList,
 });
 
 // No top-level await: test harnesses hold back the `ready` event until the
@@ -264,6 +271,7 @@ startApp({
       },
     }),
     openPath: (path) => shell.openPath(path),
+    track: downloadList.add,
   },
   shutdown: {
     onSignal: (signal, listener) => {

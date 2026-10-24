@@ -74,6 +74,7 @@ function setup() {
       showMessage: vi.fn(),
     },
     spelling: { available: () => ['en-GB', 'pt-PT'], system: () => ['en-GB'] },
+    downloads: { add: vi.fn(), entries: vi.fn(() => []), act: vi.fn(() => true), clear: vi.fn() },
     settingsFiles: {
       chooseExport: vi.fn(() => Promise.resolve(undefined)),
       chooseImport: vi.fn(() => Promise.resolve(undefined)),
@@ -262,6 +263,17 @@ describe('createChromeFeature', () => {
       minHeight: 360,
       minimizable: false,
       maximizable: false,
+      show: false,
+    });
+    clickLabel('Downloads…');
+    expect(lastOptions()).toEqual({
+      autoHideMenuBar: true,
+      title: 'Downloads',
+      width: 520,
+      height: 480,
+      minWidth: 380,
+      minHeight: 280,
+      minimizable: false,
       show: false,
     });
     runtime.openWelcome();

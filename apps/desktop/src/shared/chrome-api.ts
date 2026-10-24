@@ -178,6 +178,12 @@ export interface ChromeApi {
   readonly shortcuts: {
     readonly list: () => Promise<ShortcutList>;
   };
+  readonly downloads: {
+    readonly list: () => Promise<readonly DownloadEntry[]>;
+    readonly act: (id: number, action: DownloadAction) => Promise<void>;
+    /** Forgets downloads that have ended; their files stay. */
+    readonly clear: () => Promise<void>;
+  };
   readonly spelling: {
     readonly languages: () => Promise<SpellingLanguages>;
     /** Every language must have a dictionary; an empty list means the system's language. */
@@ -188,6 +194,22 @@ export interface ChromeApi {
     /** Null cancels the sign-in. */
     readonly answer: (credentials: ProxyLoginAnswer | null) => Promise<void>;
   };
+}
+
+/** What the Downloads window can ask of one download. */
+export type DownloadAction = 'pause' | 'resume' | 'cancel' | 'show';
+
+export const DOWNLOAD_ACTIONS: readonly DownloadAction[] = ['pause', 'resume', 'cancel', 'show'];
+
+/** One download of this session, as the Downloads window shows it. */
+export interface DownloadEntry {
+  readonly id: number;
+  readonly name: string;
+  readonly state: 'progressing' | 'paused' | 'completed' | 'cancelled' | 'interrupted';
+  readonly received: number;
+  /** Zero when the server did not say. */
+  readonly total: number;
+  readonly canResume: boolean;
 }
 
 /** The shortcuts of the platform YapYap runs on, with its own keys. */
@@ -284,6 +306,9 @@ export const CHROME_CHANNELS = {
   pluginsConsent: 'plugins:consent',
   pluginsAnswer: 'plugins:answer',
   shortcutsList: 'shortcuts:list',
+  downloadsList: 'downloads:list',
+  downloadsAct: 'downloads:act',
+  downloadsClear: 'downloads:clear',
   spellingLanguages: 'spelling:languages',
   spellingChoose: 'spelling:choose',
   proxyLoginRequest: 'proxy-login:request',
