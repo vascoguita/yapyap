@@ -5,6 +5,7 @@ import {
   desktopCapturer,
   ipcMain,
   Menu,
+  MessageChannelMain,
   Tray,
   globalShortcut,
   nativeImage,
@@ -32,6 +33,9 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { readFile } from 'node:fs/promises';
+import { PLUGIN_PORT_CHANNEL } from '../shared/plugin-rpc.ts';
+import { hostMethods } from './plugins/host-methods.ts';
+import { RPC_OPTIONS } from './plugins/rpc.ts';
 import { homedir, release } from 'node:os';
 import { join } from 'node:path';
 import { createDownloadList } from './downloads/download-list.ts';
@@ -191,11 +195,38 @@ const chrome = createChromeFeature({
     anchors: anchorFingerprints(TRUST_ANCHORS),
     sessionOf: (partition) => session.fromPartition(partition),
     // A plugin has no window of its own to show; its UI is YapYap's (ADR 0004).
-    createHost: (partition) =>
-      createSecureWindow(
+    createHost: (partition) => {
+      const host = createSecureWindow(
         { show: false, skipTaskbar: true, focusable: false, paintWhenInitiallyHidden: false },
-        { partition },
-      ),
+        { partition, preload: join(import.meta.dirname, '..', 'preload', 'plugin.cjs') },
+      );
+      return {
+        webContents: host.webContents,
+        loadURL: (url) => host.loadURL(url),
+        destroy: () => {
+          host.destroy();
+        },
+        openPort: () => {
+          const { port1, port2 } = new MessageChannelMain();
+          host.webContents.postMessage(PLUGIN_PORT_CHANNEL, null, [port2]);
+          return port1;
+        },
+      };
+    },
+    methodsFor: (plugin) =>
+      hostMethods(plugin, {
+        notify: (heading, text) => {
+          new Notification({ title: heading, body: text, icon: trayIcon }).show();
+        },
+        quiet: () => settings.current().general.doNotDisturb,
+      }),
+    rpc: {
+      ...RPC_OPTIONS,
+      now: Date.now,
+      after: (ms, callback) => {
+        setTimeout(callback, ms);
+      },
+    },
   },
   restart: () => {
     app.relaunch();

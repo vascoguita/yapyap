@@ -418,6 +418,8 @@ const catalog = {
     doNotDisturb: 'Do not disturb',
   },
   plugins: {
+    /** A plugin's notification names the plugin, so it never passes for WhatsApp's. */
+    notificationTitle: (plugin: string, title: string): string => `${plugin}: ${title}`,
     title: 'Plugins',
     hint: 'Each plugin runs in its own sandbox and can do only what you allowed when you installed it.',
     empty: 'No plugins are installed.',

@@ -18,7 +18,13 @@ import {
 } from './install-flow.ts';
 import { commitInstall, prepareInstall } from './installer.ts';
 import { loadRecords } from './records.ts';
-import { createPluginRuntime, type PluginHost, type PluginSession } from './runtime.ts';
+import type { RpcOptions } from './rpc.ts';
+import {
+  createPluginRuntime,
+  type PluginHost,
+  type PluginRuntimeDependencies,
+  type PluginSession,
+} from './runtime.ts';
 
 const PLUGINS_PAGE: ChromePage = {
   path: 'plugins.html',
@@ -64,6 +70,9 @@ export interface PluginChromeDependencies {
   readonly sessionOf: (partition: string) => PluginSession;
   /** A hidden, sandboxed window on `partition`, which is never shown. */
   readonly createHost: (partition: string) => PluginHost;
+  /** What a plugin may call, behind its capabilities (#93). */
+  readonly methodsFor: PluginRuntimeDependencies['methodsFor'];
+  readonly rpc: RpcOptions;
 }
 
 /** What the user is told when an install ends; a declined one ends quietly. */
