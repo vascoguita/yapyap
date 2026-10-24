@@ -67,3 +67,20 @@ test('starts at 100% when the stored zoom is invalid', async ({ fakeWhatsApp, pr
     await quit(app);
   }
 });
+
+test('sets the interface scale from Settings', async ({ app, window }) => {
+  await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
+  const opened = app.waitForEvent('window');
+  await app.evaluate(({ Menu }) => {
+    Menu.getApplicationMenu()
+      ?.items.flatMap((menu) => menu.submenu?.items ?? [])
+      .find((entry) => entry.label === 'Settings…')
+      ?.click();
+  });
+  const settings = await opened;
+  await settings.waitForURL('app://chrome/settings.html');
+  const scale = settings.getByRole('group', { name: 'Interface scale' });
+  await expect(scale.getByRole('radio', { name: '100%' })).toBeChecked();
+  await scale.getByRole('radio', { name: '125%' }).check();
+  await expect.poll(() => whatsAppZoom(app)).toBe(1.25);
+});

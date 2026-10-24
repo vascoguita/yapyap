@@ -215,6 +215,12 @@ not edit the same lines.
   number is parsed by `src/shared/phone-number.ts` in the window and again in
   main, then opened as WhatsApp's own chat link. Nothing is stored.
 
+- Interface scale (#81): Settings → Appearance offers WhatsApp's zoom as an
+  Interface scale choice from 50% to 200% (setting choices may now carry
+  numbers), and `appearance.pinchZoom` (settings schema v12) turns off zoom
+  by pinch or Ctrl with the wheel, which arrive as `zoom-changed`; the View
+  menu still zooms.
+
 - Privacy screen (#85): `createPrivacyScreen` blurs every account's
   WhatsApp with inserted CSS that also takes clicks away, so it needs no
   knowledge of WhatsApp's page. It comes on from the tray or View → Privacy

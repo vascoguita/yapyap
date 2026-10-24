@@ -202,6 +202,8 @@ describe('createChromeFeature', () => {
       values: {
         'appearance.theme': 'system',
         'appearance.autoHideMenuBar': false,
+        'appearance.zoom': 1,
+        'appearance.pinchZoom': true,
         'appearance.compactSidebar': false,
         'appearance.trayIcon': 'color',
         'reliability.hardwareAcceleration': true,

@@ -51,6 +51,25 @@ describe('migrate', () => {
   });
 });
 
+describe('version 11 to 12', () => {
+  const toVersion12 = MIGRATIONS[10];
+
+  it('keeps pinch zoom on, as before, and the other appearance settings', () => {
+    expect(toVersion12?.({ schemaVersion: 11, appearance: { zoom: 1.5 } })).toEqual({
+      schemaVersion: 11,
+      appearance: { pinchZoom: true, zoom: 1.5 },
+    });
+  });
+
+  it('keeps a choice that is already there, and leaves a broken section to validation', () => {
+    expect(toVersion12?.({ appearance: { pinchZoom: false } })).toEqual({
+      appearance: { pinchZoom: false },
+    });
+    const settings = { schemaVersion: 11, appearance: [] };
+    expect(toVersion12?.(settings)).toBe(settings);
+  });
+});
+
 describe('version 10 to 11', () => {
   const toVersion11 = MIGRATIONS[9];
 

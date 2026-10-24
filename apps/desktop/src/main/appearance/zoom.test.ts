@@ -93,4 +93,16 @@ describe('followZoomSetting', () => {
     t.listeners.get('zoom-changed')?.(...([{}, 'out'] as never[]));
     expect(t.settings.current().appearance.zoom).toBe(1);
   });
+
+  it('ignores a pinch or the wheel when pinch zoom is off, which the menu still zooms', () => {
+    const t = setup();
+    t.settings.update((current) => ({
+      ...current,
+      appearance: { ...current.appearance, pinchZoom: false },
+    }));
+    t.listeners.get('zoom-changed')?.(...([{}, 'in'] as never[]));
+    expect(t.settings.current().appearance.zoom).toBe(1);
+    changeZoom(t.settings, 'in');
+    expect(t.settings.current().appearance.zoom).toBe(1.05);
+  });
 });

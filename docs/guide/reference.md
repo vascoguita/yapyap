@@ -20,7 +20,8 @@ the [profile folder](#files).
 | Tray icon                          | `appearance.trayIcon`               | App icon           | `color`, `auto`, `light` or `dark`; one-color icons are templates on macOS    |
 | Compact account sidebar            | `appearance.compactSidebar`         | Off                | Avatars only; the sidebar shows with two or more accounts                     |
 | Hide the menu bar                  | `appearance.autoHideMenuBar`        | Off                | Windows and Linux; <kbd>Alt</kbd> shows it                                    |
-| Zoom                               | `appearance.zoom`                   | 100%               | Set from the View menu; 50% to 300%                                           |
+| Interface scale                    | `appearance.zoom`                   | 100%               | 50% to 200% in Settings; the View menu goes in 5% steps up to 300%            |
+| Zoom with a pinch or the wheel     | `appearance.pinchZoom`              | On                 | Off ignores pinches and Ctrl with the wheel; the View menu still zooms        |
 | Use hardware acceleration          | `reliability.hardwareAcceleration`  | On                 | Takes effect after a restart                                                  |
 | Use hardware video decoding        | `reliability.hardwareVideoDecoding` | On                 | Takes effect after a restart                                                  |
 | Display backend                    | `reliability.displayBackend`        | Automatic          | Linux; `auto`, `wayland` or `x11`; restart                                    |

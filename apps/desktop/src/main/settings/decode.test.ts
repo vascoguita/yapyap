@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { decodeSettings, defaultSettings } from './decode.ts';
 
 const DEFAULTS = {
-  schemaVersion: 11,
+  schemaVersion: 12,
   general: {
     language: 'system',
     startMinimized: false,
@@ -15,6 +15,7 @@ const DEFAULTS = {
   appearance: {
     theme: 'system',
     zoom: 1,
+    pinchZoom: true,
     autoHideMenuBar: false,
     compactSidebar: false,
     trayIcon: 'color',
@@ -49,6 +50,7 @@ describe('decodeSettings', () => {
       appearance: {
         theme: 'dark',
         zoom: 1.25,
+        pinchZoom: true,
         autoHideMenuBar: true,
         compactSidebar: true,
         trayIcon: 'auto',
@@ -89,14 +91,15 @@ describe('decodeSettings', () => {
     const appearance = {
       theme: 'light',
       zoom: 2,
+      pinchZoom: true,
       autoHideMenuBar: false,
       compactSidebar: false,
       trayIcon: 'color',
     };
     const decoded = decodeSettings(
-      JSON.stringify({ ...DEFAULTS, appearance, schemaVersion: 12, future: true }),
+      JSON.stringify({ ...DEFAULTS, appearance, schemaVersion: 13, future: true }),
     );
-    expect(decoded).toEqual({ kind: 'newer', settings: { ...DEFAULTS, appearance }, version: 12 });
+    expect(decoded).toEqual({ kind: 'newer', settings: { ...DEFAULTS, appearance }, version: 13 });
   });
 
   it('accepts every option of each choice', () => {
@@ -107,6 +110,7 @@ describe('decodeSettings', () => {
           appearance: {
             theme,
             zoom: 1,
+            pinchZoom: true,
             autoHideMenuBar: false,
             compactSidebar: false,
             trayIcon: 'color',

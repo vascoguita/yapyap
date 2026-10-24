@@ -101,6 +101,7 @@ const catalog = {
     restartNow: 'Restart now',
     restartNote: 'Takes effect after a restart.',
     saveFailed: 'Could not save that setting.',
+    scale: (factor: number): string => `${String(Math.round(factor * 100))}%`,
     sections: {
       general: 'General',
       appearance: 'Appearance',
@@ -193,6 +194,16 @@ const catalog = {
           light: 'One color, light',
           dark: 'One color, dark',
         },
+      },
+      'appearance.zoom': {
+        label: 'Interface scale',
+        description:
+          'How large WhatsApp appears. View → Zoom In and Zoom Out go in finer steps, up to 300%.',
+      },
+      'appearance.pinchZoom': {
+        label: 'Zoom with a pinch, or Ctrl and the wheel',
+        description:
+          'Turn this off if you zoom by accident on a touchpad. The View menu and its shortcuts still zoom.',
       },
       'appearance.compactSidebar': {
         label: 'Compact account sidebar',

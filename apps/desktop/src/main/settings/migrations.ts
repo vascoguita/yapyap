@@ -92,6 +92,14 @@ function addPrivacyScreen(settings: Raw): Raw {
     : settings;
 }
 
+/** Version 12 adds the pinch zoom switch, on as before (#81). */
+function addPinchZoom(settings: Raw): Raw {
+  const appearance = settings['appearance'];
+  return isSection(appearance)
+    ? { ...settings, appearance: { pinchZoom: true, ...appearance } }
+    : settings;
+}
+
 /**
  * `MIGRATIONS[n]` turns a version n+1 file into version n+2. They are pure,
  * forward-only, and each has its own test; a test also checks that there is
@@ -108,6 +116,7 @@ export const MIGRATIONS: readonly ((settings: Raw) => Raw)[] = [
   addTrayIcon,
   addPlugins,
   addPrivacyScreen,
+  addPinchZoom,
 ];
 
 export type MigrationResult =

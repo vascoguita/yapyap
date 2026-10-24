@@ -255,7 +255,12 @@ Make WhatsApp bigger or smaller with **View → Zoom In** and **Zoom Out**
 (<kbd>Ctrl</kbd>+<kbd>=</kbd> and <kbd>Ctrl</kbd>+<kbd>-</kbd>, or
 <kbd>⌘</kbd> on macOS), or hold <kbd>Ctrl</kbd> and scroll. Each step is 5%,
 from 50% to 300%. **Actual Size** (<kbd>Ctrl</kbd>+<kbd>0</kbd>) goes back to
-100%. YapYap remembers the level for next time.
+100%. YapYap remembers the level for next time. **Interface scale** in
+Settings → Appearance offers the common sizes from 50% to 200%.
+
+If a touchpad pinch zooms by accident, turn off **Zoom with a pinch, or Ctrl
+and the wheel** in Settings → Appearance; the View menu and its shortcuts
+still zoom.
 
 ## Copy and paste
 
