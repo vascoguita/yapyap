@@ -1,4 +1,6 @@
 import { extname, resolve, sep } from 'node:path';
+import { HOST_SCRIPT_PATH } from '../../shared/plugin-rpc.ts';
+import { hostScript } from './host-script.ts';
 
 export const PLUGIN_SCHEME = 'plugin';
 
@@ -8,10 +10,12 @@ export const PLUGIN_CSP =
 
 export const pluginOrigin = (id: string): string => `${PLUGIN_SCHEME}://${id}`;
 
+const JAVASCRIPT = 'text/javascript';
+
 /** Static files a plugin may ship; anything else is served as opaque bytes. */
 const TYPES: Readonly<Record<string, string>> = {
-  '.js': 'text/javascript',
-  '.mjs': 'text/javascript',
+  '.js': JAVASCRIPT,
+  '.mjs': JAVASCRIPT,
   '.css': 'text/css',
   '.json': 'application/json',
   '.svg': 'image/svg+xml',
@@ -44,10 +48,11 @@ function respond(
 
 const notFound = (): Response => respond(null, 'text/plain', NOT_FOUND);
 
-/** The page that loads the plugin's entry module: plugins ship no HTML of their own. */
-export function hostPage(entry: string): string {
-  return `<!doctype html><html><head><meta charset="utf-8"><script type="module" src="/${encodeURI(entry)}"></script></head></html>`;
-}
+/**
+ * The page that starts the plugin: plugins ship no HTML of their own, and
+ * YapYap's bootstrap imports the entry module once the host API is ready.
+ */
+export const HOST_PAGE = `<!doctype html><html><head><meta charset="utf-8"><script type="module" src="${HOST_SCRIPT_PATH}"></script></head></html>`;
 
 /** The file `pathname` names inside `folder`, or undefined when it would leave it. */
 function fileIn(folder: string, pathname: string): string | undefined {
@@ -59,6 +64,14 @@ function fileIn(folder: string, pathname: string): string | undefined {
   }
   const path = resolve(folder, relative);
   return path.startsWith(folder + sep) ? path : undefined;
+}
+
+/** The page and bootstrap YapYap serves to start the plugin, which no plugin file can replace. */
+function yapyapFile(pathname: string, entry: string): Response | undefined {
+  if (pathname === '/') {
+    return respond(HOST_PAGE, 'text/html; charset=utf-8');
+  }
+  return pathname === HOST_SCRIPT_PATH ? respond(hostScript(entry), JAVASCRIPT) : undefined;
 }
 
 /** Where a running plugin's files are, and the module it starts from. */
@@ -83,8 +96,9 @@ export function servePluginFiles(
     if (url.protocol !== `${PLUGIN_SCHEME}:` || url.host !== id || current === undefined) {
       return notFound();
     }
-    if (url.pathname === '/') {
-      return respond(hostPage(current.entry), 'text/html; charset=utf-8');
+    const own = yapyapFile(url.pathname, current.entry);
+    if (own !== undefined) {
+      return own;
     }
     const path = fileIn(resolve(current.folder), url.pathname);
     if (path === undefined) {

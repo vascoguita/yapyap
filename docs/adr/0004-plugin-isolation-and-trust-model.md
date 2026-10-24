@@ -112,7 +112,18 @@ to `<userData>/plugins/<id>/<version>/` only after the signature verifies.
   3. rate limit (token bucket per plugin)
   4. execution with a timeout
 
-  Every call either returns a result or a typed error.
+  Every call either returns a result or a typed error (`invalid`,
+  `not-granted`, `rate-limited`, `timeout` or `failed`, with a short
+  message that never carries the cause or the parameters). A message
+  without a usable ID gets no reply. The bucket holds 20 calls and refills
+  at 5 per second; a call times out after 10 seconds. Each page load gets a
+  fresh port.
+
+- **Bootstrap.** The host page loads YapYap's own script from
+  `/__yapyap/host.js`, a path no plugin file can take. It takes the first
+  port the preload hands over, builds the SDK's `PluginHost` on it (calls
+  made before the port arrives wait for it), then imports the manifest's
+  `entry` and calls its `activate`.
 
 - **Resource limits.** `app.getAppMetrics()` samples each plugin's renderer
   PID. Sustained CPU or working-set overruns terminate the renderer. Three

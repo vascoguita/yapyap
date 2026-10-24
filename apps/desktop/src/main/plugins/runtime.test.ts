@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import type { ViewRegistry } from '../views.ts';
 import { saveRecords, type PluginRecord } from './records.ts';
+import { RPC_OPTIONS } from './rpc.ts';
 import { createPluginRuntime, pluginPartition } from './runtime.ts';
 
 const MANIFEST = {
@@ -54,19 +55,50 @@ interface FakeSession {
   readonly webRequest: { readonly onBeforeRequest: Mock<(listener: unknown) => void> };
 }
 
-interface FakeHost {
-  readonly partition: string;
-  readonly webContents: object;
-  readonly loadURL: Mock<(url: string) => Promise<unknown>>;
-  readonly destroy: Mock<() => void>;
+interface FakePort {
+  readonly on: Mock<(event: 'message', listener: (event: { data: unknown }) => void) => void>;
+  readonly postMessage: Mock<(message: unknown) => void>;
+  readonly start: Mock<() => void>;
 }
 
-const fakeHost = (partition: string, loaded: Promise<unknown> = Promise.resolve()): FakeHost => ({
-  partition,
-  webContents: {},
-  loadURL: vi.fn(() => loaded),
-  destroy: vi.fn(),
-});
+interface FakeHost {
+  readonly partition: string;
+  readonly webContents: {
+    readonly on: Mock<(event: 'did-finish-load', listener: () => void) => void>;
+  };
+  readonly loadURL: Mock<(url: string) => Promise<unknown>>;
+  readonly destroy: Mock<() => void>;
+  readonly openPort: Mock<() => FakePort>;
+  /** The page loaded, as `did-finish-load` reports it. */
+  readonly load: () => void;
+  readonly ports: FakePort[];
+}
+
+const fakeHost = (partition: string, loaded: Promise<unknown> = Promise.resolve()): FakeHost => {
+  const listeners: (() => void)[] = [];
+  const ports: FakePort[] = [];
+  return {
+    partition,
+    webContents: {
+      on: vi.fn((_event: 'did-finish-load', listener: () => void) => {
+        listeners.push(listener);
+      }),
+    },
+    loadURL: vi.fn(() => loaded),
+    destroy: vi.fn(),
+    openPort: vi.fn(() => {
+      const port = { on: vi.fn(), postMessage: vi.fn(), start: vi.fn() };
+      ports.push(port);
+      return port;
+    }),
+    load: () => {
+      for (const listener of listeners) {
+        listener();
+      }
+    },
+    ports,
+  };
+};
 
 function setup() {
   const sessions = new Map<string, FakeSession>();
@@ -90,6 +122,8 @@ function setup() {
     readFile: (path: string) => readFile(path),
     views,
     warn: vi.fn(),
+    methodsFor: vi.fn(() => ({})),
+    rpc: { ...RPC_OPTIONS, now: () => 0, after: vi.fn() },
   };
   const only = <T>(items: readonly T[]): T => {
     const [item] = items;
@@ -132,6 +166,23 @@ describe('createPluginRuntime', () => {
     expect(scheme).toBe('plugin');
     const script = await serve({ url: 'plugin://org.example.hello/main.js' });
     expect(await script.text()).toBe('export default {};');
+  });
+
+  it('gives each page the plugin loads a port of its own, served with the plugin’s name', async () => {
+    await install(record({ capabilities: ['notifications:show'] }));
+    await saveRecords(
+      root,
+      new Map([['org.example.hello', record({ capabilities: ['notifications:show'] })]]),
+    );
+    const t = setup();
+    await t.runtime.startAll();
+    const host = t.only(t.hosts);
+    expect(host.openPort).not.toHaveBeenCalled();
+    host.load();
+    host.load();
+    expect(host.openPort).toHaveBeenCalledTimes(2);
+    expect(host.ports.map((port) => port.start.mock.calls.length)).toEqual([1, 1]);
+    expect(t.deps.methodsFor).toHaveBeenCalledExactlyOnceWith({ name: 'Hello' });
   });
 
   it('starts an updated plugin again on the same session, from its new folder', async () => {

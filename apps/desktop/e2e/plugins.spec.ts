@@ -91,12 +91,10 @@ document.title = tried.join(' ');
 export {};
 `;
 
-/** The plugin's page, if one runs: its title, whether it shows, and its session. */
-const pluginPage = (app: ElectronApplication) =>
-  app.evaluate(({ BrowserWindow, session, webContents }) => {
-    const page = webContents
-      .getAllWebContents()
-      .find((contents) => contents.getURL().startsWith('plugin://'));
+/** A plugin's page, if one runs: its title, whether it shows, and its session. */
+const pluginPage = (app: ElectronApplication, id = 'org.example.hello') =>
+  app.evaluate(({ BrowserWindow, session, webContents }, home) => {
+    const page = webContents.getAllWebContents().find((contents) => contents.getURL() === home);
     if (page === undefined) {
       return null;
     }
@@ -107,15 +105,17 @@ const pluginPage = (app: ElectronApplication) =>
       persistent: page.session.isPersistent(),
       ownSession: page.session !== session.defaultSession,
     };
-  });
+  }, `plugin://${id}/`);
 
-test('runs an installed plugin hidden, on its own session, with no eval and no network', async ({
-  app,
-  profile,
-}) => {
-  const archive = join(profile, 'probe.yapyap-plugin');
-  const manifest = testManifest({ capabilities: [], network: { hosts: [] } });
-  await writeFile(archive, zipArchive(signedArchive(testKey(), manifest, { 'main.js': PROBE })));
+/** Installs a signed third-party plugin with `main.js`, accepting its consent window. */
+async function installPlugin(
+  app: ElectronApplication,
+  profile: string,
+  manifest: Record<string, unknown>,
+  main: string,
+): Promise<void> {
+  const archive = join(profile, `${String(manifest['id'])}.yapyap-plugin`);
+  await writeFile(archive, zipArchive(signedArchive(testKey(), manifest, { 'main.js': main })));
   await app.evaluate(({ dialog }, path) => {
     dialog.showOpenDialog = () => Promise.resolve({ canceled: false, filePaths: [path] });
     dialog.showMessageBox = () => Promise.resolve({ response: 0, checkboxChecked: false });
@@ -125,6 +125,18 @@ test('runs an installed plugin hidden, on its own session, with no eval and no n
   await consent.getByLabel('I understand that I install this plugin at my own risk').check();
   const install = consent.getByRole('button', { name: 'Install' });
   await Promise.all([consent.waitForEvent('close'), install.click().catch(() => undefined)]);
+}
+
+test('runs an installed plugin hidden, on its own session, with no eval and no network', async ({
+  app,
+  profile,
+}) => {
+  await installPlugin(
+    app,
+    profile,
+    testManifest({ capabilities: [], network: { hosts: [] } }),
+    PROBE,
+  );
   await expect
     .poll(() => pluginPage(app), { timeout: 20_000 })
     .toEqual({
@@ -136,4 +148,49 @@ test('runs an installed plugin hidden, on its own session, with no eval and no n
     });
   // Its window stays hidden: nothing a plugin does can show it.
   expect((await pluginPage(app))?.shown).toBe(false);
+});
+
+/** Shows a notification, then writes in its title how that went. */
+const NOTIFIER = `
+export default {
+  async activate(host) {
+    try {
+      await host.notifications.show({ title: 'Done', body: 'Your draft is ready.' });
+      document.title = 'ok';
+    } catch (error) {
+      document.title = error.kind;
+    }
+  },
+};
+`;
+
+test('answers a plugin’s calls over its port, only for what it was granted', async ({
+  app,
+  profile,
+}) => {
+  await app.evaluate(({ Notification }) => {
+    const shown: string[] = [];
+    Object.assign(globalThis, { pluginNotifications: shown });
+    Notification.prototype.show = function show(this: Electron.Notification) {
+      shown.push(`${this.title} / ${this.body}`);
+    };
+  });
+  const network = { hosts: [] };
+  await installPlugin(
+    app,
+    profile,
+    testManifest({ capabilities: ['notifications:show'], network }),
+    NOTIFIER,
+  );
+  await expect.poll(async () => (await pluginPage(app))?.title, { timeout: 20_000 }).toBe('ok');
+  const quiet = testManifest({ id: 'org.example.quiet', name: 'Quiet', capabilities: [], network });
+  await installPlugin(app, profile, quiet, NOTIFIER);
+  await expect
+    .poll(async () => (await pluginPage(app, 'org.example.quiet'))?.title, { timeout: 20_000 })
+    .toBe('not-granted');
+  expect(
+    await app.evaluate(
+      () => (globalThis as { pluginNotifications?: string[] }).pluginNotifications,
+    ),
+  ).toEqual(['Hello: Done / Your draft is ready.']);
 });
