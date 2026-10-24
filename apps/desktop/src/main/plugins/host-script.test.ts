@@ -112,22 +112,30 @@ describe('hostApi', () => {
 });
 
 describe('hostScript', () => {
-  it('stands alone: it runs with nothing but the page’s scope, the entry and YapYap’s channel', async () => {
+  it('runs the bootstrap with the entry’s path and YapYap’s channel', () => {
     const script = hostScript('dist/my entry.js');
     expect(script).toContain('"/dist/my%20entry.js"');
     expect(script).toContain('"yapyap:plugin-port"');
-    const loaded: string[] = [];
-    const context = {
-      addEventListener: vi.fn(),
-      load: (path: string) => {
-        loaded.push(path);
-        return Promise.resolve({});
-      },
-    };
-    // A vm script cannot import modules, so the page's import() is swapped for a recorder.
-    const runnable = script.replace('(path) => import(path)', 'load');
-    await (runInNewContext(runnable, context) as Promise<void>);
-    expect(context.addEventListener).toHaveBeenCalledWith('message', expect.any(Function));
-    expect(loaded).toEqual(['/dist/my%20entry.js']);
   });
+
+  // Mutation testing instruments the functions with helpers from outside them,
+  // so only uninstrumented source can run on its own.
+  it.skipIf(hostScript('main.js').includes('stryMutAct'))(
+    'stands alone: it runs with nothing but the page’s scope and import()',
+    async () => {
+      const loaded: string[] = [];
+      const context = {
+        addEventListener: vi.fn(),
+        load: (path: string) => {
+          loaded.push(path);
+          return Promise.resolve({});
+        },
+      };
+      // A vm script cannot import modules, so the page's import() is swapped for a recorder.
+      const runnable = hostScript('main.js').replace('(path) => import(path)', 'load');
+      await (runInNewContext(runnable, context) as Promise<void>);
+      expect(context.addEventListener).toHaveBeenCalledWith('message', expect.any(Function));
+      expect(loaded).toEqual(['/main.js']);
+    },
+  );
 });
