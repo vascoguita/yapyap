@@ -66,6 +66,7 @@ export default defineConfig({
           text: 'Architecture',
           items: [
             { text: 'Overview', link: '/architecture/' },
+            { text: 'Accessibility', link: '/architecture/accessibility' },
             { text: 'Decision records', link: '/adr/' },
           ],
         },
