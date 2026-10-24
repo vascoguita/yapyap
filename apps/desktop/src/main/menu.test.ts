@@ -18,6 +18,8 @@ function actions(accounts: AccountSummary[] = []) {
     openPlugins: vi.fn(),
     installPlugin: vi.fn(),
     openCustomCode: vi.fn(),
+    pluginCommands: [] as { plugin: string; pluginName: string; id: string; title: string }[],
+    runPluginCommand: vi.fn(),
     openNewChat: vi.fn(),
     clearCache: vi.fn(),
     resetSession: vi.fn(),
@@ -330,5 +332,28 @@ describe('custom shortcuts in the menus', () => {
         .slice(0, 2)
         .map((item) => item.accelerator),
     ).toEqual(['Alt+1', 'Alt+2']);
+  });
+
+  it('lists the running plugins’ commands in a submenu of their own, named after each plugin', () => {
+    const a = {
+      ...actions(),
+      pluginCommands: [
+        {
+          plugin: 'org.example.hello',
+          pluginName: 'Hello',
+          id: 'translate',
+          title: 'Translate draft',
+        },
+      ],
+    };
+    const [file] = buildMenuTemplate('linux', a);
+    const commands = items(file).find((item) => item.label === 'Plugin Commands');
+    const [command] = Array.isArray(commands?.submenu) ? commands.submenu : [];
+    expect(command?.label).toBe('Hello: Translate draft');
+    (command?.click as (() => void) | undefined)?.();
+    expect(a.runPluginCommand).toHaveBeenCalledExactlyOnceWith('org.example.hello', 'translate');
+    expect(items(buildMenuTemplate('linux', actions())[0]).map((item) => item.label)).not.toContain(
+      'Plugin Commands',
+    );
   });
 });

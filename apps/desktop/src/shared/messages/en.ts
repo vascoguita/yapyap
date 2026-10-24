@@ -662,6 +662,9 @@ const catalog = {
     plugins: 'Plugins…',
     installPlugin: 'Install Plugin…',
     customCode: 'Custom CSS and JavaScript…',
+    pluginCommands: 'Plugin Commands',
+    /** A plugin's command, named after the plugin so it never passes for YapYap's own. */
+    pluginCommand: (plugin: string, title: string): string => `${plugin}: ${title}`,
     removeAccount: 'Remove Account…',
     doNotDisturb: 'Do Not Disturb',
     muteAccount: 'Mute This Account',

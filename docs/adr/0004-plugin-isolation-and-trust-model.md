@@ -177,6 +177,13 @@ never draw over the composer or imitate WhatsApp. Optional panels render in
 the plugin's own sandboxed view, inside a YapYap frame that shows the plugin
 identity.
 
+Commands are the first contribution YapYap renders (#98): those of the
+running plugins appear in the menu under **Plugin Commands**, each labelled
+`<plugin name>: <title>`. Picking one sends `{ command }` on the plugin's
+port, and the bootstrap runs the handler the plugin registered with
+`commands.onRun`; a handler that fails affects only itself. Only commands
+the manifest declares can be sent.
+
 ### Audit log
 
 Each capability use appends `{ time, pluginId, accountId, capability, method,

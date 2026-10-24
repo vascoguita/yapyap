@@ -469,6 +469,14 @@ not edit the same lines.
   installed again) with a system notification. The runtime lists its
   plugins' processes and can stop one.
 
+- Plugin commands (#98, first part): the runtime keeps each running
+  plugin's declared commands and the port its page holds, and runs a
+  command by sending `{ command }` there; the bootstrap hands it to the
+  handler from `commands.onRun`. The menu lists the commands under Plugin
+  Commands, named after each plugin, and is rebuilt whenever plugins start
+  or stop. Context menu items, composer actions, the settings form and
+  panels follow.
+
 - Plugin activity log (#99): `servePluginRpc` reports each call to an
   operation YapYap offers (operation, capability, outcome) and
   `createAuditLog` appends it, with the time and plugin ID, to

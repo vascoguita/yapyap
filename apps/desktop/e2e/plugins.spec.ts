@@ -251,4 +251,44 @@ test('stops a plugin’s calls as soon as the user takes the permission back', a
   await expect.poll(async () => (await pluginPage(app))?.title).toBe('not-granted');
   await plugins.getByRole('checkbox', { name: 'Show notifications' }).check();
   await expect.poll(async () => (await pluginPage(app))?.title).toBe('ok');
+  await expect(plugins.getByRole('checkbox', { name: 'Show notifications' })).toBeChecked();
+});
+
+/** Writes in its title when the user runs its command. */
+const GREETER = `
+export default {
+  activate(host) {
+    document.title = 'waiting';
+    host.commands.onRun('greet', () => {
+      document.title = 'greeted';
+    });
+  },
+};
+`;
+
+test('lists a plugin’s commands in the menu under its name, and runs the one the user picks', async ({
+  app,
+  profile,
+}) => {
+  const manifest = testManifest({
+    capabilities: [],
+    network: { hosts: [] },
+    contributes: { commands: [{ id: 'greet', title: 'Say hello' }] },
+  });
+  await installPlugin(app, profile, manifest, GREETER);
+  await expect
+    .poll(async () => (await pluginPage(app))?.title, { timeout: 20_000 })
+    .toBe('waiting');
+  const pick = () =>
+    app.evaluate(({ Menu }) => {
+      const commands = Menu.getApplicationMenu()
+        ?.items.flatMap((menu) => menu.submenu?.items ?? [])
+        .find((entry) => entry.label === 'Plugin Commands');
+      const command = commands?.submenu?.items.find((entry) => entry.label === 'Hello: Say hello');
+      command?.click();
+      return command !== undefined;
+    });
+  await expect.poll(pick).toBe(true);
+  await expect.poll(async () => (await pluginPage(app))?.title).toBe('greeted');
+  expect((await pluginPage(app))?.shown).toBe(false);
 });

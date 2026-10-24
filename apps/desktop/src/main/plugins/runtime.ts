@@ -93,6 +93,20 @@ export interface PluginRuntime {
   readonly stop: (id: string) => void;
   /** Reads a plugin's grants again after the user changed them (#94). */
   readonly regrant: (id: string) => Promise<void>;
+  /** The running plugins' commands, for the menu (#98). */
+  readonly commands: () => readonly PluginCommand[];
+  /** Runs a command the user picked; false when its plugin is not ready for it. */
+  readonly runCommand: (plugin: string, command: string) => boolean;
+  /** Calls `listener` whenever plugins start or stop. */
+  readonly onChange: (listener: () => void) => void;
+}
+
+/** A command a running plugin offers. */
+export interface PluginCommand {
+  readonly plugin: string;
+  readonly pluginName: string;
+  readonly id: string;
+  readonly title: string;
 }
 
 /** The installed manifest, or undefined when the file is missing or not a manifest. */
@@ -114,14 +128,19 @@ async function manifestIn(
  * Hands each page the plugin loads a port of its own, and serves its calls
  * there with the grants the plugin holds (ADR 0004).
  */
-function connect(deps: PluginRuntimeDependencies, host: PluginHost, known: KnownPlugin): void {
+function connect(
+  deps: PluginRuntimeDependencies,
+  running: RunningPlugin,
+  known: KnownPlugin,
+): void {
   const { id } = known.record;
   const methods = deps.methodsFor({ id, name: known.name });
   // Grants are read on every call, so taking one back stops the next call (#94).
   const granted = (capability: string): boolean =>
     holds(known.record, capability, deps.activeAccount());
-  host.webContents.on('did-finish-load', () => {
-    servePluginRpc(host.openPort(), granted, methods, deps.rpc, (call) => {
+  running.host.webContents.on('did-finish-load', () => {
+    running.port = running.host.openPort();
+    servePluginRpc(running.port, granted, methods, deps.rpc, (call) => {
       deps.audit.record({ ...call, plugin: id });
     });
   });
@@ -145,14 +164,24 @@ async function approveHost(root: string, id: string, host: string): Promise<void
   }
 }
 
+/** A running plugin: its window, its name and commands, and the port its page holds now. */
+interface RunningPlugin {
+  readonly host: PluginHost;
+  readonly name: string;
+  readonly commands: readonly { readonly id: string; readonly title: string }[];
+  port?: RpcPort;
+}
+
 interface RuntimeState {
   /** Each running plugin's window, and its name from its manifest. */
-  readonly hosts: Map<string, { readonly host: PluginHost; readonly name: string }>;
+  readonly hosts: Map<string, RunningPlugin>;
   readonly sources: Map<string, PluginSource>;
   /** Each plugin's name and current record, which its calls and requests are checked against. */
   readonly known: Map<string, KnownPlugin>;
   /** Sessions that already serve their plugin: a scheme is handled once per session. */
   readonly served: Set<string>;
+  /** Told whenever the running plugins change, so the menu can list their commands. */
+  readonly listeners: Set<() => void>;
 }
 
 /** Serves the plugin's files on its own session, and nothing from anywhere else. */
@@ -208,15 +237,27 @@ async function start(
   const host = deps.createHost(partition);
   const home = pluginOrigin(record.id);
   deps.views.set(host.webContents, { home, zone: 'plugin', label: record.id });
-  state.hosts.set(record.id, { host, name: manifest.name });
-  connect(deps, host, known);
+  const running: RunningPlugin = {
+    host,
+    name: manifest.name,
+    commands: manifest.contributes?.commands ?? [],
+  };
+  state.hosts.set(record.id, running);
+  changed(state);
+  connect(deps, running, known);
   await host.loadURL(`${home}/`).catch(() => {
     deps.warn(`Plugin ${record.id} could not be loaded.`);
   });
 }
 
 function newState(): RuntimeState {
-  return { hosts: new Map(), sources: new Map(), known: new Map(), served: new Set() };
+  return {
+    hosts: new Map(),
+    sources: new Map(),
+    known: new Map(),
+    served: new Set(),
+    listeners: new Set(),
+  };
 }
 
 /** Reads a plugin's record again, so its next call and request see the grants as they are now. */
@@ -227,6 +268,35 @@ async function regrant(root: string, state: RuntimeState, id: string): Promise<v
   if (record !== undefined && known !== undefined) {
     known.record = record;
   }
+}
+
+const changed = (state: RuntimeState): void => {
+  for (const listener of state.listeners) {
+    listener();
+  }
+};
+
+function stopPlugin(state: RuntimeState, id: string): void {
+  state.hosts.get(id)?.host.destroy();
+  state.hosts.delete(id);
+  changed(state);
+}
+
+/** The commands of the plugins that run, in the order they started. */
+function commandsOf(state: RuntimeState): PluginCommand[] {
+  return [...state.hosts].flatMap(([plugin, { name, commands }]) =>
+    commands.map(({ id, title }) => ({ pluginName: name, plugin, id, title })),
+  );
+}
+
+/** Asks a running plugin to run one of the commands it declared; false when it cannot. */
+function runCommand(state: RuntimeState, plugin: string, command: string): boolean {
+  const running = state.hosts.get(plugin);
+  if (running?.port === undefined || !running.commands.some(({ id }) => id === command)) {
+    return false;
+  }
+  running.port.postMessage({ command });
+  return true;
 }
 
 function processesOf(state: RuntimeState): PluginProcess[] {
@@ -261,8 +331,12 @@ export function createPluginRuntime(deps: PluginRuntimeDependencies): PluginRunt
     running: () => [...state.hosts.keys()],
     processes: () => processesOf(state),
     stop: (id) => {
-      state.hosts.get(id)?.host.destroy();
-      state.hosts.delete(id);
+      stopPlugin(state, id);
+    },
+    commands: () => commandsOf(state),
+    runCommand: (plugin, command) => runCommand(state, plugin, command),
+    onChange: (listener) => {
+      state.listeners.add(listener);
     },
     regrant: (id) => regrant(deps.root, state, id),
   };

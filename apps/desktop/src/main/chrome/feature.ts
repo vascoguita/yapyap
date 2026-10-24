@@ -557,10 +557,6 @@ function chromeWindows(
   return { createWindow: (options) => deps.createWindow(options, renderer), views, warn };
 }
 
-/**
- * Sets the application menu now, without accounts, and again whenever the
- * accounts change; returns how to give it the accounts.
- */
 /** YapYap's own windows, one each: opening one again focuses it. */
 type ChromeOpeners = Pick<
   MenuActions,
@@ -617,44 +613,69 @@ function menuAccounts(
   };
 }
 
-function accountMenuSetter(
-  deps: ChromeFeatureDependencies,
+type MenuPlugins = Pick<PluginChrome, 'commands' | 'runCommand' | 'onCommandsChange'>;
+
+/** The menu's actions for the accounts as they are, and the running plugins' commands. */
+function menuActionsOf(
+  deps: Omit<ChromeFeatureDependencies, 'facts'> & FactsSource,
+  slots: Pick<ChromeSlots, 'recoveries' | 'pages'>,
   openers: ChromeOpeners,
-  recoveries: ReadonlyMap<object, Recovery>,
-  accounts: AccountsSlot,
+  plugins: MenuPlugins,
   warn: (message: string) => void,
-  copyDiagnostics: () => void,
-): (menu: AccountMenu) => void {
-  const set = (menu: AccountMenu | undefined): void => {
-    deps.setMenu(
-      buildMenuTemplate(
-        deps.platform,
-        {
-          ...menuAccounts(menu),
-          ...openers,
-          ...accountActions(deps, recoveries, menu, warn),
-          ...quietActions(deps.settings, menu),
-          zoom: (step) => {
-            changeZoom(deps.settings, step);
-          },
-          copyDiagnostics,
-        },
-        deps.settings.current().shortcuts.custom,
-      ),
-    );
-  };
-  set(undefined);
-  // The menu holds the keys, so it is built again when the user changes one.
-  let keys = JSON.stringify(deps.settings.current().shortcuts.custom);
-  deps.settings.onChange((current) => {
+): (menu: AccountMenu | undefined) => MenuActions {
+  const copyDiagnostics = diagnosticsCopier(deps, slots.pages, warn);
+  return (menu) => ({
+    ...menuAccounts(menu),
+    ...openers,
+    ...accountActions(deps, slots.recoveries, menu, warn),
+    ...quietActions(deps.settings, menu),
+    zoom: (step) => {
+      changeZoom(deps.settings, step);
+    },
+    copyDiagnostics,
+    pluginCommands: plugins.commands(),
+    runPluginCommand: plugins.runCommand,
+  });
+}
+
+/** Calls `rebuild` when the user changes an in-app shortcut, whose keys the menu shows. */
+function onShortcutChange(settings: SettingsService, rebuild: () => void): void {
+  let keys = JSON.stringify(settings.current().shortcuts.custom);
+  settings.onChange((current) => {
     const changed = JSON.stringify(current.shortcuts.custom);
     if (changed !== keys) {
       keys = changed;
-      set(accounts.current);
+      rebuild();
     }
   });
+}
+
+/**
+ * Sets the application menu now, without accounts, and again whenever the
+ * accounts, a shortcut or the running plugins change; returns how to give
+ * it the accounts.
+ */
+function accountMenuSetter(
+  deps: Omit<ChromeFeatureDependencies, 'facts'> & FactsSource,
+  slots: Pick<ChromeSlots, 'recoveries' | 'pages' | 'accounts'>,
+  openers: ChromeOpeners,
+  plugins: MenuPlugins,
+  warn: (message: string) => void,
+): (menu: AccountMenu) => void {
+  const actions = menuActionsOf(deps, slots, openers, plugins, warn);
+  const set = (menu: AccountMenu | undefined): void => {
+    deps.setMenu(
+      buildMenuTemplate(deps.platform, actions(menu), deps.settings.current().shortcuts.custom),
+    );
+  };
+  const rebuild = (): void => {
+    set(slots.accounts.current);
+  };
+  set(undefined);
+  plugins.onCommandsChange(rebuild);
+  onShortcutChange(deps.settings, rebuild);
   return (menu) => {
-    accounts.current = menu;
+    slots.accounts.current = menu;
     set(menu);
   };
 }
@@ -791,7 +812,6 @@ function startChrome(
   ];
   registerChromeHandlers(deps.ipc, views, handlers, warn);
   const openers = chromeOpeners(windows, plugins);
-  const copyDiagnostics = diagnosticsCopier(withGraphics, pages, warn);
   return {
     attachRecovery: recoveryAttacher(withGraphics, renderer, views, warn, recoveries, pages),
     pickCaptureSource: picker.pick,
@@ -799,7 +819,7 @@ function startChrome(
     openChatsWith: (open) => {
       chats.open = open;
     },
-    setAccountMenu: accountMenuSetter(deps, openers, recoveries, accounts, warn, copyDiagnostics),
+    setAccountMenu: accountMenuSetter(withGraphics, slots, openers, plugins, warn),
     openSettings: openers.openSettings,
     openWelcome: createChromeWindowOpener(windows, WELCOME_PAGE),
     openSpellingLanguages: createChromeWindowOpener(windows, SPELLING_LANGUAGES_PAGE),
