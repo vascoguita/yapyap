@@ -12,6 +12,11 @@ import {
 import { loadRecords, type PluginRecord } from './records.ts';
 import type { AuditLog } from './audit-log.ts';
 import type { CallingPlugin } from './host-methods.ts';
+import {
+  guardPluginResources,
+  type PluginProcess,
+  type ResourceGuardDependencies,
+} from './resource-guard.ts';
 import { servePluginRpc, type RpcMethod, type RpcOptions, type RpcPort } from './rpc.ts';
 
 /**
@@ -40,7 +45,10 @@ export interface PluginSession {
 
 /** A plugin's hidden window, which is never shown. */
 export interface PluginHost {
-  readonly webContents: { on(event: 'did-finish-load', listener: () => void): unknown };
+  readonly webContents: {
+    on(event: 'did-finish-load', listener: () => void): unknown;
+    getOSProcessId(): number;
+  };
   loadURL(url: string): Promise<unknown>;
   destroy(): void;
   /** Hands the page a fresh MessagePort, and returns the main process's end. */
@@ -60,6 +68,8 @@ export interface PluginRuntimeDependencies {
   readonly methodsFor: (plugin: CallingPlugin) => Readonly<Record<string, RpcMethod>>;
   readonly rpc: RpcOptions;
   readonly audit: Pick<AuditLog, 'record'>;
+  /** What the CPU and memory limits need besides the plugins themselves (#97). */
+  readonly limits: Pick<ResourceGuardDependencies, 'metrics' | 'notify' | 'every' | 'now'>;
 }
 
 export interface PluginRuntime {
@@ -68,6 +78,10 @@ export interface PluginRuntime {
   /** Starts a plugin again, as after an update. */
   readonly restart: (id: string) => Promise<void>;
   readonly running: () => readonly string[];
+  /** Each running plugin's renderer process, for the resource guard (#97). */
+  readonly processes: () => readonly PluginProcess[];
+  /** Stops a plugin until it is started again. */
+  readonly stop: (id: string) => void;
 }
 
 /** The installed manifest, or undefined when the file is missing or not a manifest. */
@@ -105,7 +119,8 @@ function connect(
 }
 
 interface RuntimeState {
-  readonly hosts: Map<string, PluginHost>;
+  /** Each running plugin's window, and its name from its manifest. */
+  readonly hosts: Map<string, { readonly host: PluginHost; readonly name: string }>;
   readonly sources: Map<string, PluginSource>;
   /** Sessions that already serve their plugin: a scheme is handled once per session. */
   readonly served: Set<string>;
@@ -135,7 +150,7 @@ async function start(
   state: RuntimeState,
   record: PluginRecord,
 ): Promise<void> {
-  state.hosts.get(record.id)?.destroy();
+  state.hosts.get(record.id)?.host.destroy();
   state.hosts.delete(record.id);
   const folder = join(deps.root, record.id, record.version);
   const manifest = await manifestIn(folder, deps.readFile);
@@ -149,11 +164,19 @@ async function start(
   const host = deps.createHost(partition);
   const home = pluginOrigin(record.id);
   deps.views.set(host.webContents, { home, zone: 'plugin', label: record.id });
-  state.hosts.set(record.id, host);
+  state.hosts.set(record.id, { host, name: manifest.name });
   connect(deps, host, record, manifest);
   await host.loadURL(`${home}/`).catch(() => {
     deps.warn(`Plugin ${record.id} could not be loaded.`);
   });
+}
+
+function processesOf(state: RuntimeState): PluginProcess[] {
+  return [...state.hosts].map(([id, { host, name }]) => ({
+    id,
+    name,
+    pid: host.webContents.getOSProcessId(),
+  }));
 }
 
 /**
@@ -163,19 +186,41 @@ async function start(
  * cancelled.
  */
 export function createPluginRuntime(deps: PluginRuntimeDependencies): PluginRuntime {
-  const state: RuntimeState = { hosts: new Map(), sources: new Map(), served: new Set() };
-  return {
+  const state: RuntimeState = {
+    hosts: new Map(),
+    sources: new Map(),
+    served: new Set(),
+  };
+  const restart = async (id: string): Promise<void> => {
+    const records = await loadRecords(deps.root);
+    const record = records.get(id);
+    if (record !== undefined) {
+      await start(deps, state, record);
+    }
+  };
+  const runtime: PluginRuntime = {
+    restart,
     startAll: async () => {
       const records = await loadRecords(deps.root);
       await Promise.all([...records.values()].map((record) => start(deps, state, record)));
     },
-    restart: async (id) => {
-      const records = await loadRecords(deps.root);
-      const record = records.get(id);
-      if (record !== undefined) {
-        await start(deps, state, record);
-      }
-    },
     running: () => [...state.hosts.keys()],
+    processes: () => processesOf(state),
+    stop: (id) => {
+      state.hosts.get(id)?.host.destroy();
+      state.hosts.delete(id);
+    },
   };
+  guardPluginResources({
+    ...deps.limits,
+    running: runtime.processes,
+    restart: (id) => {
+      restart(id).catch(() => {
+        deps.warn(`Plugin ${id} could not be restarted.`);
+      });
+    },
+    stop: runtime.stop,
+    warn: deps.warn,
+  });
+  return runtime;
 }

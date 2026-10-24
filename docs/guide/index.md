@@ -150,6 +150,9 @@ only what you allow when you install it.
   Under **Recent activity**, it shows what each plugin asked YapYap to do,
   and whether YapYap did it or refused, but never what the plugin sent or
   received.
+- A plugin that keeps using too much of your computer's processor or
+  memory is restarted. If that keeps happening, YapYap stops it and tells
+  you; install it again to start it.
 - **Developer Mode** (Settings → Plugins) lets you install unsigned plugins
   while you write your own. YapYap warns while it is on. It is never part
   of an exported settings file.

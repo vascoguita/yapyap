@@ -244,6 +244,14 @@ const chrome = createChromeFeature({
         quiet: () => settings.current().general.doNotDisturb,
         secrets: pluginSecrets,
       }),
+    limits: {
+      metrics: () => app.getAppMetrics(),
+      notify: (message) => {
+        new Notification({ title: PRODUCT_NAME, body: message, icon: trayIcon }).show();
+      },
+      every: (callback, ms) => setInterval(callback, ms),
+      now: Date.now,
+    },
     audit: createAuditLog(
       auditFileAt(join(app.getPath('userData'), 'plugins', 'audit.log')),
       () => new Date(),
