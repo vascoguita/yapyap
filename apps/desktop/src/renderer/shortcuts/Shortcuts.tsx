@@ -1,6 +1,6 @@
 import type { JSX } from 'preact';
 import { useCallback, useEffect, useLayoutEffect, useState } from 'preact/hooks';
-import type { ChromeApi, ShortcutList } from '../../shared/chrome-api.ts';
+import type { ChromeApi, GlobalShortcutState, ShortcutList } from '../../shared/chrome-api.ts';
 import { en } from '../../shared/messages/en.ts';
 import { acceleratorFromKeys } from '../../shared/shortcut-keys.ts';
 import { keysOf, type ActiveShortcut } from '../../shared/shortcuts.ts';
@@ -64,30 +64,49 @@ interface RowProps {
   readonly onReset: (id: string) => void;
 }
 
-function RowActions({ shortcut, onChange, onReset }: RowProps): JSX.Element {
+/** Change, and a second action (Reset or Remove) when it applies. */
+function Buttons(props: {
+  readonly id: string;
+  readonly label: string;
+  readonly second: string | undefined;
+  readonly onChange: (id: string) => void;
+  readonly onSecond: (id: string) => void;
+}): JSX.Element {
   return (
     <td class="row-actions">
       <button
         type="button"
-        aria-label={`${text.change}: ${shortcut.label}`}
+        aria-label={`${text.change}: ${props.label}`}
         onClick={() => {
-          onChange(shortcut.id);
+          props.onChange(props.id);
         }}
       >
         {text.change}
       </button>
-      {shortcut.custom ? (
+      {props.second === undefined ? null : (
         <button
           type="button"
-          aria-label={`${text.reset}: ${shortcut.label}`}
+          aria-label={`${props.second}: ${props.label}`}
           onClick={() => {
-            onReset(shortcut.id);
+            props.onSecond(props.id);
           }}
         >
-          {text.reset}
+          {props.second}
         </button>
-      ) : null}
+      )}
     </td>
+  );
+}
+
+function RowActions({ shortcut, onChange, onReset }: RowProps): JSX.Element {
+  return (
+    <Buttons
+      id={shortcut.id}
+      label={shortcut.label}
+      second={shortcut.custom ? text.reset : undefined}
+      onChange={onChange}
+      onSecond={onReset}
+    />
   );
 }
 
@@ -138,6 +157,67 @@ function Table(props: {
   );
 }
 
+function GlobalRow(props: {
+  readonly shortcut: GlobalShortcutState;
+  readonly platform: string;
+  readonly listening: boolean;
+  readonly onChange: (id: string) => void;
+  readonly onRemove: (id: string) => void;
+}): JSX.Element {
+  const { shortcut } = props;
+  const keys =
+    shortcut.accelerator === '' ? (
+      text.none
+    ) : (
+      <Keys accelerator={shortcut.accelerator} platform={props.platform} />
+    );
+  return (
+    <tr>
+      <td>
+        {shortcut.label}
+        {shortcut.registered ? null : <p class="hint">{text.notRegistered}</p>}
+      </td>
+      <td>{props.listening ? <output>{text.press}</output> : keys}</td>
+      <Buttons
+        id={shortcut.id}
+        label={shortcut.label}
+        second={shortcut.accelerator === '' ? undefined : text.remove}
+        onChange={props.onChange}
+        onSecond={props.onRemove}
+      />
+    </tr>
+  );
+}
+
+/** Shortcuts that work while the user is in another app; none has keys at first. */
+function GlobalTable(props: {
+  readonly list: ShortcutList;
+  readonly listening: string | undefined;
+  readonly onChange: (id: string) => void;
+  readonly onRemove: (id: string) => void;
+}): JSX.Element {
+  return (
+    <section>
+      <h2>{text.global}</h2>
+      <p class="hint">{text.globalHint}</p>
+      <table>
+        <tbody>
+          {props.list.global.map((shortcut) => (
+            <GlobalRow
+              key={shortcut.id}
+              shortcut={shortcut}
+              platform={props.list.platform}
+              listening={props.listening === shortcut.id}
+              onChange={props.onChange}
+              onRemove={props.onRemove}
+            />
+          ))}
+        </tbody>
+      </table>
+    </section>
+  );
+}
+
 /** The shortcuts as main has them, and the last change's problem, if any. */
 function useShortcuts(api: ChromeApi) {
   const [list, setList] = useState<ShortcutList>();
@@ -182,7 +262,10 @@ export function Shortcuts({ api }: { readonly api: ChromeApi }): JSX.Element {
       <h1>{text.title}</h1>
       <p role="alert">{problem}</p>
       {list === undefined ? null : (
-        <Table list={list} listening={listening} onChange={setListening} onReset={reset} />
+        <>
+          <Table list={list} listening={listening} onChange={setListening} onReset={reset} />
+          <GlobalTable list={list} listening={listening} onChange={setListening} onRemove={reset} />
+        </>
       )}
     </main>
   );

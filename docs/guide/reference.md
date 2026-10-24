@@ -145,7 +145,12 @@ waits for the new keys: press them, or Escape to keep the old ones. YapYap
 refuses keys another action already uses, and keys without Ctrl, Alt,
 Shift or ⌘, unless they are a function key. **Reset** goes back to YapYap's own keys.
 Switching accounts keeps its digits: give it keys ending in 1, and 2 to 9
-follow. On macOS, use
+follow.
+
+Under **From any app**, **Show or hide YapYap** works while you use other
+apps. It has no keys until you give it some; **Remove** gives them back.
+If another app already holds the keys, or your system does not let apps use
+keys everywhere (as on some Wayland desktops), the window says so. On macOS, use
 <kbd>⌘</kbd> where this table says <kbd>Ctrl</kbd>, unless it names other keys.
 
 | Shortcut                                                                                                | Action                                                      |

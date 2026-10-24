@@ -136,6 +136,11 @@ export const SettingsSchema = Type.Object(
           ),
           { default: {} },
         ),
+        // Shortcuts that work from any app; empty means none.
+        global: Type.Object(
+          { toggleWindow: Type.String({ maxLength: 64, default: '' }) },
+          { default: {}, additionalProperties: false },
+        ),
       },
       { default: {}, additionalProperties: false },
     ),

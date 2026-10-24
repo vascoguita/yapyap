@@ -55,6 +55,11 @@ export type ShortcutId = (typeof TABLE)[number]['id'];
  */
 export const SHORTCUTS: readonly Shortcut[] = TABLE;
 
+/** Shortcuts that work from any app, set only by the user; none has keys at first. */
+export const GLOBAL_SHORTCUTS = [{ id: 'toggleWindow', label: text.toggleWindow }] as const;
+
+export type GlobalShortcutId = (typeof GLOBAL_SHORTCUTS)[number]['id'];
+
 /** The ids of every shortcut, for checking what a settings file names. */
 export const SHORTCUT_IDS: readonly ShortcutId[] = TABLE.map((shortcut) => shortcut.id);
 

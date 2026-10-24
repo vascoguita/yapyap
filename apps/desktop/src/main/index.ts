@@ -6,6 +6,7 @@ import {
   ipcMain,
   Menu,
   Tray,
+  globalShortcut,
   nativeImage,
   nativeTheme,
   net,
@@ -200,6 +201,7 @@ const chrome = createChromeFeature({
   // The picker's owner is a web contents Electron itself handed to the capture handler.
   windowOf: (contents) => BrowserWindow.fromWebContents(contents as WebContents),
   downloads: downloadList,
+  isGlobalShortcutRegistered: (accelerator) => globalShortcut.isRegistered(accelerator),
 });
 
 // No top-level await: test harnesses hold back the `ready` event until the
@@ -245,6 +247,7 @@ startApp({
   },
   appMetrics: () => app.getAppMetrics(),
   idleSeconds: () => powerMonitor.getSystemIdleTime(),
+  globalShortcuts: globalShortcut,
   systemLanguages: () => app.getPreferredSystemLanguages(),
   contextMenu: (items) => {
     Menu.buildFromTemplate(items).popup();

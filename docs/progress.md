@@ -259,6 +259,12 @@ not edit the same lines.
   keys another action uses on this platform (`conflictOf`, which counts
   all nine account digits); keys in a hand-edited file that do not fit are
   ignored.
+  Third part: `shortcuts.global.toggleWindow` (empty at first) is a
+  shortcut that works from any app and shows or hides the window.
+  `followGlobalShortcuts` registers it with `globalShortcut` when it is set
+  and gives the keys back when they change and at quit; the window shows
+  whether the system granted them (`globalShortcut.isRegistered`). It is
+  checked against the in-app shortcuts both ways.
 
 - Proxy, first part (#76): `network.proxyMode` (system, direct or manual)
   and `network.proxyServer`, in a new Network section with the first text

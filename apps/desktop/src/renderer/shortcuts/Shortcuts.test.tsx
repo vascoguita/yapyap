@@ -5,6 +5,10 @@ import type { ChromeApi } from '../../shared/chrome-api.ts';
 import { shortcutsFor } from '../../shared/shortcuts.ts';
 import { Shortcuts } from './Shortcuts.tsx';
 
+const globalOf = (accelerator: string, registered = true) => [
+  { id: 'toggleWindow', label: 'Show or hide YapYap, from any app', accelerator, registered },
+];
+
 function api(platform: string) {
   return {
     about: { info: vi.fn(), copyTechnicalDetails: vi.fn() },
@@ -39,11 +43,17 @@ function api(platform: string) {
     report: { diagnostics: vi.fn(), open: vi.fn() },
     proxyLogin: { request: vi.fn(), answer: vi.fn() },
     shortcuts: {
-      list: vi.fn(() => Promise.resolve({ platform, shortcuts: shortcutsFor(platform) })),
+      list: vi.fn(() =>
+        Promise.resolve({ platform, shortcuts: shortcutsFor(platform), global: globalOf('') }),
+      ),
       set: vi.fn((id: string, accelerator: string | null) =>
         Promise.resolve({
           platform,
-          shortcuts: shortcutsFor(platform, accelerator === null ? {} : { [id]: accelerator }),
+          shortcuts: shortcutsFor(
+            platform,
+            accelerator === null || id === 'toggleWindow' ? {} : { [id]: accelerator },
+          ),
+          global: globalOf(id === 'toggleWindow' ? (accelerator ?? '') : '', accelerator !== 'F9'),
           problem:
             accelerator === 'CmdOrCtrl+Q' ? 'Those keys are already used for “Quit YapYap”.' : '',
         }),
@@ -68,7 +78,7 @@ describe('Shortcuts', () => {
 
   it('lists every shortcut with its keys, joined with plus signs', async () => {
     render(<Shortcuts api={api('linux')} />);
-    expect(await screen.findAllByRole('row')).toHaveLength(shortcutsFor('linux').length + 1);
+    expect(await screen.findAllByRole('row')).toHaveLength(shortcutsFor('linux').length + 2);
     expect(
       row('Turn the privacy screen on or off')
         .getAllByText(/./, { selector: 'kbd' })
@@ -137,5 +147,34 @@ describe('changing a shortcut', () => {
     press('KeyK', { ctrlKey: true });
     expect(yapyap.shortcuts.set).not.toHaveBeenCalled();
     document.removeEventListener('keydown', closed);
+  });
+});
+
+describe('a shortcut that works from any app', () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it('has no keys at first, takes some, says when the system refused them, and gives them back', async () => {
+    const yapyap = api('linux');
+    render(<Shortcuts api={yapyap} />);
+    expect(await screen.findByText('None')).toBeTruthy();
+    expect(
+      screen.queryByRole('button', { name: 'Remove: Show or hide YapYap, from any app' }),
+    ).toBeNull();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Change: Show or hide YapYap, from any app' }),
+    );
+    fireEvent.keyDown(window, { code: 'KeyY', ctrlKey: true, altKey: true });
+    expect(yapyap.shortcuts.set).toHaveBeenCalledExactlyOnceWith('toggleWindow', 'CmdOrCtrl+Alt+Y');
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Remove: Show or hide YapYap, from any app' }),
+    );
+    expect(yapyap.shortcuts.set).toHaveBeenLastCalledWith('toggleWindow', null);
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Change: Show or hide YapYap, from any app' }),
+    );
+    fireEvent.keyDown(window, { code: 'F9' });
+    expect(await screen.findByText(/Another app already uses those keys/)).toBeTruthy();
   });
 });

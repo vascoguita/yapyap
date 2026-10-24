@@ -234,6 +234,8 @@ export interface ChromeFeatureDependencies {
   readonly settingsFiles: SettingsFiles;
   /** The system's folder dialog over the given window; undefined when cancelled. */
   readonly chooseFolder: (owner: object) => Promise<string | undefined>;
+  /** `globalShortcut.isRegistered`: whether the system granted YapYap these keys. */
+  readonly isGlobalShortcutRegistered: (accelerator: string) => boolean;
   readonly spelling: SpellingSources;
   /** This session's downloads, for the Downloads window. */
   readonly downloads: DownloadList;
@@ -642,7 +644,7 @@ function allHandlers(
     ...settingsTransferHandlers(deps.settings, deps.settingsFiles),
     ...folderChoiceHandlers(deps.settings, deps.chooseFolder),
     ...newChatHandlers(chats),
-    ...shortcutHandlers(deps.settings, deps.platform),
+    ...shortcutHandlers(deps.settings, deps.platform, deps.isGlobalShortcutRegistered),
     ...spellingHandlers(deps.settings, deps.spelling),
     ...downloadsHandlers(deps.downloads),
     ...accountsHandlers(() => accounts.current, deps.confirmRemoveAccount),
