@@ -129,15 +129,32 @@ already running passes the link to the open window.
 
 ## Keyboard shortcuts
 
-On macOS, use <kbd>⌘</kbd> where this table says <kbd>Ctrl</kbd>.
+**Help → Keyboard Shortcuts…** (<kbd>Ctrl</kbd>+<kbd>/</kbd>, <kbd>⌘</kbd><kbd>/</kbd>
+on macOS) lists every shortcut with the keys of your system. On macOS, use
+<kbd>⌘</kbd> where this table says <kbd>Ctrl</kbd>, unless it names other keys.
 
-| Shortcut                                                          | Action                      |
-| ----------------------------------------------------------------- | --------------------------- |
-| <kbd>Ctrl</kbd>+<kbd>,</kbd>                                      | Settings                    |
-| <kbd>Ctrl</kbd>+<kbd>=</kbd>                                      | Zoom in                     |
-| <kbd>Ctrl</kbd>+<kbd>-</kbd>                                      | Zoom out                    |
-| <kbd>Ctrl</kbd>+<kbd>0</kbd>                                      | Actual size                 |
-| <kbd>Ctrl</kbd>+<kbd>R</kbd>                                      | Reload WhatsApp             |
-| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd>                     | Reload, bypassing the cache |
-| <kbd>F11</kbd> (macOS: <kbd>Ctrl</kbd>+<kbd>⌘</kbd>+<kbd>F</kbd>) | Full screen                 |
-| <kbd>Alt</kbd>                                                    | Show a hidden menu bar      |
+| Shortcut                                                                                                | Action                                                      |
+| ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| <kbd>Ctrl</kbd>+<kbd>,</kbd>                                                                            | Open Settings                                               |
+| <kbd>Ctrl</kbd>+<kbd>/</kbd>                                                                            | Show these shortcuts                                        |
+| <kbd>Ctrl</kbd>+<kbd>1</kbd>                                                                            | Switch to the first account; 2 to 9 switch to the next ones |
+| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd>                                                           | Turn the privacy screen on or off                           |
+| <kbd>Ctrl</kbd>+<kbd>=</kbd>                                                                            | Zoom in                                                     |
+| <kbd>Ctrl</kbd>+<kbd>-</kbd>                                                                            | Zoom out                                                    |
+| <kbd>Ctrl</kbd>+<kbd>0</kbd>                                                                            | Actual size                                                 |
+| <kbd>Ctrl</kbd>+<kbd>R</kbd>                                                                            | Reload WhatsApp                                             |
+| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd>                                                           | Reload WhatsApp, bypassing the cache                        |
+| <kbd>F11</kbd> (macOS: <kbd>⌃</kbd><kbd>⌘</kbd><kbd>F</kbd>)                                            | Full screen                                                 |
+| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> (macOS: <kbd>⌥</kbd><kbd>⌘</kbd><kbd>I</kbd>)             | Developer tools                                             |
+| <kbd>Ctrl</kbd>+<kbd>Z</kbd>                                                                            | Undo                                                        |
+| <kbd>Ctrl</kbd>+<kbd>Y</kbd> (macOS: <kbd>⇧</kbd><kbd>⌘</kbd><kbd>Z</kbd>)                              | Redo                                                        |
+| <kbd>Ctrl</kbd>+<kbd>X</kbd>                                                                            | Cut                                                         |
+| <kbd>Ctrl</kbd>+<kbd>C</kbd>                                                                            | Copy                                                        |
+| <kbd>Ctrl</kbd>+<kbd>V</kbd>                                                                            | Paste                                                       |
+| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> (macOS: <kbd>⌥</kbd><kbd>⇧</kbd><kbd>⌘</kbd><kbd>V</kbd>) | Paste as plain text                                         |
+| <kbd>Ctrl</kbd>+<kbd>A</kbd>                                                                            | Select all                                                  |
+| <kbd>Ctrl</kbd>+<kbd>M</kbd>                                                                            | Minimize the window                                         |
+| <kbd>Ctrl</kbd>+<kbd>W</kbd>                                                                            | Close the window                                            |
+| <kbd>⌘</kbd><kbd>H</kbd> (macOS)                                                                        | Hide YapYap                                                 |
+| <kbd>Ctrl</kbd>+<kbd>Q</kbd> (not on Windows)                                                           | Quit YapYap                                                 |
+| <kbd>Alt</kbd>                                                                                          | Show a hidden menu bar (Windows and Linux)                  |

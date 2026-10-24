@@ -6,6 +6,7 @@ import {
   type PickerOffer,
   type PluginConsent,
   type PluginList,
+  type ShortcutList,
   type RecoveryProblem,
   type SettingsSnapshot,
   type SidebarState,
@@ -55,6 +56,10 @@ function pluginsBridge(invoke: Invoke): ChromeApi['plugins'] {
   };
 }
 
+function shortcutsBridge(invoke: Invoke): ChromeApi['shortcuts'] {
+  return { list: () => invoke(CHROME_CHANNELS.shortcutsList) as Promise<ShortcutList> };
+}
+
 /**
  * Builds the chrome API from a single invoke function. Each operation has its
  * own fixed channel, so the page can never choose what it calls.
@@ -95,5 +100,6 @@ export function createChromeBridge(invoke: Invoke, listen: Listen): ChromeApi {
       },
       cancel: run(CHROME_CHANNELS.pickerCancel),
     },
+    shortcuts: shortcutsBridge(invoke),
   };
 }

@@ -24,6 +24,7 @@ function actions(accounts: AccountSummary[] = []) {
     privacyScreen: false,
     togglePrivacyScreen: vi.fn(),
     copyDiagnostics: vi.fn(),
+    openShortcuts: vi.fn(),
   };
 }
 
@@ -141,9 +142,9 @@ describe('buildMenuTemplate', () => {
     expect(template.map((item) => item.role ?? item.label)).toEqual([
       '&File',
       '&Account',
-      'editMenu',
+      '&Edit',
       '&View',
-      'windowMenu',
+      '&Window',
       'help',
     ]);
     expect(items(template[0])).toEqual([
@@ -151,11 +152,12 @@ describe('buildMenuTemplate', () => {
       { label: 'Plugins…', click: a.openPlugins },
       { label: 'Install Plugin…', click: a.installPlugin },
       { type: 'separator' },
-      { role: 'quit' },
+      { role: 'quit', accelerator: 'CmdOrCtrl+Q' },
     ]);
     expect(items(template.at(-1))).toEqual([
       { label: 'About YapYap', click: a.openAbout },
       { type: 'separator' },
+      { label: 'Keyboard Shortcuts…', accelerator: 'CmdOrCtrl+/', click: a.openShortcuts },
       { label: 'Copy Diagnostics', click: a.copyDiagnostics },
     ]);
     expect(template[1]).toEqual(ACCOUNT(a));
@@ -216,15 +218,63 @@ describe('buildMenuTemplate', () => {
       'separator',
       'quit',
     ]);
+    expect(entries.find((item) => item.role === 'hide')?.accelerator).toBe('Cmd+H');
     expect(rest.map((item) => item.role ?? item.label)).toEqual([
       'fileMenu',
       '&Account',
-      'editMenu',
+      '&Edit',
       '&View',
       'windowMenu',
       'help',
     ]);
-    expect(items(rest.at(-1))).toEqual([{ label: 'Copy Diagnostics', click: a.copyDiagnostics }]);
+    expect(items(rest.at(-1))).toEqual([
+      { label: 'Keyboard Shortcuts…', accelerator: 'CmdOrCtrl+/', click: a.openShortcuts },
+      { label: 'Copy Diagnostics', click: a.copyDiagnostics },
+    ]);
     expect(rest[1]).toEqual(ACCOUNT(a));
+  });
+});
+
+describe('the standard menus', () => {
+  const keys = (menu: MenuItemConstructorOptions | undefined) =>
+    items(menu).map((item) => [item.role ?? item.type, item.accelerator]);
+
+  it('edits with the usual keys, plain-text paste included', () => {
+    const linux = buildMenuTemplate('linux', actions());
+    expect(keys(linux.find((menu) => menu.label === '&Edit'))).toEqual([
+      ['undo', 'CmdOrCtrl+Z'],
+      ['redo', 'CmdOrCtrl+Y'],
+      ['separator', undefined],
+      ['cut', 'CmdOrCtrl+X'],
+      ['copy', 'CmdOrCtrl+C'],
+      ['paste', 'CmdOrCtrl+V'],
+      ['pasteAndMatchStyle', 'CmdOrCtrl+Shift+V'],
+      ['selectAll', 'CmdOrCtrl+A'],
+    ]);
+    const mac = buildMenuTemplate('darwin', actions()).find((menu) => menu.label === '&Edit');
+    expect(keys(mac)[1]).toEqual(['redo', 'Shift+Cmd+Z']);
+  });
+
+  it('keeps the window list in the Window menu on macOS only', () => {
+    const linux = buildMenuTemplate('linux', actions()).find((menu) => menu.label === '&Window');
+    expect(linux?.role).toBeUndefined();
+    expect(keys(linux)).toEqual([
+      ['minimize', 'CmdOrCtrl+M'],
+      ['close', 'CmdOrCtrl+W'],
+    ]);
+    const mac = buildMenuTemplate('darwin', actions()).find((menu) => menu.label === '&Window');
+    expect(mac?.role).toBe('windowMenu');
+    expect(keys(mac).map(([role]) => role)).toEqual([
+      'minimize',
+      'close',
+      'zoom',
+      'separator',
+      'front',
+    ]);
+  });
+
+  it('quits with a key on Linux and macOS, and leaves Windows its own Alt+F4', () => {
+    const windows = buildMenuTemplate('win32', actions())[0];
+    expect(items(windows).at(-1)).toEqual({ role: 'quit' });
   });
 });

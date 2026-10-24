@@ -10,6 +10,7 @@ import {
 } from '../about/about-info.ts';
 import { readPageState, type ProbedContents } from '../about/page-state.ts';
 import { newChatHandlers, type ChatTarget } from './new-chat.ts';
+import { shortcutsFor } from '../../shared/shortcuts.ts';
 import {
   decideUpdatePolicy,
   describeUpdatePolicy,
@@ -107,6 +108,18 @@ const NEW_CHAT_PAGE: ChromePage = {
     resizable: false,
     minimizable: false,
     maximizable: false,
+  },
+};
+
+const SHORTCUTS_PAGE: ChromePage = {
+  path: 'shortcuts.html',
+  window: {
+    title: en.windows.shortcuts,
+    width: 520,
+    height: 640,
+    minWidth: 400,
+    minHeight: 360,
+    minimizable: false,
   },
 };
 
@@ -442,7 +455,13 @@ function chromeWindows(
 /** YapYap's own windows, one each: opening one again focuses it. */
 type ChromeOpeners = Pick<
   MenuActions,
-  'openAccounts' | 'openAbout' | 'openSettings' | 'openNewChat' | 'openPlugins' | 'installPlugin'
+  | 'openAccounts'
+  | 'openAbout'
+  | 'openSettings'
+  | 'openNewChat'
+  | 'openPlugins'
+  | 'installPlugin'
+  | 'openShortcuts'
 >;
 
 function chromeOpeners(windows: ChromeWindowDependencies, plugins: PluginChrome): ChromeOpeners {
@@ -452,6 +471,7 @@ function chromeOpeners(windows: ChromeWindowDependencies, plugins: PluginChrome)
     openAbout: opener(ABOUT_PAGE),
     openSettings: opener(SETTINGS_PAGE),
     openNewChat: opener(NEW_CHAT_PAGE),
+    openShortcuts: opener(SHORTCUTS_PAGE),
     openPlugins: plugins.openPlugins,
     installPlugin: plugins.install,
   };
@@ -537,6 +557,11 @@ function allHandlers(
     ),
     ...settingsTransferHandlers(deps.settings, deps.settingsFiles),
     ...newChatHandlers(chats),
+    {
+      channel: CHROME_CHANNELS.shortcutsList,
+      accepts: noArguments,
+      handle: () => ({ platform: deps.platform, shortcuts: shortcutsFor(deps.platform) }),
+    },
     ...accountsHandlers(() => accounts.current, deps.confirmRemoveAccount),
     ...sidebarHandlers(sidebar, deps.settings),
     ...picker.handlers,

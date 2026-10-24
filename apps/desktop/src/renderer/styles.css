@@ -723,3 +723,39 @@ main.accounts .forget {
 main.welcome .actions {
   justify-content: flex-end;
 }
+
+main.shortcuts {
+  align-items: stretch;
+  text-align: left;
+}
+
+main.shortcuts table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+main.shortcuts th,
+main.shortcuts td {
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+main.shortcuts th {
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+main.shortcuts .keys {
+  white-space: nowrap;
+}
+
+main.shortcuts kbd {
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  font: inherit;
+  font-size: 0.85rem;
+}

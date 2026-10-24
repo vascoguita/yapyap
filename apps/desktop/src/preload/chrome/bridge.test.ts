@@ -46,6 +46,7 @@ describe('createChromeBridge', () => {
     expect(await api.plugins.list()).toBe('ignored');
     expect(await api.plugins.consent()).toBe('ignored');
     await api.plugins.answer(true, false);
+    expect(await api.shortcuts.list()).toBe('ignored');
     const listener = vi.fn();
     api.sidebar.onState(listener);
     expect(listen).toHaveBeenCalledWith(listener);
@@ -77,6 +78,7 @@ describe('createChromeBridge', () => {
       ['plugins:list'],
       ['plugins:consent'],
       ['plugins:answer', true, false],
+      ['shortcuts:list'],
     ]);
   });
 
@@ -91,6 +93,7 @@ describe('createChromeBridge', () => {
       'sidebar',
       'plugins',
       'picker',
+      'shortcuts',
     ]);
     expect(Object.keys(api.sidebar)).toEqual([
       'state',
@@ -101,6 +104,7 @@ describe('createChromeBridge', () => {
     ]);
     expect(Object.keys(api.plugins)).toEqual(['list', 'consent', 'answer']);
     expect(Object.keys(api.chat)).toEqual(['openNumber']);
+    expect(Object.keys(api.shortcuts)).toEqual(['list']);
     expect(Object.keys(api.accounts)).toEqual([
       'list',
       'save',
