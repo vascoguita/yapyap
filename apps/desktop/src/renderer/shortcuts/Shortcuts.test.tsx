@@ -29,6 +29,7 @@ function api(platform: string) {
     picker: { offer: vi.fn(), choose: vi.fn(), cancel: vi.fn() },
     spelling: { languages: vi.fn(), choose: vi.fn() },
     report: { diagnostics: vi.fn(), open: vi.fn() },
+    proxyLogin: { request: vi.fn(), answer: vi.fn() },
     shortcuts: {
       list: vi.fn(() => Promise.resolve({ platform, shortcuts: shortcutsFor(platform) })),
     },

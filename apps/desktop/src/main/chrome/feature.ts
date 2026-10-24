@@ -13,6 +13,11 @@ import { newChatHandlers, type ChatTarget } from './new-chat.ts';
 import { shortcutsFor } from '../../shared/shortcuts.ts';
 import { spellingHandlers, type SpellingSources } from './spelling-languages.ts';
 import {
+  createProxyLoginPrompt,
+  PROXY_LOGIN_PAGE,
+  type ProxyLoginPrompt,
+} from './proxy-login-window.ts';
+import {
   decideUpdatePolicy,
   describeUpdatePolicy,
   type InstallEvidence,
@@ -66,6 +71,7 @@ import {
 import {
   createChromeWindowOpener,
   openChromeWindow,
+  openPromptWindow,
   type ChromePage,
   type ChromeWindowDependencies,
   type ChromeWindowPort,
@@ -257,6 +263,8 @@ interface ChromeRuntime {
   /** The first launch's welcome (#84). */
   readonly openWelcome: () => void;
   readonly openSpellingLanguages: () => void;
+  /** Asks the user to sign in to a proxy, one proxy at a time (#76). */
+  readonly askProxyLogin: ProxyLoginPrompt['ask'];
   /** Docks the account sidebar; returns how to show it the accounts. */
   readonly attachSidebar: (
     create: (renderer: RendererOptions) => SidebarPort,
@@ -592,6 +600,7 @@ function serveChromePages(deps: ChromeFeatureDependencies): void {
 function allHandlers(
   deps: Omit<ChromeFeatureDependencies, 'facts'> & FactsSource,
   recoveries: ReadonlyMap<object, Recovery>,
+  pages: ProbedContents[],
   picker: SourcePicker,
   chats: ChatTarget,
   accounts: AccountsSlot,
@@ -600,6 +609,7 @@ function allHandlers(
   return [
     ...aboutHandlers(deps),
     ...recoveryHandlers(recoveries),
+    ...reportHandlers(deps, pages),
     ...settingsHandlers(
       deps.settings,
       deps.restart,
@@ -621,6 +631,19 @@ function allHandlers(
   ];
 }
 
+/** Copies the diagnostics, telling the log when it cannot. */
+function diagnosticsCopier(
+  deps: Parameters<typeof writeDiagnostics>[0],
+  pages: Parameters<typeof writeDiagnostics>[1],
+  warn: (message: string) => void,
+): () => void {
+  return () => {
+    writeDiagnostics(deps, pages).catch(() => {
+      warn('Could not copy the diagnostics.');
+    });
+  };
+}
+
 /** Sets up YapYap's own pages, their operations and the menu once the app is ready. */
 function startChrome(
   deps: ChromeFeatureDependencies,
@@ -630,7 +653,6 @@ function startChrome(
   graphics: string,
 ): ChromeRuntime {
   const withGraphics = { ...deps, facts: () => ({ ...deps.facts(), graphics }) };
-  serveChromePages(deps);
   const recoveries = new Map<object, Recovery>();
   const pages: ProbedContents[] = [];
   const windows = chromeWindows(deps, renderer, views, warn);
@@ -639,15 +661,15 @@ function startChrome(
   const accounts: AccountsSlot = {};
   const sidebar: SidebarSlot = {};
   const plugins = createPluginChrome(deps.plugins, deps.settings, windows);
-  const handlers = allHandlers(withGraphics, recoveries, picker, chats, accounts, sidebar);
-  const report = reportHandlers(withGraphics, pages);
-  registerChromeHandlers(deps.ipc, views, [...handlers, ...plugins.handlers, ...report], warn);
+  const proxyLogin = createProxyLoginPrompt(() => openPromptWindow(windows, PROXY_LOGIN_PAGE));
+  const handlers = [
+    ...allHandlers(withGraphics, recoveries, pages, picker, chats, accounts, sidebar),
+    ...plugins.handlers,
+    ...proxyLogin.handlers,
+  ];
+  registerChromeHandlers(deps.ipc, views, handlers, warn);
   const openers = chromeOpeners(windows, plugins);
-  const copyDiagnostics = (): void => {
-    writeDiagnostics(withGraphics, pages).catch(() => {
-      warn('Could not copy the diagnostics.');
-    });
-  };
+  const copyDiagnostics = diagnosticsCopier(withGraphics, pages, warn);
   return {
     attachRecovery: recoveryAttacher(withGraphics, renderer, views, warn, recoveries, pages),
     pickCaptureSource: picker.pick,
@@ -659,6 +681,7 @@ function startChrome(
     openSettings: openers.openSettings,
     openWelcome: createChromeWindowOpener(windows, WELCOME_PAGE),
     openSpellingLanguages: createChromeWindowOpener(windows, SPELLING_LANGUAGES_PAGE),
+    askProxyLogin: proxyLogin.ask,
     attachSidebar: (create) => attachSidebar(create(renderer), views, sidebar, warn),
   };
 }
@@ -671,6 +694,9 @@ export function createChromeFeature(deps: ChromeFeatureDependencies): ChromeFeat
         { scheme: CHROME_SCHEME, privileges: { standard: true, secure: true } },
       ]);
     },
-    afterReady: (views, warn, graphics) => startChrome(deps, renderer, views, warn, graphics),
+    afterReady: (views, warn, graphics) => {
+      serveChromePages(deps);
+      return startChrome(deps, renderer, views, warn, graphics);
+    },
   };
 }

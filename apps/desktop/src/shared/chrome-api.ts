@@ -183,6 +183,11 @@ export interface ChromeApi {
     /** Every language must have a dictionary; an empty list means the system's language. */
     readonly choose: (languages: readonly string[]) => Promise<SpellingLanguages>;
   };
+  readonly proxyLogin: {
+    readonly request: () => Promise<ProxyLoginRequest>;
+    /** Null cancels the sign-in. */
+    readonly answer: (credentials: ProxyLoginAnswer | null) => Promise<void>;
+  };
 }
 
 /** The shortcuts of the platform YapYap runs on, with its own keys. */
@@ -202,6 +207,22 @@ export interface SpellingLanguages {
   readonly chosen: readonly string[];
   /** What is checked now: the chosen languages, or the system's. */
   readonly inUse: readonly string[];
+}
+
+/** A proxy asking the user to sign in. */
+export interface ProxyLoginRequest {
+  readonly host: string;
+  readonly port: number;
+  /** The proxy refused the last username and password tried. */
+  readonly failed: boolean;
+  /** Whether this computer can keep the password encrypted. */
+  readonly canRemember: boolean;
+}
+
+export interface ProxyLoginAnswer {
+  readonly username: string;
+  readonly password: string;
+  readonly remember: boolean;
 }
 
 /** An account as YapYap's own windows and menus show it. */
@@ -265,6 +286,8 @@ export const CHROME_CHANNELS = {
   shortcutsList: 'shortcuts:list',
   spellingLanguages: 'spelling:languages',
   spellingChoose: 'spelling:choose',
+  proxyLoginRequest: 'proxy-login:request',
+  proxyLoginAnswer: 'proxy-login:answer',
 } as const;
 
 /** The one channel YapYap sends on, from the main process to the sidebar. */

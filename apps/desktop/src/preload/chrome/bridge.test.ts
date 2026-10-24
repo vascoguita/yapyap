@@ -52,6 +52,10 @@ describe('createChromeBridge', () => {
     const chosen = ['pt-PT'];
     expect(await api.spelling.languages()).toBe('ignored');
     expect(await api.spelling.choose(chosen)).toBe('ignored');
+    expect(await api.proxyLogin.request()).toBe('ignored');
+    const answer = { username: 'ana', password: 'hunter2', remember: true, extra: 'x' };
+    await api.proxyLogin.answer(answer);
+    await api.proxyLogin.answer(null);
     const listener = vi.fn();
     api.sidebar.onState(listener);
     expect(listen).toHaveBeenCalledWith(listener);
@@ -88,6 +92,9 @@ describe('createChromeBridge', () => {
       ['report:open', 'It froze.'],
       ['spelling:languages'],
       ['spelling:choose', ['pt-PT']],
+      ['proxy-login:request'],
+      ['proxy-login:answer', { username: 'ana', password: 'hunter2', remember: true }],
+      ['proxy-login:answer', null],
     ]);
     // The list sent is a copy, never the page's own array.
     expect(invoke.mock.calls.at(-1)?.[1]).not.toBe(chosen);
@@ -107,6 +114,7 @@ describe('createChromeBridge', () => {
       'spelling',
       'picker',
       'shortcuts',
+      'proxyLogin',
     ]);
     expect(Object.keys(api.report)).toEqual(['diagnostics', 'open']);
     expect(Object.keys(api.sidebar)).toEqual([
@@ -120,6 +128,7 @@ describe('createChromeBridge', () => {
     expect(Object.keys(api.chat)).toEqual(['openNumber']);
     expect(Object.keys(api.shortcuts)).toEqual(['list']);
     expect(Object.keys(api.spelling)).toEqual(['languages', 'choose']);
+    expect(Object.keys(api.proxyLogin)).toEqual(['request', 'answer']);
     expect(Object.keys(api.accounts)).toEqual([
       'list',
       'save',

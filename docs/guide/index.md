@@ -286,8 +286,14 @@ a proxy you name, such as `socks5://127.0.0.1:1080` or
 connections made before them are closed. A manual proxy that has no address, or that YapYap
 cannot use, blocks every connection rather than letting WhatsApp go around
 it. With a manual proxy, calls also go only through it, which keeps your
-address hidden but can make them slower or stop them from connecting. Proxies
-that ask for a password are not supported yet (#76).
+address hidden but can make them slower or stop them from connecting.
+
+When a proxy asks for a username and password, a **Proxy Sign-In** window
+names it and asks for them. Tick **Remember on this computer** to have YapYap
+keep them, encrypted by your system's keychain, for next time; on a Linux
+desktop without a keychain YapYap cannot keep them safely, so it asks each
+time. If the proxy refuses saved details, YapYap asks again. After you cancel,
+it waits a minute before asking again.
 
 ## Copy and paste
 

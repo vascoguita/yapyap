@@ -7,6 +7,7 @@ import {
   type PluginConsent,
   type PluginList,
   type ShortcutList,
+  type ProxyLoginRequest,
   type RecoveryProblem,
   type SettingsSnapshot,
   type SidebarState,
@@ -91,6 +92,25 @@ function spellingBridge(invoke: Invoke): ChromeApi['spelling'] {
   };
 }
 
+function proxyLoginBridge(invoke: Invoke): ChromeApi['proxyLogin'] {
+  return {
+    request: () => invoke(CHROME_CHANNELS.proxyLoginRequest) as Promise<ProxyLoginRequest>,
+    answer: async (credentials) => {
+      // A copy with only the expected fields, so nothing else rides along.
+      await invoke(
+        CHROME_CHANNELS.proxyLoginAnswer,
+        credentials === null
+          ? null
+          : {
+              username: credentials.username,
+              password: credentials.password,
+              remember: credentials.remember,
+            },
+      );
+    },
+  };
+}
+
 /**
  * Builds the chrome API from a single invoke function. Each operation has its
  * own fixed channel, so the page can never choose what it calls.
@@ -128,5 +148,6 @@ export function createChromeBridge(invoke: Invoke, listen: Listen): ChromeApi {
     spelling: spellingBridge(invoke),
     picker: pickerBridge(invoke),
     shortcuts: shortcutsBridge(invoke),
+    proxyLogin: proxyLoginBridge(invoke),
   };
 }

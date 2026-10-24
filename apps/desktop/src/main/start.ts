@@ -123,6 +123,8 @@ import { resolveWhatsAppOrigin } from './whatsapp-origin.ts';
 import { en } from '../shared/messages/en.ts';
 import type { ContextMenuItem, MenuPage } from './spelling/context-menu.ts';
 import { followSpellingSetting, type SpellingController } from './spelling/spelling.ts';
+import { createProxyLogin, type AuthInfo, type LoginCallback } from './network/proxy-login.ts';
+import type { SecretStore } from './secrets/secret-store.ts';
 
 export interface AppPort {
   disableHardwareAcceleration(): void;
@@ -142,6 +144,16 @@ export interface AppPort {
   on(
     event: 'web-contents-created',
     listener: (event: unknown, contents: GuardedContents) => void,
+  ): unknown;
+  on(
+    event: 'login',
+    listener: (
+      event: { preventDefault(): void },
+      contents: { readonly session: object } | null | undefined,
+      details: unknown,
+      info: AuthInfo,
+      callback: LoginCallback,
+    ) => void,
   ): unknown;
   on(
     event: 'session-created',
@@ -262,6 +274,8 @@ export interface StartDependencies<Window extends WindowPort> {
   readonly systemLanguages: () => readonly string[];
   /** Shows a context menu where the pointer is. */
   readonly contextMenu: (items: ContextMenuItem[]) => void;
+  /** Passwords and other secrets, encrypted by the system's keychain. */
+  readonly secrets: SecretStore;
   /** What tells the user about new releases, for builds that cannot update themselves. */
   readonly releases: Pick<
     UpdateNoticeDependencies,
@@ -438,6 +452,24 @@ function whatsAppOrigin(
     warn('Ignoring YAPYAP_TEST_WHATSAPP_ORIGIN: only loopback http origins are allowed.');
   }
   return origin;
+}
+
+/** Requests that come from no page, such as a service worker's, share one record of attempts. */
+const NO_PAGE = {};
+
+/** Proxies that ask for a password get the saved one, or the user is asked (#76). */
+function signInToProxies<Window extends WindowPort>(
+  deps: Pick<StartDependencies<Window>, 'app' | 'secrets'>,
+  chrome: Pick<ReturnType<StartDependencies<Window>['chrome']['afterReady']>, 'askProxyLogin'>,
+): void {
+  const login = createProxyLogin({
+    secrets: deps.secrets,
+    ask: chrome.askProxyLogin,
+    now: Date.now,
+  });
+  deps.app.on('login', (event, contents, _details, info, callback) => {
+    login.handle(event, contents?.session ?? NO_PAGE, info, callback);
+  });
 }
 
 /** Opens the main window where the user left it. */
@@ -1086,6 +1118,7 @@ export async function startApp<Window extends WindowPort>(
   syncAutostartSetting(deps.autostart, deps.settings, warn);
   const rendering = `${describeGraphics(graphics)}, display ${describeDisplayBackend(display)}`;
   const chrome = deps.chrome.afterReady(views, warn, rendering);
+  signInToProxies(deps, chrome);
   picker.bind(chrome.pickCaptureSource);
   announceStartup(deps, graphics);
   reportCrash(chrome.technicalDetails);

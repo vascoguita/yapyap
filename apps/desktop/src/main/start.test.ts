@@ -9,6 +9,7 @@ import { defaultSettings } from './settings/decode.ts';
 import type { Settings } from './settings/schema.ts';
 import type { SidebarSource } from './chrome/sidebar.ts';
 import type { ContextMenuItem, ContextMenuParams } from './spelling/context-menu.ts';
+import type { ProxyLoginAnswer } from '../shared/chrome-api.ts';
 import { WHATSAPP_ORIGIN } from './whatsapp-origin.ts';
 import type { WindowOptions } from './windows.ts';
 
@@ -124,6 +125,13 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     openSettings: vi.fn(),
     openWelcome: vi.fn(),
     openSpellingLanguages: vi.fn(),
+    askProxyLogin: vi.fn(() =>
+      Promise.resolve<ProxyLoginAnswer | undefined>({
+        username: 'ana',
+        password: 'hunter2',
+        remember: false,
+      }),
+    ),
     sidebar: vi.fn<(source: SidebarSource) => void>(),
     attachSidebar: vi.fn((create: (renderer: object) => unknown) => {
       create({ preload: '/app/preload/chrome.cjs' });
@@ -287,6 +295,11 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     idleSeconds: () => 600,
     systemLanguages: () => ['pt-PT', 'en-GB'],
     contextMenu: vi.fn(),
+    secrets: {
+      canKeep: () => true,
+      get: vi.fn<(name: string) => string | undefined>(() => undefined),
+      set: vi.fn(() => true),
+    },
     settings: {
       current: () => defaultSettings(),
       notice: undefined as string | undefined,
@@ -438,6 +451,20 @@ describe('startApp', () => {
     const created = { ...f.session, setProxy: vi.fn(() => Promise.resolve()) };
     f.listeners.get('session-created')?.(...([created] as never[]));
     expect(created.setProxy).toHaveBeenCalledExactlyOnceWith({ mode: 'system' });
+  });
+
+  it('signs in to a proxy that asks, for page requests and pageless ones alike', async () => {
+    const f = fakes();
+    await startApp(f);
+    const login = f.listeners.get('login');
+    const callback = vi.fn();
+    const proxy = { isProxy: true, host: 'proxy.example.org', port: 3128 };
+    login?.(...([{ preventDefault: vi.fn() }, { session: {} }, {}, proxy, callback] as never[]));
+    login?.(...([{ preventDefault: vi.fn() }, null, {}, proxy, callback] as never[]));
+    await vi.waitFor(() => {
+      expect(callback).toHaveBeenCalledWith('ana', 'hunter2');
+    });
+    expect(f.runtime.askProxyLogin).toHaveBeenCalledOnce();
   });
 
   it('keeps a proxy named on the command line while the setting follows the system', async () => {
