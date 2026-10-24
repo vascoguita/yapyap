@@ -290,10 +290,14 @@ Right-click in WhatsApp's message box for **Cut**, **Copy**, **Paste** and
 checking is off at first, because on Windows and Linux it needs a dictionary
 downloaded from Google (see [Privacy](/privacy)). Turn it on under
 Settings → Spelling, or with **Check Spelling…** in the right-click menu,
-which opens Settings. It checks your system's language. Right-click an
-underlined word for up to five suggestions, or **Add to Dictionary** to stop
-YapYap from flagging it. Unticking **Check Spelling** in the same menu turns
-it off at once.
+which opens Settings. It checks your system's language, unless you pick
+others: with spell checking on, **Languages…** in the right-click menu lists
+every language YapYap has a dictionary for, searchable by its own name, its
+English name or its code, and you can check up to ten at once. On macOS the
+system's own spell checker picks the languages, under System Settings →
+Keyboard. Right-click an underlined word for up to five suggestions, or **Add
+to Dictionary** to stop YapYap from flagging it. Unticking **Check
+Spelling** in the same menu turns it off at once.
 
 ## Downloads
 

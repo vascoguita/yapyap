@@ -10,6 +10,7 @@ import {
   type RecoveryProblem,
   type SettingsSnapshot,
   type SidebarState,
+  type SpellingLanguages,
   type TransferResult,
 } from '../../shared/chrome-api.ts';
 
@@ -56,6 +57,18 @@ function pluginsBridge(invoke: Invoke): ChromeApi['plugins'] {
   };
 }
 
+function pickerBridge(invoke: Invoke): ChromeApi['picker'] {
+  return {
+    offer: () => invoke(CHROME_CHANNELS.pickerOffer) as Promise<PickerOffer>,
+    choose: async (id, audio) => {
+      await invoke(CHROME_CHANNELS.pickerChoose, id, audio);
+    },
+    cancel: async () => {
+      await invoke(CHROME_CHANNELS.pickerCancel);
+    },
+  };
+}
+
 function shortcutsBridge(invoke: Invoke): ChromeApi['shortcuts'] {
   return { list: () => invoke(CHROME_CHANNELS.shortcutsList) as Promise<ShortcutList> };
 }
@@ -66,6 +79,15 @@ function reportBridge(invoke: Invoke): ChromeApi['report'] {
     open: async (description) => {
       await invoke(CHROME_CHANNELS.reportOpen, description);
     },
+  };
+}
+
+function spellingBridge(invoke: Invoke): ChromeApi['spelling'] {
+  return {
+    languages: () => invoke(CHROME_CHANNELS.spellingLanguages) as Promise<SpellingLanguages>,
+    // A copy, so the page cannot change the list while it is on its way.
+    choose: (languages) =>
+      invoke(CHROME_CHANNELS.spellingChoose, [...languages]) as Promise<SpellingLanguages>,
   };
 }
 
@@ -103,13 +125,8 @@ export function createChromeBridge(invoke: Invoke, listen: Listen): ChromeApi {
     sidebar: sidebarBridge(invoke, listen),
     plugins: pluginsBridge(invoke),
     report: reportBridge(invoke),
-    picker: {
-      offer: () => invoke(CHROME_CHANNELS.pickerOffer) as Promise<PickerOffer>,
-      choose: async (id, audio) => {
-        await invoke(CHROME_CHANNELS.pickerChoose, id, audio);
-      },
-      cancel: run(CHROME_CHANNELS.pickerCancel),
-    },
+    spelling: spellingBridge(invoke),
+    picker: pickerBridge(invoke),
     shortcuts: shortcutsBridge(invoke),
   };
 }

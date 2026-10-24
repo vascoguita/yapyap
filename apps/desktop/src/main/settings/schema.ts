@@ -1,4 +1,5 @@
 import { Type, type Static } from 'typebox';
+import { MAX_SPELLING_LANGUAGES } from '../../shared/chrome-api.ts';
 
 /**
  * The settings file's shape (ADR 0006). The TypeScript type is derived from
@@ -28,7 +29,7 @@ export const SettingsSchema = Type.Object(
         // used when Chromium has a dictionary of that name, so the schema
         // checks no pattern: a pattern would leave a bad code unrepairable.
         languages: Type.Array(Type.String({ maxLength: 35 }), {
-          maxItems: 10,
+          maxItems: MAX_SPELLING_LANGUAGES,
           uniqueItems: true,
           default: [],
         }),

@@ -11,6 +11,7 @@ import {
 import { readPageState, type ProbedContents } from '../about/page-state.ts';
 import { newChatHandlers, type ChatTarget } from './new-chat.ts';
 import { shortcutsFor } from '../../shared/shortcuts.ts';
+import { spellingHandlers, type SpellingSources } from './spelling-languages.ts';
 import {
   decideUpdatePolicy,
   describeUpdatePolicy,
@@ -124,6 +125,19 @@ const SHORTCUTS_PAGE: ChromePage = {
   },
 };
 
+const SPELLING_LANGUAGES_PAGE: ChromePage = {
+  path: 'spelling-languages.html',
+  window: {
+    title: en.windows.spellingLanguages,
+    width: 460,
+    height: 560,
+    minWidth: 360,
+    minHeight: 360,
+    minimizable: false,
+    maximizable: false,
+  },
+};
+
 const ACCOUNTS_PAGE: ChromePage = {
   path: 'accounts.html',
   window: {
@@ -209,6 +223,7 @@ export interface ChromeFeatureDependencies {
   /** Settings this build ignores, so the settings window leaves them out. */
   readonly hiddenSettings: readonly string[];
   readonly settingsFiles: SettingsFiles;
+  readonly spelling: SpellingSources;
   /** Quits and starts YapYap again, to apply settings that need a restart. */
   readonly restart: () => void;
   /** Asks before logging the account out; true when the user agrees. */
@@ -241,6 +256,7 @@ interface ChromeRuntime {
   readonly openSettings: () => void;
   /** The first launch's welcome (#84). */
   readonly openWelcome: () => void;
+  readonly openSpellingLanguages: () => void;
   /** Docks the account sidebar; returns how to show it the accounts. */
   readonly attachSidebar: (
     create: (renderer: RendererOptions) => SidebarPort,
@@ -598,6 +614,7 @@ function allHandlers(
       accepts: noArguments,
       handle: () => ({ platform: deps.platform, shortcuts: shortcutsFor(deps.platform) }),
     },
+    ...spellingHandlers(deps.settings, deps.spelling),
     ...accountsHandlers(() => accounts.current, deps.confirmRemoveAccount),
     ...sidebarHandlers(sidebar, deps.settings),
     ...picker.handlers,
@@ -641,6 +658,7 @@ function startChrome(
     setAccountMenu: accountMenuSetter(deps, openers, recoveries, accounts, warn, copyDiagnostics),
     openSettings: openers.openSettings,
     openWelcome: createChromeWindowOpener(windows, WELCOME_PAGE),
+    openSpellingLanguages: createChromeWindowOpener(windows, SPELLING_LANGUAGES_PAGE),
     attachSidebar: (create) => attachSidebar(create(renderer), views, sidebar, warn),
   };
 }

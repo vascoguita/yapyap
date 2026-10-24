@@ -480,11 +480,26 @@ const catalog = {
       quit: 'Quit YapYap',
     },
   },
+  spellingLanguages: {
+    title: 'Spelling languages',
+    search: 'Search languages',
+    off: 'Spell checking is off. Turn it on in Settings → Spelling; the languages you choose here apply once it is on.',
+    download:
+      'On Windows and Linux, each language’s dictionary is downloaded from Google the first time it is used.',
+    system: (names: string): string => `Checking your system’s language: ${names}.`,
+    noSystem: 'No dictionary matches your system’s language. Choose one below.',
+    chosen: (count: number, max: number): string => `${String(count)} of ${String(max)} chosen.`,
+    useSystem: 'Use system language',
+    noMatch: 'No language matches your search.',
+    macos:
+      'macOS checks spelling in the languages chosen in System Settings → Keyboard → Text Input.',
+  },
   contextMenu: {
     noSuggestions: 'No Suggestions',
     addToDictionary: 'Add to Dictionary',
     checkSpelling: 'Check Spelling',
     spellingSettings: 'Check Spelling…',
+    languages: 'Languages…',
   },
   badge: {
     unread: (count: number): string => unreadChats(count),
@@ -534,6 +549,7 @@ const catalog = {
     settings: (product: string): string => `${product} Settings`,
     picker: 'Share your screen',
     newChat: 'New Chat',
+    spellingLanguages: 'Spelling Languages',
     accounts: 'Accounts',
     plugins: 'Plugins',
     shortcuts: 'Keyboard Shortcuts',

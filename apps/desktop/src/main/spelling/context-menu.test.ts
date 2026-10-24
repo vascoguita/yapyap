@@ -18,6 +18,7 @@ const actions = (spellingOn = false) => ({
   addToDictionary: vi.fn(),
   turnSpellingOff: vi.fn(),
   openSettings: vi.fn(),
+  openLanguages: vi.fn(),
 });
 
 const labels = (items: ReturnType<typeof contextMenuOf>) =>
@@ -63,10 +64,19 @@ describe('contextMenuOf', () => {
     expect(act.replaceMisspelling).toHaveBeenCalledExactlyOnceWith('tea');
     items[5]?.click?.();
     expect(act.addToDictionary).toHaveBeenCalledExactlyOnceWith('teh');
-    const toggle = items.at(-1);
+  });
+
+  it('turns spelling off, or opens its languages, once it is on', () => {
+    const act = actions(true);
+    const items = contextMenuOf(params(), act);
+    const toggle = items.at(-2);
     expect(toggle).toMatchObject({ label: 'Check Spelling', type: 'checkbox', checked: true });
     toggle?.click?.();
     expect(act.turnSpellingOff).toHaveBeenCalledOnce();
+    const languages = items.at(-1);
+    expect(languages?.label).toBe('Languages…');
+    languages?.click?.();
+    expect(act.openLanguages).toHaveBeenCalledOnce();
   });
 
   it('says so when a misspelled word has no suggestions', () => {

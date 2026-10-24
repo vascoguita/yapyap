@@ -178,12 +178,30 @@ export interface ChromeApi {
   readonly shortcuts: {
     readonly list: () => Promise<ShortcutList>;
   };
+  readonly spelling: {
+    readonly languages: () => Promise<SpellingLanguages>;
+    /** Every language must have a dictionary; an empty list means the system's language. */
+    readonly choose: (languages: readonly string[]) => Promise<SpellingLanguages>;
+  };
 }
 
 /** The shortcuts of the platform YapYap runs on, with its own keys. */
 export interface ShortcutList {
   readonly platform: string;
   readonly shortcuts: readonly Shortcut[];
+}
+
+/** How many spelling languages can be on at once; each one is a dictionary to load. */
+export const MAX_SPELLING_LANGUAGES = 10;
+
+/** What the Spelling Languages window shows. */
+export interface SpellingLanguages {
+  readonly enabled: boolean;
+  /** The languages with a dictionary; empty on macOS, which picks languages itself. */
+  readonly available: readonly string[];
+  readonly chosen: readonly string[];
+  /** What is checked now: the chosen languages, or the system's. */
+  readonly inUse: readonly string[];
 }
 
 /** An account as YapYap's own windows and menus show it. */
@@ -245,6 +263,8 @@ export const CHROME_CHANNELS = {
   pluginsConsent: 'plugins:consent',
   pluginsAnswer: 'plugins:answer',
   shortcutsList: 'shortcuts:list',
+  spellingLanguages: 'spelling:languages',
+  spellingChoose: 'spelling:choose',
 } as const;
 
 /** The one channel YapYap sends on, from the main process to the sidebar. */
