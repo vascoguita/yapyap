@@ -90,10 +90,17 @@ the account on screen), `invalid`, `rate-limited` (more than 20 calls in a
 burst, refilling at 5 a second), `timeout` (10 seconds) or `failed`.
 
 The [API reference](/api/) documents the whole host API. The chat reading
-and key-value storage APIs are declared but not served yet: they arrive with
-[#100](https://github.com/vascoguita/yapyap/issues/100) and
-[#301](https://github.com/vascoguita/yapyap/issues/301), and until then
-their calls fail with `invalid`.
+API is declared but not served yet: it arrives with
+[#100](https://github.com/vascoguita/yapyap/issues/100), and until then its
+calls fail with `invalid`.
+
+### Keeping data
+
+With `storage:local`, `host.storage` keeps JSON values under keys of up to
+256 characters, private to the plugin and kept across restarts. A plugin's
+store holds up to 1 MiB, and a write that would pass that fails. Values
+must be plain JSON: a value JSON cannot hold, such as `undefined`, fails
+the call.
 
 ### Reaching the internet
 

@@ -164,6 +164,11 @@ starts to.
 | `secrets:own`              | Read and write the plugin's own secrets namespace (Electron `safeStorage`)               |
 | `network:<host>`           | HTTPS requests to that host via the plugin session                                       |
 
+The key-value store (#301) keeps each plugin's values as JSON in
+`<userData>/plugins/.storage/<id>.json`, readable by the user alone, with
+the ID taken from YapYap, never from the call. Keys are up to 256
+characters, a store holds up to 1 MiB, and a write past that fails.
+
 There is **no API to send a message**, and no capability that returns DOM
 nodes, HTML, or arbitrary page script execution. All chat data comes from the
 WhatsApp adapter as validated plain objects.

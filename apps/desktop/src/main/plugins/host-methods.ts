@@ -2,6 +2,7 @@ import type { SettingValue } from '@yapyap/plugin-sdk';
 import { Type } from 'typebox';
 import { en } from '../../shared/messages/en.ts';
 import type { SecretStore } from '../secrets/secret-store.ts';
+import type { KeyValueStore } from './key-value-store.ts';
 import type { RpcMethod } from './rpc.ts';
 
 export interface HostServices {
@@ -11,6 +12,8 @@ export interface HostServices {
   readonly quiet: () => boolean;
   /** Plugins' secrets, kept apart from YapYap's own. */
   readonly secrets: Pick<SecretStore, 'get' | 'set'>;
+  /** The calling plugin's own key-value store. */
+  readonly storage: KeyValueStore;
   /** Puts a draft in the active account's open chat; false when none is open. */
   readonly insertDraft: (text: string) => Promise<boolean>;
 }
@@ -85,6 +88,42 @@ function secrets(plugin: CallingPlugin, services: HostServices): Record<string, 
   };
 }
 
+/** A storage key: any short text, since keys never leave the plugin's own store. */
+const StorageKey = Type.String({ minLength: 1, maxLength: 256 });
+
+const LOCAL_STORAGE = 'storage:local';
+
+/** A plugin's key-value store (#301); YapYap opens it for that plugin alone. */
+function storage(services: HostServices): Record<string, RpcMethod> {
+  return {
+    'storage.get': {
+      capability: LOCAL_STORAGE,
+      params: Type.Tuple([StorageKey]),
+      run: ([key]) => Promise.resolve(services.storage.get(key as string)),
+    },
+    'storage.set': {
+      capability: LOCAL_STORAGE,
+      params: Type.Tuple([StorageKey, Type.Unknown()]),
+      // A value JSON cannot hold throws inside the executor, so it rejects too.
+      run: ([key, value]) =>
+        new Promise<void>((resolve) => {
+          if (!services.storage.set(key as string, value)) {
+            throw new Error('The plugin’s storage is full.');
+          }
+          resolve();
+        }),
+    },
+    'storage.delete': {
+      capability: LOCAL_STORAGE,
+      params: Type.Tuple([StorageKey]),
+      run: ([key]) => {
+        services.storage.delete(key as string);
+        return Promise.resolve();
+      },
+    },
+  };
+}
+
 /** Long enough for any reply a plugin drafts, short of what WhatsApp itself allows. */
 const Draft = Type.String({ minLength: 1, maxLength: 4096 });
 
@@ -116,6 +155,7 @@ export function hostMethods(
     'settings.get': { params: Type.Tuple([]), run: () => Promise.resolve(plugin.settings()) },
     ...notifications(plugin, services),
     ...secrets(plugin, services),
+    ...storage(services),
     ...composer(services),
   };
 }
