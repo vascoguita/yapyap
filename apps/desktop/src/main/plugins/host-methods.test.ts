@@ -1,8 +1,12 @@
 import { Value } from 'typebox/value';
 import { describe, expect, it, vi } from 'vitest';
-import { hostMethods } from './host-methods.ts';
+import { hostMethods, type CallingPlugin } from './host-methods.ts';
 
-const HELLO = { id: 'org.example.hello', name: 'Hello' };
+const HELLO: CallingPlugin = {
+  id: 'org.example.hello',
+  name: 'Hello',
+  settings: () => ({ model: 'small' }),
+};
 
 function services() {
   const stored = new Map<string, string>();
@@ -62,7 +66,7 @@ describe('notifications.show', () => {
 describe('secrets', () => {
   it('keeps each plugin’s secrets under its own ID, behind secrets:own', async () => {
     const given = services();
-    const other = { id: 'org.example.other', name: 'Other' };
+    const other = { id: 'org.example.other', name: 'Other', settings: () => ({}) };
     for (const name of ['secrets.get', 'secrets.set', 'secrets.delete']) {
       expect(method(name).capability).toBe('secrets:own');
     }
@@ -118,9 +122,20 @@ describe('composer.insertDraft', () => {
   });
 });
 
+describe('settings.get', () => {
+  it('gives the plugin its own settings, without a grant, and takes nothing', async () => {
+    const get = method('settings.get');
+    expect(get.capability).toBeUndefined();
+    await expect(get.run([])).resolves.toEqual({ model: 'small' });
+    expect(accepts('settings.get', [])).toBe(true);
+    expect(accepts('settings.get', ['other.plugin'])).toBe(false);
+  });
+});
+
 describe('hostMethods', () => {
   it('offers no way to send a message', () => {
     expect(Object.keys(hostMethods(HELLO, services()))).toEqual([
+      'settings.get',
       'notifications.show',
       'secrets.get',
       'secrets.set',

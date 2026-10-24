@@ -35,6 +35,14 @@ const PluginRecordSchema = Type.Object(
     hosts: ManifestSchema.properties.network.properties.hosts,
     /** Capabilities and `network:<host>` grants the user took back from the whole plugin (#94). */
     revoked: Type.Optional(Revocations),
+    /** What the user filled in the plugin's settings form (#98). */
+    settings: Type.Optional(
+      Type.Record(
+        Type.String({ maxLength: 64 }),
+        Type.Union([Type.String({ maxLength: 1000 }), Type.Number(), Type.Boolean()]),
+        { maxProperties: 32 },
+      ),
+    ),
     /** Account capabilities the user took back for one account, by account ID. */
     revokedIn: Type.Optional(
       Type.Record(Type.String({ pattern: ACCOUNT_ID }), Revocations, { maxProperties: 32 }),

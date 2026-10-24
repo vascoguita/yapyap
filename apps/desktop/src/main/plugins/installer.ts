@@ -48,7 +48,7 @@ export async function prepareInstall(options: PrepareOptions): Promise<PreparedI
 /** Approving an install grants everything it asked for, and nothing it did not. */
 /**
  * The record of an install. An update keeps the grants the user took back
- * (#94); hosts are the new version's own, so one it dropped is gone, and
+ * (#94) and the settings they saved (#98); hosts are the new version's own, so one it dropped is gone, and
  * one allowed only at run time is asked about again (#95).
  */
 function recordOf(request: InstallRequest, previous: PluginRecord | undefined): PluginRecord {
@@ -62,6 +62,7 @@ function recordOf(request: InstallRequest, previous: PluginRecord | undefined): 
     hosts: [...request.hosts],
     ...(previous?.revoked === undefined ? {} : { revoked: previous.revoked }),
     ...(previous?.revokedIn === undefined ? {} : { revokedIn: previous.revokedIn }),
+    ...(previous?.settings === undefined ? {} : { settings: previous.settings }),
   };
 }
 

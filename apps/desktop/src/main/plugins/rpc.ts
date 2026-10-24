@@ -4,8 +4,8 @@ import { Value } from 'typebox/value';
 
 /** One host operation a plugin may call, and what it needs. */
 export interface RpcMethod {
-  /** The manifest capability the plugin must hold. */
-  readonly capability: string;
+  /** The manifest capability the plugin must hold; none for what is the plugin's own. */
+  readonly capability?: string;
   /** The call's parameters, as a tuple. */
   readonly params: TSchema;
   readonly run: (params: readonly unknown[]) => Promise<unknown>;
@@ -94,7 +94,7 @@ async function dispatch(
   if (method === undefined || !Value.Check(method.params, message.params)) {
     throw new RpcFailure('invalid', 'The call does not match the API.');
   }
-  if (!granted(method.capability)) {
+  if (method.capability !== undefined && !granted(method.capability)) {
     throw new RpcFailure('not-granted', `The plugin does not hold ${method.capability}.`);
   }
   if (!take()) {
@@ -139,7 +139,7 @@ export function servePluginRpc(
     }
     const offered = Object.hasOwn(methods, data.method) ? methods[data.method] : undefined;
     const report = (outcome: AuditedCall['outcome']): void => {
-      if (offered !== undefined) {
+      if (offered?.capability !== undefined) {
         audit({ method: data.method, capability: offered.capability, outcome });
       }
     };

@@ -11,6 +11,8 @@ export {
   type PluginErrorKind,
   type PluginHost,
   type SecretsApi,
+  type SettingsApi,
+  type SettingValue,
   type StorageApi,
   type UnreadChat,
 } from './api.ts';

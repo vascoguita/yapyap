@@ -119,7 +119,7 @@ describe('prepareInstall and commitInstall', () => {
     expect(imposter.decision.kind).toBe('rejected');
   });
 
-  it('keeps the grants the user took back across an update', async () => {
+  it('keeps the grants the user took back and their settings across an update', async () => {
     await install(AUTHOR);
     const account = '6f1c2a5e-0b1d-4c8e-9a3f-2d4b6c8e0a1b';
     const before = await loadRecords(root);
@@ -133,6 +133,7 @@ describe('prepareInstall and commitInstall', () => {
         ...record,
         revoked: ['network:api.example.org'],
         revokedIn: { [account]: ['composer:insert-draft'] },
+        settings: { model: 'small' },
       }),
     );
     const update = await prepare(
@@ -143,6 +144,7 @@ describe('prepareInstall and commitInstall', () => {
       version: '1.1.0',
       revoked: ['network:api.example.org'],
       revokedIn: { [account]: ['composer:insert-draft'] },
+      settings: { model: 'small' },
     });
   });
 

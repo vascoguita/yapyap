@@ -86,6 +86,19 @@ export interface SecretsApi {
   readonly delete: (name: string) => Promise<void>;
 }
 
+/** A setting's value, as the settings form in the manifest allows it. */
+export type SettingValue = string | number | boolean;
+
+/** The plugin's settings, which the user fills in the form the manifest declares. */
+export interface SettingsApi {
+  /**
+   * The values the user saved, keyed by the setting's name in
+   * `contributes.settings`. A setting the user never saved is missing, so
+   * the plugin uses its own default. Needs no capability.
+   */
+  readonly get: () => Promise<Readonly<Record<string, SettingValue>>>;
+}
+
 /** Commands contributed in the manifest. */
 export interface CommandsApi {
   /** Runs `handler` when the user picks the command with this manifest `id`. */
@@ -106,6 +119,8 @@ export interface PluginHost {
   readonly secrets: SecretsApi;
   /** Contributed commands. */
   readonly commands: CommandsApi;
+  /** The plugin's own settings. */
+  readonly settings: SettingsApi;
 }
 
 /** What a plugin's entry module exports as its default. */

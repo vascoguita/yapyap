@@ -184,6 +184,13 @@ port, and the bootstrap runs the handler the plugin registered with
 `commands.onRun`; a handler that fails affects only itself. Only commands
 the manifest declares can be sent.
 
+The settings form is the second (#98): YapYap renders only a plain object
+of `string`, `number`, `integer` and `boolean` fields with titles,
+descriptions, choices and bounds, so a plugin cannot shape YapYap's window
+beyond labels and simple inputs. Values are checked against the form when
+saved and again when the plugin reads them with `settings.get`, which needs
+no capability because the user filled them in for that plugin.
+
 ### Audit log
 
 Each capability use appends `{ time, pluginId, accountId, capability, method,

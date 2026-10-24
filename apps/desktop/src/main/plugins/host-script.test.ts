@@ -134,6 +134,7 @@ describe('hostApi', () => {
     await api.secrets.get('s');
     await api.secrets.set('s', 'v');
     await api.secrets.delete('s');
+    await api.settings.get();
     const translate = vi.fn();
     api.commands.onRun('translate', translate);
     expect(commands.get('translate')).toBe(translate);
@@ -148,6 +149,7 @@ describe('hostApi', () => {
       ['secrets.get', 's'],
       ['secrets.set', 's', 'v'],
       ['secrets.delete', 's'],
+      ['settings.get'],
     ]);
   });
 });

@@ -58,6 +58,8 @@ function pluginsBridge(invoke: Invoke): ChromeApi['plugins'] {
     answer: async (install, acknowledged) => {
       await invoke(CHROME_CHANNELS.pluginsAnswer, install, acknowledged);
     },
+    setSetting: (id, key, value) =>
+      invoke(CHROME_CHANNELS.pluginsSetSetting, id, key, value) as Promise<PluginList>,
     setGrant: (id, capability, account, granted) =>
       invoke(
         CHROME_CHANNELS.pluginsSetGrant,
