@@ -13,6 +13,7 @@ import type { ContextMenuItem, ContextMenuParams } from './spelling/context-menu
 import type { ProxyLoginAnswer } from '../shared/chrome-api.ts';
 import { WHATSAPP_ORIGIN } from './whatsapp-origin.ts';
 import type { WindowOptions } from './windows.ts';
+import type { PluginAction } from './plugins/runtime.ts';
 
 type Listener = (...args: never[]) => void;
 
@@ -32,6 +33,7 @@ function fakeContents() {
     focus: vi.fn(),
     setWindowOpenHandler: vi.fn(),
     setZoomFactor: vi.fn(),
+    getZoomFactor: () => 1,
     loadURL: vi.fn(() => Promise.resolve()),
     executeJavaScriptInIsolatedWorld: vi.fn((): Promise<unknown> => Promise.resolve()),
     reload: vi.fn(),
@@ -142,6 +144,8 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     }),
     panel,
     attachQuickPanel: vi.fn<(owner: PanelOwner) => typeof panel>(() => panel),
+    pluginActions: vi.fn<() => readonly PluginAction[]>(() => []),
+    runPluginCommand: vi.fn(() => true),
   };
   const createSidebar = vi.fn(() => ({
     webContents: { loadURL: vi.fn(() => Promise.resolve()), send: vi.fn() },
@@ -1232,6 +1236,8 @@ describe('startApp', () => {
 
   describe('the context menu', () => {
     const misspelled: ContextMenuParams = {
+      x: 10,
+      y: 20,
       isEditable: true,
       selectionText: '',
       misspelledWord: 'helo',
@@ -1242,6 +1248,9 @@ describe('startApp', () => {
     async function rightClick(f: ReturnType<typeof fakes>): Promise<ContextMenuItem[]> {
       await startApp(f);
       f.web.fire('context-menu', {}, misspelled);
+      await vi.waitFor(() => {
+        expect(f.contextMenu).toHaveBeenCalled();
+      });
       const [items] = f.contextMenu.mock.lastCall as [ContextMenuItem[]];
       return items;
     }
@@ -1257,6 +1266,27 @@ describe('startApp', () => {
       );
       items.at(-1)?.click?.();
       expect(f.runtime.openSettings).toHaveBeenCalledOnce();
+    });
+
+    it('adds the running plugins’ items for where the user clicked, and runs the one picked', async () => {
+      const f = fakes();
+      f.runtime.pluginActions.mockReturnValue([
+        {
+          plugin: 'org.example.hello',
+          pluginName: 'Hello',
+          command: 'fix',
+          title: 'Fix',
+          on: 'composer',
+        },
+      ]);
+      f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValue('composer');
+      const items = await rightClick(f);
+      expect(items.at(-1)?.label).toBe('Hello: Fix');
+      items.at(-1)?.click?.();
+      expect(f.runtime.runPluginCommand).toHaveBeenCalledExactlyOnceWith(
+        'org.example.hello',
+        'fix',
+      );
     });
 
     it('turns spell checking off at once, and opens the languages', async () => {

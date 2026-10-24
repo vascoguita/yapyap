@@ -96,10 +96,24 @@ export interface PluginRuntime {
   readonly regrant: (id: string) => Promise<void>;
   /** The running plugins' commands, for the menu (#98). */
   readonly commands: () => readonly PluginCommand[];
+  /** The running plugins' composer actions and context-menu items, for right clicks (#98). */
+  readonly actions: () => readonly PluginAction[];
   /** Runs a command the user picked; false when its plugin is not ready for it. */
   readonly runCommand: (plugin: string, command: string) => boolean;
   /** Calls `listener` whenever plugins start or stop. */
   readonly onChange: (listener: () => void) => void;
+}
+
+/** Where a plugin's menu item shows: the message box, a message, or a chat in the list. */
+type PluginActionPlace = 'composer' | 'message' | 'chat';
+
+/** A menu item a running plugin adds to right clicks, running one of its commands. */
+export interface PluginAction {
+  readonly plugin: string;
+  readonly pluginName: string;
+  readonly command: string;
+  readonly title: string;
+  readonly on: PluginActionPlace;
 }
 
 /** A command a running plugin offers. */
@@ -176,6 +190,7 @@ interface RunningPlugin {
   readonly host: PluginHost;
   readonly name: string;
   readonly commands: readonly { readonly id: string; readonly title: string }[];
+  readonly actions: readonly Omit<PluginAction, 'plugin' | 'pluginName'>[];
   port?: RpcPort;
 }
 
@@ -250,6 +265,7 @@ async function start(
     host,
     name: manifest.name,
     commands: manifest.contributes?.commands ?? [],
+    actions: actionsOf(manifest),
   };
   state.hosts.set(record.id, running);
   changed(state);
@@ -298,6 +314,30 @@ function commandsOf(state: RuntimeState): PluginCommand[] {
   );
 }
 
+/**
+ * A plugin's composer actions and context-menu items, keeping only those
+ * that name a command it declares, since only those can run.
+ */
+function actionsOf(manifest: Manifest): RunningPlugin['actions'] {
+  const contributes = manifest.contributes;
+  const declared = new Set((contributes?.commands ?? []).map(({ id }) => id));
+  const items = [
+    ...(contributes?.composerActions ?? []).map((action) => ({
+      ...action,
+      on: 'composer' as const,
+    })),
+    ...(contributes?.contextMenu ?? []),
+  ];
+  return items.filter(({ command }) => declared.has(command));
+}
+
+/** The menu items of the plugins that run, in the order they started. */
+function pluginActionsOf(state: RuntimeState): PluginAction[] {
+  return [...state.hosts].flatMap(([plugin, { name, actions }]) =>
+    actions.map((action) => ({ ...action, plugin, pluginName: name })),
+  );
+}
+
 /** Asks a running plugin to run one of the commands it declared; false when it cannot. */
 function runCommand(state: RuntimeState, plugin: string, command: string): boolean {
   const running = state.hosts.get(plugin);
@@ -314,6 +354,20 @@ function processesOf(state: RuntimeState): PluginProcess[] {
     name,
     pid: host.webContents.getOSProcessId(),
   }));
+}
+
+/** What YapYap's menus show of the running plugins, and how they run a command. */
+function contributionsOf(
+  state: RuntimeState,
+): Pick<PluginRuntime, 'commands' | 'actions' | 'runCommand' | 'onChange'> {
+  return {
+    commands: () => commandsOf(state),
+    actions: () => pluginActionsOf(state),
+    runCommand: (plugin, command) => runCommand(state, plugin, command),
+    onChange: (listener) => {
+      state.listeners.add(listener);
+    },
+  };
 }
 
 /**
@@ -342,11 +396,7 @@ export function createPluginRuntime(deps: PluginRuntimeDependencies): PluginRunt
     stop: (id) => {
       stopPlugin(state, id);
     },
-    commands: () => commandsOf(state),
-    runCommand: (plugin, command) => runCommand(state, plugin, command),
-    onChange: (listener) => {
-      state.listeners.add(listener);
-    },
+    ...contributionsOf(state),
     regrant: (id) => regrant(deps.root, state, id),
   };
   guardPluginResources({

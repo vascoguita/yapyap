@@ -1,25 +1,8 @@
-import type { ElectronApplication } from '@playwright/test';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { SETTINGS_VERSION } from '../src/main/settings/schema.ts';
 import { closeApp, expect, launchApp, test, whatsAppPage } from './fixtures.ts';
-
-/** Records each context menu instead of showing it, which Playwright cannot see. */
-const recordMenus = (app: ElectronApplication) =>
-  app.evaluate(({ Menu }) => {
-    const shown: Electron.Menu[] = [];
-    Object.assign(globalThis, { shownMenus: shown });
-    Menu.prototype.popup = function record(this: Electron.Menu) {
-      shown.push(this);
-    };
-  });
-
-const lastMenu = (app: ElectronApplication): Promise<string[] | undefined> =>
-  app.evaluate(() =>
-    (globalThis as unknown as { shownMenus: Electron.Menu[] }).shownMenus
-      .at(-1)
-      ?.items.map((item) => item.label),
-  );
+import { clickLastItem, lastMenu, recordMenus, shownMenus } from './menu-helpers.ts';
 
 test('offers editing on a right click in the message box, and leads to Settings for spelling', async ({
   app,
@@ -31,12 +14,7 @@ test('offers editing on a right click in the message box, and leads to Settings 
     .poll(() => lastMenu(app))
     .toEqual(['Cut', 'Copy', 'Paste', '', 'Select All', '', 'Check Spelling…']);
   const opened = app.waitForEvent('window');
-  await app.evaluate(() => {
-    (globalThis as unknown as { shownMenus: Electron.Menu[] }).shownMenus
-      .at(-1)
-      ?.items.at(-1)
-      ?.click();
-  });
+  await clickLastItem(app);
   const settings = await opened;
   await settings.waitForURL('app://chrome/settings.html');
   await expect(settings.getByRole('checkbox', { name: 'Check spelling' })).not.toBeChecked();
@@ -51,10 +29,7 @@ test('shows no menu where there is nothing to edit or copy', async ({ app, windo
   await window.getByTestId('fake-whatsapp').click({ button: 'right', position: { x: 2, y: 2 } });
   await window.getByTestId('composer').click({ button: 'right' });
   await expect.poll(() => lastMenu(app)).toBeDefined();
-  const count = await app.evaluate(
-    () => (globalThis as unknown as { shownMenus: Electron.Menu[] }).shownMenus.length,
-  );
-  expect(count).toBe(1);
+  expect(await shownMenus(app)).toBe(1);
 });
 
 test('picks spelling languages from a searchable list', async ({ fakeWhatsApp, profile }) => {

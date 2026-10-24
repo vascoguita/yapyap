@@ -207,6 +207,8 @@ export interface PluginChrome {
   readonly commands: PluginRuntime['commands'];
   readonly runCommand: PluginRuntime['runCommand'];
   readonly onCommandsChange: PluginRuntime['onChange'];
+  /** The running plugins' right-click items (#98). */
+  readonly actions: PluginRuntime['actions'];
 }
 
 /** The consent window, as the consent prompt drives it. */
@@ -278,5 +280,6 @@ export function createPluginChrome(
     commands: runtime.commands,
     runCommand: runtime.runCommand,
     onCommandsChange: runtime.onChange,
+    actions: runtime.actions,
   };
 }

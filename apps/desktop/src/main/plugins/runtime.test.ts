@@ -348,6 +348,41 @@ describe('createPluginRuntime', () => {
     expect(t.runtime.commands()).toEqual([]);
   });
 
+  it('lists the running plugins’ right-click items, only for commands they declare', async () => {
+    const contributes = {
+      commands: [{ id: 'translate', title: 'Translate draft' }],
+      composerActions: [
+        { title: 'Translate', command: 'translate' },
+        { title: 'Missing', command: 'missing' },
+      ],
+      contextMenu: [
+        { title: 'Explain', command: 'translate', on: 'message' },
+        { title: 'Summarize', command: 'translate', on: 'chat' },
+        { title: 'Undeclared', command: 'missing', on: 'chat' },
+      ],
+    };
+    await install(record(), { ...MANIFEST, contributes });
+    await saveRecords(root, new Map([['org.example.hello', record()]]));
+    const t = setup();
+    await t.runtime.startAll();
+    const item = { plugin: 'org.example.hello', pluginName: 'Hello', command: 'translate' };
+    expect(t.runtime.actions()).toEqual([
+      { ...item, title: 'Translate', on: 'composer' },
+      { ...item, title: 'Explain', on: 'message' },
+      { ...item, title: 'Summarize', on: 'chat' },
+    ]);
+    t.runtime.stop('org.example.hello');
+    expect(t.runtime.actions()).toEqual([]);
+  });
+
+  it('lists no right-click items for a plugin that contributes none', async () => {
+    await install(record());
+    await saveRecords(root, new Map([['org.example.hello', record()]]));
+    const t = setup();
+    await t.runtime.startAll();
+    expect(t.runtime.actions()).toEqual([]);
+  });
+
   it('starts an updated plugin again on the same session, from its new folder', async () => {
     await install(record());
     await saveRecords(root, new Map([['org.example.hello', record()]]));
