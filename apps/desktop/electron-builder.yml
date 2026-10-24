@@ -79,6 +79,13 @@ mac:
   icon: build/icon.png
   category: public.app-category.social-networking
   hardenedRuntime: true
+  # Library validation stays on: YapYap loads no code signed by anyone else.
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  # macOS shows these when it asks for the microphone and camera (#78).
+  extendInfo:
+    NSMicrophoneUsageDescription: WhatsApp calls and voice messages use your microphone.
+    NSCameraUsageDescription: WhatsApp video calls use your camera.
   target:
     - target: dmg
       arch: universal
