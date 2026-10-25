@@ -11,6 +11,11 @@ page for accessibility, and its zoom setting scales it.
   against the WCAG 2.0, 2.1 and 2.2 A and AA rules. Any violation fails the
   build. A further test plants an unlabelled button to prove the check
   catches one.
+- **Keyboard**: on every chrome page that opens from the menu, a test
+  presses Tab round the whole page and fails if a control is never reached
+  or shows no focus ring, outline or shadow when it is. A radio group counts
+  as one stop, as the arrow keys move within it. A planted button with its
+  focus hidden proves the check catches one.
 - **Lint** rejects literal UI text, so every label, title and description
   comes from the message catalog and is translated with the rest.
 - **Reduced motion**: a test checks that transitions stop when the system
