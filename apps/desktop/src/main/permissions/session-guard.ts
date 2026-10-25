@@ -199,19 +199,19 @@ function requestHandler(deps: SessionGuardDependencies, grants: Grants, shares: 
   };
 }
 
-function checkHandler(deps: SessionGuardDependencies, grants: Grants) {
-  return (
-    contents: object | null,
-    permission: string,
-    requestingOrigin: string,
-    details: CheckDetails,
-  ): boolean => {
+/**
+ * A check grants nothing, but Electron reports a refused check to the page
+ * as `denied`, never as "not asked yet". WhatsApp checks the microphone and
+ * camera before a call and, finding them denied, never asks, so the user
+ * gets no prompt at all. What the user is asked about therefore checks as
+ * allowed, and the request that follows asks them, as it always did.
+ */
+function checkHandler(deps: SessionGuardDependencies) {
+  return (contents: object | null, permission: string, requestingOrigin: string): boolean => {
     const view = viewOf(deps, contents);
-    const decision = decidePermission(view?.zone, permission, requestingOrigin === view?.home);
-    if (decision !== 'ask' || view === undefined) {
-      return decision === 'allow';
-    }
-    return grants.has(grantKey(view, details.mediaType ?? 'unknown'));
+    // Electron passes the origin with a trailing slash, so it never equals the home as text.
+    const fromHome = isSameOrigin(requestingOrigin, view?.home);
+    return decidePermission(view?.zone, permission, fromHome) !== 'deny';
   };
 }
 
@@ -277,7 +277,7 @@ export function guardSession(
   const grants: Grants = new Set();
   const shares: Shares = new WeakMap();
   session.setPermissionRequestHandler(requestHandler(deps, grants, shares));
-  session.setPermissionCheckHandler(checkHandler(deps, grants));
+  session.setPermissionCheckHandler(checkHandler(deps));
   session.setDevicePermissionHandler(() => false);
   session.setDisplayMediaRequestHandler(displayMediaHandler(deps, shares), {
     useSystemPicker: deps.capture.useSystemPicker,

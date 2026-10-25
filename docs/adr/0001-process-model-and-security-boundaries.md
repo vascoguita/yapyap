@@ -98,8 +98,12 @@ and an ESLint restriction forbids constructing `BrowserWindow` or
   own origin only, gets `notifications`, `clipboard-sanitized-write`,
   `fullscreen`, `speaker-selection` (so calls can use the chosen output
   device) and `media`. `media` asks first, naming the account, and the answer
-  lasts until the app quits. Chrome and plugin zones get nothing, and neither
-  do web contents YapYap did not create.
+  lasts until the app quits. Its permission check answers yes, since
+  Electron reports a refused check as `denied` and WhatsApp then never asks
+  (C30); the request still asks. Checks compare origins with
+  `isSameOrigin`, as Electron passes them with a trailing slash. Chrome and
+  plugin zones get nothing, and neither do web contents YapYap did not
+  create.
 - Downloads from WhatsApp are saved straight into the real downloads folder
   (resolved through symlinks), under a name stripped of path parts,
   characters Windows forbids, reserved device names and leading dots. An

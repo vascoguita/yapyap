@@ -87,3 +87,42 @@ test('gives a call the microphone with echo cancellation, noise suppression and 
   ]);
   await closeApp(app);
 });
+
+test('lets WhatsApp ask for the microphone and camera instead of finding them denied', async ({
+  fakeWhatsApp,
+  profile,
+}) => {
+  const app = await launchApp(fakeWhatsApp.origin, profile, ['--use-fake-device-for-media-stream']);
+  const page = await whatsAppPage(app);
+  await expect(page.getByTestId('fake-whatsapp')).toBeVisible();
+  // WhatsApp checks the permission before a call, and asks only if it is not denied.
+  const states = await page.evaluate(async () =>
+    Promise.all(
+      (['microphone', 'camera'] as const).map(
+        async (name) => (await navigator.permissions.query({ name })).state,
+      ),
+    ),
+  );
+  expect(states).not.toContain('denied');
+  // The check grants nothing: the call still asks the user, who can refuse.
+  await app.evaluate(({ dialog, systemPreferences }) => {
+    const asked: string[] = [];
+    Object.assign(globalThis, { mediaPrompts: asked });
+    dialog.showMessageBox = (options: unknown) => {
+      asked.push((options as { message: string }).message);
+      return Promise.resolve({ response: 1, checkboxChecked: false });
+    };
+    systemPreferences.askForMediaAccess = () => Promise.resolve(true);
+  });
+  const refused = await page.evaluate(() =>
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(
+      () => 'granted',
+      (error: unknown) => (error instanceof DOMException ? error.name : 'error'),
+    ),
+  );
+  expect(refused).toBe('NotAllowedError');
+  expect(
+    await app.evaluate(() => (globalThis as { mediaPrompts?: string[] }).mediaPrompts?.length),
+  ).toBe(1);
+  await closeApp(app);
+});
