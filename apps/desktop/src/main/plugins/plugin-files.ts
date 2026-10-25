@@ -97,9 +97,8 @@ function yapyapFile(pathname: string, source: PluginSource): Response | undefine
       return respond(hostScript(source.entry), JAVASCRIPT);
     case PANEL_PAGE_PATH:
       return source.panel === undefined ? notFound() : respond(panelPage(source.panel), HTML);
-    default:
-      return undefined;
   }
+  return undefined;
 }
 
 /** Where a running plugin's files are, and the module it starts from. */
