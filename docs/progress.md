@@ -820,6 +820,8 @@ not edit the same lines.
   stops the plugin, clears its sessions, deletes its record, files,
   key-value store and secrets, and keeps its audit entries. Proxy login and
   startup now take only the secret operations they use.
+  The plugin guide tells authors that removal deletes what a plugin kept,
+  and that `local-network` lets `fetch` reach this computer.
 
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
