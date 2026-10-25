@@ -1,3 +1,5 @@
+import { languageName, rewriteStyle, type RewriteStyle } from './rewrites.ts';
+
 /**
  * The panel and the plugin's hidden page share an origin, so they talk over
  * a BroadcastChannel. Only the hidden page holds YapYap's host API; the
@@ -32,7 +34,12 @@ export type Update =
   | AssistantState
   | Preview
   | { readonly type: 'progress'; readonly text: string }
-  | { readonly type: 'suggestions'; readonly items: readonly string[] }
+  | {
+      readonly type: 'suggestions';
+      readonly items: readonly string[];
+      /** A rewrite, which takes the draft's place, rather than replies to add to it. */
+      readonly replace: boolean;
+    }
   | { readonly type: 'used' }
   | { readonly type: 'problem'; readonly reason: string };
 
@@ -41,6 +48,7 @@ export type PanelRequest =
   | { readonly type: 'save-key'; readonly key: string }
   | { readonly type: 'forget-key' }
   | { readonly type: 'prepare' }
+  | { readonly type: 'prepare-rewrite'; readonly style: RewriteStyle; readonly language: string }
   | { readonly type: 'allow-chat'; readonly allowed: boolean }
   | { readonly type: 'send' }
   | { readonly type: 'cancel' }
@@ -56,9 +64,19 @@ function saveKey(key: unknown): PanelRequest | undefined {
   return valid ? { type: 'save-key', key: key.trim() } : undefined;
 }
 
+/** A rewrite request; a translation needs a language, the other styles none. */
+function prepareRewrite(style: unknown, language: unknown): PanelRequest | undefined {
+  const known = rewriteStyle(style);
+  const name = languageName(language);
+  if (known === undefined || (known === 'translate' && name === undefined)) {
+    return undefined;
+  }
+  return { type: 'prepare-rewrite', style: known, language: name ?? '' };
+}
+
 /** A request from the panel, or undefined for anything else. */
 export function panelRequest(data: unknown): PanelRequest | undefined {
-  const { type, key, allowed, index } = Object(data) as Record<string, unknown>;
+  const { type, key, allowed, index, style, language } = Object(data) as Record<string, unknown>;
   if (SIMPLE.has(type)) {
     return { type } as PanelRequest;
   }
@@ -69,6 +87,8 @@ export function panelRequest(data: unknown): PanelRequest | undefined {
       return typeof allowed === 'boolean' ? { type, allowed } : undefined;
     case 'use':
       return Number.isInteger(index) ? { type, index: index as number } : undefined;
+    case 'prepare-rewrite':
+      return prepareRewrite(style, language);
     default:
       return undefined;
   }
@@ -103,7 +123,10 @@ const NEWS: Readonly<Record<string, (fields: Record<string, unknown>) => Update 
   preview,
   state: assistantState,
   progress: ({ text }) => (typeof text === 'string' ? { type: 'progress', text } : undefined),
-  suggestions: ({ items }) => (strings(items) ? { type: 'suggestions', items } : undefined),
+  suggestions: ({ items, replace }) =>
+    strings(items) && typeof replace === 'boolean'
+      ? { type: 'suggestions', replace, items }
+      : undefined,
   used: () => ({ type: 'used' }),
   problem: ({ reason }) => (typeof reason === 'string' ? { type: 'problem', reason } : undefined),
 };

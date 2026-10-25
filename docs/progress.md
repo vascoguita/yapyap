@@ -611,6 +611,15 @@ not edit the same lines.
   `composer:insert-draft`, selects the composer's text and types over it.
   ADR 0008 C28 explains the separate grant.
 
+- Draft rewriting (#105, last part): the assistant's panel gains **Rewrite
+  my draft**: a style (friendlier, more formal, shorter, or a translation
+  into a named language), then the same consent and exact preview as
+  replies, now showing the instructions and the draft read with
+  `composer.readDraft`. The rewrite replaces the draft through
+  `composer.replaceDraft`; the flow keeps a plan (replies or rewrite) that
+  decides what is sent and whether the pick is added or replaces. The
+  manifest asks for `composer:read-draft`.
+
 - Account budgets (#109, first part): `bench/accounts.spec.ts` measures the
   memory a second account adds and the CPU a hidden account uses while
   idle, from cumulative CPU time, and the nightly run holds them to budgets

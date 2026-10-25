@@ -51,7 +51,9 @@ function run(
 ): Promise<unknown> {
   switch (request.type) {
     case 'prepare':
-      return flow.prepare();
+      return flow.prepare({ mode: 'replies' });
+    case 'prepare-rewrite':
+      return flow.prepare({ mode: 'rewrite', style: request.style, language: request.language });
     case 'allow-chat':
       return flow.allow(request.allowed);
     case 'send':

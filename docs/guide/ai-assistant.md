@@ -58,6 +58,18 @@ never shows the key again; **Forget key** removes it.
 5. Pick one of the suggested replies. It goes into the message box as a
    draft; edit it and send it yourself, or delete it.
 
+## Rewrite your draft
+
+1. Type a message in WhatsApp's message box, without sending it.
+2. In the panel, under **Rewrite my draft**, choose a **Style**:
+   **Friendlier**, **More formal**, **Shorter**, or **Translate** into the
+   **Language** you type.
+3. Choose **Rewrite my draft**. As with replies, the assistant must be
+   allowed in the chat, and the panel shows exactly what will be sent: the
+   instructions and your draft.
+4. **Send**, then pick the rewrite to put it in place of your draft. Edit
+   it and send it yourself, or undo with your keyboard's undo shortcut.
+
 ## What the assistant can do
 
 When you install it, YapYap shows everything the assistant asks for, and
@@ -65,7 +77,8 @@ you can take any of it back later in **Plugins…**, for every account or
 just one:
 
 - read the open chat, but only when you ask it to look at it;
-- write drafts in the message box, which you send yourself;
+- read your draft in the message box, but only when you ask it to rewrite it;
+- write drafts in the message box, or replace yours with a rewrite, which you send yourself;
 - keep its own encrypted secrets (your key) and storage (the chats you
   allowed);
 - reach `api.anthropic.com` and `api.openai.com`, and, if you set one, your

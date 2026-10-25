@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { INSTRUCTIONS, replyRequest, suggestionsIn, transcriptOf } from './replies.ts';
+import { INSTRUCTIONS, requestFor, suggestionsIn, transcriptOf } from './replies.ts';
 
 describe('transcriptOf', () => {
   it('writes the chat’s last messages, marking whose each is', () => {
@@ -16,16 +16,16 @@ describe('transcriptOf', () => {
   });
 });
 
-describe('replyRequest', () => {
+describe('requestFor', () => {
   it('asks for three replies, one per line, with the transcript as the user’s turn', () => {
     expect(INSTRUCTIONS).toContain('Suggest 3 short, different replies');
     expect(INSTRUCTIONS).toContain('one reply per line');
-    expect(replyRequest('Chat: x')).toEqual({
+    expect(requestFor(INSTRUCTIONS, 'Chat: x')).toEqual({
       instructions: INSTRUCTIONS,
       turns: [{ role: 'user', text: 'Chat: x' }],
     });
     const signal = new AbortController().signal;
-    expect(replyRequest('Chat: x', signal).signal).toBe(signal);
+    expect(requestFor(INSTRUCTIONS, 'Chat: x', signal).signal).toBe(signal);
   });
 });
 

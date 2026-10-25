@@ -23,11 +23,15 @@ export function transcriptOf(chat: ActiveChat, context: number): string {
   return [`Chat: ${chat.name}`, ...lines].join('\n');
 }
 
-/** The request for reply suggestions, from what the panel showed. */
-export function replyRequest(transcript: string, signal?: AbortSignal): CompletionRequest {
+/** The request for exactly what the panel showed: the instructions, and the text as the user's turn. */
+export function requestFor(
+  instructions: string,
+  text: string,
+  signal?: AbortSignal,
+): CompletionRequest {
   return {
-    instructions: INSTRUCTIONS,
-    turns: [{ role: 'user', text: transcript }],
+    instructions,
+    turns: [{ role: 'user', text }],
     ...(signal === undefined ? {} : { signal }),
   };
 }
