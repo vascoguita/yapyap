@@ -3,7 +3,7 @@ import { assistantState, panelRequest, update } from './bus.ts';
 
 describe('panelRequest', () => {
   it('takes the panel’s requests, with a trimmed key, and nothing else', () => {
-    for (const type of ['state?', 'forget-key', 'prepare', 'send', 'cancel']) {
+    for (const type of ['state?', 'forget-key', 'prepare', 'prepare-summary', 'send', 'cancel']) {
       expect(panelRequest({ type, extra: 1 })).toEqual({ type });
     }
     expect(panelRequest({ type: 'save-key', key: ' sk-1 ' })).toEqual({
@@ -69,6 +69,7 @@ describe('update', () => {
       { type: 'progress', text: 'Hi' },
       { replace: false, type: 'suggestions', items: ['a', 'b'] },
       { type: 'used' },
+      { type: 'summary', text: '- Lunch at 1' },
       { type: 'problem', reason: 'auth' },
     ];
     for (const item of news) {
@@ -84,6 +85,7 @@ describe('update', () => {
       { type: 'suggestions', items: ['a'] },
       { replace: true, type: 'suggestions', items: 'a' },
       { type: 'problem' },
+      { type: 'summary', text: 7 },
       { type: 'other' },
       null,
     ]) {

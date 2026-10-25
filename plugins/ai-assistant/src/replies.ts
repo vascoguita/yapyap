@@ -11,6 +11,13 @@ export const INSTRUCTIONS = [
   'Write one reply per line, with no numbering, quotes or other text.',
 ].join(' ');
 
+/** What the model is asked for a summary of the chat (#106), shown before it is sent. */
+export const SUMMARY_INSTRUCTIONS = [
+  'Summarize this WhatsApp chat for the person reading it, in a few short bullet points:',
+  'what was said, and anything they are asked to answer or do.',
+  'Write in the language of the chat, and add nothing that is not in it.',
+].join(' ');
+
 /**
  * The chat as the model reads it: the last `context` messages, each marked
  * as the user's or the other side's. This text, with the instructions, is

@@ -195,6 +195,7 @@ function repliesSection(doc: Document, port: Port) {
   section.append(
     element(doc, 'h2', { textContent: 'Suggest replies' }),
     asking(doc, port, 'Look at this chat', { type: 'prepare' }),
+    asking(doc, port, 'Summarize this chat', { type: 'prepare-summary' }),
     ...rewriteForm(doc, port),
     output,
   );
@@ -229,6 +230,12 @@ function handlersFor(
     },
     suggestions: (news) => {
       replies.show(...suggestionsOf(doc, port, news.items, news.replace));
+    },
+    summary: (news) => {
+      replies.show(
+        say('Summary, for you alone; nothing of it goes to the chat:'),
+        element(doc, 'pre', { id: 'summary', textContent: news.text }),
+      );
     },
     used: () => {
       replies.show(say('It is in the message box. Edit it and send it yourself.'));

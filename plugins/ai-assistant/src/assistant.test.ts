@@ -174,4 +174,18 @@ describe('servePanel', () => {
     });
     expect(sent.at(-1)).toMatchObject({ type: 'preview', allowed: true, transcript: 'see u' });
   });
+
+  it('prepares a summary of the chat when the panel asks for one', async () => {
+    const chat = { name: 'Team', group: false, messages: [{ outgoing: false, text: 'Lunch?' }] };
+    const { host } = fakeHost({ chat });
+    const ends = fakeChannel();
+    const { channel, sent } = ends;
+    await serve(host, ends);
+    channel.send({ type: 'prepare-summary' });
+    channel.send({ type: 'allow-chat', allowed: true });
+    await vi.waitFor(() => {
+      expect(sent).toHaveLength(2);
+    });
+    expect(sent.at(-1)).toMatchObject({ type: 'preview', transcript: 'Chat: Team\nThem: Lunch?' });
+  });
 });
