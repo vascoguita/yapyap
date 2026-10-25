@@ -13,3 +13,11 @@
   --vp-c-brand-3: #5b47e0;
   --vp-c-brand-soft: rgba(169, 155, 255, 0.16);
 }
+
+/* The download count on the home page (#347), shown once the site has one. */
+.downloads {
+  margin: 0 0 16px;
+  color: var(--vp-c-text-2);
+  font-size: 14px;
+  text-align: center;
+}

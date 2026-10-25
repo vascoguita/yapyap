@@ -5,6 +5,9 @@ on:
   push:
     branches: [master]
   workflow_dispatch:
+  # Refreshes the download counts the site and the README badge show (#347).
+  schedule:
+    - cron: '17 4 * * *'
 
 permissions:
   contents: read
@@ -29,6 +32,10 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm docs:build
+      - name: Count downloads
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/src/bin/downloads.ts docs/.vitepress/dist
       - if: github.event_name != 'pull_request'
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
       - if: github.event_name != 'pull_request'

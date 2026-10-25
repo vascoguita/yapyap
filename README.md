@@ -7,6 +7,7 @@
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/vascoguita/yapyap/badge)](https://scorecard.dev/viewer/?uri=github.com/vascoguita/yapyap)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/15759/badge)](https://www.bestpractices.dev/projects/15759)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Downloads](https://img.shields.io/endpoint?url=https%3A%2F%2Fyapyap.guita.org%2Fdownloads-badge.json)](https://github.com/vascoguita/yapyap/releases)
 
 [![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=vascoguita_yapyap&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=vascoguita_yapyap)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=vascoguita_yapyap&metric=coverage)](https://sonarcloud.io/summary/new_code?id=vascoguita_yapyap)

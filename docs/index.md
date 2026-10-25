@@ -38,6 +38,8 @@ _planned_ above are not built yet; [progress](https://github.com/vascoguita/yapy
 tracks where things stand.
 :::
 
+<p class="downloads" data-downloads hidden></p>
+
 ::: info Unofficial client
 YapYap is not affiliated with, endorsed by, or sponsored by WhatsApp or Meta.
 It loads the official WhatsApp Web and does not automate your account.

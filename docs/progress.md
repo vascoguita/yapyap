@@ -881,6 +881,13 @@ not edit the same lines.
   its own without install scripts, since Cloudflare's action installs it
   with pnpm, which the job does not set up.
 
+- Total downloads (#347): the docs build, now also daily, sums GitHub's
+  download counts of every release's installers and packages
+  (`downloads.ts`; update metadata, checksums and signatures do not count,
+  since the updater reads some on every check) into `downloads.json`, which
+  the home page shows from the site itself, and `downloads-badge.json`,
+  which the README's Shields.io badge reads.
+
 - pacman repository (#350): releases and betas also build `yapyap-bin` as a
   pacman package from their `.deb` (betas as `0.1.0beta.1`, which pacman
   sorts before `0.1.0`), and `packages.guita.org/arch/<channel>/x86_64`

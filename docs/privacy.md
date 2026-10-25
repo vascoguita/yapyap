@@ -53,6 +53,11 @@ browser. YapYap does not read, copy or upload them.
   Trace…** records 10 seconds of timing data only after you agree, and
   saves it where you choose. It holds page and file addresses, never
   messages, memory dumps or screenshots, and YapYap never sends it.
+- **Download counts come from the stores, not the app.** The download
+  count on this site and in the README is GitHub's own count of how often
+  each release's installers and packages were downloaded, summed once a
+  day. YapYap itself reports nothing, and this site shows the count
+  without asking any third party.
 
 ## What YapYap stores
 
