@@ -75,7 +75,11 @@ export function AccountButton(props: {
         }}
       >
         <span class={`avatar swatch-${account.color}`} aria-hidden="true">
-          {initial(account.name)}
+          {account.avatar === undefined ? (
+            initial(account.name)
+          ) : (
+            <img class="photo" src={account.avatar} alt="" />
+          )}
         </span>
         {compact ? null : <span class="name">{account.name}</span>}
         <Mark account={account} />

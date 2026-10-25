@@ -51,6 +51,7 @@ function fakeContents() {
     session: {
       clearCache: vi.fn(() => Promise.resolve()),
       clearStorageData: vi.fn(() => Promise.resolve()),
+      fetch: vi.fn(() => Promise.resolve(new Response(new Uint8Array(4)))),
     },
   };
   const fire = (event: string, ...args: unknown[]): void => {
@@ -256,6 +257,7 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     openExternal,
     isOnline: vi.fn(() => true),
     gpuCrashLog: { read: () => '[]', write: vi.fn() },
+    avatarImage: vi.fn((): string | undefined => 'data:image/png;base64,avatar'),
     selfUpdate: (() => {
       const instance = {
         autoDownload: false,
@@ -1094,6 +1096,22 @@ describe('startApp', () => {
       });
       last.switchTo(ACCOUNT);
       expect(f.hosts[0]?.show).toHaveBeenCalledOnce();
+    });
+
+    it('shows an account’s profile photo in the sidebar once its page names one', async () => {
+      const f = twoAccounts();
+      await startApp(f);
+      f.hosts[1]?.webContents.executeJavaScriptInIsolatedWorld.mockResolvedValue(
+        `${WHATSAPP_ORIGIN}/avatar.png`,
+      );
+      titled(f, 1, '(1) WhatsApp');
+      await vi.waitFor(() => {
+        const [last] = f.runtime.sidebar.mock.calls.at(-1) ?? [];
+        expect(last?.state.accounts.map((account) => account.avatar)).toEqual([
+          undefined,
+          'data:image/png;base64,avatar',
+        ]);
+      });
     });
 
     it('covers every account with the privacy screen from the tray, and the menu follows', async () => {

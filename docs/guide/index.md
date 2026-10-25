@@ -203,7 +203,8 @@ cache and storage; nothing is shared between them.
   (<kbd>⌘</kbd> on macOS) to switch by position. Switching never reloads an
   account.
 - With two or more accounts running, a sidebar on the left lists them with
-  their unread chats; click one to switch. Its arrow button, or **Compact
+  their unread chats, each with its WhatsApp profile photo, or its initial
+  until the photo loads; click one to switch. Its arrow button, or **Compact
   account sidebar** in Settings → Appearance, shrinks it to avatars only.
   Muted accounts show a crossed-out speaker instead of a count.
 - Every account keeps running in the background, so its messages keep

@@ -2,6 +2,7 @@ import type { ScreenShares } from '../capture/shares.ts';
 import type { SidebarSource } from '../chrome/sidebar.ts';
 import type { Settings } from '../settings/schema.ts';
 import type { AccountSignals } from './account-signals.ts';
+import type { AccountAvatars } from './avatars.ts';
 import type { AccountPage, RunningAccounts } from './running.ts';
 
 /** The running accounts in the sidebar, in their menu order, with their unread chats. */
@@ -10,6 +11,7 @@ export function sidebarSource(
   running: Pick<RunningAccounts<AccountPage>, 'list' | 'opened' | 'active' | 'switchTo'>,
   signals: Pick<AccountSignals, 'unreadOf'>,
   shares: Pick<ScreenShares, 'sharing' | 'stop'>,
+  avatars: Pick<AccountAvatars, 'avatarOf'>,
 ): SidebarSource {
   const open = new Set(running.opened().map(({ account }) => account.id));
   const active = running.active().account.id;
@@ -25,6 +27,7 @@ export function sidebarSource(
       unread: muted ? 0 : signals.unreadOf(id),
       active: id === active,
       sharing: sharing.has(id),
+      avatar: avatars.avatarOf(id),
     }));
   return {
     state: { accounts, compact: appearance.compactSidebar, doNotDisturb: general.doNotDisturb },

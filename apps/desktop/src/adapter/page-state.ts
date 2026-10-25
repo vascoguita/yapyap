@@ -2,7 +2,7 @@
  * Bump whenever a landmark below changes, so diagnostics show which table a
  * report came from.
  */
-export const LANDMARKS_VERSION = 3;
+export const LANDMARKS_VERSION = 4;
 
 /**
  * Structural landmarks of WhatsApp Web: element ids and attributes that have
@@ -29,6 +29,8 @@ export const LANDMARKS = {
   message: '#main [data-id]',
   /** The text of a message, which WhatsApp marks for copying with its sender and time. */
   messageText: '[data-pre-plain-text]',
+  /** The account's own profile photo, on the profile button at the foot of the navigation bar (#87). */
+  ownAvatar: '[data-testid="navbar-footer-section"] button[data-navbar-item] img',
 } as const;
 
 type Landmarks = Readonly<Record<keyof typeof LANDMARKS, string>>;

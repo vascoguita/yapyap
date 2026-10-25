@@ -33,6 +33,10 @@ browser. YapYap does not read, copy or upload them.
   of YapYap's data folder. Each launch starts a new file, and a file is also
   rotated at 1 MB. At most five old files are kept, and they are deleted
   after 14 days.
+- **Profile photos stay in memory.** The sidebar shows each account's own
+  WhatsApp profile photo. YapYap downloads it from WhatsApp with that
+  account's session, keeps a small copy in memory only, and never saves or
+  logs it.
 - **Chats stay unread while YapYap is hidden.** When YapYap is hidden or
   minimized, WhatsApp sees its page as hidden and does not mark new messages
   in the open chat as read. Turn off **Keep chats unread while YapYap is
