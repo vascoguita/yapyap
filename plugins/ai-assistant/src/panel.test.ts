@@ -137,15 +137,44 @@ describe('mountPanel', () => {
     expect(t.replies()).toContain('Hello');
     t.button('Stop').click();
     expect(t.sent.at(-1)).toEqual({ type: 'cancel' });
-    t.receive({ type: 'suggestions', items: ['Hello!', 'Hi there'] });
+    t.receive({ replace: false, type: 'suggestions', items: ['Hello!', 'Hi there'] });
     expect(t.replies()).toContain('Pick a reply');
     t.button('Hi there').click();
     expect(t.sent.at(-1)).toEqual({ type: 'use', index: 1 });
     t.receive({ type: 'used' });
-    expect(t.replies()).toBe('The reply is in the message box. Edit it and send it yourself.');
+    expect(t.replies()).toBe('It is in the message box. Edit it and send it yourself.');
     t.receive({ type: 'progress', text: 'New' });
     expect(t.replies()).toBe('NewStop');
     t.receive({ type: 'problem', reason: 'timeout' });
     expect(t.replies()).toBe('The provider took too long to answer.');
+  });
+
+  it('asks to rewrite the draft in the chosen style, and offers the rewrite in its place', () => {
+    const t = setup();
+    const style = document.querySelector<HTMLSelectElement>('#style');
+    const language = document.querySelector<HTMLInputElement>('#language');
+    if (style === null || language === null) {
+      throw new Error('No rewrite form.');
+    }
+    expect([...style.options].map((option) => option.textContent)).toEqual([
+      'Friendlier',
+      'More formal',
+      'Shorter',
+      'Translate',
+    ]);
+    style.value = 'translate';
+    language.value = 'Italian';
+    document.querySelector('#rewrite')?.dispatchEvent(new Event('submit', { cancelable: true }));
+    expect(t.sent.at(-1)).toEqual({
+      type: 'prepare-rewrite',
+      style: 'translate',
+      language: 'Italian',
+    });
+    t.receive({ replace: true, type: 'suggestions', items: ['Arrivo tardi'] });
+    expect(t.replies()).toContain('Use the rewritten draft in place of yours:');
+    t.button('Arrivo tardi').click();
+    expect(t.sent.at(-1)).toEqual({ type: 'use', index: 0 });
+    t.receive({ type: 'problem', reason: 'empty-draft' });
+    expect(t.replies()).toBe('Type a draft in the message box first.');
   });
 });

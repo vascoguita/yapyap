@@ -130,6 +130,7 @@ describe('servePanel', () => {
       allowed: true,
     });
     await expect(next({ type: 'send' }, 4)).resolves.toEqual({
+      replace: false,
       type: 'suggestions',
       items: ['Sure!', 'Can’t today'],
     });
@@ -157,5 +158,20 @@ describe('servePanel', () => {
     await vi.waitFor(() => {
       expect(sent.at(-1)).toEqual({ type: 'problem', reason: 'rate-limited' });
     });
+  });
+
+  it('prepares a rewrite of the draft when the panel asks for one', async () => {
+    const chat = { name: 'Team', group: false, messages: [] };
+    const { host } = fakeHost({ chat });
+    host.composer.readDraft.mockResolvedValue('see u');
+    const ends = fakeChannel();
+    const { channel, sent } = ends;
+    await serve(host, ends);
+    channel.send({ type: 'prepare-rewrite', style: 'formal', language: '' });
+    channel.send({ type: 'allow-chat', allowed: true });
+    await vi.waitFor(() => {
+      expect(sent).toHaveLength(2);
+    });
+    expect(sent.at(-1)).toMatchObject({ type: 'preview', allowed: true, transcript: 'see u' });
   });
 });

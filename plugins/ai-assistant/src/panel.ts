@@ -5,6 +5,7 @@ import {
   type Preview,
   type Update,
 } from './bus.ts';
+import type { RewriteStyle } from './rewrites.ts';
 
 const PROVIDER_NAMES: Readonly<Record<string, string>> = {
   anthropic: 'Claude (Anthropic)',
@@ -26,6 +27,7 @@ const UNAVAILABLE = 'The assistant could not read its settings. Try again in a m
 /** What each problem the hidden page reports means to the user. */
 const PROBLEMS: Readonly<Record<string, string>> = {
   'no-chat': 'Open a chat first.',
+  'empty-draft': 'Type a draft in the message box first.',
   setup: 'Finish the setup above first.',
   'not-prepared': 'Look at the chat again first.',
   'not-granted': 'YapYap does not allow the assistant this here. Check Plugins → AI assistant.',
@@ -129,7 +131,12 @@ function previewOf(doc: Document, port: Port, preview: Preview): HTMLElement[] {
 }
 
 /** The suggested replies, each one a button that puts it in the message box. */
-function suggestionsOf(doc: Document, port: Port, items: readonly string[]): HTMLElement[] {
+function suggestionsOf(
+  doc: Document,
+  port: Port,
+  items: readonly string[],
+  replace: boolean,
+): HTMLElement[] {
   const list = element(doc, 'ul', { id: 'suggestions' });
   list.append(
     ...items.map((item, index) => {
@@ -138,7 +145,46 @@ function suggestionsOf(doc: Document, port: Port, items: readonly string[]): HTM
       return entry;
     }),
   );
-  return [element(doc, 'p', { textContent: 'Pick a reply to put in the message box:' }), list];
+  const lead = replace
+    ? 'Use the rewritten draft in place of yours:'
+    : 'Pick a reply to put in the message box:';
+  return [element(doc, 'p', { textContent: lead }), list];
+}
+
+/** How the panel names each rewrite style. */
+const STYLES: readonly (readonly [RewriteStyle, string])[] = [
+  ['friendlier', 'Friendlier'],
+  ['formal', 'More formal'],
+  ['shorter', 'Shorter'],
+  ['translate', 'Translate'],
+];
+
+/** Rewriting the draft (#105): a style, a language for translations, and the button. */
+function rewriteForm(doc: Document, port: Port): HTMLElement[] {
+  const styleLabel = element(doc, 'label', { htmlFor: 'style', textContent: 'Style' });
+  const style = element(doc, 'select', { id: 'style' });
+  style.append(
+    ...STYLES.map(([value, label]) => element(doc, 'option', { value, textContent: label })),
+  );
+  const languageLabel = element(doc, 'label', { htmlFor: 'language', textContent: 'Language' });
+  const language = element(doc, 'input', { id: 'language', type: 'text', value: 'English' });
+  const form = element(doc, 'form', { id: 'rewrite' });
+  form.append(
+    styleLabel,
+    style,
+    languageLabel,
+    language,
+    element(doc, 'button', { type: 'submit', textContent: 'Rewrite my draft' }),
+  );
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    port.postMessage({
+      type: 'prepare-rewrite',
+      style: style.value as RewriteStyle,
+      language: language.value,
+    });
+  });
+  return [element(doc, 'h2', { textContent: 'Rewrite my draft' }), form];
 }
 
 /** The replies section: look at the chat, preview, send, pick. */
@@ -149,6 +195,7 @@ function repliesSection(doc: Document, port: Port) {
   section.append(
     element(doc, 'h2', { textContent: 'Suggest replies' }),
     asking(doc, port, 'Look at this chat', { type: 'prepare' }),
+    ...rewriteForm(doc, port),
     output,
   );
   const show = (...nodes: HTMLElement[]): void => {
@@ -181,10 +228,10 @@ function handlersFor(
       progress.textContent += news.text;
     },
     suggestions: (news) => {
-      replies.show(...suggestionsOf(doc, port, news.items));
+      replies.show(...suggestionsOf(doc, port, news.items, news.replace));
     },
     used: () => {
-      replies.show(say('The reply is in the message box. Edit it and send it yourself.'));
+      replies.show(say('It is in the message box. Edit it and send it yourself.'));
     },
     problem: (news) => {
       replies.show(say(problemText(news.reason)));

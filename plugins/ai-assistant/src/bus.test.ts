@@ -16,6 +16,18 @@ describe('panelRequest', () => {
       allowed: false,
     });
     expect(panelRequest({ type: 'use', index: 2 })).toEqual({ type: 'use', index: 2 });
+    expect(
+      panelRequest({ type: 'prepare-rewrite', style: 'translate', language: ' Greek ' }),
+    ).toEqual({ type: 'prepare-rewrite', style: 'translate', language: 'Greek' });
+    expect(panelRequest({ type: 'prepare-rewrite', style: 'shorter', language: '' })).toEqual({
+      type: 'prepare-rewrite',
+      style: 'shorter',
+      language: '',
+    });
+    expect(
+      panelRequest({ type: 'prepare-rewrite', style: 'translate', language: '' }),
+    ).toBeUndefined();
+    expect(panelRequest({ type: 'prepare-rewrite', style: 'louder' })).toBeUndefined();
     for (const data of [
       { type: 'save-key', key: 'k'.repeat(8193) },
       { type: 'save-key', key: '  ' },
@@ -55,7 +67,7 @@ describe('update', () => {
       { type: 'state', provider: 'openai', model: 'm', missing: '' },
       preview,
       { type: 'progress', text: 'Hi' },
-      { type: 'suggestions', items: ['a', 'b'] },
+      { replace: false, type: 'suggestions', items: ['a', 'b'] },
       { type: 'used' },
       { type: 'problem', reason: 'auth' },
     ];
@@ -68,8 +80,9 @@ describe('update', () => {
       { ...preview, instructions: null },
       { ...preview, transcript: [] },
       { type: 'progress', text: 1 },
-      { type: 'suggestions', items: ['a', 2] },
-      { type: 'suggestions', items: 'a' },
+      { replace: false, type: 'suggestions', items: ['a', 2] },
+      { type: 'suggestions', items: ['a'] },
+      { replace: true, type: 'suggestions', items: 'a' },
       { type: 'problem' },
       { type: 'other' },
       null,
