@@ -872,7 +872,9 @@ not edit the same lines.
   container for both, so the test covers the deploy's own commands. Both
   prefer docker: runners also have podman, which cannot read the key folder
   docker's import leaves. Under docker, `build-site.sh` hands the site back
-  to the caller once it is signed.
+  to the caller once it is signed. Wrangler is installed into a folder of
+  its own without install scripts, since Cloudflare's action installs it
+  with pnpm, which the job does not set up.
 
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
