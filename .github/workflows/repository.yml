@@ -1,9 +1,9 @@
 name: Package repositories
 
-# Rebuilds and deploys the apt and dnf repositories at packages.guita.org
-# (#344) once a release's or beta's packages are on GitHub. The site holds
-# only the signed indexes; every package download is redirected to GitHub
-# Releases.
+# Rebuilds and deploys the apt, dnf and pacman repositories at
+# packages.guita.org (#344, #350) once a release's or beta's packages are on
+# GitHub. The site holds only the signed indexes and signatures; every
+# package download is redirected to GitHub Releases.
 on:
   workflow_call:
   workflow_dispatch:
@@ -67,7 +67,7 @@ jobs:
         if: steps.ready.outputs.ready == 'true'
         run: |
           sudo chown -R "$USER" "$SITE"
-          rm -rf "$SITE/.plan" "$SITE/pool" "$SITE"/rpm/*/pool
+          rm -rf "$SITE/.plan" "$SITE/pool" "$SITE"/rpm/*/pool "$SITE"/arch/*/x86_64/*.pkg.tar.zst
           cp packaging/repository/index.html "$SITE/index.html"
           find "$SITE" -type f | sort
       - name: Deploy to Cloudflare Pages
@@ -82,7 +82,7 @@ jobs:
           npm install --prefix "$tools" --ignore-scripts --no-audit --no-fund wrangler@4.152.0
           "$tools/node_modules/.bin/wrangler" pages deploy "$SITE" \
             --project-name yapyap-packages --branch main --commit-dirty=true
-      - name: Check apt and dnf find YapYap there, without downloading it
+      - name: Check apt, dnf and pacman find YapYap there, without downloading it
         if: steps.ready.outputs.ready == 'true'
         run: |
           sleep 30
@@ -101,3 +101,13 @@ jobs:
             curl -fsSL https://packages.guita.org/yapyap-beta.repo -o /etc/yum.repos.d/yapyap-beta.repo
             dnf -q -y makecache
             dnf -q info YapYap >/dev/null'
+          docker run --rm docker.io/library/archlinux:base-devel@sha256:0ccc8b2e55c0c26a6e501e892cc6b1cdea7cfdf77e432941320148b4dabd2bff bash -c '
+            set -e
+            pacman-key --init >/dev/null 2>&1
+            curl -fsSL https://packages.guita.org/yapyap.asc -o /tmp/yapyap.asc
+            pacman-key --add /tmp/yapyap.asc >/dev/null 2>&1
+            pacman-key --lsign-key "$(gpg --with-colons --show-keys /tmp/yapyap.asc | awk -F: "/^fpr/ { print \$10; exit }")" >/dev/null 2>&1
+            curl -fsSL https://packages.guita.org/yapyap-beta.pacman.conf >> /etc/pacman.conf
+            pacman -Sy --noconfirm >/dev/null
+            file=$(pacman -Sp --print-format "%f" yapyap-bin)
+            curl -sI "https://packages.guita.org/arch/beta/x86_64/$file" | grep -qi "^location: https://github.com/vascoguita/yapyap/releases/download/"'

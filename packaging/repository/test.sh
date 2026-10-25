@@ -22,6 +22,7 @@ server=''
 DEBIAN=docker.io/library/debian:13
 APT_CLIENTS=(docker.io/library/debian:13 docker.io/library/ubuntu:24.04 docker.io/library/ubuntu:26.04)
 FEDORA=docker.io/library/fedora:44
+ARCH=docker.io/library/archlinux:base-devel@sha256:0ccc8b2e55c0c26a6e501e892cc6b1cdea7cfdf77e432941320148b4dabd2bff
 clients=()
 
 cleanup() {
@@ -51,7 +52,7 @@ tools "$DEBIAN" bash -c '
 
 say 'Building stand-in packages'
 build_packages() {
-  local tag=$1 version=$2
+  local tag=$1 version=$2 pkgver=$3
   mkdir -p "$work/releases/$tag"
   tools "$DEBIAN" bash -c "
     set -e
@@ -81,10 +82,30 @@ echo '$version' > %{buildroot}/usr/share/yapyap/version
 SPEC
     rpmbuild -bb --quiet ~/rpmbuild/SPECS/yapyap.spec
     cp ~/rpmbuild/RPMS/x86_64/*.rpm '/work/releases/$tag/YapYap-$version-linux-x86_64.rpm'"
+  # makepkg refuses to run as root, so a user of its own builds in /tmp.
+  tools "$ARCH" bash -c "
+    set -e
+    useradd --create-home builder
+    install -d -o builder /tmp/build
+    cat > /tmp/build/PKGBUILD <<PKGBUILD
+pkgname=yapyap-bin
+pkgver=$pkgver
+pkgrel=1
+pkgdesc='Stand-in for tests'
+arch=('x86_64')
+license=('MIT')
+package() {
+  install -d \\\$pkgdir/usr/share/yapyap
+  echo '$version' > \\\$pkgdir/usr/share/yapyap/version
 }
-build_packages v0.1.0-beta.1 '0.1.0~beta.1'
-build_packages v0.1.0 '0.1.0'
-build_packages v0.2.0-beta.1 '0.2.0~beta.1'
+PKGBUILD
+    chown builder /tmp/build/PKGBUILD
+    cd /tmp/build && runuser -u builder -- makepkg --noconfirm >/dev/null 2>&1
+    cp /tmp/build/yapyap-bin-$pkgver-1-x86_64.pkg.tar.zst '/work/releases/$tag/'"
+}
+build_packages v0.1.0-beta.1 '0.1.0~beta.1' '0.1.0beta.1'
+build_packages v0.1.0 '0.1.0' '0.1.0'
+build_packages v0.2.0-beta.1 '0.2.0~beta.1' '0.2.0beta.1'
 
 # Publishes the given releases, newest first, as the release workflow would.
 published=()
@@ -147,6 +168,19 @@ add_dnf() {
     in_client "$name" "cat > /etc/yum.repos.d/yapyap.repo"
 }
 
+# Trusts the site's key the way the install guide says, then adds the section.
+add_pacman() {
+  local name=$1 channel=$2 suffix=''
+  [[ $channel == beta ]] && suffix='-beta'
+  in_client "$name" 'cat > /tmp/yapyap.asc' <"$work/site/yapyap.asc"
+  # shellcheck disable=SC2016 # Expanded inside the container.
+  in_client "$name" 'pacman-key --init >/dev/null 2>&1
+    pacman-key --add /tmp/yapyap.asc >/dev/null 2>&1
+    pacman-key --lsign-key "$(gpg --with-colons --show-keys /tmp/yapyap.asc | awk -F: "/^fpr/ { print \$10; exit }")" >/dev/null 2>&1'
+  sed "s#https://packages.guita.org#$url#" "$work/site/yapyap$suffix.pacman.conf" |
+    in_client "$name" "cat >> /etc/pacman.conf"
+}
+
 installed() {
   local name=$1
   in_client "$name" 'cat /usr/share/yapyap/version 2>/dev/null || echo none'
@@ -168,6 +202,10 @@ apt_update() {
   local name=$1
   in_client "$name" 'apt-get update -qq -o Acquire::Retries=0 && apt-get install -qq -y yapyap >/dev/null' || true
 }
+pacman_update() {
+  local name=$1
+  in_client "$name" 'pacman -Sy --noconfirm yapyap-bin >/dev/null' || true
+}
 dnf_update() {
   local name=$1
   in_client "$name" 'dnf -q -y --refresh install YapYap >/dev/null && dnf -q -y --refresh upgrade YapYap >/dev/null' || true
@@ -177,6 +215,7 @@ update_all() {
     case $client in
       yapyap-apt-*) apt_update "$client" ;;
       yapyap-dnf-*) dnf_update "$client" ;;
+      yapyap-pacman-*) pacman_update "$client" ;;
       *) ;;
     esac
   done
@@ -193,6 +232,10 @@ done
 for channel in stable beta; do
   start_client "yapyap-dnf-$channel" "$FEDORA"
   add_dnf "yapyap-dnf-$channel" "$channel"
+done
+for channel in stable beta; do
+  start_client "yapyap-pacman-$channel" "$ARCH"
+  add_pacman "yapyap-pacman-$channel" "$channel"
 done
 # dnf asks to trust the repository's key the first time; -y accepts it.
 for channel in stable beta; do
@@ -242,5 +285,14 @@ if in_client yapyap-dnf-stable 'dnf -q -y --refresh makecache' >/dev/null 2>&1; 
   exit 1
 fi
 echo 'ok: dnf refuses repository metadata its signature does not match'
+printf 'tampered' >>"$work/site/arch/stable/x86_64/yapyap.db"
+answer=$(in_client yapyap-pacman-stable 'pacman -Sy --noconfirm 2>&1' || true)
+if grep -qi 'signature\|corrupted' <<<"$answer"; then
+  echo 'ok: pacman refuses a database its signature does not match'
+else
+  printf '%s\n' "$answer" >&2
+  echo 'FAIL: pacman accepted a tampered database' >&2
+  exit 1
+fi
 
 say 'All repository checks passed'

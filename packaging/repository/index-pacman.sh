@@ -31,7 +31,9 @@ pacman_channel() {
       packages+=("$copy")
     done
   done
-  repo-add --quiet --sign --key "$key" "$repo/yapyap.db.tar.zst" "${packages[@]}"
+  # A channel lists several versions, and repo-add would otherwise let an
+  # older one added later replace the newest.
+  repo-add --quiet --prevent-downgrade --sign --key "$key" "$repo/yapyap.db.tar.zst" "${packages[@]}"
   # Static hosts serve files, not links, so the names pacman asks for are copies.
   for name in yapyap.db yapyap.db.sig yapyap.files yapyap.files.sig; do
     cp --remove-destination "$(readlink -f "$repo/$name")" "$repo/$name"
