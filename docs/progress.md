@@ -763,6 +763,10 @@ not edit the same lines.
   `shortcut-settings.ts`; new tests kill them, and the remaining survivors
   are equivalent.
 
+- Busy-plugin restart test (#327): the test waited for the spinner's
+  renderer to differ from the first, which the moment with none between
+  the two also did; it now waits for a new renderer that exists.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).

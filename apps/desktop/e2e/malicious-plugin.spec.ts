@@ -181,9 +181,11 @@ test('a plugin that keeps the processor busy is restarted', async ({ app, profil
     .poll(() => rendererOf(app, 'org.example.spinner'), { timeout: 20_000 })
     .not.toBeNull();
   const first = await rendererOf(app, 'org.example.spinner');
-  // Three samples five seconds apart over the limit, then a new renderer.
-  await expect
-    .poll(() => rendererOf(app, 'org.example.spinner'), { timeout: 45_000, intervals: [1000] })
-    .not.toBe(first);
-  expect(await rendererOf(app, 'org.example.spinner')).not.toBeNull();
+  // Three samples five seconds apart over the limit, then a new renderer. A
+  // restart passes through a moment with none, which is not yet the new one.
+  const restarted = async () => {
+    const now = await rendererOf(app, 'org.example.spinner');
+    return now !== null && now !== first;
+  };
+  await expect.poll(restarted, { timeout: 45_000, intervals: [1000] }).toBe(true);
 });
