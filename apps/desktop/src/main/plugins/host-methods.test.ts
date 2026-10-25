@@ -24,6 +24,8 @@ function services() {
     notify: vi.fn(),
     quiet: vi.fn(() => false),
     insertDraft: vi.fn<(text: string) => Promise<boolean>>(() => Promise.resolve(true)),
+    replaceDraft: vi.fn<(text: string) => Promise<boolean>>(() => Promise.resolve(true)),
+    readDraft: vi.fn(() => Promise.resolve<string | null>('Runing late')),
     readActiveChat: vi.fn(() =>
       Promise.resolve({ name: 'Team', group: true, messages: [{ outgoing: false, text: 'Hi' }] }),
     ),
@@ -158,6 +160,8 @@ describe('hostMethods', () => {
       'storage.delete',
       'chat.readActive',
       'composer.insertDraft',
+      'composer.replaceDraft',
+      'composer.readDraft',
     ]);
   });
 });
@@ -206,5 +210,27 @@ describe('chat.readActive', () => {
     });
     expect(accepts('chat.readActive', [])).toBe(true);
     expect(accepts('chat.readActive', [50])).toBe(false);
+  });
+});
+
+describe('composer drafts', () => {
+  it('replaces the draft behind composer:insert-draft, and fails when no chat is open', async () => {
+    const given = services();
+    const replace = method('composer.replaceDraft', HELLO, given);
+    expect(replace.capability).toBe('composer:insert-draft');
+    await replace.run(['Running late, sorry!']);
+    expect(given.replaceDraft).toHaveBeenCalledExactlyOnceWith('Running late, sorry!');
+    given.replaceDraft.mockResolvedValueOnce(false);
+    await expect(replace.run(['Again'])).rejects.toThrow('No chat is open.');
+    expect(accepts('composer.replaceDraft', [''])).toBe(false);
+  });
+
+  it('reads the draft only behind a grant of its own', async () => {
+    const given = services();
+    const read = method('composer.readDraft', HELLO, given);
+    expect(read.capability).toBe('composer:read-draft');
+    await expect(read.run([])).resolves.toBe('Runing late');
+    expect(accepts('composer.readDraft', [])).toBe(true);
+    expect(accepts('composer.readDraft', ['x'])).toBe(false);
   });
 });

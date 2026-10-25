@@ -127,6 +127,8 @@ describe('hostApi', () => {
     await api.chat.readActive();
     await api.chat.readUnreadSummary();
     await api.composer.insertDraft('Hi');
+    await api.composer.replaceDraft('Hello');
+    await api.composer.readDraft();
     await api.notifications.show({ title: 'T', body: 'B' });
     await api.storage.get('k');
     await api.storage.set('k', 1);
@@ -142,6 +144,8 @@ describe('hostApi', () => {
       ['chat.readActive'],
       ['chat.readUnreadSummary'],
       ['composer.insertDraft', 'Hi'],
+      ['composer.replaceDraft', 'Hello'],
+      ['composer.readDraft'],
       ['notifications.show', { title: 'T', body: 'B' }],
       ['storage.get', 'k'],
       ['storage.set', 'k', 1],

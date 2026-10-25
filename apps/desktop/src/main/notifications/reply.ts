@@ -1,4 +1,4 @@
-import { FOCUS_COMPOSER } from '../../adapter/composer.ts';
+import { FOCUS_COMPOSER, parseDraft, READ_COMPOSER } from '../../adapter/composer.ts';
 import { ADAPTER_WORLD_ID } from '../../adapter/page-health.ts';
 
 export interface ReplyContents {
@@ -8,6 +8,8 @@ export interface ReplyContents {
   ): Promise<unknown>;
   /** Typed into the focused element as the user's own input. */
   insertText(text: string): Promise<void>;
+  /** Selects everything in the focused element, so typing replaces it. */
+  selectAll(): void;
 }
 
 export interface ReplyDependencies {
@@ -43,6 +45,36 @@ export async function insertDraft(contents: ReplyContents, text: string): Promis
   }
   await contents.insertText(text);
   return true;
+}
+
+/**
+ * Replaces what the user typed in the open chat's message box with `text`,
+ * as if they typed it over a selection of all of it, for them to edit and
+ * send. False when no chat is open. The text is never logged.
+ */
+export async function replaceDraft(contents: ReplyContents, text: string): Promise<boolean> {
+  if (!(await focused(contents))) {
+    return false;
+  }
+  contents.selectAll();
+  await contents.insertText(text);
+  return true;
+}
+
+/**
+ * What the user typed in the open chat's message box, for a plugin holding
+ * `composer:read-draft`; null when no chat is open. It is message content,
+ * so it is never logged.
+ */
+export async function readDraft(contents: ReplyContents): Promise<string | null> {
+  const found = await contents.executeJavaScriptInIsolatedWorld(ADAPTER_WORLD_ID, [
+    { code: READ_COMPOSER },
+  ]);
+  const draft = parseDraft(found);
+  if (draft === undefined) {
+    throw new Error('The draft could not be read.');
+  }
+  return draft;
 }
 
 /**

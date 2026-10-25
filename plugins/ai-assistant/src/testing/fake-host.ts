@@ -32,7 +32,11 @@ export interface FakeHost {
       readonly readActive: Mock<() => Promise<ActiveChat | null>>;
       readonly readUnreadSummary: Mock<PluginHost['chat']['readUnreadSummary']>;
     };
-    readonly composer: { readonly insertDraft: Mock<(text: string) => Promise<void>> };
+    readonly composer: {
+      readonly insertDraft: Mock<(text: string) => Promise<void>>;
+      readonly replaceDraft: Mock<(text: string) => Promise<void>>;
+      readonly readDraft: Mock<() => Promise<string | null>>;
+    };
     readonly storage: Store<unknown>;
   };
   readonly secrets: Map<string, string>;
@@ -62,6 +66,8 @@ export function fakeHost(
         drafts.push(text);
         return Promise.resolve();
       }),
+      replaceDraft: vi.fn(),
+      readDraft: vi.fn(),
     },
     storage: memory(stored),
   };

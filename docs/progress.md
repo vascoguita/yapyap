@@ -604,6 +604,13 @@ not edit the same lines.
   **AI assistant** page (`/guide/ai-assistant`) walks users through the
   provider, the key and the flow.
 
+- Draft reading and replacing (#105, first part): a new capability,
+  `composer:read-draft`, granted per account, lets a plugin read what the
+  user typed in the open chat's composer (`composer.readDraft`, through the
+  adapter's `readComposer`, at most 64 KiB). `composer.replaceDraft`, under
+  `composer:insert-draft`, selects the composer's text and types over it.
+  ADR 0008 C28 explains the separate grant.
+
 - Account budgets (#109, first part): `bench/accounts.spec.ts` measures the
   memory a second account adds and the CPU a hidden account uses while
   idle, from cumulative CPU time, and the nightly run holds them to budgets

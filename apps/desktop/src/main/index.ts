@@ -292,6 +292,8 @@ const chrome = createChromeFeature({
     methodsFor: (plugin, chats) =>
       hostMethods(plugin, {
         insertDraft: chats.insertDraft,
+        replaceDraft: chats.replaceDraft,
+        readDraft: chats.readDraft,
         readActiveChat: () => chats.readActiveChat(Number(settings.current().plugins.chatMessages)),
         notify: (heading, text) => {
           new Notification({ title: heading, body: text, icon: trayIcon }).show();

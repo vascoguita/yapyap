@@ -86,6 +86,8 @@ import {
 import {
   draftReply,
   insertDraft,
+  readDraft,
+  replaceDraft,
   supportsInlineReply,
   type ReplyContents,
 } from './notifications/reply.ts';
@@ -745,6 +747,8 @@ function accountMenu(
     activeContents: () => running.active().page.contents,
     insertDraft: (text) => insertDraft(running.active().page.contents, text),
     readActiveChat: (messages) => readOpenChat(running.active().page.contents, messages),
+    replaceDraft: (text) => replaceDraft(running.active().page.contents, text),
+    readDraft: () => readDraft(running.active().page.contents),
     switchTo: running.switchTo,
     add: running.add,
     update: running.update,

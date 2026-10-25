@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { draftReply, insertDraft, supportsInlineReply } from './reply.ts';
+import { draftReply, insertDraft, readDraft, replaceDraft, supportsInlineReply } from './reply.ts';
 
 function setup(answers: unknown[]) {
   const contents = {
@@ -8,6 +8,7 @@ function setup(answers: unknown[]) {
       return answer instanceof Error ? Promise.reject(answer) : Promise.resolve(answer);
     }),
     insertText: vi.fn(() => Promise.resolve()),
+    selectAll: vi.fn(),
   };
   const deps = { wait: vi.fn(() => Promise.resolve()), warn: vi.fn() };
   return { contents, deps };
@@ -45,6 +46,33 @@ describe('insertDraft', () => {
     expect(t.contents.insertText).toHaveBeenCalledExactlyOnceWith('Draft');
     await expect(insertDraft(t.contents, 'Again')).resolves.toBe(false);
     expect(t.contents.insertText).toHaveBeenCalledOnce();
+  });
+});
+
+describe('replaceDraft', () => {
+  it('types over everything in the message box, and nothing when none is open', async () => {
+    const t = setup([true, false]);
+    await expect(replaceDraft(t.contents, 'Rewritten')).resolves.toBe(true);
+    expect(t.contents.selectAll).toHaveBeenCalledOnce();
+    expect(t.contents.selectAll.mock.invocationCallOrder[0]).toBeLessThan(
+      t.contents.insertText.mock.invocationCallOrder[0] ?? 0,
+    );
+    expect(t.contents.insertText).toHaveBeenCalledExactlyOnceWith('Rewritten');
+    await expect(replaceDraft(t.contents, 'Again')).resolves.toBe(false);
+    expect(t.contents.selectAll).toHaveBeenCalledOnce();
+  });
+});
+
+describe('readDraft', () => {
+  it('reads the draft through the adapter, and fails on anything else it returns', async () => {
+    const t = setup(['Running late', null, { html: '<b>' }]);
+    await expect(readDraft(t.contents)).resolves.toBe('Running late');
+    const [world, scripts] = t.contents.executeJavaScriptInIsolatedWorld.mock
+      .calls[0] as unknown as [number, { code: string }[]];
+    expect(world).toBe(1000);
+    expect(scripts[0]?.code).toContain('readComposer');
+    await expect(readDraft(t.contents)).resolves.toBeNull();
+    await expect(readDraft(t.contents)).rejects.toThrow('The draft could not be read.');
   });
 });
 

@@ -557,3 +557,49 @@ test('lets a plugin reach a server on this computer only with local-network', as
     .toBe('reached');
   expect((await pluginPage(app))?.title).toBe('blocked');
 });
+
+/** Reads the draft, writes it in its title, and replaces it in shouting. */
+const SHOUTER = `
+export default {
+  async activate(host) {
+    try {
+      const draft = await host.composer.readDraft();
+      await host.composer.replaceDraft(draft.toUpperCase());
+      document.title = 'read: ' + draft;
+    } catch (error) {
+      document.title = error.kind;
+    }
+  },
+};
+`;
+
+test('lets a plugin read and replace the draft only with the grant to read it', async ({
+  app,
+  profile,
+  window,
+}) => {
+  const composer = window.getByTestId('composer');
+  await composer.click();
+  await window.keyboard.type('see you soon');
+  const network = { hosts: [] };
+  await installPlugin(
+    app,
+    profile,
+    testManifest({ capabilities: ['composer:insert-draft'], network }),
+    SHOUTER,
+  );
+  await expect
+    .poll(async () => (await pluginPage(app))?.title, { timeout: 20_000 })
+    .toBe('not-granted');
+  const reader = testManifest({
+    id: 'org.example.reader',
+    name: 'Reader',
+    capabilities: ['composer:insert-draft', 'composer:read-draft'],
+    network,
+  });
+  await installPlugin(app, profile, reader, SHOUTER);
+  await expect
+    .poll(async () => (await pluginPage(app, 'org.example.reader'))?.title, { timeout: 20_000 })
+    .toBe('read: see you soon');
+  await expect(composer).toHaveText('SEE YOU SOON');
+});

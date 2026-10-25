@@ -9,6 +9,7 @@ const ACCOUNT_CAPABILITIES: ReadonlySet<string> = new Set([
   'chat:read-active',
   'chat:read-unread-summary',
   'composer:insert-draft',
+  'composer:read-draft',
 ]);
 
 const NETWORK = 'network:';

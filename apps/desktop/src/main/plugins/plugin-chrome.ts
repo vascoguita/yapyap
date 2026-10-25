@@ -81,7 +81,7 @@ export interface PluginChromeDependencies {
   /** What a plugin may call, behind its capabilities (#93); drafts go to the active chat. */
   readonly methodsFor: (
     plugin: CallingPlugin,
-    chats: Pick<PluginAccounts, 'insertDraft' | 'readActiveChat'>,
+    chats: Pick<PluginAccounts, 'insertDraft' | 'readActiveChat' | 'replaceDraft' | 'readDraft'>,
   ) => ReturnType<PluginRuntimeDependencies['methodsFor']>;
   readonly rpc: RpcOptions;
   /** What plugins asked YapYap to do, for the Plugins window (#99). */
@@ -197,6 +197,10 @@ export interface PluginAccounts {
   readonly insertDraft: (text: string) => Promise<boolean>;
   /** The active account's open chat and its last `messages` messages; null when none is open. */
   readonly readActiveChat: (messages: number) => Promise<ReadChat | null>;
+  /** Replaces the active account's draft; false when no chat is open. */
+  readonly replaceDraft: (text: string) => Promise<boolean>;
+  /** The active account's draft; null when no chat is open. */
+  readonly readDraft: () => Promise<string | null>;
   /** The account on screen. */
   readonly active: () => string | undefined;
   /** Every account, for per-account grants in the Plugins window (#94). */

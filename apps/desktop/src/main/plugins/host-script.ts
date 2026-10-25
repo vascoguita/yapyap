@@ -24,7 +24,11 @@ export function hostApi(call: Call, commands: Map<string, () => unknown>): Plugi
       readActive: () => call<ActiveChat | null>('chat.readActive'),
       readUnreadSummary: () => call<readonly UnreadChat[]>('chat.readUnreadSummary'),
     },
-    composer: { insertDraft: (text) => call('composer.insertDraft', text) },
+    composer: {
+      insertDraft: (text) => call('composer.insertDraft', text),
+      replaceDraft: (text) => call('composer.replaceDraft', text),
+      readDraft: () => call<string | null>('composer.readDraft'),
+    },
     notifications: { show: (notification) => call('notifications.show', notification) },
     storage: {
       get: (key) => call('storage.get', key),
