@@ -6,6 +6,7 @@ import {
   channels,
   dnfRepository,
   fromGitHub,
+  pacmanSection,
   poolFiles,
   redirects,
 } from '../release/repository.ts';
@@ -27,8 +28,9 @@ for (const channel of CHANNELS) {
   const suffix = channel === 'stable' ? '' : '-beta';
   writeFileSync(join(String(site), `yapyap${suffix}.sources`), aptSource(channel));
   writeFileSync(join(String(site), `yapyap${suffix}.repo`), dnfRepository(channel));
+  writeFileSync(join(String(site), `yapyap${suffix}.pacman.conf`), pacmanSection(channel));
 }
-writeFileSync(join(String(site), '_redirects'), redirects());
+writeFileSync(join(String(site), '_redirects'), redirects(listed));
 console.info(
   `Planned ${String(listed.stable.length)} stable and ${String(listed.beta.length)} beta releases.`,
 );

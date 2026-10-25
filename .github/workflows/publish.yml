@@ -46,17 +46,33 @@ jobs:
           DIST: ${{ runner.temp }}/dist
         run: |
           version="${TAG#v}"
-          # makepkg versions cannot contain '-', so pre-releases skip the AUR.
-          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::notice::$version is a pre-release, so it is not packaged for the AUR."
-            exit 0
-          fi
           mkdir "$RUNNER_TEMP/aur"
           node scripts/src/bin/aur.ts "$version" "$DIST"/*-amd64.deb "$DIST"/*-arm64.deb "$RUNNER_TEMP/aur"
           # The checksum and upload globs skip dotfiles, so both files get a prefix.
           cp "$RUNNER_TEMP/aur/PKGBUILD" "$DIST/yapyap-bin.PKGBUILD"
           cp "$RUNNER_TEMP/aur/.SRCINFO" "$DIST/yapyap-bin.SRCINFO"
-          echo "generated=true" >> "$GITHUB_OUTPUT"
+          # Betas reach the pacman repository's beta channel (#350), never the AUR.
+          if [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "generated=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Build the pacman package
+        # makepkg uses files already present under their source names, so the
+        # package is built from this release's .deb, as smoke.yml checks it.
+        env:
+          DIST: ${{ runner.temp }}/dist
+        run: |
+          build="$RUNNER_TEMP/pacman"
+          mkdir "$build"
+          cp "$RUNNER_TEMP/aur/PKGBUILD" "$DIST"/*-amd64.deb "$build/"
+          pkgver=$(sed -n 's/^pkgver=//p' "$build/PKGBUILD")
+          cp LICENSE "$build/yapyap-$pkgver-LICENSE"
+          docker run --rm -v "$build:/build" archlinux:base-devel@sha256:0ccc8b2e55c0c26a6e501e892cc6b1cdea7cfdf77e432941320148b4dabd2bff bash -c '
+            set -euo pipefail
+            useradd --create-home builder
+            chown -R builder /build
+            cd /build
+            runuser -u builder -- makepkg --noconfirm --nodeps'
+          cp "$build"/yapyap-bin-*-x86_64.pkg.tar.zst "$DIST/"
       - name: Generate the CycloneDX SBOM
         uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
         with:
