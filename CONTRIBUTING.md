@@ -220,7 +220,9 @@ next push to `master` opens the release PR again with every change since the
 last release.
 
 Release notes are generated from commit subjects, and only `feat`, `fix`,
-`perf` and `revert` commits appear in them. A fix for a publicly known
+`perf` and `revert` commits appear in them. Each change appears once: the
+release workflow merges the entry release-please writes for a commit with
+the one for its pull request's merge commit (#358). A fix for a publicly known
 vulnerability uses the `security` scope and names its advisory in the
 subject, for example
 `fix(security): validate plugin manifests before parsing (GHSA-xxxx-xxxx-xxxx)`,
