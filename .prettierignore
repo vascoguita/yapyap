@@ -1,5 +1,7 @@
 pnpm-lock.yaml
 CHANGELOG.md
+# release-please writes it in its own format on every release PR.
+.release-please-manifest.json
 coverage/
 out/
 apps/*/release/
