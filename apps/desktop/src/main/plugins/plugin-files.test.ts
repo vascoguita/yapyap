@@ -71,7 +71,30 @@ describe('servePluginFiles', () => {
     expect((await t.get(`plugin://${ID}/data.bin`)).headers.get('content-type')).toBe(
       'application/octet-stream',
     );
-    expect((await t.get(`plugin://${ID}/missing.js`)).status).toBe(404);
+    const missing = await t.get(`plugin://${ID}/missing.js`);
+    expect(missing.status).toBe(404);
+    expect(missing.headers.get('content-type')).toBe('text/plain');
+  });
+
+  it('names the type of every kind of file a plugin may ship, and lets nothing cache them', async () => {
+    const types = {
+      'a.mjs': 'text/javascript',
+      'a.css': 'text/css',
+      'a.json': 'application/json',
+      'a.png': 'image/png',
+      'a.jpg': 'image/jpeg',
+      'a.jpeg': 'image/jpeg',
+      'a.gif': 'image/gif',
+      'a.webp': 'image/webp',
+      'a.woff2': 'font/woff2',
+      'a.txt': 'text/plain; charset=utf-8',
+    };
+    const t = setup(Object.fromEntries(Object.keys(types).map((name) => [name, 'x'])));
+    for (const [name, type] of Object.entries(types)) {
+      const file = await t.get(`plugin://${ID}/${name}`);
+      expect(file.headers.get('content-type')).toBe(type);
+      expect(file.headers.get('cache-control')).toBe('no-store');
+    }
   });
 
   it('never serves a file outside the plugin’s folder, or another plugin’s', async () => {
@@ -116,7 +139,7 @@ describe('confinePluginRequests', () => {
 
   it('lets HTTPS and this computer’s HTTP reach the policy, and keeps everything else to the plugin', () => {
     expect(PLUGIN_CSP).toBe(
-      "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src https: http://localhost:* http://127.0.0.1:* http://[::1]:*",
+      "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src https: http://localhost:* http://127.0.0.1:* http://[::1]:*; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
     );
   });
 });

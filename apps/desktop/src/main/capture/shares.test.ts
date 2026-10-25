@@ -88,4 +88,15 @@ describe('trackShares', () => {
     expect(t.shares.sharing().size).toBe(0);
     expect(t.deps.onChange).not.toHaveBeenCalled();
   });
+
+  it('ends a share only on word from the WhatsApp page that started it', () => {
+    const t = setup();
+    t.emit('started', t.from(t.work), '1');
+    t.emit('ended', t.from(t.work, 'https://example.com/'), '1');
+    t.emit('ended', t.from(t.stranger), '1');
+    expect([...t.shares.sharing()]).toEqual(['work']);
+    expect(t.deps.warn).toHaveBeenCalledTimes(2);
+    t.emit('ended', t.from(t.work), '1');
+    expect(t.shares.sharing().size).toBe(0);
+  });
 });

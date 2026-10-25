@@ -64,19 +64,25 @@ function sharesOf(
  */
 export function trackShares(ipc: ShareIpc, deps: ShareDependencies): ScreenShares {
   const bySender: SharesBySender = new Map();
-  ipc.on(SHARE_CHANNELS.started, (event, id) => {
+  /** The sender's account, when the message comes from WhatsApp's own page of one. */
+  const fromWhatsApp = (event: Parameters<Parameters<ShareIpc['on']>[1]>[0]) => {
     const account = deps.accountOf(event.sender);
     if (account === undefined || !isSameOrigin(event.senderFrame?.url ?? '', deps.origin)) {
       deps.warn('Ignored a screen share message from outside WhatsApp.');
-      return;
+      return undefined;
     }
-    if (isId(id)) {
+    return account;
+  };
+  ipc.on(SHARE_CHANNELS.started, (event, id) => {
+    const account = fromWhatsApp(event);
+    if (account !== undefined && isId(id)) {
       sharesOf(bySender, event.sender, deps.onChange).set(id, account);
       deps.onChange();
     }
   });
   ipc.on(SHARE_CHANNELS.ended, (event, id) => {
-    if (isId(id) && bySender.get(event.sender)?.delete(id) === true) {
+    const heard = fromWhatsApp(event) !== undefined;
+    if (heard && isId(id) && bySender.get(event.sender)?.delete(id) === true) {
       deps.onChange();
     }
   });
