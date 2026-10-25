@@ -13,7 +13,7 @@ export type LoginCallback = (username?: string, password?: string) => void;
 type ProxyCredentials = ProxyLoginAnswer;
 
 export interface ProxyLoginDependencies {
-  readonly secrets: SecretStore;
+  readonly secrets: Pick<SecretStore, 'canKeep' | 'get' | 'set'>;
   /** Asks the user; undefined when they cancel. */
   readonly ask: (request: ProxyLoginRequest) => Promise<ProxyCredentials | undefined>;
   readonly now: () => number;
@@ -27,7 +27,10 @@ export const DECLINE_MS = 60_000;
 
 const secretName = (info: AuthInfo): string => `proxy:${info.host}:${String(info.port)}`;
 
-async function saved(secrets: SecretStore, name: string): Promise<ProxyCredentials | undefined> {
+async function saved(
+  secrets: Pick<SecretStore, 'get'>,
+  name: string,
+): Promise<ProxyCredentials | undefined> {
   try {
     const parsed = JSON.parse(
       (await secrets.get(name)) ?? 'null',

@@ -218,19 +218,21 @@ export interface ChromeApi {
     readonly consent: () => Promise<PluginConsent>;
     /** `acknowledged`: the user accepted the risk of a plugin YapYap has not reviewed. */
     readonly answer: (install: boolean, acknowledged: boolean) => Promise<void>;
-    /** Grants a capability again or takes it back: for one account, or the whole plugin with null. */
     /** Saves one setting of a plugin; null goes back to the plugin's own default. */
     readonly setSetting: (
       id: string,
       key: string,
       value: string | number | boolean | null,
     ) => Promise<PluginList>;
+    /** Grants a capability again or takes it back: for one account, or the whole plugin with null. */
     readonly setGrant: (
       id: string,
       capability: string,
       account: string | null,
       granted: boolean,
     ) => Promise<PluginList>;
+    /** Removes a plugin and everything it kept, once the user confirms (#332). */
+    readonly remove: (id: string) => Promise<PluginList>;
   };
   readonly report: {
     /** The sanitized diagnostics the report would carry, for the user to review. */
@@ -409,6 +411,7 @@ export const CHROME_CHANNELS = {
   pluginsAnswer: 'plugins:answer',
   pluginsSetGrant: 'plugins:set-grant',
   pluginsSetSetting: 'plugins:set-setting',
+  pluginsRemove: 'plugins:remove',
   shortcutsList: 'shortcuts:list',
   shortcutsSet: 'shortcuts:set',
   downloadsList: 'downloads:list',

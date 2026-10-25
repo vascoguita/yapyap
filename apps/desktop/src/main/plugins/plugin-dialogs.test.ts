@@ -75,4 +75,21 @@ describe('electronPluginDialogs', () => {
     electron.showMessageBox.mockResolvedValueOnce({ response: 1 });
     await expect(dialogs.askHost('Hello', 'api.example.org')).resolves.toBe(false);
   });
+
+  it('asks before removing a plugin, and keeps it by default', async () => {
+    electron.showMessageBox.mockResolvedValueOnce({ response: 0 });
+    await expect(dialogs.confirmRemove('Hello')).resolves.toBe(true);
+    expect(electron.showMessageBox).toHaveBeenLastCalledWith({
+      type: 'warning',
+      title: 'YapYap',
+      message: 'Remove Hello?',
+      detail:
+        'This stops the plugin and deletes it, with its settings, its stored data and its saved secrets, such as API keys. Its past activity stays listed.',
+      buttons: ['Remove Plugin', 'Cancel'],
+      defaultId: 1,
+      cancelId: 1,
+    });
+    electron.showMessageBox.mockResolvedValueOnce({ response: 1 });
+    await expect(dialogs.confirmRemove('Hello')).resolves.toBe(false);
+  });
 });

@@ -11,6 +11,7 @@ function setup(list: () => Promise<PluginList>) {
     answer: vi.fn(),
     setGrant: vi.fn(list),
     setSetting: vi.fn(list),
+    remove: vi.fn(list),
   };
   render(<Plugins api={{ plugins } as unknown as ChromeApi} />);
   return plugins;
@@ -196,6 +197,31 @@ describe('Plugins', () => {
     );
     await screen.findByText('org.example.quiet');
     expect(screen.queryByText('Permissions')).toBeNull();
+  });
+
+  it('removes a plugin, showing the list YapYap answers with', async () => {
+    const hello = {
+      id: 'org.example.hello',
+      version: '1.0.0',
+      trust: 'third-party' as const,
+      settings: [],
+      grants: [],
+    };
+    const plugins = setup(() =>
+      Promise.resolve({ plugins: [hello], developerMode: false, activity: [] }),
+    );
+    plugins.remove.mockResolvedValueOnce({ plugins: [], developerMode: false, activity: [] });
+    fireEvent.click(await screen.findByRole('button', { name: 'Remove org.example.hello' }));
+    expect(plugins.remove).toHaveBeenCalledExactlyOnceWith('org.example.hello');
+    await screen.findByText('No plugins are installed.');
+    cleanup();
+    const again = setup(() =>
+      Promise.resolve({ plugins: [hello], developerMode: false, activity: [] }),
+    );
+    again.remove.mockRejectedValueOnce(new Error('unwritable'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Remove org.example.hello' }));
+    expect(again.remove).toHaveBeenCalledOnce();
+    expect(screen.getByText('org.example.hello')).toBeTruthy();
   });
 
   it('keeps the list as it was when a change cannot be saved', async () => {

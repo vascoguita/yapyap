@@ -603,3 +603,67 @@ test('lets a plugin read and replace the draft only with the grant to read it', 
     .toBe('read: see you soon');
   await expect(composer).toHaveText('SEE YOU SOON');
 });
+
+/**
+ * Keeps a value in each place a plugin can, and writes in its title whether
+ * any was already there from before.
+ */
+const HOARDER = `
+export default {
+  async activate(host) {
+    const before = [
+      await host.storage.get('kept'),
+      await host.secrets.get('kept'),
+      localStorage.getItem('kept'),
+    ].filter((value) => value !== undefined && value !== null);
+    await host.storage.set('kept', 'yes');
+    await host.secrets.set('kept', 'yes');
+    localStorage.setItem('kept', 'yes');
+    document.title = before.length === 0 ? 'fresh' : 'leftover';
+  },
+};
+`;
+
+test('removes a plugin with everything it kept, once the user confirms', async ({
+  app,
+  profile,
+}) => {
+  // The test system has no keyring, so encryption is stood in for, reversibly.
+  await app.evaluate(({ safeStorage }) => {
+    safeStorage.isAsyncEncryptionAvailable = () => Promise.resolve(true);
+    safeStorage.getSelectedStorageBackend = () => 'gnome_libsecret';
+    safeStorage.encryptStringAsync = (text: string) =>
+      Promise.resolve(Buffer.from(`sealed:${text}`));
+    safeStorage.decryptStringAsync = (sealed: Buffer) =>
+      Promise.resolve({
+        result: sealed.toString().slice('sealed:'.length),
+        shouldReEncrypt: false,
+      });
+  });
+  const manifest = testManifest({
+    capabilities: ['storage:local', 'secrets:own'],
+    network: { hosts: [] },
+  });
+  await installPlugin(app, profile, manifest, HOARDER);
+  await expect.poll(async () => (await pluginPage(app))?.title, { timeout: 20_000 }).toBe('fresh');
+  await clickMenu(app, 'Plugins…');
+  const plugins = await chromePage(app, '/plugins.html');
+  const remove = plugins.getByRole('button', { name: 'Remove org.example.hello' });
+  // Cancel, the dialog's default, keeps the plugin running.
+  await remove.click();
+  await expect(remove).toBeEnabled();
+  expect((await pluginPage(app))?.title).toBe('fresh');
+  await app.evaluate(({ dialog }) => {
+    dialog.showMessageBox = () => Promise.resolve({ response: 0, checkboxChecked: false });
+  });
+  await remove.click();
+  await expect(plugins.getByText('No plugins are installed.')).toBeVisible();
+  expect(await pluginPage(app)).toBeNull();
+  const folder = join(profile, 'plugins');
+  expect(await readFile(join(folder, '.secrets.json'), 'utf8')).not.toContain('org.example.hello');
+  await expect(readFile(join(folder, '.storage', 'org.example.hello.json'))).rejects.toThrow();
+  await expect(readFile(join(folder, 'org.example.hello', '1.0.0', 'main.js'))).rejects.toThrow();
+  // Installed again, it finds nothing of what it kept before.
+  await installPlugin(app, profile, manifest, HOARDER);
+  await expect.poll(async () => (await pluginPage(app))?.title, { timeout: 20_000 }).toBe('fresh');
+});

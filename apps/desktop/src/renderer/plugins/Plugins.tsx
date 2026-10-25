@@ -190,10 +190,30 @@ function SettingsForm(props: {
   );
 }
 
+/** YapYap asks the user to confirm in a dialog of its own, which defaults to Cancel. */
+function RemoveButton(props: {
+  readonly plugin: string;
+  readonly onRemove: (plugin: string) => void;
+}): JSX.Element {
+  return (
+    <button
+      type="button"
+      class="remove"
+      aria-label={text.removeLabel(props.plugin)}
+      onClick={() => {
+        props.onRemove(props.plugin);
+      }}
+    >
+      {text.remove}
+    </button>
+  );
+}
+
 function PluginRow(props: {
   readonly plugin: InstalledPlugin;
   readonly onGrant: GrantChange;
   readonly onSetting: SettingChange;
+  readonly onRemove: (plugin: string) => void;
 }): JSX.Element {
   const { plugin } = props;
   return (
@@ -220,6 +240,7 @@ function PluginRow(props: {
       {plugin.settings.length === 0 ? null : (
         <SettingsForm plugin={plugin} onChange={props.onSetting} />
       )}
+      <RemoveButton plugin={plugin.id} onRemove={props.onRemove} />
     </li>
   );
 }
@@ -275,7 +296,13 @@ function usePluginList(api: ChromeApi) {
     },
     [api],
   );
-  return { list, grant, setting };
+  const remove = useCallback(
+    (plugin: string) => {
+      api.plugins.remove(plugin).then(setList, () => undefined);
+    },
+    [api],
+  );
+  return { list, grant, setting, remove };
 }
 
 /**
@@ -283,7 +310,7 @@ function usePluginList(api: ChromeApi) {
  * or unsigned plugin never passes for one of YapYap's own.
  */
 export function Plugins({ api }: { readonly api: ChromeApi }): JSX.Element | null {
-  const { list, grant, setting } = usePluginList(api);
+  const { list, grant, setting, remove } = usePluginList(api);
   if (list === null) {
     return null;
   }
@@ -301,7 +328,13 @@ export function Plugins({ api }: { readonly api: ChromeApi }): JSX.Element | nul
       ) : (
         <ul class="plugin-list">
           {list.plugins.map((plugin) => (
-            <PluginRow key={plugin.id} plugin={plugin} onGrant={grant} onSetting={setting} />
+            <PluginRow
+              key={plugin.id}
+              plugin={plugin}
+              onGrant={grant}
+              onSetting={setting}
+              onRemove={remove}
+            />
           ))}
         </ul>
       )}

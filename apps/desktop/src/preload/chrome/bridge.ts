@@ -68,6 +68,7 @@ function pluginsBridge(invoke: Invoke): ChromeApi['plugins'] {
         account,
         granted,
       ) as Promise<PluginList>,
+    remove: (id) => invoke(CHROME_CHANNELS.pluginsRemove, id) as Promise<PluginList>,
   };
 }
 

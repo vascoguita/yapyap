@@ -2,7 +2,7 @@ import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { keyValueStore, STORE_LIMIT } from './key-value-store.ts';
+import { keyValueStore, removeStore, STORE_LIMIT } from './key-value-store.ts';
 
 let root = '';
 let folder = '';
@@ -74,5 +74,16 @@ describe('keyValueStore', () => {
       version: 1,
       entries: { a: '1' },
     });
+  });
+});
+
+describe('removeStore', () => {
+  it('deletes one plugin’s store and no other, and copes with none', async () => {
+    keyValueStore(folder, 'org.example.hello').set('a', 1);
+    keyValueStore(folder, 'org.example.other').set('a', 2);
+    await removeStore(folder, 'org.example.hello');
+    await removeStore(folder, 'org.example.hello');
+    await expect(stat(join(folder, 'org.example.hello.json'))).rejects.toThrow();
+    expect(keyValueStore(folder, 'org.example.other').get('a')).toBe(2);
   });
 });

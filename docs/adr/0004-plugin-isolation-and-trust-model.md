@@ -175,6 +175,12 @@ The key-value store (#301) keeps each plugin's values as JSON in
 the ID taken from YapYap, never from the call. Keys are up to 256
 characters, a store holds up to 1 MiB, and a write past that fails.
 
+Removing a plugin (#332), once the user confirms, stops it and closes its
+panel, clears both partitions it may have had (an update can add or drop
+`storage:local`), deletes its record and then its folder, and deletes its
+key-value store and every secret under `<id>/`. Its audit log entries stay,
+since they hold no parameters or results.
+
 There is **no API to send a message**, and no capability that returns DOM
 nodes, HTML, or arbitrary page script execution. All chat data comes from the
 WhatsApp adapter as validated plain objects.

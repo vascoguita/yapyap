@@ -511,6 +511,8 @@ const catalog = {
       confirmUpdate: 'Update',
     },
     settings: 'Settings',
+    remove: 'Remove…',
+    removeLabel: (plugin: string): string => `Remove ${plugin}`,
     settingDefault: 'Plugin’s default',
     permissions: 'Permissions',
     permissionsHint:
@@ -731,6 +733,12 @@ const catalog = {
         'The plugin wants to send data there and read the answer. Only allow a host you trust, such as a service you set up for this plugin.',
       allow: 'Allow',
       deny: 'Deny',
+    },
+    removePlugin: {
+      message: (plugin: string): string => `Remove ${plugin}?`,
+      detail:
+        'This stops the plugin and deletes it, with its settings, its stored data and its saved secrets, such as API keys. Its past activity stays listed.',
+      confirm: 'Remove Plugin',
     },
     resetSession: {
       message: 'Reset this WhatsApp session?',

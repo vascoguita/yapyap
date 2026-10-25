@@ -56,6 +56,8 @@ interface FakeSession {
     >;
   };
   readonly webRequest: { readonly onBeforeRequest: Mock<(listener: unknown) => void> };
+  readonly clearStorageData: Mock<() => Promise<void>>;
+  readonly clearCache: Mock<() => Promise<void>>;
 }
 
 interface FakePort {
@@ -135,6 +137,8 @@ function setup() {
       const session = sessions.get(partition) ?? {
         protocol: { handle: vi.fn() },
         webRequest: { onBeforeRequest: vi.fn() },
+        clearStorageData: vi.fn(() => Promise.resolve()),
+        clearCache: vi.fn(() => Promise.resolve()),
       };
       sessions.set(partition, session);
       return session;
@@ -503,6 +507,32 @@ describe('createPluginRuntime', () => {
     old.close();
     t.runtime.openPanel('org.example.hello');
     expect(t.panels).toHaveLength(2);
+  });
+
+  it('forgets a removed plugin: its windows close, its files stop, and both its sessions are cleared', async () => {
+    const panel = { title: 'Notes', entry: 'panel.js' };
+    await install(record(), { ...MANIFEST, contributes: { panel } });
+    await saveRecords(root, new Map([['org.example.hello', record()]]));
+    const t = setup();
+    await t.runtime.startAll();
+    t.runtime.openPanel('org.example.hello');
+    const listener = vi.fn();
+    t.runtime.onChange(listener);
+    const [, serve] = t.only(t.only([...t.sessions.values()]).protocol.handle.mock.calls);
+    await t.runtime.forget('org.example.hello');
+    expect(t.only(t.hosts).destroy).toHaveBeenCalledOnce();
+    expect(t.only(t.panels).destroy).toHaveBeenCalledOnce();
+    expect(t.runtime.running()).toEqual([]);
+    expect(listener).toHaveBeenCalledOnce();
+    expect((await serve({ url: 'plugin://org.example.hello/main.js' })).status).toBe(404);
+    expect([...t.sessions.keys()]).toEqual([
+      'plugin:org.example.hello',
+      'persist:plugin:org.example.hello',
+    ]);
+    for (const session of t.sessions.values()) {
+      expect(session.clearStorageData).toHaveBeenCalledOnce();
+      expect(session.clearCache).toHaveBeenCalledOnce();
+    }
   });
 
   it('starts an updated plugin again on the same session, from its new folder', async () => {

@@ -56,6 +56,8 @@ function setup(root: string, developerMode = false, overrides: object = {}) {
     audit: { record: vi.fn(), recent: vi.fn(() => []) },
     limits: { metrics: () => [], notify: vi.fn(), every: vi.fn(), now: () => 0, cores: 1 },
     askHost: vi.fn(() => Promise.resolve(false)),
+    confirmRemove: vi.fn(() => Promise.resolve(true)),
+    forgetData: vi.fn(() => Promise.resolve()),
     ...overrides,
   };
   const settings = defaultSettings();
@@ -133,6 +135,8 @@ describe('createPluginChrome', () => {
       sessionOf: () => ({
         protocol: { handle: vi.fn() },
         webRequest: { onBeforeRequest: vi.fn() },
+        clearStorageData: () => Promise.resolve(),
+        clearCache: () => Promise.resolve(),
       }),
       createHost: () => ({
         webContents: { on: vi.fn(), getOSProcessId: () => 1 },
@@ -192,6 +196,25 @@ describe('createPluginChrome', () => {
     ]);
     await set.handle(call, 'org.example.gone', 'notifications:show', null, false);
     expect([...(await loadRecords(root)).keys()]).toEqual(['org.example.hello']);
+  });
+
+  it('removes a plugin through IPC once the user confirms, and answers with the list', async () => {
+    const hello = record('org.example.hello', { developer: true });
+    await saveRecords(root, new Map([['org.example.hello', hello]]));
+    const session = { clearStorageData: vi.fn(), clearCache: vi.fn() };
+    const t = setup(root, false, { sessionOf: () => session });
+    const remove = t.handler('plugins:remove');
+    expect(remove.accepts(['org.example.hello'])).toBe(true);
+    for (const args of [[], [7], ['x'.repeat(301)], ['org.example.hello', 'more']]) {
+      expect(remove.accepts(args)).toBe(false);
+    }
+    const list = (await remove.handle({ sender: {} }, 'org.example.hello')) as {
+      plugins: unknown[];
+    };
+    expect(list.plugins).toEqual([]);
+    expect(t.deps.confirmRemove).toHaveBeenCalledExactlyOnceWith('org.example.hello');
+    expect(t.deps.forgetData).toHaveBeenCalledExactlyOnceWith('org.example.hello');
+    expect(session.clearStorageData).toHaveBeenCalledTimes(2);
   });
 
   it('saves a plugin setting through IPC, checking it against the plugin’s form', async () => {
@@ -417,6 +440,8 @@ describe('installFlow', () => {
       audit: { record: vi.fn(), recent: vi.fn(() => []) },
       limits: { metrics: () => [], notify: vi.fn(), every: vi.fn(), now: () => 0, cores: 1 },
       askHost: vi.fn(() => Promise.resolve(false)),
+      confirmRemove: vi.fn(),
+      forgetData: vi.fn(),
     };
     const started = vi.fn();
     const flow = installFlow(deps, { current: defaultSettings }, vi.fn(), started);

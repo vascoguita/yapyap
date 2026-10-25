@@ -51,6 +51,7 @@ function api(offer: () => Promise<PickerOffer> = () => Promise.resolve(OFFER)) {
       answer: vi.fn(),
       setGrant: vi.fn(),
       setSetting: vi.fn(),
+      remove: vi.fn(),
     },
     report: { diagnostics: vi.fn(), open: vi.fn() },
     picker: {
