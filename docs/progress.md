@@ -653,6 +653,12 @@ not edit the same lines.
   reached, counting a radio group as one stop, or shows nothing when it has
   focus. All nine pages passed as they were; a planted button with its focus
   hidden proves the check bites. Screen reader checks stay manual.
+- Translations design (#111, proposed): ADR 0012 proposes JSON catalogs in
+  the i18next v4 format Weblate edits, generated types so call sites keep
+  their shape, per-key English fallback, a Language setting that follows
+  the system and switches live, logical CSS for right-to-left, and CI
+  checks on every catalog. It waits for the maintainer's choices on
+  Weblate and first languages.
 
 - Security review (#112): `/architecture/security-review` checks YapYap
   against Electron's 20-item security checklist and the plugin threat
