@@ -54,5 +54,60 @@ browser. YapYap does not read, copy or upload them.
   saves it where you choose. It holds page and file addresses, never
   messages, memory dumps or screenshots, and YapYap never sends it.
 
-A complete inventory of the data YapYap stores, where it is stored, and how
-to delete it will be added here as each feature ships.
+## What YapYap stores
+
+Everything below lives in YapYap's profile folder, which is
+`~/.config/YapYap` on Linux, `~/.var/app/org.guita.YapYap/config/YapYap` in
+the Flatpak, `%APPDATA%\YapYap` on Windows and
+`~/Library/Application Support/YapYap` on macOS. Nothing in it leaves your
+computer. Uninstalling YapYap leaves the folder in place, so your accounts
+survive a reinstall.
+
+### WhatsApp
+
+| Path                   | What it holds                                                                                                         | How to delete it                                                                                                                              |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Partitions/account-…` | What WhatsApp Web keeps in a browser for each account: its login, the chats and media it caches, and its own settings | **Remove Account…** deletes it all. **Reset Session…** logs the account out and deletes it. **Clear Cache and Reload** deletes only the cache |
+| `accounts.json`        | Each account's name, color, whether it is on or muted, and its own proxy address                                      | **Remove Account…** deletes the account's entry                                                                                               |
+
+Camera and microphone choices are kept in memory only, until YapYap quits
+or you choose **Ask Again for Camera and Microphone**. Words you add to the
+spelling dictionary are kept with the account's data.
+
+### YapYap
+
+| Path                                    | What it holds                                                                                      | How to delete it                                                    |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `settings.json`, `settings.json.bak`    | Your settings, and the copy before the last change. Never passwords                                | Delete both while YapYap is closed to go back to the defaults       |
+| `settings.corrupt-….json`               | A settings file YapYap could not read, set aside for you to inspect                                | Delete it at any time                                               |
+| `secrets.json`                          | Proxy passwords you chose to remember, encrypted by your system's keychain                         | Delete it while YapYap is closed; YapYap asks again                 |
+| `custom-code.json`                      | Your custom CSS and JavaScript                                                                     | Clear the snippets in **Custom CSS and JavaScript…**                |
+| `window-state.json`, `quick-panel.json` | Where the main window and the quick panel were, so they reopen there                               | Delete them at any time                                             |
+| `downloads.json`                        | The folder you last saved a download to                                                            | Delete it at any time                                               |
+| `gpu-crashes.json`                      | The times of recent graphics crashes, which turn on the safe graphics fallback                     | Delete it at any time                                               |
+| `running.json`                          | The version and start time of the running session, left behind only if YapYap did not quit cleanly | YapYap deletes it when it quits                                     |
+| `crash-report.txt`                      | With crash reports on, the report of the last unclean exit                                         | YapYap deletes it after 30 days; delete it yourself at any time     |
+| `logs/`                                 | Redacted logs                                                                                      | YapYap deletes them after 14 days; delete them yourself at any time |
+| `Dictionaries/`                         | Spelling dictionaries downloaded once you turned spell checking on                                 | Delete it while YapYap is closed                                    |
+
+### Plugins
+
+| Path                          | What it holds                                                                                                           | How to delete it                          |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| `plugins/<id>/`               | The plugin's files                                                                                                      | **Remove…** in **Plugins…**               |
+| `plugins/.plugins.json`       | Each plugin's version, signing key fingerprint, permissions, approved hosts and settings                                | **Remove…** deletes the plugin's entry    |
+| `plugins/.storage/<id>.json`  | Data the plugin stored for itself                                                                                       | **Remove…**                               |
+| `plugins/.secrets.json`       | Secrets plugins keep, such as API keys, encrypted by your system's keychain                                             | **Remove…** deletes that plugin's secrets |
+| `Partitions/…plugin…`         | For a plugin allowed to keep its own data, its browser data, apart from WhatsApp's and other plugins'. Others keep none | **Remove…**                               |
+| `plugins/audit.log`, `.log.1` | Which operations plugins called and how each went: never what they sent or received. Two files of 256 KiB at most       | Delete them while YapYap is closed        |
+
+### Everything else
+
+The remaining files and folders are Chromium's own caches and state. YapYap
+deletes memory dumps Chromium leaves behind at every start.
+
+YapYap writes outside its profile folder only where you tell it to:
+downloads, performance traces and exported settings.
+
+To remove everything, quit YapYap and delete its profile folder. This logs
+every account out of WhatsApp; your chats stay on your phone.

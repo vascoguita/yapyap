@@ -668,6 +668,11 @@ not edit the same lines.
   when something breaks. The guide already covered installing, accounts,
   notifications, theming, shortcuts, recovery and troubleshooting.
 
+- Privacy page inventory (#115): `docs/privacy.md` lists every file and
+  folder in the profile, what each holds and how to delete it, for
+  WhatsApp's data, YapYap's own and plugins'. The reference guide links to
+  it instead of keeping a shorter copy.
+
 - Screen-sharing indicator (#161): the WhatsApp preload's second stand-in
   (`installShareShim`, ADR 0011) reports when a screen share starts and
   ends, by a random ID only, and stops one when YapYap asks. The main
