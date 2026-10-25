@@ -10,9 +10,10 @@ WhatsApp limits how many devices can be linked to one phone number. Every
 account you add in YapYap uses one of those slots.
 :::
 
-::: warning Early development
-YapYap is under active development. The first release, v0.1.0, will ship
-installers for every supported platform. Follow progress on the
+::: tip Early days
+YapYap is new: v0.1.0 is its first release. Report anything that goes wrong
+as described in [Troubleshooting](/guide/troubleshooting#diagnostics), and
+follow what comes next on the
 [project board](https://github.com/users/vascoguita/projects/5).
 :::
 

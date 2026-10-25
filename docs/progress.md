@@ -211,6 +211,11 @@ not edit the same lines.
   a notification that opens the release page; nothing is downloaded, and
   other policies never make the request.
 
+- First release docs (#71): the home page, guide, install guide and README
+  stop calling YapYap unreleased and its accounts, notifications and plugins
+  planned, link the changelog and the package repositories, and describe
+  the Flatpak bundle as downloaded per release until Flathub (#119).
+
 - Custom CSS and JavaScript (#72): **Custom CSS and JavaScript…** opens a
   chrome window (`custom-code:get`, `:save`, `:preview`) with a warning, an
   off-by-default switch, a scope (all accounts or one) and the two

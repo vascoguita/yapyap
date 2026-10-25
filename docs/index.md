@@ -23,19 +23,18 @@ features:
     details: Fix a stuck session without logging out. Failed loads show a clear recovery screen, not a blank window, and a safe mode gets you past graphics problems.
   - title: Private by design
     details: No telemetry of any kind. Locked-down sandboxing and permissions, no clipboard reading, and redacted local logs.
-  - title: Multiple accounts (planned)
-    details: Every account will run in its own isolated session, with its own unread badge and quick switching.
-  - title: Notifications and tray (planned)
+  - title: Multiple accounts
+    details: Every account runs in its own isolated session, with its own unread badge and quick switching.
+  - title: Notifications and tray
     details: Native notifications, a tray or menu bar with unread counts, and do-not-disturb.
-  - title: Safe plugins and your own AI (planned)
+  - title: Safe plugins and your own AI
     details: Signed, sandboxed plugins with per-account permissions, and an optional writing assistant for local or hosted models. Plugins can draft messages but never send them.
 ---
 
-::: warning Early development
-YapYap has no release yet. The first one, v0.1.0, comes with multiple
-accounts, notifications, the tray and automatic updates. Features marked
-_planned_ above are not built yet; [progress](https://github.com/vascoguita/yapyap/blob/master/docs/progress.md)
-tracks where things stand.
+::: tip First release
+YapYap v0.1.0 is out for Linux, Windows and macOS.
+[Install it](/guide/install), and read what changed in the
+[changelog](https://github.com/vascoguita/yapyap/blob/master/CHANGELOG.md).
 :::
 
 <p class="downloads" data-downloads hidden></p>

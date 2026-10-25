@@ -29,13 +29,21 @@ Windows and macOS.
 > YapYap loads the official WhatsApp Web in a hardened desktop shell. It does
 > not reimplement WhatsApp's protocol and does not automate your account.
 
+## Install
+
+Download YapYap for Linux, Windows or macOS from the
+[releases page](https://github.com/vascoguita/yapyap/releases), or add the
+apt, dnf or pacman repository at `packages.guita.org`, as the
+[install guide](https://yapyap.guita.org/guide/install) explains. Each
+release's changes are in [`CHANGELOG.md`](CHANGELOG.md).
+
 ## Status
 
-YapYap is in early development. Follow progress on the
+YapYap is young: v0.1.0 is its first release. Follow what comes next on the
 [project board](https://github.com/users/vascoguita/projects/5) and in
 [`docs/progress.md`](docs/progress.md).
 
-## Planned highlights
+## Highlights
 
 - Multiple accounts with fully isolated sessions
 - Native notifications, tray or menu bar with unread counts, and do-not-disturb

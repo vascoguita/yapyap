@@ -1,27 +1,18 @@
 # Install
 
-::: warning No release yet
-YapYap is in early development and has not been released. The first
-release, v0.1.0, will appear on the
-[releases page](https://github.com/vascoguita/yapyap/releases) and on
-Flathub, in the formats below. To try YapYap before then, build
-and run it from source as described in
-[Development setup](https://github.com/vascoguita/yapyap/blob/master/CONTRIBUTING.md#development-setup).
-:::
+YapYap is available in these formats:
 
-YapYap will be available in these formats:
-
-| Platform       | Format                     | Updates                      |
-| -------------- | -------------------------- | ---------------------------- |
-| Linux          | Flatpak (Flathub)          | Through Flatpak              |
-| Linux          | AppImage (x86_64, aarch64) | Built-in updater             |
-| Debian, Ubuntu | DEB, or the apt repository | Through apt                  |
-| Fedora         | RPM, or the dnf repository | Through dnf                  |
-| openSUSE       | RPM                        | Download each release        |
-| Arch Linux     | The pacman repository      | Through pacman               |
-| Windows        | Installer (x64, arm64)     | Built-in updater             |
-| Windows        | Portable (x64, arm64)      | Notifies you of new versions |
-| macOS          | Universal DMG              | Notifies you of new versions |
+| Platform       | Format                           | Updates                                  |
+| -------------- | -------------------------------- | ---------------------------------------- |
+| Linux          | Flatpak bundle (x86_64, aarch64) | Download each release; Flathub is coming |
+| Linux          | AppImage (x86_64, aarch64)       | Built-in updater                         |
+| Debian, Ubuntu | DEB, or the apt repository       | Through apt                              |
+| Fedora         | RPM, or the dnf repository       | Through dnf                              |
+| openSUSE       | RPM                              | Download each release                    |
+| Arch Linux     | The pacman repository            | Through pacman                           |
+| Windows        | Installer (x64, arm64)           | Built-in updater                         |
+| Windows        | Portable (x64, arm64)            | Notifies you of new versions             |
+| macOS          | Universal DMG                    | Notifies you of new versions             |
 
 Releases are published on
 [GitHub](https://github.com/vascoguita/yapyap/releases).
