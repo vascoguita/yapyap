@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Builds and signs the package site's indexes in a Debian container, so the
-# host needs none of the packaging tools (#344). The release workflow and
-# test.sh both run it.
+# Builds and signs the package site's indexes in Debian and Arch Linux
+# containers, so the host needs none of the packaging tools (#344, #350).
+# The release workflow and test.sh both run it.
 #
 # Usage: build-site.sh <site directory> <GNUPGHOME holding the signing key>
 #
@@ -32,4 +32,16 @@ fi
     REPOSITORY_KEY=$(gpg --batch --list-secret-keys --with-colons | awk -F: "/^fpr/ { print \$10; exit }")
     export REPOSITORY_KEY
     bash /scripts/index.sh /site
+    if [[ -n $OWNER ]]; then chown -R "$OWNER" /site; fi'
+
+# repo-add comes with pacman, so the pacman repositories are built on Arch
+# Linux (#350), from the same image the AUR smoke test uses.
+# shellcheck disable=SC2016 # Expanded inside the container.
+"$runtime" run --rm -v "$site:/site:Z" -v "$gnupg:/gnupg:Z" -v "$here:/scripts:ro,Z" \
+  -e GNUPGHOME=/gnupg -e OWNER="$owner" \
+  docker.io/library/archlinux:base-devel@sha256:0ccc8b2e55c0c26a6e501e892cc6b1cdea7cfdf77e432941320148b4dabd2bff bash -c '
+    set -euo pipefail
+    REPOSITORY_KEY=$(gpg --batch --list-secret-keys --with-colons | awk -F: "/^fpr/ { print \$10; exit }")
+    export REPOSITORY_KEY
+    bash /scripts/index-pacman.sh /site
     if [[ -n $OWNER ]]; then chown -R "$OWNER" /site; fi'

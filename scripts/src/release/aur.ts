@@ -29,13 +29,18 @@ const FIELDS = {
 } as const;
 
 const SHA256 = /^[0-9a-f]{64}$/;
-const VERSION = /^\d+\.\d+\.\d+$/;
+const VERSION = /^\d+\.\d+\.\d+(-(alpha|beta|rc)\.\d+)?$/;
+
+/**
+ * The pacman version of a release: makepkg allows no '-', and pacman sorts
+ * `1.0.0beta.1` before `1.0.0`, as a pre-release should be (#350).
+ */
+export const pkgverOf = (version: string): string => version.replace('-', '');
 const FILE_NAME = /^[\w.-]+$/;
 
 function validate(release: AurRelease): void {
-  // makepkg versions cannot contain '-', so pre-releases never reach the AUR.
   if (!VERSION.test(release.version)) {
-    throw new Error(`Not an AUR version: ${release.version}`);
+    throw new Error(`Not a release version: ${release.version}`);
   }
   const checksums = [release.licenseSha256, ...ARCHES.map((arch) => release.debs[arch].sha256)];
   for (const checksum of checksums) {
@@ -51,7 +56,7 @@ function validate(release: AurRelease): void {
 }
 
 function licenseUrl(release: AurRelease): string {
-  return `yapyap-${release.version}-LICENSE::${SOURCES}${release.version}/LICENSE`;
+  return `yapyap-${pkgverOf(release.version)}-LICENSE::${SOURCES}${release.version}/LICENSE`;
 }
 
 function debUrl(release: AurRelease, arch: AurArch): string {
@@ -82,7 +87,7 @@ export function pkgbuild(release: AurRelease): string {
   const lines = [
     '# Maintainer: Vasco Guita <https://github.com/vascoguita>',
     `pkgname=${PKGNAME}`,
-    `pkgver=${release.version}`,
+    `pkgver=${pkgverOf(release.version)}`,
     'pkgrel=1',
     `pkgdesc='${FIELDS.pkgdesc}'`,
     `arch=(${quoted(ARCHES)})`,
@@ -105,7 +110,7 @@ export function srcinfo(release: AurRelease): string {
   validate(release);
   const fields: (readonly [string, string])[] = [
     ['pkgdesc', FIELDS.pkgdesc],
-    ['pkgver', release.version],
+    ['pkgver', pkgverOf(release.version)],
     ['pkgrel', '1'],
     ['url', FIELDS.url],
     ...ARCHES.map((arch) => ['arch', arch] as const),

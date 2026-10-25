@@ -4,6 +4,7 @@ import {
   channels,
   dnfRepository,
   fromGitHub,
+  pacmanSection,
   poolFiles,
   redirects,
   type RepositoryRelease,
@@ -68,12 +69,23 @@ describe('poolFiles', () => {
 });
 
 describe('redirects', () => {
-  it('sends every package download to its GitHub release', () => {
-    expect(redirects()).toBe(
+  it('sends every package download to its GitHub release, pacman packages one by one', () => {
+    const beta = release('v0.2.0-beta.1', {
+      assets: [
+        'yapyap-bin-0.2.0beta.1-1-x86_64.pkg.tar.zst',
+        'YapYap-0.2.0-beta.1-linux-amd64.deb',
+      ],
+    });
+    const stable = release('v0.1.0', { assets: ['yapyap-bin-0.1.0-1-x86_64.pkg.tar.zst'] });
+    const download = 'https://github.com/vascoguita/yapyap/releases/download';
+    expect(redirects(channels([beta, stable]))).toBe(
       [
-        '/pool/:tag/:file https://github.com/vascoguita/yapyap/releases/download/:tag/:file 302',
-        '/rpm/stable/pool/:tag/:file https://github.com/vascoguita/yapyap/releases/download/:tag/:file 302',
-        '/rpm/beta/pool/:tag/:file https://github.com/vascoguita/yapyap/releases/download/:tag/:file 302',
+        `/pool/:tag/:file ${download}/:tag/:file 302`,
+        `/rpm/stable/pool/:tag/:file ${download}/:tag/:file 302`,
+        `/rpm/beta/pool/:tag/:file ${download}/:tag/:file 302`,
+        `/arch/stable/x86_64/yapyap-bin-0.1.0-1-x86_64.pkg.tar.zst ${download}/v0.1.0/yapyap-bin-0.1.0-1-x86_64.pkg.tar.zst 302`,
+        `/arch/beta/x86_64/yapyap-bin-0.2.0beta.1-1-x86_64.pkg.tar.zst ${download}/v0.2.0-beta.1/yapyap-bin-0.2.0beta.1-1-x86_64.pkg.tar.zst 302`,
+        `/arch/beta/x86_64/yapyap-bin-0.1.0-1-x86_64.pkg.tar.zst ${download}/v0.1.0/yapyap-bin-0.1.0-1-x86_64.pkg.tar.zst 302`,
         '',
       ].join('\n'),
     );
@@ -89,6 +101,17 @@ describe('repository files', () => {
         'Suites: beta',
         'Components: main',
         'Signed-By: /etc/apt/keyrings/yapyap.gpg',
+        '',
+      ].join('\n'),
+    );
+  });
+
+  it('gives pacman a section that requires signatures on the database and packages', () => {
+    expect(pacmanSection('beta')).toBe(
+      [
+        '[yapyap]',
+        'SigLevel = Required',
+        'Server = https://packages.guita.org/arch/beta/$arch',
         '',
       ].join('\n'),
     );

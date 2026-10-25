@@ -876,6 +876,16 @@ not edit the same lines.
   its own without install scripts, since Cloudflare's action installs it
   with pnpm, which the job does not set up.
 
+- pacman repository (#350): releases and betas also build `yapyap-bin` as a
+  pacman package from their `.deb` (betas as `0.1.0beta.1`, which pacman
+  sorts before `0.1.0`), and `packages.guita.org/arch/<channel>/x86_64`
+  serves its signed database and package signatures, redirecting each
+  package to GitHub with a rule of its own. `index-pacman.sh` builds it on
+  Arch Linux with `repo-add --prevent-downgrade`, since repo-add otherwise
+  lets an older package added later replace the newest. The pacman.conf
+  section requires signatures on the database too, and `test.sh` covers
+  Arch clients on both channels and a tampered database.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).

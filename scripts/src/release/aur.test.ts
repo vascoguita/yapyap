@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { pkgbuild, srcinfo, type AurRelease } from './aur.ts';
+import { pkgbuild, pkgverOf, srcinfo, type AurRelease } from './aur.ts';
 
 const A = 'a'.repeat(64);
 const B = 'b'.repeat(64);
@@ -92,9 +92,13 @@ describe('srcinfo', () => {
 describe('validation', () => {
   const deb = (fileName: string, sha256 = B) => ({ fileName, sha256 });
   it.each<[string, AurRelease, string]>([
-    ['a pre-release', { ...RELEASE, version: '1.0.0-beta.1' }, 'Not an AUR version: 1.0.0-beta.1'],
-    ['a prefixed version', { ...RELEASE, version: 'v1.0.0' }, 'Not an AUR version: v1.0.0'],
-    ['a short version', { ...RELEASE, version: '1.0' }, 'Not an AUR version: 1.0'],
+    [
+      'an unknown pre-release',
+      { ...RELEASE, version: '1.0.0-dev.1' },
+      'Not a release version: 1.0.0-dev.1',
+    ],
+    ['a prefixed version', { ...RELEASE, version: 'v1.0.0' }, 'Not a release version: v1.0.0'],
+    ['a short version', { ...RELEASE, version: '1.0' }, 'Not a release version: 1.0'],
     ['a bad license checksum', { ...RELEASE, licenseSha256: 'A'.repeat(64) }, 'Not a SHA-256'],
     [
       'a short deb checksum',
@@ -124,5 +128,30 @@ describe('validation', () => {
   ])('rejects %s', (_, release, message) => {
     expect(() => pkgbuild(release)).toThrow(message);
     expect(() => srcinfo(release)).toThrow(message);
+  });
+});
+
+describe('pre-releases', () => {
+  const beta: AurRelease = {
+    ...RELEASE,
+    version: '10.20.30-beta.2',
+    debs: {
+      x86_64: { fileName: 'YapYap-10.20.30-beta.2-linux-amd64.deb', sha256: B },
+      aarch64: { fileName: 'YapYap-10.20.30-beta.2-linux-arm64.deb', sha256: C },
+    },
+  };
+
+  it('get a pacman version that sorts before the release, and download from their own tag', () => {
+    expect(pkgverOf('10.20.30-beta.2')).toBe('10.20.30beta.2');
+    expect(pkgverOf('10.20.30')).toBe('10.20.30');
+    const built = pkgbuild(beta);
+    expect(built).toContain('pkgver=10.20.30beta.2\n');
+    expect(built).toContain(
+      "source=('yapyap-10.20.30beta.2-LICENSE::https://raw.githubusercontent.com/vascoguita/yapyap/v10.20.30-beta.2/LICENSE')",
+    );
+    expect(built).toContain(
+      'YapYap-10.20.30-beta.2-linux-amd64.deb::https://github.com/vascoguita/yapyap/releases/download/v10.20.30-beta.2/YapYap-10.20.30-beta.2-linux-amd64.deb',
+    );
+    expect(srcinfo(beta)).toContain('\tpkgver = 10.20.30beta.2\n');
   });
 });

@@ -18,7 +18,7 @@ YapYap will be available in these formats:
 | Debian, Ubuntu | DEB, or the apt repository | Through apt                  |
 | Fedora         | RPM, or the dnf repository | Through dnf                  |
 | openSUSE       | RPM                        | Download each release        |
-| Arch Linux     | PKGBUILD for `yapyap-bin`  | Rebuild with each release    |
+| Arch Linux     | The pacman repository      | Through pacman               |
 | Windows        | Installer (x64, arm64)     | Built-in updater             |
 | Windows        | Portable (x64, arm64)      | Notifies you of new versions |
 | macOS          | Universal DMG              | Notifies you of new versions |
@@ -26,13 +26,14 @@ YapYap will be available in these formats:
 Releases are published on
 [GitHub](https://github.com/vascoguita/yapyap/releases).
 
-On Arch Linux, download `yapyap-bin.PKGBUILD` from a release, save it as
-`PKGBUILD` in an empty folder, and run `makepkg -si` there. YapYap will be
-published to the AUR as `yapyap-bin` once AUR account registration reopens.
+On Arch Linux, use the [pacman repository](#linux-repositories), or download
+`yapyap-bin.PKGBUILD` from a release, save it as `PKGBUILD` in an empty
+folder, and run `makepkg -si` there. YapYap will be published to the AUR as
+`yapyap-bin` once AUR account registration reopens.
 
 ## Linux repositories {#linux-repositories}
 
-On Debian, Ubuntu and Fedora, add YapYap's repository once and your package
+On Debian, Ubuntu, Fedora and Arch Linux, add YapYap's repository once and your package
 manager installs and updates YapYap like any other app. The repositories at
 `packages.guita.org` are signed with YapYap's key, and the packages
 themselves download from YapYap's GitHub releases.
@@ -65,8 +66,21 @@ sudo dnf install YapYap
 dnf asks you to trust YapYap's key the first time. If the repository's
 signature ever fails to check, dnf stops instead of using it.
 
-**Betas.** To get betas as well as releases, use `yapyap-beta.sources` or
-`yapyap-beta.repo` instead. You move to each release once it is newer than
+**Arch Linux (x86_64)**
+
+```sh
+curl -fsSL https://packages.guita.org/yapyap.asc -o /tmp/yapyap.asc
+sudo pacman-key --add /tmp/yapyap.asc
+sudo pacman-key --lsign-key 789CC8E9F2936C765224918B677394EA2E01721E
+curl -fsSL https://packages.guita.org/yapyap.pacman.conf | sudo tee -a /etc/pacman.conf
+sudo pacman -Syu yapyap-bin
+```
+
+The repository requires signatures on its database and every package, even
+where pacman's defaults would accept an unsigned database.
+
+**Betas.** To get betas as well as releases, use `yapyap-beta.sources`,
+`yapyap-beta.repo` or `yapyap-beta.pacman.conf` instead. You move to each release once it is newer than
 your beta. To go back to releases only, swap the file back; your package
 manager offers the next release when it comes out.
 

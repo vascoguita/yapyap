@@ -18,7 +18,8 @@ const DOWNLOADS = 'https://github.com/vascoguita/yapyap/releases/download';
 /** How many versions each channel lists, so users can still pin or roll back. */
 const KEPT_VERSIONS = 5;
 
-const PACKAGE = /^[\w.~-]+\.(deb|rpm)$/;
+const PACKAGE = /^[\w.~-]+\.(deb|rpm|pkg\.tar\.zst)$/;
+const PACMAN = '.pkg.tar.zst';
 const TAG = /^v\d+\.\d+\.\d+(-[\w.]+)?$/;
 
 /** A package file and the release it belongs to. */
@@ -64,12 +65,22 @@ export function poolFiles(
 /**
  * Cloudflare Pages redirects: the site holds only the signed indexes, and
  * every package download goes to GitHub Releases, where it is counted.
+ * Pages applies redirects before its own files, so pacman packages, which
+ * share a folder with the database and signatures, get a rule each (#350).
  */
-export function redirects(): string {
+export function redirects(listed: Readonly<Record<Channel, readonly RepositoryRelease[]>>): string {
   const target = `${DOWNLOADS}/:tag/:file 302`;
+  const pacman = CHANNELS.flatMap((channel) =>
+    listed[channel].flatMap(({ tag, assets }) =>
+      assets
+        .filter((file) => file.endsWith(PACMAN))
+        .map((file) => `/arch/${channel}/x86_64/${file} ${DOWNLOADS}/${tag}/${file} 302`),
+    ),
+  );
   return [
     `/pool/:tag/:file ${target}`,
     ...CHANNELS.map((channel) => `/rpm/${channel}/pool/:tag/:file ${target}`),
+    ...pacman,
     '',
   ].join('\n');
 }
@@ -136,4 +147,18 @@ export function fromGitHub(answer: unknown): RepositoryRelease[] {
     draft: entry.draft,
     assets: entry.assets.map((asset) => asset.name),
   }));
+}
+
+/**
+ * The pacman.conf section for `channel`. pacman accepts an unsigned database
+ * by default, which would let a stale one keep users on an old version, so
+ * this one requires signatures on both.
+ */
+export function pacmanSection(channel: Channel): string {
+  return [
+    '[yapyap]',
+    'SigLevel = Required',
+    `Server = ${REPOSITORY_URL}/arch/${channel}/$arch`,
+    '',
+  ].join('\n');
 }
