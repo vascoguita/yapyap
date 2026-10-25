@@ -17,7 +17,8 @@ describe('createChromeBridge', () => {
       Promise.resolve(answers[channel] ?? 'ignored'),
     );
     const listen = vi.fn();
-    const api = createChromeBridge(invoke, listen);
+    const listenToPlugins = vi.fn();
+    const api = createChromeBridge(invoke, listen, listenToPlugins);
     expect(await api.about.info()).toBe(info);
     await api.about.copyTechnicalDetails();
     expect(await api.recovery.problem()).toBe(problem);
@@ -54,6 +55,9 @@ describe('createChromeBridge', () => {
       'ignored',
     );
     expect(await api.plugins.remove('org.example.hello')).toBe('ignored');
+    const changed = vi.fn();
+    api.plugins.onChange(changed);
+    expect(listenToPlugins).toHaveBeenCalledExactlyOnceWith(changed);
     expect(await api.shortcuts.list()).toBe('ignored');
     expect(await api.shortcuts.set('settings', 'CmdOrCtrl+K')).toBe('ignored');
     expect(await api.downloads.list()).toBe('ignored');
@@ -134,7 +138,7 @@ describe('createChromeBridge', () => {
   });
 
   it('exposes nothing but the listed operations', () => {
-    const api = createChromeBridge(vi.fn(), vi.fn());
+    const api = createChromeBridge(vi.fn(), vi.fn(), vi.fn());
     expect(Object.keys(api)).toEqual([
       'about',
       'recovery',
@@ -168,6 +172,7 @@ describe('createChromeBridge', () => {
       'setSetting',
       'setGrant',
       'remove',
+      'onChange',
     ]);
     expect(Object.keys(api.quickPanel)).toEqual(['open', 'setDoNotDisturb']);
     expect(Object.keys(api.chat)).toEqual(['openNumber']);

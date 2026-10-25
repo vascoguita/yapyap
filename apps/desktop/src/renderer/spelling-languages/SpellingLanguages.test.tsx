@@ -65,6 +65,7 @@ function api(initial: Partial<SpellingLanguages>) {
       setGrant: vi.fn(),
       setSetting: vi.fn(),
       remove: vi.fn(),
+      onChange: vi.fn(),
     },
     picker: { offer: vi.fn(), choose: vi.fn(), cancel: vi.fn() },
     customCode: { get: vi.fn(), save: vi.fn(), preview: vi.fn() },

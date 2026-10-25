@@ -282,7 +282,12 @@ function Activity({ activity }: { readonly activity: readonly PluginActivity[] }
 function usePluginList(api: ChromeApi) {
   const [list, setList] = useState<PluginList | null>(null);
   useEffect(() => {
-    api.plugins.list().then(setList, () => undefined);
+    const load = (): void => {
+      api.plugins.list().then(setList, () => undefined);
+    };
+    load();
+    // A plugin installed or removed while the window is open shows up at once (#342).
+    api.plugins.onChange(load);
   }, [api]);
   const setting = useCallback<SettingChange>(
     (plugin, key, value) => {

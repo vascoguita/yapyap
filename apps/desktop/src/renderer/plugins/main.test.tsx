@@ -8,6 +8,7 @@ describe('plugins entry', () => {
       value: {
         plugins: {
           list: vi.fn(() => Promise.resolve({ plugins: [], developerMode: false, activity: [] })),
+          onChange: vi.fn(),
         },
       },
     });

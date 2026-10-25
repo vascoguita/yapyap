@@ -27,11 +27,15 @@ const record = (id: string, extra: Partial<PluginRecord> = {}): PluginRecord => 
 });
 
 function setup(root: string, developerMode = false, overrides: object = {}) {
-  const windows: { loadURL: ReturnType<typeof vi.fn>; options: object }[] = [];
+  const windows: {
+    loadURL: ReturnType<typeof vi.fn>;
+    options: object;
+    webContents: { send: ReturnType<typeof vi.fn> };
+  }[] = [];
   const createWindow = vi.fn((options: object) => {
     const window = {
       options,
-      webContents: {},
+      webContents: { send: vi.fn() },
       isDestroyed: vi.fn(() => false),
       focus: vi.fn(),
       once: vi.fn(),
@@ -208,9 +212,12 @@ describe('createPluginChrome', () => {
     for (const args of [[], [7], ['x'.repeat(301)], ['org.example.hello', 'more']]) {
       expect(remove.accepts(args)).toBe(false);
     }
+    t.chrome.openPlugins();
     const list = (await remove.handle({ sender: {} }, 'org.example.hello')) as {
       plugins: unknown[];
     };
+    // Every open Plugins window lists again, not just the one that asked (#342).
+    expect(t.windows[0]?.webContents.send).toHaveBeenCalledWith('plugins:changed');
     expect(list.plugins).toEqual([]);
     expect(t.deps.confirmRemove).toHaveBeenCalledExactlyOnceWith('org.example.hello');
     expect(t.deps.forgetData).toHaveBeenCalledExactlyOnceWith('org.example.hello');
@@ -373,7 +380,7 @@ describe('openConsentWindow', () => {
   it('opens the consent page, closes it once, and says when it is gone', () => {
     let closed: (() => void) | undefined;
     const window = {
-      webContents: {},
+      webContents: { send: vi.fn() },
       isDestroyed: vi.fn(() => false),
       focus: vi.fn(),
       once: vi.fn((event: string, listener: () => void) => {

@@ -53,6 +53,7 @@ function api(get: () => Promise<CustomCodeView> = () => Promise.resolve(VIEW)) {
       setGrant: vi.fn(),
       setSetting: vi.fn(),
       remove: vi.fn(),
+      onChange: vi.fn(),
     },
     report: { diagnostics: vi.fn(), open: vi.fn() },
     picker: { offer: vi.fn(), choose: vi.fn(), cancel: vi.fn() },

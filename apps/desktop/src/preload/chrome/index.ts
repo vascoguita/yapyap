@@ -1,5 +1,9 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import { SIDEBAR_STATE_EVENT, type SidebarState } from '../../shared/chrome-api.ts';
+import {
+  PLUGINS_CHANGED_EVENT,
+  SIDEBAR_STATE_EVENT,
+  type SidebarState,
+} from '../../shared/chrome-api.ts';
 import { createChromeBridge } from './bridge.ts';
 
 contextBridge.exposeInMainWorld(
@@ -10,6 +14,11 @@ contextBridge.exposeInMainWorld(
     (listener) => {
       ipcRenderer.on(SIDEBAR_STATE_EVENT, (_event, state: SidebarState) => {
         listener(state);
+      });
+    },
+    (listener) => {
+      ipcRenderer.on(PLUGINS_CHANGED_EVENT, () => {
+        listener();
       });
     },
   ),

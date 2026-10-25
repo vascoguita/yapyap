@@ -64,6 +64,7 @@ function api(overrides: Partial<ChromeApi['settings']> = {}) {
       setGrant: vi.fn(),
       setSetting: vi.fn(),
       remove: vi.fn(),
+      onChange: vi.fn(),
     },
     report: { diagnostics: vi.fn(), open: vi.fn() },
     picker: { offer: vi.fn(), choose: vi.fn(), cancel: vi.fn() },

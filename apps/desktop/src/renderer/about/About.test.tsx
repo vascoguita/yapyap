@@ -60,6 +60,7 @@ function api(overrides: Partial<ChromeApi['about']> = {}): ChromeApi {
       setGrant: vi.fn(),
       setSetting: vi.fn(),
       remove: vi.fn(),
+      onChange: vi.fn(),
     },
     report: { diagnostics: vi.fn(), open: vi.fn() },
     picker: { offer: vi.fn(), choose: vi.fn(), cancel: vi.fn() },

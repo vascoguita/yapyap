@@ -21,6 +21,7 @@ import {
 type Invoke = (channel: string, ...args: unknown[]) => Promise<unknown>;
 /** Hears the sidebar's state, the only thing the main process sends. */
 type Listen = (listener: (state: SidebarState) => void) => void;
+type ListenToPlugins = (listener: () => void) => void;
 
 function accountsBridge(invoke: Invoke): ChromeApi['accounts'] {
   return {
@@ -51,7 +52,7 @@ function sidebarBridge(invoke: Invoke, listen: Listen): ChromeApi['sidebar'] {
   };
 }
 
-function pluginsBridge(invoke: Invoke): ChromeApi['plugins'] {
+function pluginsBridge(invoke: Invoke, onChange: ListenToPlugins): ChromeApi['plugins'] {
   return {
     list: () => invoke(CHROME_CHANNELS.pluginsList) as Promise<PluginList>,
     consent: () => invoke(CHROME_CHANNELS.pluginsConsent) as Promise<PluginConsent>,
@@ -69,6 +70,7 @@ function pluginsBridge(invoke: Invoke): ChromeApi['plugins'] {
         granted,
       ) as Promise<PluginList>,
     remove: (id) => invoke(CHROME_CHANNELS.pluginsRemove, id) as Promise<PluginList>,
+    onChange,
   };
 }
 
@@ -181,7 +183,11 @@ function settingsBridge(invoke: Invoke): ChromeApi['settings'] {
  * Builds the chrome API from a single invoke function. Each operation has its
  * own fixed channel, so the page can never choose what it calls.
  */
-export function createChromeBridge(invoke: Invoke, listen: Listen): ChromeApi {
+export function createChromeBridge(
+  invoke: Invoke,
+  listen: Listen,
+  listenToPlugins: ListenToPlugins,
+): ChromeApi {
   const run = (channel: string) => async (): Promise<void> => {
     await invoke(channel);
   };
@@ -203,7 +209,7 @@ export function createChromeBridge(invoke: Invoke, listen: Listen): ChromeApi {
     accounts: accountsBridge(invoke),
     sidebar: sidebarBridge(invoke, listen),
     quickPanel: quickPanelBridge(invoke),
-    plugins: pluginsBridge(invoke),
+    plugins: pluginsBridge(invoke, listenToPlugins),
     report: reportBridge(invoke),
     spelling: spellingBridge(invoke),
     picker: pickerBridge(invoke),
