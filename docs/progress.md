@@ -661,6 +661,13 @@ not edit the same lines.
   timing categories only (no memory dumps or screenshots), and saves a
   Perfetto trace there; nothing is sent.
 
+- User guide FAQ (#114): `docs/guide/faq.md` answers whether YapYap can
+  get an account banned (it is WhatsApp Web used by hand, with no
+  automation), why calls or locked chats may be missing (WhatsApp decides
+  what linked devices get), how many accounts fit, and what to try first
+  when something breaks. The guide already covered installing, accounts,
+  notifications, theming, shortcuts, recovery and troubleshooting.
+
 - Screen-sharing indicator (#161): the WhatsApp preload's second stand-in
   (`installShareShim`, ADR 0011) reports when a screen share starts and
   ends, by a random ID only, and stops one when YapYap asks. The main
