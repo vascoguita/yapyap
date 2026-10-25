@@ -7,6 +7,11 @@ export interface AutostartPort {
   /** Throws when the system refuses; so can `disable`. */
   readonly enable: () => void;
   readonly disable: () => void;
+  /**
+   * Keeps an existing entry starting this YapYap where it would otherwise
+   * start nothing, such as after an AppImage moved (#362).
+   */
+  readonly refresh: () => void;
 }
 
 /** Electron's login items, which exist on Windows and macOS only. */
@@ -24,6 +29,9 @@ export function loginItemAutostart(items: LoginItems): AutostartPort {
     disable: () => {
       items.setLoginItemSettings({ openAtLogin: false });
     },
+    refresh: () => {
+      items.setLoginItemSettings({ openAtLogin: true });
+    },
   };
 }
 
@@ -34,6 +42,7 @@ export const UNSUPPORTED_AUTOSTART: AutostartPort = {
     throw new Error('Autostart is not available in this package.');
   },
   disable: () => undefined,
+  refresh: () => undefined,
 };
 
 export interface AutostartSources {
@@ -63,8 +72,7 @@ export function syncAutostartSetting(
   try {
     const enabled = port.enabled();
     if (enabled) {
-      // Rewrites the entry, so it follows an AppImage that moved.
-      port.enable();
+      port.refresh();
     }
     if (enabled !== settings.current().general.autostart) {
       settings.update((current) => ({

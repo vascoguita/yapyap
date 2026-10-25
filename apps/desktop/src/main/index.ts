@@ -145,6 +145,7 @@ const autostart = chooseAutostart({
       execPath: process.execPath,
       files: {
         exists: existsSync,
+        read: (path) => readFileSync(path, 'utf8'),
         mkdir: (path) => {
           mkdirSync(path, { recursive: true });
         },

@@ -920,6 +920,12 @@ not edit the same lines.
   answer yes for `media`, whose request still asks the user (ADR 0008,
   C30), and an E2E test queries the permissions as WhatsApp does first.
 
+- Login entry ownership (#362): at start, YapYap re-points an existing
+  Linux autostart entry only when the program it names is gone, as after an
+  AppImage moved, so another YapYap build started once, even with its own
+  profile, no longer takes over the user's "Start at login". Login items on
+  Windows and macOS keep refreshing as before.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).
