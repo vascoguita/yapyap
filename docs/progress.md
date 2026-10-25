@@ -630,8 +630,15 @@ not edit the same lines.
   memory a second account adds and the CPU a hidden account uses while
   idle, from cumulative CPU time, and the nightly run holds them to budgets
   per OS (ADR 0009): about 200 MB per account and under 0.5% of a core
-  hidden, against budgets of 230–270 MB and 2%. Profiling active use is
-  still to come.
+  hidden, against budgets of 230–270 MB and 2%.
+
+- Active-use budgets (#109): `bench/activity.spec.ts` runs fifteen rounds
+  of use on two accounts (switching between them, a notification from
+  each, opening and closing Settings) and measures what memory grows by
+  once settled, and the main process's CPU while the rounds run. Growth
+  levels off: 45 rounds add no more than 15, so nothing leaks per round.
+  CI measured 17–20 MB and 44–48% of a core on all three systems, against
+  budgets of 40 MB and 70% (ADR 0009).
 
 - Accessibility checks (#110, first part): `e2e/accessibility.spec.ts` runs
   axe-core against WCAG 2.2 AA on every chrome page the menu opens, in the

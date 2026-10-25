@@ -60,6 +60,25 @@ timings in PRs would flap.
   | windows-latest | 183 MB      | 0.2%       | 230 MB, 2% |
   | macos-latest   | 199 MB      | 0.2–0.4%   | 250 MB, 2% |
 
+- **Active use (#109).** A third benchmark (`bench/activity.spec.ts`) runs
+  fifteen rounds of everyday use on two accounts: showing each account,
+  a notification from each, and opening and closing Settings. Over three
+  launches it takes the median of two numbers:
+  - **Memory growth:** what all of YapYap's processes hold more after the
+    rounds than before, both once settled. It levels off: on Linux, 45
+    rounds grew no more than 15, so a budget near twice the median still
+    catches a leak of about 1.5 MB a round.
+  - **Main-process CPU:** the main process's share of one core while the
+    rounds run, which is mostly opening windows and rebuilding menus.
+
+  Calibrated on 2026-10-25:
+
+  | Runner         | Growth   | Main CPU | Budget     |
+  | -------------- | -------- | -------- | ---------- |
+  | ubuntu-latest  | 17 MB    | 46–48%   | 40 MB, 70% |
+  | windows-latest | 8–20 MB  | 42–45%   | 40 MB, 70% |
+  | macos-latest   | 15–22 MB | 42–45%   | 40 MB, 70% |
+
 - **Warm-up.** The first launch on a fresh runner takes 3–7 s while the disk
   cache fills. The benchmark makes one warm-up launch and leaves it out, then
   takes the median of seven.
