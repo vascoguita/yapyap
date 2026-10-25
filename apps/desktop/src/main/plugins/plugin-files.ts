@@ -90,13 +90,14 @@ const HTML = 'text/html; charset=utf-8';
 
 /** The pages and bootstrap YapYap serves for the plugin, which no plugin file can replace. */
 function yapyapFile(pathname: string, source: PluginSource): Response | undefined {
-  switch (pathname) {
-    case '/':
-      return respond(HOST_PAGE, HTML);
-    case HOST_SCRIPT_PATH:
-      return respond(hostScript(source.entry), JAVASCRIPT);
-    case PANEL_PAGE_PATH:
-      return source.panel === undefined ? notFound() : respond(panelPage(source.panel), HTML);
+  if (pathname === '/') {
+    return respond(HOST_PAGE, HTML);
+  }
+  if (pathname === HOST_SCRIPT_PATH) {
+    return respond(hostScript(source.entry), JAVASCRIPT);
+  }
+  if (pathname === PANEL_PAGE_PATH) {
+    return source.panel === undefined ? notFound() : respond(panelPage(source.panel), HTML);
   }
   return undefined;
 }
