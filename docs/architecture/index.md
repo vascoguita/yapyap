@@ -200,3 +200,4 @@ Each design choice is recorded in an
 | Memory, CPU and startup budgets                        | [0009](/adr/0009-performance-budgets)                   |
 | Static analysis                                        | [0010](/adr/0010-static-analysis-with-sonarqube-cloud)  |
 | WhatsApp notifications                                 | [0011](/adr/0011-whatsapp-notifications)                |
+| Translations and right-to-left support                 | [0012](/adr/0012-translations)                          |
