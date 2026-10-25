@@ -57,6 +57,7 @@ export default defineConfig({
             { text: 'Troubleshooting', link: '/guide/troubleshooting' },
             { text: 'Reference', link: '/guide/reference' },
             { text: 'AI assistant', link: '/guide/ai-assistant' },
+            { text: 'FAQ', link: '/guide/faq' },
           ],
         },
       ],

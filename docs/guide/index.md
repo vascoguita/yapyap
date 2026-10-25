@@ -113,7 +113,8 @@ account's name. Clicking one brings YapYap forward, switches to that account
 and opens the chat. Notifications disappear when you read the chat, here or
 on your phone, and when YapYap quits. WhatsApp's own notification settings,
 such as sounds, still apply. YapYap shows its own icon rather than contact
-photos, and the text of a notification never leaves your computer. Under
+photos, and the text of a notification never leaves your computer.
+
 On macOS and Windows you can reply from a notification: YapYap opens the
 chat and puts your reply in the message box, where you check it and press
 <kbd>Enter</kbd> to send it. On Linux, clicking a notification opens the
