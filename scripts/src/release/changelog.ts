@@ -58,50 +58,88 @@ export function mergeDuplicates(changelog: string): string {
   return out.slice(0, -1).join('\n');
 }
 
-/** The few GitHub API calls the release PR's cleanup makes. */
+/** GitHub's GraphQL API, the only one the cleanup calls. */
 export interface GitHubApi {
-  readonly get: (path: string) => Promise<unknown>;
-  readonly send: (method: 'POST' | 'PATCH', path: string, body: object) => Promise<unknown>;
+  readonly graphql: (query: string, variables: object) => Promise<unknown>;
 }
 
-/** GitHub's REST and GraphQL API through `fetch`, failing on any error answer. */
+/**
+ * GraphQL through `fetch`, failing on any error answer. Every call goes to
+ * the one fixed endpoint, and values travel as typed variables, never in a
+ * URL.
+ */
 export function githubApi(
   fetcher: (url: string, init: RequestInit) => Promise<Response>,
   token: string,
 ): GitHubApi {
-  const call = async (path: string, init: RequestInit): Promise<unknown> => {
-    const response = await fetcher(`https://api.github.com/${path}`, {
-      ...init,
-      headers: { accept: 'application/vnd.github+json', authorization: `Bearer ${token}` },
-    });
-    if (!response.ok) {
-      throw new Error(`GitHub answered ${String(response.status)} for ${path}.`);
-    }
-    return response.json();
-  };
   return {
-    get: (path) => call(path, {}),
-    send: (method, path, body) => call(path, { method, body: JSON.stringify(body) }),
+    graphql: async (query, variables) => {
+      const response = await fetcher('https://api.github.com/graphql', {
+        method: 'POST',
+        headers: { accept: 'application/vnd.github+json', authorization: `Bearer ${token}` },
+        body: JSON.stringify({ query, variables }),
+      });
+      const answer = (await response.json()) as { data?: unknown; errors?: unknown[] };
+      if (!response.ok || answer.errors !== undefined) {
+        throw new Error(
+          `GitHub answered ${String(response.status)}: ${JSON.stringify(answer.errors)}`,
+        );
+      }
+      return answer.data;
+    },
   };
 }
 
-/** The release PR as release-please's `pr` output describes it. */
-export interface ReleasePullRequest {
-  readonly number: number;
-  readonly headBranchName: string;
+/** The branch release-please keeps its release PR on (ADR 0007). */
+export const RELEASE_BRANCH = 'release-please--branches--master--components--yapyap';
+
+/** The open release PR, as the cleanup needs it. */
+interface ReleasePullRequest {
+  readonly id: string;
+  readonly body: string;
+  readonly headRefOid: string;
+  readonly changelog: string;
 }
 
-/** Reads release-please's `pr` output, which must name a pull request and its branch. */
-export function parseReleasePullRequest(output: string): ReleasePullRequest {
-  const pr = JSON.parse(output || '{}') as Partial<ReleasePullRequest>;
-  if (typeof pr.number !== 'number' || typeof pr.headBranchName !== 'string') {
-    throw new TypeError('The release PR output names no pull request.');
+const FIND = `query ($owner: String!, $name: String!, $branch: String!, $file: String!) {
+  repository(owner: $owner, name: $name) {
+    pullRequests(headRefName: $branch, states: OPEN, first: 1) {
+      nodes { id body headRefOid }
+    }
+    object(expression: $file) { ... on Blob { text } }
   }
-  return { number: pr.number, headBranchName: pr.headBranchName };
+}`;
+
+/**
+ * The open release PR and its CHANGELOG.md, if there is one. release-please
+ * reports a PR only when a push changed it, so the workflow looks it up.
+ */
+export async function findReleasePullRequest(
+  api: GitHubApi,
+  repository: string,
+): Promise<ReleasePullRequest | undefined> {
+  const [owner, name] = repository.split('/');
+  const data = (await api.graphql(FIND, {
+    owner,
+    name,
+    branch: RELEASE_BRANCH,
+    file: `${RELEASE_BRANCH}:CHANGELOG.md`,
+  })) as {
+    repository: {
+      pullRequests: { nodes: { id: string; body: string; headRefOid: string }[] };
+      object: { text?: string } | null;
+    };
+  };
+  const [pr] = data.repository.pullRequests.nodes;
+  return pr === undefined ? undefined : { ...pr, changelog: data.repository.object?.text ?? '' };
 }
 
 const COMMIT = `mutation ($input: CreateCommitOnBranchInput!) {
   createCommitOnBranch(input: $input) { commit { oid } }
+}`;
+
+const UPDATE = `mutation ($id: ID!, $body: String!) {
+  updatePullRequest(input: { pullRequestId: $id, body: $body }) { clientMutationId }
 }`;
 
 /**
@@ -115,28 +153,21 @@ export async function mergeReleasePullRequest(
   repository: string,
   pr: ReleasePullRequest,
 ): Promise<boolean> {
-  const path = `repos/${repository}/pulls/${String(pr.number)}`;
-  const pull = (await api.get(path)) as { body: string | null; head: { sha: string } };
-  const file = (await api.get(
-    `repos/${repository}/contents/CHANGELOG.md?ref=${encodeURIComponent(pr.headBranchName)}`,
-  )) as { content: string };
-  const changelog = Buffer.from(file.content, 'base64').toString('utf8');
-  const body = pull.body ?? '';
-  const [newChangelog, newBody] = [mergeDuplicates(changelog), mergeDuplicates(body)];
-  if (newChangelog !== changelog) {
+  const [changelog, body] = [mergeDuplicates(pr.changelog), mergeDuplicates(pr.body)];
+  if (changelog !== pr.changelog) {
     const additions = [
-      { path: 'CHANGELOG.md', contents: Buffer.from(newChangelog).toString('base64') },
+      { path: 'CHANGELOG.md', contents: Buffer.from(changelog).toString('base64') },
     ];
     const input = {
-      branch: { repositoryNameWithOwner: repository, branchName: pr.headBranchName },
+      branch: { repositoryNameWithOwner: repository, branchName: RELEASE_BRANCH },
       message: { headline: 'docs(changelog): list each change once' },
-      expectedHeadOid: pull.head.sha,
+      expectedHeadOid: pr.headRefOid,
       fileChanges: { additions },
     };
-    await api.send('POST', 'graphql', { query: COMMIT, variables: { input } });
+    await api.graphql(COMMIT, { input });
   }
-  if (newBody !== body) {
-    await api.send('PATCH', path, { body: newBody });
+  if (body !== pr.body) {
+    await api.graphql(UPDATE, { id: pr.id, body });
   }
-  return newChangelog !== changelog || newBody !== body;
+  return changelog !== pr.changelog || body !== pr.body;
 }

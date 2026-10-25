@@ -917,7 +917,9 @@ not edit the same lines.
   release PR, the release workflow runs `merge-changelog.ts`, which merges
   each pair into one entry with the PR link and every closed issue, commits
   CHANGELOG.md through the GraphQL API so GitHub signs it, and fixes the PR
-  body the release notes come from.
+  body the release notes come from. It finds the open release PR itself,
+  since release-please reports one only when a push changed it, and talks
+  to GitHub through GraphQL alone, so no value it reads ends up in a URL.
 
 - Login entry ownership (#362): at start, YapYap re-points an existing
   Linux autostart entry only when the program it names is gone, as after an

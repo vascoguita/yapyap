@@ -49,18 +49,17 @@ jobs:
       # release-please lists a change for its commit and again for its merge
       # commit, which carries the PR's Conventional Commit title (#358).
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        if: steps.release.outputs.pr != ''
+        if: steps.release.outputs.release_created != 'true'
         with:
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        if: steps.release.outputs.pr != ''
+        if: steps.release.outputs.release_created != 'true'
         with:
           node-version-file: .nvmrc
       - name: List each change once in the release PR
-        if: steps.release.outputs.pr != ''
+        if: steps.release.outputs.release_created != 'true'
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
-          RELEASE_PR: ${{ steps.release.outputs.pr }}
         run: node scripts/src/bin/merge-changelog.ts
 
   package:

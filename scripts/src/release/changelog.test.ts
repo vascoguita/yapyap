@@ -3,7 +3,8 @@ import {
   githubApi,
   mergeDuplicates,
   mergeReleasePullRequest,
-  parseReleasePullRequest,
+  findReleasePullRequest,
+  RELEASE_BRANCH,
   type GitHubApi,
 } from './changelog.ts';
 
@@ -78,42 +79,59 @@ describe('mergeDuplicates', () => {
 });
 
 describe('githubApi', () => {
-  it('calls the API with the token, and fails on an error answer', async () => {
-    const fetcher = vi.fn<(url: string, init?: RequestInit) => Promise<Response>>((url) =>
-      Promise.resolve(
-        url.endsWith('/missing')
-          ? new Response('{}', { status: 404 })
-          : new Response('{"ok":true}', { status: 200 }),
-      ),
+  it('posts GraphQL with the token, and fails on an error answer', async () => {
+    const fetcher = vi.fn<(url: string, init?: RequestInit) => Promise<Response>>(() =>
+      Promise.resolve(new Response('{"data":{"ok":true}}', { status: 200 })),
     );
     const api = githubApi(fetcher, 'secret');
-    expect(await api.get('repos/a/b')).toEqual({ ok: true });
-    expect(await api.send('PATCH', 'repos/a/b/pulls/1', { body: 'x' })).toEqual({ ok: true });
-    expect(fetcher.mock.calls[1]).toEqual([
-      'https://api.github.com/repos/a/b/pulls/1',
+    expect(await api.graphql('query { ok }', { a: 1 })).toEqual({ ok: true });
+    expect(fetcher.mock.calls[0]).toEqual([
+      'https://api.github.com/graphql',
       {
-        method: 'PATCH',
-        body: '{"body":"x"}',
+        method: 'POST',
         headers: { accept: 'application/vnd.github+json', authorization: 'Bearer secret' },
+        body: '{"query":"query { ok }","variables":{"a":1}}',
       },
     ]);
-    await expect(api.get('missing')).rejects.toThrow('GitHub answered 404 for missing.');
+    fetcher.mockResolvedValueOnce(new Response('{"errors":[{"message":"no"}]}', { status: 200 }));
+    await expect(api.graphql('q', {})).rejects.toThrow('GitHub answered 200: [{"message":"no"}]');
+    fetcher.mockResolvedValueOnce(new Response('{}', { status: 401 }));
+    await expect(api.graphql('q', {})).rejects.toThrow('GitHub answered 401');
   });
 });
 
-describe('parseReleasePullRequest', () => {
-  it("reads the number and branch of release-please's pr output", () => {
-    expect(
-      parseReleasePullRequest('{"number":360,"headBranchName":"release-please--x","title":"t"}'),
-    ).toEqual({ number: 360, headBranchName: 'release-please--x' });
+describe('findReleasePullRequest', () => {
+  it('finds the open release PR and its changelog, if there is one', async () => {
+    const graphql = vi.fn<GitHubApi['graphql']>(() =>
+      Promise.resolve({
+        repository: {
+          pullRequests: { nodes: [{ id: 'PR_1', body: 'b', headRefOid: 'head1' }] },
+          object: { text: 'c' },
+        },
+      }),
+    );
+    expect(await findReleasePullRequest({ graphql }, 'o/r')).toEqual({
+      id: 'PR_1',
+      body: 'b',
+      headRefOid: 'head1',
+      changelog: 'c',
+    });
+    expect(graphql.mock.calls[0]?.[1]).toEqual({
+      owner: 'o',
+      name: 'r',
+      branch: RELEASE_BRANCH,
+      file: `${RELEASE_BRANCH}:CHANGELOG.md`,
+    });
+    graphql.mockResolvedValueOnce({ repository: { pullRequests: { nodes: [] }, object: null } });
+    expect(await findReleasePullRequest({ graphql }, 'o/r')).toBeUndefined();
+    graphql.mockResolvedValueOnce({
+      repository: {
+        pullRequests: { nodes: [{ id: 'PR_1', body: 'b', headRefOid: 'h' }] },
+        object: null,
+      },
+    });
+    expect((await findReleasePullRequest({ graphql }, 'o/r'))?.changelog).toBe('');
   });
-
-  it.each(['', '{}', '{"number":"360","headBranchName":"b"}', '{"number":360}'])(
-    'refuses %j',
-    (output) => {
-      expect(() => parseReleasePullRequest(output)).toThrow('names no pull request');
-    },
-  );
 });
 
 describe('mergeReleasePullRequest', () => {
@@ -123,48 +141,32 @@ describe('mergeReleasePullRequest', () => {
   ].join('\n');
   const once = `* **a:** b (${pr(2)}) (${sha('bbb2222')}), closes ${pr(1)}`;
 
-  function fake(changelog: string, body: string | null) {
-    const sent: unknown[][] = [];
-    const api: GitHubApi = {
-      get: (path) =>
-        Promise.resolve(
-          path.includes('/contents/')
-            ? { content: Buffer.from(changelog).toString('base64') }
-            : { body, head: { sha: 'head1' } },
-        ),
-      send: (...call) => {
-        sent.push(call);
-        return Promise.resolve({});
-      },
-    };
-    return { api, sent };
-  }
-
   it('commits the merged changelog on top of the branch it read, and fixes the body', async () => {
-    const { api, sent } = fake(duplicated, `Notes\n${duplicated}`);
-    const pr360 = { number: 360, headBranchName: 'release-please--x' };
-    expect(await mergeReleasePullRequest(api, 'o/r', pr360)).toBe(true);
-    const [commit, patch] = sent as [
-      [string, string, { variables: { input: unknown } }],
-      unknown[],
-    ];
-    expect(commit.slice(0, 2)).toEqual(['POST', 'graphql']);
-    expect(commit[2].variables.input).toEqual({
-      branch: { repositoryNameWithOwner: 'o/r', branchName: 'release-please--x' },
-      message: { headline: 'docs(changelog): list each change once' },
-      expectedHeadOid: 'head1',
-      fileChanges: {
-        additions: [{ path: 'CHANGELOG.md', contents: Buffer.from(once).toString('base64') }],
+    const graphql = vi.fn<GitHubApi['graphql']>(() => Promise.resolve({}));
+    const release = {
+      id: 'PR_1',
+      body: `Notes\n${duplicated}`,
+      headRefOid: 'head1',
+      changelog: duplicated,
+    };
+    expect(await mergeReleasePullRequest({ graphql }, 'o/r', release)).toBe(true);
+    expect(graphql.mock.calls[0]?.[1]).toEqual({
+      input: {
+        branch: { repositoryNameWithOwner: 'o/r', branchName: RELEASE_BRANCH },
+        message: { headline: 'docs(changelog): list each change once' },
+        expectedHeadOid: 'head1',
+        fileChanges: {
+          additions: [{ path: 'CHANGELOG.md', contents: Buffer.from(once).toString('base64') }],
+        },
       },
     });
-    expect(patch).toEqual(['PATCH', 'repos/o/r/pulls/360', { body: `Notes\n${once}` }]);
+    expect(graphql.mock.calls[1]?.[1]).toEqual({ id: 'PR_1', body: `Notes\n${once}` });
   });
 
   it('changes nothing that already lists each change once', async () => {
-    const { api, sent } = fake(once, null);
-    expect(await mergeReleasePullRequest(api, 'o/r', { number: 1, headBranchName: 'b' })).toBe(
-      false,
-    );
-    expect(sent).toEqual([]);
+    const graphql = vi.fn<GitHubApi['graphql']>(() => Promise.resolve({}));
+    const release = { id: 'PR_1', body: once, headRefOid: 'h', changelog: once };
+    expect(await mergeReleasePullRequest({ graphql }, 'o/r', release)).toBe(false);
+    expect(graphql).not.toHaveBeenCalled();
   });
 });
