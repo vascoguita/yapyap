@@ -9,7 +9,13 @@
   },
   "apiVersion": "^1.0.0",
   "entry": "main.js",
-  "capabilities": ["chat:read-active", "composer:insert-draft", "secrets:own", "storage:local"],
+  "capabilities": [
+    "chat:read-active",
+    "composer:insert-draft",
+    "secrets:own",
+    "storage:local",
+    "local-network"
+  ],
   "network": {
     "hosts": ["api.anthropic.com", "api.openai.com"]
   },
@@ -36,7 +42,7 @@
         "endpoint": {
           "type": "string",
           "title": "Server address",
-          "description": "For a compatible server only: its https:// address, such as https://llm.example.org/v1.",
+          "description": "For a compatible server only: its https:// address, such as https://llm.example.org/v1, or a server on this computer, such as http://localhost:11434/v1.",
           "maxLength": 300
         },
         "context": {
@@ -44,6 +50,11 @@
           "title": "Messages to send",
           "description": "How many of the chat's latest messages the assistant sends, at most. YapYap's own limit in Settings → Plugins still applies.",
           "enum": [5, 10, 20]
+        },
+        "localOnly": {
+          "type": "boolean",
+          "title": "Local-only mode",
+          "description": "Only ask an AI server running on this computer, so nothing about your chats leaves it."
         }
       }
     }

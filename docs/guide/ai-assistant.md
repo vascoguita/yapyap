@@ -14,15 +14,27 @@ plugin.
 
 Open **Plugins…**, find **AI assistant**, and open **Settings**:
 
-| Setting          | What it does                                                                                             |
-| ---------------- | -------------------------------------------------------------------------------------------------------- |
-| Provider         | **anthropic** for Claude, **openai** for OpenAI, or **compatible** for your own OpenAI-compatible server |
-| Model            | The model's name as your provider writes it. Claude uses `claude-opus-5-5` when this is empty            |
-| Server address   | For **compatible** only: the server's `https://` address, such as `https://llm.example.org/v1`           |
-| Messages to send | How many of the chat's latest messages the assistant sends: 5, 10 or 20                                  |
+| Setting          | What it does                                                                                                                                                      |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Provider         | **anthropic** for Claude, **openai** for OpenAI, or **compatible** for your own OpenAI-compatible server                                                          |
+| Model            | The model's name as your provider writes it. Claude uses `claude-opus-5-5` when this is empty                                                                     |
+| Server address   | For **compatible** only: the server's `https://` address, such as `https://llm.example.org/v1`, or a server on this computer, such as `http://localhost:11434/v1` |
+| Messages to send | How many of the chat's latest messages the assistant sends: 5, 10 or 20                                                                                           |
+| Local-only mode  | Only ask an AI server running on this computer, so nothing about your chats leaves it                                                                             |
 
 YapYap's own **Settings → Plugins → Messages a plugin may read** still caps
 what any plugin can read, whatever the assistant asks for.
+
+## Run a model on your own computer
+
+With a model server running on your computer, such as Ollama, choose the
+**compatible** provider and its address on this computer, such as
+`http://localhost:11434/v1`, with the model's name. Such a server needs no
+API key. Turn on **Local-only mode** to make sure of it: the assistant then
+refuses to ask anything but a server on this computer. YapYap lets the
+assistant reach servers on this computer only because you approved
+**Connect to servers running on this computer** when you installed it,
+and never other machines on your network.
 
 ## Add your key
 
@@ -57,7 +69,8 @@ just one:
 - keep its own encrypted secrets (your key) and storage (the chats you
   allowed);
 - reach `api.anthropic.com` and `api.openai.com`, and, if you set one, your
-  compatible server, which YapYap asks you about before the first request.
+  compatible server, which YapYap asks you about before the first request;
+- reach servers running on this computer, for a model you run yourself.
 
 It cannot send messages, read chats you did not open, or see WhatsApp's
 page. Your provider's own privacy terms apply to what you send them.

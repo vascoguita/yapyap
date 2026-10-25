@@ -16,7 +16,19 @@ export interface AssistantSettings {
   readonly endpoint: string;
   /** How many of the chat's latest messages to send, at most (#107). */
   readonly context: number;
+  /** Only a server on this computer may be asked, so nothing leaves it (#103). */
+  readonly localOnly: boolean;
 }
+
+/** A server on this computer, which the plugin reaches with `local-network`. */
+const LOCAL_ENDPOINT = /^https?:\/\/(?:localhost|127\.0\.0\.1|\[::1\])(?::\d{1,5})?(?:\/|$)/;
+
+/** Local servers mostly take any key or none; the SDK still needs one to send. */
+const NO_KEY = 'no-key';
+
+/** Whether the settings point at a server on this computer. */
+export const usesLocalServer = (settings: AssistantSettings): boolean =>
+  settings.provider === 'compatible' && LOCAL_ENDPOINT.test(settings.endpoint);
 
 /** The context sizes the settings form offers: a few messages, the default, or more. */
 const FEW = 5;
@@ -40,34 +52,48 @@ export function assistantSettings(
     model: model === '' && provider === 'anthropic' ? DEFAULT_ANTHROPIC_MODEL : model,
     endpoint: text(values['endpoint']),
     context: CONTEXTS.has(values['context']) ? (values['context'] as number) : DEFAULT_CONTEXT,
+    localOnly: values['localOnly'] === true,
   };
 }
 
 /** Where each provider's key is kept in the plugin's own secrets. */
 export const keyName = (provider: ProviderId): string => `apiKey.${provider}`;
 
-/** Why the assistant cannot ask anyone yet, or '' when it can. */
+const hasKey = (apiKey: string | undefined): boolean => apiKey !== undefined && apiKey !== '';
+
+/** Whether a compatible server's address is one the assistant may use. */
+const validEndpoint = (settings: AssistantSettings): boolean =>
+  settings.endpoint.startsWith('https://') || usesLocalServer(settings);
+
+/**
+ * Why the assistant cannot ask anyone yet, or '' when it can. In local-only
+ * mode, nothing but a server on this computer will do; such a server needs
+ * no key.
+ */
 export function missingSetting(settings: AssistantSettings, apiKey: string | undefined): string {
-  if (apiKey === undefined || apiKey === '') {
+  const local = usesLocalServer(settings);
+  if (settings.localOnly && !local) {
+    return 'local-only';
+  }
+  if (!local && !hasKey(apiKey)) {
     return 'key';
   }
   if (settings.model === '') {
     return 'model';
   }
-  return settings.provider === 'compatible' && !settings.endpoint.startsWith('https://')
-    ? 'endpoint'
-    : '';
+  return settings.provider === 'compatible' && !validEndpoint(settings) ? 'endpoint' : '';
 }
 
 /** The provider the settings describe, once nothing is missing. */
-export function providerFor(settings: AssistantSettings, apiKey: string): Provider {
+export function providerFor(settings: AssistantSettings, apiKey: string | undefined): Provider {
   const { model } = settings;
+  const key = apiKey ?? NO_KEY;
   switch (settings.provider) {
     case 'anthropic':
-      return anthropicProvider({ apiKey, model });
+      return anthropicProvider({ apiKey: key, model });
     case 'openai':
-      return openAIProvider({ apiKey, model });
+      return openAIProvider({ apiKey: key, model });
     default:
-      return openAIProvider({ apiKey, model, baseURL: settings.endpoint });
+      return openAIProvider({ model, apiKey: key, baseURL: settings.endpoint });
   }
 }
