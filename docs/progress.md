@@ -673,6 +673,12 @@ not edit the same lines.
   WhatsApp's data, YapYap's own and plugins'. The reference guide links to
   it instead of keeping a shorter copy.
 
+- Architecture overview (#116): `docs/architecture/index.md` draws the
+  processes and trust zones and the checks on a plugin call as inline SVG
+  in the theme's colors, so both follow light and dark mode and need no
+  diagram library. It walks through a notification, a plugin call and an
+  AI assistant reply, and indexes the ADRs by topic.
+
 - Screen-sharing indicator (#161): the WhatsApp preload's second stand-in
   (`installShareShim`, ADR 0011) reports when a screen share starts and
   ends, by a random ID only, and stops one when YapYap asks. The main

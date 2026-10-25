@@ -1,0 +1,58 @@
+/* Diagrams are inline SVG drawn with the theme's own colors, so they follow light and dark mode. */
+.diagram {
+  margin: 24px 0;
+}
+
+.diagram svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.diagram text {
+  fill: var(--vp-c-text-1);
+  font-family: var(--vp-font-family-base);
+  font-size: 12px;
+}
+
+.diagram .title {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.diagram .note,
+.diagram .label {
+  fill: var(--vp-c-text-2);
+  font-size: 11px;
+}
+
+.diagram .box {
+  fill: var(--vp-c-bg-soft);
+  stroke: var(--vp-c-divider);
+  stroke-width: 1.5;
+}
+
+.diagram .trusted {
+  stroke: var(--vp-c-brand-1);
+}
+
+.diagram .untrusted {
+  stroke: var(--vp-c-warning-1);
+  stroke-dasharray: 6 4;
+}
+
+.diagram .edge {
+  fill: none;
+  stroke: var(--vp-c-text-2);
+  stroke-width: 1.5;
+}
+
+.diagram .arrowhead {
+  fill: var(--vp-c-text-2);
+}
+
+.vp-doc .diagram figcaption {
+  margin-top: 8px;
+  color: var(--vp-c-text-2);
+  font-size: 14px;
+}
