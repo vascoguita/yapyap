@@ -16,6 +16,8 @@ const MISSING: Readonly<Record<string, string>> = {
   key: 'Paste your API key to start.',
   model: 'Choose a model in Plugins → AI assistant → Settings.',
   endpoint: 'Enter your server’s https:// address in Plugins → AI assistant → Settings.',
+  'local-only':
+    'Local-only mode is on: choose the compatible provider with a server on this computer, such as http://localhost:11434/v1.',
   '': 'Ready.',
 };
 

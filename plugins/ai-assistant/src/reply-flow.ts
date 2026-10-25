@@ -55,10 +55,7 @@ async function allow(host: FlowHost, session: Session, post: Post, allowed: bool
 async function providerOf(host: FlowHost, make: typeof providerFor): Promise<Provider | undefined> {
   const settings = assistantSettings(await host.settings.get());
   const key = await host.secrets.get(keyName(settings.provider));
-  if (key === undefined || missingSetting(settings, key) !== '') {
-    return undefined;
-  }
-  return make(settings, key);
+  return missingSetting(settings, key) === '' ? make(settings, key) : undefined;
 }
 
 async function send(host: FlowHost, session: Session, post: Post, make: typeof providerFor) {

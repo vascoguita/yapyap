@@ -583,6 +583,12 @@ not edit the same lines.
   the local network; the plugin CSP lets loopback HTTP reach the network
   filter, which allows it only with the grant (ADR 0008, C29).
 
+- Assistant local-only mode (#103, last part): the AI assistant asks for
+  `local-network` and takes a compatible server on this computer
+  (`http://localhost:…`, `127.0.0.1` or `[::1]`), which needs no key. Its
+  **Local-only mode** setting refuses anything else, and the panel says
+  so. The user guide explains running a model on one's own computer.
+
 - Suggested replies with consent (#104, #107): the assistant's panel
   offers **Look at this chat**. Nothing of a chat goes anywhere until the
   user allows the assistant in it (allowed chats are kept by SHA-256

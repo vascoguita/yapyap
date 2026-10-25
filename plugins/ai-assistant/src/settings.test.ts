@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { assistantSettings, keyName, missingSetting, providerFor } from './settings.ts';
+import {
+  assistantSettings,
+  keyName,
+  missingSetting,
+  providerFor,
+  usesLocalServer,
+} from './settings.ts';
 
 describe('assistantSettings', () => {
   it('uses Claude’s default model until the user chooses a provider and model', () => {
@@ -8,10 +14,17 @@ describe('assistantSettings', () => {
       model: 'claude-opus-5-5',
       endpoint: '',
       context: 10,
+      localOnly: false,
     });
     expect(
       assistantSettings({ provider: 'openai', model: ' gpt-x ', endpoint: 7, context: 20 }),
-    ).toEqual({ provider: 'openai', model: 'gpt-x', endpoint: '', context: 20 });
+    ).toEqual({
+      provider: 'openai',
+      model: 'gpt-x',
+      endpoint: '',
+      context: 20,
+      localOnly: false,
+    });
     expect(assistantSettings({ context: 7 }).context).toBe(10);
     expect(assistantSettings({ context: 5 }).context).toBe(5);
     expect(
@@ -21,6 +34,7 @@ describe('assistantSettings', () => {
       model: '',
       endpoint: 'https://llm.example.org/v1',
       context: 10,
+      localOnly: false,
     });
     expect(assistantSettings({ provider: 'other', model: 'claude-haiku-5-5' })).toMatchObject({
       provider: 'anthropic',
@@ -60,5 +74,49 @@ describe('providerFor', () => {
       const settings = assistantSettings({ provider, model: 'm', endpoint: 'https://x.example' });
       expect(providerFor(settings, 'sk').complete).toBeTypeOf('function');
     }
+  });
+});
+
+describe('local servers', () => {
+  const local = (endpoint: string, extra: object = {}) =>
+    assistantSettings({ provider: 'compatible', model: 'llama', endpoint, ...extra });
+
+  it('knows a server on this computer by its address, over HTTP or HTTPS', () => {
+    for (const endpoint of [
+      'http://localhost:11434/v1',
+      'http://127.0.0.1:8080',
+      'https://localhost/v1',
+      'http://[::1]:1234/v1',
+    ]) {
+      expect(usesLocalServer(local(endpoint))).toBe(true);
+    }
+    for (const endpoint of [
+      'http://localhost.example.org/v1',
+      'http://192.168.1.2:11434/v1',
+      'ftp://localhost/',
+      'http://localhost:123456/',
+    ]) {
+      expect(usesLocalServer(local(endpoint))).toBe(false);
+    }
+    const remote = assistantSettings({ provider: 'openai', endpoint: 'http://localhost:1/' });
+    expect(usesLocalServer(remote)).toBe(false);
+  });
+
+  it('needs no key for a server on this computer, and takes no other address over HTTP', () => {
+    expect(missingSetting(local('http://localhost:11434/v1'), undefined)).toBe('');
+    expect(missingSetting(local('http://llm.example.org/v1'), 'sk')).toBe('endpoint');
+    expect(missingSetting(local('http://llm.example.org/v1'), undefined)).toBe('key');
+    expect(providerFor(local('http://localhost:11434/v1'), undefined).complete).toBeTypeOf(
+      'function',
+    );
+  });
+
+  it('asks only a server on this computer in local-only mode', () => {
+    const only = { localOnly: true };
+    expect(assistantSettings({ localOnly: true }).localOnly).toBe(true);
+    expect(assistantSettings({ localOnly: 'yes' }).localOnly).toBe(false);
+    expect(missingSetting(local('http://localhost:11434/v1', only), undefined)).toBe('');
+    expect(missingSetting(local('https://llm.example.org/v1', only), 'sk')).toBe('local-only');
+    expect(missingSetting(assistantSettings(only), 'sk')).toBe('local-only');
   });
 });
