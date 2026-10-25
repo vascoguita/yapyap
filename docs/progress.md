@@ -782,6 +782,12 @@ not edit the same lines.
   renderer to differ from the first, which the moment with none between
   the two also did; it now waits for a new renderer that exists.
 
+- Replacing the draft (#330): `composer.replaceDraft` focused the message
+  box from the adapter, then selected all with a separate input event,
+  which sometimes landed before focus and selected nothing, so the new text
+  followed the old. The adapter's `selectComposer` now focuses the box and
+  selects its contents in one script, before anything is typed.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).

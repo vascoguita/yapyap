@@ -7,6 +7,8 @@ import {
   parseDraft,
   READ_COMPOSER,
   readComposer,
+  SELECT_COMPOSER,
+  selectComposer,
 } from './composer.ts';
 import { LANDMARKS } from './page-state.ts';
 
@@ -67,5 +69,28 @@ describe('parseDraft', () => {
     expect(parseDraft('x'.repeat(65_536))).toHaveLength(65_536);
     expect(parseDraft('x'.repeat(65_537))).toBeUndefined();
     expect(parseDraft({ html: '<b>' })).toBeUndefined();
+  });
+});
+
+describe('selectComposer', () => {
+  it('focuses the message box and selects all of the draft in it', () => {
+    document.body.innerHTML =
+      '<div id="main"><footer><div contenteditable="true">see you <b>soon</b></div></footer></div>';
+    expect(selectComposer(document, LANDMARKS.composer)).toBe(true);
+    expect(document.activeElement).toBe(document.querySelector('[contenteditable]'));
+    expect(document.getSelection()?.toString()).toBe('see you soon');
+  });
+
+  it('reports a page without one, and copes without a selection', () => {
+    expect(selectComposer(document, LANDMARKS.composer)).toBe(false);
+    const box = { focus: () => undefined };
+    expect(selectComposer({ querySelector: () => box, getSelection: () => null }, 'x')).toBe(true);
+  });
+
+  it.skipIf(SELECT_COMPOSER.includes('stryMutAct'))('runs as standalone source text', () => {
+    document.body.innerHTML =
+      '<div id="main"><footer><div contenteditable="true">Hi</div></footer></div>';
+    expect(runInNewContext(SELECT_COMPOSER, { document })).toBe(true);
+    expect(document.getSelection()?.toString()).toBe('Hi');
   });
 });
