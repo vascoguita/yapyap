@@ -105,10 +105,17 @@ store holds up to 1 MiB, and a write that would pass that fails. Values
 must be plain JSON: a value JSON cannot hold, such as `undefined`, fails
 the call.
 
+When the user removes the plugin in the Plugins window, YapYap deletes its
+store, its secrets and its browser data (such as `localStorage`) along with
+its files. Installed again, it starts from nothing, so treat anything it
+kept as something the user can take away at any time.
+
 ### Reaching the internet
 
 A plugin may call `fetch` on the HTTPS hosts its manifest lists under
-`network.hosts`, and nothing else. When the user types an endpoint into a
+`network.hosts`, and, with `local-network`, on servers running on the
+user's computer (`localhost`, `127.0.0.1` or `[::1]`, any port), and
+nothing else. When the user types an endpoint into a
 setting, a request to a host not in the manifest asks the user first. Keep
 API keys in `host.secrets`, which the operating system encrypts, never in
 settings.
