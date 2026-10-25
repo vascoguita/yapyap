@@ -867,6 +867,9 @@ not edit the same lines.
   update, channel separation and tampering on Debian 13, Ubuntu 24.04 and
   26.04, and Fedora 44. The repo file sets `skip_if_unavailable=0`, since
   Fedora otherwise skips a repository whose signature fails without a word.
+  The first deploy failed on an escaped line break in the workflow, a path
+  the test did not run; `build-site.sh` now builds and signs the site in a
+  container for both, so the test covers the deploy's own commands.
 
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
