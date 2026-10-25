@@ -109,5 +109,6 @@ jobs:
             pacman-key --lsign-key "$(gpg --with-colons --show-keys /tmp/yapyap.asc | awk -F: "/^fpr/ { print \$10; exit }")" >/dev/null 2>&1
             curl -fsSL https://packages.guita.org/yapyap-beta.pacman.conf >> /etc/pacman.conf
             pacman -Sy --noconfirm >/dev/null
-            file=$(pacman -Sp --print-format "%f" yapyap-bin)
+            # -dd: the package alone, without the files of its dependencies.
+            file=$(pacman -Sddp --print-format "%f" yapyap-bin)
             curl -sI "https://packages.guita.org/arch/beta/x86_64/$file" | grep -qi "^location: https://github.com/vascoguita/yapyap/releases/download/"'
