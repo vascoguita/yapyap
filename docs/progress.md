@@ -903,6 +903,15 @@ not edit the same lines.
   section requires signatures on the database too, and `test.sh` covers
   Arch clients on both channels and a tampered database.
 
+- Calls asking for the microphone and camera (#363): v0.1.0 users could not
+  call. Electron reports a refused permission check as `denied`, and the
+  check handler refused every WhatsApp check: it compared Electron's origin,
+  which ends in a slash, with the account's home as text. Even matched, it
+  refused devices not yet allowed. WhatsApp checks before a call and, seeing
+  `denied`, never asked. Checks now compare origins with `isSameOrigin` and
+  answer yes for `media`, whose request still asks the user (ADR 0008,
+  C30), and an E2E test queries the permissions as WhatsApp does first.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).

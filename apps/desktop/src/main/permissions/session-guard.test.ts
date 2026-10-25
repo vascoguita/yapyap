@@ -155,19 +155,25 @@ describe('permission checks', () => {
   it('answers the allowlist only for WhatsApp on its own origin', () => {
     const t = setup();
     expect(t.check(t.whatsapp, 'notifications', HOME, {})).toBe(true);
+    // Electron's form of the origin, with a trailing slash.
+    expect(t.check(t.whatsapp, 'notifications', `${HOME}/`, {})).toBe(true);
     expect(t.check(t.whatsapp, 'notifications', 'https://ads.example', {})).toBe(false);
     expect(t.check(t.whatsapp, 'hid', HOME, {})).toBe(false);
     expect(t.check(t.chrome, 'notifications', 'app://chrome', {})).toBe(false);
     expect(t.check(null, 'notifications', HOME, {})).toBe(false);
   });
 
-  it('reports media as allowed only for devices the user has allowed', async () => {
+  it('lets WhatsApp go on to ask for media, which the request then puts to the user', async () => {
     const t = setup();
-    expect(t.check(t.whatsapp, 'media', HOME, { mediaType: 'audio' })).toBe(false);
-    await t.ask(t.whatsapp, 'media', { mediaTypes: ['audio'] });
-    expect(t.check(t.whatsapp, 'media', HOME, { mediaType: 'audio' })).toBe(true);
-    expect(t.check(t.whatsapp, 'media', HOME, { mediaType: 'video' })).toBe(false);
-    expect(t.check(t.whatsapp, 'media', HOME, {})).toBe(false);
+    expect(t.check(t.whatsapp, 'media', `${HOME}/`, { mediaType: 'audio' })).toBe(true);
+    expect(t.check(t.whatsapp, 'media', `${HOME}/`, { mediaType: 'video' })).toBe(true);
+    expect(t.check(t.whatsapp, 'media', 'https://ads.example/', { mediaType: 'audio' })).toBe(
+      false,
+    );
+    expect(t.check(t.chrome, 'media', 'app://chrome/', { mediaType: 'audio' })).toBe(false);
+    t.deps.askMedia.mockResolvedValueOnce(false);
+    expect(await t.ask(t.whatsapp, 'media', { mediaTypes: ['audio'] })).toBe(false);
+    expect(t.deps.askMedia).toHaveBeenCalledOnce();
   });
 });
 
