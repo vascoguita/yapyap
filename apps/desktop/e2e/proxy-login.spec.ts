@@ -46,8 +46,12 @@ test('signs in to a proxy that asks for a password', async ({ fakeWhatsApp, prof
     '--proxy-bypass-list=<-loopback>',
   ]);
   try {
+    // The window waits for launch and the proxy's first refusal, which slow
+    // Windows runners can take past the default 5 s for (#247).
     await expect
-      .poll(() => app.windows().some((page) => page.url().endsWith('/proxy-login.html')))
+      .poll(() => app.windows().some((page) => page.url().endsWith('/proxy-login.html')), {
+        timeout: 20_000,
+      })
       .toBe(true);
     const login = app.windows().find((page) => page.url().endsWith('/proxy-login.html'));
     if (login === undefined) {
