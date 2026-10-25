@@ -39,7 +39,7 @@ import { writeTextAtomically } from './atomic-write.ts';
 import { createCustomCode } from './custom-code/custom-code.ts';
 import { PLUGIN_PORT_CHANNEL } from '../shared/plugin-rpc.ts';
 import { hostMethods } from './plugins/host-methods.ts';
-import { keyValueStore } from './plugins/key-value-store.ts';
+import { keyValueStore, removeStore } from './plugins/key-value-store.ts';
 import { RPC_OPTIONS } from './plugins/rpc.ts';
 import { auditFileAt, createAuditLog } from './plugins/audit-log.ts';
 import { availableParallelism, homedir, release } from 'node:os';
@@ -88,6 +88,7 @@ const DOWNLOADS_STATE = join(app.getPath('userData'), 'downloads.json');
 // Kept apart from settings, so importing a settings file can never bring code that runs in WhatsApp.
 const CUSTOM_CODE = join(app.getPath('userData'), 'custom-code.json');
 const QUICK_PANEL_STATE = join(app.getPath('userData'), 'quick-panel.json');
+const PLUGIN_STORAGE = join(app.getPath('userData'), 'plugins', '.storage');
 
 // Holds the tray for the app's lifetime; a collected Tray disappears from the panel.
 let tray: Tray | undefined;
@@ -242,6 +243,10 @@ const chrome = createChromeFeature({
   },
   plugins: {
     ...electronPluginDialogs,
+    forgetData: async (id) => {
+      await removeStore(PLUGIN_STORAGE, id);
+      pluginSecrets.forgetAll(`${id}/`);
+    },
     root: join(app.getPath('userData'), 'plugins'),
     anchors: anchorFingerprints(TRUST_ANCHORS),
     sessionOf: (partition) => session.fromPartition(partition),
@@ -300,7 +305,7 @@ const chrome = createChromeFeature({
         },
         quiet: () => settings.current().general.doNotDisturb,
         secrets: pluginSecrets,
-        storage: keyValueStore(join(app.getPath('userData'), 'plugins', '.storage'), plugin.id),
+        storage: keyValueStore(PLUGIN_STORAGE, plugin.id),
       }),
     limits: {
       metrics: () => app.getAppMetrics(),

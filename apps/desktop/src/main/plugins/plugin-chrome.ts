@@ -20,6 +20,7 @@ import { commitInstall, prepareInstall } from './installer.ts';
 import { grantsOf, withGrant } from './grants.ts';
 import { isSettingChange, saveSetting, settingsOf } from './plugin-settings.ts';
 import { loadRecords, saveRecords } from './records.ts';
+import { removePlugin, type RemovalDependencies } from './removal.ts';
 import type { AuditLog } from './audit-log.ts';
 import type { CallingPlugin } from './host-methods.ts';
 import type { ReadChat } from '../../adapter/active-chat.ts';
@@ -90,6 +91,8 @@ export interface PluginChromeDependencies {
   readonly limits: PluginRuntimeDependencies['limits'];
   /** Asks the user whether a plugin may connect to a host it did not declare (#95). */
   readonly askHost: PluginRuntimeDependencies['askHost'];
+  readonly confirmRemove: RemovalDependencies['confirmRemove'];
+  readonly forgetData: RemovalDependencies['forgetData'];
 }
 
 /** What the user is told when an install ends; a declined one ends quietly. */
@@ -145,6 +148,10 @@ async function setGrant(
 /** Longer than any capability or `network:<host>` grant. */
 const MAX_CAPABILITY = 300;
 
+/** A plugin to remove, named by its ID alone. */
+const isRemoval = ([id, ...rest]: readonly unknown[]): boolean =>
+  rest.length === 0 && typeof id === 'string' && id.length <= MAX_CAPABILITY;
+
 /** A grant change: an installed plugin, a short capability, a listed account or none, on or off. */
 function isGrantChange(
   [id, capability, account, granted, ...rest]: readonly unknown[],
@@ -160,7 +167,7 @@ function pluginHandlers(
   deps: PluginChromeDependencies,
   settings: Pick<SettingsService, 'current'>,
   accounts: PluginAccounts,
-  runtime: Pick<PluginRuntime, 'regrant'>,
+  runtime: Pick<PluginRuntime, 'regrant' | 'forget'>,
 ): ChromeHandler[] {
   const list = (): Promise<PluginList> =>
     listPlugins(
@@ -170,23 +177,29 @@ function pluginHandlers(
       accounts.list,
       deps.readFile,
     );
+  // Each change answers with the list as it is now, so the window shows what was saved.
+  const thenList =
+    (change: (args: readonly unknown[]) => Promise<unknown>) =>
+    async (_call: unknown, ...args: unknown[]): Promise<PluginList> => {
+      await change(args);
+      return list();
+    };
   return [
     { channel: CHROME_CHANNELS.pluginsList, accepts: noArguments, handle: list },
     {
       channel: CHROME_CHANNELS.pluginsSetSetting,
       accepts: isSettingChange,
-      handle: async (_call, ...args) => {
-        await saveSetting(deps.root, deps.readFile, runtime, args);
-        return list();
-      },
+      handle: thenList((args) => saveSetting(deps.root, deps.readFile, runtime, args)),
     },
     {
       channel: CHROME_CHANNELS.pluginsSetGrant,
       accepts: (args) => isGrantChange(args, accounts.list),
-      handle: async (_call, ...args) => {
-        await setGrant(deps.root, runtime, args);
-        return list();
-      },
+      handle: thenList((args) => setGrant(deps.root, runtime, args)),
+    },
+    {
+      channel: CHROME_CHANNELS.pluginsRemove,
+      accepts: isRemoval,
+      handle: thenList(([id]) => removePlugin(deps, runtime, String(id))),
     },
   ];
 }

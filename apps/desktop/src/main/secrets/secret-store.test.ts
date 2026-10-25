@@ -50,6 +50,22 @@ describe('openSecretStore', () => {
     expect(file.text).toBe('{"version":1,"secrets":{}}');
   });
 
+  it('forgets every secret under a prefix at once, and writes nothing when none matches', async () => {
+    const file = memoryFile();
+    const store = openSecretStore(file, encryption(), 'linux');
+    await store.set('org.example.hello/key', 'a');
+    await store.set('org.example.hello/token', 'b');
+    await store.set('org.example.other/key', 'c');
+    store.forgetAll('org.example.hello/');
+    const again = openSecretStore(file, encryption(), 'linux');
+    expect(await again.get('org.example.hello/key')).toBeUndefined();
+    expect(await again.get('org.example.hello/token')).toBeUndefined();
+    expect(await again.get('org.example.other/key')).toBe('c');
+    const write = vi.spyOn(file, 'write');
+    store.forgetAll('org.example.missing/');
+    expect(write).not.toHaveBeenCalled();
+  });
+
   it('stores a secret again when the system rotated its key', async () => {
     const file = memoryFile();
     const keychain = encryption();

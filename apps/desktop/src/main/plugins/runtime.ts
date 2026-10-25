@@ -49,6 +49,8 @@ export interface PluginSession {
       ) => void,
     ): void;
   };
+  clearStorageData(): Promise<void>;
+  clearCache(): Promise<void>;
 }
 
 /** A plugin's hidden window, which is never shown. */
@@ -110,6 +112,8 @@ export interface PluginRuntime {
   readonly stop: (id: string) => void;
   /** Reads a plugin's grants again after the user changed them (#94). */
   readonly regrant: (id: string) => Promise<void>;
+  /** Stops a plugin being removed for good, and deletes what its sessions kept (#332). */
+  readonly forget: (id: string) => Promise<void>;
   /** The running plugins' commands, for the menu (#98). */
   readonly commands: () => readonly PluginCommand[];
   /** The running plugins' composer actions and context-menu items, for right clicks (#98). */
@@ -356,6 +360,27 @@ function stopPlugin(state: RuntimeState, id: string): void {
   changed(state);
 }
 
+/**
+ * Both partitions a plugin may have had: an update can add or drop
+ * `storage:local`, which moves it from one to the other.
+ */
+async function forget(
+  deps: PluginRuntimeDependencies,
+  state: RuntimeState,
+  id: string,
+): Promise<void> {
+  stopPlugin(state, id);
+  state.sources.delete(id);
+  state.known.delete(id);
+  const partition = pluginPartition({ id, capabilities: [] });
+  await Promise.all(
+    [partition, `persist:${partition}`].map(async (each) => {
+      const session = deps.sessionOf(each);
+      await Promise.all([session.clearStorageData(), session.clearCache()]);
+    }),
+  );
+}
+
 /** The panels of the plugins that run, in the order they started. */
 function panelsOf(state: RuntimeState): PluginPanel[] {
   return [...state.hosts].flatMap(([plugin, { name, panel }]) =>
@@ -487,6 +512,7 @@ export function createPluginRuntime(deps: PluginRuntimeDependencies): PluginRunt
     ...contributionsOf(state),
     openPanel: (plugin) => openPanel(deps, state, plugin),
     regrant: (id) => regrant(deps.root, state, id),
+    forget: (id) => forget(deps, state, id),
   };
   guardPluginResources({
     ...deps.limits,

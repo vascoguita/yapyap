@@ -788,6 +788,12 @@ not edit the same lines.
   followed the old. The adapter's `selectComposer` now focuses the box and
   selects its contents in one script, before anything is typed.
 
+- Removing plugins (#332): the Plugins window has **Remove…** for each
+  plugin. Once the user confirms in a dialog that defaults to Cancel, YapYap
+  stops the plugin, clears its sessions, deletes its record, files,
+  key-value store and secrets, and keeps its audit entries. Proxy login and
+  startup now take only the secret operations they use.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).

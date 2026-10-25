@@ -1,4 +1,5 @@
 import { mkdirSync, readFileSync } from 'node:fs';
+import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { writeTextAtomically } from '../atomic-write.ts';
 
@@ -90,4 +91,9 @@ export function keyValueStore(folder: string, id: string): KeyValueStore {
       }
     },
   };
+}
+
+/** Deletes a removed plugin's store (#332); a plugin that never stored anything has none. */
+export function removeStore(folder: string, id: string): Promise<void> {
+  return rm(join(folder, `${id}.json`), { force: true });
 }

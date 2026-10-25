@@ -301,7 +301,7 @@ export interface StartDependencies<Window extends WindowPort> {
   /** Shows a context menu where the pointer is. */
   readonly contextMenu: (items: ContextMenuItem[]) => void;
   /** Passwords and other secrets, encrypted by the system's keychain. */
-  readonly secrets: SecretStore;
+  readonly secrets: Pick<SecretStore, 'canKeep' | 'get' | 'set'>;
   /** What tells the user about new releases, for builds that cannot update themselves. */
   readonly releases: Pick<
     UpdateNoticeDependencies,

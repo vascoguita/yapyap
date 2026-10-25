@@ -24,6 +24,8 @@ export interface SecretStore {
   readonly get: (name: string) => Promise<string | undefined>;
   /** Keeps a secret, or forgets it when `value` is undefined; false if it cannot be kept. */
   readonly set: (name: string, value: string | undefined) => Promise<boolean>;
+  /** Forgets every secret whose name starts with `prefix`, such as a removed plugin's. */
+  readonly forgetAll: (prefix: string) => void;
 }
 
 const FILE_VERSION = 1;
@@ -91,6 +93,23 @@ async function reveal(
   }
 }
 
+/** Only Linux has backends of different strength to tell apart. */
+const backendOf = (encryption: EncryptionPort, platform: string): string =>
+  platform === 'linux' ? encryption.getSelectedStorageBackend() : 'system';
+
+/** Forgets the secrets under a prefix, writing the file only when one was there. */
+function forgetter(secrets: Map<string, string>, save: () => void): SecretStore['forgetAll'] {
+  return (prefix) => {
+    const names = [...secrets.keys()].filter((name) => name.startsWith(prefix));
+    for (const name of names) {
+      secrets.delete(name);
+    }
+    if (names.length > 0) {
+      save();
+    }
+  };
+}
+
 /**
  * Keeps secrets such as proxy passwords encrypted by the system's keychain
  * through `safeStorage`, never in the settings and never in plain text.
@@ -100,14 +119,13 @@ export function openSecretStore(
   encryption: EncryptionPort,
   platform: string,
 ): SecretStore {
-  const backend = (): string =>
-    platform === 'linux' ? encryption.getSelectedStorageBackend() : 'system';
   const secrets = parse(file.read());
   const save = (): void => {
     file.write(JSON.stringify({ version: FILE_VERSION, secrets: Object.fromEntries(secrets) }));
   };
   const canKeep = async (): Promise<boolean> =>
-    (await encryption.isAsyncEncryptionAvailable()) && !WEAK_BACKENDS.has(backend());
+    (await encryption.isAsyncEncryptionAvailable()) &&
+    !WEAK_BACKENDS.has(backendOf(encryption, platform));
   const keep = async (name: string, value: string): Promise<void> => {
     secrets.set(name, (await encryption.encryptStringAsync(value)).toString('base64'));
     save();
@@ -133,5 +151,6 @@ export function openSecretStore(
       await keep(name, value);
       return true;
     },
+    forgetAll: forgetter(secrets, save),
   };
 }
