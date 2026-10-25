@@ -648,6 +648,12 @@ not edit the same lines.
   pages' CSP as it is. No page had a violation. The manual screen reader
   and keyboard checklist for releases is at `/architecture/accessibility`.
 
+- Keyboard checks (#110, second part): the same spec tabs round every
+  chrome page that opens from the menu and fails when a control is never
+  reached, counting a radio group as one stop, or shows nothing when it has
+  focus. All nine pages passed as they were; a planted button with its focus
+  hidden proves the check bites. Screen reader checks stay manual.
+
 - Security review (#112): `/architecture/security-review` checks YapYap
   against Electron's 20-item security checklist and the plugin threat
   model, naming the code and tests behind each answer. It found two
