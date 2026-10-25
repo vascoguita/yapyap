@@ -857,6 +857,17 @@ not edit the same lines.
   `plugins:changed` to an open Plugins window whenever a plugin starts or
   stops (`createChromeWindowSlot`), and the window lists them again.
 
+- apt and dnf repositories (#344): `packages.guita.org`, a Cloudflare Pages
+  project, serves signed stable and beta indexes and redirects every package
+  path to GitHub Releases. `package-repository.ts` plans each channel from
+  the published releases (betas and releases in beta, releases alone in
+  stable, five each), `index.sh` builds and signs the indexes, and the
+  release and beta workflows deploy them once the signing key and Cloudflare
+  token exist. `test.sh` builds stand-in packages and checks install,
+  update, channel separation and tampering on Debian 13, Ubuntu 24.04 and
+  26.04, and Fedora 44. The repo file sets `skip_if_unavailable=0`, since
+  Fedora otherwise skips a repository whose signature fails without a word.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).

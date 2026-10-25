@@ -11,16 +11,17 @@ and run it from source as described in
 
 YapYap will be available in these formats:
 
-| Platform         | Format                     | Updates                      |
-| ---------------- | -------------------------- | ---------------------------- |
-| Linux            | Flatpak (Flathub)          | Through Flatpak              |
-| Linux            | AppImage (x86_64, aarch64) | Built-in updater             |
-| Debian, Ubuntu   | DEB                        | Through your package manager |
-| Fedora, openSUSE | RPM                        | Through your package manager |
-| Arch Linux       | PKGBUILD for `yapyap-bin`  | Rebuild with each release    |
-| Windows          | Installer (x64, arm64)     | Built-in updater             |
-| Windows          | Portable (x64, arm64)      | Notifies you of new versions |
-| macOS            | Universal DMG              | Notifies you of new versions |
+| Platform       | Format                     | Updates                      |
+| -------------- | -------------------------- | ---------------------------- |
+| Linux          | Flatpak (Flathub)          | Through Flatpak              |
+| Linux          | AppImage (x86_64, aarch64) | Built-in updater             |
+| Debian, Ubuntu | DEB, or the apt repository | Through apt                  |
+| Fedora         | RPM, or the dnf repository | Through dnf                  |
+| openSUSE       | RPM                        | Download each release        |
+| Arch Linux     | PKGBUILD for `yapyap-bin`  | Rebuild with each release    |
+| Windows        | Installer (x64, arm64)     | Built-in updater             |
+| Windows        | Portable (x64, arm64)      | Notifies you of new versions |
+| macOS          | Universal DMG              | Notifies you of new versions |
 
 Releases are published on
 [GitHub](https://github.com/vascoguita/yapyap/releases).
@@ -28,6 +29,49 @@ Releases are published on
 On Arch Linux, download `yapyap-bin.PKGBUILD` from a release, save it as
 `PKGBUILD` in an empty folder, and run `makepkg -si` there. YapYap will be
 published to the AUR as `yapyap-bin` once AUR account registration reopens.
+
+## Linux repositories {#linux-repositories}
+
+On Debian, Ubuntu and Fedora, add YapYap's repository once and your package
+manager installs and updates YapYap like any other app. The repositories at
+`packages.guita.org` are signed with YapYap's key, and the packages
+themselves download from YapYap's GitHub releases.
+
+YapYap's repository key has this fingerprint; after importing it, you can
+compare it with `gpg --show-keys /etc/apt/keyrings/yapyap.gpg` (apt) or
+`rpm -qi gpg-pubkey-2e01721e` (dnf):
+
+```
+789C C8E9 F293 6C76 5224  918B 6773 94EA 2E01 721E
+```
+
+**Debian and Ubuntu**
+
+```sh
+sudo install -d -m 0755 /etc/apt/keyrings
+sudo curl -fsSLo /etc/apt/keyrings/yapyap.gpg https://packages.guita.org/yapyap.gpg
+sudo curl -fsSLo /etc/apt/sources.list.d/yapyap.sources https://packages.guita.org/yapyap.sources
+sudo apt update
+sudo apt install yapyap
+```
+
+**Fedora**
+
+```sh
+sudo dnf config-manager addrepo --from-repofile=https://packages.guita.org/yapyap.repo
+sudo dnf install YapYap
+```
+
+dnf asks you to trust YapYap's key the first time. If the repository's
+signature ever fails to check, dnf stops instead of using it.
+
+**Betas.** To get betas as well as releases, use `yapyap-beta.sources` or
+`yapyap-beta.repo` instead. You move to each release once it is newer than
+your beta. To go back to releases only, swap the file back; your package
+manager offers the next release when it comes out.
+
+Both channels keep their five latest versions, so you can install an older
+one to roll back.
 
 ## First launch on macOS and Windows {#unsigned}
 

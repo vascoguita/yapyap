@@ -1,0 +1,104 @@
+name: Package repositories
+
+# Rebuilds and deploys the apt and dnf repositories at packages.guita.org
+# (#344) once a release's or beta's packages are on GitHub. The site holds
+# only the signed indexes; every package download is redirected to GitHub
+# Releases.
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: package-repositories
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy package repositories
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SITE: ${{ github.workspace }}/site
+      GH_TOKEN: ${{ github.token }}
+      HAS_KEY: ${{ secrets.PACKAGES_SIGNING_KEY != '' }}
+      HAS_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Check the signing key and deploy token exist
+        id: ready
+        run: |
+          if [[ $HAS_KEY != true || $HAS_TOKEN != true ]]; then
+            echo "::notice::PACKAGES_SIGNING_KEY or CLOUDFLARE_API_TOKEN is missing, so the package repositories were not deployed."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Plan the channels from the published releases
+        if: steps.ready.outputs.ready == 'true'
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/releases" --paginate --slurp | jq 'add' > "$RUNNER_TEMP/releases.json"
+          node scripts/src/bin/package-repository.ts "$SITE" < "$RUNNER_TEMP/releases.json"
+      - name: Download the planned packages
+        if: steps.ready.outputs.ready == 'true'
+        run: |
+          while read -r tag file; do
+            gh release download "$tag" --repo "$GITHUB_REPOSITORY" --pattern "$file" --dir "$SITE/pool/$tag"
+          done < "$SITE/.plan/files"
+      - name: Build and sign the indexes
+        if: steps.ready.outputs.ready == 'true'
+        env:
+          PACKAGES_SIGNING_KEY: ${{ secrets.PACKAGES_SIGNING_KEY }}
+        run: |
+          gnupg=$(mktemp -d)
+          chmod 700 "$gnupg"
+          docker run --rm -i -v "$gnupg:/gnupg" -e GNUPGHOME=/gnupg docker.io/library/debian:13 bash -c '
+            apt-get update -qq && apt-get install -qq -y gpg >/dev/null && gpg --batch --import' <<< "$PACKAGES_SIGNING_KEY"
+          docker run --rm -v "$gnupg:/gnupg" -v "$SITE:/site" -v "$PWD/packaging/repository:/scripts:ro" \\
+            -e GNUPGHOME=/gnupg docker.io/library/debian:13 bash -c '
+            set -e
+            apt-get update -qq && apt-get install -qq -y apt-utils createrepo-c gpg >/dev/null
+            export REPOSITORY_KEY=$(gpg --batch --list-secret-keys --with-colons | awk -F: "/^fpr/ { print \\$10; exit }")
+            bash /scripts/index.sh /site'
+          sudo rm -rf "$gnupg"
+      - name: Keep only the indexes, which redirect to the packages on GitHub
+        if: steps.ready.outputs.ready == 'true'
+        run: |
+          sudo chown -R "$USER" "$SITE"
+          rm -rf "$SITE/.plan" "$SITE/pool" "$SITE"/rpm/*/pool
+          cp packaging/repository/index.html "$SITE/index.html"
+          find "$SITE" -type f | sort
+      - name: Deploy to Cloudflare Pages
+        if: steps.ready.outputs.ready == 'true'
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: 4.152.0
+          command: pages deploy site --project-name yapyap-packages --branch main --commit-dirty=true
+      - name: Check apt and dnf find YapYap there, without downloading it
+        if: steps.ready.outputs.ready == 'true'
+        run: |
+          sleep 30
+          docker run --rm docker.io/library/debian:13 bash -c '
+            set -e
+            apt-get update -qq && apt-get install -qq -y ca-certificates curl >/dev/null
+            install -d -m 0755 /etc/apt/keyrings
+            curl -fsSL https://packages.guita.org/yapyap.gpg -o /etc/apt/keyrings/yapyap.gpg
+            curl -fsSL https://packages.guita.org/yapyap-beta.sources -o /etc/apt/sources.list.d/yapyap.sources
+            apt-get update -qq
+            apt-cache policy yapyap | grep -q "Candidate: [0-9]"
+            file=$(apt-cache show yapyap | awk "/^Filename:/ { print \$2; exit }")
+            curl -sI "https://packages.guita.org/$file" | grep -qi "^location: https://github.com/vascoguita/yapyap/releases/download/"'
+          docker run --rm docker.io/library/fedora:44 bash -c '
+            set -e
+            curl -fsSL https://packages.guita.org/yapyap-beta.repo -o /etc/yum.repos.d/yapyap-beta.repo
+            dnf -q -y makecache
+            dnf -q info YapYap >/dev/null'

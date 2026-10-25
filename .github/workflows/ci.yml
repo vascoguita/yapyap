@@ -269,9 +269,26 @@ jobs:
 
   # The one required check for this workflow: jobs may skip what a change
   # cannot affect, but none may fail or be cancelled.
+  repository:
+    name: Package repositories
+    needs: changes
+    # The apt and dnf repositories (#344) follow the packaging they serve.
+    if: needs.changes.outputs.packaging != 'none'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Install, update and switch channels on Debian, Ubuntu and Fedora
+        run: bash packaging/repository/test.sh
+
   result:
     name: CI result
-    needs: [changes, lint, test, sonar, e2e, mutation, package, smoke, beta-gate]
+    needs: [changes, lint, test, sonar, e2e, mutation, package, smoke, beta-gate, repository]
     if: always()
     runs-on: ubuntu-latest
     steps:
