@@ -1,6 +1,6 @@
 # 0012. Translations
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-10-25
 
 ## Context
@@ -56,21 +56,25 @@ TypeScript, and a translation must never be able to run code.
 6. **CI checks every catalog.** A tested script fails a PR when a catalog
    is not valid JSON, has keys English lacks, has placeholders that differ
    from English, misses a plural form its language needs, or contains
-   markup. E2E tests run the chrome under a generated pseudo-locale, with
-   accented, longer text and right-to-left direction, so hard-coded text
-   and broken layouts show up without a real translation.
-7. **Translations arrive as pull requests.** Weblate, if used, commits to a
-   branch and opens PRs like any contributor, and they pass the same
-   checks. Only English ships until a language is complete enough to
-   choose, which the maintainer decides per language.
+   markup. Two pseudo-locales are generated from English for tests and
+   never offered in Settings: one with accented text about 30% longer, so
+   hard-coded and cut-off text shows, and one right-to-left, so mirrored
+   layouts are tested without a translator. E2E tests run the chrome under
+   both.
+7. **Translations arrive as pull requests.** At first they come only as
+   ordinary pull requests. Hosted Weblate is added once outside
+   translators ask for it, after the first release: it needs an account
+   and write access to the repository, which only the maintainer grants.
+   Its commits then arrive as pull requests too and pass the same checks.
+   The catalog format is Weblate's own, so adding it changes no code.
+8. **Only reviewed languages ship.** English ships alone until a native
+   speaker can review a real language; no machine-translated catalog is
+   committed. The first right-to-left language, such as Arabic or Hebrew,
+   waits for such a reviewer too. The maintainer decides when a language
+   is complete enough to offer in Settings.
 
-### To decide before acceptance
-
-- Whether to use hosted Weblate (free for libre projects; it needs an
-  account and repository access, which only the maintainer can set up), or
-  take translations only as ordinary pull requests at first.
-- Which languages to seed first, if any, beyond English and the
-  pseudo-locale.
+The maintainer chose this on 2026-10-25: pull requests before Weblate, and
+English plus the two pseudo-locales until a reviewed language arrives.
 
 ## Consequences
 

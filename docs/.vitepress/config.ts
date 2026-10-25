@@ -97,7 +97,7 @@ export default defineConfig({
               link: '/adr/0011-whatsapp-notifications',
             },
             {
-              text: '0012 Translations (proposed)',
+              text: '0012 Translations',
               link: '/adr/0012-translations',
             },
           ],
