@@ -799,6 +799,12 @@ not edit the same lines.
   proxy's first refusal; slow Windows runners went past it twice. It now
   waits 20 s, like the other waits that start at launch.
 
+- Windows E2E start-up timeouts (#247, diagnostics): a failed E2E test
+  attaches the app's last log lines to its report, and `whatsAppPage` names
+  the pages that did exist when the account view never appeared, so the
+  next slow start on a Windows runner shows whether the view was created
+  late or loaded late.
+
 - Electron is pinned to 44.9.3 (#262), which fixes GHSA-jr5w-w6x2-84p9
   (compromised eMudhra intermediate certificates) and lets the audit pass.
   Electron 45 is a new major version and comes in its own change.

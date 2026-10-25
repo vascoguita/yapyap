@@ -86,7 +86,8 @@ export async function whatsAppPage(app: ElectronApplication): Promise<Page> {
       return page;
     }
     if (Date.now() > deadline) {
-      throw new Error('WhatsApp never opened.');
+      const pages = app.windows().map((candidate) => candidate.url());
+      throw new Error(`WhatsApp never opened. Pages: ${pages.join(', ') || 'none'}.`);
     }
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
@@ -227,9 +228,16 @@ export const test = base.extend<Fixtures & Options & { leftovers: undefined }>({
     await use(profile);
     await rm(profile, { recursive: true, force: true });
   },
-  app: async ({ fakeWhatsApp, profile }, use) => {
+  app: async ({ fakeWhatsApp, profile }, use, testInfo) => {
     const app = await launchApp(fakeWhatsApp.origin, profile);
     await use(app);
+    // What YapYap logged, so a slow or failed start shows what it was doing (#247).
+    if (testInfo.status !== testInfo.expectedStatus) {
+      await testInfo.attach('app-log.txt', {
+        body: (LOGS.get(app) ?? []).join('\n'),
+        contentType: 'text/plain',
+      });
+    }
     await closeApp(app);
   },
   window: async ({ app }, use) => {
