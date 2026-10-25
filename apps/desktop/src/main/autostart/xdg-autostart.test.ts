@@ -2,7 +2,12 @@ import { mkdtempSync, readFileSync, rmSync, existsSync, mkdirSync, writeFileSync
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { autostartEntry, quoteExecArgument, xdgAutostart } from './xdg-autostart.ts';
+import {
+  autostartEntry,
+  entryExecutable,
+  quoteExecArgument,
+  xdgAutostart,
+} from './xdg-autostart.ts';
 
 const homes: string[] = [];
 
@@ -15,6 +20,7 @@ function setup(env: Record<string, string | undefined> = {}) {
     execPath: '/opt/YapYap/yapyap',
     files: {
       exists: existsSync,
+      read: (path) => readFileSync(path, 'utf8'),
       mkdir: (path) => {
         mkdirSync(path, { recursive: true });
       },
@@ -99,5 +105,42 @@ describe('xdgAutostart', () => {
     autostart.enable();
     const entry = join(home, '.config', 'autostart', 'org.guita.YapYap.desktop');
     expect(readFileSync(entry, 'utf8')).toContain('Exec="/opt/YapYap/yapyap"');
+  });
+});
+
+describe('refresh', () => {
+  const entryPath = (home: string) =>
+    join(home, '.config', 'autostart', 'org.guita.YapYap.desktop');
+
+  it('leaves an entry that starts another YapYap that still exists', () => {
+    const { home, autostart } = setup();
+    const other = join(home, 'Other YapYap');
+    writeFileSync(other, '');
+    mkdirSync(join(home, '.config', 'autostart'), { recursive: true });
+    writeFileSync(entryPath(home), autostartEntry(other));
+    autostart.refresh();
+    expect(readFileSync(entryPath(home), 'utf8')).toBe(autostartEntry(other));
+  });
+
+  it('takes over an entry whose program is gone, or that names none', () => {
+    const { home, autostart } = setup();
+    mkdirSync(join(home, '.config', 'autostart'), { recursive: true });
+    writeFileSync(entryPath(home), autostartEntry(join(home, 'moved.AppImage')));
+    autostart.refresh();
+    expect(readFileSync(entryPath(home), 'utf8')).toBe(autostartEntry('/opt/YapYap/yapyap'));
+    writeFileSync(entryPath(home), '[Desktop Entry]\nExec=yapyap\n');
+    autostart.refresh();
+    expect(readFileSync(entryPath(home), 'utf8')).toBe(autostartEntry('/opt/YapYap/yapyap'));
+  });
+});
+
+describe('entryExecutable', () => {
+  it('undoes the quoting of every reserved character', () => {
+    const odd = '/home/a "b"/$c/`d`/e\\f/100%';
+    expect(entryExecutable(autostartEntry(odd))).toBe(odd);
+  });
+
+  it('finds no program in an entry without a quoted Exec', () => {
+    expect(entryExecutable('[Desktop Entry]\nExec=yapyap\n')).toBeUndefined();
   });
 });

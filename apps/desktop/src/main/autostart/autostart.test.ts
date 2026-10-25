@@ -41,6 +41,7 @@ const port = (enabled: boolean) => ({
   enabled: () => enabled,
   enable: vi.fn(),
   disable: vi.fn(),
+  refresh: vi.fn(),
 });
 
 describe('chooseAutostart', () => {
@@ -70,6 +71,8 @@ describe('loginItemAutostart', () => {
     expect(autostart.enabled()).toBe(true);
     autostart.disable();
     expect(autostart.enabled()).toBe(false);
+    autostart.refresh();
+    expect(items.setLoginItemSettings).toHaveBeenLastCalledWith({ openAtLogin: true });
   });
 });
 
@@ -81,6 +84,9 @@ describe('UNSUPPORTED_AUTOSTART', () => {
     }).toThrow('not available');
     expect(() => {
       UNSUPPORTED_AUTOSTART.disable();
+    }).not.toThrow();
+    expect(() => {
+      UNSUPPORTED_AUTOSTART.refresh();
     }).not.toThrow();
   });
 });
@@ -97,7 +103,8 @@ describe('syncAutostartSetting', () => {
     const autostart = port(true);
     syncAutostartSetting(autostart, settings, vi.fn());
     expect(settings.current().general.autostart).toBe(true);
-    expect(autostart.enable).toHaveBeenCalledOnce();
+    expect(autostart.refresh).toHaveBeenCalledOnce();
+    expect(autostart.enable).not.toHaveBeenCalled();
   });
 
   it('saves nothing when both agree', () => {
@@ -115,6 +122,7 @@ describe('syncAutostartSetting', () => {
       },
       enable: vi.fn(),
       disable: vi.fn(),
+      refresh: vi.fn(),
     };
     syncAutostartSetting(broken, settings, warn);
     expect(warn).toHaveBeenCalledWith('Could not check autostart: Error: no access');
@@ -151,6 +159,7 @@ describe('applyAutostart', () => {
         throw new Error('denied');
       },
       disable: vi.fn(),
+      refresh: vi.fn(),
     };
     expect(applyAutostart(refusing, warn)(true)).toBe(en.settings.problems.autostartFailed);
     expect(warn).toHaveBeenCalledWith('Could not change autostart: Error: denied');
