@@ -3,18 +3,24 @@
     "coldStartMs": 2200,
     "idleMemoryMb": 690,
     "accountMemoryMb": 270,
-    "hiddenCpuPercent": 2
+    "hiddenCpuPercent": 2,
+    "activityGrowthMb": 40,
+    "activityMainCpuPercent": 70
   },
   "darwin": {
     "coldStartMs": 3500,
     "idleMemoryMb": 510,
     "accountMemoryMb": 250,
-    "hiddenCpuPercent": 2
+    "hiddenCpuPercent": 2,
+    "activityGrowthMb": 40,
+    "activityMainCpuPercent": 70
   },
   "win32": {
     "coldStartMs": 2000,
     "idleMemoryMb": 390,
     "accountMemoryMb": 230,
-    "hiddenCpuPercent": 2
+    "hiddenCpuPercent": 2,
+    "activityGrowthMb": 40,
+    "activityMainCpuPercent": 70
   }
 }
