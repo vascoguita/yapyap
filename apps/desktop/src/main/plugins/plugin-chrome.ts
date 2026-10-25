@@ -1,9 +1,13 @@
 import { compareCodeUnits } from '@yapyap/plugin-sign';
-import { CHROME_CHANNELS, type PluginList } from '../../shared/chrome-api.ts';
+import {
+  CHROME_CHANNELS,
+  PLUGINS_CHANGED_EVENT,
+  type PluginList,
+} from '../../shared/chrome-api.ts';
 import { en } from '../../shared/messages/en.ts';
 import { noArguments, type ChromeHandler } from '../chrome/ipc.ts';
 import {
-  createChromeWindowOpener,
+  createChromeWindowSlot,
   openPromptWindow,
   type ChromePage,
   type ChromeWindowDependencies,
@@ -292,6 +296,11 @@ export function createPluginChrome(
     windows.warn('Could not read the installed plugins, so none was started.');
   };
   runtime.startAll().catch(failed);
+  // Plugins start once their record is saved and stop once it is gone, so the window lists them again then.
+  const pluginsWindow = createChromeWindowSlot(windows, PLUGINS_PAGE);
+  runtime.onChange(() => {
+    pluginsWindow.notify(PLUGINS_CHANGED_EVENT);
+  });
   const consent = createPluginConsent(() => openConsentWindow(windows));
   const flow = installFlow(deps, settings, consent.ask, (id) => {
     runtime.restart(id).catch(failed);
@@ -301,7 +310,7 @@ export function createPluginChrome(
     install: () => {
       void installPlugin(flow);
     },
-    openPlugins: createChromeWindowOpener(windows, PLUGINS_PAGE),
+    openPlugins: pluginsWindow.open,
     commands: runtime.commands,
     runCommand: runtime.runCommand,
     onCommandsChange: runtime.onChange,

@@ -49,6 +49,7 @@ function api(entries: readonly DownloadEntry[]) {
       setGrant: vi.fn(),
       setSetting: vi.fn(),
       remove: vi.fn(),
+      onChange: vi.fn(),
     },
     picker: { offer: vi.fn(), choose: vi.fn(), cancel: vi.fn() },
     spelling: { languages: vi.fn(), choose: vi.fn() },

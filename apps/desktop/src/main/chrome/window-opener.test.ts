@@ -1,13 +1,17 @@
 import { describe, expect, it, vi } from 'vitest';
 import { SHOW_FALLBACK_MS } from '../show-when-ready.ts';
 import type { ViewInfo } from '../views.ts';
-import { createChromeWindowOpener, type ChromeWindowPort } from './window-opener.ts';
+import {
+  createChromeWindowOpener,
+  createChromeWindowSlot,
+  type ChromeWindowPort,
+} from './window-opener.ts';
 
 function fakeWindow() {
   let ready: () => void = () => undefined;
   let destroyed = false;
   const window = {
-    webContents: {},
+    webContents: { send: vi.fn() },
     isDestroyed: vi.fn(() => destroyed),
     focus: vi.fn(),
     once: vi.fn((_event: 'ready-to-show' | 'closed', listener: () => void) => {
@@ -112,5 +116,22 @@ describe('createChromeWindowOpener', () => {
     t.open();
     await settle();
     expect(t.warn).toHaveBeenCalledExactlyOnceWith('Could not load about.html.');
+  });
+});
+
+describe('createChromeWindowSlot', () => {
+  it('tells its window about a change only while the window is open', () => {
+    const t = setup();
+    const slot = createChromeWindowSlot(
+      { createWindow: t.createWindow, views: t.views, warn: t.warn },
+      { path: 'plugins.html', window: {} },
+    );
+    slot.notify('plugins:changed');
+    slot.open();
+    slot.notify('plugins:changed');
+    expect(t.windows[0].window.webContents.send).toHaveBeenCalledExactlyOnceWith('plugins:changed');
+    t.windows[0].destroy();
+    slot.notify('plugins:changed');
+    expect(t.windows[0].window.webContents.send).toHaveBeenCalledOnce();
   });
 });

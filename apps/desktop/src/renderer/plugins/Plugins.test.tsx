@@ -12,6 +12,7 @@ function setup(list: () => Promise<PluginList>) {
     setGrant: vi.fn(list),
     setSetting: vi.fn(list),
     remove: vi.fn(list),
+    onChange: vi.fn(),
   };
   render(<Plugins api={{ plugins } as unknown as ChromeApi} />);
   return plugins;
@@ -222,6 +223,33 @@ describe('Plugins', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Remove org.example.hello' }));
     expect(again.remove).toHaveBeenCalledOnce();
     expect(screen.getByText('org.example.hello')).toBeTruthy();
+  });
+
+  it('lists the plugins again when YapYap says they changed', async () => {
+    let installed = false;
+    const plugins = setup(() =>
+      Promise.resolve({
+        plugins: installed
+          ? [
+              {
+                id: 'org.example.hello',
+                version: '1.0.0',
+                trust: 'third-party' as const,
+                settings: [],
+                grants: [],
+              },
+            ]
+          : [],
+        developerMode: false,
+        activity: [],
+      }),
+    );
+    await screen.findByText('No plugins are installed.');
+    installed = true;
+    const [changed] = plugins.onChange.mock.calls[0] as [() => void];
+    changed();
+    expect(await screen.findByText('org.example.hello')).toBeTruthy();
+    expect(plugins.list).toHaveBeenCalledTimes(2);
   });
 
   it('keeps the list as it was when a change cannot be saved', async () => {

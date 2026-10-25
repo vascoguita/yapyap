@@ -841,6 +841,13 @@ not edit the same lines.
   The plugin guide tells authors that removal deletes what a plugin kept,
   and that `local-network` lets `fetch` reach this computer.
 
+- Plugins window refresh (#342): the window listed the plugins once, when
+  it opened, so a plugin installed, removed or stopped while it was open
+  did not show, and a slow runner could open it between the consent window
+  closing and the install saving its record. The main process now sends
+  `plugins:changed` to an open Plugins window whenever a plugin starts or
+  stops (`createChromeWindowSlot`), and the window lists them again.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).

@@ -5,7 +5,8 @@ import { CHROME_ORIGIN } from './assets.ts';
 import { PRODUCT_NAME } from '../identity.ts';
 
 export interface ChromeWindowPort {
-  readonly webContents: object;
+  /** Where YapYap tells the page that something it shows has changed. */
+  readonly webContents: { send(channel: string, ...args: never[]): void };
   isDestroyed(): boolean;
   focus(): void;
   once(event: 'ready-to-show' | 'closed', listener: () => void): unknown;
@@ -49,19 +50,42 @@ export function openChromeWindow<Window extends ChromeWindowPort>(
   return window;
 }
 
+/** A chrome window opened at most once, which YapYap can tell about changes while it is open. */
+export interface ChromeWindowSlot {
+  /** Opens the window, or focuses it when it is already open. */
+  readonly open: () => void;
+  /** Sends `channel` to the window's page, if the window is open. */
+  readonly notify: (channel: string) => void;
+}
+
+export function createChromeWindowSlot(
+  deps: ChromeWindowDependencies,
+  page: ChromePage,
+): ChromeWindowSlot {
+  let current: ChromeWindowPort | undefined;
+  const open = (): ChromeWindowPort | undefined =>
+    current !== undefined && !current.isDestroyed() ? current : undefined;
+  return {
+    open: () => {
+      const shown = open();
+      if (shown === undefined) {
+        current = openChromeWindow(deps, page);
+      } else {
+        shown.focus();
+      }
+    },
+    notify: (channel) => {
+      open()?.webContents.send(channel);
+    },
+  };
+}
+
 /** Opens `page` in a chrome window, or focuses that window when it is already open. */
 export function createChromeWindowOpener(
   deps: ChromeWindowDependencies,
   page: ChromePage,
 ): () => void {
-  let current: ChromeWindowPort | undefined;
-  return () => {
-    if (current !== undefined && !current.isDestroyed()) {
-      current.focus();
-      return;
-    }
-    current = openChromeWindow(deps, page);
-  };
+  return createChromeWindowSlot(deps, page).open;
 }
 
 /** A window that asks one question and goes away once answered or closed. */

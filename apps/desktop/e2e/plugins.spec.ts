@@ -667,3 +667,16 @@ test('removes a plugin with everything it kept, once the user confirms', async (
   await installPlugin(app, profile, manifest, HOARDER);
   await expect.poll(async () => (await pluginPage(app))?.title, { timeout: 20_000 }).toBe('fresh');
 });
+
+test('shows a plugin installed while the Plugins window is open', async ({ app, profile }) => {
+  await clickMenu(app, 'Plugins…');
+  const plugins = await chromePage(app, '/plugins.html');
+  await expect(plugins.getByText('No plugins are installed.')).toBeVisible();
+  await installPlugin(
+    app,
+    profile,
+    testManifest({ capabilities: [], network: { hosts: [] } }),
+    'export default { activate() {} };',
+  );
+  await expect(plugins.getByRole('button', { name: 'Remove org.example.hello' })).toBeVisible();
+});

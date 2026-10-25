@@ -233,6 +233,8 @@ export interface ChromeApi {
     ) => Promise<PluginList>;
     /** Removes a plugin and everything it kept, once the user confirms (#332). */
     readonly remove: (id: string) => Promise<PluginList>;
+    /** Calls `listener` whenever a plugin is installed, updated, removed or stopped (#342). */
+    readonly onChange: (listener: () => void) => void;
   };
   readonly report: {
     /** The sanitized diagnostics the report would carry, for the user to review. */
@@ -430,3 +432,6 @@ export const CHROME_CHANNELS = {
 
 /** The one channel YapYap sends on, from the main process to the sidebar. */
 export const SIDEBAR_STATE_EVENT = 'sidebar:state-changed';
+
+/** Tells an open Plugins window that the installed plugins changed (#342). */
+export const PLUGINS_CHANGED_EVENT = 'plugins:changed';
