@@ -889,7 +889,9 @@ not edit the same lines.
   Arch Linux with `repo-add --prevent-downgrade`, since repo-add otherwise
   lets an older package added later replace the newest. The pacman.conf
   section requires signatures on the database too, and `test.sh` covers
-  Arch clients on both channels and a tampered database.
+  Arch clients on both channels and a tampered database. The deploy's own
+  check asks pacman for the package alone (`-Sddp`); without `-dd` it also
+  lists every dependency's file, which failed the first release's check.
 
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
