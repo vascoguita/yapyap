@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { checkBetaGate, parseReleases, securityReason } from '../release/beta-gate.ts';
+import { checkBetaGate, parseReleases } from '../release/beta-gate.ts';
 
 // The release PR carries the version it would release in the manifest.
 const manifest = JSON.parse(readFileSync('.release-please-manifest.json', 'utf8')) as Record<
@@ -18,8 +18,6 @@ const response = await fetch(
 const result = checkBetaGate({
   version: manifest['.'] ?? '',
   releases: parseReleases(await response.json()),
-  now: Date.now(),
-  securityReason: securityReason(process.env['PULL_REQUEST_BODY'] ?? ''),
 });
 console.log(result.pass ? result.message : `::error::${result.message}`);
 process.exitCode = Number(!result.pass);

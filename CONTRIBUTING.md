@@ -196,9 +196,8 @@ described in [SECURITY.md](SECURITY.md).
 
 Every stable release follows a beta (ADR 0003, #184). The release PR's
 `Beta gate` check fails until a `vX.Y.Z-beta.N` pre-release of the same
-version has been published for at least 3 days. For a security fix, add a
-line `Security release: <reason, such as the advisory ID>` to the release PR
-body to skip the wait; a beta is still required.
+version has been published. How long a beta stays out before the release is
+the maintainer's call.
 
 To cut a beta, run the **Beta release** workflow with the coming stable
 version, from the Actions tab or with

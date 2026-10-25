@@ -72,10 +72,10 @@ build ad hoc. Copy Diagnostics shows the policy and channel.
   (#184).
 - **Betas before every stable release (#184):** each `vX.Y.Z` follows at
   least one `vX.Y.Z-beta.N` GitHub pre-release. The release PR carries a
-  `Beta gate` check that fails until the newest beta of its version has been
-  published for at least **3 days**. A security fix may skip the wait, never
-  the beta, by stating `Security release: <reason>` on its own line in the
-  release PR. Betas come from the manual **Beta release** workflow
+  `Beta gate` check that fails until a beta of its version has been
+  published. It enforced a 3-day wait until 2026-10-25, when the maintainer
+  chose to decide how long each beta stays out instead. Betas come from the
+  manual **Beta release** workflow
   (`beta.yml`), which shares packaging, smoke tests and publishing
   (`publish.yml`) with stable releases.
 - Every release asset is listed in `SHA256SUMS`, covered by a build provenance

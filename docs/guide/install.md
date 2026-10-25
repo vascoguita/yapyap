@@ -118,8 +118,8 @@ gh attestation verify YapYap-0.1.0-linux-x86_64.AppImage --repo vascoguita/yapya
 
 ## Beta versions {#betas}
 
-Every release is first published as a beta, at least three days ahead, so
-testers can catch problems before everyone gets the update. Betas are
+Every release is first published as a beta, so testers can catch problems
+before everyone gets the update. Betas are
 pre-releases on the
 [releases page](https://github.com/vascoguita/yapyap/releases), tagged like
 `v0.2.0-beta.1`, and are built, tested and signed like releases.
