@@ -177,4 +177,13 @@ describe('mountPanel', () => {
     t.receive({ type: 'problem', reason: 'empty-draft' });
     expect(t.replies()).toBe('Type a draft in the message box first.');
   });
+
+  it('asks for a summary of the chat, and shows it in the panel only', () => {
+    const t = setup();
+    t.button('Summarize this chat').click();
+    expect(t.sent.at(-1)).toEqual({ type: 'prepare-summary' });
+    t.receive({ type: 'summary', text: '- Lunch moved to 1pm' });
+    expect(document.querySelector('#summary')?.textContent).toBe('- Lunch moved to 1pm');
+    expect(t.replies()).toContain('nothing of it goes to the chat');
+  });
 });

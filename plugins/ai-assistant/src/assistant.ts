@@ -52,6 +52,8 @@ function run(
   switch (request.type) {
     case 'prepare':
       return flow.prepare({ mode: 'replies' });
+    case 'prepare-summary':
+      return flow.prepare({ mode: 'summary' });
     case 'prepare-rewrite':
       return flow.prepare({ mode: 'rewrite', style: request.style, language: request.language });
     case 'allow-chat':

@@ -620,6 +620,12 @@ not edit the same lines.
   decides what is sent and whether the pick is added or replaces. The
   manifest asks for `composer:read-draft`.
 
+- Chat summaries (#106, first part): **Summarize this chat** in the
+  assistant's panel sends the open chat's latest messages, with the same
+  consent and exact preview, and shows the summary in the panel only,
+  never in the message box. Summarizing exactly the unread messages waits
+  for an unread reader (#100).
+
 - Account budgets (#109, first part): `bench/accounts.spec.ts` measures the
   memory a second account adds and the CPU a hidden account uses while
   idle, from cumulative CPU time, and the nightly run holds them to budgets

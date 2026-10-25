@@ -58,6 +58,14 @@ never shows the key again; **Forget key** removes it.
 5. Pick one of the suggested replies. It goes into the message box as a
    draft; edit it and send it yourself, or delete it.
 
+## Summarize a chat
+
+Open a chat and choose **Summarize this chat**. As with replies, the
+assistant must be allowed in the chat, and the panel shows exactly what
+will be sent: the chat's latest messages, as many as **Messages to send**
+allows. After **Send**, the summary appears in the panel for you alone;
+nothing of it goes to the chat or the message box.
+
 ## Rewrite your draft
 
 1. Type a message in WhatsApp's message box, without sending it.

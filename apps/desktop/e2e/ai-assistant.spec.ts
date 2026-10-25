@@ -1,3 +1,4 @@
+import type { ElectronApplication } from '@playwright/test';
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -104,12 +105,12 @@ const claudeAnswer = (text: string): string =>
 /** Three suggested replies. */
 const CLAUDE_ANSWER = claudeAnswer('Yes, 8 works!\nCan we do 9?\nSee you there');
 
-test('suggests replies only in an allowed chat, after showing what it sends, and drafts the pick', async ({
-  app,
-  profile,
-  window,
-}) => {
-  await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
+/**
+ * Installs the built assistant with a stand-in keyring and Claude answering
+ * `answer`, opens its panel and saves a key; returns the panel.
+ */
+async function readyAssistant(app: ElectronApplication, profile: string, answer: string) {
+  // The test system has no keyring, so encryption is stood in for, reversibly.
   await app.evaluate(({ safeStorage }) => {
     safeStorage.isAsyncEncryptionAvailable = () => Promise.resolve(true);
     safeStorage.getSelectedStorageBackend = () => 'gnome_libsecret';
@@ -133,7 +134,7 @@ test('suggests replies only in an allowed chat, after showing what it sends, and
         asked.push(await request.text());
         return new Response(body, { headers: { 'content-type': 'text/event-stream' } });
       });
-  }, CLAUDE_ANSWER);
+  }, answer);
   const open = () =>
     app.evaluate(({ Menu }) => {
       const panel = Menu.getApplicationMenu()
@@ -148,6 +149,16 @@ test('suggests replies only in an allowed chat, after showing what it sends, and
   await panel.getByLabel('API key').fill('sk-ant-e2e-key');
   await panel.getByRole('button', { name: 'Save key' }).click();
   await expect(panel.getByRole('status')).toContainText('Ready.');
+  return panel;
+}
+
+test('suggests replies only in an allowed chat, after showing what it sends, and drafts the pick', async ({
+  app,
+  profile,
+  window,
+}) => {
+  await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
+  const panel = await readyAssistant(app, profile, CLAUDE_ANSWER);
   await panel.getByRole('button', { name: 'Look at this chat' }).click();
   await expect(panel.getByText('The assistant is off in “Test Chat One”.')).toBeVisible();
   await panel.getByRole('button', { name: 'Allow in this chat' }).click();
@@ -170,44 +181,14 @@ test('rewrites the draft only after showing it, and puts the rewrite in its plac
   window,
 }) => {
   await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
-  await app.evaluate(({ safeStorage }) => {
-    safeStorage.isAsyncEncryptionAvailable = () => Promise.resolve(true);
-    safeStorage.getSelectedStorageBackend = () => 'gnome_libsecret';
-    safeStorage.encryptStringAsync = (text: string) =>
-      Promise.resolve(Buffer.from(`sealed:${text}`));
-    safeStorage.decryptStringAsync = (sealed: Buffer) =>
-      Promise.resolve({
-        result: sealed.toString().slice('sealed:'.length),
-        shouldReEncrypt: false,
-      });
-  });
-  const { manifest, main, others } = await builtAssistant();
-  await installPlugin(app, profile, manifest, main, others);
-  await app.evaluate(({ session }, body) => {
-    session
-      .fromPartition('persist:plugin:org.example.ai-assistant')
-      .protocol.handle(
-        'https',
-        () => new Response(body, { headers: { 'content-type': 'text/event-stream' } }),
-      );
-  }, claudeAnswer('“I am running a little late, sorry!”'));
   const composer = window.getByTestId('composer');
   await composer.click();
   await window.keyboard.type('running late');
-  const open = () =>
-    app.evaluate(({ Menu }) => {
-      const panel = Menu.getApplicationMenu()
-        ?.items.flatMap((menu) => menu.submenu?.items ?? [])
-        .find((entry) => entry.label === 'Plugin Commands')
-        ?.submenu?.items.find((entry) => entry.label === 'AI assistant: Assistant');
-      panel?.click();
-      return panel !== undefined;
-    });
-  await expect.poll(open, { timeout: 20_000 }).toBe(true);
-  const panel = await chromePage(app, '/__yapyap/panel.html');
-  await panel.getByLabel('API key').fill('sk-ant-e2e-key');
-  await panel.getByRole('button', { name: 'Save key' }).click();
-  await expect(panel.getByRole('status')).toContainText('Ready.');
+  const panel = await readyAssistant(
+    app,
+    profile,
+    claudeAnswer('“I am running a little late, sorry!”'),
+  );
   await panel.getByLabel('Style').selectOption('friendlier');
   await panel.getByRole('button', { name: 'Rewrite my draft' }).click();
   await panel.getByRole('button', { name: 'Allow in this chat' }).click();
@@ -216,4 +197,19 @@ test('rewrites the draft only after showing it, and puts the rewrite in its plac
   await panel.getByRole('button', { name: 'Send', exact: true }).click();
   await panel.getByRole('button', { name: 'I am running a little late, sorry!' }).click();
   await expect(composer).toHaveText('I am running a little late, sorry!');
+});
+
+test('summarizes the chat in the panel, and leaves the message box alone', async ({
+  app,
+  profile,
+  window,
+}) => {
+  await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
+  const panel = await readyAssistant(app, profile, claudeAnswer('- Dinner tonight at 8.'));
+  await panel.getByRole('button', { name: 'Summarize this chat' }).click();
+  await panel.getByRole('button', { name: 'Allow in this chat' }).click();
+  await expect(panel.locator('#preview')).toContainText('Summarize this WhatsApp chat');
+  await panel.getByRole('button', { name: 'Send', exact: true }).click();
+  await expect(panel.locator('#summary')).toHaveText('- Dinner tonight at 8.');
+  await expect(window.getByTestId('composer')).toHaveText('');
 });

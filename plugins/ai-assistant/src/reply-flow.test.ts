@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { Update } from './bus.ts';
 import { chatKey, setAllowed } from './chats.ts';
 import type { CompletionRequest, Provider } from './providers/provider.ts';
-import { INSTRUCTIONS } from './replies.ts';
+import { INSTRUCTIONS, SUMMARY_INSTRUCTIONS } from './replies.ts';
 import { rewriteInstructions } from './rewrites.ts';
 import { replyFlow, type Plan } from './reply-flow.ts';
 
@@ -193,5 +193,25 @@ describe('replyFlow', () => {
     vi.mocked(t.provider.complete).mockResolvedValueOnce({ text: '""', truncated: false });
     await t.flow.send();
     expect(t.sent.at(-1)).toEqual({ replace: true, type: 'suggestions', items: [] });
+  });
+
+  it('summarizes the chat it previewed for the panel alone, offering nothing to draft', async () => {
+    const t = setup();
+    vi.mocked(t.provider.complete).mockResolvedValueOnce({
+      text: '\n- Ana confirms 8pm.\n',
+      truncated: false,
+    });
+    await t.flow.prepare({ mode: 'summary' });
+    await t.flow.allow(true);
+    expect(t.sent.at(-1)).toMatchObject({
+      type: 'preview',
+      instructions: SUMMARY_INSTRUCTIONS,
+      transcript: 'Chat: Ana\nMe: Are we still on?\nThem: Yes, 8pm',
+    });
+    await t.flow.send();
+    expect(t.sent.at(-1)).toEqual({ type: 'summary', text: '- Ana confirms 8pm.' });
+    await t.flow.use(0);
+    expect(t.sent.at(-1)).toEqual({ type: 'problem', reason: 'invalid' });
+    expect(t.drafts).toEqual([]);
   });
 });

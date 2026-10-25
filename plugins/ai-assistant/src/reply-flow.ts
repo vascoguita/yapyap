@@ -2,7 +2,13 @@ import type { ActiveChat, PluginHost } from '@yapyap/plugin-sdk';
 import type { Update } from './bus.ts';
 import { isAllowed, setAllowed } from './chats.ts';
 import type { Provider } from './providers/provider.ts';
-import { INSTRUCTIONS, requestFor, suggestionsIn, transcriptOf } from './replies.ts';
+import {
+  INSTRUCTIONS,
+  requestFor,
+  suggestionsIn,
+  SUMMARY_INSTRUCTIONS,
+  transcriptOf,
+} from './replies.ts';
 import { cleanRewrite, rewriteInstructions, type RewriteStyle } from './rewrites.ts';
 import { assistantSettings, keyName, missingSetting, providerFor } from './settings.ts';
 
@@ -13,6 +19,7 @@ type Post = (update: Update) => void;
 /** What the panel asked the assistant to do with the open chat. */
 export type Plan =
   | { readonly mode: 'replies' }
+  | { readonly mode: 'summary' }
   | { readonly mode: 'rewrite'; readonly style: RewriteStyle; readonly language: string };
 
 /** One panel's work in progress: the plan, the chat it previewed, what it showed, what came back. */
@@ -33,9 +40,10 @@ async function material(
   plan: Plan,
   chat: ActiveChat,
 ): Promise<{ text: string; instructions: string } | string> {
-  if (plan.mode === 'replies') {
+  if (plan.mode !== 'rewrite') {
     const { context } = assistantSettings(await host.settings.get());
-    return { text: transcriptOf(chat, context), instructions: INSTRUCTIONS };
+    const instructions = plan.mode === 'replies' ? INSTRUCTIONS : SUMMARY_INSTRUCTIONS;
+    return { text: transcriptOf(chat, context), instructions };
   }
   const draft = await host.composer.readDraft();
   return draft === null || draft === ''
@@ -107,6 +115,12 @@ async function send(host: FlowHost, session: Session, post: Post, make: typeof p
       post({ type: 'progress', text: piece });
     },
   );
+  if (session.plan.mode === 'summary') {
+    // A summary is for reading in the panel; nothing of it goes to the chat.
+    session.suggestions = [];
+    post({ type: 'summary', text: completion.text.trim() });
+    return;
+  }
   const replace = session.plan.mode === 'rewrite';
   session.suggestions = replace
     ? [cleanRewrite(completion.text)].filter((item) => item !== '')

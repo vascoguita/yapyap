@@ -40,6 +40,7 @@ export type Update =
       /** A rewrite, which takes the draft's place, rather than replies to add to it. */
       readonly replace: boolean;
     }
+  | { readonly type: 'summary'; readonly text: string }
   | { readonly type: 'used' }
   | { readonly type: 'problem'; readonly reason: string };
 
@@ -48,6 +49,7 @@ export type PanelRequest =
   | { readonly type: 'save-key'; readonly key: string }
   | { readonly type: 'forget-key' }
   | { readonly type: 'prepare' }
+  | { readonly type: 'prepare-summary' }
   | { readonly type: 'prepare-rewrite'; readonly style: RewriteStyle; readonly language: string }
   | { readonly type: 'allow-chat'; readonly allowed: boolean }
   | { readonly type: 'send' }
@@ -57,7 +59,14 @@ export type PanelRequest =
 /** Longer than any provider's keys. */
 const MAX_KEY = 8192;
 
-const SIMPLE: ReadonlySet<unknown> = new Set(['state?', 'forget-key', 'prepare', 'send', 'cancel']);
+const SIMPLE: ReadonlySet<unknown> = new Set([
+  'state?',
+  'forget-key',
+  'prepare',
+  'prepare-summary',
+  'send',
+  'cancel',
+]);
 
 function saveKey(key: unknown): PanelRequest | undefined {
   const valid = typeof key === 'string' && key.trim() !== '' && key.length <= MAX_KEY;
@@ -127,6 +136,7 @@ const NEWS: Readonly<Record<string, (fields: Record<string, unknown>) => Update 
     strings(items) && typeof replace === 'boolean'
       ? { type: 'suggestions', replace, items }
       : undefined,
+  summary: ({ text }) => (typeof text === 'string' ? { type: 'summary', text } : undefined),
   used: () => ({ type: 'used' }),
   problem: ({ reason }) => (typeof reason === 'string' ? { type: 'problem', reason } : undefined),
 };
