@@ -61,12 +61,7 @@ jobs:
           chmod 700 "$gnupg"
           docker run --rm -i -v "$gnupg:/gnupg" -e GNUPGHOME=/gnupg docker.io/library/debian:13 bash -c '
             apt-get update -qq && apt-get install -qq -y gpg >/dev/null && gpg --batch --import' <<< "$PACKAGES_SIGNING_KEY"
-          docker run --rm -v "$gnupg:/gnupg" -v "$SITE:/site" -v "$PWD/packaging/repository:/scripts:ro" \\
-            -e GNUPGHOME=/gnupg docker.io/library/debian:13 bash -c '
-            set -e
-            apt-get update -qq && apt-get install -qq -y apt-utils createrepo-c gpg >/dev/null
-            export REPOSITORY_KEY=$(gpg --batch --list-secret-keys --with-colons | awk -F: "/^fpr/ { print \\$10; exit }")
-            bash /scripts/index.sh /site'
+          bash packaging/repository/build-site.sh "$SITE" "$gnupg"
           sudo rm -rf "$gnupg"
       - name: Keep only the indexes, which redirect to the packages on GitHub
         if: steps.ready.outputs.ready == 'true'

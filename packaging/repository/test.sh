@@ -37,7 +37,7 @@ say() { printf '\n== %s\n' "$*"; }
 # One container per tool set, so the host needs none of the packaging tools.
 tools() {
   "$runtime" run --rm --network host -v "$work:/work:Z" -w /work \
-    -e GNUPGHOME=/work/gnupg -e REPOSITORY_KEY="${REPOSITORY_KEY:-}" "$@"
+    -e GNUPGHOME=/work/gnupg "$@"
 }
 
 say 'Making a signing key for this run'
@@ -45,10 +45,7 @@ mkdir -m 700 "$work/gnupg"
 # shellcheck disable=SC2016 # Expanded inside the container.
 tools "$DEBIAN" bash -c '
   apt-get update -qq && apt-get install -qq -y gpg >/dev/null
-  gpg --batch --passphrase "" --quick-gen-key "YapYap test <test@invalid>" ed25519 sign never
-  gpg --batch --list-keys --with-colons | awk -F: "/^fpr/ { print \$10; exit }" > /work/key'
-REPOSITORY_KEY=$(<"$work/key")
-export REPOSITORY_KEY
+  gpg --batch --passphrase "" --quick-gen-key "YapYap test <test@invalid>" ed25519 sign never'
 
 say 'Building stand-in packages'
 build_packages() {
@@ -109,10 +106,7 @@ publish() {
     mkdir -p "$work/site/pool/$tag"
     cp "$work/releases/$tag/$file" "$work/site/pool/$tag/"
   done <"$work/site/.plan/files"
-  cp "$here/index.sh" "$work/index.sh"
-  tools "$DEBIAN" bash -c '
-    apt-get update -qq && apt-get install -qq -y apt-utils createrepo-c gpg >/dev/null
-    bash /work/index.sh /work/site'
+  bash "$here/build-site.sh" "$work/site" "$work/gnupg"
 }
 
 say 'Serving the site'
