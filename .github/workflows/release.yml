@@ -73,6 +73,12 @@ jobs:
     with:
       tag: ${{ needs.release-please.outputs.tag_name }}
 
+  repository:
+    name: Package repositories
+    needs: publish
+    uses: ./.github/workflows/repository.yml
+    secrets: inherit
+
   aur:
     name: Publish to the AUR
     needs: [release-please, publish]

@@ -25,6 +25,16 @@ Updates are a code-delivery channel, so they must be verified.
 | Windows | Portable                                 | x64, arm64      | electron-builder               | Notice only, links to the release               |
 | macOS   | Universal DMG + ZIP                      | arm64 + x64     | electron-builder               | **Self-update**, only when signed and notarized |
 
+DEB and RPM users can also add YapYap's apt and dnf repositories at
+`packages.guita.org` (#344), in a stable and a beta channel. The site is a
+Cloudflare Pages project that holds only the signed indexes: every package
+path redirects to the file on GitHub Releases, so the repositories need no
+package host, have no download limits, and every download is counted with
+the rest. The release and beta workflows rebuild and sign the indexes from
+the published releases, keeping each channel's five latest versions, and
+`packaging/repository/test.sh` installs, updates and switches channels on
+clean Debian, Ubuntu and Fedora containers in CI.
+
 Linux arm64 artifacts are built natively on `ubuntu-24.04-arm` runners.
 Windows arm64 is cross-built on x64.
 

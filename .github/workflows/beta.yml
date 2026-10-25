@@ -75,3 +75,9 @@ jobs:
     uses: ./.github/workflows/publish.yml
     with:
       tag: ${{ needs.tag.outputs.tag }}
+
+  repository:
+    name: Package repositories
+    needs: publish
+    uses: ./.github/workflows/repository.yml
+    secrets: inherit

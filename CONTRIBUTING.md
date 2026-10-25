@@ -120,6 +120,8 @@ job summary instead of failing.
 | `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`, `CSC_LINK`, `CSC_KEY_PASSWORD` | macOS signing and notarization                                                                                                                                                           | Unsigned DMG, no macOS self-update                                                      |
 | `WIN_CSC_LINK`, `WIN_CSC_KEY_PASSWORD`                                                     | Windows Authenticode signing                                                                                                                                                             | Unsigned installers (SmartScreen warning)                                               |
 | `AUR_SSH_KEY`                                                                              | Publishing `yapyap-bin` to the AUR                                                                                                                                                       | PKGBUILD attached to the release only                                                   |
+| `PACKAGES_SIGNING_KEY` (secret)                                                            | Signing the apt and dnf repositories at `packages.guita.org` (see [Package repository key](#package-repository-key))                                                                     | The repositories are not deployed                                                       |
+| `CLOUDFLARE_API_TOKEN` (secret), `CLOUDFLARE_ACCOUNT_ID` (variable)                        | Deploying `packages.guita.org` to the `yapyap-packages` Cloudflare Pages project (a token with Pages Write only)                                                                         | The repositories are not deployed                                                       |
 | `SONAR_TOKEN`                                                                              | SonarQube Cloud analysis (a project analysis token for `vascoguita_yapyap`, also stored as a Dependabot secret)                                                                          | The SonarQube Cloud job skips its analysis                                              |
 
 Issues that need one of these are labelled `needs-maintainer`.
@@ -142,6 +144,31 @@ are signed by GitHub. To set it up:
 
 To rotate the key, generate a new one, store it, then delete the old one in
 the app's settings.
+
+### Package repository key
+
+The apt and dnf repositories (#344) are signed with an OpenPGP key that only
+the maintainer holds. Create it on your own computer, never in CI:
+
+```sh
+export GNUPGHOME=$(mktemp -d)
+gpg --batch --passphrase '' --quick-gen-key 'YapYap packages <packages@guita.org>' ed25519 sign 5y
+gpg --armor --export-secret-keys | gh secret set PACKAGES_SIGNING_KEY --repo vascoguita/yapyap
+gpg --fingerprint
+rm -rf "$GNUPGHOME"
+```
+
+The current key, created on 2026-10-25 and expiring on 2031-10-24, has the
+fingerprint `789C C8E9 F293 6C76 5224 918B 6773 94EA 2E01 721E`; the
+install guide publishes it, so update both when the key changes.
+
+Keep an offline backup before removing `GNUPGHOME` if you want to be able
+to extend the key's expiry; otherwise rotate it by repeating these steps
+before it expires. Users import the new public key from
+`https://packages.guita.org/yapyap.gpg` (apt) or accept it in dnf. The
+Cloudflare token for `CLOUDFLARE_API_TOKEN` is an account API token with the
+**Pages Write** permission on the account that holds `guita.org`, and
+nothing else.
 
 ## Plugin signing key rotation
 
