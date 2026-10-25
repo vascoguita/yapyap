@@ -13,7 +13,8 @@ set -euo pipefail
 
 here=$(dirname "$(realpath "$0")")
 root=$(realpath "$here/../..")
-runtime=$(command -v podman || command -v docker)
+# The same order as build-site.sh, so CI tests the runtime the deploy uses.
+runtime=$(command -v docker || command -v podman)
 work=$(mktemp -d)
 port=8765
 server=''
@@ -28,7 +29,8 @@ cleanup() {
     "$runtime" rm -f "$client" >/dev/null 2>&1 || true
   done
   [[ -n $server ]] && kill "$server" 2>/dev/null || true
-  rm -rf "$work"
+  # Containers running as root may leave files the user cannot remove.
+  rm -rf "$work" 2>/dev/null || true
 }
 trap cleanup EXIT
 
