@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.1](https://github.com/vascoguita/yapyap/compare/v0.1.0...v0.1.1) (2026-10-25)
+
+
+### Features
+
+* **docs:** show how often YapYap was downloaded, on the site and in the README ([#357](https://github.com/vascoguita/yapyap/issues/357)) ([9c96218](https://github.com/vascoguita/yapyap/commit/9c96218f440b51f88099a543e7d6a94091a899dd))
+
+
+### Bug Fixes
+
+* **autostart:** take over the login entry only when its program is gone ([#365](https://github.com/vascoguita/yapyap/issues/365)) ([e277b87](https://github.com/vascoguita/yapyap/commit/e277b8723660be5cf884934d44a87a76c7a150dc))
+* **packaging:** check only YapYap's pacman package after deploying ([#359](https://github.com/vascoguita/yapyap/issues/359)) ([ada1772](https://github.com/vascoguita/yapyap/commit/ada17728ebad501198bb4de41ffc8cbd14859c6c))
+* **permissions:** let WhatsApp ask for the microphone and camera ([#364](https://github.com/vascoguita/yapyap/issues/364)) ([e9beee8](https://github.com/vascoguita/yapyap/commit/e9beee8c9c0734c2f777b09c0937355d122c10ff))
+
 ## 0.1.0 (2026-10-25)
 
 
