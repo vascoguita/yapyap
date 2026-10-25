@@ -68,6 +68,7 @@ export default defineConfig({
           items: [
             { text: 'Overview', link: '/architecture/' },
             { text: 'Accessibility', link: '/architecture/accessibility' },
+            { text: 'Security review', link: '/architecture/security-review' },
             { text: 'Decision records', link: '/adr/' },
           ],
         },

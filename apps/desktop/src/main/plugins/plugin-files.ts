@@ -9,8 +9,16 @@ export const PLUGIN_SCHEME = 'plugin';
  * files. Requests may go to HTTPS, or to plain HTTP on this computer, which
  * the network policy then allows only with `local-network`.
  */
-export const PLUGIN_CSP =
-  "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src https: http://localhost:* http://127.0.0.1:* http://[::1]:*";
+export const PLUGIN_CSP = [
+  "default-src 'none'",
+  "script-src 'self'",
+  "style-src 'self'",
+  "img-src 'self' data:",
+  'connect-src https: http://localhost:* http://127.0.0.1:* http://[::1]:*',
+  "base-uri 'none'",
+  "form-action 'none'",
+  "frame-ancestors 'none'",
+].join('; ');
 
 export const pluginOrigin = (id: string): string => `${PLUGIN_SCHEME}://${id}`;
 

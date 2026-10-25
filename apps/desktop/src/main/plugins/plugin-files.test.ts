@@ -116,7 +116,7 @@ describe('confinePluginRequests', () => {
 
   it('lets HTTPS and this computer’s HTTP reach the policy, and keeps everything else to the plugin', () => {
     expect(PLUGIN_CSP).toBe(
-      "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src https: http://localhost:* http://127.0.0.1:* http://[::1]:*",
+      "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src https: http://localhost:* http://127.0.0.1:* http://[::1]:*; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
     );
   });
 });

@@ -626,6 +626,15 @@ not edit the same lines.
   pages' CSP as it is. No page had a violation. The manual screen reader
   and keyboard checklist for releases is at `/architecture/accessibility`.
 
+- Security review (#112): `/architecture/security-review` checks YapYap
+  against Electron's 20-item security checklist and the plugin threat
+  model, naming the code and tests behind each answer. It found two
+  things to fix, both fixed here: the screen-share "ended" message now
+  checks its sender like "started", and the plugin CSP adds `base-uri`,
+  `form-action` and `frame-ancestors 'none'`. Three findings are accepted
+  with their reasons (ADR 0008 C2 and C14, and drafts a plugin may
+  replace).
+
 - Crash fingerprints and traces (#113): each crash report starts with a
   12-character fingerprint, a hash of the previous session's last five
   warnings and errors without their times and with numbers made alike, and
