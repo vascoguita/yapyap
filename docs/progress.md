@@ -733,6 +733,11 @@ not edit the same lines.
   YapYap (`settingsIgnoredBy`, passed to `settingsHandlers`). Beta tester
   docs are in the install guide. Shipping v0.1.0 after a beta remains.
 
+- Beta gate without a wait (#184): the maintainer chose to decide how long
+  each beta stays out, so the gate now only requires a published beta of
+  the release's version, and the `Security release:` exception, which only
+  skipped the wait, is gone.
+
 - The SonarQube Cloud backlog is fixed; the few per-file exceptions, each with
   its reason, are in `sonar-project.properties` (ADR 0010, #185).
 

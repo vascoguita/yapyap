@@ -261,10 +261,9 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
-      - name: Check for an aged beta of this version
+      - name: Check a beta of this version is published
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          PULL_REQUEST_BODY: ${{ github.event.pull_request.body }}
         run: node scripts/src/bin/check-beta-gate.ts
 
   # The one required check for this workflow: jobs may skip what a change
