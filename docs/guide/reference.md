@@ -81,25 +81,9 @@ Everything YapYap stores lives in one profile folder:
 | Windows | `%APPDATA%\YapYap`                          |
 | macOS   | `~/Library/Application Support/YapYap`      |
 
-Inside it:
-
-| Path                   | What it holds                                                                                |
-| ---------------------- | -------------------------------------------------------------------------------------------- |
-| `settings.json`        | Your settings, and `settings.json.bak`, the copy before the last change                      |
-| `accounts.json`        | Your WhatsApp accounts: each one's name, color and whether it is on                          |
-| `Partitions/account-…` | Each account's WhatsApp Web data (login, cache, local storage), kept apart from the others   |
-| `window-state.json`    | The window's size and position, so it reopens where you left it                              |
-| `downloads.json`       | The folder you last saved a download to, where the save dialog starts                        |
-| `gpu-crashes.json`     | The times of recent graphics crashes, which trigger the safe graphics fallback               |
-| `running.json`         | The version and start time of the running session; left behind only if YapYap did not quit   |
-| `crash-report.txt`     | With crash reports on, the report of the last unclean exit; a new one replaces it            |
-| `secrets.json`         | Proxy passwords you chose to remember, encrypted by the system's keychain                    |
-| `logs/`                | Redacted logs: this session's `yapyap.log` and up to five older files, deleted after 14 days |
-| Everything else        | Chromium's own caches and state                                                              |
-
-The [privacy page](/privacy) explains what the logs contain. Deleting the
-profile folder while YapYap is closed resets YapYap completely and logs you
-out of WhatsApp.
+The [privacy page](/privacy#what-yapyap-stores) lists every file in it,
+what each holds and how to delete it. Deleting the profile folder while
+YapYap is closed resets YapYap completely and logs you out of WhatsApp.
 
 ## Command line
 
