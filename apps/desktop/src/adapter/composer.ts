@@ -53,3 +53,27 @@ export function parseDraft(value: unknown): string | null | undefined {
     ? value
     : undefined;
 }
+
+interface SelectableDocument extends FocusableDocument {
+  getSelection(): { selectAllChildren(node: never): void } | null;
+}
+
+/**
+ * Focuses the open conversation's message box and selects everything in it,
+ * so the text typed next replaces the draft (#330). Selecting in the page
+ * itself, in the same step as focusing, leaves no moment for typing to land
+ * before the selection does. Runs as source text, so it stays
+ * self-contained; it reports only whether it found the box.
+ */
+export function selectComposer(doc: SelectableDocument, selector: string): boolean {
+  const box = doc.querySelector(selector) as { focus?: () => void } | null;
+  if (typeof box?.focus !== 'function') {
+    return false;
+  }
+  box.focus();
+  doc.getSelection()?.selectAllChildren(box as never);
+  return true;
+}
+
+/** The selecting probe as code for `executeJavaScriptInIsolatedWorld`. */
+export const SELECT_COMPOSER = `(${selectComposer.toString()})(document, ${JSON.stringify(LANDMARKS.composer)})`;

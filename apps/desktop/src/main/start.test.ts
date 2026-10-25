@@ -44,7 +44,6 @@ function fakeContents() {
     setAudioMuted: vi.fn(),
     setWebRTCIPHandlingPolicy: vi.fn(),
     insertText: vi.fn(() => Promise.resolve()),
-    selectAll: vi.fn(),
     insertCSS: vi.fn(() => Promise.resolve('privacy')),
     removeInsertedCSS: vi.fn(() => Promise.resolve()),
     replaceMisspelling: vi.fn(),
@@ -827,7 +826,7 @@ describe('startApp', () => {
     await expect(menu?.readDraft()).resolves.toBe('Draft');
     f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValueOnce(true);
     await expect(menu?.replaceDraft('New')).resolves.toBe(true);
-    expect(f.web.contents.selectAll).toHaveBeenCalledOnce();
+    expect(f.web.contents.insertText).toHaveBeenLastCalledWith('New');
   });
 
   it('puts a plugin’s draft in the active account’s open chat, and only there', async () => {

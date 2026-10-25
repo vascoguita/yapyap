@@ -1,4 +1,9 @@
-import { FOCUS_COMPOSER, parseDraft, READ_COMPOSER } from '../../adapter/composer.ts';
+import {
+  FOCUS_COMPOSER,
+  parseDraft,
+  READ_COMPOSER,
+  SELECT_COMPOSER,
+} from '../../adapter/composer.ts';
 import { ADAPTER_WORLD_ID } from '../../adapter/page-health.ts';
 
 export interface ReplyContents {
@@ -8,8 +13,6 @@ export interface ReplyContents {
   ): Promise<unknown>;
   /** Typed into the focused element as the user's own input. */
   insertText(text: string): Promise<void>;
-  /** Selects everything in the focused element, so typing replaces it. */
-  selectAll(): void;
 }
 
 export interface ReplyDependencies {
@@ -26,9 +29,9 @@ export function supportsInlineReply(platform: string): boolean {
   return platform === 'darwin' || platform === 'win32';
 }
 
-async function focused(contents: ReplyContents): Promise<boolean> {
+async function focused(contents: ReplyContents, code = FOCUS_COMPOSER): Promise<boolean> {
   const result = await contents
-    .executeJavaScriptInIsolatedWorld(ADAPTER_WORLD_ID, [{ code: FOCUS_COMPOSER }])
+    .executeJavaScriptInIsolatedWorld(ADAPTER_WORLD_ID, [{ code }])
     .catch(() => false);
   return result === true;
 }
@@ -53,10 +56,9 @@ export async function insertDraft(contents: ReplyContents, text: string): Promis
  * send. False when no chat is open. The text is never logged.
  */
 export async function replaceDraft(contents: ReplyContents, text: string): Promise<boolean> {
-  if (!(await focused(contents))) {
+  if (!(await focused(contents, SELECT_COMPOSER))) {
     return false;
   }
-  contents.selectAll();
   await contents.insertText(text);
   return true;
 }

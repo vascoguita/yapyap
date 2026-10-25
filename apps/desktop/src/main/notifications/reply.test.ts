@@ -8,7 +8,6 @@ function setup(answers: unknown[]) {
       return answer instanceof Error ? Promise.reject(answer) : Promise.resolve(answer);
     }),
     insertText: vi.fn(() => Promise.resolve()),
-    selectAll: vi.fn(),
   };
   const deps = { wait: vi.fn(() => Promise.resolve()), warn: vi.fn() };
   return { contents, deps };
@@ -53,13 +52,15 @@ describe('replaceDraft', () => {
   it('types over everything in the message box, and nothing when none is open', async () => {
     const t = setup([true, false]);
     await expect(replaceDraft(t.contents, 'Rewritten')).resolves.toBe(true);
-    expect(t.contents.selectAll).toHaveBeenCalledOnce();
-    expect(t.contents.selectAll.mock.invocationCallOrder[0]).toBeLessThan(
-      t.contents.insertText.mock.invocationCallOrder[0] ?? 0,
-    );
+    const [, scripts] = t.contents.executeJavaScriptInIsolatedWorld.mock.calls[0] as unknown as [
+      number,
+      { code: string }[],
+    ];
+    // The page selects the whole draft as it focuses the box, before anything is typed.
+    expect(scripts[0]?.code).toContain('selectAllChildren');
     expect(t.contents.insertText).toHaveBeenCalledExactlyOnceWith('Rewritten');
     await expect(replaceDraft(t.contents, 'Again')).resolves.toBe(false);
-    expect(t.contents.selectAll).toHaveBeenCalledOnce();
+    expect(t.contents.insertText).toHaveBeenCalledOnce();
   });
 });
 
