@@ -49,7 +49,10 @@ pull request, with `master` always green and releases fully automated.
   disabled in repository settings, because GitHub's rebase-merge re-creates
   commits and drops their signatures.
 - **PR titles** follow Conventional Commits (checked in CI) and become the
-  merge commit subject.
+  merge commit subject. release-please therefore lists a change twice, for
+  its commit and its merge commit; the release workflow merges each pair
+  into one entry, linking the pull request, in the release PR's changelog
+  and body (#358).
 - **Dependabot**: grouped weekly updates with a 3-day cooldown. Patch and
   minor updates get auto-merge (`gh pr merge --auto --merge`) once all checks
   pass.

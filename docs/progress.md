@@ -911,6 +911,20 @@ not edit the same lines.
   check asks pacman for the package alone (`-Sddp`); without `-dd` it also
   lists every dependency's file, which failed the first release's check.
 
+- One changelog entry per change (#358): release-please listed most
+  changes twice, for the commit and for the merge commit, whose subject is
+  the PR's Conventional Commit title (ADR 0007). After it updates the
+  release PR, the release workflow runs `merge-changelog.ts`, which merges
+  each pair into one entry with the PR link and every closed issue, commits
+  CHANGELOG.md through the GraphQL API so GitHub signs it, and fixes the PR
+  body the release notes come from.
+
+- Login entry ownership (#362): at start, YapYap re-points an existing
+  Linux autostart entry only when the program it names is gone, as after an
+  AppImage moved, so another YapYap build started once, even with its own
+  profile, no longer takes over the user's "Start at login". Login items on
+  Windows and macOS keep refreshing as before.
+
 - Calls asking for the microphone and camera (#363): v0.1.0 users could not
   call. Electron reports a refused permission check as `denied`, and the
   check handler refused every WhatsApp check: it compared Electron's origin,
@@ -919,12 +933,6 @@ not edit the same lines.
   `denied`, never asked. Checks now compare origins with `isSameOrigin` and
   answer yes for `media`, whose request still asks the user (ADR 0008,
   C30), and an E2E test queries the permissions as WhatsApp does first.
-
-- Login entry ownership (#362): at start, YapYap re-points an existing
-  Linux autostart entry only when the program it names is gone, as after an
-  AppImage moved, so another YapYap build started once, even with its own
-  profile, no longer takes over the user's "Start at login". Login items on
-  Windows and macOS keep refreshing as before.
 
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
