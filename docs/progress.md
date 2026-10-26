@@ -811,6 +811,13 @@ not edit the same lines.
   next slow start on a Windows runner shows whether the view was created
   late or loaded late.
 
+- Windows E2E start-up timeouts (#247, load timeline): a normal start logs
+  nothing, so the attached log stayed empty when it happened again. Each
+  test now records, from the main process, when every web contents is
+  created and starts, finishes or fails a load, crashes or hangs, and a
+  failed test attaches that timeline (`loads.txt`) with each web contents'
+  state at the end.
+
 - Electron is pinned to 44.9.3 (#262), which fixes GHSA-jr5w-w6x2-84p9
   (compromised eMudhra intermediate certificates) and lets the audit pass.
   Electron 45 is a new major version and comes in its own change.

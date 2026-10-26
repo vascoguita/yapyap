@@ -72,6 +72,70 @@ async function attachHungState(app: ElectronApplication): Promise<void> {
   });
 }
 
+/** Where the main process keeps the timeline that `recordLoads` writes. */
+const TIMELINE = '__yapyapE2eLoads';
+
+/**
+ * Records when each web contents starts, finishes or fails a load, from the
+ * main process, so a test that waits in vain for a page can tell a view that
+ * was never created from one that never finished loading (#247). A normal
+ * start logs nothing, so the app's log cannot tell them apart.
+ */
+async function recordLoads(app: ElectronApplication): Promise<void> {
+  await app.evaluate(({ app: electronApp, webContents }, key) => {
+    const started = Date.now();
+    const timeline: string[] = [];
+    (globalThis as Record<string, unknown>)[key] = timeline;
+    const watch = (contents: Electron.WebContents): void => {
+      const note = (event: string, detail = ''): void => {
+        const at = String(Date.now() - started).padStart(6);
+        timeline.push(`${at} ms #${String(contents.id)} ${event} ${contents.getURL()} ${detail}`);
+      };
+      note('watched');
+      contents.on('did-start-loading', () => {
+        note('did-start-loading');
+      });
+      contents.on('dom-ready', () => {
+        note('dom-ready');
+      });
+      contents.on('did-finish-load', () => {
+        note('did-finish-load');
+      });
+      contents.on('did-fail-load', (_event, code, description) => {
+        note('did-fail-load', `${String(code)} ${description}`);
+      });
+      contents.on('render-process-gone', (_event, details) => {
+        note('render-process-gone', details.reason);
+      });
+      contents.on('unresponsive', () => {
+        note('unresponsive');
+      });
+    };
+    webContents.getAllWebContents().forEach(watch);
+    electronApp.on('web-contents-created', (_event, contents) => {
+      watch(contents);
+    });
+  }, TIMELINE);
+}
+
+/** The load timeline and every web contents' state, for a failed test's report (#247). */
+async function attachLoads(app: ElectronApplication): Promise<void> {
+  const body = await app
+    .evaluate(({ webContents }, key) => {
+      const timeline = ((globalThis as Record<string, unknown>)[key] ?? []) as string[];
+      const now = webContents
+        .getAllWebContents()
+        .map(
+          (contents) =>
+            `#${String(contents.id)} ${contents.getURL()} loading=${String(contents.isLoading())} ` +
+            `waiting=${String(contents.isWaitingForResponse())} crashed=${String(contents.isCrashed())}`,
+        );
+      return ['Load events:', ...timeline, '', 'Web contents at the end:', ...now].join('\n');
+    }, TIMELINE)
+    .catch((error: unknown) => `Could not read the load timeline: ${String(error)}`);
+  await base.info().attach('loads.txt', { body, contentType: 'text/plain' });
+}
+
 const PAGE_TIMEOUT_MS = 30_000;
 
 /**
@@ -159,6 +223,7 @@ export async function launchApp(
   });
   LOGS.set(app, recentLog(app));
   LAUNCHED.add(app);
+  await recordLoads(app);
   app.process().once('exit', () => LAUNCHED.delete(app));
   return app;
 }
@@ -237,6 +302,7 @@ export const test = base.extend<Fixtures & Options & { leftovers: undefined }>({
         body: (LOGS.get(app) ?? []).join('\n'),
         contentType: 'text/plain',
       });
+      await attachLoads(app);
     }
     await closeApp(app);
   },
