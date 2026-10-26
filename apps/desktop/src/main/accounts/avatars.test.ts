@@ -6,6 +6,8 @@ const PHOTO = 'https://pps.whatsapp.net/v/me.jpg?oh=token';
 
 function setup() {
   let now = 0;
+  const timers = new Map<number, () => void>();
+  let next = 0;
   const deps = {
     home: HOME,
     toDataUrl: vi.fn(
@@ -13,13 +15,22 @@ function setup() {
     ),
     now: () => now,
     onChange: vi.fn(),
+    schedule: vi.fn((callback: () => void) => {
+      next += 1;
+      timers.set(next, callback);
+      return next;
+    }),
+    cancel: vi.fn((timer: number) => {
+      timers.delete(timer);
+    }),
   };
   const page = (src: unknown, body = new Uint8Array(3), ok = true) => {
     const fetch = vi.fn(() => Promise.resolve(new Response(body, { status: ok ? 200 : 404 })));
     const executeJavaScriptInIsolatedWorld = vi.fn<AvatarPage['executeJavaScriptInIsolatedWorld']>(
       () => Promise.resolve(src),
     );
-    return { executeJavaScriptInIsolatedWorld, session: { fetch }, fetch };
+    const isDestroyed = vi.fn(() => false);
+    return { executeJavaScriptInIsolatedWorld, session: { fetch }, fetch, isDestroyed };
   };
   return {
     deps,
@@ -27,6 +38,17 @@ function setup() {
     page,
     advance: (ms: number) => {
       now += ms;
+    },
+    timers,
+    /** Lets the minute pass and runs the retry waiting for it, if any. */
+    retry: async () => {
+      now += 60_000;
+      const pending = [...timers];
+      timers.clear();
+      for (const [, callback] of pending) {
+        callback();
+      }
+      await new Promise((resolve) => setTimeout(resolve, 0));
     },
   };
 }
@@ -76,6 +98,41 @@ describe('accountAvatars', () => {
     await t.avatars.refresh('a', found);
     expect(found.executeJavaScriptInIsolatedWorld).toHaveBeenCalledTimes(2);
     expect(t.deps.onChange).toHaveBeenCalledOnce();
+  });
+
+  it('looks again every minute while there is no photo, without a title change', async () => {
+    const t = setup();
+    const page = t.page(null);
+    await t.avatars.refresh('a', page);
+    expect(t.deps.schedule).toHaveBeenCalledExactlyOnceWith(expect.any(Function), 60_000);
+    await t.retry();
+    page.executeJavaScriptInIsolatedWorld.mockResolvedValue(PHOTO);
+    await t.retry();
+    expect(page.executeJavaScriptInIsolatedWorld).toHaveBeenCalledTimes(3);
+    expect(t.avatars.avatarOf('a')).toBe('data:image/png;base64,3');
+    expect(t.timers.size).toBe(0);
+  });
+
+  it('stops looking after ten reads in a row without a photo', async () => {
+    const t = setup();
+    const page = t.page(null);
+    await t.avatars.refresh('a', page);
+    for (let read = 0; read < 12; read += 1) {
+      await t.retry();
+    }
+    expect(page.executeJavaScriptInIsolatedWorld).toHaveBeenCalledTimes(10);
+  });
+
+  it('does not look again at a page that is gone, or for a forgotten account', async () => {
+    const t = setup();
+    const gone = t.page(null);
+    gone.isDestroyed.mockReturnValue(true);
+    await t.avatars.refresh('a', gone);
+    expect(t.deps.schedule).not.toHaveBeenCalled();
+    await t.avatars.refresh('b', t.page(null));
+    t.avatars.forget('b');
+    expect(t.deps.cancel).toHaveBeenCalledOnce();
+    expect(t.timers.size).toBe(0);
   });
 
   it('drops a photo that went away, and says so', async () => {

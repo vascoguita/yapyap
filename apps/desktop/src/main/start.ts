@@ -766,6 +766,8 @@ function avatarsFor<Window extends WindowPort>(
     onChange: () => {
       indicators.refresh();
     },
+    schedule: setTimeout,
+    cancel: clearTimeout,
   });
 }
 
