@@ -61,7 +61,10 @@ and an ESLint restriction forbids constructing `BrowserWindow` or
   many messages as the user allows, checked against a schema, and nothing
   logs it (C26 in ADR 0008).
   One probe reads the address of the account's own profile photo (#87),
-  when the page title changes and at most every 30 minutes once found. The
+  when the page title changes and at most every 30 minutes once found.
+  Until found, it also reads once a minute on its own, at most ten times
+  in a row (#381), since the first read often comes before WhatsApp shows
+  the photo. The
   main process fetches it only over HTTPS from `*.whatsapp.net`, or from
   WhatsApp's own origin, on the account's session, reads at most 2 MB, and
   keeps only a 64-pixel copy in memory for the sidebar. Nothing stores or

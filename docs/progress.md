@@ -973,6 +973,12 @@ not edit the same lines.
   records at most one crash, nothing after `before-quit`, and logs the
   reason and exit code.
 
+- Account photo retries (#381): the first photo read often came before
+  WhatsApp showed the photo, and the next one waited for a page title
+  change, so the sidebar could show the initial for hours. After a miss,
+  `accountAvatars` now reads again a minute later on its own, up to ten
+  misses in a row, and stops for a removed account or a destroyed page.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).

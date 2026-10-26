@@ -7,9 +7,10 @@ export interface AvatarPage {
   executeJavaScriptInIsolatedWorld(worldId: number, scripts: { code: string }[]): Promise<unknown>;
   /** The account's own session, so the photo comes with its login, not the default one. */
   readonly session: { fetch(url: string): Promise<Response> };
+  isDestroyed(): boolean;
 }
 
-export interface AvatarDependencies {
+export interface AvatarDependencies<Timer = unknown> {
   /** WhatsApp's origin, from which a photo may also come (the fake page in tests). */
   readonly home: string;
   /** The image as a small square data URL, or undefined when it is not one. */
@@ -17,6 +18,8 @@ export interface AvatarDependencies {
   readonly now: () => number;
   /** A photo appeared, changed or went away, so the sidebar shows it. */
   readonly onChange: () => void;
+  readonly schedule: (callback: () => void, ms: number) => Timer;
+  readonly cancel: (timer: Timer) => void;
 }
 
 /** Each account's profile photo, which the sidebar shows instead of its initial (#87). */
@@ -30,6 +33,12 @@ export interface AccountAvatars {
 /** Until a photo is found, WhatsApp may still be loading; after, it rarely changes. */
 const RETRY_MS = 60_000;
 const REFRESH_MS = 1_800_000;
+/**
+ * Reads in a row without a photo before YapYap waits for the page title to
+ * change again. The first read often comes while WhatsApp is still loading,
+ * and the title may then stay the same for hours.
+ */
+const RETRIES = 10;
 /** WhatsApp's profile photos are a few tens of kilobytes; nothing bigger is read. */
 const MAX_BYTES = 2 * 1024 * 1024;
 
@@ -47,7 +56,10 @@ export function isAvatarUrl(url: string, home: string): boolean {
   return media || isSameOrigin(url, home);
 }
 
-async function readAvatar(page: AvatarPage, deps: AvatarDependencies): Promise<string | undefined> {
+async function readAvatar(
+  page: AvatarPage,
+  deps: Pick<AvatarDependencies, 'home' | 'toDataUrl'>,
+): Promise<string | undefined> {
   const src = await page.executeJavaScriptInIsolatedWorld(ADAPTER_WORLD_ID, [{ code: OWN_AVATAR }]);
   if (typeof src !== 'string' || !isAvatarUrl(src, deps.home)) {
     return undefined;
@@ -57,27 +69,63 @@ async function readAvatar(page: AvatarPage, deps: AvatarDependencies): Promise<s
   return response.ok && bytes.byteLength <= MAX_BYTES ? deps.toDataUrl(bytes) : undefined;
 }
 
-export function accountAvatars(deps: AvatarDependencies): AccountAvatars {
-  const avatars = new Map<string, string>();
-  const due = new Map<string, number>();
+/** Reads again a minute after each miss, up to {@link RETRIES} misses in a row. */
+function retries<Timer>(deps: Pick<AvatarDependencies<Timer>, 'schedule' | 'cancel'>) {
+  const misses = new Map<string, number>();
+  const timers = new Map<string, Timer>();
+  const stop = (id: string): void => {
+    const timer = timers.get(id);
+    if (timer !== undefined) {
+      deps.cancel(timer);
+      timers.delete(id);
+    }
+  };
   return {
-    refresh: async (id, page) => {
-      if (deps.now() < (due.get(id) ?? 0)) {
-        return;
-      }
-      const avatar = await readAvatar(page, deps).catch(() => undefined);
-      due.set(id, deps.now() + (avatar === undefined ? RETRY_MS : REFRESH_MS));
-      if (avatar !== avatars.get(id)) {
-        if (avatar === undefined) {
-          avatars.delete(id);
-        } else {
-          avatars.set(id, avatar);
-        }
-        deps.onChange();
+    stop: (id: string): void => {
+      stop(id);
+      misses.delete(id);
+    },
+    /** After a read: found resets the count, a miss schedules `again` unless it is time to wait. */
+    after: (id: string, found: boolean, page: AvatarPage, again: () => void): void => {
+      const missed = found ? 0 : (misses.get(id) ?? 0) + 1;
+      misses.set(id, missed);
+      stop(id);
+      if (missed > 0 && missed < RETRIES && !page.isDestroyed()) {
+        timers.set(id, deps.schedule(again, RETRY_MS));
       }
     },
+  };
+}
+
+export function accountAvatars<Timer>(deps: AvatarDependencies<Timer>): AccountAvatars {
+  const avatars = new Map<string, string>();
+  const due = new Map<string, number>();
+  const retry = retries(deps);
+  const store = (id: string, avatar: string | undefined): void => {
+    if (avatar === avatars.get(id)) {
+      return;
+    }
+    if (avatar === undefined) {
+      avatars.delete(id);
+    } else {
+      avatars.set(id, avatar);
+    }
+    deps.onChange();
+  };
+  const refresh = async (id: string, page: AvatarPage): Promise<void> => {
+    if (deps.now() < (due.get(id) ?? 0)) {
+      return;
+    }
+    const avatar = await readAvatar(page, deps).catch(() => undefined);
+    due.set(id, deps.now() + (avatar === undefined ? RETRY_MS : REFRESH_MS));
+    store(id, avatar);
+    retry.after(id, avatar !== undefined, page, () => void refresh(id, page));
+  };
+  return {
+    refresh,
     avatarOf: (id) => avatars.get(id),
     forget: (id) => {
+      retry.stop(id);
       avatars.delete(id);
       due.delete(id);
     },
