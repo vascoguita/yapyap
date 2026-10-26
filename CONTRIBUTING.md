@@ -67,6 +67,10 @@ pnpm package            # build installers for the current OS
 
 See [ADR 0007](docs/adr/0007-git-and-merge-strategy.md) for the reasoning.
 
+UI text lives in `apps/desktop/src/shared/messages/locales/en.json`. After
+changing it, run `node scripts/src/bin/i18n-types.ts`. Translations follow
+[docs/translations.md](docs/translations.md).
+
 ### Visual baselines
 
 `apps/desktop/e2e/theme.spec.ts` compares the app chrome against screenshots

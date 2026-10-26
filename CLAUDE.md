@@ -29,6 +29,8 @@ Use pnpm (version pinned in `package.json`) on Node.js 24 LTS.
 | Mutation tests (≥ 90%)          | `pnpm test:mutation` (PR CI mutates changed in-scope files only)                         |
 | Performance benchmark           | `xvfb-run -a pnpm test:bench` (nightly; budgets in `apps/desktop/e2e/bench/`, ADR 0009)  |
 | Commit messages                 | `pnpm commitlint`                                                                        |
+| Regenerate the message types    | `node scripts/src/bin/i18n-types.ts` (after changing `locales/en.json`)                  |
+| Check translation catalogs      | `node scripts/src/bin/check-catalogs.ts` (part of `pnpm lint`)                           |
 | License compatibility           | `pnpm check:licenses`                                                                    |
 | Vulnerability audit             | `pnpm audit --audit-level high`                                                          |
 | Docs site (dev / build)         | `pnpm docs:dev` / `pnpm docs:build`                                                      |
@@ -172,7 +174,11 @@ Update this table in the PR that adds a command.
   (`settingEffects` of `createChromeFeature`), which runs before saving and
   returns the text Settings shows when the system refuses.
 - UI text, setting labels, menus, dialogs and notifications included, lives
-  in `src/shared/messages/en.ts`. Lint (`yapyap/no-literal-ui-text`) rejects
+  in `src/shared/messages/locales/en.json` (ADR 0012). After changing it,
+  run `node scripts/src/bin/i18n-types.ts`; `pnpm lint` fails while the
+  generated `Messages` type is stale. Text with `{{placeholders}}` or plural
+  keys (`_one`, `_other`) is a function of named values:
+  `en.tray.unread({ count })`. Lint (`yapyap/no-literal-ui-text`) rejects
   literal text in renderer JSX and in `aria-label`, `title`, `placeholder`,
   `alt` and `label`, and, in the main process, in `label`, `title`,
   `message`, `detail`, `body` and `buttons` properties.

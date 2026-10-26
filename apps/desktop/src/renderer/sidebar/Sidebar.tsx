@@ -21,13 +21,27 @@ function MutedIcon(): JSX.Element {
   );
 }
 
+/** The largest count a badge shows in full; two digits fit it. */
+const MAX_BADGE = 99;
+
+const badge = (unread: number): string =>
+  unread > MAX_BADGE ? text.badgeOverflow({ max: MAX_BADGE }) : String(unread);
+
+/** An account's button: its name, then what the badge and marks show. */
+function accountLabel(account: SidebarAccount): string {
+  const unread = !account.muted && account.unread > 0 ? text.unread({ count: account.unread }) : '';
+  return [account.name, account.muted ? text.muted : '', unread]
+    .filter((part) => part !== '')
+    .join(', ');
+}
+
 function Mark({ account }: { readonly account: SidebarAccount }): JSX.Element | null {
   if (account.muted) {
     return <MutedIcon />;
   }
   return account.unread > 0 ? (
     <span class="badge" aria-hidden="true">
-      {text.badge(account.unread)}
+      {badge(account.unread)}
     </span>
   ) : null;
 }
@@ -38,7 +52,7 @@ function StopSharing(props: {
   readonly compact: boolean;
   readonly onStop: (id: string) => void;
 }): JSX.Element {
-  const label = text.stopSharing(props.account.name);
+  const label = text.stopSharing({ name: props.account.name });
   return (
     <button
       type="button"
@@ -62,7 +76,7 @@ export function AccountButton(props: {
   readonly onStop: (id: string) => void;
 }): JSX.Element {
   const { account, compact } = props;
-  const label = text.account(account.name, account.unread, account.muted);
+  const label = accountLabel(account);
   return (
     <li>
       <button

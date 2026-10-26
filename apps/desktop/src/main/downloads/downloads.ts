@@ -72,14 +72,14 @@ function openIfViewable(deps: DownloadDependencies, path: string): void {
 function finish(deps: DownloadDependencies, path: string, state: string, asked: boolean): void {
   const name = basename(path);
   if (state === 'interrupted') {
-    deps.notify(en.notices.downloadFailed(name));
+    deps.notify(en.notices.downloadFailed({ name }));
   }
   if (state !== 'completed') {
     return;
   }
   // Only the system's Downloads folder is named; another is the user's own choice.
   const inDownloads = !asked && deps.options().folder === '';
-  deps.notify(inDownloads ? en.notices.downloaded(name) : en.notices.saved(name));
+  deps.notify(inDownloads ? en.notices.downloaded({ name }) : en.notices.saved({ name }));
   if (asked) {
     deps.lastFolder.set(dirname(path));
   }

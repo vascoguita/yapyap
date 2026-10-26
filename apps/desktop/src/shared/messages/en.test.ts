@@ -20,23 +20,21 @@ describe('the English catalog', () => {
   });
 
   it('formats values into its text', () => {
-    expect(en.about.versionValue('1.2.3', 'beta')).toBe('1.2.3 (beta)');
-    expect(en.menu.about('YapYap')).toBe('About YapYap');
-    expect(en.windows.settings('YapYap')).toBe('YapYap Settings');
-    expect(en.windows.offline('WhatsApp')).toBe('WhatsApp (offline)');
-    expect(en.notices.newRelease('2.0.0')).toBe(
+    expect(en.about.versionValue({ version: '1.2.3', channel: 'beta' })).toBe('1.2.3 (beta)');
+    expect(en.menu.about({ product: 'YapYap' })).toBe('About YapYap');
+    expect(en.windows.settings({ product: 'YapYap' })).toBe('YapYap Settings');
+    expect(en.windows.offline({ pageTitle: 'WhatsApp' })).toBe('WhatsApp (offline)');
+    expect(en.notices.newRelease({ version: '2.0.0' })).toBe(
       'YapYap 2.0.0 is available. Click to open its download page.',
     );
-    expect(en.dialogs.media.request('WhatsApp', ['microphone', 'camera'])).toBe(
-      'WhatsApp wants to use your microphone and camera.',
-    );
-    expect(en.dialogs.crashReview.detail('report')).toMatch(/submit\.\n\nreport$/);
+    expect(en.dialogs.crashReview.detail({ report: 'report' })).toMatch(/submit\.\n\nreport$/);
   });
 
-  it('counts the invalid values an import replaces', () => {
-    expect(en.settings.backup.replaces(0)).toBe('Your current settings will be replaced.');
-    expect(en.settings.backup.replaces(1)).toMatch(/ 1 invalid value in /);
-    expect(en.settings.backup.replaces(2)).toMatch(/ 2 invalid values in /);
+  it('counts in English plurals', () => {
+    expect(en.tray.unread({ count: 1 })).toBe('YapYap: 1 unread chat');
+    expect(en.tray.unread({ count: 2 })).toBe('YapYap: 2 unread chats');
+    expect(en.settings.backup.invalidValues({ count: 1 })).toMatch(/^1 invalid value in /);
+    expect(en.settings.backup.invalidValues({ count: 1200 })).toMatch(/^1,200 invalid values in /);
   });
 
   it('describes exactly the settings the window lists', () => {

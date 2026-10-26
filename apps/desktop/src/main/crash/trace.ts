@@ -43,7 +43,7 @@ const QUESTION: TraceQuestion = {
   type: 'question',
   message: en.trace.confirm,
   detail: en.trace.confirmDetail,
-  buttons: [...en.trace.buttons],
+  buttons: [en.trace.choose, en.common.cancel],
   defaultId: START,
   cancelId: 1,
 };

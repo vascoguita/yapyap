@@ -109,7 +109,8 @@ export function bugReportUrl(report: BugReport): string {
 export function crashIssueUrl(report: string): string {
   const fingerprint = /^Fingerprint: (\w+)$/m.exec(report)?.[1];
   return bugReportUrl({
-    title: fingerprint === undefined ? en.report.crashTitle : en.report.crashTitleWith(fingerprint),
+    title:
+      fingerprint === undefined ? en.report.crashTitle : en.report.crashTitleWith({ fingerprint }),
     whatHappened: en.report.crashWhatHappened,
     diagnostics: report,
   });

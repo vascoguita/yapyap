@@ -132,7 +132,7 @@ export function watchForReleases(deps: UpdateNoticeDependencies): void {
       isNewer(release.version, deps.currentVersion)
     ) {
       announced = release.version;
-      deps.showNotice(en.notices.newRelease(release.version), release.url);
+      deps.showNotice(en.notices.newRelease({ version: release.version }), release.url);
     }
   };
   const run = (): void => {

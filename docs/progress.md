@@ -379,6 +379,7 @@ not edit the same lines.
   HTTPS from `*.whatsapp.net` or WhatsApp's origin and at most 2 MB, shrinks
   it to a 64-pixel PNG data URL in memory, and the sidebar shows it in place
   of the initial. It retries every minute until found, then every 30.
+
 - Plugin SDK (#88): `@yapyap/plugin-sdk` defines the manifest as a TypeBox
   schema (the published `manifest.schema.json` is generated from it and
   tested to match) and the typed host API, one interface per capability. The
@@ -673,6 +674,17 @@ not edit the same lines.
   hosted Weblate, and English plus two test pseudo-locales (longer
   accented text, and right-to-left) until a native speaker can review a
   real language.
+
+- Translation catalogs (#111, second part): UI text moved from `en.ts` to
+  `locales/en.json`, in i18next JSON v4. `buildCatalog` shapes any catalog
+  like English, falling back to English per key. Messages with
+  placeholders become functions of named values, and plurals go through
+  `Intl.PluralRules`. `scripts/src/bin/i18n-types.ts` generates the
+  `Messages` type, and `check-catalogs.ts`, run by `pnpm lint`, rejects
+  invalid catalogs and a stale type. Text that English used to build in
+  code (badges, default account names, device lists, the import warning)
+  is now composed by its caller. `docs/translations.md` documents the
+  workflow.
 
 - Security review (#112): `/architecture/security-review` checks YapYap
   against Electron's 20-item security checklist and the plugin threat

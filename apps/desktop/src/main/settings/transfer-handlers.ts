@@ -19,6 +19,13 @@ export interface SettingsFiles {
 
 const TEXT = en.settings.backup;
 
+/** Importing replaces the settings, and says how many of the file's values were invalid. */
+function replacesWarning(invalid: number): string {
+  return invalid === 0
+    ? TEXT.replaces
+    : `${TEXT.replaces} ${TEXT.invalidValues({ count: invalid })}`;
+}
+
 const CANCELLED: TransferResult = { outcome: 'cancelled', message: '' };
 
 async function exportTo(
@@ -57,7 +64,7 @@ async function importFrom(
   if (result.kind === 'rejected') {
     return { outcome: 'failed', message: result.reason };
   }
-  if (!(await files.confirmImport(call.sender, TEXT.replaces(result.reset.length)))) {
+  if (!(await files.confirmImport(call.sender, replacesWarning(result.reset.length)))) {
     return CANCELLED;
   }
   service.update((current) => keepLocal(result.settings, current));

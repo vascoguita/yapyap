@@ -51,7 +51,7 @@ function accountItems(
   return [
     { type: 'separator' },
     ...running.map((account): MenuItemConstructorOptions => ({
-      label: account.muted ? en.tray.mutedAccount(account.name) : account.name,
+      label: account.muted ? en.tray.mutedAccount({ name: account.name }) : account.name,
       type: 'radio',
       checked: account.active,
       click: () => {
@@ -70,7 +70,7 @@ function sharingItems(state: TrayState, deps: TrayDependencies): MenuItemConstru
   }
   return [
     ...sharing.map((account) => ({
-      label: en.tray.stopSharing(account.name),
+      label: en.tray.stopSharing({ account: account.name }),
       click: () => {
         deps.stopSharing(account.id);
       },
@@ -133,7 +133,7 @@ function tooltipOf(state: TrayState): string {
   if (state.sharing.length > 0) {
     return en.tray.sharing;
   }
-  return state.unread > 0 ? en.tray.unread(state.unread) : en.tray.tooltip;
+  return state.unread > 0 ? en.tray.unread({ count: state.unread }) : en.tray.tooltip;
 }
 
 /**

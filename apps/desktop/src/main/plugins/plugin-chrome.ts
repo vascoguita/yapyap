@@ -104,7 +104,11 @@ export function messageOf(outcome: InstallOutcome): PluginMessage {
   const text = en.plugins.result;
   switch (outcome.kind) {
     case 'installed':
-      return { type: 'info', message: text.installed(outcome.name, outcome.version), detail: '' };
+      return {
+        type: 'info',
+        message: text.installed({ name: outcome.name, version: outcome.version }),
+        detail: '',
+      };
     case 'rejected':
       return { type: 'error', message: text.rejected, detail: outcome.reason };
     case 'failed':

@@ -213,7 +213,7 @@ function commonItems(
   keys: Keys,
 ): Record<'about' | 'settings' | 'help', MenuItemConstructorOptions[]> {
   const about: MenuItemConstructorOptions = {
-    label: en.menu.about(PRODUCT_NAME),
+    label: en.menu.about({ product: PRODUCT_NAME }),
     click: actions.openAbout,
   };
   const diagnostics: MenuItemConstructorOptions = {
@@ -247,13 +247,13 @@ function commonItems(
  */
 function pluginCommandItems(actions: MenuActions): MenuItemConstructorOptions[] {
   const commands = actions.pluginCommands.map(({ plugin, pluginName, id, title }) => ({
-    label: en.menu.pluginCommand(pluginName, title),
+    label: en.menu.pluginCommand({ plugin: pluginName, title }),
     click: () => {
       actions.runPluginCommand(plugin, id);
     },
   }));
   const panels = actions.pluginPanels.map(({ plugin, pluginName, title }) => ({
-    label: en.menu.pluginCommand(pluginName, title),
+    label: en.menu.pluginCommand({ plugin: pluginName, title }),
     click: () => {
       actions.openPluginPanel(plugin);
     },

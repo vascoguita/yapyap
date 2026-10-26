@@ -199,7 +199,7 @@ function RemoveButton(props: {
     <button
       type="button"
       class="remove"
-      aria-label={text.removeLabel(props.plugin)}
+      aria-label={text.removeLabel({ plugin: props.plugin })}
       onClick={() => {
         props.onRemove(props.plugin);
       }}
@@ -219,7 +219,7 @@ function PluginRow(props: {
   return (
     <li>
       <span class="name">{plugin.id}</span>
-      <span class="hint">{text.version(plugin.version)}</span>
+      <span class="hint">{text.version({ version: plugin.version })}</span>
       <span class={`trust trust-${plugin.trust}`}>{text.trust[plugin.trust]}</span>
       {plugin.grants.length === 0 ? null : (
         <details class="permissions">
@@ -250,7 +250,7 @@ const NETWORK = 'network:';
 /** A capability in the words the consent window used for it. */
 const describe = (capability: string): string =>
   capability.startsWith(NETWORK)
-    ? text.connectTo(capability.slice(NETWORK.length))
+    ? text.connectTo({ host: capability.slice(NETWORK.length) })
     : ((text.capabilities as Readonly<Record<string, string>>)[capability] ?? capability);
 
 function Activity({ activity }: { readonly activity: readonly PluginActivity[] }): JSX.Element {

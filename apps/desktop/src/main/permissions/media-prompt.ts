@@ -6,6 +6,8 @@ import type { MediaType } from './session-guard.ts';
 
 const TEXT = en.dialogs.media;
 const DEVICE_NAMES: Readonly<Record<MediaType, string>> = TEXT.devices;
+/** Joins the devices as the catalog's language does: "microphone and camera". */
+const DEVICE_LIST = new Intl.ListFormat('en', { type: 'conjunction' });
 const SYSTEM_DEVICES = { audio: 'microphone', video: 'camera' } as const;
 
 /**
@@ -23,7 +25,7 @@ async function systemAllows(mediaTypes: readonly MediaType[]): Promise<boolean> 
       await dialog.showMessageBox({
         type: 'warning',
         title: PRODUCT_NAME,
-        message: TEXT.systemRefused(DEVICE_NAMES[type]),
+        message: TEXT.systemRefused({ device: DEVICE_NAMES[type] }),
         detail: TEXT.systemRefusedDetail,
       });
       return false;
@@ -40,10 +42,10 @@ export async function askMediaWithDialog(
   const { response } = await dialog.showMessageBox({
     type: 'question',
     title: PRODUCT_NAME,
-    message: TEXT.request(
-      view.label,
-      mediaTypes.map((type) => DEVICE_NAMES[type]),
-    ),
+    message: TEXT.request({
+      account: view.label,
+      devices: DEVICE_LIST.format(mediaTypes.map((type) => DEVICE_NAMES[type])),
+    }),
     detail: TEXT.detail,
     buttons: [TEXT.allow, TEXT.deny],
     defaultId: 1,

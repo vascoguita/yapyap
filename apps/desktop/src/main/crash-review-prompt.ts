@@ -13,7 +13,7 @@ export async function reviewCrashWithDialog(report: string): Promise<CrashReview
     type: 'info',
     title: PRODUCT_NAME,
     message: TEXT.message,
-    detail: TEXT.detail(report),
+    detail: TEXT.detail({ report }),
     buttons: [TEXT.report, TEXT.copy, en.common.close],
     defaultId: 2,
     cancelId: 2,

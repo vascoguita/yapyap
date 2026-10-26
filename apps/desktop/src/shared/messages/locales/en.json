@@ -1,0 +1,719 @@
+{
+  "common": {
+    "loading": "Loading…",
+    "cancel": "Cancel",
+    "close": "Close",
+    "whatsApp": "WhatsApp"
+  },
+  "about": {
+    "title": "YapYap",
+    "details": {
+      "version": "Version",
+      "operatingSystem": "Operating system",
+      "graphics": "Graphics",
+      "license": "License"
+    },
+    "versionValue": "{{version}} ({{channel}})",
+    "unavailable": "Details are unavailable.",
+    "copyDetails": "Copy technical details",
+    "copied": "Copied to the clipboard.",
+    "copyFailed": "Could not copy the details.",
+    "linksLabel": "Links",
+    "links": {
+      "website": "Website",
+      "source": "Source code",
+      "issues": "Report a problem",
+      "privacy": "Privacy",
+      "sponsor": "Sponsor"
+    },
+    "supportedBy": "Development supported by",
+    "disclaimer": "YapYap is unofficial and is not affiliated with, endorsed by, or sponsored by WhatsApp or Meta."
+  },
+  "newChat": {
+    "title": "New chat",
+    "numberLabel": "Phone number, with the country code",
+    "numberPlaceholder": "+44 7700 900123",
+    "numberHint": "Start with + or 00 and the country code. YapYap does not save the number.",
+    "notReady": "WhatsApp is not ready to open the chat. Try again.",
+    "open": "Open Chat"
+  },
+  "picker": {
+    "title": "Choose what to share",
+    "screens": "Screens",
+    "windows": "Windows",
+    "noSources": "No screens or windows can be shared right now.",
+    "nothing": "Nothing can be shared right now.",
+    "audio": "Also share system audio",
+    "share": "Share"
+  },
+  "recovery": {
+    "problems": {
+      "unsupported": {
+        "title": "WhatsApp says this browser is not supported",
+        "advice": "Clearing the cache usually fixes this. If it does not, check for a YapYap update."
+      },
+      "blank": {
+        "title": "WhatsApp did not finish loading",
+        "advice": "Try again. If the page stays blank, clearing the cache usually fixes it."
+      },
+      "load-failed": {
+        "title": "WhatsApp could not be reached",
+        "advice": "Check your internet connection, then try again."
+      },
+      "crashed": {
+        "title": "WhatsApp keeps stopping",
+        "advice": "Try again. If it keeps happening, clearing the cache usually helps."
+      }
+    },
+    "failed": "That did not work. Please try again.",
+    "retry": "Try again",
+    "retrying": "Retrying…",
+    "clearCache": "Clear cache and try again",
+    "cacheCleared": "Cache cleared. Retrying…",
+    "copyDiagnostics": "Copy diagnostics",
+    "diagnosticsCopied": "Diagnostics copied to the clipboard.",
+    "keepsLogin": "Clearing the cache keeps you logged in."
+  },
+  "settings": {
+    "title": "Settings",
+    "unavailable": "Settings are unavailable.",
+    "readOnly": "These settings were saved by a newer version of YapYap, so they cannot be changed here.",
+    "restartNeeded": "Restart YapYap to apply your changes.",
+    "restartNow": "Restart now",
+    "restartNote": "Takes effect after a restart.",
+    "waylandPlacement": "On Wayland, your desktop decides where windows go.",
+    "saveFailed": "Could not save that setting.",
+    "scale": "{{percent}}%",
+    "proxyPlaceholder": "socks5://127.0.0.1:1080",
+    "defaultFolder": "Your Downloads folder",
+    "chooseFolder": "Choose…",
+    "useDefaultFolder": "Use Downloads Folder",
+    "sections": {
+      "general": "General",
+      "spelling": "Spelling",
+      "appearance": "Appearance",
+      "reliability": "Reliability",
+      "downloads": "Downloads",
+      "privacy": "Privacy",
+      "network": "Network",
+      "plugins": "Plugins"
+    },
+    "backup": {
+      "title": "Backup",
+      "hint": "Save your settings to a file, or bring them over from another computer. The file never includes your WhatsApp login or chats.",
+      "export": "Export settings…",
+      "import": "Import settings…",
+      "failed": "Something went wrong. Try again.",
+      "fileType": "YapYap settings",
+      "exported": "Settings exported.",
+      "exportFailed": "Could not save the settings file.",
+      "readFailed": "Could not read that file.",
+      "notSettings": "That file is not a YapYap settings file.",
+      "damaged": "YapYap could not read that file. It may be damaged.",
+      "newer": "Those settings come from a newer version of YapYap. Update YapYap to import them.",
+      "confirm": "Import these settings?",
+      "confirmButton": "Import",
+      "replaces": "Your current settings will be replaced.",
+      "invalidValues_one": "1 invalid value in the file will use the default instead.",
+      "invalidValues_other": "{{count}} invalid values in the file will use the default instead.",
+      "imported": "Settings imported."
+    },
+    "loadNotices": {
+      "restored": "Your settings file was damaged, so YapYap restored the last good copy.",
+      "defaults": "Your settings file was damaged, so YapYap started with default settings.",
+      "newer": "Your settings come from a newer version of YapYap, so this version will not change them.",
+      "reset": "Some settings were invalid and were reset to their defaults."
+    },
+    "problems": {
+      "autostartFailed": "Your system did not let YapYap start at login. Check the login or startup items in your system settings.",
+      "autostartUnsupported": "This package cannot start YapYap at login yet. Add YapYap to the startup applications in your system settings instead."
+    },
+    "fields": {
+      "general.startMinimized": {
+        "label": "Start minimized",
+        "description": "Open YapYap in the background, in the tray or the Dock. Starting it again shows the window."
+      },
+      "general.autostart": {
+        "label": "Start at login",
+        "description": "Start YapYap when you log in to this computer."
+      },
+      "general.betaUpdates": {
+        "label": "Get beta updates",
+        "description": "Try each version a few days before its release and help find problems. Betas can be less stable; turning this off waits for the next release rather than going back."
+      },
+      "general.doNotDisturb": {
+        "label": "Do not disturb",
+        "description": "Show no notifications at all, and play no sounds from accounts that are not on screen. Unread counts still update."
+      },
+      "spelling.enabled": {
+        "label": "Check spelling",
+        "description": "Underline misspelled words as you type, in your system’s language. On Windows and Linux, turning this on downloads that language’s dictionary from Google once."
+      },
+      "general.quickPanel": {
+        "label": "Quick access panel",
+        "description": "A small window that stays on top of other apps, to switch accounts and turn Do not disturb on or off.",
+        "options": {
+          "off": "Off",
+          "always": "Always",
+          "whenHidden": "While YapYap’s window is hidden"
+        }
+      },
+      "general.quickPanelPlace": {
+        "label": "Quick access panel position",
+        "description": "Where the panel sits on your main screen.",
+        "options": {
+          "free": "Where I leave it",
+          "topLeft": "Top left",
+          "topRight": "Top right",
+          "bottomLeft": "Bottom left",
+          "bottomRight": "Bottom right"
+        }
+      },
+      "general.closeToTray": {
+        "label": "Close to the tray",
+        "description": "Closing the window keeps YapYap running in the tray, so notifications keep coming. Quit from the tray or the menu."
+      },
+      "appearance.theme": {
+        "label": "Theme",
+        "description": "Applies to YapYap and to WhatsApp, as long as WhatsApp’s own theme is set to System default.",
+        "options": {
+          "system": "Same as the system",
+          "light": "Light",
+          "dark": "Dark"
+        }
+      },
+      "appearance.autoHideMenuBar": {
+        "label": "Hide the menu bar",
+        "description": "Press Alt to show it when you need it."
+      },
+      "appearance.trayIcon": {
+        "label": "Tray icon",
+        "description": "A one-color icon matches the other icons in your panel or menu bar. Automatic picks the shade that stands out against it.",
+        "options": {
+          "color": "App icon",
+          "auto": "One color, automatic",
+          "light": "One color, light",
+          "dark": "One color, dark"
+        }
+      },
+      "appearance.zoom": {
+        "label": "Interface scale",
+        "description": "How large WhatsApp appears. View → Zoom In and Zoom Out go in finer steps, up to 300%."
+      },
+      "appearance.pinchZoom": {
+        "label": "Zoom with a pinch, or Ctrl and the wheel",
+        "description": "Turn this off if you zoom by accident on a touchpad. The View menu and its shortcuts still zoom."
+      },
+      "appearance.compactSidebar": {
+        "label": "Compact account sidebar",
+        "description": "Show only the color and initial of each account in the sidebar, which appears when several accounts run."
+      },
+      "reliability.hardwareAcceleration": {
+        "label": "Use hardware acceleration",
+        "description": "Uses the graphics card to draw YapYap. Turn this off if the window flickers or stays blank."
+      },
+      "reliability.displayBackend": {
+        "label": "Display backend",
+        "description": "How YapYap talks to your display server. Try the other one if the window is blank, blurry or misplaced.",
+        "options": {
+          "auto": "Automatic",
+          "wayland": "Wayland",
+          "x11": "X11 (XWayland)"
+        }
+      },
+      "reliability.diskCacheMb": {
+        "label": "Disk cache size",
+        "description": "How much disk space WhatsApp’s files may take in the cache. Smaller saves space; WhatsApp may load a little slower. Takes effect after a restart.",
+        "options": {
+          "128": "128 MB",
+          "256": "256 MB",
+          "512": "512 MB",
+          "1024": "1 GB",
+          "auto": "Automatic"
+        }
+      },
+      "reliability.jsHeapMb": {
+        "label": "Memory limit per page",
+        "description": "The most memory WhatsApp’s scripts may use in one account. Raise it if a large account crashes; lower it to save memory. Takes effect after a restart.",
+        "options": {
+          "2048": "2 GB",
+          "4096": "4 GB",
+          "8192": "8 GB",
+          "auto": "Automatic"
+        }
+      },
+      "reliability.hardwareVideoDecoding": {
+        "label": "Use hardware video decoding",
+        "description": "Uses the graphics card to play videos and video calls. Turn this off if video stutters or shows artifacts."
+      },
+      "privacy.crashReports": {
+        "label": "Crash reports",
+        "description": "After YapYap closes unexpectedly, keep a redacted report on this computer. Nothing is sent unless you choose to report it on GitHub.",
+        "options": {
+          "off": "Off",
+          "local": "Keep a local report",
+          "ask": "Keep a report and offer to review it"
+        }
+      },
+      "privacy.notificationSender": {
+        "label": "Show who wrote in notifications",
+        "description": "Turn this off to show “WhatsApp” instead of the contact or group, for example when others can see your screen."
+      },
+      "network.proxyMode": {
+        "label": "Proxy",
+        "description": "How YapYap connects. If a proxy cannot be used, YapYap stops connecting rather than going around it.",
+        "options": {
+          "system": "Use the system’s settings",
+          "direct": "No proxy",
+          "manual": "This proxy"
+        }
+      },
+      "network.proxyServer": {
+        "label": "Proxy address",
+        "description": "Used when Proxy is set to “This proxy”: http://, https:// or socks5://, a host and a port. Press Enter to save it."
+      },
+      "plugins.developerMode": {
+        "label": "Developer Mode",
+        "description": "Lets you install unsigned plugins while you write them. Nobody vouches for an unsigned plugin, so YapYap marks it wherever it appears."
+      },
+      "plugins.chatMessages": {
+        "label": "Messages a plugin may read",
+        "description": "How many of the open chat’s latest messages a plugin you allowed to read chats receives when it asks.",
+        "options": {
+          "5": "5",
+          "10": "10",
+          "20": "20",
+          "50": "50"
+        }
+      },
+      "privacy.notificationText": {
+        "label": "Show message text in notifications",
+        "description": "Turn this off to show “New message” instead. The text then never reaches your system’s notifications."
+      },
+      "privacy.blurWhenUnfocused": {
+        "label": "Blur WhatsApp when YapYap is not in front",
+        "description": "Hides your chats whenever another window is in front of YapYap. Click YapYap to see them again."
+      },
+      "downloads.askWhere": {
+        "label": "Ask where to save each file",
+        "description": "Off saves files straight to your Downloads folder. On asks each time, starting in the folder you last chose."
+      },
+      "downloads.folder": {
+        "label": "Save files to",
+        "description": "Where files go when YapYap does not ask."
+      },
+      "downloads.openWhenDone": {
+        "label": "Open files when they finish downloading",
+        "description": "Opens PDFs, pictures, sound, video and text in their usual app. Anything that could run a program is only saved."
+      },
+      "privacy.blurWhenIdle": {
+        "label": "Blur WhatsApp when you are away",
+        "description": "Hides your chats after five minutes without using your computer, until you are back."
+      },
+      "privacy.unreadWhileHidden": {
+        "label": "Keep chats unread while YapYap is hidden",
+        "description": "When YapYap is hidden or minimized, WhatsApp does not mark new messages in the open chat as read. Turn this off to let the open chat keep reading."
+      }
+    }
+  },
+  "welcome": {
+    "title": "Welcome to YapYap",
+    "intro": "A few choices to start with. You can change any of them later in Settings, and skip this with Escape.",
+    "language": "Language",
+    "languageNote": "YapYap is in English for now. More languages are on their way.",
+    "look": "Look",
+    "closing": "Starting and closing",
+    "notifications": "Notifications",
+    "notificationsNote": "YapYap shows WhatsApp’s notifications as your system’s own. The first time, your system may ask whether YapYap may show them.",
+    "start": "Start Using YapYap"
+  },
+  "trace": {
+    "confirm": "Record a performance trace?",
+    "confirmDetail": "For 10 seconds, YapYap records where its time goes: pages, scripts, layout and drawing. Do whatever is slow during that time. The trace holds the addresses of the pages and files YapYap loads, but no messages, memory dumps or screenshots. It is saved where you choose, and nothing is sent.",
+    "choose": "Choose Where to Save…",
+    "saved": "The performance trace is saved.",
+    "savedDetail": "Attach it to a bug report if you choose to. Open it in the Perfetto trace viewer.",
+    "failed": "The performance trace could not be recorded.",
+    "failedDetail": "Try again in a moment."
+  },
+  "report": {
+    "issueTitle": "Problem report",
+    "crashTitle": "YapYap closed unexpectedly",
+    "crashTitleWith": "YapYap closed unexpectedly (crash {{fingerprint}})",
+    "crashWhatHappened": "YapYap closed unexpectedly. I was …",
+    "title": "Report a Problem",
+    "intro": "Describe what went wrong. YapYap sends nothing: it copies the report and opens GitHub in your browser, where you can edit it before you submit it.",
+    "description": "What happened?",
+    "placeholder": "What you did, what you expected and what happened instead",
+    "diagnostics": "What the report includes",
+    "diagnosticsHint": "Versions, your system, graphics and the end of YapYap’s log, with phone numbers and other personal details removed. Never your messages.",
+    "open": "Copy and Open GitHub",
+    "opened": "The report is on your clipboard, and GitHub is open in your browser.",
+    "failed": "Could not open GitHub. Copy Diagnostics from the Help menu instead."
+  },
+  "accounts": {
+    "defaultName": "WhatsApp",
+    "numberedName": "WhatsApp {{position}}",
+    "title": "Accounts",
+    "hint": "Each account uses one of WhatsApp’s linked-device slots for its number.",
+    "listLabel": "Your accounts",
+    "off": "Off",
+    "shown": "On screen",
+    "name": "Name",
+    "color": "Color",
+    "colors": {
+      "green": "Green",
+      "blue": "Blue",
+      "purple": "Purple",
+      "orange": "Orange",
+      "red": "Red",
+      "teal": "Teal"
+    },
+    "mute": "Mute this account",
+    "muteHint": "A muted account shows no notifications and plays no sounds while it is not on screen.",
+    "muted": "Muted",
+    "run": "Run this account",
+    "runHint": "An account that is off keeps its login and data on this computer, but receives no messages until you turn it on again.",
+    "proxy": "Proxy",
+    "proxyPlaceholder": "Same as Settings → Network",
+    "proxyHint": "Empty uses the proxy in Settings → Network. Otherwise http://, https:// or socks5://, a host and a port; calls then go only through it.",
+    "proxyInvalid": "Use http://, https:// or socks5://, then a host and a port, such as socks5://127.0.0.1:1080.",
+    "save": "Save",
+    "remove": "Remove Account…",
+    "refused": "At least one account must keep running, so this one cannot be turned off.",
+    "failed": "Could not save the account. Try again.",
+    "unavailable": "Accounts are unavailable.",
+    "permissions": {
+      "title": "Permissions",
+      "camera": "Camera",
+      "microphone": "Microphone",
+      "notifications": "Notifications",
+      "screen": "Screen sharing",
+      "allowed": "Allowed until YapYap quits",
+      "asks": "Asks first",
+      "notificationsState": "Allowed; mute the account to silence them",
+      "screenState": "Asks every time",
+      "forget": "Ask Again for Camera and Microphone"
+    },
+    "discard": {
+      "message": "Discard your changes to this account?",
+      "confirm": "Discard",
+      "keep": "Keep Editing"
+    }
+  },
+  "sidebar": {
+    "label": "Accounts",
+    "muted": "muted",
+    "unread_one": "1 unread chat",
+    "unread_other": "{{count}} unread chats",
+    "badgeOverflow": "{{max}}+",
+    "compact": "Show only avatars",
+    "sharing": "Sharing",
+    "stopSharing": "Stop sharing your screen in {{name}}",
+    "full": "Show account names",
+    "doNotDisturb": "Do not disturb"
+  },
+  "plugins": {
+    "notificationTitle": "{{plugin}}: {{title}}",
+    "stopped": "{{plugin}} kept using too much of your computer, so YapYap stopped it. Install it again to start it.",
+    "title": "Plugins",
+    "hint": "Each plugin runs in its own sandbox and can do only what you allowed when you installed it.",
+    "empty": "No plugins are installed.",
+    "install": "Install Plugin…",
+    "fileType": "YapYap plugins",
+    "version": "Version {{version}}",
+    "trust": {
+      "first-party": "By YapYap",
+      "third-party": "Third-party",
+      "developer": "Unsigned"
+    },
+    "developerMode": "Developer Mode is on, so unsigned plugins can be installed. Turn it off in Settings when you no longer need it.",
+    "result": {
+      "installed": "{{name}} {{version}} is installed.",
+      "rejected": "This plugin cannot be installed.",
+      "failed": "The plugin could not be installed. Try again."
+    },
+    "consent": {
+      "install": "Install {{name}}?",
+      "update": "Update {{name}} to {{version}}?",
+      "author": "By {{name}}",
+      "key": "Signing key",
+      "unsigned": "Not signed",
+      "firstParty": "Signed by YapYap.",
+      "asks": "It asks to:",
+      "updateAsks": "This update asks for more than before:",
+      "hosts": "Connect to:",
+      "nothing": "It asks for nothing.",
+      "risk": "YapYap has not reviewed this plugin. Install it only if you trust its author: you install it at your own risk.",
+      "unsignedRisk": "Nobody signed this plugin, so nothing shows who made it or that it is unchanged. Install it only if you wrote it yourself.",
+      "acknowledge": "I understand that I install this plugin at my own risk",
+      "confirmInstall": "Install",
+      "confirmUpdate": "Update"
+    },
+    "settings": "Settings",
+    "remove": "Remove…",
+    "removeLabel": "Remove {{plugin}}",
+    "settingDefault": "Plugin’s default",
+    "permissions": "Permissions",
+    "permissionsHint": "Turn off anything you no longer want this plugin to do. Turning something back on gives back only what you allowed when you installed it.",
+    "connectTo": "Connect to {{host}}",
+    "capabilities": {
+      "chat:read-active": "Read the messages of the chat you have open",
+      "chat:read-unread-summary": "See which chats have unread messages",
+      "composer:insert-draft": "Write drafts in the message box, which you send yourself",
+      "local-network": "Connect to servers running on this computer, such as a local AI model",
+      "composer:read-draft": "Read what you type in the message box",
+      "notifications:show": "Show notifications",
+      "storage:local": "Keep its own data on this computer",
+      "secrets:own": "Keep its own secrets, such as API keys, encrypted"
+    },
+    "activity": {
+      "title": "Recent activity",
+      "hint": "What each plugin asked YapYap to do, and how it went. YapYap never records what a plugin sent or received.",
+      "empty": "No plugin has asked for anything yet.",
+      "outcomes": {
+        "ok": "Done",
+        "invalid": "Refused: not a valid request",
+        "not-granted": "Refused: not allowed",
+        "rate-limited": "Refused: too many requests",
+        "timeout": "Took too long",
+        "failed": "Failed"
+      }
+    }
+  },
+  "notifications": {
+    "titled": "{{account}}: {{title}}",
+    "hiddenSender": "WhatsApp",
+    "hiddenText": "New message",
+    "replyPlaceholder": "Reply"
+  },
+  "downloads": {
+    "title": "Downloads",
+    "empty": "Nothing downloaded yet in this session.",
+    "progress": "{{received}} of {{total}}",
+    "paused": "Paused at {{received}}",
+    "completed": "Done",
+    "cancelled": "Cancelled",
+    "interrupted": "Failed",
+    "pause": "Pause",
+    "resume": "Resume",
+    "cancel": "Cancel",
+    "show": "Show in Folder",
+    "clear": "Clear Finished",
+    "kept": "YapYap keeps this list only while it runs."
+  },
+  "customCode": {
+    "title": "Custom CSS and JavaScript",
+    "warning": "Advanced. This code runs in WhatsApp and can read your chats. Only add code you understand, and never paste code someone sent you.",
+    "enabled": "Use custom CSS and JavaScript",
+    "scope": "Applies to",
+    "allAccounts": "All accounts",
+    "css": "CSS",
+    "cssHint": "WhatsApp shows your CSS as you type. It is kept only when you save.",
+    "js": "JavaScript",
+    "jsHint": "Runs when WhatsApp loads, after the code for all accounts, apart from WhatsApp’s own scripts. Reload WhatsApp to run a change.",
+    "save": "Save",
+    "saved": "Saved.",
+    "failed": "Could not save the code."
+  },
+  "shortcuts": {
+    "global": "From any app",
+    "globalHint": "These work while you use other apps. They have no keys until you give them some.",
+    "none": "None",
+    "remove": "Remove",
+    "notRegistered": "Another app already uses those keys, or this system does not let apps use keys everywhere.",
+    "change": "Change",
+    "reset": "Reset",
+    "press": "Press the new keys, or Escape to keep these",
+    "invalid": "Use a key together with a modifier such as Ctrl, Alt, Shift or ⌘, or a function key alone.",
+    "switchEndsInOne": "Switching accounts needs keys that end in 1, as it takes 1 to 9.",
+    "taken": "Those keys are already used for “{{action}}”.",
+    "title": "Keyboard shortcuts",
+    "shortcut": "Shortcut",
+    "action": "Action",
+    "actions": {
+      "settings": "Open Settings",
+      "shortcuts": "Show these shortcuts",
+      "switchAccount": "Switch to the first account; 2 to 9 switch to the next ones",
+      "privacyScreen": "Turn the privacy screen on or off",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "actualSize": "Actual size",
+      "reload": "Reload WhatsApp",
+      "forceReload": "Reload WhatsApp, bypassing the cache",
+      "fullScreen": "Full screen",
+      "devTools": "Developer tools",
+      "undo": "Undo",
+      "redo": "Redo",
+      "cut": "Cut",
+      "copy": "Copy",
+      "paste": "Paste",
+      "pastePlain": "Paste as plain text",
+      "selectAll": "Select all",
+      "minimize": "Minimize the window",
+      "close": "Close the window",
+      "downloads": "Show downloads",
+      "toggleWindow": "Show or hide YapYap, from any app",
+      "hide": "Hide YapYap",
+      "quit": "Quit YapYap"
+    }
+  },
+  "spellingLanguages": {
+    "title": "Spelling languages",
+    "search": "Search languages",
+    "off": "Spell checking is off. Turn it on in Settings → Spelling; the languages you choose here apply once it is on.",
+    "download": "On Windows and Linux, each language’s dictionary is downloaded from Google the first time it is used.",
+    "system": "Checking your system’s language: {{names}}.",
+    "noSystem": "No dictionary matches your system’s language. Choose one below.",
+    "chosen": "{{count}} of {{max}} chosen.",
+    "useSystem": "Use system language",
+    "noMatch": "No language matches your search.",
+    "macos": "macOS checks spelling in the languages chosen in System Settings → Keyboard → Text Input."
+  },
+  "contextMenu": {
+    "noSuggestions": "No Suggestions",
+    "addToDictionary": "Add to Dictionary",
+    "checkSpelling": "Check Spelling",
+    "spellingSettings": "Check Spelling…",
+    "languages": "Languages…"
+  },
+  "proxyLogin": {
+    "title": "Sign in to the proxy",
+    "asks": "The proxy {{host}} asks for a username and password.",
+    "failed": "The proxy did not accept that username and password. Try again.",
+    "username": "Username",
+    "password": "Password",
+    "remember": "Remember on this computer",
+    "rememberHint": "Kept encrypted by your system’s keychain.",
+    "cannotRemember": "This computer has no keychain YapYap can use, so the password is asked for each time.",
+    "signIn": "Sign In"
+  },
+  "badge": {
+    "unread_one": "1 unread chat",
+    "unread_other": "{{count}} unread chats"
+  },
+  "tray": {
+    "tooltip": "YapYap",
+    "unread_one": "YapYap: 1 unread chat",
+    "unread_other": "YapYap: {{count}} unread chats",
+    "show": "Show YapYap",
+    "hide": "Hide YapYap",
+    "settings": "Settings…",
+    "doNotDisturb": "Do Not Disturb",
+    "privacyScreen": "Privacy Screen",
+    "sharing": "YapYap: sharing your screen",
+    "stopSharing": "Stop Sharing Screen ({{account}})",
+    "mutedAccount": "{{name}} (muted)",
+    "quit": "Quit YapYap"
+  },
+  "menu": {
+    "file": "&File",
+    "view": "&View",
+    "account": "&Account",
+    "actualSize": "Actual Size",
+    "privacyScreen": "Privacy Screen",
+    "zoomIn": "Zoom In",
+    "zoomOut": "Zoom Out",
+    "newChat": "New Chat with Number…",
+    "clearCache": "Clear Cache and Reload",
+    "resetSession": "Reset Session…",
+    "addAccount": "Add Account",
+    "manageAccounts": "Manage Accounts…",
+    "plugins": "Plugins…",
+    "installPlugin": "Install Plugin…",
+    "customCode": "Custom CSS and JavaScript…",
+    "pluginCommands": "Plugin Commands",
+    "pluginCommand": "{{plugin}}: {{title}}",
+    "removeAccount": "Remove Account…",
+    "doNotDisturb": "Do Not Disturb",
+    "muteAccount": "Mute This Account",
+    "about": "About {{product}}",
+    "settings": "Settings…",
+    "copyDiagnostics": "Copy Diagnostics",
+    "recordTrace": "Record a Performance Trace…",
+    "shortcuts": "Keyboard Shortcuts…",
+    "downloads": "Downloads…",
+    "edit": "&Edit",
+    "window": "&Window",
+    "reportProblem": "Report a Problem…"
+  },
+  "windows": {
+    "about": "About {{product}}",
+    "settings": "{{product}} Settings",
+    "picker": "Share your screen",
+    "newChat": "New Chat",
+    "spellingLanguages": "Spelling Languages",
+    "accounts": "Accounts",
+    "plugins": "Plugins",
+    "shortcuts": "Keyboard Shortcuts",
+    "customCode": "Custom CSS and JavaScript",
+    "quickPanel": "YapYap",
+    "downloads": "Downloads",
+    "pluginConsent": "Install Plugin",
+    "welcome": "Welcome",
+    "report": "Report a Problem",
+    "proxyLogin": "Proxy Sign-In",
+    "offline": "{{pageTitle}} (offline)"
+  },
+  "dialogs": {
+    "pluginHost": {
+      "message": "Let {{plugin}} connect to {{host}}?",
+      "detail": "The plugin wants to send data there and read the answer. Only allow a host you trust, such as a service you set up for this plugin.",
+      "allow": "Allow",
+      "deny": "Deny"
+    },
+    "removePlugin": {
+      "message": "Remove {{plugin}}?",
+      "detail": "This stops the plugin and deletes it, with its settings, its stored data and its saved secrets, such as API keys. Its past activity stays listed.",
+      "confirm": "Remove Plugin"
+    },
+    "resetSession": {
+      "message": "Reset this WhatsApp session?",
+      "detail": "This logs you out and deletes WhatsApp’s data on this computer. Your chats stay on your phone. To use WhatsApp here again, link this device again.",
+      "confirm": "Reset Session"
+    },
+    "removeAccount": {
+      "message": "Remove {{name}}?",
+      "detail": "This logs the account out and deletes its WhatsApp data on this computer. Its chats stay on your phone.",
+      "confirm": "Remove Account"
+    },
+    "unsafeStart": {
+      "message": "YapYap cannot start safely on this system",
+      "detail": "YapYap cannot start safely: its sandbox is turned off. On Ubuntu 24.04 and later this happens with the AppImage, because the system restricts unprivileged user namespaces. Install the .deb, .rpm or Flatpak package instead, or allow the AppImage with an AppArmor profile. YapYap never runs without its sandbox.",
+      "guide": "Open Troubleshooting Guide"
+    },
+    "crashReview": {
+      "message": "YapYap closed unexpectedly last time",
+      "detail": "This report was saved on this computer and has not been sent anywhere. Report on GitHub opens a prefilled bug report for you to review and submit.\n\n{{report}}",
+      "report": "Report on GitHub…",
+      "copy": "Copy Report"
+    },
+    "installUpdate": {
+      "message": "YapYap {{version}} is ready to install",
+      "detail": "It was downloaded and verified. Restart YapYap to install it now, or keep working and install it later.",
+      "install": "Restart and Install",
+      "later": "Later"
+    },
+    "media": {
+      "devices": {
+        "audio": "microphone",
+        "video": "camera"
+      },
+      "request": "{{account}} wants to use your {{devices}}.",
+      "detail": "YapYap remembers your answer until you quit.",
+      "allow": "Allow",
+      "deny": "Deny",
+      "systemRefused": "macOS does not let YapYap use your {{device}}.",
+      "systemRefusedDetail": "Allow YapYap in System Settings → Privacy & Security, then try again."
+    }
+  },
+  "notices": {
+    "safeMode": "YapYap started in safe mode, without hardware acceleration.",
+    "gpuCrashes": "Graphics kept crashing, so YapYap started without hardware acceleration this time.",
+    "whatsAppReloaded": "WhatsApp stopped unexpectedly and was reloaded.",
+    "newRelease": "YapYap {{version}} is available. Click to open its download page.",
+    "downloaded": "Downloaded {{name}} to your Downloads folder.",
+    "downloadFailed": "Could not download {{name}}.",
+    "saved": "Saved {{name}}."
+  }
+}

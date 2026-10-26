@@ -133,9 +133,11 @@ export function PluginConsent({ api }: { readonly api: ChromeApi }): JSX.Element
   return (
     <main class="consent">
       <h1>
-        {consent.update ? text.update(consent.name, consent.version) : text.install(consent.name)}
+        {consent.update
+          ? text.update({ name: consent.name, version: consent.version })
+          : text.install({ name: consent.name })}
       </h1>
-      <p class="hint">{text.author(consent.author.name)}</p>
+      <p class="hint">{text.author({ name: consent.author.name })}</p>
       {consent.author.url === null ? null : <p class="hint url">{consent.author.url}</p>}
       <Signer consent={consent} />
       <Grants consent={consent} />

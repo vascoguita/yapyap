@@ -9,7 +9,7 @@ export async function confirmRemoveAccountWithDialog(name: string): Promise<bool
   const { response } = await dialog.showMessageBox({
     type: 'warning',
     title: PRODUCT_NAME,
-    message: TEXT.message(name),
+    message: TEXT.message({ name }),
     detail: TEXT.detail,
     buttons: [TEXT.confirm, en.common.cancel],
     defaultId: 1,

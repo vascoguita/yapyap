@@ -72,8 +72,13 @@ export function colorFor(position: number): Account['color'] {
   return ACCOUNT_COLORS[(position - 1) % ACCOUNT_COLORS.length] ?? ACCOUNT_COLORS[0];
 }
 
+/** The first account is just WhatsApp; later ones are numbered, so they tell apart. */
+export function defaultName(position: number): string {
+  return position === 1 ? en.accounts.defaultName : en.accounts.numberedName({ position });
+}
+
 function newAccount(id: string, position: number): Account {
-  return { id, name: en.accounts.defaultName(position), color: colorFor(position), enabled: true };
+  return { id, name: defaultName(position), color: colorFor(position), enabled: true };
 }
 
 /** Every ID appears once, and the active account is one of them. */
