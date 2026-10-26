@@ -184,7 +184,12 @@ export default defineConfig(
     files: ['apps/desktop/test/fake-whatsapp/*.js'],
     extends: [tseslint.configs.disableTypeChecked],
     languageOptions: {
-      globals: { document: 'readonly', navigator: 'readonly', window: 'readonly' },
+      globals: {
+        document: 'readonly',
+        localStorage: 'readonly',
+        navigator: 'readonly',
+        window: 'readonly',
+      },
     },
   },
   {

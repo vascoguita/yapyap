@@ -23,7 +23,8 @@
     "docs:build": "pnpm --filter @yapyap/docs build",
     "package": "pnpm --filter @yapyap/desktop build && node scripts/src/bin/package.ts",
     "test:smoke": "pnpm --filter @yapyap/desktop test:smoke",
-    "test:bench": "pnpm --filter @yapyap/desktop test:bench"
+    "test:bench": "pnpm --filter @yapyap/desktop test:bench",
+    "screenshots": "pnpm build && pnpm --filter @yapyap/desktop screenshots"
   },
   "devDependencies": {
     "@commitlint/cli": "21.2.4",

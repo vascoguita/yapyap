@@ -38,14 +38,25 @@ export default defineConfig({
   ],
   themeConfig: {
     logo: '/logo.svg',
+    // People choosing an app come first; developers find their pages under one menu (#383).
     nav: [
+      { text: 'Download', link: '/guide/install' },
       { text: 'Guide', link: '/guide/' },
-      { text: 'Plugins', link: '/plugins/' },
+      { text: 'AI assistant', link: '/guide/ai-assistant' },
       { text: 'Marketplace', link: '/marketplace/' },
       { text: 'Privacy', link: '/privacy' },
-      { text: 'Brand', link: '/brand' },
-      { text: 'Architecture', link: '/architecture/' },
-      { text: 'Contributing', link: '/contributing' },
+      {
+        text: 'Developers',
+        items: [
+          { text: 'Writing a plugin', link: '/plugins/' },
+          { text: 'SDK API reference', link: '/api/' },
+          { text: 'Architecture', link: '/architecture/' },
+          { text: 'Decision records', link: '/adr/' },
+          { text: 'Contributing', link: '/contributing' },
+          { text: 'Translations', link: '/translations' },
+          { text: 'Brand', link: '/brand' },
+        ],
+      },
       { text: 'Sponsor', link: 'https://github.com/sponsors/vascoguita' },
       {
         text: 'Help',

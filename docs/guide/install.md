@@ -1,4 +1,68 @@
-# Install
+# Install YapYap
+
+YapYap is free for Linux, Windows and macOS. The button picks the right
+download for your computer:
+
+<DownloadButton />
+
+On Linux, the repositories below are the easiest way. Flatpak and AppImage
+files are on each [release](https://github.com/vascoguita/yapyap/releases/latest),
+and [All formats](#all-formats) lists everything else.
+
+## Linux repositories {#linux-repositories}
+
+On Debian, Ubuntu, Fedora and Arch Linux, add YapYap's repository once and your package
+manager installs and updates YapYap like any other app. The repositories at
+`packages.guita.org` are signed with YapYap's key, and the packages
+themselves download from YapYap's GitHub releases.
+
+YapYap's repository key has this fingerprint; after importing it, you can
+compare it with `gpg --show-keys /etc/apt/keyrings/yapyap.gpg` (apt) or
+`rpm -qi gpg-pubkey-2e01721e` (dnf):
+
+```
+789C C8E9 F293 6C76 5224  918B 6773 94EA 2E01 721E
+```
+
+::: code-group
+
+```sh [Debian and Ubuntu]
+sudo install -d -m 0755 /etc/apt/keyrings
+sudo curl -fsSLo /etc/apt/keyrings/yapyap.gpg https://packages.guita.org/yapyap.gpg
+sudo curl -fsSLo /etc/apt/sources.list.d/yapyap.sources https://packages.guita.org/yapyap.sources
+sudo apt update
+sudo apt install yapyap
+```
+
+```sh [Fedora]
+sudo dnf config-manager addrepo --from-repofile=https://packages.guita.org/yapyap.repo
+sudo dnf install YapYap
+```
+
+```sh [Arch Linux (x86_64)]
+curl -fsSL https://packages.guita.org/yapyap.asc -o /tmp/yapyap.asc
+sudo pacman-key --add /tmp/yapyap.asc
+sudo pacman-key --lsign-key 789CC8E9F2936C765224918B677394EA2E01721E
+curl -fsSL https://packages.guita.org/yapyap.pacman.conf | sudo tee -a /etc/pacman.conf
+sudo pacman -Syu yapyap-bin
+```
+
+:::
+
+On Fedora, dnf asks you to trust YapYap's key the first time, and stops
+instead of using the repository if its signature ever fails to check. On
+Arch Linux, the repository requires signatures on its database and every
+package, even where pacman's defaults would accept an unsigned database.
+
+**Betas.** To get betas as well as releases, use `yapyap-beta.sources`,
+`yapyap-beta.repo` or `yapyap-beta.pacman.conf` instead. You move to each release once it is newer than
+your beta. To go back to releases only, swap the file back; your package
+manager offers the next release when it comes out.
+
+Both channels keep their five latest versions, so you can install an older
+one to roll back.
+
+## All formats {#all-formats}
 
 YapYap is available in these formats:
 
@@ -21,62 +85,6 @@ On Arch Linux, use the [pacman repository](#linux-repositories), or download
 `yapyap-bin.PKGBUILD` from a release, save it as `PKGBUILD` in an empty
 folder, and run `makepkg -si` there. YapYap will be published to the AUR as
 `yapyap-bin` once AUR account registration reopens.
-
-## Linux repositories {#linux-repositories}
-
-On Debian, Ubuntu, Fedora and Arch Linux, add YapYap's repository once and your package
-manager installs and updates YapYap like any other app. The repositories at
-`packages.guita.org` are signed with YapYap's key, and the packages
-themselves download from YapYap's GitHub releases.
-
-YapYap's repository key has this fingerprint; after importing it, you can
-compare it with `gpg --show-keys /etc/apt/keyrings/yapyap.gpg` (apt) or
-`rpm -qi gpg-pubkey-2e01721e` (dnf):
-
-```
-789C C8E9 F293 6C76 5224  918B 6773 94EA 2E01 721E
-```
-
-**Debian and Ubuntu**
-
-```sh
-sudo install -d -m 0755 /etc/apt/keyrings
-sudo curl -fsSLo /etc/apt/keyrings/yapyap.gpg https://packages.guita.org/yapyap.gpg
-sudo curl -fsSLo /etc/apt/sources.list.d/yapyap.sources https://packages.guita.org/yapyap.sources
-sudo apt update
-sudo apt install yapyap
-```
-
-**Fedora**
-
-```sh
-sudo dnf config-manager addrepo --from-repofile=https://packages.guita.org/yapyap.repo
-sudo dnf install YapYap
-```
-
-dnf asks you to trust YapYap's key the first time. If the repository's
-signature ever fails to check, dnf stops instead of using it.
-
-**Arch Linux (x86_64)**
-
-```sh
-curl -fsSL https://packages.guita.org/yapyap.asc -o /tmp/yapyap.asc
-sudo pacman-key --add /tmp/yapyap.asc
-sudo pacman-key --lsign-key 789CC8E9F2936C765224918B677394EA2E01721E
-curl -fsSL https://packages.guita.org/yapyap.pacman.conf | sudo tee -a /etc/pacman.conf
-sudo pacman -Syu yapyap-bin
-```
-
-The repository requires signatures on its database and every package, even
-where pacman's defaults would accept an unsigned database.
-
-**Betas.** To get betas as well as releases, use `yapyap-beta.sources`,
-`yapyap-beta.repo` or `yapyap-beta.pacman.conf` instead. You move to each release once it is newer than
-your beta. To go back to releases only, swap the file back; your package
-manager offers the next release when it comes out.
-
-Both channels keep their five latest versions, so you can install an older
-one to roll back.
 
 ## First launch on macOS and Windows {#unsigned}
 

@@ -28,6 +28,7 @@ Use pnpm (version pinned in `package.json`) on Node.js 24 LTS.
 | E2E tests                       | `dbus-run-session -- xvfb-run -a pnpm test:e2e` on Linux, else `pnpm test:e2e`                                |
 | Mutation tests (≥ 90%)          | `pnpm test:mutation` (PR CI mutates changed in-scope files only)                                              |
 | Performance benchmark           | `xvfb-run -a pnpm test:bench` (nightly; budgets in `apps/desktop/e2e/bench/`, ADR 0009)                       |
+| Website screenshots (Linux)     | `dbus-run-session -- xvfb-run -a -s "-screen 0 3840x2400x24" pnpm screenshots`                                |
 | Commit messages                 | `pnpm commitlint`                                                                                             |
 | Regenerate the message types    | `node scripts/src/bin/i18n-types.ts` (after changing `locales/en.json`)                                       |
 | Check translation catalogs      | `node scripts/src/bin/check-catalogs.ts` (part of `pnpm lint`)                                                |
@@ -198,8 +199,9 @@ Update this table in the PR that adds a command.
 - On a Linux desktop, run E2E tests under `dbus-run-session` as well as
   `xvfb-run`: Xvfb hides the windows, but tray icons and notifications go
   through the session bus and would appear on the developer's desktop.
-- E2E runs drop `WAYLAND_DISPLAY` so local runs use the virtual X11 display
-  like CI. `YAPYAP_E2E_WAYLAND_DISPLAY` passes a compositor socket through
+- E2E runs drop `WAYLAND_DISPLAY` and set `XDG_SESSION_TYPE=x11` so local
+  runs use the virtual X11 display like CI; Chromium otherwise reaches a
+  desktop's Wayland compositor through its default socket. `YAPYAP_E2E_WAYLAND_DISPLAY` passes a compositor socket through
   instead; CI runs `display.spec.ts` that way on a headless Weston. Under it no window manager focuses windows, so tests that need a
   focused window focus it and poll `isFocused()`.
 - WhatsApp runs in an account view inside the main window, whose own page
