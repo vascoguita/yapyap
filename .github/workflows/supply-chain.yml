@@ -41,6 +41,9 @@ jobs:
         with:
           fail-on-severity: moderate
           deny-licenses: GPL-1.0-or-later, LGPL-2.0-or-later, AGPL-1.0-or-later, SSPL-1.0
-          # The deny list protects what YapYap ships. This LGPL-3.0 action only
-          # runs in CI and is never distributed (ADR 0008, C17).
-          allow-dependencies-licenses: pkg:githubactions/SonarSource/sonarqube-scan-action
+          # The deny list protects what YapYap ships. This LGPL-3.0 action, and
+          # the optional LGPL-3.0 image libraries wrangler brings to the
+          # packages.guita.org deploy, only run in CI and are never
+          # distributed (ADR 0008, C17).
+          allow-dependencies-licenses: >-
+            pkg:githubactions/SonarSource/sonarqube-scan-action, pkg:npm/%40img/sharp-libvips-darwin-arm64, pkg:npm/%40img/sharp-libvips-darwin-x64, pkg:npm/%40img/sharp-libvips-linux-arm, pkg:npm/%40img/sharp-libvips-linux-arm64, pkg:npm/%40img/sharp-libvips-linux-ppc64, pkg:npm/%40img/sharp-libvips-linux-riscv64, pkg:npm/%40img/sharp-libvips-linux-s390x, pkg:npm/%40img/sharp-libvips-linux-x64, pkg:npm/%40img/sharp-libvips-linuxmusl-arm64, pkg:npm/%40img/sharp-libvips-linuxmusl-x64
