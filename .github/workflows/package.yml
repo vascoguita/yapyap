@@ -76,6 +76,9 @@ jobs:
         env:
           MAC_CSC_LINK: ${{ secrets.CSC_LINK }}
           MAC_CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
@@ -91,9 +94,18 @@ jobs:
             # certificate is only exported on macOS.
             export_if_set CSC_LINK "$MAC_CSC_LINK" && export_if_set CSC_KEY_PASSWORD "$MAC_CSC_KEY_PASSWORD" ||
               echo "::notice::macOS signing secrets are missing: the DMG is unsigned and does not self-update (see CONTRIBUTING)."
-            export_if_set APPLE_ID "$APPLE_ID" && export_if_set APPLE_APP_SPECIFIC_PASSWORD "$APPLE_APP_SPECIFIC_PASSWORD" &&
-              export_if_set APPLE_TEAM_ID "$APPLE_TEAM_ID" ||
-              echo "::notice::Apple notarization secrets are missing: the app is not notarized (see CONTRIBUTING)."
+            # An App Store Connect API key notarizes without an Apple ID and its
+            # two-factor sign-in (#400); electron-builder reads it from a file.
+            if [ -n "$APPLE_API_KEY_P8" ] && [ -n "$APPLE_API_KEY_ID" ] && [ -n "$APPLE_API_ISSUER" ]; then
+              key="$RUNNER_TEMP/apple-api-key.p8"
+              (umask 077 && printf '%s\n' "$APPLE_API_KEY_P8" > "$key")
+              export_if_set APPLE_API_KEY "$key" && export_if_set APPLE_API_KEY_ID "$APPLE_API_KEY_ID" &&
+                export_if_set APPLE_API_ISSUER "$APPLE_API_ISSUER"
+            else
+              export_if_set APPLE_ID "$APPLE_ID" && export_if_set APPLE_APP_SPECIFIC_PASSWORD "$APPLE_APP_SPECIFIC_PASSWORD" &&
+                export_if_set APPLE_TEAM_ID "$APPLE_TEAM_ID" ||
+                echo "::notice::Apple notarization secrets are missing: the app is not notarized (see CONTRIBUTING)."
+            fi
           fi
           if [ "$RUNNER_OS" = Windows ]; then
             export_if_set WIN_CSC_LINK "$WIN_CSC_LINK" && export_if_set WIN_CSC_KEY_PASSWORD "$WIN_CSC_KEY_PASSWORD" ||

@@ -997,6 +997,13 @@ not edit the same lines.
   them. When an account's title shows no unread chats, YapYap now closes
   that account's notifications.
 
+- Notarizing with an API key (#400): the Apple account YapYap signs with
+  cannot make app-specific passwords, so the package workflow now
+  notarizes with an App Store Connect API key when `APPLE_API_KEY`,
+  `APPLE_API_KEY_ID` and `APPLE_API_ISSUER` are set. It writes the key to a
+  private file in the runner's temporary folder, and falls back to the
+  Apple ID secrets otherwise.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).
