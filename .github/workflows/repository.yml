@@ -72,14 +72,15 @@ jobs:
           find "$SITE" -type f | sort
       - name: Deploy to Cloudflare Pages
         if: steps.ready.outputs.ready == 'true'
-        # Into its own folder, outside the pnpm workspace, and without install
-        # scripts, which a Pages upload does not need.
+        # From its own lockfile, outside the pnpm workspace, so every package is
+        # pinned by its hash, and without install scripts, which a Pages upload
+        # does not need.
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          tools="$RUNNER_TEMP/wrangler"
-          npm install --prefix "$tools" --ignore-scripts --no-audit --no-fund wrangler@4.152.0
+          tools=packaging/repository/deploy
+          npm ci --prefix "$tools" --ignore-scripts --no-audit --no-fund
           "$tools/node_modules/.bin/wrangler" pages deploy "$SITE" \
             --project-name yapyap-packages --branch main --commit-dirty=true
       - name: Check apt, dnf and pacman find YapYap there, without downloading it

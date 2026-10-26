@@ -1,0 +1,9 @@
+{
+  "name": "yapyap-repository-deploy",
+  "private": true,
+  "description": "Wrangler, which uploads packages.guita.org; installed with npm ci so every package is pinned by its hash.",
+  "license": "MIT",
+  "dependencies": {
+    "wrangler": "4.152.0"
+  }
+}

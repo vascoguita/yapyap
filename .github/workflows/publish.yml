@@ -85,9 +85,20 @@ jobs:
         working-directory: ${{ runner.temp }}/dist
         run: sha256sum -- * > SHA256SUMS
       - name: Attest build provenance
+        id: attest
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-path: ${{ runner.temp }}/dist/*
+      - name: Attach the signed provenance to the release
+        # GitHub keeps the attestation, but verifiers that only see the
+        # release, such as OpenSSF Scorecard, look for it among its files: the
+        # Sigstore bundle, and its in-toto envelope as SLSA tools write it.
+        env:
+          BUNDLE: ${{ steps.attest.outputs.bundle-path }}
+          DIST: ${{ runner.temp }}/dist
+        run: |
+          cp "$BUNDLE" "$DIST/yapyap-$TAG.sigstore.json"
+          jq -c '.dsseEnvelope' "$BUNDLE" > "$DIST/yapyap-$TAG.intoto.jsonl"
       - name: Upload to the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}

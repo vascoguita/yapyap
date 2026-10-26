@@ -121,6 +121,16 @@ sha256sum --check --ignore-missing SHA256SUMS
 gh attestation verify YapYap-0.1.0-linux-x86_64.AppImage --repo vascoguita/yapyap
 ```
 
+Releases from v0.1.2 on also carry the signed provenance itself, as
+`yapyap-<version>.sigstore.json` (a Sigstore bundle) and
+`yapyap-<version>.intoto.jsonl` (its in-toto envelope), so you can check a
+file offline or with other tools:
+
+```sh
+gh attestation verify YapYap-0.1.2-linux-x86_64.AppImage --repo vascoguita/yapyap \
+  --bundle yapyap-v0.1.2.sigstore.json
+```
+
 ## Beta versions {#betas}
 
 Every release is first published as a beta, so testers can catch problems
