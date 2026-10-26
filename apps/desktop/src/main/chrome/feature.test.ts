@@ -755,6 +755,7 @@ describe('createChromeFeature', () => {
       proxy: '',
       active: true,
       sharing: false,
+      avatar: undefined,
     };
     const state = {
       accounts: [
@@ -931,7 +932,7 @@ describe('createChromeFeature', () => {
     await new Promise((resolve) => setTimeout(resolve));
     expect(t.deps.writeClipboard).toHaveBeenLastCalledWith(
       expect.stringMatching(
-        /^YapYap 0\.1\.0 \(deb\)\n[\s\S]*\nGPU gpu_compositing=enabled, rasterization=unknown, video_decode=unknown, webgl=enabled_on\nUpdates system \(deb\)\nWhatsApp page unavailable \(landmarks v3\)\n\nRecent log:\n2026-10-21T12:00:00\.000Z warn Something happened$/,
+        /^YapYap 0\.1\.0 \(deb\)\n[\s\S]*\nGPU gpu_compositing=enabled, rasterization=unknown, video_decode=unknown, webgl=enabled_on\nUpdates system \(deb\)\nWhatsApp page unavailable \(landmarks v4\)\n\nRecent log:\n2026-10-21T12:00:00\.000Z warn Something happened$/,
       ),
     );
   });
@@ -961,7 +962,7 @@ describe('createChromeFeature', () => {
     await new Promise((resolve) => setTimeout(resolve));
     expect(t.deps.writeClipboard).toHaveBeenLastCalledWith(
       expect.stringContaining(
-        '\nWhatsApp view=chats, chat_open=true (landmarks v3)\n\nRecent log:',
+        '\nWhatsApp view=chats, chat_open=true (landmarks v4)\n\nRecent log:',
       ),
     );
   });

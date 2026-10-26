@@ -13,6 +13,7 @@ const account = (id: string): SidebarAccount => ({
   muted: false,
   active: id === 'a',
   sharing: id === 'b',
+  avatar: undefined,
 });
 
 const source = (ids: string[], compact = false) => ({

@@ -1,3 +1,4 @@
+import { shrinkAvatar } from './accounts/avatars.ts';
 import {
   app,
   BrowserWindow,
@@ -380,6 +381,7 @@ startApp({
   argv: process.argv,
   openExternal: (url) => shell.openExternal(url),
   isOnline: () => net.isOnline(),
+  avatarImage: (bytes) => shrinkAvatar(nativeImage.createFromBuffer(Buffer.from(bytes))),
   gpuCrashLog: {
     read: () => readFileSync(GPU_CRASH_LOG, 'utf8'),
     write: (text) => {

@@ -373,6 +373,12 @@ not edit the same lines.
   back. On Wayland YapYap never positions it, and the settings snapshot's
   new `unavailable` map shows the position setting disabled with the reason.
 
+- Account photos (#87): the adapter's `OWN_AVATAR` probe reads the address
+  of the account's own profile photo (landmarks v4) when the page title
+  changes. `accountAvatars` fetches it on the account's session, only over
+  HTTPS from `*.whatsapp.net` or WhatsApp's origin and at most 2 MB, shrinks
+  it to a 64-pixel PNG data URL in memory, and the sidebar shows it in place
+  of the initial. It retries every minute until found, then every 30.
 - Plugin SDK (#88): `@yapyap/plugin-sdk` defines the manifest as a TypeBox
   schema (the published `manifest.schema.json` is generated from it and
   tested to match) and the typed host API, one interface per capability. The

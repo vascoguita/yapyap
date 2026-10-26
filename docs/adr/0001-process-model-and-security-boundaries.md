@@ -60,6 +60,12 @@ and an ESLint restriction forbids constructing `BrowserWindow` or
   `composer:read-draft` for the account on screen asks. It returns as
   many messages as the user allows, checked against a schema, and nothing
   logs it (C26 in ADR 0008).
+  One probe reads the address of the account's own profile photo (#87),
+  when the page title changes and at most every 30 minutes once found. The
+  main process fetches it only over HTTPS from `*.whatsapp.net`, or from
+  WhatsApp's own origin, on the account's session, reads at most 2 MB, and
+  keeps only a 64-pixel copy in memory for the sidebar. Nothing stores or
+  logs the photo or its address.
 - WhatsApp's views have one preload, for notifications only, whose design is
   in ADR 0011.
 

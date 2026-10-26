@@ -18,6 +18,7 @@ const STATE: SidebarState = {
       muted: false,
       active: true,
       sharing: false,
+      avatar: undefined,
     },
   ],
   compact: false,

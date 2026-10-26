@@ -482,6 +482,14 @@ body.sidebar .avatar {
   font-weight: 600;
 }
 
+/* The account's WhatsApp profile photo, over its colour, once YapYap has it (#87). */
+body.sidebar .avatar .photo {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
 body.sidebar .name {
   flex: 1;
   overflow: hidden;

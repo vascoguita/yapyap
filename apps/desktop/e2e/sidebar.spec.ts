@@ -47,8 +47,13 @@ test('switches accounts from the sidebar, which appears with a second account', 
   const bar = views.find((view) => view.url.endsWith('/sidebar.html'));
   expect(bar).toMatchObject({ x: 0, width: 220 });
   expect(views.filter((view) => view.url.startsWith('http')).map((view) => view.x)).toEqual([220]);
+  // Each account shows the photo its page names (#87), as a small data URL, not WhatsApp's address.
+  await expect(first.locator('img.photo')).toHaveAttribute('src', /^data:image\/png;base64,/);
+  expect(
+    await first.locator('img.photo').evaluate((img: HTMLImageElement) => img.naturalWidth),
+  ).toBe(64);
   await sidebar.getByRole('button', { name: 'Show only avatars' }).click();
-  await expect(first).toHaveText('W');
+  await expect(first.locator('.name')).toHaveCount(0);
   await expect
     .poll(async () => (await layout(app)).find((view) => view.url.endsWith('/sidebar.html'))?.width)
     .toBe(64);

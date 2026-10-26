@@ -1,8 +1,9 @@
+import { accountAvatars, type AccountAvatars, type AvatarPage } from './accounts/avatars.ts';
 import type { AccountSummary } from '../shared/chrome-api.ts';
 import type { AccountMenu, ChromeFeature, WhatsAppContents } from './chrome/feature.ts';
 import type { SidebarPort } from './chrome/sidebar.ts';
 import { watchConnectivity } from './connectivity/connectivity.ts';
-import { APP_ID, PRODUCT_NAME } from './identity.ts';
+import { PRODUCT_NAME } from './identity.ts';
 import type {
   CaptureChoice,
   DisplayCapturePort,
@@ -12,15 +13,9 @@ import type {
 import { followThemeSetting, type ThemePort } from './appearance/theme.ts';
 import { followZoomSetting, type ZoomableContents } from './appearance/zoom.ts';
 import { chromeUserAgent } from './identity/user-agent.ts';
-import {
-  describeGraphics,
-  guardGpu,
-  type Graphics,
-  type GraphicsReason,
-} from './recovery/gpu-safe-mode.ts';
+import { describeGraphics } from './recovery/gpu-safe-mode.ts';
 import type { SettingsService } from './settings/service.ts';
 import { trackVisibility, type Visibility } from './window/visibility.ts';
-import { applyResourceLimits } from './reliability/resource-limits.ts';
 import {
   type ProxySwitches,
   type ProxiedSession,
@@ -35,29 +30,16 @@ import {
 } from './privacy/privacy-screen.ts';
 import { isSilenced, quietAudio, setDoNotDisturb, type AudioPage } from './notifications/quiet.ts';
 import { followHiddenReadsSetting, type ThrottledContents } from './privacy/hidden-reads.ts';
-import { watchForReleases, type UpdateNoticeDependencies } from './updates/update-notice.ts';
-import {
-  startSelfUpdates,
-  type SelfUpdateDependencies,
-  type Updater,
-} from './updates/self-update.ts';
-import {
-  chooseDisplayBackend,
-  describeDisplayBackend,
-  type DisplayBackend,
-} from './display/backend.ts';
+import { type UpdateNoticeDependencies } from './updates/update-notice.ts';
+import { type SelfUpdateDependencies, type Updater } from './updates/self-update.ts';
+import { describeDisplayBackend } from './display/backend.ts';
 import {
   watchMemory,
   type ProcessMemory,
   type WatchedRenderer,
 } from './recovery/memory-watchdog.ts';
+import { type CrashFiles, type CrashReviewDependencies } from './crash/crash-reports.ts';
 import {
-  trackCrashes,
-  type CrashFiles,
-  type CrashReviewDependencies,
-} from './crash/crash-reports.ts';
-import {
-  installSecurity,
   secureSession,
   type GuardedContents,
   type GuardedSession,
@@ -101,7 +83,7 @@ import {
   type LinkWindow,
 } from './instances.ts';
 import { chatLinkInArguments } from './navigation/deep-link.ts';
-import { refuseUnsafeStart, type UnsafeStartDependencies } from './sandbox-check.ts';
+import { type UnsafeStartDependencies } from './sandbox-check.ts';
 import { type DownloadDependencies, type DownloadingSession } from './downloads/downloads.ts';
 import { quitOnShutdown, type ShutdownSources } from './shutdown.ts';
 import { showWhenReady, type ReadyPage } from './show-when-ready.ts';
@@ -119,29 +101,28 @@ import {
   type TrayIconDependencies,
 } from './tray/tray-icon.ts';
 import { syncAutostartSetting, type AutostartPort } from './autostart/autostart.ts';
-import {
-  manageMainWindow,
-  restoreWindowState,
-  type ManagedWindow,
-  type WindowStateStore,
-} from './window/main-window.ts';
+import { type ManagedWindow, type WindowStateStore } from './window/main-window.ts';
 import type { Rect } from './window/window-state.ts';
-import { resolveWhatsAppOrigin } from './whatsapp-origin.ts';
-import { en } from '../shared/messages/en.ts';
-import {
-  followGlobalShortcuts,
-  toggleWindow,
-  type GlobalShortcutPort,
-} from './shortcuts/global-shortcuts.ts';
+import { type GlobalShortcutPort } from './shortcuts/global-shortcuts.ts';
 import type { ContextMenuItem, MenuPage } from './spelling/context-menu.ts';
 import type { ClickedPage } from './plugins/plugin-menu-items.ts';
 import { followSpellingSetting, type SpellingController } from './spelling/spelling.ts';
-import { createProxyLogin, type AuthInfo, type LoginCallback } from './network/proxy-login.ts';
+import { type AuthInfo, type LoginCallback } from './network/proxy-login.ts';
 import type { SecretStore } from './secrets/secret-store.ts';
 import { panelOwner } from './chrome/quick-panel.ts';
 import { sidebarSource } from './accounts/sidebar-source.ts';
 import type { CodePage, CustomCodeController } from './custom-code/custom-code.ts';
-import { useCameraPortal } from './permissions/camera-portal.ts';
+import {
+  beforeReady,
+  applyDisplayBackend,
+  watchCrashes,
+  announceStartup,
+  whatsAppOrigin,
+  signInToProxies,
+  takeGlobalShortcuts,
+  openMainWindow,
+  refuseWithoutSandbox,
+} from './startup.ts';
 
 export interface AppPort {
   disableHardwareAcceleration(): void;
@@ -201,7 +182,8 @@ export type AccountContents = WhatsAppContents &
   FocusablePage &
   MenuPage &
   ClickedPage &
-  CodePage & {
+  CodePage &
+  AvatarPage & {
     replaceMisspelling(word: string): void;
     loadURL(url: string): Promise<unknown>;
     on(event: 'page-title-updated', listener: (event: unknown, title: string) => void): unknown;
@@ -276,6 +258,8 @@ export interface StartDependencies<Window extends WindowPort> {
   readonly openExternal: (url: string) => Promise<unknown>;
   readonly isOnline: () => boolean;
   readonly onResume: (listener: () => void) => void;
+  /** A profile photo as a small square PNG data URL, or undefined when it is no image (#87). */
+  readonly avatarImage: (bytes: Uint8Array) => string | undefined;
   readonly gpuCrashLog: { readonly read: () => string; readonly write: (text: string) => void };
   readonly settings: SettingsService;
   readonly nativeTheme: ThemePort;
@@ -339,25 +323,6 @@ export interface StartDependencies<Window extends WindowPort> {
   };
 }
 
-/** Starts without hardware acceleration, for when graphics problems stop YapYap from starting. */
-const SAFE_MODE_FLAG = '--safe-mode';
-
-/** A fallback the user did not choose in settings is worth telling them about. */
-const GRAPHICS_NOTICES: Readonly<Record<GraphicsReason, string | undefined>> = {
-  'safe-mode': en.notices.safeMode,
-  'gpu-crashes': en.notices.gpuCrashes,
-  settings: undefined,
-};
-
-const MAIN_WINDOW: WindowOptions = {
-  title: PRODUCT_NAME,
-  width: 1200,
-  height: 800,
-  minWidth: 640,
-  minHeight: 480,
-  show: false,
-};
-
 type PickInApp = (contents: object) => Promise<CaptureChoice | undefined>;
 
 /**
@@ -372,175 +337,6 @@ function latePicker(): { readonly pick: PickInApp; readonly bind: (pick: PickInA
       bound = pick;
     },
   };
-}
-
-/** Everything Electron only accepts before the app is ready. */
-function beforeReady<Window extends WindowPort>(
-  deps: StartDependencies<Window>,
-  security: SecurityDependencies,
-): Graphics {
-  const { app, warn } = deps;
-  app.userAgentFallback = security.identity.userAgent;
-  // Sandboxes the renderers Electron creates on its own too.
-  app.enableSandbox();
-  const graphics = guardGpu(app, {
-    preferences: deps.settings.current().reliability,
-    safeMode: deps.argv.includes(SAFE_MODE_FLAG),
-    readLog: deps.gpuCrashLog.read,
-    writeLog: deps.gpuCrashLog.write,
-    now: Date.now,
-    warn,
-  });
-  installSecurity(app, security);
-  applyResourceLimits(app.commandLine, deps.settings.current().reliability);
-  useCameraPortal(app.commandLine, deps.env);
-  deps.chrome.beforeReady();
-  // Windows groups notifications and taskbar entries by this ID.
-  app.setAppUserModelId(APP_ID);
-  app.on('window-all-closed', () => {
-    app.quit();
-  });
-  return graphics;
-}
-
-/** Chromium reads the display backend only before the app is ready. */
-function applyDisplayBackend<Window extends WindowPort>(
-  deps: StartDependencies<Window>,
-): DisplayBackend {
-  const display = chooseDisplayBackend({
-    platform: deps.platform,
-    setting: deps.settings.current().reliability.displayBackend,
-    argv: deps.argv,
-    env: deps.env,
-  });
-  if (display.ozonePlatform !== undefined) {
-    deps.app.commandLine.appendSwitch('ozone-platform', display.ozonePlatform);
-  }
-  if (display.fallback !== undefined) {
-    deps.warn(display.fallback);
-  }
-  return display;
-}
-
-/** Starts watching for unclean exits; the returned function reports the last one once chrome is up. */
-function watchCrashes<Window extends WindowPort>(
-  deps: StartDependencies<Window>,
-): (technicalDetails: () => string) => void {
-  const report = trackCrashes({
-    files: deps.crashes.files,
-    version: deps.crashes.version,
-    now: Date.now,
-    setting: () => deps.settings.current().privacy.crashReports,
-    onQuit: (listener) => {
-      deps.app.on('will-quit', listener);
-    },
-    warn: deps.warn,
-  });
-  return (technicalDetails) => {
-    report({ ...deps.crashes, technicalDetails, openExternal: deps.openExternal }).catch(() => {
-      deps.warn('Could not offer the crash report.');
-    });
-  };
-}
-
-/** Tells the user about anything startup changed that they did not choose. */
-function announceStartup(
-  deps: Pick<
-    StartDependencies<WindowPort>,
-    'settings' | 'notify' | 'releases' | 'selfUpdate' | 'warn'
-  >,
-  graphics: Graphics,
-): void {
-  const betas = (): boolean => deps.settings.current().general.betaUpdates;
-  watchForReleases({ ...deps.releases, betas, every: setInterval, warn: deps.warn });
-  startSelfUpdates(deps.selfUpdate.updater, {
-    betas,
-    policy: deps.releases.policy,
-    askToInstall: deps.selfUpdate.askToInstall,
-    every: setInterval,
-    warn: deps.warn,
-  });
-  if (deps.settings.notice !== undefined) {
-    deps.notify(deps.settings.notice);
-  }
-  const graphicsNotice =
-    graphics.reason === undefined ? undefined : GRAPHICS_NOTICES[graphics.reason];
-  if (graphicsNotice !== undefined) {
-    deps.notify(graphicsNotice);
-  }
-}
-
-function whatsAppOrigin(
-  env: Readonly<Record<string, string | undefined>>,
-  warn: (message: string) => void,
-): string {
-  const { origin, rejectedOverride } = resolveWhatsAppOrigin(env['YAPYAP_TEST_WHATSAPP_ORIGIN']);
-  if (rejectedOverride) {
-    warn('Ignoring YAPYAP_TEST_WHATSAPP_ORIGIN: only loopback http origins are allowed.');
-  }
-  return origin;
-}
-
-/** Requests that come from no page, such as a service worker's, share one record of attempts. */
-const NO_PAGE = {};
-
-/** Proxies that ask for a password get the saved one, or the user is asked (#76). */
-function signInToProxies<Window extends WindowPort>(
-  deps: Pick<StartDependencies<Window>, 'app' | 'secrets'>,
-  chrome: Pick<ReturnType<StartDependencies<Window>['chrome']['afterReady']>, 'askProxyLogin'>,
-): void {
-  const login = createProxyLogin({
-    secrets: deps.secrets,
-    ask: chrome.askProxyLogin,
-    now: Date.now,
-  });
-  deps.app.on('login', (event, contents, _details, info, callback) => {
-    login.handle(event, contents?.session ?? NO_PAGE, info, callback);
-  });
-}
-
-/** The shortcuts that work from any app, given back when YapYap quits (#75). */
-function takeGlobalShortcuts<Window extends WindowPort>(
-  deps: Pick<StartDependencies<Window>, 'app' | 'globalShortcuts' | 'settings'>,
-  window: Window,
-): void {
-  followGlobalShortcuts(deps.globalShortcuts, deps.settings, {
-    toggleWindow: () => {
-      toggleWindow(window);
-    },
-  });
-  deps.app.on('will-quit', () => {
-    deps.globalShortcuts.unregisterAll();
-  });
-}
-
-/** Opens the main window where the user left it. */
-function openMainWindow<Window extends WindowPort>(deps: StartDependencies<Window>): Window {
-  const { state, bounds } = restoreWindowState(deps.windowState, deps.workAreas());
-  const window = deps.createWindow({ ...MAIN_WINDOW, ...bounds });
-  manageMainWindow(window, state, {
-    store: deps.windowState,
-    platform: deps.platform,
-    settings: deps.settings,
-    app: deps.app,
-    warn: deps.warn,
-  });
-  return window;
-}
-
-/** Never runs unsandboxed: explains why YapYap will not start, then quits. */
-function refuseWithoutSandbox<Window extends WindowPort>(
-  deps: StartDependencies<Window>,
-): Promise<void> {
-  return refuseUnsafeStart({
-    whenReady: () => deps.app.whenReady(),
-    explain: deps.explainUnsafeStart,
-    openExternal: deps.openExternal,
-    logError: deps.logError,
-    quit: () => {
-      deps.app.quit();
-    },
-  });
 }
 
 /** An open account's views, and how to bring its WhatsApp back after an outage. */
@@ -559,6 +355,8 @@ export interface AccountWiring<Window extends WindowPort> {
   readonly security: Parameters<typeof secureSession>[1];
   readonly window: Window;
   readonly signals: AccountSignals;
+  /** Each account's profile photo, for the sidebar (#87). */
+  readonly avatars: AccountAvatars;
   readonly origin: string;
   /** The accounts once they run; read on use, after they all opened. */
   readonly running: () => RunningAccounts<OpenedAccount>;
@@ -568,6 +366,12 @@ export interface AccountWiring<Window extends WindowPort> {
   readonly spelling: SpellingController;
   readonly proxy: ProxyController;
 }
+
+/** The wiring while the accounts open, before what they build exists. */
+type OpeningWiring<Window extends WindowPort> = Omit<
+  AccountWiring<Window>,
+  'signals' | 'running' | 'avatars'
+>;
 
 /** Each account's notifier, found by its page, and all of them for quitting. */
 interface Notifiers {
@@ -646,7 +450,7 @@ function notifyFor<Window extends WindowPort>(
 
 /** Its memory, its zoom and hidden reads, and its title, which carries the unread count. */
 function watchAccountPage<Window extends WindowPort>(
-  { deps, window, signals }: AccountWiring<Window>,
+  { deps, window, signals, avatars }: AccountWiring<Window>,
   contents: AccountContents,
   account: Account,
 ): void {
@@ -663,6 +467,8 @@ function watchAccountPage<Window extends WindowPort>(
   deps.customCode.attach(contents, account.id);
   contents.on('page-title-updated', (_event, title) => {
     signals.pageTitle(account.id, title);
+    // WhatsApp retitles its page as chats come and go, a cheap moment to look again.
+    void avatars.refresh(account.id, contents);
   });
 }
 
@@ -708,9 +514,11 @@ function openAccount<Window extends WindowPort>(
 async function forgetAccount<Window extends WindowPort>(
   deps: StartDependencies<Window>,
   signals: AccountSignals,
+  avatars: AccountAvatars,
   account: Account,
 ): Promise<void> {
   signals.forget(account.id);
+  avatars.forget(account.id);
   const session = deps.sessionOf(partitionOf(account));
   await session.clearStorageData();
   await session.clearCache();
@@ -824,7 +632,7 @@ function trayActions<Window extends WindowPort>(
 }
 
 function accountsTray<Window extends WindowPort>(
-  { deps, chrome, window }: Omit<AccountWiring<Window>, 'signals' | 'running'>,
+  { deps, chrome, window }: OpeningWiring<Window>,
   running: () => RunningAccounts<OpenedAccount>,
   visibility: Visibility,
   screens: Screens,
@@ -878,9 +686,10 @@ interface AccountIndicators {
  * with their unread counts and running screen shares (#161).
  */
 function accountIndicators<Window extends WindowPort>(
-  wiring: Omit<AccountWiring<Window>, 'signals' | 'running'>,
+  wiring: OpeningWiring<Window>,
   running: () => RunningAccounts<OpenedAccount>,
   signals: () => AccountSignals,
+  avatars: () => AccountAvatars,
   menuChanged: () => void,
 ): AccountIndicators {
   const { deps, chrome, window } = wiring;
@@ -906,7 +715,7 @@ function accountIndicators<Window extends WindowPort>(
   const panel = chrome.attachQuickPanel(panelOwner(window, visibility));
   const refresh = (): void => {
     tray.refresh();
-    const source = sidebarSource(deps.settings.current(), running(), signals(), shares);
+    const source = sidebarSource(deps.settings.current(), running(), signals(), shares, avatars());
     sidebar(source);
     panel(source);
   };
@@ -940,21 +749,39 @@ function privacyScreenOf<Window extends WindowPort>(
   return privacy;
 }
 
+/** Each account's profile photo, which refreshes the sidebar when one changes (#87). */
+function avatarsFor<Window extends WindowPort>(
+  deps: StartDependencies<Window>,
+  origin: string,
+  indicators: Pick<AccountIndicators, 'refresh'>,
+): AccountAvatars {
+  return accountAvatars({
+    home: origin,
+    toDataUrl: deps.avatarImage,
+    now: Date.now,
+    onChange: () => {
+      indicators.refresh();
+    },
+  });
+}
+
 /** Every enabled account, in its own view of the main window; the active one shows. */
 function openAccounts<Window extends WindowPort>(
-  wiring: Omit<AccountWiring<Window>, 'signals' | 'running'>,
+  wiring: OpeningWiring<Window>,
 ): RunningAccounts<OpenedAccount> {
   const { deps, chrome, window } = wiring;
   const menuChanged = (): void => {
     chrome.setAccountMenu(accountMenu(running, deps.warn, indicators.privacy));
   };
-  const indicators = accountIndicators(
+  const indicators: AccountIndicators = accountIndicators(
     wiring,
     () => running,
     () => signals,
+    () => avatars,
     menuChanged,
   );
   const signals: AccountSignals = windowSignals(deps, window, indicators.setUnread);
+  const avatars: AccountAvatars = avatarsFor(deps, wiring.origin, indicators);
   const changed = (): void => {
     signals.activate(running.active().account.id);
     menuChanged();
@@ -964,12 +791,13 @@ function openAccounts<Window extends WindowPort>(
   wiring.proxy.useAccounts(deps.accounts.accounts);
   const running: RunningAccounts<OpenedAccount> = runAccounts({
     accounts: deps.accounts,
-    open: (account) => openAccount({ ...wiring, signals, running: () => running }, account),
+    open: (account) =>
+      openAccount({ ...wiring, signals, avatars, running: () => running }, account),
     save: (accounts) => {
       deps.saveAccounts(accounts);
       wiring.proxy.useAccounts(accounts.accounts);
     },
-    forget: (account) => forgetAccount(deps, signals, account),
+    forget: (account) => forgetAccount(deps, signals, avatars, account),
     newId: deps.newAccountId,
     onChange: changed,
   });

@@ -153,12 +153,12 @@ describe('parsePageState', () => {
 describe('describePageState', () => {
   it('names the view and the landmark table, never the unread count', () => {
     expect(describePageState({ view: 'chats', chatOpen: true, unread: 12 })).toBe(
-      'WhatsApp view=chats, chat_open=true (landmarks v3)',
+      'WhatsApp view=chats, chat_open=true (landmarks v4)',
     );
-    expect(LANDMARKS_VERSION).toBe(3);
+    expect(LANDMARKS_VERSION).toBe(4);
   });
 
   it('says when the page could not be read', () => {
-    expect(describePageState(undefined)).toBe('WhatsApp page unavailable (landmarks v3)');
+    expect(describePageState(undefined)).toBe('WhatsApp page unavailable (landmarks v4)');
   });
 });

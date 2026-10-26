@@ -14,9 +14,28 @@ const STATE: SidebarState = {
       muted: false,
       active: false,
       sharing: false,
+      avatar: undefined,
     },
-    { id: 'b', name: 'Work', color: 'blue', unread: 0, muted: false, active: true, sharing: false },
-    { id: 'c', name: 'Shop', color: 'red', unread: 0, muted: true, active: false, sharing: false },
+    {
+      id: 'b',
+      name: 'Work',
+      color: 'blue',
+      unread: 0,
+      muted: false,
+      active: true,
+      sharing: false,
+      avatar: undefined,
+    },
+    {
+      id: 'c',
+      name: 'Shop',
+      color: 'red',
+      unread: 0,
+      muted: true,
+      active: false,
+      sharing: false,
+      avatar: undefined,
+    },
     {
       id: 'd',
       name: 'Club',
@@ -25,6 +44,7 @@ const STATE: SidebarState = {
       muted: false,
       active: false,
       sharing: false,
+      avatar: undefined,
     },
   ],
   compact: false,
@@ -70,6 +90,22 @@ describe('Sidebar', () => {
       'CClub99+',
     );
     expect(screen.queryByText('Do not disturb')).toBeNull();
+  });
+
+  it('shows an account’s WhatsApp photo in place of its initial, once there is one', async () => {
+    const t = setup();
+    await screen.findByRole('button', { name: 'Work' });
+    const photo = 'data:image/png;base64,AAAA';
+    t.push({
+      ...STATE,
+      accounts: STATE.accounts.map((account) =>
+        account.id === 'b' ? { ...account, avatar: photo } : account,
+      ),
+    });
+    const work = screen.getByRole('button', { name: 'Work' });
+    expect(work.querySelector('img')?.getAttribute('src')).toBe(photo);
+    expect(work.textContent).toBe('Work');
+    expect(screen.getByRole('button', { name: 'Shop, muted' }).querySelector('img')).toBeNull();
   });
 
   it('shows a running share beside its account, with a way to stop it', async () => {

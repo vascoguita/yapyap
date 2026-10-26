@@ -6,7 +6,16 @@ import { QuickPanel } from './QuickPanel.tsx';
 
 const STATE: SidebarState = {
   accounts: [
-    { id: 'a', name: 'Home', color: 'green', unread: 3, muted: false, active: true, sharing: true },
+    {
+      id: 'a',
+      name: 'Home',
+      color: 'green',
+      unread: 3,
+      muted: false,
+      active: true,
+      sharing: true,
+      avatar: undefined,
+    },
     {
       id: 'b',
       name: 'Work',
@@ -15,6 +24,7 @@ const STATE: SidebarState = {
       muted: false,
       active: false,
       sharing: false,
+      avatar: undefined,
     },
   ],
   compact: true,

@@ -70,6 +70,8 @@ export interface SidebarAccount {
   readonly active: boolean;
   /** Sharing a screen or window right now, which the sidebar always shows (#161). */
   readonly sharing: boolean;
+  /** The account's WhatsApp profile photo as a data URL, once YapYap has read it (#87). */
+  readonly avatar: string | undefined;
 }
 
 /** What the sidebar shows: the running accounts and how to lay them out. */
