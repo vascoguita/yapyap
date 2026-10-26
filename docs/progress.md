@@ -985,6 +985,13 @@ not edit the same lines.
   developer's desktop. `appEnvironment` now sets `XDG_SESSION_TYPE=x11`
   unless a test asks for Wayland.
 
+- Panel style (#396): plugin panels had the browser's default look.
+  YapYap now serves `/__yapyap/panel.css`, which every panel page links
+  before the plugin's module, under the plugin CSP and unreplaceable by
+  plugin files. It brings YapYap's colors in light and dark, styled form
+  controls and lists, a focus ring, documented `--yapyap-*` variables and
+  a `yapyap-primary` class, which the AI assistant uses for its next step.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).

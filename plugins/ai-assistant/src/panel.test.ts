@@ -116,6 +116,17 @@ describe('mountPanel', () => {
     expect(t.sent.at(-1)).toEqual({ type: 'allow-chat', allowed: true });
   });
 
+  it('marks the next step in each section with YapYap’s primary style', () => {
+    const t = setup();
+    const primary = () =>
+      [...document.querySelectorAll('button.yapyap-primary')].map((b) => b.textContent);
+    expect(primary()).toEqual(['Save key', 'Look at this chat', 'Rewrite my draft']);
+    expect(t.button('Forget key').className).toBe('');
+    t.receive({ type: 'preview', chat: 'Ana', allowed: true, instructions: 'I', transcript: 'T' });
+    expect(primary()).toContain('Send');
+    expect(t.button('Stop allowing in this chat').className).toBe('');
+  });
+
   it('shows exactly what will be sent, streams the answer, and puts the picked reply in the draft', () => {
     const t = setup();
     t.receive({

@@ -220,8 +220,9 @@ of its own, Chromium shows none, and so neither do plugin items.
 
 Panels are the last (#98). **Plugin Commands** lists each running plugin's
 panel after its commands. Picking one opens the panel's window, or brings
-it forward. YapYap serves its page at `/__yapyap/panel.html`, which loads
-the manifest's `panel.entry` as a module. The window has no preload, so the
+it forward. YapYap serves its page at `/__yapyap/panel.html`, which links
+YapYap's panel style (`/__yapyap/panel.css`, #396) and loads the
+manifest's `panel.entry` as a module. The window has no preload, so the
 panel gets no port; it reaches the host API only through its plugin's
 hidden page, which shares its origin. The window's title is
 `<plugin name>: <panel title>`, and the page cannot change it. The panel

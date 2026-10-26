@@ -42,6 +42,9 @@ const PROBLEMS: Readonly<Record<string, string>> = {
 
 const SOMETHING_WRONG = 'Something went wrong. Try again.';
 
+/** YapYap's panel style (#396) marks the action a section is about. */
+const PRIMARY = 'yapyap-primary';
+
 /** How often the panel asks for the setup until the hidden page answers. */
 const RETRY_MS = 1000;
 
@@ -80,7 +83,11 @@ function keySection(
   status.setAttribute('role', 'status');
   const label = element(doc, 'label', { htmlFor: 'key', textContent: 'API key' });
   const input = element(doc, 'input', { id: 'key', type: 'password', autocomplete: 'off' });
-  const save = element(doc, 'button', { type: 'submit', textContent: 'Save key' });
+  const save = element(doc, 'button', {
+    type: 'submit',
+    textContent: 'Save key',
+    className: PRIMARY,
+  });
   const forget = element(doc, 'button', { type: 'button', textContent: 'Forget key' });
   const form = element(doc, 'form');
   form.append(label, input, save, forget);
@@ -101,9 +108,13 @@ function keySection(
   return { section, show };
 }
 
-/** A button that sends `request` to the hidden page. */
-function asking(doc: Document, port: Port, label: string, request: PanelRequest) {
-  const button = element(doc, 'button', { type: 'button', textContent: label });
+/** A button that sends `request` to the hidden page; `primary` for the step to take next. */
+function asking(doc: Document, port: Port, label: string, request: PanelRequest, primary = false) {
+  const button = element(doc, 'button', {
+    type: 'button',
+    textContent: label,
+    className: primary ? PRIMARY : '',
+  });
   button.addEventListener('click', () => {
     port.postMessage(request);
   });
@@ -115,7 +126,7 @@ function previewOf(doc: Document, port: Port, preview: Preview): HTMLElement[] {
   if (!preview.allowed) {
     return [
       element(doc, 'p', { textContent: `The assistant is off in “${preview.chat}”.` }),
-      asking(doc, port, 'Allow in this chat', { type: 'allow-chat', allowed: true }),
+      asking(doc, port, 'Allow in this chat', { type: 'allow-chat', allowed: true }, true),
     ];
   }
   const sent = element(doc, 'pre', {
@@ -125,7 +136,7 @@ function previewOf(doc: Document, port: Port, preview: Preview): HTMLElement[] {
   return [
     element(doc, 'p', { textContent: 'This is exactly what will be sent:' }),
     sent,
-    asking(doc, port, 'Send', { type: 'send' }),
+    asking(doc, port, 'Send', { type: 'send' }, true),
     asking(doc, port, 'Stop allowing in this chat', { type: 'allow-chat', allowed: false }),
   ];
 }
@@ -174,7 +185,7 @@ function rewriteForm(doc: Document, port: Port): HTMLElement[] {
     style,
     languageLabel,
     language,
-    element(doc, 'button', { type: 'submit', textContent: 'Rewrite my draft' }),
+    element(doc, 'button', { type: 'submit', textContent: 'Rewrite my draft', className: PRIMARY }),
   );
   form.addEventListener('submit', (event) => {
     event.preventDefault();
@@ -194,7 +205,7 @@ function repliesSection(doc: Document, port: Port) {
   const section = element(doc, 'section');
   section.append(
     element(doc, 'h2', { textContent: 'Suggest replies' }),
-    asking(doc, port, 'Look at this chat', { type: 'prepare' }),
+    asking(doc, port, 'Look at this chat', { type: 'prepare' }, true),
     asking(doc, port, 'Summarize this chat', { type: 'prepare-summary' }),
     ...rewriteForm(doc, port),
     output,
