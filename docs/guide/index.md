@@ -66,7 +66,7 @@ turns off hardware acceleration for that launch only:
 - **Windows:** run `YapYap.exe --safe-mode`.
 - **macOS:** run `open -a YapYap --args --safe-mode`.
 
-When graphics crash three times within a day, YapYap starts the next launch
+When graphics crash in three separate runs within a day, YapYap starts the next launch
 without hardware acceleration on its own and tells you. **Copy technical
 details** in About includes the graphics mode, so bug reports show it.
 

@@ -113,12 +113,12 @@ describe('describeGraphics', () => {
 
 describe('guardGpu', () => {
   function setup(log: string, preferences = ALL_ON) {
-    let gone: Parameters<GpuApp['on']>[1] = () => undefined;
+    const listeners = new Map<string, (...args: never[]) => void>();
     const app = {
       disableHardwareAcceleration: vi.fn(),
       commandLine: { appendSwitch: vi.fn() },
-      on: vi.fn((_event: 'child-process-gone', listener: typeof gone) => {
-        gone = listener;
+      on: vi.fn((event: string, listener: (...args: never[]) => void) => {
+        listeners.set(event, listener);
       }),
     } satisfies GpuApp;
     const deps = {
@@ -135,7 +135,10 @@ describe('guardGpu', () => {
       deps,
       graphics,
       gone: (type: string, reason: string) => {
-        gone({}, { type, reason });
+        listeners.get('child-process-gone')?.(...([{}, { type, reason, exitCode: 9 }] as never[]));
+      },
+      quit: () => {
+        listeners.get('before-quit')?.();
       },
     };
   }
@@ -161,6 +164,25 @@ describe('guardGpu', () => {
     t.gone('GPU', 'clean-exit');
     t.gone('GPU', 'crashed');
     expect(t.deps.writeLog.mock.calls).toEqual([[JSON.stringify([3 * DAY])]]);
+    expect(t.deps.warn).toHaveBeenCalledExactlyOnceWith(
+      'The GPU process ended (crashed, exit code 9).',
+    );
+  });
+
+  it('counts a run once, however many times its GPU process goes (#379)', () => {
+    const t = setup('[]');
+    for (let crash = 0; crash < 5; crash += 1) {
+      t.gone('GPU', 'launch-failed');
+    }
+    expect(t.deps.writeLog).toHaveBeenCalledOnce();
+  });
+
+  it('ignores the GPU process going while YapYap quits', () => {
+    const t = setup('[]');
+    t.quit();
+    t.gone('GPU', 'killed');
+    expect(t.deps.writeLog).not.toHaveBeenCalled();
+    expect(t.deps.warn).not.toHaveBeenCalled();
   });
 
   it('turns off only hardware video decoding when the settings say so, quietly', () => {
@@ -178,6 +200,6 @@ describe('guardGpu', () => {
       throw new Error('EROFS');
     });
     t.gone('GPU', 'crashed');
-    expect(t.deps.warn).toHaveBeenCalledExactlyOnceWith('Could not record a GPU process crash.');
+    expect(t.deps.warn).toHaveBeenLastCalledWith('Could not record a GPU process crash.');
   });
 });

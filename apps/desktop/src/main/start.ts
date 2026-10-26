@@ -137,7 +137,10 @@ export interface AppPort {
   ): unknown;
   on(
     event: 'child-process-gone',
-    listener: (event: unknown, details: { readonly type: string; readonly reason: string }) => void,
+    listener: (
+      event: unknown,
+      details: { readonly type: string; readonly reason: string; readonly exitCode: number },
+    ) => void,
   ): unknown;
   on(
     event: 'web-contents-created',
