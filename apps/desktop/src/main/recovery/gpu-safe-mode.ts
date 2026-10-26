@@ -1,4 +1,8 @@
-/** This many GPU process crashes within a day start the next launch without acceleration. */
+/**
+ * GPU process crashes in this many runs within a day start the next launch
+ * without acceleration. A run counts once, however often its GPU process
+ * restarts, so one bad moment never turns acceleration off for a day.
+ */
 export const GPU_CRASH_LIMIT = 3;
 /** One day. */
 export const GPU_CRASH_WINDOW_MS = 86_400_000;
@@ -82,8 +86,12 @@ export interface GpuApp {
   readonly commandLine: { appendSwitch(name: string): void };
   on(
     event: 'child-process-gone',
-    listener: (event: unknown, details: { readonly type: string; readonly reason: string }) => void,
+    listener: (
+      event: unknown,
+      details: { readonly type: string; readonly reason: string; readonly exitCode: number },
+    ) => void,
   ): unknown;
+  on(event: 'before-quit', listener: () => void): unknown;
 }
 
 export interface GpuGuardDependencies {
@@ -116,15 +124,32 @@ export function guardGpu(app: GpuApp, deps: GpuGuardDependencies): Graphics {
   if (graphics.reason === 'gpu-crashes') {
     deps.warn('The GPU process crashed repeatedly; hardware acceleration is off for this run.');
   }
-  app.on('child-process-gone', (_event, { type, reason }) => {
-    if (type !== 'GPU' || reason === 'clean-exit') {
+  recordGpuCrashes(app, deps);
+  return graphics;
+}
+
+/**
+ * Records this run's first GPU process crash for the next launch to read.
+ * Chromium restarts a crashed GPU process at once, and one failure can end
+ * several in a few milliseconds (#379), so later ones in the run are only
+ * logged. A GPU process that goes while YapYap quits, as when an upgrade
+ * replaces its files, says nothing about the graphics driver.
+ */
+function recordGpuCrashes(app: GpuApp, deps: GpuGuardDependencies): void {
+  let done = false;
+  app.on('before-quit', () => {
+    done = true;
+  });
+  app.on('child-process-gone', (_event, { type, reason, exitCode }) => {
+    if (type !== 'GPU' || reason === 'clean-exit' || done) {
       return;
     }
+    done = true;
+    deps.warn(`The GPU process ended (${reason}, exit code ${String(exitCode)}).`);
     try {
       deps.writeLog(JSON.stringify(withGpuCrash(readGpuCrashes(deps.readLog), deps.now())));
     } catch {
       deps.warn('Could not record a GPU process crash.');
     }
   });
-  return graphics;
 }

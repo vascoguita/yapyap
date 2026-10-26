@@ -967,6 +967,12 @@ not edit the same lines.
   "Object has been destroyed" into the log. It now stops its timer on the
   renderer's `destroyed` event.
 
+- GPU crash fallback (#379): one GPU process failure, during a quit or an
+  upgrade, fired `child-process-gone` five times within 6 ms, which counted
+  as five crashes and turned hardware acceleration off for a day. A run now
+  records at most one crash, nothing after `before-quit`, and logs the
+  reason and exit code.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).
