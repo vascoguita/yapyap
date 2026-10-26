@@ -1011,6 +1011,14 @@ not edit the same lines.
   private file in the runner's temporary folder, and falls back to the
   Apple ID secrets otherwise.
 
+- OpenSSF Scorecard (#404): each release now carries its signed build
+  provenance as `yapyap-<tag>.sigstore.json` and `yapyap-<tag>.intoto.jsonl`,
+  where Scorecard and other verifiers look. The packages.guita.org deploy
+  installs wrangler with `npm ci` from `packaging/repository/deploy`, a
+  lockfile Dependabot keeps current, and the pinned-versions job proposes
+  updates only with the automation App's token, its workflow token
+  read-only.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).
