@@ -992,6 +992,11 @@ not edit the same lines.
   controls and lists, a focus ring, documented `--yapyap-*` variables and
   a `yapyap-primary` class, which the AI assistant uses for its next step.
 
+- Withdrawing read notifications (#398): WhatsApp leaves its notifications
+  in the system's list after their chats are read, and GNOME's dock counts
+  them. When an account's title shows no unread chats, YapYap now closes
+  that account's notifications.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).

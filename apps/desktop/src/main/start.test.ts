@@ -990,6 +990,26 @@ describe('startApp', () => {
       expect(native.close).toHaveBeenCalledOnce();
     });
 
+    it('withdraws an account’s notifications once it has nothing unread', async () => {
+      const f = twoAccounts();
+      await startApp(f);
+      const [personal, work] = f.hosts;
+      const notify = (host: typeof personal, id: string): void => {
+        f.ipcListeners.get('whatsapp:notification-show')?.(
+          { sender: host?.webContents, senderFrame: { url: `${WHATSAPP_ORIGIN}/` } },
+          { id, title: 'Alice', body: 'Hi' },
+        );
+      };
+      notify(personal, '1');
+      notify(work, '2');
+      const [alice, bob] = f.natives;
+      personal?.page.fire('page-title-updated', {}, '(1) WhatsApp');
+      expect(alice?.close).not.toHaveBeenCalled();
+      personal?.page.fire('page-title-updated', {}, 'WhatsApp');
+      expect(alice?.close).toHaveBeenCalledOnce();
+      expect(bob?.close).not.toHaveBeenCalled();
+    });
+
     it('puts a reply typed in a notification into the chat’s message box, unsent', async () => {
       const f = twoAccounts();
       await startApp(f);

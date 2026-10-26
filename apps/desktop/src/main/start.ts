@@ -1,3 +1,4 @@
+import { unreadInTitle } from '../adapter/page-state.ts';
 import { accountAvatars, type AccountAvatars, type AvatarPage } from './accounts/avatars.ts';
 import type { AccountSummary } from '../shared/chrome-api.ts';
 import type { AccountMenu, ChromeFeature, WhatsAppContents } from './chrome/feature.ts';
@@ -453,7 +454,7 @@ function notifyFor<Window extends WindowPort>(
 
 /** Its memory, its zoom and hidden reads, and its title, which carries the unread count. */
 function watchAccountPage<Window extends WindowPort>(
-  { deps, window, signals, avatars }: AccountWiring<Window>,
+  { deps, window, signals, avatars, notifiers }: AccountWiring<Window>,
   contents: AccountContents,
   account: Account,
 ): void {
@@ -471,6 +472,11 @@ function watchAccountPage<Window extends WindowPort>(
   deps.customCode.attach(contents, account.id);
   contents.on('page-title-updated', (_event, title) => {
     signals.pageTitle(account.id, title);
+    // WhatsApp never withdraws its notifications once their chats are read (#398),
+    // and docks such as GNOME's count what is left in the notification list.
+    if (unreadInTitle(title) === 0) {
+      notifiers.byPage.get(contents)?.closeAll();
+    }
     // WhatsApp retitles its page as chats come and go, a cheap moment to look again.
     void avatars.refresh(account.id, contents);
   });
