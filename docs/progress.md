@@ -979,6 +979,12 @@ not edit the same lines.
   `accountAvatars` now reads again a minute later on its own, up to ten
   misses in a row, and stops for a removed account or a destroyed page.
 
+- Local E2E isolation on Wayland desktops (#394): Chromium chose Wayland
+  from the desktop's `XDG_SESSION_TYPE` and reached the real compositor
+  through its default socket, so local runs opened windows on the
+  developer's desktop. `appEnvironment` now sets `XDG_SESSION_TYPE=x11`
+  unless a test asks for Wayland.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).
