@@ -100,6 +100,10 @@ export default defineConfig({
               text: '0012 Translations',
               link: '/adr/0012-translations',
             },
+            {
+              text: '0013 In-chat assistant',
+              link: '/adr/0013-in-chat-assistant-bar',
+            },
           ],
         },
       ],

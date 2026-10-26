@@ -1019,6 +1019,12 @@ not edit the same lines.
   updates only with the automation App's token, its workflow token
   read-only.
 
+- In-chat assistant design (#407, first part): ADR 0013 puts AI
+  suggestions in a bar YapYap draws beneath WhatsApp's view, filled by a
+  plugin holding `assistant:bar` with plain text, and acting only on the
+  user's clicks: **Suggest replies**, **Write a message**, and a Send button
+  that only YapYap's own interface has (C31 in ADR 0008).
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).
