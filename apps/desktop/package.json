@@ -17,25 +17,25 @@
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",
-    "@testing-library/preact": "3.2.4",
+    "@testing-library/preact": "3.2.6",
     "@yapyap/plugin-sdk": "workspace:*",
     "@yapyap/plugin-sign": "workspace:*",
     "axe-core": "4.14.0",
     "electron": "45.0.0",
-    "electron-builder": "26.15.3",
+    "electron-builder": "26.18.0",
     "electron-vite": "6.0.0",
     "fast-check": "4.10.2",
     "fflate": "0.8.3",
     "happy-dom": "21.0.4",
-    "vite": "8.3.4"
+    "vite": "8.3.5"
   },
   "productName": "YapYap",
   "desktopName": "org.guita.YapYap.desktop",
   "main": "./out/main/index.js",
   "homepage": "https://yapyap.guita.org/",
   "dependencies": {
-    "electron-updater": "6.8.9",
+    "electron-updater": "6.8.11",
     "preact": "11.0.1",
-    "typebox": "1.4.2"
+    "typebox": "1.4.3"
   }
 }
