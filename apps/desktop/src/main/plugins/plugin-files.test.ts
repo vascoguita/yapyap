@@ -9,6 +9,7 @@ import {
   servePluginFiles,
   type PluginSource,
 } from './plugin-files.ts';
+import { PANEL_STYLE } from './panel-style.ts';
 
 const ID = 'org.example.hello';
 const FOLDER = resolve('/plugins', ID, '1.0.0');
@@ -55,7 +56,20 @@ describe('servePluginFiles', () => {
     expect(page.headers.get('content-security-policy')).toBe(PLUGIN_CSP);
     expect(await page.text()).toBe(panelPage('ui/panel.js'));
     expect(panelPage('ui/panel.js')).toContain('<script type="module" src="/ui/panel.js">');
+    expect(panelPage('ui/panel.js')).toContain(
+      '<link rel="stylesheet" href="/__yapyap/panel.css">',
+    );
     expect((await setup().get(`plugin://${ID}/__yapyap/panel.html`)).status).toBe(404);
+  });
+
+  it('serves YapYap’s panel style under the plugin CSP, which no plugin file replaces', async () => {
+    const style = await setup({ '__yapyap/panel.css': 'body { color: red }' }).get(
+      `plugin://${ID}/__yapyap/panel.css`,
+    );
+    expect(style.headers.get('content-type')).toBe('text/css');
+    expect(style.headers.get('content-security-policy')).toBe(PLUGIN_CSP);
+    expect(await style.text()).toBe(PANEL_STYLE);
+    expect(PANEL_STYLE).toContain('--yapyap-accent');
   });
 
   it('serves the plugin’s files with their types, and nothing it did not ship', async () => {

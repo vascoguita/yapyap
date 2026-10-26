@@ -120,6 +120,27 @@ setting, a request to a host not in the manifest asks the user first. Keep
 API keys in `host.secrets`, which the operating system encrypts, never in
 settings.
 
+### Styling a panel
+
+A panel starts with YapYap's own look: system fonts, YapYap's colors in
+light and dark, styled buttons, inputs and lists, and a visible focus ring.
+YapYap links this stylesheet before your panel's module, so plain HTML
+already fits in. Give the button for the step a person takes next the
+`yapyap-primary` class.
+
+To style more, ship a stylesheet in your plugin and add it from your
+panel's module with a `<link rel="stylesheet">` to its path: the plugin
+CSP allows your own files, never inline styles. Build on these variables,
+which follow the theme:
+
+| Variable                                | What it is                          |
+| --------------------------------------- | ----------------------------------- |
+| `--yapyap-surface`, `--yapyap-raised`   | The page background, and cards      |
+| `--yapyap-text`, `--yapyap-muted`       | Text, and secondary text            |
+| `--yapyap-accent`, `--yapyap-on-accent` | Accent color, and text on it        |
+| `--yapyap-border`, `--yapyap-danger`    | Borders, and errors                 |
+| `--yapyap-radius`                       | Corner radius of cards and messages |
+
 ## Build it
 
 The example compiles `src/main.ts` with `tsc` and copies the manifest next

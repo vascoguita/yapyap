@@ -6,3 +6,6 @@ export const HOST_SCRIPT_PATH = '/__yapyap/host.js';
 
 /** Where YapYap serves the page that holds a plugin's panel, which loads the panel's module. */
 export const PANEL_PAGE_PATH = '/__yapyap/panel.html';
+
+/** Where YapYap serves the stylesheet every panel starts with (#396). */
+export const PANEL_STYLE_PATH = '/__yapyap/panel.css';
