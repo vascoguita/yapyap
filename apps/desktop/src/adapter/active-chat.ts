@@ -24,6 +24,8 @@ interface ChatPlaces {
   readonly chatName: string;
   readonly message: string;
   readonly messageText: string;
+  readonly messageBody: string;
+  readonly outgoing: string;
 }
 
 interface Limits {
@@ -49,10 +51,15 @@ export function readActiveChat(doc: ReadDocument, places: ChatPlaces, limits: Li
     return (found?.innerText ?? found?.textContent ?? '').trim();
   };
   const idOf = (row: ReadElement): string => row.dataset?.id ?? '';
+  // WhatsApp once marked the account's own messages by their ID, and now
+  // only by the tail and delivery status they alone have (#410).
+  const outgoing = (row: ReadElement): boolean =>
+    idOf(row).startsWith('true_') || row.querySelector(places.outgoing) !== null;
   const rows = Array.from(doc.querySelectorAll(places.message)) as ReadElement[];
   const messages = rows.flatMap((row) => {
-    const text = textOf(row.querySelector(places.messageText)).slice(0, limits.text);
-    return text === '' ? [] : [{ outgoing: idOf(row).startsWith('true_'), text }];
+    const body = row.querySelector(places.messageBody) ?? row.querySelector(places.messageText);
+    const text = textOf(body).slice(0, limits.text);
+    return text === '' ? [] : [{ outgoing: outgoing(row), text }];
   });
   return {
     name: textOf(doc.querySelector(places.chatName)).slice(0, limits.name),
@@ -68,6 +75,8 @@ export function activeChatReader(messages: number): string {
     chatName: LANDMARKS.chatName,
     message: LANDMARKS.message,
     messageText: LANDMARKS.messageText,
+    messageBody: LANDMARKS.messageBody,
+    outgoing: LANDMARKS.outgoing,
   };
   const limits: Limits = { messages, text: MAX_TEXT, name: MAX_NAME };
   return `(${readActiveChat.toString()})(document, ${JSON.stringify(places)}, ${JSON.stringify(limits)})`;

@@ -1025,6 +1025,14 @@ not edit the same lines.
   user's clicks: **Suggest replies**, **Write a message**, and a Send button
   that only YapYap's own interface has (C31 in ADR 0008).
 
+- Chat reader markers (#410): WhatsApp dropped the `true_` prefix that
+  marked the account's own messages, so plugins saw every message as
+  someone else's. The reader now also knows them by the tail and the
+  clickable delivery status only sent messages have, reads the message
+  body without the time beside it, and finds the chat's name by its test
+  ID (landmarks v5). The fake page follows today's structure. Groups still
+  need a new marker.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).

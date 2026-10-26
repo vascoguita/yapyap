@@ -43,13 +43,26 @@
     <output data-testid="share-status"></output>
     <div id="main">
       <header><span dir="auto">Test Chat One</span></header>
-      <div role="row" data-id="false_447700900123@c.us_3EB0F1" data-testid="message">
-        <div data-pre-plain-text="[19:58, 24/10/2026] Test Chat One: ">
-          <span>Dinner tonight?</span>
+      <!-- As WhatsApp marks messages today: a bare ID, and only the account's
+           own messages with a tail and a clickable delivery status (#410). -->
+      <div role="row" data-testid="message">
+        <div data-testid="conv-msg-3EB0F1" data-id="3EB0F1">
+          <div data-pre-plain-text="[19:58, 24/10/2026] Test Chat One: ">
+            <span data-testid="selectable-text">Dinner tonight?</span>
+            <span aria-hidden="true">19:58</span>
+          </div>
+          <div data-testid="msg-meta"><span>19:58</span></div>
         </div>
       </div>
-      <div role="row" data-id="true_447700900123@c.us_3EB0F2">
-        <div data-pre-plain-text="[20:01, 24/10/2026] You: "><span>See you at 8</span></div>
+      <div role="row">
+        <div data-testid="conv-msg-3EB0F2" data-id="3EB0F2">
+          <span data-testid="tail-out"></span>
+          <div data-pre-plain-text="[20:01, 24/10/2026] You: ">
+            <span data-testid="selectable-text">See you at 8</span>
+            <span aria-hidden="true">20:01</span>
+          </div>
+          <div data-testid="msg-meta" role="button"><span>20:01</span></div>
+        </div>
       </div>
       <footer>
         <div data-testid="composer" contenteditable="true" aria-label="Type a message"></div>

@@ -2,7 +2,7 @@
  * Bump whenever a landmark below changes, so diagnostics show which table a
  * report came from.
  */
-export const LANDMARKS_VERSION = 4;
+export const LANDMARKS_VERSION = 5;
 
 /**
  * Structural landmarks of WhatsApp Web: element ids and attributes that have
@@ -20,8 +20,9 @@ export const LANDMARKS = {
   conversation: '#main',
   /** The open conversation's message box, where a reply from a notification goes (#60). */
   composer: '#main footer [contenteditable="true"]',
-  /** The open chat's name, first in its header (#100). */
-  chatName: '#main header span[dir="auto"]',
+  /** The open chat's name in its header (#100); older pages named it only by direction (#410). */
+  chatName:
+    '#main header [data-testid="conversation-info-header-chat-title"], #main header span[dir="auto"]',
   /**
    * A message in the open chat. Its ID starts with `true_` when the account
    * sent it, and names a `@g.us` chat in groups (#100).
@@ -29,6 +30,13 @@ export const LANDMARKS = {
   message: '#main [data-id]',
   /** The text of a message, which WhatsApp marks for copying with its sender and time. */
   messageText: '[data-pre-plain-text]',
+  /** Just the body of a message's text, without the time WhatsApp lays out beside it (#410). */
+  messageBody: '[data-pre-plain-text] [data-testid="selectable-text"]',
+  /**
+   * Marks on the account's own messages: the tail of the first in a run, and
+   * the delivery status, which only sent messages have (#410).
+   */
+  outgoing: '[data-testid="tail-out"], [data-testid="msg-meta"][role="button"]',
   /** The account's own profile photo, on the profile button at the foot of the navigation bar (#87). */
   ownAvatar: '[data-testid="navbar-footer-section"] button[data-navbar-item] img',
 } as const;

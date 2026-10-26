@@ -9,6 +9,8 @@ const PLACES = {
   chatName: LANDMARKS.chatName,
   message: LANDMARKS.message,
   messageText: LANDMARKS.messageText,
+  messageBody: LANDMARKS.messageBody,
+  outgoing: LANDMARKS.outgoing,
 };
 const LIMITS = { messages: 2, text: 10, name: 8 };
 
@@ -41,6 +43,24 @@ describe('readActiveChat', () => {
     });
   });
 
+  it('reads today’s page, which marks the account’s messages by their tail and status, not their ID', () => {
+    const today = (id: string, text: string, own: string) =>
+      `<div role="row"><div data-testid="conv-msg-${id}" data-id="${id}">${own}<div data-pre-plain-text="[09:30] "><span data-testid="selectable-text">${text}</span><span aria-hidden="true">09:30</span></div><div data-testid="msg-meta"${own === '' ? '' : ' role="button"'}><span>09:30</span></div></div></div>`;
+    const chat = `<div id="main"><header><span data-testid="conversation-info-header-chat-title">Ana</span><span dir="auto">online</span></header>
+      ${today('3A1', 'Hi', '')}
+      ${today('3A2', 'Hello', '<span data-testid="tail-out"></span>')}
+      ${today('3A3', 'How are you?', '<span></span>')}</div>`;
+    expect(readActiveChat(page(chat), PLACES, { messages: 5, text: 50, name: 20 })).toEqual({
+      name: 'Ana',
+      group: false,
+      messages: [
+        { outgoing: false, text: 'Hi' },
+        { outgoing: true, text: 'Hello' },
+        { outgoing: true, text: 'How are you?' },
+      ],
+    });
+  });
+
   it('knows a group by its messages’ IDs', () => {
     const group = `<div id="main">${row('false_120363000000000001@g.us_B1_447700900123@c.us', 'Hey')}</div>`;
     expect(readActiveChat(page(group), PLACES, LIMITS)).toEqual({
@@ -58,7 +78,8 @@ describe('readActiveChat', () => {
     const text = { textContent: ' Plain ', querySelector: () => null };
     const message = {
       textContent: null,
-      querySelector: () => ({ textContent: 'Body' }),
+      querySelector: (selector: string) =>
+        selector === PLACES.outgoing ? null : { textContent: 'Body' },
     };
     const doc = {
       querySelector: (selector: string) => (selector === PLACES.chatName ? text : {}),
