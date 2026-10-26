@@ -18,5 +18,6 @@ ADR that supersedes the old one.
 | [0010](0010-static-analysis-with-sonarqube-cloud.md)  | Static analysis with SonarQube Cloud               | Accepted |
 | [0011](0011-whatsapp-notifications.md)                | WhatsApp notifications                             | Accepted |
 | [0012](0012-translations.md)                          | Translations                                       | Accepted |
+| [0013](0013-in-chat-assistant-bar.md)                 | The in-chat assistant bar                          | Accepted |
 
 New ADRs copy [`template.md`](template.md) and take the next free number.
