@@ -5,7 +5,7 @@
       "entry": ["*.config.{js,ts}", "vitest.mutation.setup.ts"]
     },
     "apps/desktop": {
-      "entry": ["e2e/**/*.spec.ts"],
+      "entry": ["e2e/**/*.spec.ts", "src/preload/*/index.ts"],
       "project": ["src/**/*.{ts,tsx}", "e2e/**/*.ts", "test/**/*.ts"]
     },
     "scripts": {

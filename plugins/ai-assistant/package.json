@@ -13,7 +13,7 @@
   "devDependencies": {
     "@yapyap/plugin-sdk": "workspace:*",
     "happy-dom": "21.0.4",
-    "vite": "8.3.4"
+    "vite": "8.3.5"
   },
   "scripts": {
     "build": "vite build",

@@ -15,6 +15,6 @@
     "schema": "node src/bin/write-schema.ts"
   },
   "dependencies": {
-    "typebox": "1.4.2"
+    "typebox": "1.4.3"
   }
 }

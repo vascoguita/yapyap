@@ -12,7 +12,7 @@ export default defineConfig({
   },
   preload: {
     build: {
-      rollupOptions: {
+      rolldownOptions: {
         input: {
           chrome: resolve(import.meta.dirname, 'src/preload/chrome/index.ts'),
           whatsapp: resolve(import.meta.dirname, 'src/preload/whatsapp/index.ts'),
@@ -26,7 +26,7 @@ export default defineConfig({
   renderer: {
     root: resolve(import.meta.dirname, 'src/renderer'),
     build: {
-      rollupOptions: {
+      rolldownOptions: {
         input: {
           about: resolve(import.meta.dirname, 'src/renderer/about.html'),
           recovery: resolve(import.meta.dirname, 'src/renderer/recovery.html'),
