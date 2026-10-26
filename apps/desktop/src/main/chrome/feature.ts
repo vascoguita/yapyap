@@ -99,7 +99,7 @@ export const CHROME_PARTITION = 'yapyap-chrome';
 const ABOUT_PAGE: ChromePage = {
   path: 'about.html',
   window: {
-    title: en.windows.about(PRODUCT_NAME),
+    title: en.windows.about({ product: PRODUCT_NAME }),
     width: 480,
     height: 640,
     resizable: false,
@@ -211,7 +211,7 @@ const REPORT_PAGE: ChromePage = {
 const SETTINGS_PAGE: ChromePage = {
   path: 'settings.html',
   window: {
-    title: en.windows.settings(PRODUCT_NAME),
+    title: en.windows.settings({ product: PRODUCT_NAME }),
     width: 640,
     height: 680,
     minWidth: 420,

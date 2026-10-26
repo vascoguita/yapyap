@@ -28,7 +28,7 @@ export function unreadBadge<Image>(deps: BadgeDependencies<Image>): (count: numb
     }
     deps.setOverlayIcon(
       count === 0 ? null : deps.createImage(drawBadge(count)),
-      count === 0 ? '' : en.badge.unread(count),
+      count === 0 ? '' : en.badge.unread({ count }),
     );
   };
 }

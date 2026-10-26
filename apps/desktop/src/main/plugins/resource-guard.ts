@@ -74,7 +74,7 @@ function act(
     restarts.delete(plugin.id);
     deps.stop(plugin.id);
     deps.warn(`Plugin ${plugin.id} kept going over its ${limit} limit and was stopped.`);
-    deps.notify(en.plugins.stopped(plugin.name));
+    deps.notify(en.plugins.stopped({ plugin: plugin.name }));
     return;
   }
   restarts.set(plugin.id, recent);

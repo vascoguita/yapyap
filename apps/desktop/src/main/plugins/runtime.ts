@@ -404,7 +404,7 @@ function openPanel(deps: PluginRuntimeDependencies, state: RuntimeState, plugin:
   }
   const window = deps.createPanel(
     running.partition,
-    en.menu.pluginCommand(running.name, running.panel),
+    en.menu.pluginCommand({ plugin: running.name, title: running.panel }),
   );
   const home = pluginOrigin(plugin);
   deps.views.set(window.webContents, { home, zone: 'plugin', label: plugin });

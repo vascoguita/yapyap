@@ -15,6 +15,8 @@ plugin key rotation procedure.
    security-critical modules.
 5. Open a pull request that links the issue and includes test evidence.
 
+To translate YapYap, see [Translations](/translations).
+
 Architecture and design decisions are recorded in the
 [Architecture Decision Records](/adr/). Report vulnerabilities privately as
 described in the

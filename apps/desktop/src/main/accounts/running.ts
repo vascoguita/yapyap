@@ -1,5 +1,4 @@
-import { en } from '../../shared/messages/en.ts';
-import { colorFor, type Account, type Accounts } from './accounts.ts';
+import { colorFor, defaultName, type Account, type Accounts } from './accounts.ts';
 
 /** An open account in the window: its views, shown only while it is active. */
 export interface AccountPage {
@@ -99,7 +98,7 @@ function addAccount<Page extends AccountPage>(
   const position = state.accounts.accounts.length + 1;
   const account: Account = {
     id: deps.newId(),
-    name: en.accounts.defaultName(position),
+    name: defaultName(position),
     color: colorFor(position),
     enabled: true,
   };

@@ -94,7 +94,7 @@ function Form({
   };
   return (
     <form onSubmit={submit}>
-      <p>{text.asks(`${request.host}:${String(request.port)}`)}</p>
+      <p>{text.asks({ host: `${request.host}:${String(request.port)}` })}</p>
       {request.failed ? <p role="alert">{text.failed}</p> : null}
       <Field
         id="username"

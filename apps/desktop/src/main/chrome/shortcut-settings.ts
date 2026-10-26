@@ -55,7 +55,7 @@ function problemOf(service: Service, platform: string, id: string, accelerator: 
   const bindings = bindingsOf(service, platform);
   const taken = conflictOf(id, accelerator, bindings, platform);
   const other = bindings.find((binding) => binding.id === taken);
-  return other === undefined ? '' : text.taken(other.label);
+  return other === undefined ? '' : text.taken({ action: other.label });
 }
 
 function save(service: Service, id: string, accelerator: string | null): void {

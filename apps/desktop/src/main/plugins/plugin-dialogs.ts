@@ -40,7 +40,7 @@ export const electronPluginDialogs: Pick<
     const { response } = await dialog.showMessageBox({
       type: 'question',
       title: PRODUCT_NAME,
-      message: text.message(plugin, host),
+      message: text.message({ plugin, host }),
       detail: text.detail,
       buttons: [text.allow, text.deny],
       defaultId: 1,
@@ -54,7 +54,7 @@ export const electronPluginDialogs: Pick<
     const { response } = await dialog.showMessageBox({
       type: 'warning',
       title: PRODUCT_NAME,
-      message: text.message(plugin),
+      message: text.message({ plugin }),
       detail: text.detail,
       buttons: [text.confirm, en.common.cancel],
       defaultId: 1,

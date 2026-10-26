@@ -56,7 +56,7 @@ function notifications(plugin: CallingPlugin, services: HostServices): Record<st
       run: ([notification]) => {
         const { title, body } = notification as { readonly title: string; readonly body: string };
         if (!services.quiet()) {
-          services.notify(en.plugins.notificationTitle(plugin.name, title), body);
+          services.notify(en.plugins.notificationTitle({ plugin: plugin.name, title }), body);
         }
         return Promise.resolve();
       },

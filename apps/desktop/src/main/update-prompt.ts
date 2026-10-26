@@ -9,7 +9,7 @@ export async function askToInstallUpdateWithDialog(version: string): Promise<boo
   const { response } = await dialog.showMessageBox({
     type: 'info',
     title: PRODUCT_NAME,
-    message: TEXT.message(version),
+    message: TEXT.message({ version }),
     detail: TEXT.detail,
     buttons: [TEXT.install, TEXT.later],
     defaultId: 1,

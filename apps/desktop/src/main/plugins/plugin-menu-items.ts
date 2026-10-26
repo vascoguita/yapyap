@@ -46,7 +46,7 @@ export async function pluginMenuItems(
   return actions
     .filter(({ on }) => on === target)
     .map(({ plugin, pluginName, command, title }) => ({
-      label: en.menu.pluginCommand(pluginName, title),
+      label: en.menu.pluginCommand({ plugin: pluginName, title }),
       click: () => {
         plugins.run(plugin, command);
       },

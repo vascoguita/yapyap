@@ -152,7 +152,8 @@ function display(
   const privacy = deps.privacy();
   const sender = privacy.sender ? notification.title : en.notifications.hiddenSender;
   const heading = account.heading();
-  const title = heading === undefined ? sender : en.notifications.titled(heading, sender);
+  const title =
+    heading === undefined ? sender : en.notifications.titled({ account: heading, title: sender });
   const body = privacy.text ? notification.body : en.notifications.hiddenText;
   const reply = deps.inlineReply
     ? { hasReply: true, replyPlaceholder: en.notifications.replyPlaceholder }

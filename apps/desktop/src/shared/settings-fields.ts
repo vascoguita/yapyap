@@ -90,7 +90,10 @@ export const SETTING_FIELDS: readonly SettingField[] = [
   {
     ...described('appearance.zoom'),
     restart: false,
-    options: INTERFACE_SCALES.map((value) => ({ value, label: en.settings.scale(value) })),
+    options: INTERFACE_SCALES.map((value) => ({
+      value,
+      label: en.settings.scale({ percent: Math.round(value * 100) }),
+    })),
   },
   { ...described('appearance.pinchZoom'), restart: false },
   { ...described('appearance.compactSidebar'), restart: false },

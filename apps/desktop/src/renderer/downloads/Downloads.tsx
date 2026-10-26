@@ -29,10 +29,10 @@ function status(entry: DownloadEntry): string {
   switch (entry.state) {
     case 'progressing':
       return entry.total > 0
-        ? text.progress(sizeOf(entry.received), sizeOf(entry.total))
+        ? text.progress({ received: sizeOf(entry.received), total: sizeOf(entry.total) })
         : sizeOf(entry.received);
     case 'paused':
-      return text.paused(sizeOf(entry.received));
+      return text.paused({ received: sizeOf(entry.received) });
     default:
       return text[entry.state];
   }

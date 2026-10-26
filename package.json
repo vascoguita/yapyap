@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "pnpm --filter @yapyap/desktop dev",
     "build": "pnpm -r --if-present build",
-    "lint": "eslint --max-warnings=0 . && prettier --check . && knip",
+    "lint": "eslint --max-warnings=0 . && prettier --check . && knip && node scripts/src/bin/check-catalogs.ts",
     "format": "prettier --write .",
     "typecheck": "tsc -p tsconfig.json && pnpm -r --if-present typecheck",
     "test": "vitest run",

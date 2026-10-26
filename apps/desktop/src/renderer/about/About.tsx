@@ -20,7 +20,7 @@ type Load =
 
 function Details({ info }: { readonly info: AboutInfo }): JSX.Element {
   const rows: readonly (readonly [string, string])[] = [
-    [text.details.version, text.versionValue(info.version, info.channel)],
+    [text.details.version, text.versionValue({ version: info.version, channel: info.channel })],
     ['Electron', info.electron],
     ['Chromium', info.chromium],
     ['Node.js', info.node],

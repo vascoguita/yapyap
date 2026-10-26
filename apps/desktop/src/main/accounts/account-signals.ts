@@ -27,7 +27,7 @@ export function accountSignals(deps: SignalDependencies): AccountSignals {
   let online = true;
   const applyTitle = (): void => {
     const title = titles.get(active) ?? deps.initialTitle;
-    deps.setTitle(online ? title : en.windows.offline(title));
+    deps.setTitle(online ? title : en.windows.offline({ pageTitle: title }));
   };
   const applyUnread = (): void => {
     deps.showUnread([...titles.values()].reduce((total, title) => total + unreadInTitle(title), 0));

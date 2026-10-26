@@ -57,7 +57,7 @@ function Summary(props: {
   if (chosen.length > 0) {
     return (
       <p class="summary">
-        {text.chosen(chosen.length, MAX_SPELLING_LANGUAGES)}{' '}
+        {text.chosen({ count: chosen.length, max: MAX_SPELLING_LANGUAGES })}{' '}
         <button
           type="button"
           onClick={() => {
@@ -70,7 +70,7 @@ function Summary(props: {
     );
   }
   const names = inUse.map((code) => languageNames(code).own).join(', ');
-  return <p class="summary">{names === '' ? text.noSystem : text.system(names)}</p>;
+  return <p class="summary">{names === '' ? text.noSystem : text.system({ names })}</p>;
 }
 
 function LanguageList(props: {
