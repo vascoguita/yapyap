@@ -101,18 +101,10 @@ const faqs: readonly { readonly question: string; readonly answer: string }[] = 
         <div class="window">
           <div class="window-bar" aria-hidden="true"><span /><span /><span /></div>
           <img
-            class="only-light"
-            :src="shot('main-light')"
-            width="1200"
-            height="732"
-            alt="YapYap with two accounts in its sidebar, each with a profile photo and an unread count, beside an open chat."
-          />
-          <img
-            class="only-dark"
-            :src="shot('main-dark')"
-            width="1200"
-            height="732"
-            alt="YapYap in its dark theme, with two accounts in the sidebar beside an open chat."
+            :src="shot('main')"
+            width="1920"
+            height="869"
+            alt="YapYap running WhatsApp with two accounts, Personal and Work, in its sidebar, each with a photo and an unread count, beside an open chat."
           />
         </div>
         <figcaption>Names, photos and messages replaced with invented ones.</figcaption>
@@ -172,18 +164,11 @@ const faqs: readonly { readonly question: string; readonly answer: string }[] = 
         </ul>
       </div>
       <img
-        class="feature-shot only-light"
-        :src="shot('main-light')"
-        width="1200"
-        height="732"
-        alt="The account sidebar with two accounts."
-      />
-      <img
-        class="feature-shot only-dark"
-        :src="shot('main-dark')"
-        width="1200"
-        height="732"
-        alt="The account sidebar with two accounts, in the dark theme."
+        class="feature-shot"
+        :src="shot('main')"
+        width="1920"
+        height="869"
+        alt="The account sidebar with two accounts, beside WhatsApp."
       />
     </section>
 
@@ -232,8 +217,8 @@ const faqs: readonly { readonly question: string; readonly answer: string }[] = 
       <img
         class="feature-shot"
         :src="shot('privacy')"
-        width="1200"
-        height="732"
+        width="1920"
+        height="869"
         alt="YapYap with its privacy screen on: every chat is blurred."
       />
     </section>
