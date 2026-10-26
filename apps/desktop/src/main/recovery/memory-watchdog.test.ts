@@ -10,7 +10,14 @@ import {
 function setup(options: { focused?: boolean; idle?: number } = {}) {
   let sample: (() => void) | undefined;
   let usedMb = 100;
-  const renderer = { getOSProcessId: () => 42, reload: vi.fn() };
+  let destroyed: (() => void) | undefined;
+  const renderer = {
+    getOSProcessId: () => 42,
+    reload: vi.fn(),
+    once: vi.fn((_event: 'destroyed', listener: () => void) => {
+      destroyed = listener;
+    }),
+  };
   const deps = {
     metrics: vi.fn(() => [
       { pid: 7, memory: { workingSetSize: 9_999_999 } },
@@ -21,7 +28,9 @@ function setup(options: { focused?: boolean; idle?: number } = {}) {
     idleSeconds: () => options.idle ?? 600,
     every: vi.fn((callback: () => void) => {
       sample = callback;
+      return 'timer';
     }),
+    stop: vi.fn(),
     warn: vi.fn(),
   };
   watchMemory(renderer, deps);
@@ -31,10 +40,18 @@ function setup(options: { focused?: boolean; idle?: number } = {}) {
       sample?.();
     }
   };
-  return { renderer, deps, at };
+  return { renderer, deps, at, destroy: () => destroyed?.() };
 }
 
 describe('watchMemory', () => {
+  it('stops sampling once the renderer is destroyed, as when its account is removed', () => {
+    const t = setup();
+    expect(t.deps.stop).not.toHaveBeenCalled();
+    t.destroy();
+    expect(t.renderer.once).toHaveBeenCalledWith('destroyed', expect.any(Function));
+    expect(t.deps.stop).toHaveBeenCalledExactlyOnceWith('timer');
+  });
+
   it('samples once a minute', () => {
     const t = setup();
     expect(t.deps.every).toHaveBeenCalledExactlyOnceWith(expect.any(Function), MEMORY_SAMPLE_MS);

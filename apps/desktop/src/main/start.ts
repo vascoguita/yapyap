@@ -460,6 +460,7 @@ function watchAccountPage<Window extends WindowPort>(
     focused: () => window.isFocused(),
     idleSeconds: deps.idleSeconds,
     every: setInterval,
+    stop: clearInterval,
     warn: deps.warn,
   });
   followZoomSetting(contents, deps.settings);

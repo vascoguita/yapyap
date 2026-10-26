@@ -21,16 +21,18 @@ export interface ProcessMemory {
 export interface WatchedRenderer {
   getOSProcessId(): number;
   reload(): void;
+  once(event: 'destroyed', listener: () => void): unknown;
 }
 
-export interface MemoryWatchdogDependencies {
+export interface MemoryWatchdogDependencies<Timer = unknown> {
   readonly metrics: () => readonly ProcessMemory[];
   readonly limitMb: () => number;
   /** Whether the user has the window focused. */
   readonly focused: () => boolean;
   /** Seconds since the last keyboard or mouse input anywhere. */
   readonly idleSeconds: () => number;
-  readonly every: (callback: () => void, ms: number) => unknown;
+  readonly every: (callback: () => void, ms: number) => Timer;
+  readonly stop: (timer: Timer) => void;
   readonly warn: (message: string) => void;
 }
 
@@ -45,11 +47,15 @@ function usageMb(renderer: WatchedRenderer, metrics: readonly ProcessMemory[]): 
  * limit in settings. A reload keeps the login and frees what the page
  * leaked. It waits while the user is typing or reading in the window, so a
  * draft is never lost mid-sentence; WhatsApp keeps per-chat drafts itself.
- * The log records only sizes and limits.
+ * The log records only sizes and limits. It stops with the renderer, as
+ * when its account is removed, since a destroyed one throws when asked.
  */
-export function watchMemory(renderer: WatchedRenderer, deps: MemoryWatchdogDependencies): void {
+export function watchMemory<Timer>(
+  renderer: WatchedRenderer,
+  deps: MemoryWatchdogDependencies<Timer>,
+): void {
   let over = 0;
-  deps.every(() => {
+  const timer = deps.every(() => {
     const used = usageMb(renderer, deps.metrics());
     const limit = deps.limitMb();
     if (used === undefined || used <= limit) {
@@ -67,4 +73,7 @@ export function watchMemory(renderer: WatchedRenderer, deps: MemoryWatchdogDepen
     );
     renderer.reload();
   }, MEMORY_SAMPLE_MS);
+  renderer.once('destroyed', () => {
+    deps.stop(timer);
+  });
 }

@@ -961,6 +961,12 @@ not edit the same lines.
   answer yes for `media`, whose request still asks the user (ADR 0008,
   C30), and an E2E test queries the permissions as WhatsApp does first.
 
+- Memory watchdog after an account's page goes away (#377): `watchMemory`
+  sampled each account's renderer every minute with no end, so after the
+  page was destroyed, as when its account is removed, every sample threw
+  "Object has been destroyed" into the log. It now stops its timer on the
+  renderer's `destroyed` event.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).
