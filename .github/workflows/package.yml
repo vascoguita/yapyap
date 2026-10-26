@@ -31,9 +31,11 @@ jobs:
           - { name: macos, os: macos-latest }
     runs-on: ${{ matrix.os }}
     env: &package-env
-      # Never sign with whatever identity happens to be on the runner; release
-      # builds sign only with the certificates passed in below.
-      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      # Never sign with whatever identity happens to be on the runner. A
+      # release with the macOS certificate turns discovery on: electron-builder
+      # then signs from a keychain holding only that certificate, and skips
+      # signing altogether while discovery is off, even with CSC_LINK (#23).
+      CSC_IDENTITY_AUTO_DISCOVERY: ${{ inputs.release && secrets.CSC_LINK != '' && 'true' || 'false' }}
     steps: &package-steps
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

@@ -25,6 +25,13 @@ Notes are sorted by the first issue they cite. Add a note where its issue
 number belongs, not at the top, so pull requests for different issues do
 not edit the same lines.
 
+- macOS signing (#23): the first beta with Ensita's Developer ID secrets
+  came out unsigned, because electron-builder skips signing while
+  `CSC_IDENTITY_AUTO_DISCOVERY` is off, even with `CSC_LINK`. Release
+  builds that have the certificate now turn discovery on, so electron-builder
+  signs from the keychain it creates with only that certificate; other
+  builds keep it off.
+
 - The WhatsApp adapter reads the page view (loading, logged out, chats),
   whether a chat is open and the unread count, on demand and from a versioned
   landmark table; Copy Diagnostics shows the view (#32). An E2E test keeps
