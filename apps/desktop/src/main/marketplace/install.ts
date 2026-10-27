@@ -65,10 +65,15 @@ export async function installListed(deps: ListedInstallDependencies, id: string)
       return;
     }
     const { plugin, version } = listed;
+    const mismatch = { kind: 'rejected', reason: en.plugins.marketplace.mismatch } as const;
     const bytes = await listedArchive(deps, id, version);
-    const prepared = bytes === undefined ? undefined : await deps.prepare(bytes);
-    if (prepared === undefined || !isListed(prepared, id, version.version, plugin.signer)) {
-      deps.report({ kind: 'rejected', reason: en.plugins.marketplace.mismatch });
+    if (bytes === undefined) {
+      deps.report(mismatch);
+      return;
+    }
+    const prepared = await deps.prepare(bytes);
+    if (!isListed(prepared, id, version.version, plugin.signer)) {
+      deps.report(mismatch);
       return;
     }
     await finishInstall(prepared, deps, plugin.review === 'reviewed');
