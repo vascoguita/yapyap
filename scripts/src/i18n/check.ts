@@ -86,16 +86,20 @@ function levelProblems(
   });
 }
 
-/** Problems in English itself: empty text, markup, and plurals without their English forms. */
+/** Translation tools such as Weblate read a `.` in a key as nesting, so a round trip would move it (#374). */
+const keyProblems = (at: string, key: string): string[] =>
+  key.includes('.') ? [`${at} has a "." in its key, which translation tools read as nesting.`] : [];
+
+/** Problems in English itself: dotted keys, empty text, markup, and plurals without their English forms. */
 export function checkEnglish(english: CatalogJson, path = ''): string[] {
   return [...entries(english)].flatMap(([key, entry]) => {
     const at = path === '' ? key : `${path}.${key}`;
     if (entry.kind === 'group') {
-      return checkEnglish(entry.group, at);
+      return [...keyProblems(at, key), ...checkEnglish(entry.group, at)];
     }
     const forms =
       entry.kind === 'plural' ? pluralProblems(at, entry.forms, entry.forms, ['one', 'other']) : [];
-    return [...textProblems(at, entry), ...forms];
+    return [...keyProblems(at, key), ...textProblems(at, entry), ...forms];
   });
 }
 

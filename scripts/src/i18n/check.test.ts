@@ -32,6 +32,15 @@ describe('checkEnglish', () => {
     ]);
   });
 
+  it('refuses dots in keys, of text and of groups, which translation tools read as nesting', () => {
+    expect(
+      checkEnglish({ fields: { 'general.autostart': 'Start', 'a.b': { label: 'x' } } }),
+    ).toEqual([
+      'fields.general.autostart has a "." in its key, which translation tools read as nesting.',
+      'fields.a.b has a "." in its key, which translation tools read as nesting.',
+    ]);
+  });
+
   it('allows the ampersand that marks a menu’s access key', () => {
     expect(checkEnglish({ file: '&File' })).toEqual([]);
   });

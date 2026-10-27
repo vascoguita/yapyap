@@ -16,7 +16,8 @@ Each language is one JSON file in
 translation tools such as Weblate read and write:
 
 - Keys nest exactly as in `en.json`, the English source. Never rename or
-  translate a key.
+  translate a key. No key contains a `.`, which translation tools read as
+  nesting.
 - Values are plain text. Markup such as `<b>` or `&amp;` is rejected, and
   YapYap always shows text as text.
 - `{{name}}` is a placeholder that YapYap fills in, such as an account or a
@@ -44,8 +45,9 @@ translation is still usable.
 - `report.issueTitle` and `report.crashTitle` become GitHub issue titles,
   which the user can still change. `report.crashTitleWith` keeps the crash's
   `{{fingerprint}}`, so reports of one crash can be found together.
-- `settings.fields` and their `options` are keyed by setting and by the
-  values the settings file stores. Translate only the text.
+- `settings.fields` are grouped by settings section, then keyed by
+  setting, and their `options` by the values the settings file stores.
+  Translate only the text.
 - `plugins.capabilities` describes what each permission lets a plugin do, in
   the words the consent window shows before installing.
 
@@ -56,6 +58,7 @@ every pull request. It fails when a catalog:
 
 - is not valid JSON;
 - is not named after a language tag;
+- has a key with a `.` in it (English included);
 - has keys English lacks;
 - has placeholders that differ from English's;
 - lacks a plural form its language needs;

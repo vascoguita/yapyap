@@ -38,9 +38,10 @@ describe('the English catalog', () => {
   });
 
   it('describes exactly the settings the window lists', () => {
-    expect(Object.keys(en.settings.fields).sort()).toEqual(
-      SETTING_FIELDS.map((field) => field.id).sort(),
+    const described = Object.entries(en.settings.fields).flatMap(([section, fields]) =>
+      Object.keys(fields).map((key) => `${section}.${key}`),
     );
+    expect(described.sort()).toEqual(SETTING_FIELDS.map((field) => field.id).sort());
     for (const field of SETTING_FIELDS) {
       expect(field.label).not.toBe('');
       expect(field.description).not.toBe('');
