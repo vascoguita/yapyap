@@ -1002,6 +1002,16 @@ not edit the same lines.
   `yapyap://plugins/install/<id>` links that only open the marketplace; and
   submissions through pull requests.
 
+- Marketplace index (#387): `marketplace/plugins/<id>.json` lists each
+  plugin's versions by release asset and SHA-256, and
+  `scripts/src/bin/marketplace-index.ts` checks every archive's hash,
+  signature, signer and manifest before building `plugins/index.json`. The
+  package repositories workflow signs it with the plugin key and deploys it
+  weekly and on changes; CI checks the entries on every pull request. The
+  schema is `MarketplaceIndexSchema` in the SDK, and `signIndex` /
+  `verifyIndex` in plugin-sign sign the exact bytes. The AI assistant 0.1.0
+  from v0.1.2-beta.3 is the first listing.
+
 - Call recording design (#392): ADR 0015 and C32. YapYap records, never a
   plugin: `calls:record` only lets a plugin ask, and recording starts on the
   user's **Record** click in a bar YapYap draws in the call window. A hidden

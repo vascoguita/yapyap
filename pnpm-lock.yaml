@@ -321,6 +321,12 @@ importers:
       fast-check:
         specifier: 4.10.2
         version: 4.10.2
+      fflate:
+        specifier: 0.8.3
+        version: 0.8.3
+      typebox:
+        specifier: 1.4.3
+        version: 1.4.3
 
 packages:
 

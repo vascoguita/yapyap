@@ -8,6 +8,7 @@ const pluginsSidebar = [
     items: [
       { text: 'Writing a plugin', link: '/plugins/' },
       { text: 'Manifest', link: '/plugins/manifest' },
+      { text: 'Marketplace', link: '/plugins/marketplace' },
       { text: 'SDK API reference', link: '/api/' },
     ],
   },

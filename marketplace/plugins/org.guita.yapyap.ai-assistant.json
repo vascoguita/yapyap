@@ -1,0 +1,17 @@
+{
+  "id": "org.guita.yapyap.ai-assistant",
+  "summary": "Suggests replies, summarizes chats and rewrites your drafts with the AI model you choose, using your own key. Nothing is sent without your say.",
+  "homepage": "https://yapyap.guita.org/guide/ai-assistant",
+  "license": "MIT",
+  "review": "official",
+  "signer": "18:1e:b3:b2:98:df:6f:9d:c0:6c:a9:69:bb:f5:16:ec:7b:9f:e9:ab:7c:54:26:ba:9a:58:e0:8c:10:d0:9e:d7",
+  "versions": [
+    {
+      "version": "0.1.0",
+      "source": "https://github.com/vascoguita/yapyap/releases/download/v0.1.2-beta.3/org.guita.yapyap.ai-assistant-0.1.0.yapyap-plugin",
+      "sha256": "sha256-pP+7AkeWIUk7p9g0thwjPamOXQX6Asf97io4HyRjpQw=",
+      "minYapYap": "0.1.2-beta.3",
+      "published": "2026-10-26T23:41:54.000Z"
+    }
+  ]
+}
