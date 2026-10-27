@@ -92,6 +92,12 @@ and an ESLint restriction forbids constructing `BrowserWindow` or
   `https://api.whatsapp.com/send` are rewritten as `whatsapp://send` and go
   through the same link policy, keeping only the phone number and text.
   Every other argument is ignored, and links are never logged (#45).
+  The one other link YapYap accepts is `yapyap://plugins/install/<id>`,
+  which only opens the plugin marketplace on that plugin (ADR 0014).
+- The main process makes one request of its own besides update checks: the
+  signed plugin index from `packages.guita.org`, only when the user opens
+  the marketplace, follows an install link or checks for plugin updates
+  (ADR 0014).
 - The exceptions are popups WhatsApp opens for itself: an empty
   `about:blank` popup, which it opens before setting its location, and a
   window on its own origin, such as a call (#67). Either is created hidden

@@ -19,5 +19,6 @@ ADR that supersedes the old one.
 | [0011](0011-whatsapp-notifications.md)                | WhatsApp notifications                             | Accepted |
 | [0012](0012-translations.md)                          | Translations                                       | Accepted |
 | [0013](0013-in-chat-assistant-bar.md)                 | The in-chat assistant bar                          | Accepted |
+| [0014](0014-plugin-marketplace.md)                    | The plugin marketplace                             | Accepted |
 
 New ADRs copy [`template.md`](template.md) and take the next free number.

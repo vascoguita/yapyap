@@ -59,6 +59,10 @@ path }`. Every file in the archive must appear in that list. Extra,
   never pass for YapYap's own.
 - **URL installs** require a pinned `sha256-<base64>` integrity value next to
   the URL. A mismatch aborts before anything is unpacked.
+- **Marketplace installs** take the archive's SHA-256 and signer from the
+  signed plugin index (ADR 0014). Reviewed third-party plugins listed there
+  skip the unreviewed-plugin acknowledgement, since the maintainer reviewed
+  that exact archive; the consent window still shows everything above.
 - **Unsigned** plugins load only in Developer Mode (`plugins.developerMode`),
   with a persistent "Unsigned" badge in the chrome, and the Plugins window
   warns while Developer Mode is on. Developer Mode is never exported with
