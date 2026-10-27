@@ -138,6 +138,34 @@ async function attachLoads(app: ElectronApplication): Promise<void> {
 
 const PAGE_TIMEOUT_MS = 30_000;
 
+/** When each app was launched, so a slow start can be told from a slow page (#247). */
+const LAUNCHED_AT = new WeakMap<ElectronApplication, number>();
+
+/**
+ * What the main process had done when no WhatsApp page appeared: whether
+ * Electron was ready, its windows, and every web contents' address and
+ * state, so a slow start shows apart from a page that never loaded (#247).
+ */
+async function startupState(app: ElectronApplication): Promise<string> {
+  const launched = LAUNCHED_AT.get(app);
+  const elapsed = launched === undefined ? 'unknown' : `${String(Date.now() - launched)} ms`;
+  const state = await app
+    .evaluate(({ app: electronApp, BrowserWindow, webContents }) =>
+      [
+        `ready=${String(electronApp.isReady())}`,
+        `windows=${String(BrowserWindow.getAllWindows().length)}`,
+        ...webContents
+          .getAllWebContents()
+          .map(
+            (contents) =>
+              `#${String(contents.id)} ${contents.getURL() || '(no URL)'} loading=${String(contents.isLoading())}`,
+          ),
+      ].join('; '),
+    )
+    .catch((error: unknown) => `the main process did not answer: ${String(error)}`);
+  return `Launched ${elapsed} ago; ${state}`;
+}
+
 /**
  * The page of the active account's WhatsApp. It runs in a view inside the
  * main window, whose own page stays blank (#56), so it is found by its URL.
@@ -151,7 +179,9 @@ export async function whatsAppPage(app: ElectronApplication): Promise<Page> {
     }
     if (Date.now() > deadline) {
       const pages = app.windows().map((candidate) => candidate.url());
-      throw new Error(`WhatsApp never opened. Pages: ${pages.join(', ') || 'none'}.`);
+      throw new Error(
+        `WhatsApp never opened. Pages: ${pages.join(', ') || 'none'}. ${await startupState(app)}.`,
+      );
     }
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
@@ -215,6 +245,7 @@ export async function launchApp(
       () => undefined,
     );
   }
+  const started = Date.now();
   const app = await electron.launch({
     args: [MAIN, `--user-data-dir=${profile}`, ...args],
     // Playwright forces a light color scheme by default, which would hide YapYap's own theming.
@@ -225,6 +256,7 @@ export async function launchApp(
     env: { ...appEnvironment(origin, profile), ...env },
   });
   LOGS.set(app, recentLog(app));
+  LAUNCHED_AT.set(app, started);
   LAUNCHED.add(app);
   await recordLoads(app);
   app.process().once('exit', () => LAUNCHED.delete(app));
