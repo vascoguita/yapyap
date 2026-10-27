@@ -837,6 +837,12 @@ not edit the same lines.
   failed test attaches that timeline (`loads.txt`) with each web contents'
   state at the end.
 
+- Windows start-up waits (#247): when no WhatsApp page appears in time, the
+  E2E failure now says how long ago the app was launched, whether Electron
+  was ready, how many windows existed and what each web contents showed, so
+  a slow start on a runner can be told from a page that never loads. The
+  wait itself is unchanged until that data says which it is.
+
 - Electron is pinned to 44.9.3 (#262), which fixes GHSA-jr5w-w6x2-84p9
   (compromised eMudhra intermediate certificates) and lets the audit pass.
   Electron 45 is a new major version and comes in its own change.
