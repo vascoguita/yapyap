@@ -51,6 +51,9 @@ const EntrySchema = Type.Object(
 
 export type Entry = Static<typeof EntrySchema>;
 
+/** Enough schema errors to fix a file, without burying the first under the rest. */
+const REPORTED_ERRORS = 5;
+
 /** The pulled versions, as `marketplace/revoked.json` lists them. */
 export type Revocations = Static<typeof Revoked>;
 
@@ -83,7 +86,7 @@ function entryProblems(entry: Entry, file: string): string[] {
 export function readEntry(json: unknown, file: string): Entry | string[] {
   if (!Value.Check(EntrySchema, json)) {
     return [...Value.Errors(EntrySchema, json)]
-      .slice(0, 5)
+      .slice(0, REPORTED_ERRORS)
       .map((error) => `${error.instancePath || '/'}: ${error.message}`);
   }
   const problems = entryProblems(json, file);
@@ -100,7 +103,7 @@ export function readRevocations(json: unknown): {
     : {
         revoked: [],
         problems: [...Value.Errors(Revoked, json)]
-          .slice(0, 5)
+          .slice(0, REPORTED_ERRORS)
           .map((error) => `revoked.json ${error.instancePath || '/'}: ${error.message}`),
       };
 }

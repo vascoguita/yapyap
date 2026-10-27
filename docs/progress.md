@@ -1001,6 +1001,7 @@ not edit the same lines.
   revocations that stop matching copies without deleting them;
   `yapyap://plugins/install/<id>` links that only open the marketplace; and
   submissions through pull requests.
+
 - Marketplace index (#387): `marketplace/plugins/<id>.json` lists each
   plugin's versions by release asset and SHA-256, and
   `scripts/src/bin/marketplace-index.ts` checks every archive's hash,

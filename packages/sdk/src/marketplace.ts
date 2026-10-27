@@ -10,8 +10,8 @@ export const MARKETPLACE_SIGNATURE_URL = `${MARKETPLACE_INDEX_URL}.sig`;
 /** The longest an index may be, in bytes; YapYap refuses a longer one unread. */
 export const MARKETPLACE_INDEX_MAX_BYTES = 2 * 1024 * 1024;
 
-/** How long a signed index stays valid at most, so a frozen copy stops working. */
-export const MARKETPLACE_MAX_VALIDITY_MS = 30 * 24 * 60 * 60 * 1000;
+/** How long a signed index stays valid at most, 30 days, so a frozen copy stops working. */
+export const MARKETPLACE_MAX_VALIDITY_MS = 2_592_000_000;
 
 /** The file name of a listed version's archive, as it is published. */
 export const marketplaceArchiveName = (id: string, version: string): string =>
@@ -33,7 +33,8 @@ const Grant = Type.String({ pattern: '^[a-z0-9][a-z0-9.:-]*$', maxLength: 260 })
 const MarketplaceVersion = Type.Object(
   {
     version: Version,
-    size: Type.Integer({ minimum: 1, maximum: 20 * 1024 * 1024 }),
+    // The archive limit of ADR 0004: 20 MiB.
+    size: Type.Integer({ minimum: 1, maximum: 20_971_520 }),
     sha256: Type.String({ pattern: '^sha256-[A-Za-z0-9+/]{43}=$' }),
     capabilities: Type.Array(Grant, { maxItems: 64 }),
     hosts: Type.Array(Grant, { maxItems: 32 }),
@@ -50,7 +51,7 @@ const MarketplacePlugin = Type.Object(
     summary: Type.String({ minLength: 1, maxLength: 300 }),
     author: Author,
     homepage: Type.String({ pattern: '^https://', maxLength: 300 }),
-    license: Type.String({ pattern: String.raw`^[A-Za-z0-9.+() -]{1,100}$` }),
+    license: Type.String({ pattern: '^[A-Za-z0-9.+() -]{1,100}$' }),
     review: Type.Union([Type.Literal('official'), Type.Literal('reviewed')]),
     signer: Fingerprint,
     versions: Type.Array(MarketplaceVersion, { minItems: 1, maxItems: 50 }),

@@ -48,13 +48,11 @@ if (problems.length > 0) {
   }
   process.exit(1);
 }
-const archives = new Map<string, Uint8Array>();
-for (const source of sourcesOf(entries)) {
+const download = async (source: string): Promise<[string, Uint8Array][]> => {
   const response = await fetch(source);
-  if (response.ok) {
-    archives.set(source, new Uint8Array(await response.arrayBuffer()));
-  }
-}
+  return response.ok ? [[source, new Uint8Array(await response.arrayBuffer())]] : [];
+};
+const archives = new Map((await Promise.all(sourcesOf(entries).map(download))).flat());
 const index = buildIndex({
   entries,
   revoked,
