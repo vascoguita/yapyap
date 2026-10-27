@@ -171,3 +171,20 @@ export function signMarketplaceIndex(
   }
   return signature;
 }
+
+/**
+ * Downloads every source at once. A source that fails is left out, so the
+ * build names the plugin and version whose archive is missing.
+ */
+export async function downloadArchives(
+  sources: readonly string[],
+  fetcher: (url: string) => Promise<Pick<Response, 'ok' | 'arrayBuffer'>>,
+): Promise<Map<string, Uint8Array>> {
+  const downloaded = await Promise.all(
+    sources.map(async (source): Promise<[string, Uint8Array][]> => {
+      const response = await fetcher(source);
+      return response.ok ? [[source, new Uint8Array(await response.arrayBuffer())]] : [];
+    }),
+  );
+  return new Map(downloaded.flat());
+}

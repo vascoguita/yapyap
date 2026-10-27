@@ -12,6 +12,7 @@ import {
 import {
   archiveRedirects,
   buildIndex,
+  downloadArchives,
   signMarketplaceIndex,
   sourcesOf,
   type IndexSources,
@@ -283,6 +284,20 @@ describe('signMarketplaceIndex', () => {
     expect(verifyIndex(bytes, signature, [anchor.anchor])).toBe(true);
     expect(() => signMarketplaceIndex(bytes, testKey().pem, [anchor.anchor])).toThrow(
       'The signing key is not one of YapYap’s trust anchors.',
+    );
+  });
+});
+
+describe('downloadArchives', () => {
+  it('keeps each archive it downloaded, and leaves out the ones that failed', async () => {
+    const bytes = new Uint8Array([1, 2, 3]);
+    const fetcher = (url: string) =>
+      Promise.resolve({
+        ok: url.endsWith('/good'),
+        arrayBuffer: () => Promise.resolve(bytes.buffer),
+      });
+    expect(await downloadArchives(['https://x/good', 'https://x/gone'], fetcher)).toEqual(
+      new Map([['https://x/good', bytes]]),
     );
   });
 });

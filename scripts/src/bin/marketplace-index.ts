@@ -12,6 +12,7 @@ import { anchorFingerprints } from '../../../packages/plugin-sign/src/trust.ts';
 import {
   archiveRedirects,
   buildIndex,
+  downloadArchives,
   signMarketplaceIndex,
   sourcesOf,
 } from '../marketplace/build.ts';
@@ -48,11 +49,7 @@ if (problems.length > 0) {
   }
   process.exit(1);
 }
-const download = async (source: string): Promise<[string, Uint8Array][]> => {
-  const response = await fetch(source);
-  return response.ok ? [[source, new Uint8Array(await response.arrayBuffer())]] : [];
-};
-const archives = new Map((await Promise.all(sourcesOf(entries).map(download))).flat());
+const archives = await downloadArchives(sourcesOf(entries), fetch);
 const index = buildIndex({
   entries,
   revoked,
