@@ -986,6 +986,15 @@ not edit the same lines.
   `accountAvatars` now reads again a minute later on its own, up to ten
   misses in a row, and stops for a removed account or a destroyed page.
 
+- Plugin marketplace design (#386): ADR 0014. One `index.json` on
+  packages.guita.org, signed with the plugin signing key and checked against
+  the app's trust anchors, with a growing serial and an expiry so old
+  copies are refused; archives hosted with YapYap's releases and checked by
+  SHA-256; reviewed third-party plugins pinned to the key the index lists;
+  revocations that stop matching copies without deleting them;
+  `yapyap://plugins/install/<id>` links that only open the marketplace; and
+  submissions through pull requests.
+
 - Local E2E isolation on Wayland desktops (#394): Chromium chose Wayland
   from the desktop's `XDG_SESSION_TYPE` and reached the real compositor
   through its default socket, so local runs opened windows on the
