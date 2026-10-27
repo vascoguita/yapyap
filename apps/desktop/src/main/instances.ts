@@ -53,13 +53,16 @@ export function bringToFront(window: LinkWindow): void {
 /** A link handed to the running app: a chat link, a plugin install link, or neither. */
 function follow(url: string, home: string, links: LinkTargets): boolean {
   const target = chatLinkTarget(url, home);
-  const plugin = target === undefined ? pluginLinkTarget(url) : undefined;
   if (target !== undefined) {
     links.open(target);
-  } else if (plugin !== undefined) {
-    links.install(plugin);
+    return true;
   }
-  return target !== undefined || plugin !== undefined;
+  const plugin = pluginLinkTarget(url);
+  if (plugin !== undefined) {
+    links.install(plugin);
+    return true;
+  }
+  return false;
 }
 
 /** Hands every later launch, and every macOS link event, to the links' targets. */
