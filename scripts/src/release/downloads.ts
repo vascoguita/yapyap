@@ -65,7 +65,8 @@ export function compact(count: number): string {
   for (const [size, unit] of UNITS) {
     if (count >= size) {
       const value = count / size;
-      const shown = value < 10 ? Math.floor(value * 10) / 10 : Math.floor(value);
+      const whole = Math.floor(value);
+      const shown = whole < 10 ? Math.floor(value * 10) / 10 : whole;
       return `${String(shown)}${unit}`;
     }
   }
@@ -170,8 +171,11 @@ export function latestDownloads(answer: unknown): LatestDownloads | undefined {
   }
   const files = INSTALLERS.flatMap(([key, pattern]) => {
     const asset = release.assets.find((candidate) => pattern.test(candidate.name));
-    const url = asset === undefined ? undefined : releaseUrl(release.tag_name, asset.name);
-    return url === undefined || url !== asset?.browser_download_url ? [] : [[key, url] as const];
+    if (asset === undefined) {
+      return [];
+    }
+    const url = releaseUrl(release.tag_name, asset.name);
+    return url !== undefined && url === asset.browser_download_url ? [[key, url] as const] : [];
   });
   return { version: release.tag_name.replace(/^v/, ''), files: Object.fromEntries(files) };
 }
