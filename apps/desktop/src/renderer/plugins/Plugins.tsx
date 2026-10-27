@@ -326,17 +326,7 @@ function Tabs(props: { readonly tab: Tab; readonly onChange: (tab: Tab) => void 
     marketplace: text.marketplace.marketplaceTab,
   };
   return (
-    <div
-      role="tablist"
-      aria-label={text.marketplace.tabsLabel}
-      onKeyDown={(event) => {
-        if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
-          const next = props.tab === 'installed' ? 'marketplace' : 'installed';
-          props.onChange(next);
-          document.getElementById(`tab-${next}`)?.focus();
-        }
-      }}
-    >
+    <div role="tablist" aria-label={text.marketplace.tabsLabel}>
       {TABS.map((tab) => (
         <button
           key={tab}
@@ -348,6 +338,13 @@ function Tabs(props: { readonly tab: Tab; readonly onChange: (tab: Tab) => void 
           tabIndex={props.tab === tab ? 0 : -1}
           onClick={() => {
             props.onChange(tab);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+              const next = tab === 'installed' ? 'marketplace' : 'installed';
+              props.onChange(next);
+              document.getElementById(`tab-${next}`)?.focus();
+            }
           }}
         >
           {label[tab]}

@@ -1,6 +1,8 @@
 import { generateKeyPairSync, createHash } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { join } from 'node:path';
 import { signIndex } from '@yapyap/plugin-sign';
 import { signedArchive, testKey, testManifest, zipArchive } from '../test/plugins.ts';
 import { closeApp, expect, launchApp, test } from './fixtures.ts';
@@ -86,9 +88,12 @@ test('installs a reviewed plugin from the marketplace, through the usual consent
     // A reviewed plugin needs no acknowledgement of risk, unlike one from a file.
     await expect(install).toBeEnabled();
     await Promise.all([consent.waitForEvent('close'), install.click().catch(() => undefined)]);
-    await expect(plugins.getByText('Installed', { exact: true }).last()).toBeVisible();
-    await plugins.getByRole('tab', { name: 'Installed' }).click();
-    await expect(plugins.getByText('org.example.hello')).toBeVisible();
+    // The listing itself says so once the list loads again, and the plugin is on disk.
+    await expect(
+      plugins.locator('.marketplace').getByText('Installed', { exact: true }),
+    ).toBeVisible();
+    const records = () => readFile(join(profile, 'plugins', '.plugins.json'), 'utf8');
+    await expect.poll(records).toContain('"org.example.hello"');
   } finally {
     await closeApp(app);
     marketplace.server.close();
