@@ -23,6 +23,15 @@ export default defineConfig({
   srcExclude: ['progress.md'],
   // ADR folders keep README.md so they also read well on GitHub.
   rewrites: { 'adr/README.md': 'adr/index.md' },
+  // Each marketplace plugin's page is titled after the plugin (#390).
+  transformPageData(pageData) {
+    const params: Readonly<Record<string, unknown>> = pageData.params ?? {};
+    const { name, summary } = params;
+    if (typeof name === 'string' && typeof summary === 'string') {
+      pageData.title = `${name} · Marketplace`;
+      pageData.description = summary;
+    }
+  },
   head: [
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' }],
     ['meta', { property: 'og:image', content: 'https://yapyap.guita.org/social-preview.png' }],
@@ -32,6 +41,7 @@ export default defineConfig({
     nav: [
       { text: 'Guide', link: '/guide/' },
       { text: 'Plugins', link: '/plugins/' },
+      { text: 'Marketplace', link: '/marketplace/' },
       { text: 'Privacy', link: '/privacy' },
       { text: 'Brand', link: '/brand' },
       { text: 'Architecture', link: '/architecture/' },
