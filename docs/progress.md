@@ -1002,6 +1002,15 @@ not edit the same lines.
   `yapyap://plugins/install/<id>` links that only open the marketplace; and
   submissions through pull requests.
 
+- Call recording design (#392): ADR 0015 and C32. YapYap records, never a
+  plugin: `calls:record` only lets a plugin ask, and recording starts on the
+  user's **Record** click in a bar YapYap draws in the call window. A hidden
+  recorder captures the call window's own audio (display media with the
+  call's frame as the audio source) and the microphone, never system sound,
+  after a one-time consent-law confirmation. A red mark with **Stop
+  recording** shows in the call window, sidebar and tray; recordings stop
+  with the call, stay local, and are named by date only.
+
 - Local E2E isolation on Wayland desktops (#394): Chromium chose Wayland
   from the desktop's `XDG_SESSION_TYPE` and reached the real compositor
   through its default socket, so local runs opened windows on the
