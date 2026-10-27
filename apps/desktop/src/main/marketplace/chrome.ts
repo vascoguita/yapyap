@@ -9,6 +9,8 @@ import type { InstallFlowDependencies } from '../plugins/install-flow.ts';
 import { loadMarketplace, type Fetcher, type MarketplaceState } from './index-client.ts';
 import { installListed } from './install.ts';
 import { marketplaceEntries } from './listing.ts';
+import { pulledPlugins, type Pulled } from './revocations.ts';
+import type { PluginRecords } from '../plugins/records.ts';
 import type { MarketplaceSource } from './source.ts';
 
 /**
@@ -26,8 +28,10 @@ export interface MarketplaceDependencies {
   readonly fetchArchive: Fetcher;
   /** Where plugins are installed; the serial is kept there. */
   readonly root: string;
-  /** The installed plugins' versions, by ID. */
-  readonly installed: () => Promise<ReadonlyMap<string, string>>;
+  /** The installed plugins' records. */
+  readonly records: () => Promise<PluginRecords>;
+  /** Marks installed plugins the marketplace pulled, and stops them (ADR 0014). */
+  readonly pull: (pulled: readonly Pulled[]) => Promise<void>;
   readonly install: Pick<InstallFlowDependencies, 'prepare' | 'commit' | 'ask' | 'report'>;
 }
 
@@ -75,12 +79,19 @@ export function marketplaceHandlers(deps: MarketplaceDependencies): ChromeHandle
       accepts: noArguments,
       handle: async (): Promise<MarketplaceView> => {
         const state = await load();
-        return state.status === 'ready'
-          ? {
-              status: 'ready',
-              plugins: marketplaceEntries(state.index, await deps.installed(), deps.appVersion),
-            }
-          : { status: state.status, plugins: [] };
+        if (state.status !== 'ready') {
+          return { status: state.status, plugins: [] };
+        }
+        const records = await deps.records();
+        const pulled = pulledPlugins(state.index, records);
+        if (pulled.length > 0) {
+          await deps.pull(pulled);
+        }
+        const installed = new Map([...records].map(([id, record]) => [id, record.version]));
+        return {
+          status: 'ready',
+          plugins: marketplaceEntries(state.index, installed, deps.appVersion),
+        };
       },
     },
     {

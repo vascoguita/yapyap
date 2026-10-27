@@ -363,6 +363,7 @@ export interface Messages {
       readonly 'third-party': string;
       readonly developer: string;
     };
+    readonly pulled: (params: { readonly reason: string | number }) => string;
     readonly developerMode: string;
     readonly result: {
       readonly installed: (params: {

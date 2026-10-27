@@ -31,6 +31,7 @@ describe('Plugins', () => {
             id: 'org.example.hello',
             version: '1.0.0',
             trust: 'third-party',
+            pulled: null,
             settings: [],
             grants: [],
           },
@@ -38,10 +39,18 @@ describe('Plugins', () => {
             id: 'org.guita.yapyap.ai',
             version: '2.0.0',
             trust: 'first-party',
+            pulled: null,
             settings: [],
             grants: [],
           },
-          { id: 'org.me.draft', version: '0.1.0', trust: 'developer', settings: [], grants: [] },
+          {
+            id: 'org.me.draft',
+            version: '0.1.0',
+            trust: 'developer',
+            pulled: null,
+            settings: [],
+            grants: [],
+          },
         ],
         developerMode: false,
         activity: [],
@@ -71,6 +80,7 @@ describe('Plugins', () => {
             id: 'org.example.hello',
             version: '1.0.0',
             trust: 'third-party',
+            pulled: null,
             settings: [],
             grants: [],
           },
@@ -126,6 +136,7 @@ describe('Plugins', () => {
             id: 'org.example.hello',
             version: '1.0.0',
             trust: 'third-party',
+            pulled: null,
             settings: [],
             grants: [
               {
@@ -188,6 +199,7 @@ describe('Plugins', () => {
             id: 'org.example.quiet',
             version: '1.0.0',
             trust: 'third-party',
+            pulled: null,
             settings: [],
             grants: [],
           },
@@ -205,11 +217,16 @@ describe('Plugins', () => {
       id: 'org.example.hello',
       version: '1.0.0',
       trust: 'third-party' as const,
+      pulled: 'It sent chats away.',
       settings: [],
       grants: [],
     };
     const plugins = setup(() =>
       Promise.resolve({ plugins: [hello], developerMode: false, activity: [] }),
+    );
+    // A pulled plugin stays listed, with the reason, until the user removes it.
+    expect((await screen.findByRole('alert')).textContent).toBe(
+      'The marketplace pulled this version, so it does not run: It sent chats away. Remove it, or install another version from the Marketplace tab.',
     );
     plugins.remove.mockResolvedValueOnce({ plugins: [], developerMode: false, activity: [] });
     fireEvent.click(await screen.findByRole('button', { name: 'Remove org.example.hello' }));
@@ -235,6 +252,7 @@ describe('Plugins', () => {
                 id: 'org.example.hello',
                 version: '1.0.0',
                 trust: 'third-party' as const,
+                pulled: null,
                 settings: [],
                 grants: [],
               },
@@ -260,6 +278,7 @@ describe('Plugins', () => {
             id: 'org.example.hello',
             version: '1.0.0',
             trust: 'third-party',
+            pulled: null,
             settings: [],
             grants: [{ capability: 'secrets:own', granted: true }],
           },
@@ -285,6 +304,7 @@ describe('Plugins', () => {
             id: 'org.example.hello',
             version: '1.0.0',
             trust: 'third-party',
+            pulled: null,
             grants: [],
             settings: [
               {

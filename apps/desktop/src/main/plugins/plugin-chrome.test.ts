@@ -116,7 +116,7 @@ describe('createPluginChrome', () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it('lists the marketplace with the versions installed here', async () => {
+  it('lists the marketplace with the versions installed here, and marks pulled ones', async () => {
     const key = generateKeyPairSync('ed25519');
     const plugin = {
       id: 'org.example.hello',
@@ -146,7 +146,7 @@ describe('createPluginChrome', () => {
         generated: new Date(Date.now() - 60_000).toISOString(),
         expires: new Date(Date.now() + 86_400_000).toISOString(),
         plugins: [plugin],
-        revoked: [],
+        revoked: [{ id: 'org.example.bad', versions: '*', signer: plugin.signer, reason: 'Gone.' }],
       }),
     );
     const signature = new TextEncoder().encode(signIndex(bytes, key.privateKey));
@@ -163,14 +163,22 @@ describe('createPluginChrome', () => {
         fetchArchive: () => Promise.resolve(undefined),
       },
     });
+    const signer = plugin.signer;
     await saveRecords(
       root,
-      new Map([['org.example.hello', record('org.example.hello', { developer: true })]]),
+      new Map([
+        ['org.example.hello', record('org.example.hello', { developer: true })],
+        ['org.example.bad', record('org.example.bad', { fingerprint: signer })],
+      ]),
     );
     expect(await t.handler('plugins:marketplace').handle({ sender: {} })).toEqual({
       status: 'ready',
       plugins: [expect.objectContaining({ installed: '1.0.0', action: 'installed' })],
     });
+    // The pulled plugin stays installed, marked, and the other is left as it was.
+    const records = await loadRecords(root);
+    expect(records.get('org.example.bad')?.pulled).toBe('Gone.');
+    expect(records.get('org.example.hello')?.pulled).toBeUndefined();
   });
 
   it('says when the installed plugins cannot be read, and starts none', async () => {
@@ -348,15 +356,30 @@ describe('createPluginChrome', () => {
     const t = setup(root, true);
     await expect(t.handler('plugins:list').handle({ sender: {} })).resolves.toEqual({
       plugins: [
-        { id: 'org.alpha', version: '1.0.0', trust: 'third-party', grants: [], settings: [] },
+        {
+          id: 'org.alpha',
+          version: '1.0.0',
+          trust: 'third-party',
+          pulled: null,
+          grants: [],
+          settings: [],
+        },
         {
           id: 'org.guita.yapyap.ai',
           version: '1.0.0',
           trust: 'first-party',
+          pulled: null,
           grants: [],
           settings: [],
         },
-        { id: 'org.zeta', version: '1.0.0', trust: 'developer', grants: [], settings: [] },
+        {
+          id: 'org.zeta',
+          version: '1.0.0',
+          trust: 'developer',
+          pulled: null,
+          grants: [],
+          settings: [],
+        },
       ],
       developerMode: true,
       activity: [],

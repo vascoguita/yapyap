@@ -99,7 +99,7 @@ export interface PluginChromeDependencies {
   readonly confirmRemove: RemovalDependencies['confirmRemove'];
   readonly forgetData: RemovalDependencies['forgetData'];
   /** Where the marketplace lives and how to download from it (ADR 0014). */
-  readonly marketplace: Omit<MarketplaceDependencies, 'root' | 'installed' | 'install'>;
+  readonly marketplace: Omit<MarketplaceDependencies, 'root' | 'records' | 'pull' | 'install'>;
 }
 
 /** What the user is told when an install ends; a declined one ends quietly. */
@@ -132,6 +132,7 @@ async function listPlugins(
       id: record.id,
       version: record.version,
       trust: trustOf(record),
+      pulled: record.pulled ?? null,
       grants: grantsOf(record, accounts()),
       settings: await settingsOf(root, record, readFile),
     })),
@@ -303,12 +304,23 @@ function startRuntime(
 function marketplaceOf(
   deps: PluginChromeDependencies,
   install: MarketplaceDependencies['install'],
+  runtime: Pick<PluginRuntime, 'stop'>,
 ): ChromeHandler[] {
   return marketplaceHandlers({
     ...deps.marketplace,
     root: deps.root,
-    installed: async () =>
-      new Map([...(await loadRecords(deps.root))].map(([id, record]) => [id, record.version])),
+    records: () => loadRecords(deps.root),
+    pull: async (pulled) => {
+      const reasons = new Map(pulled.map(({ id, reason }) => [id, reason]));
+      const records = [...(await loadRecords(deps.root))].map(([id, record]) => {
+        const reason = reasons.get(id);
+        return [id, reason === undefined ? record : { ...record, pulled: reason }] as const;
+      });
+      await saveRecords(deps.root, new Map(records));
+      for (const id of reasons.keys()) {
+        runtime.stop(id);
+      }
+    },
     install,
   });
 }
@@ -341,7 +353,7 @@ export function createPluginChrome(
     handlers: [
       ...pluginHandlers(deps, settings, accounts, runtime),
       ...consent.handlers,
-      ...marketplaceOf(deps, flow),
+      ...marketplaceOf(deps, flow, runtime),
     ],
     install: () => {
       void installPlugin(flow);

@@ -222,6 +222,11 @@ function PluginRow(props: {
       <span class="name">{plugin.id}</span>
       <span class="hint">{text.version({ version: plugin.version })}</span>
       <span class={`trust trust-${plugin.trust}`}>{text.trust[plugin.trust]}</span>
+      {plugin.pulled === null ? null : (
+        <p class="warning" role="alert">
+          {text.pulled({ reason: plugin.pulled })}
+        </p>
+      )}
       {plugin.grants.length === 0 ? null : (
         <details class="permissions">
           <summary>{text.permissions}</summary>

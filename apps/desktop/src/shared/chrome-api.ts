@@ -139,6 +139,8 @@ export interface InstalledPlugin {
   readonly id: string;
   readonly version: string;
   readonly trust: PluginTrust;
+  /** Why the marketplace pulled this version, which YapYap then does not run (ADR 0014). */
+  readonly pulled: string | null;
   /** What the user approved, and whether each grant still stands (#94). */
   readonly grants: readonly PluginGrant[];
   /** The plugin's settings form, with what the user saved; empty when it has none (#98). */

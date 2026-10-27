@@ -1043,7 +1043,11 @@ not edit the same lines.
   plugins (trust `reviewed`) need no acknowledgement. E2E tests use a local
   marketplace through `YAPYAP_TEST_MARKETPLACE_ORIGIN` and
   `YAPYAP_TEST_MARKETPLACE_ANCHOR`, which only unpackaged builds honor.
-  Updates offered outside the tab and disabling pulled copies come next.
+  When the tab reads a verified index, installed copies a revocation
+  matches (same ID, version and signing key) are marked `pulled` in their
+  record and stopped; the runtime never starts a pulled plugin, the
+  Installed tab shows the reason, and the copy and its data stay until the
+  user removes it or installs another version.
 
 - Local E2E isolation on Wayland desktops (#394): Chromium chose Wayland
   from the desktop's `XDG_SESSION_TYPE` and reached the real compositor

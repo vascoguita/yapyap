@@ -444,6 +444,7 @@
       "third-party": "Third-party",
       "developer": "Unsigned"
     },
+    "pulled": "The marketplace pulled this version, so it does not run: {{reason}} Remove it, or install another version from the Marketplace tab.",
     "developerMode": "Developer Mode is on, so unsigned plugins can be installed. Turn it off in Settings when you no longer need it.",
     "result": {
       "installed": "{{name}} {{version}} is installed.",

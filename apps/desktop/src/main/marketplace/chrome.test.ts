@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import type { MarketplaceIndex } from '@yapyap/plugin-sdk';
 import { signIndex } from '@yapyap/plugin-sign';
 import { describe, expect, it, vi } from 'vitest';
+import type { PluginRecord, PluginRecords } from '../plugins/records.ts';
 import { marketplaceHandlers, type MarketplaceDependencies } from './chrome.ts';
 
 const key = generateKeyPairSync('ed25519');
@@ -42,7 +43,24 @@ const INDEX: MarketplaceIndex = {
   revoked: [],
 };
 
-function setup(index: unknown = INDEX) {
+const installed = (id: string, extra: Partial<PluginRecord> = {}): [string, PluginRecord] => [
+  id,
+  {
+    id,
+    version: '1.0.0',
+    fingerprint: SIGNER,
+    firstParty: false,
+    developer: false,
+    capabilities: [],
+    hosts: [],
+    ...extra,
+  },
+];
+
+function setup(
+  index: unknown = INDEX,
+  records: PluginRecords = new Map([installed('org.example.other')]),
+) {
   // A fresh profile has no plugins folder until something is installed.
   const root = join(mkdtempSync(join(tmpdir(), 'yapyap-marketplace-')), 'plugins');
   const bytes = new TextEncoder().encode(JSON.stringify(index));
@@ -58,7 +76,8 @@ function setup(index: unknown = INDEX) {
     fetchIndex: vi.fn((url: string) => Promise.resolve(url.endsWith('.sig') ? signature : bytes)),
     fetchArchive: vi.fn(() => Promise.resolve(undefined)),
     root,
-    installed: vi.fn(() => Promise.resolve(new Map([['org.example.other', '1.0.0']]))),
+    records: vi.fn(() => Promise.resolve(records)),
+    pull: vi.fn(() => Promise.resolve()),
     install: { prepare: vi.fn(), commit: vi.fn(), ask: vi.fn(), report: vi.fn() },
   };
   const handlers = marketplaceHandlers(deps);
@@ -85,6 +104,7 @@ describe('marketplaceHandlers', () => {
     expect(JSON.parse(readFileSync(join(t.root, '.marketplace.json'), 'utf8'))).toEqual({
       serial: 1_793_000_000,
     });
+    expect(t.deps.pull).not.toHaveBeenCalled();
   });
 
   it('refuses an index older than the serial it kept, and starts from nothing on a bad file', async () => {
@@ -101,6 +121,27 @@ describe('marketplaceHandlers', () => {
         status: 'ready',
       });
     }
+  });
+
+  it('marks and stops installed copies of pulled versions, and lists what is left', async () => {
+    const t = setup(
+      {
+        ...INDEX,
+        revoked: [
+          { id: 'org.example.bad', versions: '*', signer: SIGNER, reason: 'Sent chats away.' },
+        ],
+      },
+      new Map([installed('org.example.bad'), installed('org.example.hello', { version: '0.9.0' })]),
+    );
+    expect(await t.handler('plugins:marketplace').handle(CALL)).toEqual({
+      status: 'ready',
+      plugins: [
+        expect.objectContaining({ id: 'org.example.hello', installed: '0.9.0', action: 'update' }),
+      ],
+    });
+    expect(t.deps.pull).toHaveBeenCalledExactlyOnceWith([
+      { id: 'org.example.bad', reason: 'Sent chats away.' },
+    ]);
   });
 
   it('says why there is no list', async () => {
