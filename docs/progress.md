@@ -693,6 +693,12 @@ not edit the same lines.
   is now composed by its caller. `docs/translations.md` documents the
   workflow.
 
+- Right-to-left styles (#111, first part): YapYap's own windows use logical
+  CSS properties only (`margin-inline-start`, `text-align: start`,
+  `inset-inline-end` and so on), so they mirror for right-to-left
+  languages. `scripts/src/bin/check-logical-css.ts`, part of `pnpm lint`,
+  rejects a physical left or right in the renderer's stylesheets.
+
 - Security review (#112): `/architecture/security-review` checks YapYap
   against Electron's 20-item security checklist and the plugin threat
   model, naming the code and tests behind each answer. It found two

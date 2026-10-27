@@ -31,6 +31,7 @@ Use pnpm (version pinned in `package.json`) on Node.js 24 LTS.
 | Commit messages                 | `pnpm commitlint`                                                                                             |
 | Regenerate the message types    | `node scripts/src/bin/i18n-types.ts` (after changing `locales/en.json`)                                       |
 | Check translation catalogs      | `node scripts/src/bin/check-catalogs.ts` (part of `pnpm lint`)                                                |
+| Check chrome CSS is logical     | `node scripts/src/bin/check-logical-css.ts` (part of `pnpm lint`; no physical left/right, ADR 0012)           |
 | License compatibility           | `pnpm check:licenses`                                                                                         |
 | Vulnerability audit             | `pnpm audit --audit-level high`                                                                               |
 | Docs site (dev / build)         | `pnpm docs:dev` / `pnpm docs:build`                                                                           |
