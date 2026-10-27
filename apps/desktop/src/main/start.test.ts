@@ -147,6 +147,7 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     attachQuickPanel: vi.fn<(owner: PanelOwner) => typeof panel>(() => panel),
     pluginActions: vi.fn<() => readonly PluginAction[]>(() => []),
     runPluginCommand: vi.fn(() => true),
+    installPluginFromLink: vi.fn(),
   };
   const createSidebar = vi.fn(() => ({
     webContents: { loadURL: vi.fn(() => Promise.resolve()), send: vi.fn() },
@@ -1445,6 +1446,18 @@ describe('startApp', () => {
     secondInstance({}, ['/opt/YapYap/yapyap', 'whatsapp://send?text=Hi']);
     expect(f.window.focus).toHaveBeenCalledOnce();
     expect(f.web.contents.loadURL).toHaveBeenLastCalledWith(`${WHATSAPP_ORIGIN}/send?text=Hi`);
+  });
+
+  it('installs from a plugin link, whether it started YapYap or came with a later launch', async () => {
+    const f = fakes({}, ['/opt/YapYap/yapyap', 'yapyap://plugins/install/org.example.hello']);
+    await startApp(f);
+    expect(f.runtime.installPluginFromLink).toHaveBeenCalledExactlyOnceWith('org.example.hello');
+    const secondInstance = f.listeners.get('second-instance') as unknown as (
+      event: unknown,
+      argv: readonly string[],
+    ) => void;
+    secondInstance({}, ['/opt/YapYap/yapyap', 'yapyap://plugins/install/org.example.other']);
+    expect(f.runtime.installPluginFromLink).toHaveBeenLastCalledWith('org.example.other');
   });
 
   it('reopens the window where it was left and quits on termination signals', async () => {

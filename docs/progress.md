@@ -1040,6 +1040,15 @@ not edit the same lines.
   people without YapYap. An index that cannot be read or verified lists
   nothing. The pages are plain HTML without scripts; they update when the
   docs deploy. Screenshots and changelogs need index fields first.
+- Install links (#389): YapYap registers the `yapyap:` scheme (electron-builder
+  `protocols` for Windows and macOS, `x-scheme-handler/yapyap` in the
+  desktop entries, also used by Flatpak) and accepts only
+  `yapyap://plugins/install/<id>`, with a valid plugin ID and nothing else
+  (`navigation/plugin-link.ts`). A link from a later launch, from macOS
+  `open-url`, or the one that started YapYap goes to the marketplace
+  install, which checks the signed index and asks in the consent window;
+  links that arrive while one is handled are ignored, and other links are
+  refused without logging them. The website's buttons come with #390.
 
 - Plugin submissions (#391): authors submit through a plugin submission issue
   form (ID, version, source repository and tag, archive URL and SHA-256,

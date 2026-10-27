@@ -12,7 +12,11 @@ import {
   type ChromePage,
   type ChromeWindowDependencies,
 } from '../chrome/window-opener.ts';
-import { marketplaceHandlers, type MarketplaceDependencies } from '../marketplace/chrome.ts';
+import {
+  linkInstaller,
+  marketplaceHandlers,
+  type MarketplaceDependencies,
+} from '../marketplace/chrome.ts';
 import type { SettingsService } from '../settings/service.ts';
 import { createPluginConsent, type ConsentWindow } from './consent.ts';
 import {
@@ -236,6 +240,8 @@ export interface PluginChrome {
   readonly handlers: readonly ChromeHandler[];
   /** File → Install Plugin…: pick an archive, check it, ask, install. */
   readonly install: () => void;
+  /** Installs the plugin an **Install in YapYap** link names, from the marketplace (#389). */
+  readonly installFromLink: (id: string) => void;
   readonly openPlugins: () => void;
   /** The running plugins' commands, for the menu (#98). */
   readonly commands: PluginRuntime['commands'];
@@ -300,13 +306,13 @@ function startRuntime(
   return runtime;
 }
 
-/** The marketplace's operations (ADR 0014), installing through the same flow as a file. */
+/** What the marketplace needs (ADR 0014), installing through the same flow as a file. */
 function marketplaceOf(
   deps: PluginChromeDependencies,
   install: MarketplaceDependencies['install'],
   runtime: Pick<PluginRuntime, 'stop'>,
-): ChromeHandler[] {
-  return marketplaceHandlers({
+): MarketplaceDependencies {
+  return {
     ...deps.marketplace,
     root: deps.root,
     records: () => loadRecords(deps.root),
@@ -322,7 +328,7 @@ function marketplaceOf(
       }
     },
     install,
-  });
+  };
 }
 
 /**
@@ -349,15 +355,17 @@ export function createPluginChrome(
   const flow = installFlow(deps, settings, consent.ask, (id) => {
     runtime.restart(id).catch(failed);
   });
+  const marketplace = marketplaceOf(deps, flow, runtime);
   return {
     handlers: [
       ...pluginHandlers(deps, settings, accounts, runtime),
       ...consent.handlers,
-      ...marketplaceOf(deps, flow, runtime),
+      ...marketplaceHandlers(marketplace),
     ],
     install: () => {
       void installPlugin(flow);
     },
+    installFromLink: linkInstaller(marketplace),
     openPlugins: pluginsWindow.open,
     commands: runtime.commands,
     runCommand: runtime.runCommand,

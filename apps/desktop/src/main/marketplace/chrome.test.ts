@@ -6,7 +6,7 @@ import type { MarketplaceIndex } from '@yapyap/plugin-sdk';
 import { signIndex } from '@yapyap/plugin-sign';
 import { describe, expect, it, vi } from 'vitest';
 import type { PluginRecord, PluginRecords } from '../plugins/records.ts';
-import { marketplaceHandlers, type MarketplaceDependencies } from './chrome.ts';
+import { linkInstaller, marketplaceHandlers, type MarketplaceDependencies } from './chrome.ts';
 
 const key = generateKeyPairSync('ed25519');
 const SIGNER = Array.from({ length: 32 }, () => 'ab').join(':');
@@ -172,6 +172,35 @@ describe('marketplaceHandlers', () => {
     expect(t.deps.install.report).toHaveBeenCalledWith({
       kind: 'rejected',
       reason: 'The download does not match what the marketplace lists, so it was not installed.',
+    });
+  });
+});
+
+describe('linkInstaller', () => {
+  it('installs a linked plugin from the marketplace, one link at a time', async () => {
+    const t = setup();
+    let finish: (bytes: Uint8Array | undefined) => void = () => undefined;
+    vi.mocked(t.deps.fetchArchive).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const install = linkInstaller(t.deps);
+    install('org.example.hello');
+    // A burst of links while the first is handled opens nothing more.
+    install('org.example.hello');
+    install('org.example.other');
+    await vi.waitFor(() => {
+      expect(t.deps.fetchArchive).toHaveBeenCalledOnce();
+    });
+    finish(undefined);
+    await vi.waitFor(() => {
+      expect(t.deps.install.report).toHaveBeenCalledOnce();
+    });
+    install('org.example.hello');
+    await vi.waitFor(() => {
+      expect(t.deps.fetchArchive).toHaveBeenCalledTimes(2);
     });
   });
 });

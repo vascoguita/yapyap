@@ -9,7 +9,7 @@ Terminal=false
 Categories=Network;InstantMessaging;Chat;
 Keywords=whatsapp;chat;messaging;
 StartupWMClass=org.guita.YapYap
-MimeType=x-scheme-handler/whatsapp;
+MimeType=x-scheme-handler/whatsapp;x-scheme-handler/yapyap;
 StartupNotify=true
 Actions=SafeMode;
 

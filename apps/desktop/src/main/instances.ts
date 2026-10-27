@@ -1,4 +1,5 @@
 import { chatLinkInArguments, chatLinkTarget } from './navigation/deep-link.ts';
+import { pluginLinkInArguments, pluginLinkTarget } from './navigation/plugin-link.ts';
 
 export interface InstanceApp {
   requestSingleInstanceLock(): boolean;
@@ -27,10 +28,18 @@ export interface LinkPage {
 
 export interface Instances {
   /**
-   * Hands chat links to WhatsApp, including any that arrived before it,
-   * and brings its window to the front for later launches.
+   * Hands chat links to WhatsApp and plugin install links to `install`,
+   * including any that arrived before them, and brings the window to the
+   * front for later launches.
    */
-  readonly attach: (window: LinkWindow, page: LinkPage) => void;
+  readonly attach: (window: LinkWindow, page: LinkPage, install: (id: string) => void) => void;
+}
+
+/** Where each kind of link goes once YapYap can take it. */
+interface LinkTargets {
+  readonly window: () => LinkWindow | undefined;
+  readonly open: (target: string) => void;
+  readonly install: (id: string) => void;
 }
 
 export function bringToFront(window: LinkWindow): void {
@@ -41,12 +50,24 @@ export function bringToFront(window: LinkWindow): void {
   window.focus();
 }
 
-/** Hands every later launch, and every macOS link event, to `open`. */
+/** A link handed to the running app: a chat link, a plugin install link, or neither. */
+function follow(url: string, home: string, links: LinkTargets): boolean {
+  const target = chatLinkTarget(url, home);
+  const plugin = target === undefined ? pluginLinkTarget(url) : undefined;
+  if (target !== undefined) {
+    links.open(target);
+  } else if (plugin !== undefined) {
+    links.install(plugin);
+  }
+  return target !== undefined || plugin !== undefined;
+}
+
+/** Hands every later launch, and every macOS link event, to the links' targets. */
 function listenForLaunches(
   app: InstanceApp,
   home: string,
   warn: (message: string) => void,
-  links: { readonly window: () => LinkWindow | undefined; readonly open: (target: string) => void },
+  links: LinkTargets,
 ): void {
   app.on('second-instance', (_event, argv) => {
     const window = links.window();
@@ -54,18 +75,20 @@ function listenForLaunches(
       bringToFront(window);
     }
     const target = chatLinkInArguments(argv, home);
+    const plugin = pluginLinkInArguments(argv);
     if (target !== undefined) {
       links.open(target);
+    }
+    if (plugin !== undefined) {
+      links.install(plugin);
     }
   });
   // macOS hands links to the running app instead of starting another one.
   app.on('open-url', (event, url) => {
     event.preventDefault();
-    const target = chatLinkTarget(url, home);
-    if (target === undefined) {
-      warn('Ignored a link that is not a WhatsApp chat link.');
-    } else {
-      links.open(target);
+    if (!follow(url, home, links)) {
+      // The link itself is never logged: a chat link names a phone number.
+      warn('Ignored a link that is neither a WhatsApp chat link nor a plugin install link.');
     }
   });
 }
@@ -87,19 +110,29 @@ export function claimSingleInstance(
   }
   let window: LinkWindow | undefined;
   let page: LinkPage | undefined;
+  let installer: ((id: string) => void) | undefined;
   let pending: string | undefined;
+  let pendingPlugin: string | undefined;
   const open = (target: string): void => {
     pending = page === undefined ? target : undefined;
     // A failed load is reported by the recovery monitor.
     page?.loadURL(target).catch(() => undefined);
   };
-  listenForLaunches(app, home, warn, { window: () => window, open });
+  const install = (id: string): void => {
+    pendingPlugin = installer === undefined ? id : undefined;
+    installer?.(id);
+  };
+  listenForLaunches(app, home, warn, { window: () => window, open, install });
   return {
-    attach: (attachedWindow, attachedPage) => {
+    attach: (attachedWindow, attachedPage, attachedInstaller) => {
       window = attachedWindow;
       page = attachedPage;
+      installer = attachedInstaller;
       if (pending !== undefined) {
         open(pending);
+      }
+      if (pendingPlugin !== undefined) {
+        install(pendingPlugin);
       }
     },
   };

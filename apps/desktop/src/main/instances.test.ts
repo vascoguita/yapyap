@@ -34,11 +34,12 @@ function setup(locked = true) {
   const launchAgain = (...argv: string[]) => {
     secondInstance({}, ['/opt/YapYap/yapyap', ...argv]);
   };
+  const install = vi.fn();
   const preventDefault = vi.fn();
   const openLink = (url: string) => {
     openUrl({ preventDefault }, url);
   };
-  return { app, warn, instances, window, page, launchAgain, openLink, preventDefault };
+  return { app, warn, instances, window, page, install, launchAgain, openLink, preventDefault };
 }
 
 describe('claimSingleInstance', () => {
@@ -51,7 +52,7 @@ describe('claimSingleInstance', () => {
 
   it('brings the window to the front when YapYap is launched again', () => {
     const t = setup();
-    t.instances?.attach(t.window, t.page);
+    t.instances?.attach(t.window, t.page, t.install);
     t.launchAgain();
     expect(t.window.restore).not.toHaveBeenCalled();
     expect(t.window.show).toHaveBeenCalledOnce();
@@ -64,7 +65,7 @@ describe('claimSingleInstance', () => {
 
   it('opens a valid chat link from the new launch and ignores everything else', () => {
     const t = setup();
-    t.instances?.attach(t.window, t.page);
+    t.instances?.attach(t.window, t.page, t.install);
     t.launchAgain('--evil-flag', 'https://example.com/', 'https://wa.me/351912345678');
     expect(t.page.loadURL).toHaveBeenCalledExactlyOnceWith(`${HOME}/send?phone=351912345678`);
   });
@@ -74,27 +75,49 @@ describe('claimSingleInstance', () => {
     t.launchAgain('whatsapp://send?text=Early');
     t.openLink('https://wa.me/1');
     expect(t.preventDefault).toHaveBeenCalledOnce();
-    t.instances?.attach(t.window, t.page);
+    t.instances?.attach(t.window, t.page, t.install);
     expect(t.page.loadURL).toHaveBeenCalledExactlyOnceWith(`${HOME}/send?phone=1`);
     expect(t.window.focus).not.toHaveBeenCalled();
   });
 
   it('opens chat links macOS hands over and refuses other links without logging them', () => {
     const t = setup();
-    t.instances?.attach(t.window, t.page);
+    t.instances?.attach(t.window, t.page, t.install);
     t.openLink('whatsapp://send?phone=42');
     expect(t.page.loadURL).toHaveBeenCalledExactlyOnceWith(`${HOME}/send?phone=42`);
     t.openLink('https://example.com/?phone=42');
     expect(t.page.loadURL).toHaveBeenCalledOnce();
     expect(t.warn).toHaveBeenCalledExactlyOnceWith(
-      'Ignored a link that is not a WhatsApp chat link.',
+      'Ignored a link that is neither a WhatsApp chat link nor a plugin install link.',
     );
+  });
+
+  it('hands plugin install links to the installer, from a launch or from macOS', () => {
+    const t = setup();
+    t.instances?.attach(t.window, t.page, t.install);
+    t.launchAgain('yapyap://plugins/install/org.example.hello', 'https://wa.me/1');
+    expect(t.install).toHaveBeenCalledExactlyOnceWith('org.example.hello');
+    expect(t.page.loadURL).toHaveBeenCalledExactlyOnceWith(`${HOME}/send?phone=1`);
+    t.openLink('yapyap://plugins/install/org.example.other');
+    expect(t.install).toHaveBeenLastCalledWith('org.example.other');
+    t.launchAgain('yapyap://plugins/install/../../etc/passwd');
+    t.openLink('yapyap://plugins/install/org.example.hello?url=https://evil.example/');
+    expect(t.install).toHaveBeenCalledTimes(2);
+    expect(t.warn).toHaveBeenCalledOnce();
+  });
+
+  it('keeps an install link that arrives before the window, and installs it once attached', () => {
+    const t = setup();
+    t.openLink('yapyap://plugins/install/org.example.hello');
+    expect(t.install).not.toHaveBeenCalled();
+    t.instances?.attach(t.window, t.page, t.install);
+    expect(t.install).toHaveBeenCalledExactlyOnceWith('org.example.hello');
   });
 
   it('leaves a failed load to the recovery monitor', async () => {
     const t = setup();
     t.page.loadURL.mockRejectedValueOnce(new Error('ERR_FAILED'));
-    t.instances?.attach(t.window, t.page);
+    t.instances?.attach(t.window, t.page, t.install);
     t.launchAgain('https://wa.me/1');
     await new Promise((resolve) => setTimeout(resolve));
     expect(t.warn).not.toHaveBeenCalled();

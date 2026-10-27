@@ -97,17 +97,44 @@ export function marketplaceHandlers(deps: MarketplaceDependencies): ChromeHandle
     {
       channel: CHROME_CHANNELS.pluginsInstallListed,
       accepts: isPluginId,
-      handle: (_call, id) =>
-        installListed(
-          {
-            ...deps.install,
-            load,
-            appVersion: deps.appVersion,
-            download: deps.fetchArchive,
-            archiveUrl: deps.source.archiveUrl,
-          },
-          id as string,
-        ),
+      handle: (_call, id) => installer(deps, load)(id as string),
     },
   ];
+}
+
+function installer(
+  deps: MarketplaceDependencies,
+  load: () => Promise<MarketplaceState>,
+): (id: string) => Promise<void> {
+  return (id) =>
+    installListed(
+      {
+        ...deps.install,
+        load,
+        appVersion: deps.appVersion,
+        download: deps.fetchArchive,
+        archiveUrl: deps.source.archiveUrl,
+      },
+      id,
+    );
+}
+
+/**
+ * Installs the plugin an **Install in YapYap** link names (ADR 0014), as
+ * the Marketplace tab would: from the signed index, through the consent
+ * window. While one link is being handled, others are ignored, so a burst
+ * of links opens at most one prompt.
+ */
+export function linkInstaller(deps: MarketplaceDependencies): (id: string) => void {
+  const install = installer(deps, loader(deps));
+  let busy = false;
+  return (id) => {
+    if (busy) {
+      return;
+    }
+    busy = true;
+    void install(id).finally(() => {
+      busy = false;
+    });
+  };
 }
