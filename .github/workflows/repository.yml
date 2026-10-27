@@ -7,6 +7,13 @@ name: Package repositories
 on:
   workflow_call:
   workflow_dispatch:
+  # The plugin index expires 30 days after it is signed (ADR 0014), so it is
+  # signed again every week, and as soon as the marketplace entries change.
+  schedule:
+    - cron: '17 4 * * 1'
+  push:
+    branches: [master]
+    paths: [marketplace/**]
 
 permissions:
   contents: read
@@ -29,9 +36,13 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
+          cache: pnpm
+      # The plugin index is checked with the SDK's schemas and the signing package.
+      - run: pnpm install --frozen-lockfile --ignore-scripts
       - name: Check the signing key and deploy token exist
         id: ready
         run: |
@@ -46,6 +57,16 @@ jobs:
         run: |
           gh api "repos/$GITHUB_REPOSITORY/releases" --paginate --slurp | jq 'add' > "$RUNNER_TEMP/releases.json"
           node scripts/src/bin/package-repository.ts "$SITE" < "$RUNNER_TEMP/releases.json"
+      - name: Build and sign the plugin marketplace index
+        if: steps.ready.outputs.ready == 'true'
+        env:
+          PLUGIN_SIGNING_KEY: ${{ secrets.PLUGIN_SIGNING_KEY }}
+        run: |
+          if [[ -z $PLUGIN_SIGNING_KEY ]]; then
+            echo "::error::PLUGIN_SIGNING_KEY is missing, so the plugin index cannot be signed."
+            exit 1
+          fi
+          node scripts/src/bin/marketplace-index.ts marketplace "$SITE"
       - name: Download the planned packages
         if: steps.ready.outputs.ready == 'true'
         run: |
@@ -113,3 +134,12 @@ jobs:
             # -dd: the package alone, without the files of its dependencies.
             file=$(pacman -Sddp --print-format "%f" yapyap-bin)
             curl -sI "https://packages.guita.org/arch/beta/x86_64/$file" | grep -qi "^location: https://github.com/vascoguita/yapyap/releases/download/"'
+      - name: Check the plugin index is served, signed, and its archives redirect to releases
+        if: steps.ready.outputs.ready == 'true'
+        run: |
+          curl -fsS https://packages.guita.org/plugins/index.json -o "$RUNNER_TEMP/index.json"
+          curl -fsS https://packages.guita.org/plugins/index.json.sig -o /dev/null
+          path=$(head -n 1 <(grep '^/plugins/' "$SITE/_redirects") | cut -d ' ' -f 1)
+          if [[ -n $path ]]; then
+            curl -sI "https://packages.guita.org$path" | grep -qi "^location: https://github.com/vascoguita/yapyap/releases/download/"
+          fi

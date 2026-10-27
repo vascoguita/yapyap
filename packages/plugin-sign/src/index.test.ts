@@ -16,8 +16,10 @@ describe('the plugin-sign library', () => {
       'readPins',
       'readPluginArchive',
       'readPublicKey',
+      'signIndex',
       'signingPayload',
       'verifyArchive',
+      'verifyIndex',
       'verifyManifest',
       'writePins',
     ]);

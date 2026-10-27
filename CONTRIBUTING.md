@@ -176,6 +176,34 @@ Cloudflare token for `CLOUDFLARE_API_TOKEN` is an account API token with the
 **Pages Write** permission on the account that holds `guita.org`, and
 nothing else.
 
+## Plugin marketplace
+
+The marketplace (ADR 0014) lists the plugins in `marketplace/plugins/`, one
+`<id>.json` per plugin, and the pulled versions in `marketplace/revoked.json`.
+The package repositories workflow builds `plugins/index.json` from them,
+downloads and checks every archive, signs the index with
+`PLUGIN_SIGNING_KEY`, and deploys it to packages.guita.org every Monday and
+whenever `marketplace/` changes on `master`. The index expires 30 days after
+it is signed, so a stopped schedule takes the marketplace down within a
+month: re-run **Package repositories** by hand if it fails.
+
+To list a new version of an official plugin:
+
+1. Release YapYap. The release carries the signed
+   `<id>-<version>.yapyap-plugin` of each first-party plugin.
+2. Add the version to the plugin's entry, with the release asset's URL as
+   `source`, its `sha256-<base64>` hash (`openssl dgst -sha256 -binary
+<file> | base64`), the oldest YapYap version that runs it, and when the
+   release was published.
+3. Check it locally: `node scripts/src/bin/marketplace-index.ts marketplace`.
+   CI runs the same check on every pull request.
+
+To list a reviewed third-party version, review the archive first (see
+[the plugin guide](https://yapyap.guita.org/plugins/marketplace)), upload it
+unchanged to the `plugins` release, and point `source` at that asset. To
+pull a version, add it to `revoked.json` with the signer's fingerprint and a
+reason the user will read.
+
 ## Plugin signing key rotation
 
 First-party plugins are verified against public keys embedded in the app.

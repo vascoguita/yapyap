@@ -15,33 +15,34 @@ under `docs/adr/`.
 
 Use pnpm (version pinned in `package.json`) on Node.js 24 LTS.
 
-| Task                            | Command                                                                                  |
-| ------------------------------- | ---------------------------------------------------------------------------------------- |
-| Install                         | `pnpm install` (CI: `pnpm install --frozen-lockfile`)                                    |
-| Run the app (hot reload)        | `pnpm dev`                                                                               |
-| Build all packages              | `pnpm build`                                                                             |
-| Lint (ESLint + Prettier + knip) | `pnpm lint`                                                                              |
-| Format                          | `pnpm format`                                                                            |
-| Typecheck                       | `pnpm typecheck`                                                                         |
-| Unit + integration tests        | `pnpm test`                                                                              |
-| Coverage (100% gate)            | `pnpm test:coverage`                                                                     |
-| E2E tests                       | `dbus-run-session -- xvfb-run -a pnpm test:e2e` on Linux, else `pnpm test:e2e`           |
-| Mutation tests (≥ 90%)          | `pnpm test:mutation` (PR CI mutates changed in-scope files only)                         |
-| Performance benchmark           | `xvfb-run -a pnpm test:bench` (nightly; budgets in `apps/desktop/e2e/bench/`, ADR 0009)  |
-| Commit messages                 | `pnpm commitlint`                                                                        |
-| Regenerate the message types    | `node scripts/src/bin/i18n-types.ts` (after changing `locales/en.json`)                  |
-| Check translation catalogs      | `node scripts/src/bin/check-catalogs.ts` (part of `pnpm lint`)                           |
-| License compatibility           | `pnpm check:licenses`                                                                    |
-| Vulnerability audit             | `pnpm audit --audit-level high`                                                          |
-| Docs site (dev / build)         | `pnpm docs:dev` / `pnpm docs:build`                                                      |
-| Package installers for this OS  | `pnpm package` (output in `apps/desktop/release/`)                                       |
-| Smoke-test an installed package | `YAPYAP_PACKAGED_EXECUTABLE=<path> pnpm test:smoke`                                      |
-| Verify hardened fuses           | `node scripts/src/bin/verify-fuses.ts <executable or .app>`                              |
-| AUR PKGBUILD and .SRCINFO       | `node scripts/src/bin/aur.ts <version> <amd64 .deb> <arm64 .deb> <output dir>`           |
-| Sign, verify or pack a plugin   | `node packages/plugin-sign/src/bin/yapyap-plugin-sign.ts sign --key <pem> <folder>`      |
-| Sign first-party plugins (CI)   | `PLUGIN_SIGNING_KEY=… node scripts/src/bin/sign-plugins.ts` after building `plugins/`    |
-| Test the apt/dnf/pacman repos   | `bash packaging/repository/test.sh` (needs podman or docker)                             |
-| Flatpak bundle (Linux)          | See the `flatpak` job in `.github/workflows/package.yml`; it runs in Flathub's container |
+| Task                            | Command                                                                                                       |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Install                         | `pnpm install` (CI: `pnpm install --frozen-lockfile`)                                                         |
+| Run the app (hot reload)        | `pnpm dev`                                                                                                    |
+| Build all packages              | `pnpm build`                                                                                                  |
+| Lint (ESLint + Prettier + knip) | `pnpm lint`                                                                                                   |
+| Format                          | `pnpm format`                                                                                                 |
+| Typecheck                       | `pnpm typecheck`                                                                                              |
+| Unit + integration tests        | `pnpm test`                                                                                                   |
+| Coverage (100% gate)            | `pnpm test:coverage`                                                                                          |
+| E2E tests                       | `dbus-run-session -- xvfb-run -a pnpm test:e2e` on Linux, else `pnpm test:e2e`                                |
+| Mutation tests (≥ 90%)          | `pnpm test:mutation` (PR CI mutates changed in-scope files only)                                              |
+| Performance benchmark           | `xvfb-run -a pnpm test:bench` (nightly; budgets in `apps/desktop/e2e/bench/`, ADR 0009)                       |
+| Commit messages                 | `pnpm commitlint`                                                                                             |
+| Regenerate the message types    | `node scripts/src/bin/i18n-types.ts` (after changing `locales/en.json`)                                       |
+| Check translation catalogs      | `node scripts/src/bin/check-catalogs.ts` (part of `pnpm lint`)                                                |
+| License compatibility           | `pnpm check:licenses`                                                                                         |
+| Vulnerability audit             | `pnpm audit --audit-level high`                                                                               |
+| Docs site (dev / build)         | `pnpm docs:dev` / `pnpm docs:build`                                                                           |
+| Package installers for this OS  | `pnpm package` (output in `apps/desktop/release/`)                                                            |
+| Smoke-test an installed package | `YAPYAP_PACKAGED_EXECUTABLE=<path> pnpm test:smoke`                                                           |
+| Verify hardened fuses           | `node scripts/src/bin/verify-fuses.ts <executable or .app>`                                                   |
+| AUR PKGBUILD and .SRCINFO       | `node scripts/src/bin/aur.ts <version> <amd64 .deb> <arm64 .deb> <output dir>`                                |
+| Sign, verify or pack a plugin   | `node packages/plugin-sign/src/bin/yapyap-plugin-sign.ts sign --key <pem> <folder>`                           |
+| Check the plugin marketplace    | `node scripts/src/bin/marketplace-index.ts marketplace [site dir]` (signs with `PLUGIN_SIGNING_KEY` when set) |
+| Sign first-party plugins (CI)   | `PLUGIN_SIGNING_KEY=… node scripts/src/bin/sign-plugins.ts` after building `plugins/`                         |
+| Test the apt/dnf/pacman repos   | `bash packaging/repository/test.sh` (needs podman or docker)                                                  |
+| Flatpak bundle (Linux)          | See the `flatpak` job in `.github/workflows/package.yml`; it runs in Flathub's container                      |
 
 Update this table in the PR that adds a command.
 

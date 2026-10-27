@@ -23,3 +23,13 @@ export {
   type Capability,
   type Manifest,
 } from './manifest.ts';
+export {
+  MARKETPLACE_INDEX_MAX_BYTES,
+  MARKETPLACE_INDEX_URL,
+  MARKETPLACE_MAX_VALIDITY_MS,
+  MARKETPLACE_SIGNATURE_URL,
+  marketplaceArchiveName,
+  marketplaceArchiveUrl,
+  MarketplaceIndexSchema,
+  type MarketplaceIndex,
+} from './marketplace.ts';

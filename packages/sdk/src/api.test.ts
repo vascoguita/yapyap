@@ -14,8 +14,15 @@ describe('the SDK entry point', () => {
     expect(Object.keys(sdk).sort()).toEqual([
       'CAPABILITIES',
       'MANIFEST_SCHEMA_ID',
+      'MARKETPLACE_INDEX_MAX_BYTES',
+      'MARKETPLACE_INDEX_URL',
+      'MARKETPLACE_MAX_VALIDITY_MS',
+      'MARKETPLACE_SIGNATURE_URL',
       'ManifestSchema',
+      'MarketplaceIndexSchema',
       'definePlugin',
+      'marketplaceArchiveName',
+      'marketplaceArchiveUrl',
     ]);
   });
 });
