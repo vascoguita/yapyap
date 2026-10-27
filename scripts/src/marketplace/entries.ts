@@ -32,10 +32,14 @@ const EntrySchema = Type.Object(
     license: Plugin.properties.license,
     review: Plugin.properties.review,
     signer: Plugin.properties.signer,
+    /** Where the plugin's source code lives, which a review of a third-party plugin starts from. */
+    repository: Type.Optional(Type.String({ pattern: '^https://', maxLength: 300 })),
     versions: Type.Array(
       Type.Object(
         {
           version: Version,
+          /** The source code's tag for this version. */
+          tag: Type.Optional(Type.String({ pattern: '^[\\w./-]{1,100}$' })),
           source: Type.String({ maxLength: 400 }),
           sha256: Sha256,
           minYapYap,
@@ -69,6 +73,19 @@ function sourceProblems(entry: Entry): string[] {
   });
 }
 
+/** A third-party plugin is reviewed from its source, so its entry names the repository and each tag. */
+function reviewProblems(entry: Entry): string[] {
+  if (entry.review === 'official') {
+    return [];
+  }
+  return [
+    ...(entry.repository === undefined ? ['A reviewed plugin names its source repository.'] : []),
+    ...entry.versions
+      .filter(({ tag }) => tag === undefined)
+      .map(({ version }) => `${version}: a reviewed plugin names the tag of its source.`),
+  ];
+}
+
 /** What is wrong with an entry beyond its shape: its file name, review, sources and versions. */
 function entryProblems(entry: Entry, file: string): string[] {
   const versions = entry.versions.map(({ version }) => version);
@@ -78,6 +95,7 @@ function entryProblems(entry: Entry, file: string): string[] {
       ? []
       : [`Only plugins under ${FIRST_PARTY_PREFIX} are official, and they all are.`]),
     ...(new Set(versions).size === versions.length ? [] : ['A version is listed twice.']),
+    ...reviewProblems(entry),
     ...sourceProblems(entry),
   ];
 }

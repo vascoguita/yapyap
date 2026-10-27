@@ -1012,6 +1012,16 @@ not edit the same lines.
   `verifyIndex` in plugin-sign sign the exact bytes. The AI assistant 0.1.0
   from v0.1.2-beta.3 is the first listing.
 
+- Plugin submissions (#391): authors submit through a plugin submission issue
+  form (ID, version, source repository and tag, archive URL and SHA-256,
+  key fingerprint, homepage, license, why each capability and host, privacy
+  policy). The plugin guide gives the review checklist, what "reviewed"
+  means and does not, and how to report a misbehaving plugin; CONTRIBUTING
+  gives the maintainer's steps and the takedown through `revoked.json`.
+  Entries of reviewed plugins must name their `repository` and each
+  version's `tag`. Where reviewed archives are hosted is open (#419), as a
+  release here could confuse the beta channel's updater.
+
 - Call recording design (#392): ADR 0015 and C32. YapYap records, never a
   plugin: `calls:record` only lets a plugin ask, and recording starts on the
   user's **Record** click in a bar YapYap draws in the call window. A hidden
