@@ -315,6 +315,8 @@ interface ChromeRuntime {
   /** The running plugins' right-click items, and how to run one (#98). */
   readonly pluginActions: PluginChrome['actions'];
   readonly runPluginCommand: PluginChrome['runCommand'];
+  /** Installs the plugin an **Install in YapYap** link names (#389). */
+  readonly installPluginFromLink: PluginChrome['installFromLink'];
   /** Docks the account sidebar; returns how to show it the accounts. */
   readonly attachSidebar: (
     create: (renderer: RendererOptions) => SidebarPort,
@@ -852,6 +854,7 @@ function startChrome(
     attachSidebar: (create) => attachSidebar(create(renderer), views, sidebar, warn),
     pluginActions: plugins.actions,
     runPluginCommand: plugins.runCommand,
+    installPluginFromLink: plugins.installFromLink,
   };
 }
 

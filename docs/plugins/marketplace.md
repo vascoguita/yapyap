@@ -15,6 +15,16 @@ version, checks it against the list, and opens the usual consent window.
 A reviewed plugin needs no acknowledgement of risk there, unlike a plugin
 installed from a file.
 
+## Installing from the website
+
+A plugin's page on the website has an **Install in YapYap** button, a link
+of the form `yapyap://plugins/install/<id>`. The link opens YapYap, which
+looks the plugin up in the signed list and shows the same consent window;
+nothing installs until you choose **Install**. YapYap accepts only that
+form, with a valid plugin ID and nothing else: no address, file or
+version can be passed this way, and while one link is being handled, others
+are ignored.
+
 ## How a plugin is listed
 
 Each listed plugin has an entry in the YapYap repository, in

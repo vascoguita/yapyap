@@ -1037,6 +1037,16 @@ not edit the same lines.
   Installed tab shows the reason, and the copy and its data stay until the
   user removes it or installs another version.
 
+- Install links (#389): YapYap registers the `yapyap:` scheme (electron-builder
+  `protocols` for Windows and macOS, `x-scheme-handler/yapyap` in the
+  desktop entries, also used by Flatpak) and accepts only
+  `yapyap://plugins/install/<id>`, with a valid plugin ID and nothing else
+  (`navigation/plugin-link.ts`). A link from a later launch, from macOS
+  `open-url`, or the one that started YapYap goes to the marketplace
+  install, which checks the signed index and asks in the consent window;
+  links that arrive while one is handled are ignored, and other links are
+  refused without logging them. The website's buttons come with #390.
+
 - Marketplace pages (#390): the docs build downloads the published index and
   its signature, checks them as YapYap does (trust anchor, schema, expiry;
   `scripts/src/marketplace/site.ts`), and generates `/marketplace/` and one

@@ -84,6 +84,7 @@ import {
   type LinkWindow,
 } from './instances.ts';
 import { chatLinkInArguments } from './navigation/deep-link.ts';
+import { pluginLinkInArguments } from './navigation/plugin-link.ts';
 import { type UnsafeStartDependencies } from './sandbox-check.ts';
 import { type DownloadDependencies, type DownloadingSession } from './downloads/downloads.ts';
 import { quitOnShutdown, type ShutdownSources } from './shutdown.ts';
@@ -923,7 +924,16 @@ async function openWindow<Window extends WindowPort>(
     notifiers: listenToNotifications(deps, origin),
     spelling: followSpellingSetting(deps.settings, deps.systemLanguages),
   });
-  instances.attach(window, wireMainWindow(deps, chrome, window, running, origin));
+  instances.attach(
+    window,
+    wireMainWindow(deps, chrome, window, running, origin),
+    chrome.installPluginFromLink,
+  );
+  // An install link that started YapYap waits for its window, like a chat link.
+  const plugin = pluginLinkInArguments(deps.argv);
+  if (plugin !== undefined) {
+    chrome.installPluginFromLink(plugin);
+  }
   // A failed load must not end startup: the monitor shows the recovery screen.
   await Promise.all(running.opened().map(({ page }) => page.loaded));
 }
