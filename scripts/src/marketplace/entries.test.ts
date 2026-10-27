@@ -11,9 +11,11 @@ const ENTRY: Entry = {
   license: 'MIT',
   review: 'reviewed',
   signer: SIGNER,
+  repository: 'https://github.com/example/hello',
   versions: [
     {
       version: '1.0.0',
+      tag: 'v1.0.0',
       source: `${RELEASES}/plugins/org.example.hello-1.0.0.yapyap-plugin`,
       sha256: `sha256-${'A'.repeat(43)}=`,
       minYapYap: '0.1.2',
@@ -130,6 +132,25 @@ describe('readEntry', () => {
     ],
   ])('refuses %s', (_case, entry, file, problem) => {
     expect(readEntry(entry, file)).toEqual([expect.stringContaining(problem) as string]);
+  });
+});
+
+describe('readEntry for a reviewed plugin', () => {
+  it('needs its source repository, and the tag of each version', () => {
+    // Entries are JSON, where a missing field is simply absent.
+    const without = (value: object): unknown => JSON.parse(JSON.stringify(value));
+    expect(
+      readEntry(without({ ...ENTRY, repository: undefined }), 'org.example.hello.json'),
+    ).toEqual(['A reviewed plugin names its source repository.']);
+    expect(
+      readEntry(
+        without({ ...ENTRY, versions: [{ ...VERSION, tag: undefined }] }),
+        'org.example.hello.json',
+      ),
+    ).toEqual(['1.0.0: a reviewed plugin names the tag of its source.']);
+    expect(
+      readEntry({ ...ENTRY, versions: [{ ...VERSION, tag: 'v1 0' }] }, 'org.example.hello.json'),
+    ).toHaveLength(1);
   });
 });
 

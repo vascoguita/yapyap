@@ -198,11 +198,27 @@ To list a new version of an official plugin:
 3. Check it locally: `node scripts/src/bin/marketplace-index.ts marketplace`.
    CI runs the same check on every pull request.
 
-To list a reviewed third-party version, review the archive first (see
-[the plugin guide](https://yapyap.guita.org/plugins/marketplace)), upload it
-unchanged to the `plugins` release, and point `source` at that asset. To
-pull a version, add it to `revoked.json` with the signer's fingerprint and a
-reason the user will read.
+To list a reviewed third-party version from a plugin submission issue:
+
+1. Download the archive, check its SHA-256 against the submission, and
+   verify it: `node packages/plugin-sign/src/bin/yapyap-plugin-sign.ts
+verify <file>` prints the signer, which must match the submission (and
+   the entry's `signer` for later versions).
+2. Review it against the checklist in
+   [the plugin guide](https://yapyap.guita.org/plugins/marketplace#the-review-checklist):
+   unpack it and read every file, compare it with the tag in the
+   repository, and check each capability, host and the privacy policy.
+3. Upload the unchanged archive to the release that holds reviewed
+   archives. Where that is is still to be decided (#419), so no
+   third-party plugin can be listed until then.
+4. Open a pull request adding or updating `marketplace/plugins/<id>.json`
+   with `review: "reviewed"`, the `repository`, and the version's `tag`,
+   with `source` pointing at that asset. Link the submission.
+
+To take a plugin down, add the version, or `"*"` for all of them, to
+`revoked.json` with the signer's fingerprint and a reason the user will
+read, and merge it: the index is signed and deployed again at once. Keep
+the entry, so the reason stays with the plugin's history.
 
 ## Plugin signing key rotation
 

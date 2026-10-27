@@ -18,9 +18,11 @@ Each listed plugin has an entry in the YapYap repository, in
   "license": "MIT",
   "review": "reviewed",
   "signer": "18:1e:…:d7",
+  "repository": "https://github.com/example/translate",
   "versions": [
     {
       "version": "1.0.0",
+      "tag": "v1.0.0",
       "source": "https://github.com/vascoguita/yapyap/releases/download/plugins/org.example.translate-1.0.0.yapyap-plugin",
       "sha256": "sha256-…",
       "minYapYap": "0.1.2",
@@ -41,19 +43,52 @@ Each listed plugin has an entry in the YapYap repository, in
 CI downloads every listed archive and checks its hash, signature, signer,
 manifest and archive limits, and fails the pull request on any problem.
 
+- `repository` and each version's `tag` say where the reviewed code lives.
+  A third-party plugin must give both.
+
 ## Submitting a plugin
 
-Open a pull request that adds your entry, with `source` pointing at a
-release of your own repository for now. The maintainer reviews the
-archive's own files, so ship readable JavaScript: no minified or
-obfuscated code. Once the review passes, the maintainer copies the archive
-into YapYap's releases, changes `source` to it and merges. The published
-review checklist is tracked in
-[#391](https://github.com/vascoguita/yapyap/issues/391).
+1. Publish your plugin's signed `.yapyap-plugin` as a release asset of your
+   own repository, built from a tag.
+2. Open a [plugin submission](https://github.com/vascoguita/yapyap/issues/new?template=plugin_submission.yml)
+   with its ID, version, summary, repository and tag, the archive's URL and
+   SHA-256, your key's fingerprint, its homepage and license, why it needs
+   each capability and host, and its privacy policy if it connects
+   anywhere.
+3. The maintainer reviews the archive's own files against the checklist
+   below. Ship readable JavaScript: no minified or obfuscated code.
+4. Once the review passes, the maintainer copies that exact archive to
+   YapYap's own hosting and opens the pull request that lists it, which CI
+   checks. A new version goes through the same steps.
+
+Third-party listings open once that hosting is set up
+([#419](https://github.com/vascoguita/yapyap/issues/419)); submissions are
+welcome before then.
+
+### The review checklist
+
+- Every capability and network host is needed for what the plugin says it
+  does, and nothing is requested "just in case".
+- Network hosts belong to the service the plugin describes, and a privacy
+  policy says what happens to data sent there.
+- The code is readable, matches the tag, and does nothing undeclared: no
+  `eval`, no code fetched at run time, no tracking.
+- The license allows redistribution, since YapYap hosts the archive.
+
+### What "reviewed" means
+
+A reviewed plugin was read by YapYap's maintainer, who found nothing
+harmful or undeclared in that exact version. It is not a guarantee, a
+security audit, or an endorsement of the author's service. Every plugin
+still runs in its sandbox, gets only what you allow, and can be removed at
+any time.
 
 ## Updates and pulled versions
 
-A new version is listed the same way, and YapYap offers it to users who
-installed the plugin from the marketplace. A version can be pulled through
-`marketplace/revoked.json`: YapYap then stops matching copies and tells the
-user why, without deleting their data.
+A new version is listed the same way, and YapYap offers it in the
+Marketplace tab. If a listed plugin misbehaves, report it privately as a
+[security advisory](https://github.com/vascoguita/yapyap/security/advisories/new).
+The maintainer can pull a version or a whole plugin through
+`marketplace/revoked.json`: the index is signed again at once, and every
+YapYap that reads it stops matching copies and tells the user why, without
+deleting their data.
