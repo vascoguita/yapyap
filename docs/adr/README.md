@@ -20,5 +20,6 @@ ADR that supersedes the old one.
 | [0012](0012-translations.md)                          | Translations                                       | Accepted |
 | [0013](0013-in-chat-assistant-bar.md)                 | The in-chat assistant bar                          | Accepted |
 | [0014](0014-plugin-marketplace.md)                    | The plugin marketplace                             | Accepted |
+| [0015](0015-call-recording.md)                        | Call recording                                     | Accepted |
 
 New ADRs copy [`template.md`](template.md) and take the next free number.
