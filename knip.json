@@ -16,5 +16,6 @@
       "project": ["src/**/*.ts"]
     }
   },
-  "ignoreDependencies": ["@stryker-mutator/command-runner"]
+  "ignoreDependencies": ["@stryker-mutator/command-runner"],
+  "ignoreBinaries": ["ffmpeg"]
 }

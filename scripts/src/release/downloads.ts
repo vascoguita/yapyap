@@ -65,7 +65,8 @@ export function compact(count: number): string {
   for (const [size, unit] of UNITS) {
     if (count >= size) {
       const value = count / size;
-      const shown = value < 10 ? Math.floor(value * 10) / 10 : Math.floor(value);
+      const whole = Math.floor(value);
+      const shown = whole < 10 ? Math.floor(value * 10) / 10 : whole;
       return `${String(shown)}${unit}`;
     }
   }
@@ -105,4 +106,73 @@ export function fromGitHub(answer: unknown): CountedRelease[] {
     prerelease: release.prerelease,
     assets: release.assets.map(({ name, download_count: downloads }) => ({ name, downloads })),
   }));
+}
+
+/**
+ * The installer the website's download button offers for each system: one
+ * file per key, matched by name in the latest stable release (#383).
+ */
+const INSTALLERS: readonly (readonly [string, RegExp])[] = [
+  ['windows', /-win-x64-setup\.exe$/],
+  ['windowsArm', /-win-arm64-setup\.exe$/],
+  ['mac', /-mac-universal\.dmg$/],
+  ['deb', /-linux-amd64\.deb$/],
+  ['rpm', /-linux-x86_64\.rpm$/],
+  ['appImage', /-linux-x86_64\.AppImage$/],
+  ['appImageArm', /-linux-arm64\.AppImage$/],
+  ['flatpak', /^yapyap-x86_64\.flatpak$/],
+];
+
+/** The latest stable version and a direct link to each of its installers. */
+export interface LatestDownloads {
+  readonly version: string;
+  readonly files: Readonly<Record<string, string>>;
+}
+
+interface LinkedRelease {
+  readonly tag_name: string;
+  readonly prerelease: boolean;
+  readonly draft: boolean;
+  readonly assets: readonly { readonly name: string; readonly browser_download_url: string }[];
+}
+
+/** A stable release's tag, the only kind the website offers. */
+const STABLE_TAG = /^v\d{1,4}\.\d{1,4}\.\d{1,4}$/;
+
+const isStableTag = (tag: unknown): boolean => typeof tag === 'string' && STABLE_TAG.test(tag);
+
+const isLinkedRelease = (value: unknown): value is LinkedRelease => {
+  const release = value as Partial<LinkedRelease> | null;
+  const published = release?.prerelease === false && release.draft === false;
+  return published && isStableTag(release.tag_name) && Array.isArray(release.assets);
+};
+
+/**
+ * Only this repository's own download addresses, for that release's tag and
+ * a plain file name, so the site never links anywhere else, whatever the
+ * API answers.
+ */
+const releaseUrl = (tag: string, name: string): string | undefined =>
+  /^[\w.-]{1,200}$/.test(name)
+    ? `https://github.com/vascoguita/yapyap/releases/download/${tag}/${name}`
+    : undefined;
+
+/**
+ * The newest stable release in GitHub's answer, which lists the newest
+ * first, with a link to each installer it has; undefined before the first.
+ */
+export function latestDownloads(answer: unknown): LatestDownloads | undefined {
+  const release = Array.isArray(answer) ? answer.find(isLinkedRelease) : undefined;
+  if (release === undefined) {
+    return undefined;
+  }
+  const files = INSTALLERS.flatMap(([key, pattern]) => {
+    const asset = release.assets.find((candidate) => pattern.test(candidate.name));
+    if (asset === undefined) {
+      return [];
+    }
+    const url = releaseUrl(release.tag_name, asset.name);
+    return url !== undefined && url === asset.browser_download_url ? [[key, url] as const] : [];
+  });
+  return { version: release.tag_name.replace(/^v/, ''), files: Object.fromEntries(files) };
 }

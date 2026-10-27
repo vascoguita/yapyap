@@ -10,6 +10,7 @@ const TYPES: Readonly<Record<string, string>> = {
   '.css': 'text/css; charset=utf-8',
   '.mp4': 'video/mp4',
   '.ogg': 'audio/ogg',
+  '.png': 'image/png',
 };
 
 export interface FakeWhatsApp {
