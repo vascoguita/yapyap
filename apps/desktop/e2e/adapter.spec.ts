@@ -22,7 +22,7 @@ async function copiedDiagnostics(app: ElectronApplication): Promise<string> {
 test('describes the chat list and the open chat in the diagnostics', async ({ app, window }) => {
   await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
   expect(await copiedDiagnostics(app)).toContain(
-    '\nWhatsApp view=chats, chat_open=true (landmarks v4)\n',
+    '\nWhatsApp view=chats, chat_open=true (landmarks v5)\n',
   );
 });
 
@@ -32,7 +32,7 @@ test.describe('when the account is logged out', () => {
   test('reports the login screen in the diagnostics', async ({ app, window }) => {
     await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
     expect(await copiedDiagnostics(app)).toContain(
-      '\nWhatsApp view=logged-out, chat_open=false (landmarks v4)\n',
+      '\nWhatsApp view=logged-out, chat_open=false (landmarks v5)\n',
     );
   });
 });
