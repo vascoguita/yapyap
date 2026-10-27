@@ -118,8 +118,7 @@ below 10 on purpose or for now (#404):
 
 - **Code-Review:** YapYap has one maintainer, so pull requests are not
   approved by a second person. Every change still goes through a pull
-  request with the required checks, and agent-written changes are reviewed
-  by the maintainer. A required approving review would block all merging
+  request with the required checks. A required approving review would block all merging
   until there is a second maintainer.
 - **Branch-Protection:** the `master` ruleset requires a pull request,
   signed commits and the required checks, and forbids force pushes and
