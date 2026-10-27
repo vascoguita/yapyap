@@ -1031,6 +1031,16 @@ not edit the same lines.
   Installed tab shows the reason, and the copy and its data stay until the
   user removes it or installs another version.
 
+- Marketplace pages (#390): the docs build downloads the published index and
+  its signature, checks them as YapYap does (trust anchor, schema, expiry;
+  `scripts/src/marketplace/site.ts`), and generates `/marketplace/` and one
+  page per plugin (VitePress dynamic routes): who vouches for it, what it
+  asks for in the consent window's words, author, website, license and
+  versions, an **Install in YapYap** link (#389), and install steps for
+  people without YapYap. An index that cannot be read or verified lists
+  nothing. The pages are plain HTML without scripts; they update when the
+  docs deploy. Screenshots and changelogs need index fields first.
+
 - Plugin submissions (#391): authors submit through a plugin submission issue
   form (ID, version, source repository and tag, archive URL and SHA-256,
   key fingerprint, homepage, license, why each capability and host, privacy
