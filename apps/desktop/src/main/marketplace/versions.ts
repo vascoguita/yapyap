@@ -2,10 +2,10 @@ const SEMVER = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/;
 
 /** A semantic version's release numbers and prerelease identifiers; anything else counts as 0.0.0. */
 function parts(version: string): { release: [number, number, number]; pre: string[] } {
-  const match = SEMVER.exec(version) ?? ['', '0', '0', '0'];
+  const [, major, minor, patch, pre] = SEMVER.exec(version) ?? ['', '0', '0', '0'];
   return {
-    release: [Number(match[1]), Number(match[2]), Number(match[3])],
-    pre: match[4]?.split('.') ?? [],
+    release: [Number(major), Number(minor), Number(patch)],
+    pre: pre?.split('.') ?? [],
   };
 }
 

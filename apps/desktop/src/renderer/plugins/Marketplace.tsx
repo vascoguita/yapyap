@@ -151,7 +151,7 @@ function MarketplaceList(props: {
 export function Marketplace({ api }: { readonly api: ChromeApi }): JSX.Element {
   const { view, busy, load, install } = useMarketplace(api);
   if (view === null) {
-    return <p role="status">{text.loading}</p>;
+    return <output>{text.loading}</output>;
   }
   if (view.status !== 'ready') {
     return (

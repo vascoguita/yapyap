@@ -17,21 +17,22 @@ function joined(chunks: readonly Uint8Array[], length: number): Uint8Array {
   return bytes;
 }
 
-/** Reads a body, giving up as soon as it passes `limit` bytes. */
+/**
+ * Reads a body, giving up as soon as it passes `limit` bytes; leaving the
+ * loop early cancels the rest of the download.
+ */
 async function readCapped(
   body: ReadableStream<Uint8Array>,
   limit: number,
 ): Promise<Uint8Array | undefined> {
-  const reader = body.getReader();
   const chunks: Uint8Array[] = [];
   let length = 0;
-  for (let read = await reader.read(); !read.done; read = await reader.read()) {
-    length += read.value.length;
+  for await (const chunk of body) {
+    length += chunk.length;
     if (length > limit) {
-      await reader.cancel();
       return undefined;
     }
-    chunks.push(read.value);
+    chunks.push(chunk);
   }
   return joined(chunks, length);
 }
