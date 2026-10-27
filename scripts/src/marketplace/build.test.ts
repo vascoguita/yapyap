@@ -253,6 +253,13 @@ describe('buildIndex', () => {
     ).toThrow('org.example.hello 1.0.0: The plugin is not signed.');
   });
 
+  it('refuses an entry that lists no versions', () => {
+    const t = setup();
+    expect(() => buildIndex({ ...t.sources, entries: [{ ...t.entry, versions: [] }] })).toThrow(
+      'org.example.hello lists no versions.',
+    );
+  });
+
   it('refuses to produce an index its own schema would refuse', () => {
     const { sources } = setup();
     const revoked = [

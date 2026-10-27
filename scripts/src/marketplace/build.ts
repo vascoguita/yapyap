@@ -87,8 +87,10 @@ function listPlugin(
       });
     }
   });
-  // An entry lists at least one version, so the last one is the newest.
-  const newest = described.reduce((_older, version) => version);
+  const newest = described.at(-1);
+  if (newest === undefined) {
+    throw new Error(`${entry.id} lists no versions.`);
+  }
   return {
     id: entry.id,
     name: newest.name,

@@ -11,17 +11,16 @@ export function signIndex(bytes: Uint8Array, privateKey: KeyObject): string {
 
 /**
  * Whether one of the first-party trust anchors (SPKI PEM) signed `bytes`.
- * Only those keys may vouch for the marketplace; a malformed signature is
- * simply not valid.
+ * Only those keys may vouch for the marketplace. A malformed signature, or
+ * an anchor that is not an Ed25519 key, is simply not valid: base64
+ * decoding skips whitespace and Ed25519 signatures verify under no other
+ * key type.
  */
 export function verifyIndex(
   bytes: Uint8Array,
   signature: string,
   anchors: readonly string[],
 ): boolean {
-  const value = Buffer.from(signature.trim(), 'base64');
-  return anchors.some((pem) => {
-    const key = createPublicKey(pem);
-    return key.asymmetricKeyType === 'ed25519' && verify(null, bytes, key, value);
-  });
+  const value = Buffer.from(signature, 'base64');
+  return anchors.some((pem) => verify(null, bytes, createPublicKey(pem), value));
 }
