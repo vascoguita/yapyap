@@ -111,6 +111,28 @@ These settings are applied through the GitHub API and must stay in place.
   gh api -X PUT "repos/vascoguita/yapyap/rulesets/$id" --input .github/rulesets/master.json
   ```
 
+### OpenSSF Scorecard checks below 10
+
+Scorecard (`scorecard.yml`) rates the repository weekly. These checks stay
+below 10 on purpose or for now (#404):
+
+- **Code-Review:** YapYap has one maintainer, so pull requests are not
+  approved by a second person. Every change still goes through a pull
+  request with the required checks. A required approving review would block all merging
+  until there is a second maintainer.
+- **Branch-Protection:** the `master` ruleset requires a pull request,
+  signed commits and the required checks, and forbids force pushes and
+  deletion. It does not require approvals, dismiss stale reviews or code
+  owner review, for the reason above, and branches need not be up to date
+  until M7 (#210).
+- **Signed-Releases:** releases attach their Sigstore bundle and in-toto
+  provenance since v0.1.2-beta.3. The score rises as older releases leave
+  the last five Scorecard looks at.
+- **Packaging:** Scorecard looks for a workflow that publishes to a package
+  registry. YapYap publishes installers on GitHub Releases and its own
+  package repositories, which it does not detect.
+- **Maintained:** the repository is younger than 90 days.
+
 ## Secrets and maintainer-only steps
 
 The pipelines skip steps whose secrets are missing, and print a notice in the
