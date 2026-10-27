@@ -45,7 +45,7 @@ dl {
   grid-template-columns: auto auto;
   gap: 4px 12px;
   margin: 0;
-  text-align: left;
+  text-align: start;
 }
 
 dt {
@@ -110,7 +110,7 @@ main.welcome {
   align-items: stretch;
   max-width: 560px;
   margin: 0 auto;
-  text-align: left;
+  text-align: start;
 }
 
 section {
@@ -214,7 +214,7 @@ button:hover {
 
 main.picker {
   align-items: stretch;
-  text-align: left;
+  text-align: start;
 }
 
 main.picker form {
@@ -285,7 +285,7 @@ button:disabled {
 
 main.new-chat {
   align-items: stretch;
-  text-align: left;
+  text-align: start;
 }
 
 main.new-chat form {
@@ -299,7 +299,7 @@ main.new-chat .field {
   flex-direction: column;
   align-items: stretch;
   gap: 4px;
-  text-align: left;
+  text-align: start;
 }
 
 main.new-chat input {
@@ -319,7 +319,7 @@ main.accounts {
   align-items: stretch;
   max-width: 560px;
   margin: 0 auto;
-  text-align: left;
+  text-align: start;
 }
 
 .account-list {
@@ -342,7 +342,7 @@ main.accounts {
   background: var(--surface);
   color: var(--text);
   font: inherit;
-  text-align: left;
+  text-align: start;
 }
 
 .account-list button[aria-pressed='true'] {
@@ -351,7 +351,7 @@ main.accounts {
 }
 
 .account-list .hint {
-  margin-left: auto;
+  margin-inline-start: auto;
   color: var(--muted);
   font-size: 0.9rem;
 }
@@ -368,7 +368,7 @@ main.accounts > .hint {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  margin-right: 4px;
+  margin-inline-end: 4px;
   vertical-align: middle;
 }
 
@@ -419,7 +419,7 @@ main.accounts .actions {
 
 body.sidebar {
   overflow: hidden;
-  border-right: 1px solid var(--border);
+  border-inline-end: 1px solid var(--border);
   box-sizing: border-box;
   height: 100vh;
 }
@@ -452,7 +452,7 @@ body.sidebar li button {
   background: none;
   color: var(--text);
   font: inherit;
-  text-align: left;
+  text-align: start;
   cursor: pointer;
 }
 
@@ -524,7 +524,7 @@ body.sidebar nav.compact .badge,
 body.sidebar nav.compact li .icon {
   position: absolute;
   top: 2px;
-  right: 2px;
+  inset-inline-end: 2px;
 }
 
 body.sidebar footer {
@@ -547,7 +547,7 @@ body.sidebar .dnd {
 
 /* The panel floats on its own, so it has no edge to draw against WhatsApp. */
 body.quick-panel {
-  border-right: none;
+  border-inline-end: none;
 }
 
 body.quick-panel .dnd-switch {
@@ -613,7 +613,7 @@ main.plugins {
   align-items: stretch;
   max-width: 560px;
   margin: 0 auto;
-  text-align: left;
+  text-align: start;
 }
 
 main.consent h2 {
@@ -649,7 +649,7 @@ main.consent .grants {
   align-items: stretch;
   gap: 4px;
   margin: 4px 0 12px;
-  padding-left: 20px;
+  padding-inline-start: 20px;
   list-style: disc;
 }
 
@@ -815,7 +815,7 @@ main.welcome .actions {
 
 main.shortcuts {
   align-items: stretch;
-  text-align: left;
+  text-align: start;
 }
 
 main.shortcuts table {
@@ -827,7 +827,7 @@ main.shortcuts th,
 main.shortcuts td {
   padding: 6px 4px;
   border-bottom: 1px solid var(--border);
-  text-align: left;
+  text-align: start;
 }
 
 main.shortcuts th {
@@ -853,7 +853,7 @@ main.report {
   align-items: stretch;
   max-width: 600px;
   margin: 0 auto;
-  text-align: left;
+  text-align: start;
 }
 
 main.report .hint {
@@ -901,7 +901,7 @@ main.custom-code {
   align-items: stretch;
   max-width: 640px;
   margin: 0 auto;
-  text-align: left;
+  text-align: start;
 }
 
 main.custom-code form {
@@ -943,7 +943,7 @@ main.custom-code .actions {
 
 main.downloads {
   align-items: stretch;
-  text-align: left;
+  text-align: start;
 }
 
 main.downloads ul {
