@@ -1,4 +1,6 @@
+import { generateKeyPairSync } from 'node:crypto';
 import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { signIndex } from '@yapyap/plugin-sign';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -62,6 +64,17 @@ function setup(root: string, developerMode = false, overrides: object = {}) {
     askHost: vi.fn(() => Promise.resolve(false)),
     confirmRemove: vi.fn(() => Promise.resolve(true)),
     forgetData: vi.fn(() => Promise.resolve()),
+    marketplace: {
+      source: {
+        indexUrl: 'https://packages.example/plugins/index.json',
+        signatureUrl: 'https://packages.example/plugins/index.json.sig',
+        archiveUrl: (id: string, version: string) => `https://packages.example/${id}-${version}`,
+        anchors: [],
+      },
+      appVersion: '0.1.2',
+      fetchIndex: vi.fn(() => Promise.resolve(undefined)),
+      fetchArchive: vi.fn(() => Promise.resolve(undefined)),
+    },
     ...overrides,
   };
   const settings = defaultSettings();
@@ -101,6 +114,71 @@ describe('createPluginChrome', () => {
 
   afterEach(() => {
     rmSync(root, { recursive: true, force: true });
+  });
+
+  it('lists the marketplace with the versions installed here, and marks pulled ones', async () => {
+    const key = generateKeyPairSync('ed25519');
+    const plugin = {
+      id: 'org.example.hello',
+      name: 'Hello',
+      summary: 'Says hello.',
+      author: { name: 'Example' },
+      homepage: 'https://example.org',
+      license: 'MIT',
+      review: 'reviewed',
+      signer: Array.from({ length: 32 }, () => 'ab').join(':'),
+      versions: [
+        {
+          version: '1.0.0',
+          size: 1,
+          sha256: `sha256-${'A'.repeat(43)}=`,
+          capabilities: [],
+          hosts: [],
+          minYapYap: '0.1.0',
+          published: '2026-10-27T08:00:00.000Z',
+        },
+      ],
+    };
+    const bytes = new TextEncoder().encode(
+      JSON.stringify({
+        format: 1,
+        serial: 1,
+        generated: new Date(Date.now() - 60_000).toISOString(),
+        expires: new Date(Date.now() + 86_400_000).toISOString(),
+        plugins: [plugin],
+        revoked: [{ id: 'org.example.bad', versions: '*', signer: plugin.signer, reason: 'Gone.' }],
+      }),
+    );
+    const signature = new TextEncoder().encode(signIndex(bytes, key.privateKey));
+    const t = setup(root, false, {
+      marketplace: {
+        source: {
+          indexUrl: 'https://packages.example/index.json',
+          signatureUrl: 'https://packages.example/index.json.sig',
+          archiveUrl: () => 'https://packages.example/archive',
+          anchors: [key.publicKey.export({ format: 'pem', type: 'spki' })],
+        },
+        appVersion: '0.1.2',
+        fetchIndex: (url: string) => Promise.resolve(url.endsWith('.sig') ? signature : bytes),
+        fetchArchive: () => Promise.resolve(undefined),
+      },
+    });
+    const signer = plugin.signer;
+    await saveRecords(
+      root,
+      new Map([
+        ['org.example.hello', record('org.example.hello', { developer: true })],
+        ['org.example.bad', record('org.example.bad', { fingerprint: signer })],
+      ]),
+    );
+    expect(await t.handler('plugins:marketplace').handle({ sender: {} })).toEqual({
+      status: 'ready',
+      plugins: [expect.objectContaining({ installed: '1.0.0', action: 'installed' })],
+    });
+    // The pulled plugin stays installed, marked, and the other is left as it was.
+    const records = await loadRecords(root);
+    expect(records.get('org.example.bad')?.pulled).toBe('Gone.');
+    expect(records.get('org.example.hello')?.pulled).toBeUndefined();
   });
 
   it('says when the installed plugins cannot be read, and starts none', async () => {
@@ -278,15 +356,30 @@ describe('createPluginChrome', () => {
     const t = setup(root, true);
     await expect(t.handler('plugins:list').handle({ sender: {} })).resolves.toEqual({
       plugins: [
-        { id: 'org.alpha', version: '1.0.0', trust: 'third-party', grants: [], settings: [] },
+        {
+          id: 'org.alpha',
+          version: '1.0.0',
+          trust: 'third-party',
+          pulled: null,
+          grants: [],
+          settings: [],
+        },
         {
           id: 'org.guita.yapyap.ai',
           version: '1.0.0',
           trust: 'first-party',
+          pulled: null,
           grants: [],
           settings: [],
         },
-        { id: 'org.zeta', version: '1.0.0', trust: 'developer', grants: [], settings: [] },
+        {
+          id: 'org.zeta',
+          version: '1.0.0',
+          trust: 'developer',
+          pulled: null,
+          grants: [],
+          settings: [],
+        },
       ],
       developerMode: true,
       activity: [],
@@ -449,6 +542,17 @@ describe('installFlow', () => {
       askHost: vi.fn(() => Promise.resolve(false)),
       confirmRemove: vi.fn(),
       forgetData: vi.fn(),
+      marketplace: {
+        source: {
+          indexUrl: 'https://packages.example/plugins/index.json',
+          signatureUrl: 'https://packages.example/plugins/index.json.sig',
+          archiveUrl: (id: string, version: string) => `https://packages.example/${id}-${version}`,
+          anchors: [],
+        },
+        appVersion: '0.1.2',
+        fetchIndex: vi.fn(() => Promise.resolve(undefined)),
+        fetchArchive: vi.fn(() => Promise.resolve(undefined)),
+      },
     };
     const started = vi.fn();
     const flow = installFlow(deps, { current: defaultSettings }, vi.fn(), started);

@@ -44,6 +44,8 @@ function api(platform: string) {
       setGrant: vi.fn(),
       setSetting: vi.fn(),
       remove: vi.fn(),
+      marketplace: vi.fn(),
+      installListed: vi.fn(),
       onChange: vi.fn(),
     },
     picker: { offer: vi.fn(), choose: vi.fn(), cancel: vi.fn() },

@@ -359,9 +359,11 @@ export interface Messages {
     readonly version: (params: { readonly version: string | number }) => string;
     readonly trust: {
       readonly 'first-party': string;
+      readonly reviewed: string;
       readonly 'third-party': string;
       readonly developer: string;
     };
+    readonly pulled: (params: { readonly reason: string | number }) => string;
     readonly developerMode: string;
     readonly result: {
       readonly installed: (params: {
@@ -381,6 +383,7 @@ export interface Messages {
       readonly key: string;
       readonly unsigned: string;
       readonly firstParty: string;
+      readonly reviewed: string;
       readonly asks: string;
       readonly updateAsks: string;
       readonly hosts: string;
@@ -420,6 +423,35 @@ export interface Messages {
         readonly timeout: string;
         readonly failed: string;
       };
+    };
+    readonly marketplace: {
+      readonly installedTab: string;
+      readonly marketplaceTab: string;
+      readonly tabsLabel: string;
+      readonly search: string;
+      readonly loading: string;
+      readonly unreachable: string;
+      readonly invalid: string;
+      readonly outdated: string;
+      readonly retry: string;
+      readonly empty: string;
+      readonly official: string;
+      readonly reviewed: string;
+      readonly by: (params: { readonly name: string | number }) => string;
+      readonly version: (params: { readonly version: string | number }) => string;
+      readonly install: string;
+      readonly installLabel: (params: { readonly plugin: string | number }) => string;
+      readonly update: (params: { readonly version: string | number }) => string;
+      readonly updateLabel: (params: {
+        readonly plugin: string | number;
+        readonly version: string | number;
+      }) => string;
+      readonly installed: string;
+      readonly incompatible: string;
+      readonly homepage: string;
+      readonly privacy: string;
+      readonly mismatch: string;
+      readonly unlisted: string;
     };
   };
   readonly notifications: {

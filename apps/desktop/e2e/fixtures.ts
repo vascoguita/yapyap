@@ -203,7 +203,10 @@ export async function launchApp(
   origin: string,
   profile: string,
   args: readonly string[] = [],
-  { firstRun = false }: { readonly firstRun?: boolean } = {},
+  {
+    firstRun = false,
+    env = {},
+  }: { readonly firstRun?: boolean; readonly env?: Readonly<Record<string, string>> } = {},
 ): Promise<ElectronApplication> {
   // Every test profile is new, which YapYap would greet with its welcome
   // window (#84); a settings file marks it as used, unless the test wants that.
@@ -219,7 +222,7 @@ export async function launchApp(
     // Playwright adds --no-sandbox unless told otherwise, and YapYap refuses
     // to run without its sandbox; tests run with the real one.
     chromiumSandbox: true,
-    env: appEnvironment(origin, profile),
+    env: { ...appEnvironment(origin, profile), ...env },
   });
   LOGS.set(app, recentLog(app));
   LAUNCHED.add(app);

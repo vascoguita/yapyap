@@ -12,6 +12,7 @@ import {
   type ChromePage,
   type ChromeWindowDependencies,
 } from '../chrome/window-opener.ts';
+import { marketplaceHandlers, type MarketplaceDependencies } from '../marketplace/chrome.ts';
 import type { SettingsService } from '../settings/service.ts';
 import { createPluginConsent, type ConsentWindow } from './consent.ts';
 import {
@@ -97,6 +98,8 @@ export interface PluginChromeDependencies {
   readonly askHost: PluginRuntimeDependencies['askHost'];
   readonly confirmRemove: RemovalDependencies['confirmRemove'];
   readonly forgetData: RemovalDependencies['forgetData'];
+  /** Where the marketplace lives and how to download from it (ADR 0014). */
+  readonly marketplace: Omit<MarketplaceDependencies, 'root' | 'records' | 'pull' | 'install'>;
 }
 
 /** What the user is told when an install ends; a declined one ends quietly. */
@@ -129,6 +132,7 @@ async function listPlugins(
       id: record.id,
       version: record.version,
       trust: trustOf(record),
+      pulled: record.pulled ?? null,
       grants: grantsOf(record, accounts()),
       settings: await settingsOf(root, record, readFile),
     })),
@@ -278,6 +282,49 @@ export function installFlow(
   };
 }
 
+/** The runtime that runs every installed plugin, already starting them. */
+function startRuntime(
+  deps: PluginChromeDependencies,
+  windows: ChromeWindowDependencies,
+  accounts: PluginAccounts,
+  failed: () => void,
+): PluginRuntime {
+  const runtime = createPluginRuntime({
+    ...deps,
+    views: windows.views,
+    warn: windows.warn,
+    methodsFor: (plugin) => deps.methodsFor(plugin, accounts),
+    activeAccount: accounts.active,
+  });
+  runtime.startAll().catch(failed);
+  return runtime;
+}
+
+/** The marketplace's operations (ADR 0014), installing through the same flow as a file. */
+function marketplaceOf(
+  deps: PluginChromeDependencies,
+  install: MarketplaceDependencies['install'],
+  runtime: Pick<PluginRuntime, 'stop'>,
+): ChromeHandler[] {
+  return marketplaceHandlers({
+    ...deps.marketplace,
+    root: deps.root,
+    records: () => loadRecords(deps.root),
+    pull: async (pulled) => {
+      const reasons = new Map(pulled.map(({ id, reason }) => [id, reason]));
+      const records = [...(await loadRecords(deps.root))].map(([id, record]) => {
+        const reason = reasons.get(id);
+        return [id, reason === undefined ? record : { ...record, pulled: reason }] as const;
+      });
+      await saveRecords(deps.root, new Map(records));
+      for (const id of reasons.keys()) {
+        runtime.stop(id);
+      }
+    },
+    install,
+  });
+}
+
 /**
  * The Plugins window, the install command and its consent window, and the
  * runtime that runs every installed plugin, starting a new one or a new
@@ -289,17 +336,10 @@ export function createPluginChrome(
   windows: ChromeWindowDependencies,
   accounts: PluginAccounts,
 ): PluginChrome {
-  const runtime = createPluginRuntime({
-    ...deps,
-    views: windows.views,
-    warn: windows.warn,
-    methodsFor: (plugin) => deps.methodsFor(plugin, accounts),
-    activeAccount: accounts.active,
-  });
   const failed = (): void => {
     windows.warn('Could not read the installed plugins, so none was started.');
   };
-  runtime.startAll().catch(failed);
+  const runtime = startRuntime(deps, windows, accounts, failed);
   // Plugins start once their record is saved and stop once it is gone, so the window lists them again then.
   const pluginsWindow = createChromeWindowSlot(windows, PLUGINS_PAGE);
   runtime.onChange(() => {
@@ -310,7 +350,11 @@ export function createPluginChrome(
     runtime.restart(id).catch(failed);
   });
   return {
-    handlers: [...pluginHandlers(deps, settings, accounts, runtime), ...consent.handlers],
+    handlers: [
+      ...pluginHandlers(deps, settings, accounts, runtime),
+      ...consent.handlers,
+      ...marketplaceOf(deps, flow, runtime),
+    ],
     install: () => {
       void installPlugin(flow);
     },

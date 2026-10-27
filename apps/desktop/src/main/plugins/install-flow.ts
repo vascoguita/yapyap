@@ -28,15 +28,17 @@ export function trustOf(record: Pick<InstallRequest, 'firstParty' | 'developer'>
 
 type Askable = Extract<InstallDecision, { kind: 'consent' | 'reapprove' }>;
 
-function consentOf(decision: Askable): PluginConsent {
+function consentOf(decision: Askable, reviewed: boolean): PluginConsent {
   const { request } = decision;
+  const trust = trustOf(request);
   return {
     id: request.id,
     name: request.name,
     version: request.version,
     author: { name: request.author.name, url: request.author.url ?? null },
     fingerprint: request.fingerprint ?? null,
-    trust: trustOf(request),
+    // Only a third-party plugin can be reviewed; YapYap's own stay first-party.
+    trust: reviewed && trust === 'third-party' ? 'reviewed' : trust,
     update: decision.kind === 'reapprove',
     capabilities: request.capabilities,
     hosts: request.hosts,
@@ -45,9 +47,34 @@ function consentOf(decision: Askable): PluginConsent {
 }
 
 /** Whether the user agreed, or did not have to: an update that asks for nothing new. */
-async function agreed(install: ApprovableInstall, deps: InstallFlowDependencies): Promise<boolean> {
+async function agreed(
+  install: ApprovableInstall,
+  deps: Pick<InstallFlowDependencies, 'ask'>,
+  reviewed: boolean,
+): Promise<boolean> {
   const { decision } = install;
-  return decision.kind === 'approved' || deps.ask(consentOf(decision));
+  return decision.kind === 'approved' || deps.ask(consentOf(decision, reviewed));
+}
+
+/**
+ * Asks about a prepared install and commits it once the user agrees, or
+ * reports why it cannot be installed. `reviewed` marks a third-party
+ * plugin the marketplace vouches for (ADR 0014).
+ */
+export async function finishInstall(
+  prepared: PreparedInstall,
+  deps: Pick<InstallFlowDependencies, 'commit' | 'ask' | 'report'>,
+  reviewed = false,
+): Promise<void> {
+  if (!('archive' in prepared)) {
+    deps.report({ kind: 'rejected', reason: prepared.decision.reason });
+    return;
+  }
+  if (await agreed(prepared, deps, reviewed)) {
+    await deps.commit(prepared);
+    const { name, version } = prepared.decision.request;
+    deps.report({ kind: 'installed', name, version });
+  }
 }
 
 /**
@@ -60,16 +87,7 @@ export async function installPlugin(deps: InstallFlowDependencies): Promise<void
     if (path === undefined) {
       return;
     }
-    const prepared = await deps.prepare(await deps.readFile(path));
-    if (!('archive' in prepared)) {
-      deps.report({ kind: 'rejected', reason: prepared.decision.reason });
-      return;
-    }
-    if (await agreed(prepared, deps)) {
-      await deps.commit(prepared);
-      const { name, version } = prepared.decision.request;
-      deps.report({ kind: 'installed', name, version });
-    }
+    await finishInstall(await deps.prepare(await deps.readFile(path)), deps);
   } catch {
     deps.report({ kind: 'failed' });
   }

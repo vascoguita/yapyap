@@ -290,6 +290,9 @@ async function start(
   record: PluginRecord,
 ): Promise<void> {
   closeRunning(state, record.id);
+  if (record.pulled !== undefined) {
+    return;
+  }
   const folder = join(deps.root, record.id, record.version);
   const manifest = await manifestIn(folder, deps.readFile);
   if (manifest === undefined) {

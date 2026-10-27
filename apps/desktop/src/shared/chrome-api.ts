@@ -84,9 +84,10 @@ export interface SidebarState {
 
 /**
  * Who vouches for a plugin: YapYap's own key, another author's key the user
- * pins on first install, or nobody (Developer Mode only).
+ * pins on first install, that key reviewed by YapYap for the marketplace
+ * (ADR 0014), or nobody (Developer Mode only).
  */
-export type PluginTrust = 'first-party' | 'third-party' | 'developer';
+export type PluginTrust = 'first-party' | 'reviewed' | 'third-party' | 'developer';
 
 /** Grants a plugin asks for: capabilities, and network hosts one by one. */
 interface PluginGrants {
@@ -109,11 +110,37 @@ export interface PluginConsent extends PluginGrants {
   readonly added: PluginGrants;
 }
 
+/** A plugin the marketplace lists, as the Plugins window shows it (ADR 0014). */
+export interface MarketplaceEntry {
+  readonly id: string;
+  readonly name: string;
+  readonly summary: string;
+  readonly author: { readonly name: string; readonly url: string | null };
+  readonly homepage: string;
+  /** YapYap's own plugin, or a third-party plugin the maintainer reviewed. */
+  readonly review: 'official' | 'reviewed';
+  /** The newest version this YapYap runs, or the newest listed when none does. */
+  readonly version: string;
+  readonly capabilities: readonly string[];
+  readonly hosts: readonly string[];
+  /** The installed version, if the plugin is installed. */
+  readonly installed: string | null;
+  readonly action: 'install' | 'update' | 'installed' | 'incompatible';
+}
+
+/** The marketplace, or why it cannot be shown. */
+export interface MarketplaceView {
+  readonly status: 'ready' | 'unreachable' | 'invalid' | 'outdated';
+  readonly plugins: readonly MarketplaceEntry[];
+}
+
 /** An installed plugin, as the Plugins window lists it. */
 export interface InstalledPlugin {
   readonly id: string;
   readonly version: string;
   readonly trust: PluginTrust;
+  /** Why the marketplace pulled this version, which YapYap then does not run (ADR 0014). */
+  readonly pulled: string | null;
   /** What the user approved, and whether each grant still stands (#94). */
   readonly grants: readonly PluginGrant[];
   /** The plugin's settings form, with what the user saved; empty when it has none (#98). */
@@ -216,6 +243,10 @@ export interface ChromeApi {
   };
   readonly plugins: {
     readonly list: () => Promise<PluginList>;
+    /** Downloads and verifies the marketplace's list; only the Marketplace tab asks (ADR 0014). */
+    readonly marketplace: () => Promise<MarketplaceView>;
+    /** Installs the version of a listed plugin the marketplace offers, after the usual consent. */
+    readonly installListed: (id: string) => Promise<void>;
     /** The pending install this consent window asks about. */
     readonly consent: () => Promise<PluginConsent>;
     /** `acknowledged`: the user accepted the risk of a plugin YapYap has not reviewed. */
@@ -416,6 +447,8 @@ export const CHROME_CHANNELS = {
   pluginsSetGrant: 'plugins:set-grant',
   pluginsSetSetting: 'plugins:set-setting',
   pluginsRemove: 'plugins:remove',
+  pluginsMarketplace: 'plugins:marketplace',
+  pluginsInstallListed: 'plugins:install-listed',
   shortcutsList: 'shortcuts:list',
   shortcutsSet: 'shortcuts:set',
   downloadsList: 'downloads:list',

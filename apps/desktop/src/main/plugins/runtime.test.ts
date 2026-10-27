@@ -347,6 +347,16 @@ describe('createPluginRuntime', () => {
     expect(await loadRecords(root)).toEqual(new Map());
   });
 
+  it('does not start a plugin the marketplace pulled', async () => {
+    const pulled = record({ pulled: 'It sent chats away.' });
+    await install(pulled);
+    await saveRecords(root, new Map([['org.example.hello', pulled]]));
+    const t = setup();
+    await t.runtime.startAll();
+    expect(t.deps.createHost).not.toHaveBeenCalled();
+    expect(t.runtime.running()).toEqual([]);
+  });
+
   it('lets a plugin reach this computer only while it holds local-network', async () => {
     const local = record({ capabilities: ['local-network'] });
     await install(local);

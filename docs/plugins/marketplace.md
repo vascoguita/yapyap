@@ -5,6 +5,16 @@ maintainer has reviewed. Users install them from the Plugins window, or
 from the website with **Install in YapYap**. The design is in
 [ADR 0014](/adr/0014-plugin-marketplace).
 
+## Installing from the marketplace
+
+Open **Plugins…** and choose the **Marketplace** tab. YapYap downloads the
+list only then, checks that YapYap's own key signed it, and shows each
+plugin with its author, what it asks for, and whether it is YapYap's own or
+a third-party plugin YapYap reviewed. **Install** downloads that exact
+version, checks it against the list, and opens the usual consent window.
+A reviewed plugin needs no acknowledgement of risk there, unlike a plugin
+installed from a file.
+
 ## How a plugin is listed
 
 Each listed plugin has an entry in the YapYap repository, in

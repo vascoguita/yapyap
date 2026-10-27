@@ -1012,6 +1012,25 @@ not edit the same lines.
   `verifyIndex` in plugin-sign sign the exact bytes. The AI assistant 0.1.0
   from v0.1.2-beta.3 is the first listing.
 
+- Marketplace tab (#388, first part): the Plugins window has **Installed** and
+  **Marketplace** tabs. The marketplace downloads the index and its
+  signature only when the tab opens, on an in-memory session with no
+  cookies, capped at the index's size limit; it uses the index only if a
+  trust anchor signed its exact bytes, it matches the schema, has not
+  expired and its serial is no lower than the last one accepted (kept in
+  `plugins/.marketplace.json`). It lists the newest version this YapYap runs,
+  leaving out pulled ones, and installs a listed plugin by ID: the archive
+  must match the index's size and SHA-256 and be the listed plugin,
+  version and signer, then goes through the usual consent, where reviewed
+  plugins (trust `reviewed`) need no acknowledgement. E2E tests use a local
+  marketplace through `YAPYAP_TEST_MARKETPLACE_ORIGIN` and
+  `YAPYAP_TEST_MARKETPLACE_ANCHOR`, which only unpackaged builds honor.
+  When the tab reads a verified index, installed copies a revocation
+  matches (same ID, version and signing key) are marked `pulled` in their
+  record and stopped; the runtime never starts a pulled plugin, the
+  Installed tab shows the reason, and the copy and its data stay until the
+  user removes it or installs another version.
+
 - Plugin submissions (#391): authors submit through a plugin submission issue
   form (ID, version, source repository and tag, archive URL and SHA-256,
   key fingerprint, homepage, license, why each capability and host, privacy

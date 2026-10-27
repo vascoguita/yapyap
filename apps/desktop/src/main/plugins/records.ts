@@ -43,6 +43,12 @@ const PluginRecordSchema = Type.Object(
         { maxProperties: 32 },
       ),
     ),
+    /**
+     * Why the marketplace pulled this version (ADR 0014): YapYap does not
+     * start it, but keeps it and its data until the user removes it.
+     * Installing another version clears it.
+     */
+    pulled: Type.Optional(Type.String({ minLength: 1, maxLength: 300 })),
     /** Account capabilities the user took back for one account, by account ID. */
     revokedIn: Type.Optional(
       Type.Record(Type.String({ pattern: ACCOUNT_ID }), Revocations, { maxProperties: 32 }),

@@ -76,7 +76,10 @@ import { confirmResetWithDialog } from './session-reset-prompt.ts';
 import { confirmRemoveAccountWithDialog } from './account-removal-prompt.ts';
 import { explainUnsafeStartWithDialog } from './unsafe-start-prompt.ts';
 import { startApp } from './start.ts';
-import { anchorFingerprints, TRUST_ANCHORS } from '@yapyap/plugin-sign';
+import { MARKETPLACE_INDEX_MAX_BYTES } from '@yapyap/plugin-sdk';
+import { ARCHIVE_LIMITS, anchorFingerprints, TRUST_ANCHORS } from '@yapyap/plugin-sign';
+import { cappedFetcher } from './marketplace/fetch.ts';
+import { marketplaceSource } from './marketplace/source.ts';
 import { electronPluginDialogs } from './plugins/plugin-dialogs.ts';
 import { trayImage } from './tray/tray-icon.ts';
 import { createAccountHost, createSecureWindow, createSidebarView } from './windows.ts';
@@ -182,6 +185,15 @@ const pluginSecrets = openSecretStore(
   process.platform,
 );
 
+/**
+ * A plain request for the marketplace (ADR 0014), on an in-memory session of
+ * its own: no cookies, no cache and nothing that identifies the user.
+ */
+const marketplaceRequest = (url: string) =>
+  session
+    .fromPartition('yapyap-marketplace')
+    .fetch(url, { credentials: 'omit', cache: 'no-store' });
+
 const chrome = createChromeFeature({
   notify,
   customCode,
@@ -251,6 +263,12 @@ const chrome = createChromeFeature({
     },
     root: join(app.getPath('userData'), 'plugins'),
     anchors: anchorFingerprints(TRUST_ANCHORS),
+    marketplace: {
+      source: marketplaceSource(process.env, app.isPackaged, TRUST_ANCHORS),
+      appVersion: app.getVersion(),
+      fetchIndex: cappedFetcher(marketplaceRequest, MARKETPLACE_INDEX_MAX_BYTES),
+      fetchArchive: cappedFetcher(marketplaceRequest, ARCHIVE_LIMITS.archiveBytes),
+    },
     sessionOf: (partition) => session.fromPartition(partition),
     // A plugin's code runs in a window never shown; its UI is YapYap's, or its panel (ADR 0004).
     createHost: (partition) => {

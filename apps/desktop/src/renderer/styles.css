@@ -747,6 +747,51 @@ main.plugins .trust-developer {
   color: var(--danger);
 }
 
+/* The Plugins window's tabs: the installed plugins and the marketplace (ADR 0014). */
+main.plugins [role='tablist'] {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+main.plugins [role='tab'] {
+  margin-bottom: -1px;
+  border: 1px solid transparent;
+  border-radius: 6px 6px 0 0;
+  background: none;
+}
+
+main.plugins [role='tab'][aria-selected='true'] {
+  border-color: var(--border);
+  border-bottom-color: var(--surface);
+  background: var(--surface);
+  font-weight: 600;
+}
+
+main.plugins [role='tabpanel'] {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 12px;
+}
+
+main.plugins .marketplace h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+main.plugins .marketplace p {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+main.plugins .marketplace .grants {
+  flex-basis: 100%;
+  margin: 0;
+  padding-inline-start: 18px;
+  font-size: 0.9rem;
+}
+
 main.accounts .permissions {
   gap: 8px;
 }
