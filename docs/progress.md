@@ -968,6 +968,13 @@ not edit the same lines.
   answer yes for `media`, whose request still asks the user (ADR 0008,
   C30), and an E2E test queries the permissions as WhatsApp does first.
 
+- No dots in catalog keys (#374): `settings.fields` is nested by settings
+  section, so no key holds a `.`, which tools that flatten i18next JSON
+  read as nesting. `check-catalogs.ts` refuses a dotted key. The catalog
+  round-trips unchanged through translate-toolkit's i18next v4 format,
+  which Weblate uses; so did the dotted one, so this guards other tools
+  and keeps keys simple rather than fixing a breakage seen in Weblate.
+
 - Memory watchdog after an account's page goes away (#377): `watchMemory`
   sampled each account's renderer every minute with no end, so after the
   page was destroyed, as when its account is removed, every sample threw

@@ -36,9 +36,19 @@ export interface SettingField {
 
 const text = en.settings.fields;
 
-/** Only IDs with catalog text compile, so a field can never lack its label. */
-function described(id: keyof typeof text): Pick<SettingField, 'id' | 'label' | 'description'> {
-  return { id, label: text[id].label, description: text[id].description };
+type Texts = typeof text;
+
+/**
+ * Only settings with catalog text compile, so a field can never lack its
+ * label. The catalog nests them by section, since translation tools read a
+ * `.` in a key as nesting (#374).
+ */
+function described<S extends keyof Texts>(
+  section: S,
+  key: keyof Texts[S] & string,
+): Pick<SettingField, 'id' | 'label' | 'description'> {
+  const { label, description } = text[section][key] as { label: string; description: string };
+  return { id: `${section}.${key}`, label, description };
 }
 
 /** Catalog option keys are the stored values, listed in catalog order. */
@@ -64,89 +74,89 @@ const INTERFACE_SCALES = [
  * acts on it, so the window never offers a switch that does nothing.
  */
 export const SETTING_FIELDS: readonly SettingField[] = [
-  { ...described('general.autostart'), restart: false },
-  { ...described('general.startMinimized'), restart: false },
-  { ...described('general.betaUpdates'), restart: false },
-  { ...described('general.doNotDisturb'), restart: false },
+  { ...described('general', 'autostart'), restart: false },
+  { ...described('general', 'startMinimized'), restart: false },
+  { ...described('general', 'betaUpdates'), restart: false },
+  { ...described('general', 'doNotDisturb'), restart: false },
   // macOS always keeps YapYap in the Dock when the window closes.
-  { ...described('general.closeToTray'), restart: false, platforms: ['linux', 'win32'] },
+  { ...described('general', 'closeToTray'), restart: false, platforms: ['linux', 'win32'] },
   {
-    ...described('general.quickPanel'),
+    ...described('general', 'quickPanel'),
     restart: false,
-    options: choices(text['general.quickPanel'].options),
+    options: choices(text.general.quickPanel.options),
   },
   {
-    ...described('general.quickPanelPlace'),
+    ...described('general', 'quickPanelPlace'),
     restart: false,
-    options: choices(text['general.quickPanelPlace'].options),
+    options: choices(text.general.quickPanelPlace.options),
   },
-  { ...described('spelling.enabled'), restart: false },
+  { ...described('spelling', 'enabled'), restart: false },
   {
-    ...described('appearance.theme'),
+    ...described('appearance', 'theme'),
     restart: false,
-    options: choices(text['appearance.theme'].options),
+    options: choices(text.appearance.theme.options),
   },
-  { ...described('appearance.autoHideMenuBar'), restart: false, platforms: ['linux', 'win32'] },
+  { ...described('appearance', 'autoHideMenuBar'), restart: false, platforms: ['linux', 'win32'] },
   {
-    ...described('appearance.zoom'),
+    ...described('appearance', 'zoom'),
     restart: false,
     options: INTERFACE_SCALES.map((value) => ({
       value,
       label: en.settings.scale({ percent: Math.round(value * 100) }),
     })),
   },
-  { ...described('appearance.pinchZoom'), restart: false },
-  { ...described('appearance.compactSidebar'), restart: false },
+  { ...described('appearance', 'pinchZoom'), restart: false },
+  { ...described('appearance', 'compactSidebar'), restart: false },
   {
-    ...described('appearance.trayIcon'),
+    ...described('appearance', 'trayIcon'),
     restart: false,
-    options: choices(text['appearance.trayIcon'].options),
+    options: choices(text.appearance.trayIcon.options),
   },
-  { ...described('reliability.hardwareAcceleration'), restart: true },
+  { ...described('reliability', 'hardwareAcceleration'), restart: true },
   {
-    ...described('reliability.displayBackend'),
+    ...described('reliability', 'displayBackend'),
     restart: true,
-    options: choices(text['reliability.displayBackend'].options),
+    options: choices(text.reliability.displayBackend.options),
     platforms: ['linux'],
   },
-  { ...described('reliability.hardwareVideoDecoding'), restart: true },
+  { ...described('reliability', 'hardwareVideoDecoding'), restart: true },
   {
-    ...described('reliability.diskCacheMb'),
+    ...described('reliability', 'diskCacheMb'),
     restart: true,
-    options: choices(text['reliability.diskCacheMb'].options),
+    options: choices(text.reliability.diskCacheMb.options),
   },
   {
-    ...described('reliability.jsHeapMb'),
+    ...described('reliability', 'jsHeapMb'),
     restart: true,
-    options: choices(text['reliability.jsHeapMb'].options),
+    options: choices(text.reliability.jsHeapMb.options),
   },
   {
-    ...described('privacy.crashReports'),
+    ...described('privacy', 'crashReports'),
     restart: false,
-    options: choices(text['privacy.crashReports'].options),
+    options: choices(text.privacy.crashReports.options),
   },
-  { ...described('privacy.unreadWhileHidden'), restart: false },
-  { ...described('privacy.notificationSender'), restart: false },
-  { ...described('privacy.notificationText'), restart: false },
-  { ...described('privacy.blurWhenUnfocused'), restart: false },
-  { ...described('privacy.blurWhenIdle'), restart: false },
-  { ...described('downloads.askWhere'), restart: false },
-  { ...described('downloads.folder'), restart: false, folder: true },
-  { ...described('downloads.openWhenDone'), restart: false },
+  { ...described('privacy', 'unreadWhileHidden'), restart: false },
+  { ...described('privacy', 'notificationSender'), restart: false },
+  { ...described('privacy', 'notificationText'), restart: false },
+  { ...described('privacy', 'blurWhenUnfocused'), restart: false },
+  { ...described('privacy', 'blurWhenIdle'), restart: false },
+  { ...described('downloads', 'askWhere'), restart: false },
+  { ...described('downloads', 'folder'), restart: false, folder: true },
+  { ...described('downloads', 'openWhenDone'), restart: false },
   {
-    ...described('network.proxyMode'),
+    ...described('network', 'proxyMode'),
     restart: false,
-    options: choices(text['network.proxyMode'].options),
+    options: choices(text.network.proxyMode.options),
   },
   {
-    ...described('network.proxyServer'),
+    ...described('network', 'proxyServer'),
     restart: false,
     text: { placeholder: en.settings.proxyPlaceholder },
   },
-  { ...described('plugins.developerMode'), restart: false },
+  { ...described('plugins', 'developerMode'), restart: false },
   {
-    ...described('plugins.chatMessages'),
+    ...described('plugins', 'chatMessages'),
     restart: false,
-    options: choices(text['plugins.chatMessages'].options),
+    options: choices(text.plugins.chatMessages.options),
   },
 ];

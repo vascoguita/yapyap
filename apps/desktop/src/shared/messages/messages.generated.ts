@@ -120,137 +120,136 @@ export interface Messages {
     };
     readonly problems: { readonly autostartFailed: string; readonly autostartUnsupported: string };
     readonly fields: {
-      readonly 'general.startMinimized': { readonly label: string; readonly description: string };
-      readonly 'general.autostart': { readonly label: string; readonly description: string };
-      readonly 'general.betaUpdates': { readonly label: string; readonly description: string };
-      readonly 'general.doNotDisturb': { readonly label: string; readonly description: string };
-      readonly 'spelling.enabled': { readonly label: string; readonly description: string };
-      readonly 'general.quickPanel': {
-        readonly label: string;
-        readonly description: string;
-        readonly options: {
-          readonly off: string;
-          readonly always: string;
-          readonly whenHidden: string;
+      readonly general: {
+        readonly startMinimized: { readonly label: string; readonly description: string };
+        readonly autostart: { readonly label: string; readonly description: string };
+        readonly betaUpdates: { readonly label: string; readonly description: string };
+        readonly doNotDisturb: { readonly label: string; readonly description: string };
+        readonly quickPanel: {
+          readonly label: string;
+          readonly description: string;
+          readonly options: {
+            readonly off: string;
+            readonly always: string;
+            readonly whenHidden: string;
+          };
+        };
+        readonly quickPanelPlace: {
+          readonly label: string;
+          readonly description: string;
+          readonly options: {
+            readonly free: string;
+            readonly topLeft: string;
+            readonly topRight: string;
+            readonly bottomLeft: string;
+            readonly bottomRight: string;
+          };
+        };
+        readonly closeToTray: { readonly label: string; readonly description: string };
+      };
+      readonly spelling: {
+        readonly enabled: { readonly label: string; readonly description: string };
+      };
+      readonly appearance: {
+        readonly theme: {
+          readonly label: string;
+          readonly description: string;
+          readonly options: {
+            readonly system: string;
+            readonly light: string;
+            readonly dark: string;
+          };
+        };
+        readonly autoHideMenuBar: { readonly label: string; readonly description: string };
+        readonly trayIcon: {
+          readonly label: string;
+          readonly description: string;
+          readonly options: {
+            readonly color: string;
+            readonly auto: string;
+            readonly light: string;
+            readonly dark: string;
+          };
+        };
+        readonly zoom: { readonly label: string; readonly description: string };
+        readonly pinchZoom: { readonly label: string; readonly description: string };
+        readonly compactSidebar: { readonly label: string; readonly description: string };
+      };
+      readonly reliability: {
+        readonly hardwareAcceleration: { readonly label: string; readonly description: string };
+        readonly displayBackend: {
+          readonly label: string;
+          readonly description: string;
+          readonly options: {
+            readonly auto: string;
+            readonly wayland: string;
+            readonly x11: string;
+          };
+        };
+        readonly diskCacheMb: {
+          readonly label: string;
+          readonly description: string;
+          readonly options: {
+            readonly '128': string;
+            readonly '256': string;
+            readonly '512': string;
+            readonly '1024': string;
+            readonly auto: string;
+          };
+        };
+        readonly jsHeapMb: {
+          readonly label: string;
+          readonly description: string;
+          readonly options: {
+            readonly '2048': string;
+            readonly '4096': string;
+            readonly '8192': string;
+            readonly auto: string;
+          };
+        };
+        readonly hardwareVideoDecoding: { readonly label: string; readonly description: string };
+      };
+      readonly privacy: {
+        readonly crashReports: {
+          readonly label: string;
+          readonly description: string;
+          readonly options: { readonly off: string; readonly local: string; readonly ask: string };
+        };
+        readonly notificationSender: { readonly label: string; readonly description: string };
+        readonly notificationText: { readonly label: string; readonly description: string };
+        readonly blurWhenUnfocused: { readonly label: string; readonly description: string };
+        readonly blurWhenIdle: { readonly label: string; readonly description: string };
+        readonly unreadWhileHidden: { readonly label: string; readonly description: string };
+      };
+      readonly network: {
+        readonly proxyMode: {
+          readonly label: string;
+          readonly description: string;
+          readonly options: {
+            readonly system: string;
+            readonly direct: string;
+            readonly manual: string;
+          };
+        };
+        readonly proxyServer: { readonly label: string; readonly description: string };
+      };
+      readonly plugins: {
+        readonly developerMode: { readonly label: string; readonly description: string };
+        readonly chatMessages: {
+          readonly label: string;
+          readonly description: string;
+          readonly options: {
+            readonly '5': string;
+            readonly '10': string;
+            readonly '20': string;
+            readonly '50': string;
+          };
         };
       };
-      readonly 'general.quickPanelPlace': {
-        readonly label: string;
-        readonly description: string;
-        readonly options: {
-          readonly free: string;
-          readonly topLeft: string;
-          readonly topRight: string;
-          readonly bottomLeft: string;
-          readonly bottomRight: string;
-        };
-      };
-      readonly 'general.closeToTray': { readonly label: string; readonly description: string };
-      readonly 'appearance.theme': {
-        readonly label: string;
-        readonly description: string;
-        readonly options: {
-          readonly system: string;
-          readonly light: string;
-          readonly dark: string;
-        };
-      };
-      readonly 'appearance.autoHideMenuBar': {
-        readonly label: string;
-        readonly description: string;
-      };
-      readonly 'appearance.trayIcon': {
-        readonly label: string;
-        readonly description: string;
-        readonly options: {
-          readonly color: string;
-          readonly auto: string;
-          readonly light: string;
-          readonly dark: string;
-        };
-      };
-      readonly 'appearance.zoom': { readonly label: string; readonly description: string };
-      readonly 'appearance.pinchZoom': { readonly label: string; readonly description: string };
-      readonly 'appearance.compactSidebar': {
-        readonly label: string;
-        readonly description: string;
-      };
-      readonly 'reliability.hardwareAcceleration': {
-        readonly label: string;
-        readonly description: string;
-      };
-      readonly 'reliability.displayBackend': {
-        readonly label: string;
-        readonly description: string;
-        readonly options: { readonly auto: string; readonly wayland: string; readonly x11: string };
-      };
-      readonly 'reliability.diskCacheMb': {
-        readonly label: string;
-        readonly description: string;
-        readonly options: {
-          readonly '128': string;
-          readonly '256': string;
-          readonly '512': string;
-          readonly '1024': string;
-          readonly auto: string;
-        };
-      };
-      readonly 'reliability.jsHeapMb': {
-        readonly label: string;
-        readonly description: string;
-        readonly options: {
-          readonly '2048': string;
-          readonly '4096': string;
-          readonly '8192': string;
-          readonly auto: string;
-        };
-      };
-      readonly 'reliability.hardwareVideoDecoding': {
-        readonly label: string;
-        readonly description: string;
-      };
-      readonly 'privacy.crashReports': {
-        readonly label: string;
-        readonly description: string;
-        readonly options: { readonly off: string; readonly local: string; readonly ask: string };
-      };
-      readonly 'privacy.notificationSender': {
-        readonly label: string;
-        readonly description: string;
-      };
-      readonly 'network.proxyMode': {
-        readonly label: string;
-        readonly description: string;
-        readonly options: {
-          readonly system: string;
-          readonly direct: string;
-          readonly manual: string;
-        };
-      };
-      readonly 'network.proxyServer': { readonly label: string; readonly description: string };
-      readonly 'plugins.developerMode': { readonly label: string; readonly description: string };
-      readonly 'plugins.chatMessages': {
-        readonly label: string;
-        readonly description: string;
-        readonly options: {
-          readonly '5': string;
-          readonly '10': string;
-          readonly '20': string;
-          readonly '50': string;
-        };
-      };
-      readonly 'privacy.notificationText': { readonly label: string; readonly description: string };
-      readonly 'privacy.blurWhenUnfocused': {
-        readonly label: string;
-        readonly description: string;
-      };
-      readonly 'downloads.askWhere': { readonly label: string; readonly description: string };
-      readonly 'downloads.folder': { readonly label: string; readonly description: string };
-      readonly 'downloads.openWhenDone': { readonly label: string; readonly description: string };
-      readonly 'privacy.blurWhenIdle': { readonly label: string; readonly description: string };
-      readonly 'privacy.unreadWhileHidden': {
-        readonly label: string;
-        readonly description: string;
+      readonly downloads: {
+        readonly askWhere: { readonly label: string; readonly description: string };
+        readonly folder: { readonly label: string; readonly description: string };
+        readonly openWhenDone: { readonly label: string; readonly description: string };
       };
     };
   };

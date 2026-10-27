@@ -129,190 +129,206 @@
       "autostartUnsupported": "This package cannot start YapYap at login yet. Add YapYap to the startup applications in your system settings instead."
     },
     "fields": {
-      "general.startMinimized": {
-        "label": "Start minimized",
-        "description": "Open YapYap in the background, in the tray or the Dock. Starting it again shows the window."
-      },
-      "general.autostart": {
-        "label": "Start at login",
-        "description": "Start YapYap when you log in to this computer."
-      },
-      "general.betaUpdates": {
-        "label": "Get beta updates",
-        "description": "Try each version a few days before its release and help find problems. Betas can be less stable; turning this off waits for the next release rather than going back."
-      },
-      "general.doNotDisturb": {
-        "label": "Do not disturb",
-        "description": "Show no notifications at all, and play no sounds from accounts that are not on screen. Unread counts still update."
-      },
-      "spelling.enabled": {
-        "label": "Check spelling",
-        "description": "Underline misspelled words as you type, in your system’s language. On Windows and Linux, turning this on downloads that language’s dictionary from Google once."
-      },
-      "general.quickPanel": {
-        "label": "Quick access panel",
-        "description": "A small window that stays on top of other apps, to switch accounts and turn Do not disturb on or off.",
-        "options": {
-          "off": "Off",
-          "always": "Always",
-          "whenHidden": "While YapYap’s window is hidden"
+      "general": {
+        "startMinimized": {
+          "label": "Start minimized",
+          "description": "Open YapYap in the background, in the tray or the Dock. Starting it again shows the window."
+        },
+        "autostart": {
+          "label": "Start at login",
+          "description": "Start YapYap when you log in to this computer."
+        },
+        "betaUpdates": {
+          "label": "Get beta updates",
+          "description": "Try each version a few days before its release and help find problems. Betas can be less stable; turning this off waits for the next release rather than going back."
+        },
+        "doNotDisturb": {
+          "label": "Do not disturb",
+          "description": "Show no notifications at all, and play no sounds from accounts that are not on screen. Unread counts still update."
+        },
+        "quickPanel": {
+          "label": "Quick access panel",
+          "description": "A small window that stays on top of other apps, to switch accounts and turn Do not disturb on or off.",
+          "options": {
+            "off": "Off",
+            "always": "Always",
+            "whenHidden": "While YapYap’s window is hidden"
+          }
+        },
+        "quickPanelPlace": {
+          "label": "Quick access panel position",
+          "description": "Where the panel sits on your main screen.",
+          "options": {
+            "free": "Where I leave it",
+            "topLeft": "Top left",
+            "topRight": "Top right",
+            "bottomLeft": "Bottom left",
+            "bottomRight": "Bottom right"
+          }
+        },
+        "closeToTray": {
+          "label": "Close to the tray",
+          "description": "Closing the window keeps YapYap running in the tray, so notifications keep coming. Quit from the tray or the menu."
         }
       },
-      "general.quickPanelPlace": {
-        "label": "Quick access panel position",
-        "description": "Where the panel sits on your main screen.",
-        "options": {
-          "free": "Where I leave it",
-          "topLeft": "Top left",
-          "topRight": "Top right",
-          "bottomLeft": "Bottom left",
-          "bottomRight": "Bottom right"
+      "spelling": {
+        "enabled": {
+          "label": "Check spelling",
+          "description": "Underline misspelled words as you type, in your system’s language. On Windows and Linux, turning this on downloads that language’s dictionary from Google once."
         }
       },
-      "general.closeToTray": {
-        "label": "Close to the tray",
-        "description": "Closing the window keeps YapYap running in the tray, so notifications keep coming. Quit from the tray or the menu."
-      },
-      "appearance.theme": {
-        "label": "Theme",
-        "description": "Applies to YapYap and to WhatsApp, as long as WhatsApp’s own theme is set to System default.",
-        "options": {
-          "system": "Same as the system",
-          "light": "Light",
-          "dark": "Dark"
+      "appearance": {
+        "theme": {
+          "label": "Theme",
+          "description": "Applies to YapYap and to WhatsApp, as long as WhatsApp’s own theme is set to System default.",
+          "options": {
+            "system": "Same as the system",
+            "light": "Light",
+            "dark": "Dark"
+          }
+        },
+        "autoHideMenuBar": {
+          "label": "Hide the menu bar",
+          "description": "Press Alt to show it when you need it."
+        },
+        "trayIcon": {
+          "label": "Tray icon",
+          "description": "A one-color icon matches the other icons in your panel or menu bar. Automatic picks the shade that stands out against it.",
+          "options": {
+            "color": "App icon",
+            "auto": "One color, automatic",
+            "light": "One color, light",
+            "dark": "One color, dark"
+          }
+        },
+        "zoom": {
+          "label": "Interface scale",
+          "description": "How large WhatsApp appears. View → Zoom In and Zoom Out go in finer steps, up to 300%."
+        },
+        "pinchZoom": {
+          "label": "Zoom with a pinch, or Ctrl and the wheel",
+          "description": "Turn this off if you zoom by accident on a touchpad. The View menu and its shortcuts still zoom."
+        },
+        "compactSidebar": {
+          "label": "Compact account sidebar",
+          "description": "Show only the color and initial of each account in the sidebar, which appears when several accounts run."
         }
       },
-      "appearance.autoHideMenuBar": {
-        "label": "Hide the menu bar",
-        "description": "Press Alt to show it when you need it."
-      },
-      "appearance.trayIcon": {
-        "label": "Tray icon",
-        "description": "A one-color icon matches the other icons in your panel or menu bar. Automatic picks the shade that stands out against it.",
-        "options": {
-          "color": "App icon",
-          "auto": "One color, automatic",
-          "light": "One color, light",
-          "dark": "One color, dark"
+      "reliability": {
+        "hardwareAcceleration": {
+          "label": "Use hardware acceleration",
+          "description": "Uses the graphics card to draw YapYap. Turn this off if the window flickers or stays blank."
+        },
+        "displayBackend": {
+          "label": "Display backend",
+          "description": "How YapYap talks to your display server. Try the other one if the window is blank, blurry or misplaced.",
+          "options": {
+            "auto": "Automatic",
+            "wayland": "Wayland",
+            "x11": "X11 (XWayland)"
+          }
+        },
+        "diskCacheMb": {
+          "label": "Disk cache size",
+          "description": "How much disk space WhatsApp’s files may take in the cache. Smaller saves space; WhatsApp may load a little slower. Takes effect after a restart.",
+          "options": {
+            "128": "128 MB",
+            "256": "256 MB",
+            "512": "512 MB",
+            "1024": "1 GB",
+            "auto": "Automatic"
+          }
+        },
+        "jsHeapMb": {
+          "label": "Memory limit per page",
+          "description": "The most memory WhatsApp’s scripts may use in one account. Raise it if a large account crashes; lower it to save memory. Takes effect after a restart.",
+          "options": {
+            "2048": "2 GB",
+            "4096": "4 GB",
+            "8192": "8 GB",
+            "auto": "Automatic"
+          }
+        },
+        "hardwareVideoDecoding": {
+          "label": "Use hardware video decoding",
+          "description": "Uses the graphics card to play videos and video calls. Turn this off if video stutters or shows artifacts."
         }
       },
-      "appearance.zoom": {
-        "label": "Interface scale",
-        "description": "How large WhatsApp appears. View → Zoom In and Zoom Out go in finer steps, up to 300%."
-      },
-      "appearance.pinchZoom": {
-        "label": "Zoom with a pinch, or Ctrl and the wheel",
-        "description": "Turn this off if you zoom by accident on a touchpad. The View menu and its shortcuts still zoom."
-      },
-      "appearance.compactSidebar": {
-        "label": "Compact account sidebar",
-        "description": "Show only the color and initial of each account in the sidebar, which appears when several accounts run."
-      },
-      "reliability.hardwareAcceleration": {
-        "label": "Use hardware acceleration",
-        "description": "Uses the graphics card to draw YapYap. Turn this off if the window flickers or stays blank."
-      },
-      "reliability.displayBackend": {
-        "label": "Display backend",
-        "description": "How YapYap talks to your display server. Try the other one if the window is blank, blurry or misplaced.",
-        "options": {
-          "auto": "Automatic",
-          "wayland": "Wayland",
-          "x11": "X11 (XWayland)"
+      "privacy": {
+        "crashReports": {
+          "label": "Crash reports",
+          "description": "After YapYap closes unexpectedly, keep a redacted report on this computer. Nothing is sent unless you choose to report it on GitHub.",
+          "options": {
+            "off": "Off",
+            "local": "Keep a local report",
+            "ask": "Keep a report and offer to review it"
+          }
+        },
+        "notificationSender": {
+          "label": "Show who wrote in notifications",
+          "description": "Turn this off to show “WhatsApp” instead of the contact or group, for example when others can see your screen."
+        },
+        "notificationText": {
+          "label": "Show message text in notifications",
+          "description": "Turn this off to show “New message” instead. The text then never reaches your system’s notifications."
+        },
+        "blurWhenUnfocused": {
+          "label": "Blur WhatsApp when YapYap is not in front",
+          "description": "Hides your chats whenever another window is in front of YapYap. Click YapYap to see them again."
+        },
+        "blurWhenIdle": {
+          "label": "Blur WhatsApp when you are away",
+          "description": "Hides your chats after five minutes without using your computer, until you are back."
+        },
+        "unreadWhileHidden": {
+          "label": "Keep chats unread while YapYap is hidden",
+          "description": "When YapYap is hidden or minimized, WhatsApp does not mark new messages in the open chat as read. Turn this off to let the open chat keep reading."
         }
       },
-      "reliability.diskCacheMb": {
-        "label": "Disk cache size",
-        "description": "How much disk space WhatsApp’s files may take in the cache. Smaller saves space; WhatsApp may load a little slower. Takes effect after a restart.",
-        "options": {
-          "128": "128 MB",
-          "256": "256 MB",
-          "512": "512 MB",
-          "1024": "1 GB",
-          "auto": "Automatic"
+      "network": {
+        "proxyMode": {
+          "label": "Proxy",
+          "description": "How YapYap connects. If a proxy cannot be used, YapYap stops connecting rather than going around it.",
+          "options": {
+            "system": "Use the system’s settings",
+            "direct": "No proxy",
+            "manual": "This proxy"
+          }
+        },
+        "proxyServer": {
+          "label": "Proxy address",
+          "description": "Used when Proxy is set to “This proxy”: http://, https:// or socks5://, a host and a port. Press Enter to save it."
         }
       },
-      "reliability.jsHeapMb": {
-        "label": "Memory limit per page",
-        "description": "The most memory WhatsApp’s scripts may use in one account. Raise it if a large account crashes; lower it to save memory. Takes effect after a restart.",
-        "options": {
-          "2048": "2 GB",
-          "4096": "4 GB",
-          "8192": "8 GB",
-          "auto": "Automatic"
+      "plugins": {
+        "developerMode": {
+          "label": "Developer Mode",
+          "description": "Lets you install unsigned plugins while you write them. Nobody vouches for an unsigned plugin, so YapYap marks it wherever it appears."
+        },
+        "chatMessages": {
+          "label": "Messages a plugin may read",
+          "description": "How many of the open chat’s latest messages a plugin you allowed to read chats receives when it asks.",
+          "options": {
+            "5": "5",
+            "10": "10",
+            "20": "20",
+            "50": "50"
+          }
         }
       },
-      "reliability.hardwareVideoDecoding": {
-        "label": "Use hardware video decoding",
-        "description": "Uses the graphics card to play videos and video calls. Turn this off if video stutters or shows artifacts."
-      },
-      "privacy.crashReports": {
-        "label": "Crash reports",
-        "description": "After YapYap closes unexpectedly, keep a redacted report on this computer. Nothing is sent unless you choose to report it on GitHub.",
-        "options": {
-          "off": "Off",
-          "local": "Keep a local report",
-          "ask": "Keep a report and offer to review it"
+      "downloads": {
+        "askWhere": {
+          "label": "Ask where to save each file",
+          "description": "Off saves files straight to your Downloads folder. On asks each time, starting in the folder you last chose."
+        },
+        "folder": {
+          "label": "Save files to",
+          "description": "Where files go when YapYap does not ask."
+        },
+        "openWhenDone": {
+          "label": "Open files when they finish downloading",
+          "description": "Opens PDFs, pictures, sound, video and text in their usual app. Anything that could run a program is only saved."
         }
-      },
-      "privacy.notificationSender": {
-        "label": "Show who wrote in notifications",
-        "description": "Turn this off to show “WhatsApp” instead of the contact or group, for example when others can see your screen."
-      },
-      "network.proxyMode": {
-        "label": "Proxy",
-        "description": "How YapYap connects. If a proxy cannot be used, YapYap stops connecting rather than going around it.",
-        "options": {
-          "system": "Use the system’s settings",
-          "direct": "No proxy",
-          "manual": "This proxy"
-        }
-      },
-      "network.proxyServer": {
-        "label": "Proxy address",
-        "description": "Used when Proxy is set to “This proxy”: http://, https:// or socks5://, a host and a port. Press Enter to save it."
-      },
-      "plugins.developerMode": {
-        "label": "Developer Mode",
-        "description": "Lets you install unsigned plugins while you write them. Nobody vouches for an unsigned plugin, so YapYap marks it wherever it appears."
-      },
-      "plugins.chatMessages": {
-        "label": "Messages a plugin may read",
-        "description": "How many of the open chat’s latest messages a plugin you allowed to read chats receives when it asks.",
-        "options": {
-          "5": "5",
-          "10": "10",
-          "20": "20",
-          "50": "50"
-        }
-      },
-      "privacy.notificationText": {
-        "label": "Show message text in notifications",
-        "description": "Turn this off to show “New message” instead. The text then never reaches your system’s notifications."
-      },
-      "privacy.blurWhenUnfocused": {
-        "label": "Blur WhatsApp when YapYap is not in front",
-        "description": "Hides your chats whenever another window is in front of YapYap. Click YapYap to see them again."
-      },
-      "downloads.askWhere": {
-        "label": "Ask where to save each file",
-        "description": "Off saves files straight to your Downloads folder. On asks each time, starting in the folder you last chose."
-      },
-      "downloads.folder": {
-        "label": "Save files to",
-        "description": "Where files go when YapYap does not ask."
-      },
-      "downloads.openWhenDone": {
-        "label": "Open files when they finish downloading",
-        "description": "Opens PDFs, pictures, sound, video and text in their usual app. Anything that could run a program is only saved."
-      },
-      "privacy.blurWhenIdle": {
-        "label": "Blur WhatsApp when you are away",
-        "description": "Hides your chats after five minutes without using your computer, until you are back."
-      },
-      "privacy.unreadWhileHidden": {
-        "label": "Keep chats unread while YapYap is hidden",
-        "description": "When YapYap is hidden or minimized, WhatsApp does not mark new messages in the open chat as read. Turn this off to let the open chat keep reading."
       }
     }
   },
