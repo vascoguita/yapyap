@@ -1085,6 +1085,13 @@ not edit the same lines.
   private file in the runner's temporary folder, and falls back to the
   Apple ID secrets otherwise.
 
+- Scorecard (#404): releases carry their Sigstore bundle and in-toto
+  provenance (#406), the deploy tool installs from a lockfile, and every job
+  asks only for the permissions it uses. CONTRIBUTING explains the checks
+  that stay below 10 (Code-Review and Branch-Protection with one
+  maintainer, Signed-Releases rising with new releases, Packaging,
+  Maintained). The score was 7.2 on 2026-10-27.
+
 - OpenSSF Scorecard (#404): each release now carries its signed build
   provenance as `yapyap-<tag>.sigstore.json` and `yapyap-<tag>.intoto.jsonl`,
   where Scorecard and other verifiers look. The packages.guita.org deploy
