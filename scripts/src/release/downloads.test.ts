@@ -100,19 +100,15 @@ describe('fromGitHub', () => {
 });
 
 describe('latestDownloads', () => {
-  const asset = (
-    name: string,
-    url = `https://github.com/vascoguita/yapyap/releases/download/v1/${name}`,
-  ) => ({
-    name,
-    browser_download_url: url,
-  });
+  const BASE = 'https://github.com/vascoguita/yapyap/releases/download/v0.1.2';
+  const asset = (name: string, url = `${BASE}/${name}`) => ({ name, browser_download_url: url });
 
-  it('links each installer of the newest stable release', () => {
+  it('links each installer of the newest stable release, only from this repository', () => {
     expect(
       latestDownloads([
         { tag_name: 'v0.2.0-beta.1', prerelease: true, draft: false, assets: [] },
         { tag_name: 'v0.2.0', prerelease: false, draft: true, assets: [] },
+        { tag_name: 'nightly', prerelease: false, draft: false, assets: [] },
         {
           tag_name: 'v0.1.2',
           prerelease: false,
@@ -124,6 +120,7 @@ describe('latestDownloads', () => {
             asset('YapYap-0.1.2-linux-amd64.deb'),
             asset('yapyap-x86_64.flatpak'),
             asset('YapYap-0.1.2-linux-x86_64.AppImage', 'https://example.org/evil.AppImage'),
+            asset('YapYap 0.1.2"-linux-x86_64.rpm'),
           ],
         },
         { tag_name: 'v0.1.1', prerelease: false, draft: false, assets: [] },
@@ -131,16 +128,15 @@ describe('latestDownloads', () => {
     ).toEqual({
       version: '0.1.2',
       files: {
-        windows:
-          'https://github.com/vascoguita/yapyap/releases/download/v1/YapYap-0.1.2-win-x64-setup.exe',
-        mac: 'https://github.com/vascoguita/yapyap/releases/download/v1/YapYap-0.1.2-mac-universal.dmg',
-        deb: 'https://github.com/vascoguita/yapyap/releases/download/v1/YapYap-0.1.2-linux-amd64.deb',
-        flatpak: 'https://github.com/vascoguita/yapyap/releases/download/v1/yapyap-x86_64.flatpak',
+        windows: `${BASE}/YapYap-0.1.2-win-x64-setup.exe`,
+        mac: `${BASE}/YapYap-0.1.2-mac-universal.dmg`,
+        deb: `${BASE}/YapYap-0.1.2-linux-amd64.deb`,
+        flatpak: `${BASE}/yapyap-x86_64.flatpak`,
       },
     });
   });
 
-  it.each([{}, [], [null], [{ tag_name: 'v1', prerelease: false, draft: false, assets: {} }]])(
+  it.each([{}, [], [null], [{ tag_name: 'v1.0.0', prerelease: false, draft: false, assets: {} }]])(
     'finds no stable release in %j',
     (answer) => {
       expect(latestDownloads(answer)).toBeUndefined();

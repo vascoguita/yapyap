@@ -135,18 +135,29 @@ interface LinkedRelease {
   readonly assets: readonly { readonly name: string; readonly browser_download_url: string }[];
 }
 
+/** A stable release's tag, the only kind the website offers. */
+const STABLE_TAG = /^v\d{1,4}\.\d{1,4}\.\d{1,4}$/;
+
 const isLinkedRelease = (value: unknown): value is LinkedRelease => {
   const release = value as Partial<LinkedRelease> | null;
   return (
     typeof release?.tag_name === 'string' &&
+    STABLE_TAG.test(release.tag_name) &&
     release.prerelease === false &&
     release.draft === false &&
     Array.isArray(release.assets)
   );
 };
 
-/** Only GitHub's own download addresses, so the site never links anywhere else. */
-const RELEASE_URL = 'https://github.com/vascoguita/yapyap/releases/download/';
+/**
+ * Only this repository's own download addresses, for that release's tag and
+ * a plain file name, so the site never links anywhere else, whatever the
+ * API answers.
+ */
+const releaseUrl = (tag: string, name: string): string | undefined =>
+  /^[\w.-]{1,200}$/.test(name)
+    ? `https://github.com/vascoguita/yapyap/releases/download/${tag}/${name}`
+    : undefined;
 
 /**
  * The newest stable release in GitHub's answer, which lists the newest
@@ -158,11 +169,9 @@ export function latestDownloads(answer: unknown): LatestDownloads | undefined {
     return undefined;
   }
   const files = INSTALLERS.flatMap(([key, pattern]) => {
-    const asset = release.assets.find(
-      (candidate) =>
-        pattern.test(candidate.name) && candidate.browser_download_url.startsWith(RELEASE_URL),
-    );
-    return asset === undefined ? [] : [[key, asset.browser_download_url] as const];
+    const asset = release.assets.find((candidate) => pattern.test(candidate.name));
+    const url = asset === undefined ? undefined : releaseUrl(release.tag_name, asset.name);
+    return url === undefined || url !== asset?.browser_download_url ? [] : [[key, url] as const];
   });
   return { version: release.tag_name.replace(/^v/, ''), files: Object.fromEntries(files) };
 }
