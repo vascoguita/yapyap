@@ -999,6 +999,17 @@ not edit the same lines.
   `accountAvatars` now reads again a minute later on its own, up to ten
   misses in a row, and stops for a removed account or a destroyed page.
 
+- User-first website (#383, #384): the home page leads with "WhatsApp,
+  supercharged.", a download button that picks the visitor's installer from
+  `latest.json` (written by the daily docs build with the download counts),
+  the AI assistant, accounts, plugins and privacy, and a comparison with the
+  official app on verifiable points. Screenshots of YapYap's own windows come
+  from `pnpm screenshots` on a showcase page; the main window's show the real
+  WhatsApp with every name, photo and message replaced on screen. The
+  navigation puts Download, Guide and the assistant first, and developer
+  pages under one menu; the install page opens with the button and the
+  apt, dnf and pacman commands as tabs.
+
 - Plugin marketplace design (#386): ADR 0014. One `index.json` on
   packages.guita.org, signed with the plugin signing key and checked against
   the app's trust anchors, with a growing serial and an expiry so old
@@ -1065,16 +1076,6 @@ not edit the same lines.
   after a one-time consent-law confirmation. A red mark with **Stop
   recording** shows in the call window, sidebar and tray; recordings stop
   with the call, stay local, and are named by date only.
-- User-first website (#383, #384): the home page leads with "WhatsApp,
-  supercharged.", a download button that picks the visitor's installer from
-  `latest.json` (written by the daily docs build with the download counts),
-  the AI assistant, accounts, plugins and privacy, and a comparison with the
-  official app on verifiable points. Screenshots of YapYap's own windows come
-  from `pnpm screenshots` on a showcase page; the main window's show the real
-  WhatsApp with every name, photo and message replaced on screen. The
-  navigation puts Download, Guide and the assistant first, and developer
-  pages under one menu; the install page opens with the button and the
-  apt, dnf and pacman commands as tabs.
 
 - Local E2E isolation on Wayland desktops (#394): Chromium chose Wayland
   from the desktop's `XDG_SESSION_TYPE` and reached the real compositor
