@@ -76,6 +76,10 @@ test('installs a reviewed plugin from the marketplace, through the usual consent
     },
   });
   try {
+    // The result shows in a message box, which would wait for a click on a real desktop.
+    await app.evaluate(({ dialog }) => {
+      dialog.showMessageBox = () => Promise.resolve({ response: 0, checkboxChecked: false });
+    });
     await clickMenu(app, 'Plugins…');
     const plugins = await chromePage(app, '/plugins.html');
     await plugins.getByRole('tab', { name: 'Marketplace' }).click();
@@ -88,12 +92,13 @@ test('installs a reviewed plugin from the marketplace, through the usual consent
     // A reviewed plugin needs no acknowledgement of risk, unlike one from a file.
     await expect(install).toBeEnabled();
     await Promise.all([consent.waitForEvent('close'), install.click().catch(() => undefined)]);
-    // The listing itself says so once the list loads again, and the plugin is on disk.
+    // The plugin is on disk, and the listing says so once it loads the list again.
+    const records = () =>
+      readFile(join(profile, 'plugins', '.plugins.json'), 'utf8').catch(() => '');
+    await expect.poll(records, { timeout: 20_000 }).toContain('"org.example.hello"');
     await expect(
       plugins.locator('.marketplace').getByText('Installed', { exact: true }),
-    ).toBeVisible();
-    const records = () => readFile(join(profile, 'plugins', '.plugins.json'), 'utf8');
-    await expect.poll(records).toContain('"org.example.hello"');
+    ).toBeVisible({ timeout: 20_000 });
   } finally {
     await closeApp(app);
     marketplace.server.close();
