@@ -83,8 +83,13 @@ async function capturePage(app: ElectronApplication, url: string, file: string):
 /** A chrome window, such as Settings, as it renders. */
 async function captureWindow(app: ElectronApplication, path: string, name: string): Promise<void> {
   const page = await chromePage(app, path);
-  // Lets the last frame settle, as a person would see it.
-  await page.waitForTimeout(1000);
+  // Waits for the fonts and two painted frames, so the shot is what a person would see.
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    for (let frame = 0; frame < 2; frame += 1) {
+      await new Promise((painted) => requestAnimationFrame(painted));
+    }
+  });
   await mkdir(OUT, { recursive: true });
   const png = join(OUT, `${name}.png`);
   await capturePage(app, page.url(), png);

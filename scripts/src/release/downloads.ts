@@ -139,15 +139,12 @@ interface LinkedRelease {
 /** A stable release's tag, the only kind the website offers. */
 const STABLE_TAG = /^v\d{1,4}\.\d{1,4}\.\d{1,4}$/;
 
+const isStableTag = (tag: unknown): boolean => typeof tag === 'string' && STABLE_TAG.test(tag);
+
 const isLinkedRelease = (value: unknown): value is LinkedRelease => {
   const release = value as Partial<LinkedRelease> | null;
-  return (
-    typeof release?.tag_name === 'string' &&
-    STABLE_TAG.test(release.tag_name) &&
-    release.prerelease === false &&
-    release.draft === false &&
-    Array.isArray(release.assets)
-  );
+  const published = release?.prerelease === false && release.draft === false;
+  return published && isStableTag(release.tag_name) && Array.isArray(release.assets);
 };
 
 /**
