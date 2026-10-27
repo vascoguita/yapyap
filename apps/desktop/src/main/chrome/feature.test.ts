@@ -91,6 +91,17 @@ function setup() {
       askHost: vi.fn(() => Promise.resolve(false)),
       confirmRemove: vi.fn(),
       forgetData: vi.fn(),
+      marketplace: {
+        source: {
+          indexUrl: 'https://packages.example/plugins/index.json',
+          signatureUrl: 'https://packages.example/plugins/index.json.sig',
+          archiveUrl: (id: string, version: string) => `https://packages.example/${id}-${version}`,
+          anchors: [],
+        },
+        appVersion: '0.1.2',
+        fetchIndex: vi.fn(() => Promise.resolve(undefined)),
+        fetchArchive: vi.fn(() => Promise.resolve(undefined)),
+      },
     },
     spelling: { available: () => ['en-GB', 'pt-PT'], system: () => ['en-GB'] },
     chooseFolder: vi.fn(() => Promise.resolve<string | undefined>(undefined)),

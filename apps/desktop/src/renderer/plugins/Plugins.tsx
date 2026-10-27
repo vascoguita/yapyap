@@ -9,6 +9,7 @@ import type {
   PluginList,
 } from '../../shared/chrome-api.ts';
 import { en } from '../../shared/messages/en.ts';
+import { Marketplace } from './Marketplace.tsx';
 
 const text = en.plugins;
 
@@ -310,18 +311,72 @@ function usePluginList(api: ChromeApi) {
   return { list, grant, setting, remove };
 }
 
+type Tab = 'installed' | 'marketplace';
+const TABS: readonly Tab[] = ['installed', 'marketplace'];
+
+/** The window's two tabs, switched by click or with the arrow keys, as tab lists are. */
+function Tabs(props: { readonly tab: Tab; readonly onChange: (tab: Tab) => void }): JSX.Element {
+  const label = {
+    installed: text.marketplace.installedTab,
+    marketplace: text.marketplace.marketplaceTab,
+  };
+  return (
+    <div
+      role="tablist"
+      aria-label={text.marketplace.tabsLabel}
+      onKeyDown={(event) => {
+        if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+          const next = props.tab === 'installed' ? 'marketplace' : 'installed';
+          props.onChange(next);
+          document.getElementById(`tab-${next}`)?.focus();
+        }
+      }}
+    >
+      {TABS.map((tab) => (
+        <button
+          key={tab}
+          type="button"
+          role="tab"
+          id={`tab-${tab}`}
+          aria-selected={props.tab === tab}
+          aria-controls="tab-panel"
+          tabIndex={props.tab === tab ? 0 : -1}
+          onClick={() => {
+            props.onChange(tab);
+          }}
+        >
+          {label[tab]}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 /**
- * The installed plugins, each marked by who vouches for it, so a third-party
- * or unsigned plugin never passes for one of YapYap's own.
+ * The plugins window: the installed plugins, each marked by who vouches for
+ * it, so a third-party or unsigned plugin never passes for one of YapYap's
+ * own, and the marketplace (ADR 0014).
  */
 export function Plugins({ api }: { readonly api: ChromeApi }): JSX.Element | null {
+  const [tab, setTab] = useState<Tab>('installed');
+  return (
+    <main class="plugins">
+      <h1>{text.title}</h1>
+      <Tabs tab={tab} onChange={setTab} />
+      <section role="tabpanel" id="tab-panel" aria-labelledby={`tab-${tab}`}>
+        {tab === 'installed' ? <Installed api={api} /> : <Marketplace api={api} />}
+      </section>
+    </main>
+  );
+}
+
+function Installed({ api }: { readonly api: ChromeApi }): JSX.Element | null {
   const { list, grant, setting, remove } = usePluginList(api);
   if (list === null) {
     return null;
   }
   return (
-    <main class="plugins">
-      <h1>{text.title}</h1>
+    <>
       <p class="hint">{text.hint}</p>
       {list.developerMode ? (
         <p class="warning" role="alert">
@@ -344,6 +399,6 @@ export function Plugins({ api }: { readonly api: ChromeApi }): JSX.Element | nul
         </ul>
       )}
       <Activity activity={list.activity} />
-    </main>
+    </>
   );
 }

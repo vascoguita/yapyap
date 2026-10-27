@@ -1030,6 +1030,20 @@ not edit the same lines.
   after a one-time consent-law confirmation. A red mark with **Stop
   recording** shows in the call window, sidebar and tray; recordings stop
   with the call, stay local, and are named by date only.
+- Marketplace tab (#388, first part): the Plugins window has **Installed** and
+  **Marketplace** tabs. The marketplace downloads the index and its
+  signature only when the tab opens, on an in-memory session with no
+  cookies, capped at the index's size limit; it uses the index only if a
+  trust anchor signed its exact bytes, it matches the schema, has not
+  expired and its serial is no lower than the last one accepted (kept in
+  `plugins/.marketplace.json`). It lists the newest version this YapYap runs,
+  leaving out pulled ones, and installs a listed plugin by ID: the archive
+  must match the index's size and SHA-256 and be the listed plugin,
+  version and signer, then goes through the usual consent, where reviewed
+  plugins (trust `reviewed`) need no acknowledgement. E2E tests use a local
+  marketplace through `YAPYAP_TEST_MARKETPLACE_ORIGIN` and
+  `YAPYAP_TEST_MARKETPLACE_ANCHOR`, which only unpackaged builds honor.
+  Updates offered outside the tab and disabling pulled copies come next.
 
 - Local E2E isolation on Wayland desktops (#394): Chromium chose Wayland
   from the desktop's `XDG_SESSION_TYPE` and reached the real compositor

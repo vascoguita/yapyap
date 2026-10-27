@@ -440,6 +440,7 @@
     "version": "Version {{version}}",
     "trust": {
       "first-party": "By YapYap",
+      "reviewed": "Reviewed by YapYap",
       "third-party": "Third-party",
       "developer": "Unsigned"
     },
@@ -456,6 +457,7 @@
       "key": "Signing key",
       "unsigned": "Not signed",
       "firstParty": "Signed by YapYap.",
+      "reviewed": "YapYap reviewed this version for the marketplace. A review looks for harmful or undeclared behavior; it is not a guarantee.",
       "asks": "It asks to:",
       "updateAsks": "This update asks for more than before:",
       "hosts": "Connect to:",
@@ -495,6 +497,32 @@
         "timeout": "Took too long",
         "failed": "Failed"
       }
+    },
+    "marketplace": {
+      "installedTab": "Installed",
+      "marketplaceTab": "Marketplace",
+      "tabsLabel": "Plugins",
+      "search": "Search plugins",
+      "loading": "Loading the marketplace…",
+      "unreachable": "The marketplace could not be reached. Check your connection and try again.",
+      "invalid": "The marketplace sent a list YapYap could not verify, so nothing is shown. Try again later.",
+      "outdated": "The marketplace list is out of date, so nothing is shown. Try again later.",
+      "retry": "Try Again",
+      "empty": "No plugins match.",
+      "official": "By YapYap",
+      "reviewed": "Third-party, reviewed by YapYap",
+      "by": "By {{name}}",
+      "version": "Version {{version}}",
+      "install": "Install",
+      "installLabel": "Install {{plugin}}",
+      "update": "Update to {{version}}",
+      "updateLabel": "Update {{plugin}} to {{version}}",
+      "installed": "Installed",
+      "incompatible": "Needs a newer YapYap",
+      "homepage": "Website",
+      "privacy": "YapYap downloads the marketplace list only while this tab is open, without saying who you are.",
+      "mismatch": "The download does not match what the marketplace lists, so it was not installed.",
+      "unlisted": "The marketplace does not list this plugin for this version of YapYap."
     }
   },
   "notifications": {

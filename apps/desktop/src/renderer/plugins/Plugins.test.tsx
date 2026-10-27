@@ -115,7 +115,7 @@ describe('Plugins', () => {
   it('shows nothing when the list cannot be read', async () => {
     setup(() => Promise.reject(new Error('unreadable')));
     await Promise.resolve();
-    expect(document.body.textContent).toBe('');
+    expect(screen.getByRole('tabpanel').textContent).toBe('');
   });
 
   it('lets the user turn each permission off, for the plugin or account by account', async () => {

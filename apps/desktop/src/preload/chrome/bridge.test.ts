@@ -55,6 +55,8 @@ describe('createChromeBridge', () => {
       'ignored',
     );
     expect(await api.plugins.remove('org.example.hello')).toBe('ignored');
+    expect(await api.plugins.marketplace()).toBe('ignored');
+    await api.plugins.installListed('org.example.hello');
     const changed = vi.fn();
     api.plugins.onChange(changed);
     expect(listenToPlugins).toHaveBeenCalledExactlyOnceWith(changed);
@@ -117,6 +119,8 @@ describe('createChromeBridge', () => {
       ['plugins:set-setting', 'org.example.hello', 'model', 'small'],
       ['plugins:set-grant', 'org.example.hello', 'secrets:own', null, false],
       ['plugins:remove', 'org.example.hello'],
+      ['plugins:marketplace'],
+      ['plugins:install-listed', 'org.example.hello'],
       ['shortcuts:list'],
       ['shortcuts:set', 'settings', 'CmdOrCtrl+K'],
       ['downloads:list'],
@@ -172,6 +176,8 @@ describe('createChromeBridge', () => {
       'setSetting',
       'setGrant',
       'remove',
+      'marketplace',
+      'installListed',
       'onChange',
     ]);
     expect(Object.keys(api.quickPanel)).toEqual(['open', 'setDoNotDisturb']);

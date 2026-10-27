@@ -81,6 +81,15 @@ describe('PluginConsent', () => {
     expect(t.plugins.answer).toHaveBeenCalledWith(true, false);
   });
 
+  it('shows the key of a plugin the marketplace reviewed, and needs no acknowledgement', async () => {
+    const t = setup(() => Promise.resolve({ ...CONSENT, trust: 'reviewed' }));
+    await screen.findByText(/YapYap reviewed this version for the marketplace/);
+    expect(screen.getByText('ab:cd:ef')).toBeTruthy();
+    expect(screen.queryByRole('checkbox')).toBeNull();
+    fireEvent.click(button('Install'));
+    expect(t.plugins.answer).toHaveBeenCalledWith(true, false);
+  });
+
   it('marks what an update adds, and can be cancelled', async () => {
     const t = setup(() =>
       Promise.resolve({

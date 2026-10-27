@@ -4,6 +4,7 @@ import {
   type AccountList,
   type ChromeApi,
   type DownloadEntry,
+  type MarketplaceView,
   type PickerOffer,
   type PluginConsent,
   type PluginList,
@@ -70,6 +71,10 @@ function pluginsBridge(invoke: Invoke, onChange: ListenToPlugins): ChromeApi['pl
         granted,
       ) as Promise<PluginList>,
     remove: (id) => invoke(CHROME_CHANNELS.pluginsRemove, id) as Promise<PluginList>,
+    marketplace: () => invoke(CHROME_CHANNELS.pluginsMarketplace) as Promise<MarketplaceView>,
+    installListed: async (id) => {
+      await invoke(CHROME_CHANNELS.pluginsInstallListed, id);
+    },
     onChange,
   };
 }

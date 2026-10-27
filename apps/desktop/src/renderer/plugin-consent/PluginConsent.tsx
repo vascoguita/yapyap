@@ -5,8 +5,9 @@ import { en } from '../../shared/messages/en.ts';
 
 const text = en.plugins.consent;
 
-/** The only plugins YapYap reviews: those signed with its own key. */
-const REVIEWED = 'first-party';
+/** Plugins YapYap vouches for: its own, and the marketplace's reviewed ones (ADR 0014). */
+const vouched = (consent: Consent): boolean =>
+  consent.trust === 'first-party' || consent.trust === 'reviewed';
 
 const asIs = (item: string): string => item;
 
@@ -16,14 +17,17 @@ function describe(capability: string): string {
 
 /** Who signed the plugin: YapYap, a key the user is about to trust, or nobody. */
 function Signer({ consent }: { readonly consent: Consent }): JSX.Element {
-  if (consent.trust === REVIEWED) {
+  if (consent.trust === 'first-party') {
     return <p class="signer">{text.firstParty}</p>;
   }
   return (
-    <p class="signer">
-      <span>{text.key}</span>
-      <code>{consent.fingerprint ?? text.unsigned}</code>
-    </p>
+    <>
+      <p class="signer">
+        <span>{text.key}</span>
+        <code>{consent.fingerprint ?? text.unsigned}</code>
+      </p>
+      {consent.trust === 'reviewed' ? <p class="reviewed">{text.reviewed}</p> : null}
+    </>
   );
 }
 
@@ -92,7 +96,7 @@ function Actions(props: {
   readonly acknowledged: boolean;
 }): JSX.Element {
   const { api, consent, acknowledged } = props;
-  const reviewed = consent.trust === REVIEWED;
+  const reviewed = vouched(consent);
   return (
     <div class="actions">
       <button
@@ -141,7 +145,7 @@ export function PluginConsent({ api }: { readonly api: ChromeApi }): JSX.Element
       {consent.author.url === null ? null : <p class="hint url">{consent.author.url}</p>}
       <Signer consent={consent} />
       <Grants consent={consent} />
-      {consent.trust === REVIEWED ? null : (
+      {vouched(consent) ? null : (
         <Risk consent={consent} acknowledged={acknowledged} onChange={setAcknowledged} />
       )}
       <Actions api={api} consent={consent} acknowledged={acknowledged} />
