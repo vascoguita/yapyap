@@ -96,6 +96,7 @@ function setup(root: string, developerMode = false, overrides: object = {}) {
       readActiveChat: vi.fn(),
       replaceDraft: vi.fn(),
       readDraft: vi.fn(),
+      pressEnter: vi.fn(() => Promise.resolve(true)),
       active: () => undefined,
       list: () => accounts,
     },
@@ -240,6 +241,15 @@ describe('createExtensionChrome', () => {
         expect.objectContaining({ insertDraft: t.insertDraft }),
       );
     });
+    // Hello does not hold assistant:bar, so the bar serves no one and ignores its offer.
+    const [, services] = t.deps.methodsFor.mock.calls[0] as unknown as [
+      unknown,
+      { offerAssistant: (offer: { suggestions: string[] }) => void },
+    ];
+    services.offerAssistant({ suggestions: ['On my way'] });
+    expect(t.handler('assistant-bar:state').handle({ sender: {} })).toEqual(
+      expect.objectContaining({ extension: '', suggestions: [] }),
+    );
   });
 
   it('lets the user take a grant back and give it again, for one account or the extension', async () => {

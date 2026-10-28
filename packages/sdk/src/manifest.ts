@@ -13,6 +13,7 @@ export const CAPABILITIES = [
   'storage:local',
   'secrets:own',
   'local-network',
+  'assistant:bar',
 ] as const;
 
 /** One of {@link CAPABILITIES}. */
@@ -83,6 +84,7 @@ export const ManifestSchema = Type.Object(
         Type.Literal('storage:local'),
         Type.Literal('secrets:own'),
         Type.Literal('local-network'),
+        Type.Literal('assistant:bar'),
       ]),
       { uniqueItems: true },
     ),

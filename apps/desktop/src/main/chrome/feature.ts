@@ -91,6 +91,7 @@ import {
   type ChromeWindowDependencies,
 } from './window-opener.ts';
 import { en } from '../../shared/messages/en.ts';
+import { attachAssistantBar, type AssistantBarPort } from '../assistant/bar-chrome.ts';
 import { PRODUCT_NAME } from '../identity.ts';
 
 /** In memory only: app chrome never shares storage with WhatsApp or keeps any. */
@@ -321,6 +322,8 @@ interface ChromeRuntime {
   readonly attachSidebar: (
     create: (renderer: RendererOptions) => SidebarPort,
   ) => (source: SidebarSource) => void;
+  /** Gives the assistant bar its view beneath the accounts (ADR 0013). */
+  readonly attachAssistantBar: (create: (renderer: RendererOptions) => AssistantBarPort) => void;
 }
 
 /** The accounts as the menu and the Accounts window need them. */
@@ -334,6 +337,8 @@ export interface AccountMenu extends AccountManager {
   /** The active account's draft, for an extension that may rewrite it (#105). */
   readonly replaceDraft: ExtensionAccounts['replaceDraft'];
   readonly readDraft: ExtensionAccounts['readDraft'];
+  /** Presses Enter in the active account's message box, for the assistant bar's Send (ADR 0013). */
+  readonly pressEnter: () => Promise<boolean>;
   readonly switchTo: (id: string) => void;
   readonly add: () => void;
   readonly privacyScreen: boolean;
@@ -630,7 +635,7 @@ function menuAccounts(
 
 type MenuExtensions = Pick<
   ExtensionChrome,
-  'commands' | 'runCommand' | 'panels' | 'openPanel' | 'onCommandsChange'
+  'commands' | 'runCommand' | 'panels' | 'openPanel' | 'onCommandsChange' | 'refreshAssistantBar'
 >;
 
 /** The menu's actions for the accounts as they are, and the running extensions' commands. */
@@ -698,6 +703,8 @@ function accountMenuSetter(
   return (menu) => {
     slots.accounts.current = menu;
     set(menu);
+    // The bar's grants are per account, so another account may get another extension, or none.
+    extensions.refreshAssistantBar();
   };
 }
 
@@ -766,6 +773,8 @@ export function extensionAccounts(accounts: AccountsSlot): ExtensionAccounts {
       accounts.current === undefined ? Promise.resolve(false) : accounts.current.replaceDraft(text),
     readDraft: () =>
       accounts.current === undefined ? Promise.resolve(null) : accounts.current.readDraft(),
+    pressEnter: () =>
+      accounts.current === undefined ? Promise.resolve(false) : accounts.current.pressEnter(),
     active: () => accounts.current?.entries.find((entry) => entry.active)?.id,
     list: () => (accounts.current?.entries ?? []).map(({ id, name }) => ({ id, name })),
   };
@@ -824,6 +833,31 @@ function standbyWindows(
 const unavailableOn = (wayland: boolean): Readonly<Record<string, string>> =>
   wayland ? { 'general.quickPanelPlace': en.settings.waylandPlacement } : {};
 
+/** The assistant bar's view, which the extensions fill (ADR 0013). */
+function assistantBarEntries(
+  extensions: Pick<ExtensionChrome, 'attachAssistantBar'>,
+  renderer: RendererOptions,
+  views: ViewRegistry,
+  warn: (message: string) => void,
+): Pick<ChromeRuntime, 'attachAssistantBar'> {
+  return {
+    attachAssistantBar: (create) => {
+      extensions.attachAssistantBar(attachAssistantBar(create(renderer), views, warn));
+    },
+  };
+}
+
+/** What the menu and links need from the running extensions. */
+function extensionEntries(
+  extensions: Pick<ExtensionChrome, 'actions' | 'runCommand' | 'installFromLink'>,
+): Pick<ChromeRuntime, 'extensionActions' | 'runExtensionCommand' | 'installExtensionFromLink'> {
+  return {
+    extensionActions: extensions.actions,
+    runExtensionCommand: extensions.runCommand,
+    installExtensionFromLink: extensions.installFromLink,
+  };
+}
+
 /** Sets up YapYap's own pages, their operations and the menu once the app is ready. */
 function startChrome(
   deps: ChromeFeatureDependencies,
@@ -860,9 +894,8 @@ function startChrome(
     askProxyLogin: proxyLogin.ask,
     attachQuickPanel: quickPanel.attach,
     attachSidebar: (create) => attachSidebar(create(renderer), views, sidebar, warn),
-    extensionActions: extensions.actions,
-    runExtensionCommand: extensions.runCommand,
-    installExtensionFromLink: extensions.installFromLink,
+    ...assistantBarEntries(extensions, renderer, views, warn),
+    ...extensionEntries(extensions),
   };
 }
 

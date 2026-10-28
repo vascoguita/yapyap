@@ -1,10 +1,11 @@
 # AI assistant
 
-YapYap's AI assistant suggests replies with the AI model you choose. You
-bring your own account with the provider, and you stay in charge of every
-message: nothing about a chat is sent until you allow the assistant in it
-and see exactly what will go, and a suggested reply only ever becomes a
-draft that you edit and send yourself.
+YapYap's AI assistant suggests replies and writes messages with the AI
+model you choose, right beneath the chat. You bring your own account with
+the provider, and you stay in charge of every message: nothing about a
+chat is sent to the provider until you allow the assistant in it, and
+nothing reaches the chat until you click **Send** or send the draft
+yourself.
 
 The assistant is an extension made by YapYap, released with YapYap as a
 `.yapyap-extension` file. Install it with **Install Extension…** like any other
@@ -44,7 +45,28 @@ choose **Save key**. YapYap keeps it encrypted with your system's secret
 store (Keychain, Credential Manager or the Secret Service). The panel
 never shows the key again; **Forget key** removes it.
 
-## Suggest replies
+## In the chat
+
+Once the assistant is installed and set up, YapYap shows a bar beneath the
+open chat, headed **AI suggestions**.
+
+1. Choose **Suggest replies**, or type what you want to say under **Write
+   a message**, such as "I'll be ten minutes late", and press Enter.
+2. The first time in a chat, the bar asks whether the assistant may send
+   the chat's latest messages to your provider. **Allow here** allows it
+   in that chat only; nothing is sent before.
+3. The suggestions appear in the bar. Click one to put it in the message
+   box, where you can edit it, or click its **Send** button to send it as
+   it is.
+
+YapYap sends only on your click, and only to the chat the suggestion was
+made for: if you opened another chat meanwhile, it clears the suggestions
+and sends nothing. To hide the bar, take back the assistant's permission
+to show suggestions beneath your chats in **Extensions…**.
+
+## Suggest replies in the panel
+
+The panel shows exactly what will be sent before anything goes.
 
 1. Open a chat in WhatsApp, then **Look at this chat** in the panel.
 2. The assistant is off in every chat until you choose **Allow in this
@@ -87,6 +109,8 @@ just one:
 - read the open chat, but only when you ask it to look at it;
 - read your draft in the message box, but only when you ask it to rewrite it;
 - write drafts in the message box, or replace yours with a rewrite, which you send yourself;
+- show suggestions in the bar beneath the chat, which you put in the
+  message box or send with a click;
 - keep its own encrypted secrets (your key) and storage (the chats you
   allowed);
 - reach `api.anthropic.com` and `api.openai.com`, and, if you set one, your

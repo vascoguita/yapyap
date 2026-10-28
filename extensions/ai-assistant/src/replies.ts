@@ -11,6 +11,14 @@ export const INSTRUCTIONS = [
   'Write one reply per line, with no numbering, quotes or other text.',
 ].join(' ');
 
+/** What the model is asked when the user says, in the assistant bar, what to write (ADR 0013). */
+export const COMPOSE_INSTRUCTIONS = [
+  'You help someone write a message in a WhatsApp chat.',
+  'After the chat comes what they want to say.',
+  'Write that one message, in the language and tone of the chat, ready to send as it is.',
+  'Answer with the message only, with no quotes or other text.',
+].join(' ');
+
 /** What the model is asked for a summary of the chat (#106), shown before it is sent. */
 export const SUMMARY_INSTRUCTIONS = [
   'Summarize this WhatsApp chat for the person reading it, in a few short bullet points:',

@@ -95,7 +95,11 @@ async function allow(host: FlowHost, session: Session, post: Post, allowed: bool
   await prepare(host, session, post);
 }
 
-async function providerOf(host: FlowHost, make: typeof providerFor): Promise<Provider | undefined> {
+/** The provider the settings and key make, or undefined while the setup is unfinished. */
+export async function providerOf(
+  host: Pick<ExtensionHost, 'settings' | 'secrets'>,
+  make: typeof providerFor,
+): Promise<Provider | undefined> {
   const settings = assistantSettings(await host.settings.get());
   const key = await host.secrets.get(keyName(settings.provider));
   return missingSetting(settings, key) === '' ? make(settings, key) : undefined;

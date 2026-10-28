@@ -1,5 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
-import { draftReply, insertDraft, readDraft, replaceDraft, supportsInlineReply } from './reply.ts';
+import {
+  draftReply,
+  insertDraft,
+  pressEnter,
+  readDraft,
+  replaceDraft,
+  supportsInlineReply,
+} from './reply.ts';
 
 function setup(answers: unknown[]) {
   const contents = {
@@ -8,6 +15,7 @@ function setup(answers: unknown[]) {
       return answer instanceof Error ? Promise.reject(answer) : Promise.resolve(answer);
     }),
     insertText: vi.fn(() => Promise.resolve()),
+    sendInputEvent: vi.fn(),
   };
   const deps = { wait: vi.fn(() => Promise.resolve()), warn: vi.fn() };
   return { contents, deps };
@@ -80,5 +88,19 @@ describe('readDraft', () => {
 describe('supportsInlineReply', () => {
   it('is offered on macOS and Windows only', () => {
     expect(['darwin', 'win32', 'linux'].map(supportsInlineReply)).toEqual([true, true, false]);
+  });
+});
+
+describe('pressEnter', () => {
+  it('presses Enter in the open chat’s message box, and nothing when none is open', async () => {
+    const t = setup([true, false]);
+    await expect(pressEnter(t.contents)).resolves.toBe(true);
+    expect(t.contents.sendInputEvent.mock.calls).toEqual([
+      [{ type: 'keyDown', keyCode: 'Enter' }],
+      [{ type: 'char', keyCode: '\r' }],
+      [{ type: 'keyUp', keyCode: 'Enter' }],
+    ]);
+    await expect(pressEnter(t.contents)).resolves.toBe(false);
+    expect(t.contents.sendInputEvent).toHaveBeenCalledTimes(3);
   });
 });

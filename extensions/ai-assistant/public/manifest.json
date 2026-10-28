@@ -2,7 +2,7 @@
   "id": "org.guita.yapyap.ai-assistant",
   "name": "AI assistant",
   "version": "0.1.0",
-  "description": "Suggests replies and rewrites your drafts with the AI model you choose, using your own key. Nothing is sent without your say.",
+  "description": "Suggests replies beneath the chat, writes the message you describe, and rewrites your drafts, with the AI model you choose and your own key. Nothing is sent without your click.",
   "author": {
     "name": "YapYap",
     "url": "https://yapyap.guita.org"
@@ -15,7 +15,8 @@
     "composer:read-draft",
     "secrets:own",
     "storage:local",
-    "local-network"
+    "local-network",
+    "assistant:bar"
   ],
   "network": {
     "hosts": ["api.anthropic.com", "api.openai.com"]

@@ -26,6 +26,7 @@ function services() {
     insertDraft: vi.fn<(text: string) => Promise<boolean>>(() => Promise.resolve(true)),
     replaceDraft: vi.fn<(text: string) => Promise<boolean>>(() => Promise.resolve(true)),
     readDraft: vi.fn(() => Promise.resolve<string | null>('Runing late')),
+    offerAssistant: vi.fn(),
     readActiveChat: vi.fn(() =>
       Promise.resolve({ name: 'Team', group: true, messages: [{ outgoing: false, text: 'Hi' }] }),
     ),
@@ -162,6 +163,8 @@ describe('hostMethods', () => {
       'composer.insertDraft',
       'composer.replaceDraft',
       'composer.readDraft',
+      // The assistant bar takes text to show; only YapYap's bar sends, on a click (ADR 0013).
+      'assistant.offer',
     ]);
   });
 });
@@ -232,5 +235,35 @@ describe('composer drafts', () => {
     await expect(read.run([])).resolves.toBe('Runing late');
     expect(accepts('composer.readDraft', [])).toBe(true);
     expect(accepts('composer.readDraft', ['x'])).toBe(false);
+  });
+});
+
+describe('assistant.offer', () => {
+  it('shows a plain-text offer in the assistant bar, behind assistant:bar', async () => {
+    const given = services();
+    const offer = method('assistant.offer', HELLO, given);
+    expect(offer.capability).toBe('assistant:bar');
+    await offer.run([{ suggestions: ['Yes!'], status: 'One idea', confirm: 'Allow here' }]);
+    expect(given.offerAssistant).toHaveBeenCalledExactlyOnceWith({
+      suggestions: ['Yes!'],
+      status: 'One idea',
+      confirm: 'Allow here',
+    });
+  });
+
+  it('takes at most five short suggestions, a short status and label, and nothing else', () => {
+    expect(accepts('assistant.offer', [{ suggestions: [] }])).toBe(true);
+    for (const offer of [
+      { suggestions: ['a', 'b', 'c', 'd', 'e', 'f'] },
+      { suggestions: [''] },
+      { suggestions: ['x'.repeat(1001)] },
+      { suggestions: [], status: 'x'.repeat(201) },
+      { suggestions: [], confirm: '' },
+      { suggestions: [], confirm: 'x'.repeat(41) },
+      { suggestions: [], html: '<b>' },
+      {},
+    ]) {
+      expect(accepts('assistant.offer', [offer])).toBe(false);
+    }
   });
 });

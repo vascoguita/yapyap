@@ -623,6 +623,7 @@ describe('createChromeFeature', () => {
       readActiveChat: vi.fn(() => Promise.resolve(null)),
       replaceDraft: vi.fn(() => Promise.resolve(true)),
       readDraft: vi.fn(() => Promise.resolve(null)),
+      pressEnter: vi.fn(() => Promise.resolve(false)),
       switchTo: vi.fn(),
       add: vi.fn(),
       privacyScreen: false,
@@ -684,6 +685,7 @@ describe('createChromeFeature', () => {
       readActiveChat: vi.fn(() => Promise.resolve(null)),
       replaceDraft: vi.fn(() => Promise.resolve(true)),
       readDraft: vi.fn(() => Promise.resolve(null)),
+      pressEnter: vi.fn(() => Promise.resolve(false)),
       switchTo: vi.fn(),
       add: vi.fn(),
       privacyScreen: false,
@@ -781,6 +783,25 @@ describe('createChromeFeature', () => {
     expect(t.call('sidebar:state', port.webContents)).toBe(state);
   });
 
+  it('docks the assistant bar as a chrome page, empty while no extension fills it', () => {
+    const t = setup();
+    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated', false);
+    const port = {
+      webContents: { loadURL: vi.fn(() => Promise.resolve()), send: vi.fn() },
+      setHeight: vi.fn(),
+    };
+    const create = vi.fn(() => port);
+    runtime.attachAssistantBar(create);
+    expect(create).toHaveBeenCalledWith({
+      preload: '/app/preload/chrome.cjs',
+      partition: 'yapyap-chrome',
+    });
+    expect(port.setHeight).toHaveBeenLastCalledWith(0);
+    expect(t.call('assistant-bar:state', port.webContents)).toEqual(
+      expect.objectContaining({ extension: '', suggestions: [] }),
+    );
+  });
+
   it('opens the Accounts window from the Account menu, listing the current accounts', () => {
     const t = setup();
     const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated', false);
@@ -807,6 +828,7 @@ describe('createChromeFeature', () => {
       readActiveChat: vi.fn(() => Promise.resolve(null)),
       replaceDraft: vi.fn(() => Promise.resolve(true)),
       readDraft: vi.fn(() => Promise.resolve(null)),
+      pressEnter: vi.fn(() => Promise.resolve(false)),
       switchTo: vi.fn(),
       add: vi.fn(),
       privacyScreen: false,
@@ -849,6 +871,7 @@ describe('createChromeFeature', () => {
       readActiveChat: vi.fn(() => Promise.resolve(null)),
       replaceDraft: vi.fn(() => Promise.resolve(true)),
       readDraft: vi.fn(() => Promise.resolve(null)),
+      pressEnter: vi.fn(() => Promise.resolve(false)),
       switchTo: vi.fn(),
       add: vi.fn(),
       privacyScreen: false,
@@ -876,6 +899,7 @@ describe('createChromeFeature', () => {
       readActiveChat: vi.fn(() => Promise.resolve(null)),
       replaceDraft: vi.fn(() => Promise.resolve(true)),
       readDraft: vi.fn(() => Promise.resolve(null)),
+      pressEnter: vi.fn(() => Promise.resolve(false)),
       switchTo: vi.fn(),
       add: vi.fn(),
       privacyScreen: false,
@@ -1057,6 +1081,7 @@ describe('createChromeFeature', () => {
     await expect(accounts.readActiveChat(5)).resolves.toBeNull();
     await expect(accounts.replaceDraft('Hi')).resolves.toBe(false);
     await expect(accounts.readDraft()).resolves.toBeNull();
+    await expect(accounts.pressEnter()).resolves.toBe(false);
     expect(accounts.active()).toBeUndefined();
     expect(accounts.list()).toEqual([]);
     const insertDraft = vi.fn(() => Promise.resolve(true));
@@ -1064,11 +1089,13 @@ describe('createChromeFeature', () => {
     const readActiveChat = vi.fn(() => Promise.resolve(chat));
     const replaceDraft = vi.fn(() => Promise.resolve(true));
     const readDraft = vi.fn(() => Promise.resolve('Draft'));
+    const pressEnter = vi.fn(() => Promise.resolve(true));
     slot.current = {
       insertDraft,
       readActiveChat,
       replaceDraft,
       readDraft,
+      pressEnter,
       entries: [
         { id: 'a', name: 'Home', active: false },
         { id: 'b', name: 'Work', active: true },
@@ -1081,6 +1108,8 @@ describe('createChromeFeature', () => {
     await expect(accounts.replaceDraft('New')).resolves.toBe(true);
     expect(replaceDraft).toHaveBeenCalledExactlyOnceWith('New');
     await expect(accounts.readDraft()).resolves.toBe('Draft');
+    await expect(accounts.pressEnter()).resolves.toBe(true);
+    expect(pressEnter).toHaveBeenCalledOnce();
     expect(accounts.active()).toBe('b');
     expect(accounts.list()).toEqual([
       { id: 'a', name: 'Home' },

@@ -429,6 +429,19 @@
     "full": "Show account names",
     "doNotDisturb": "Do not disturb"
   },
+  "assistantBar": {
+    "label": "AI suggestions",
+    "from": "From {{extension}}",
+    "suggest": "Suggest replies",
+    "write": "Write a message",
+    "writePlaceholder": "Say what you want to write, such as “I’ll be ten minutes late”",
+    "use": "Put in the message box",
+    "send": "Send",
+    "sendLabel": "Send this suggestion now",
+    "noChat": "Open a chat first.",
+    "chatChanged": "You opened another chat, so these suggestions are gone. Ask again here.",
+    "thinking": "Thinking…"
+  },
   "extensions": {
     "notificationTitle": "{{extension}}: {{title}}",
     "stopped": "{{extension}} kept using too much of your computer, so YapYap stopped it. Install it again to start it.",
@@ -484,7 +497,8 @@
       "composer:read-draft": "Read what you type in the message box",
       "notifications:show": "Show notifications",
       "storage:local": "Keep its own data on this computer",
-      "secrets:own": "Keep its own secrets, such as API keys, encrypted"
+      "secrets:own": "Keep its own secrets, such as API keys, encrypted",
+      "assistant:bar": "Show suggestions beneath your chats, which only you can send, with a click"
     },
     "activity": {
       "title": "Recent activity",

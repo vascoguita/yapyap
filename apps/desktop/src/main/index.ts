@@ -82,7 +82,12 @@ import { cappedFetcher } from './marketplace/fetch.ts';
 import { marketplaceSource } from './marketplace/source.ts';
 import { electronExtensionDialogs } from './extensions/extension-dialogs.ts';
 import { trayImage } from './tray/tray-icon.ts';
-import { createAccountHost, createSecureWindow, createSidebarView } from './windows.ts';
+import {
+  createAccountHost,
+  createAssistantBarView,
+  createSecureWindow,
+  createSidebarView,
+} from './windows.ts';
 
 const PICKER_THUMBNAIL = { width: 320, height: 180 };
 
@@ -319,6 +324,7 @@ const chrome = createChromeFeature({
         insertDraft: chats.insertDraft,
         replaceDraft: chats.replaceDraft,
         readDraft: chats.readDraft,
+        offerAssistant: chats.offerAssistant,
         readActiveChat: () =>
           chats.readActiveChat(Number(settings.current().extensions.chatMessages)),
         notify: (heading, text) => {
@@ -378,6 +384,7 @@ startApp({
   createWindow: (options) => createSecureWindow(options),
   createAccountHost: (window, renderer) => createAccountHost(window, renderer),
   createSidebar: (window, renderer) => createSidebarView(window, renderer),
+  createAssistantBar: (window, renderer) => createAssistantBarView(window, renderer),
   defaultSession: () => session.defaultSession,
   sessionOf: (partition) => session.fromPartition(partition),
   accounts: loadAccounts(app.getPath('userData')),

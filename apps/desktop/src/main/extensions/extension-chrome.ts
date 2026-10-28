@@ -1,3 +1,9 @@
+import type { AssistantBar } from '../assistant/bar.ts';
+import {
+  assistantBarFor,
+  assistantBarHandlers,
+  type AssistantBarView,
+} from '../assistant/bar-chrome.ts';
 import { compareCodeUnits } from '@yapyap/extension-sign';
 import {
   CHROME_CHANNELS,
@@ -31,7 +37,7 @@ import { isSettingChange, saveSetting, settingsOf } from './extension-settings.t
 import { loadRecords, saveRecords } from './records.ts';
 import { removeExtension, type RemovalDependencies } from './removal.ts';
 import type { AuditLog } from './audit-log.ts';
-import type { CallingExtension } from './host-methods.ts';
+import type { CallingExtension, HostServices } from './host-methods.ts';
 import type { ReadChat } from '../../adapter/active-chat.ts';
 import type { RpcOptions } from './rpc.ts';
 import {
@@ -88,10 +94,17 @@ export interface ExtensionChromeDependencies {
   readonly createHost: (partition: string) => ExtensionHost;
   /** An extension panel's window, titled by YapYap (#98). */
   readonly createPanel: ExtensionRuntimeDependencies['createPanel'];
-  /** What an extension may call, behind its capabilities (#93); drafts go to the active chat. */
+  /**
+   * What an extension may call, behind its capabilities (#93); drafts go to the
+   * active chat, and offers to the assistant bar (ADR 0013).
+   */
   readonly methodsFor: (
     extension: CallingExtension,
-    chats: Pick<ExtensionAccounts, 'insertDraft' | 'readActiveChat' | 'replaceDraft' | 'readDraft'>,
+    chats: Pick<
+      ExtensionAccounts,
+      'insertDraft' | 'readActiveChat' | 'replaceDraft' | 'readDraft'
+    > &
+      Pick<HostServices, 'offerAssistant'>,
   ) => ReturnType<ExtensionRuntimeDependencies['methodsFor']>;
   readonly rpc: RpcOptions;
   /** What extensions asked YapYap to do, for the Extensions window (#99). */
@@ -230,6 +243,8 @@ export interface ExtensionAccounts {
   readonly replaceDraft: (text: string) => Promise<boolean>;
   /** The active account's draft; null when no chat is open. */
   readonly readDraft: () => Promise<string | null>;
+  /** Presses Enter in the active account's message box, to send what is in it; false when no chat is open. */
+  readonly pressEnter: () => Promise<boolean>;
   /** The account on screen. */
   readonly active: () => string | undefined;
   /** Every account, for per-account grants in the Extensions window (#94). */
@@ -238,6 +253,10 @@ export interface ExtensionAccounts {
 
 export interface ExtensionChrome {
   readonly handlers: readonly ChromeHandler[];
+  /** Gives the assistant bar its view in the main window (ADR 0013). */
+  readonly attachAssistantBar: (view: AssistantBarView) => void;
+  /** Looks again at which extension fills the bar, as the account on screen changes. */
+  readonly refreshAssistantBar: () => void;
   /** File → Install Extension…: pick an archive, check it, ask, install. */
   readonly install: () => void;
   /** Installs the extension an **Install in YapYap** link names, from the marketplace (#389). */
@@ -288,25 +307,7 @@ export function installFlow(
   };
 }
 
-/** The runtime that runs every installed extension, already starting them. */
-function startRuntime(
-  deps: ExtensionChromeDependencies,
-  windows: ChromeWindowDependencies,
-  accounts: ExtensionAccounts,
-  failed: () => void,
-): ExtensionRuntime {
-  const runtime = createExtensionRuntime({
-    ...deps,
-    views: windows.views,
-    warn: windows.warn,
-    methodsFor: (extension) => deps.methodsFor(extension, accounts),
-    activeAccount: accounts.active,
-  });
-  runtime.startAll().catch(failed);
-  return runtime;
-}
-
-/** What the marketplace needs (ADR 0014), installing through the same flow as a file. */
+/** The marketplace's operations (ADR 0014), installing through the same flow as a file. */
 function marketplaceOf(
   deps: ExtensionChromeDependencies,
   install: MarketplaceDependencies['install'],
@@ -332,6 +333,49 @@ function marketplaceOf(
 }
 
 /**
+ * The runtime, whose extensions' calls reach the accounts, and whose offers
+ * reach the assistant bar once it exists (ADR 0013).
+ */
+function startRuntime(
+  deps: ExtensionChromeDependencies,
+  windows: ChromeWindowDependencies,
+  accounts: ExtensionAccounts,
+  failed: () => void,
+): { readonly runtime: ExtensionRuntime; readonly assistant: ReturnType<typeof assistantBarFor> } {
+  const offers: { bar?: AssistantBar } = {};
+  const runtime = createExtensionRuntime({
+    ...deps,
+    views: windows.views,
+    warn: windows.warn,
+    methodsFor: (extension) =>
+      deps.methodsFor(extension, {
+        ...accounts,
+        offerAssistant: (offer) => {
+          offers.bar?.offer(extension.id, offer);
+        },
+      }),
+    activeAccount: accounts.active,
+  });
+  const assistant = assistantBarFor({ runtime, accounts });
+  offers.bar = assistant.bar;
+  runtime.startAll().catch(failed);
+  return { runtime, assistant };
+}
+
+/** The Extensions window, listing the extensions again whenever the running ones change. */
+function extensionsWindowFor(
+  windows: ChromeWindowDependencies,
+  runtime: Pick<ExtensionRuntime, 'onChange'>,
+): ReturnType<typeof createChromeWindowSlot> {
+  // Extensions start once their record is saved and stop once it is gone, so the window lists them again then.
+  const extensionsWindow = createChromeWindowSlot(windows, EXTENSIONS_PAGE);
+  runtime.onChange(() => {
+    extensionsWindow.notify(EXTENSIONS_CHANGED_EVENT);
+  });
+  return extensionsWindow;
+}
+
+/**
  * The Extensions window, the install command and its consent window, and the
  * runtime that runs every installed extension, starting a new one or a new
  * version as soon as it is installed (ADR 0004).
@@ -345,12 +389,8 @@ export function createExtensionChrome(
   const failed = (): void => {
     windows.warn('Could not read the installed extensions, so none was started.');
   };
-  const runtime = startRuntime(deps, windows, accounts, failed);
-  // Extensions start once their record is saved and stop once it is gone, so the window lists them again then.
-  const extensionsWindow = createChromeWindowSlot(windows, EXTENSIONS_PAGE);
-  runtime.onChange(() => {
-    extensionsWindow.notify(EXTENSIONS_CHANGED_EVENT);
-  });
+  const { runtime, assistant } = startRuntime(deps, windows, accounts, failed);
+  const extensionsWindow = extensionsWindowFor(windows, runtime);
   const consent = createExtensionConsent(() => openConsentWindow(windows));
   const flow = installFlow(deps, settings, consent.ask, (id) => {
     runtime.restart(id).catch(failed);
@@ -361,7 +401,10 @@ export function createExtensionChrome(
       ...extensionHandlers(deps, settings, accounts, runtime),
       ...consent.handlers,
       ...marketplaceHandlers(marketplace),
+      ...assistantBarHandlers(assistant.bar),
     ],
+    attachAssistantBar: assistant.attach,
+    refreshAssistantBar: assistant.bar.refresh,
     install: () => {
       void installExtension(flow);
     },

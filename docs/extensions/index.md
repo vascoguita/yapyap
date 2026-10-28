@@ -120,6 +120,31 @@ setting, a request to a host not in the manifest asks the user first. Keep
 API keys in `host.secrets`, which the operating system encrypts, never in
 settings.
 
+### The assistant bar
+
+With `assistant:bar`, an extension fills the bar YapYap draws beneath the open
+chat ([ADR 0013](/adr/0013-in-chat-assistant-bar)). `host.assistant.onRequest`
+runs a handler for each thing the user does in the bar: `suggest`,
+`prompt` with the text the user typed, or `confirm` when the user clicks
+the button the extension offered. `host.assistant.offer` replaces what the bar
+shows: up to five suggestions of at most 1,000 characters, a status line
+of at most 200, and an optional `confirm` label of at most 40, such as
+"Allow here".
+
+```ts
+host.assistant.onRequest(async (request) => {
+  if (request.type === 'suggest') {
+    await host.assistant.offer({ suggestions: ['On my way!', 'Running late, sorry'] });
+  }
+});
+```
+
+Everything the bar shows is plain text under the extension's name, drawn by
+YapYap. The user puts a suggestion in the message box, or sends it, with a
+click. The extension never sends: YapYap does, after checking that the chat
+the suggestion was asked for is still the one open. Only the first running
+extension holding the grant for the account on screen fills the bar.
+
 ### Styling a panel
 
 A panel starts with YapYap's own look: system fonts, YapYap's colors in

@@ -65,3 +65,14 @@ still should.
 - The bar is a second place where extension text appears in YapYap's own
   interface. It is always labelled with the extension's name, so it cannot
   pass for WhatsApp's or YapYap's own suggestions.
+
+## Amendments
+
+- 2026-10-27 (#407): an offer is `{ suggestions, status, confirm }`, with
+  no `chat`. YapYap notes which chat was open when the user asked, so a
+  extension cannot name another, and uses or sends a suggestion only while
+  that chat is still open. `confirm` labels a button that sends the extension
+  a `confirm` request, which the AI assistant uses to ask before a chat's
+  messages first leave. The **Show what is sent first** setting is not
+  built: the bar asks once per chat, and the assistant's panel keeps the
+  full preview.

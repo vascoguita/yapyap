@@ -44,6 +44,7 @@ function fakeContents() {
     setAudioMuted: vi.fn(),
     setWebRTCIPHandlingPolicy: vi.fn(),
     insertText: vi.fn(() => Promise.resolve()),
+    sendInputEvent: vi.fn(),
     insertCSS: vi.fn(() => Promise.resolve('privacy')),
     removeInsertedCSS: vi.fn(() => Promise.resolve()),
     replaceMisspelling: vi.fn(),
@@ -148,10 +149,17 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     extensionActions: vi.fn<() => readonly ExtensionAction[]>(() => []),
     runExtensionCommand: vi.fn(() => true),
     installExtensionFromLink: vi.fn(),
+    attachAssistantBar: vi.fn((create: (renderer: object) => unknown) => {
+      create({ preload: '/app/preload/chrome.cjs' });
+    }),
   };
   const createSidebar = vi.fn(() => ({
     webContents: { loadURL: vi.fn(() => Promise.resolve()), send: vi.fn() },
     setWidth: vi.fn(),
+  }));
+  const createAssistantBar = vi.fn(() => ({
+    webContents: { loadURL: vi.fn(() => Promise.resolve()), send: vi.fn() },
+    setHeight: vi.fn(),
   }));
   // The first account's page is `web`, so single-account tests read it directly.
   const hosts: {
@@ -219,6 +227,7 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     createWindow,
     createAccountHost,
     createSidebar,
+    createAssistantBar,
     hosts,
     saveAccounts: vi.fn(),
     whatsAppPreload: '/out/preload/whatsapp.cjs',
@@ -830,6 +839,11 @@ describe('startApp', () => {
     f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValueOnce(true);
     await expect(menu?.replaceDraft('New')).resolves.toBe(true);
     expect(f.web.contents.insertText).toHaveBeenLastCalledWith('New');
+    f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValueOnce(true);
+    await expect(menu?.pressEnter()).resolves.toBe(true);
+    expect(f.web.contents.sendInputEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'keyDown', keyCode: 'Enter' }),
+    );
   });
 
   it('puts an extension’s draft in the active account’s open chat, and only there', async () => {

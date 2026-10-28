@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import { ManifestSchema, type Manifest } from '@yapyap/extension-sdk';
+import { ManifestSchema, type AssistantRequest, type Manifest } from '@yapyap/extension-sdk';
 import { Value } from 'typebox/value';
 import type { ViewRegistry } from '../views.ts';
 import { en } from '../../shared/messages/en.ts';
@@ -126,6 +126,10 @@ export interface ExtensionRuntime {
   readonly openPanel: (extension: string) => boolean;
   /** Calls `listener` whenever extensions start or stop. */
   readonly onChange: (listener: () => void) => void;
+  /** Running extensions holding `assistant:bar` for the account on screen, in start order (ADR 0013). */
+  readonly assistants: () => readonly { readonly id: string; readonly name: string }[];
+  /** Passes an assistant bar request to the extension; false when it may not take one. */
+  readonly askAssistant: (extension: string, request: AssistantRequest) => boolean;
 }
 
 /** Where an extension's menu item shows: the message box, a message, or a chat in the list. */
@@ -461,6 +465,36 @@ function extensionActionsOf(state: RuntimeState): ExtensionAction[] {
   );
 }
 
+const ASSISTANT_BAR = 'assistant:bar';
+
+/** The running extensions that may fill the assistant bar for the account on screen. */
+function assistantsOf(
+  deps: Pick<ExtensionRuntimeDependencies, 'activeAccount'>,
+  state: RuntimeState,
+): { id: string; name: string }[] {
+  return [...state.hosts].flatMap(([id, { name }]) => {
+    const known = state.known.get(id);
+    return known !== undefined && holds(known.record, ASSISTANT_BAR, deps.activeAccount())
+      ? [{ id, name }]
+      : [];
+  });
+}
+
+/** Hands an assistant bar request to an extension that may take one now. */
+function askAssistant(
+  deps: Pick<ExtensionRuntimeDependencies, 'activeAccount'>,
+  state: RuntimeState,
+  extension: string,
+  request: AssistantRequest,
+): boolean {
+  const port = state.hosts.get(extension)?.port;
+  if (port === undefined || !assistantsOf(deps, state).some(({ id }) => id === extension)) {
+    return false;
+  }
+  port.postMessage({ assistant: request });
+  return true;
+}
+
 /** Asks a running extension to run one of the commands it declared; false when it cannot. */
 function runCommand(state: RuntimeState, extension: string, command: string): boolean {
   const running = state.hosts.get(extension);
@@ -522,6 +556,8 @@ export function createExtensionRuntime(deps: ExtensionRuntimeDependencies): Exte
     },
     ...contributionsOf(state),
     openPanel: (extension) => openPanel(deps, state, extension),
+    assistants: () => assistantsOf(deps, state),
+    askAssistant: (extension, request) => askAssistant(deps, state, extension, request),
     regrant: (id) => regrant(deps.root, state, id),
     forget: (id) => forget(deps, state, id),
   };

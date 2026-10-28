@@ -115,6 +115,42 @@ export interface CommandsApi {
   readonly onRun: (id: string, handler: () => void | Promise<void>) => void;
 }
 
+/**
+ * What the user asked for in YapYap's assistant bar (ADR 0013): reply
+ * suggestions for the open chat, a message written from their own words,
+ * or permission the extension asked for in its last offer.
+ */
+export type AssistantRequest =
+  | { readonly type: 'suggest' }
+  | { readonly type: 'prompt'; readonly text: string }
+  | { readonly type: 'confirm' };
+
+/** What an extension shows in the assistant bar, as plain text under its name. */
+export interface AssistantOffer {
+  /** Up to five suggestions, each at most 1,000 characters. */
+  readonly suggestions: readonly string[];
+  /** A short status line, at most 200 characters, such as "Thinking…" or an error. */
+  readonly status?: string;
+  /**
+   * The label of a button that sends a `confirm` request, at most 40
+   * characters, such as "Allow here" when the extension needs the user's
+   * permission first.
+   */
+  readonly confirm?: string;
+}
+
+/**
+ * YapYap's assistant bar beneath the open chat (ADR 0013). Needs
+ * `assistant:bar`. The extension only offers text: YapYap puts a suggestion in
+ * the message box, or sends it, only when the user clicks.
+ */
+export interface AssistantApi {
+  /** Replaces what the bar shows for this extension. */
+  readonly offer: (offer: AssistantOffer) => Promise<void>;
+  /** Runs `handler` for each request the user makes in the bar. */
+  readonly onRequest: (handler: (request: AssistantRequest) => void | Promise<void>) => void;
+}
+
 /** Everything an extension can reach. HTTPS requests use the standard `fetch`, limited to `network.hosts`. */
 export interface ExtensionHost {
   /** Reading chats. */
@@ -131,6 +167,8 @@ export interface ExtensionHost {
   readonly commands: CommandsApi;
   /** The extension's own settings. */
   readonly settings: SettingsApi;
+  /** YapYap's assistant bar beneath the open chat. */
+  readonly assistant: AssistantApi;
 }
 
 /** What an extension's entry module exports as its default. */

@@ -1,6 +1,9 @@
 export {
   defineExtension,
   type ActiveChat,
+  type AssistantApi,
+  type AssistantOffer,
+  type AssistantRequest,
   type ChatApi,
   type ChatMessage,
   type CommandsApi,

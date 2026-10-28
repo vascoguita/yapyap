@@ -1,4 +1,9 @@
-import type { ActiveChat, ExtensionHost, UnreadChat } from '@yapyap/extension-sdk';
+import type {
+  ActiveChat,
+  AssistantRequest,
+  ExtensionHost,
+  UnreadChat,
+} from '@yapyap/extension-sdk';
 import { EXTENSION_PORT_CHANNEL } from '../../shared/extension-rpc.ts';
 
 /** The page's side of the port, as far as the bootstrap uses it. */
@@ -17,8 +22,14 @@ interface PageScope {
 
 type Call = <T>(method: string, ...params: unknown[]) => Promise<T>;
 
+/** What the user asks of the extension outside its calls: commands, and the assistant bar's requests. */
+export interface HostHandlers {
+  readonly commands: Map<string, () => unknown>;
+  assistant?: (request: AssistantRequest) => unknown;
+}
+
 /** The typed host API of `@yapyap/extension-sdk`, each method one call over the port. */
-export function hostApi(call: Call, commands: Map<string, () => unknown>): ExtensionHost {
+export function hostApi(call: Call, handlers: HostHandlers): ExtensionHost {
   return {
     chat: {
       readActive: () => call<ActiveChat | null>('chat.readActive'),
@@ -42,24 +53,33 @@ export function hostApi(call: Call, commands: Map<string, () => unknown>): Exten
     },
     commands: {
       onRun: (id, handler) => {
-        commands.set(id, handler);
+        handlers.commands.set(id, handler);
       },
     },
     settings: { get: () => call('settings.get') },
+    assistant: {
+      offer: (offer) => call('assistant.offer', offer),
+      onRequest: (handler) => {
+        handlers.assistant = handler;
+      },
+    },
   };
 }
 
 type Pending = Map<number, { resolve(value: never): void; reject(error: unknown): void }>;
 
-/** Settles the call a reply answers, or hands a command the user picked to `onCommand`. */
+/**
+ * Settles the call a reply answers, or hands what YapYap sends on its own,
+ * a command the user picked or a request from the assistant bar, to `onHost`.
+ */
 export function settleReply(
   pending: Pending,
   data: unknown,
-  onCommand: (id: string) => void,
+  onHost: (message: { readonly command?: string; readonly assistant?: unknown }) => void,
 ): void {
-  const { id, result, error, command } = Object(data) as Record<string, unknown>;
-  if (typeof command === 'string') {
-    onCommand(command);
+  const { id, result, error, command, assistant } = Object(data) as Record<string, unknown>;
+  if (typeof command === 'string' || assistant !== undefined) {
+    onHost({ ...(typeof command === 'string' ? { command } : {}), assistant });
     return;
   }
   const waiter = pending.get(Number(id));
@@ -73,11 +93,11 @@ export function settleReply(
 
 /**
  * Calls over a port that may not have arrived yet: they wait for it, in
- * order. YapYap also sends a command the user picked (#98), which goes to
- * `onCommand`.
+ * order. YapYap also sends a command the user picked (#98), or an assistant
+ * bar request (ADR 0013), which go to `onHost`.
  */
 export function rpcClient(
-  onCommand: (id: string) => void,
+  onHost: Parameters<typeof settleReply>[2],
   settle: typeof settleReply,
 ): {
   call: Call;
@@ -101,7 +121,7 @@ export function rpcClient(
   const attach = (given: PagePort): void => {
     port = given;
     given.onmessage = ({ data }) => {
-      settle(pending, data, onCommand);
+      settle(pending, data, onHost);
     };
     for (const message of waiting.splice(0)) {
       given.postMessage(message);
@@ -127,11 +147,15 @@ export function bootExtension(
     readonly settleReply: typeof settleReply;
   },
 ): Promise<void> {
-  const commands = new Map<string, () => unknown>();
+  const handlers: HostHandlers = { commands: new Map() };
   // A handler that throws or rejects affects only itself.
-  const client = helpers.rpcClient((command) => {
+  const client = helpers.rpcClient(({ command, assistant }) => {
     Promise.resolve()
-      .then(() => commands.get(command)?.())
+      .then(() =>
+        command === undefined
+          ? handlers.assistant?.(assistant as AssistantRequest)
+          : handlers.commands.get(command)?.(),
+      )
       .catch(() => undefined);
   }, helpers.settleReply);
   let connected = false;
@@ -145,7 +169,7 @@ export function bootExtension(
     const extension = (Object(module) as { default?: unknown }).default;
     const { activate } = Object(extension) as { activate?: unknown };
     if (typeof activate === 'function') {
-      await (activate as (api: ExtensionHost) => unknown)(helpers.hostApi(client.call, commands));
+      await (activate as (api: ExtensionHost) => unknown)(helpers.hostApi(client.call, handlers));
     }
   });
 }
