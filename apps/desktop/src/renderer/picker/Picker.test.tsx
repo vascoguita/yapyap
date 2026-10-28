@@ -44,6 +44,15 @@ function api(offer: () => Promise<PickerOffer> = () => Promise.resolve(OFFER)) {
       stopSharing: vi.fn(),
       onState: vi.fn(),
     },
+    assistantBar: {
+      state: vi.fn(),
+      suggest: vi.fn(),
+      prompt: vi.fn(),
+      confirm: vi.fn(),
+      use: vi.fn(),
+      send: vi.fn(),
+      onState: vi.fn(),
+    },
     quickPanel: { open: vi.fn(), setDoNotDisturb: vi.fn() },
     extensions: {
       list: vi.fn(),

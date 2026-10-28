@@ -1139,6 +1139,14 @@ not edit the same lines.
   user's clicks: **Suggest replies**, **Write a message**, and a Send button
   that only YapYap's own interface has (C31 in ADR 0008).
 
+- In-chat AI suggestions (#407): an extension holding `assistant:bar` fills a
+  bar YapYap draws beneath the open chat with plain-text suggestions, through
+  `host.assistant.offer` and `onRequest`. The user asks for replies, or
+  types what to say, and puts a suggestion in the message box or sends it
+  with a click; YapYap sends with Enter only after checking the chat is
+  still the one the suggestion was made for. The AI assistant fills the bar,
+  asking in the bar before a chat's messages leave for the first time.
+
 - Chat reader markers (#410): WhatsApp dropped the `true_` prefix that
   marked the account's own messages, so plugins saw every message as
   someone else's. The reader now also knows them by the tail and the

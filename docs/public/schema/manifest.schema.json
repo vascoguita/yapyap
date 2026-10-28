@@ -94,6 +94,10 @@
           {
             "type": "string",
             "const": "local-network"
+          },
+          {
+            "type": "string",
+            "const": "assistant:bar"
           }
         ]
       },

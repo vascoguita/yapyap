@@ -1,4 +1,4 @@
-import type { ActiveChat, SettingValue } from '@yapyap/extension-sdk';
+import type { ActiveChat, AssistantOffer, SettingValue } from '@yapyap/extension-sdk';
 import { Type } from 'typebox';
 import { en } from '../../shared/messages/en.ts';
 import type { SecretStore } from '../secrets/secret-store.ts';
@@ -22,6 +22,8 @@ export interface HostServices {
   readonly replaceDraft: (text: string) => Promise<boolean>;
   /** The draft in the active account's open chat; null when none is open. */
   readonly readDraft: () => Promise<string | null>;
+  /** Shows the extension's offer in the assistant bar, if the bar serves this extension (ADR 0013). */
+  readonly offerAssistant: (offer: AssistantOffer) => void;
 }
 
 /** The extension whose calls these are. */
@@ -167,6 +169,30 @@ function drafting(write: (text: string) => Promise<boolean>): RpcMethod {
   };
 }
 
+/** What an extension may show in the assistant bar: a little plain text, which YapYap never renders as markup. */
+const Offer = Type.Object(
+  {
+    suggestions: Type.Array(Type.String({ minLength: 1, maxLength: 1000 }), { maxItems: 5 }),
+    status: Type.Optional(Type.String({ maxLength: 200 })),
+    confirm: Type.Optional(Type.String({ minLength: 1, maxLength: 40 })),
+  },
+  { additionalProperties: false },
+);
+
+/** The assistant bar (ADR 0013): an extension offers text; only YapYap's bar sends, on a click. */
+function assistant(services: HostServices): Record<string, RpcMethod> {
+  return {
+    'assistant.offer': {
+      capability: 'assistant:bar',
+      params: Type.Tuple([Offer]),
+      run: ([offer]) => {
+        services.offerAssistant(offer as AssistantOffer);
+        return Promise.resolve();
+      },
+    },
+  };
+}
+
 function composer(services: HostServices): Record<string, RpcMethod> {
   return {
     'composer.insertDraft': drafting(services.insertDraft),
@@ -196,5 +222,6 @@ export function hostMethods(
     ...storage(services),
     ...chat(services),
     ...composer(services),
+    ...assistant(services),
   };
 }

@@ -2,6 +2,7 @@ import {
   CHROME_CHANNELS,
   type AboutInfo,
   type AccountList,
+  type AssistantBarState,
   type ChromeApi,
   type DownloadEntry,
   type MarketplaceView,
@@ -23,6 +24,7 @@ type Invoke = (channel: string, ...args: unknown[]) => Promise<unknown>;
 /** Hears the sidebar's state, the only thing the main process sends. */
 type Listen = (listener: (state: SidebarState) => void) => void;
 type ListenToExtensions = (listener: () => void) => void;
+type ListenToBar = (listener: (state: AssistantBarState) => void) => void;
 
 function accountsBridge(invoke: Invoke): ChromeApi['accounts'] {
   return {
@@ -48,6 +50,28 @@ function sidebarBridge(invoke: Invoke, listen: Listen): ChromeApi['sidebar'] {
     },
     stopSharing: async (id) => {
       await invoke(CHROME_CHANNELS.sidebarStopSharing, id);
+    },
+    onState: listen,
+  };
+}
+
+function assistantBarBridge(invoke: Invoke, listen: ListenToBar): ChromeApi['assistantBar'] {
+  return {
+    state: () => invoke(CHROME_CHANNELS.assistantBarState) as Promise<AssistantBarState>,
+    suggest: async () => {
+      await invoke(CHROME_CHANNELS.assistantBarSuggest);
+    },
+    prompt: async (text) => {
+      await invoke(CHROME_CHANNELS.assistantBarPrompt, text);
+    },
+    confirm: async () => {
+      await invoke(CHROME_CHANNELS.assistantBarConfirm);
+    },
+    use: async (index) => {
+      await invoke(CHROME_CHANNELS.assistantBarUse, index);
+    },
+    send: async (index) => {
+      await invoke(CHROME_CHANNELS.assistantBarSend, index);
     },
     onState: listen,
   };
@@ -192,6 +216,7 @@ export function createChromeBridge(
   invoke: Invoke,
   listen: Listen,
   listenToExtensions: ListenToExtensions,
+  listenToBar: ListenToBar,
 ): ChromeApi {
   const run = (channel: string) => async (): Promise<void> => {
     await invoke(channel);
@@ -213,6 +238,7 @@ export function createChromeBridge(
     },
     accounts: accountsBridge(invoke),
     sidebar: sidebarBridge(invoke, listen),
+    assistantBar: assistantBarBridge(invoke, listenToBar),
     quickPanel: quickPanelBridge(invoke),
     extensions: extensionsBridge(invoke, listenToExtensions),
     report: reportBridge(invoke),

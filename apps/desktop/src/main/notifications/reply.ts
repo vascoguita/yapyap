@@ -36,6 +36,26 @@ async function focused(contents: ReplyContents, code = FOCUS_COMPOSER): Promise<
   return result === true;
 }
 
+/** What pressing a key in WhatsApp's page needs: Electron's input events. */
+export interface KeyContents {
+  sendInputEvent(event: { type: 'keyDown' | 'char' | 'keyUp'; keyCode: string }): void;
+}
+
+/**
+ * Presses Enter in the open chat's message box, which sends what is in it,
+ * as the user's own key press would. Only the assistant bar's Send button
+ * calls it, once per click (ADR 0013); false when no chat is open.
+ */
+export async function pressEnter(contents: ReplyContents & KeyContents): Promise<boolean> {
+  if (!(await focused(contents))) {
+    return false;
+  }
+  for (const type of ['keyDown', 'char', 'keyUp'] as const) {
+    contents.sendInputEvent({ type, keyCode: type === 'char' ? '\r' : 'Enter' });
+  }
+  return true;
+}
+
 /**
  * Puts an extension's draft into the open chat's message box, as if typed,
  * for the user to edit and send (ADR 0004: extensions never send). False when

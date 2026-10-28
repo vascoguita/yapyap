@@ -695,3 +695,36 @@ test('shows an extension installed while the Extensions window is open', async (
   );
   await expect(extensions.getByRole('button', { name: 'Remove org.example.hello' })).toBeVisible();
 });
+
+/** Offers the same suggestion for every request the bar makes. */
+const SUGGESTER = `
+export default {
+  activate(host) {
+    host.assistant.onRequest(() => host.assistant.offer({ suggestions: ['On my way!'] }));
+  },
+};
+`;
+
+test('sends an extension’s suggestion from the bar beneath the chat only on the user’s click', async ({
+  app,
+  profile,
+  window,
+}) => {
+  await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
+  await installExtension(
+    app,
+    profile,
+    testManifest({ capabilities: ['assistant:bar'], network: { hosts: [] } }),
+    SUGGESTER,
+  );
+  const bar = await chromePage(app, '/assistant-bar.html');
+  await bar.getByRole('button', { name: 'Suggest replies' }).click();
+  const suggestion = bar.getByRole('button', { name: 'On my way!' });
+  await expect(suggestion).toBeVisible();
+  await expect(window.getByTestId('sent')).toHaveCount(0);
+  await suggestion.click();
+  await expect(window.getByTestId('composer')).toHaveText('On my way!');
+  await bar.getByRole('button', { name: 'Send this suggestion now' }).click();
+  await expect(window.getByTestId('sent')).toHaveText('On my way!');
+  await expect(window.getByTestId('composer')).toHaveText('');
+});

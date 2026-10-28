@@ -39,7 +39,7 @@ export interface Channel {
 }
 
 /** Why a request failed, as a word the panel can explain: a host or provider error's kind. */
-function reasonOf(error: unknown): string {
+export function reasonOf(error: unknown): string {
   const { kind } = Object(error) as { kind?: unknown };
   return typeof kind === 'string' ? kind : 'failed';
 }

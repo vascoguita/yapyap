@@ -419,6 +419,26 @@ describe('createExtensionRuntime', () => {
     expect(t.runtime.commands()).toEqual([]);
   });
 
+  it('lists the extensions that may fill the assistant bar for the account on screen, and passes them requests', async () => {
+    const assistant = record({ capabilities: ['assistant:bar'] });
+    await install(assistant);
+    await saveRecords(root, new Map([['org.example.hello', assistant]]));
+    const t = setup();
+    await t.runtime.startAll();
+    expect(t.runtime.assistants()).toEqual([]);
+    t.deps.activeAccount.mockReturnValue('acct-1');
+    expect(t.runtime.assistants()).toEqual([{ id: 'org.example.hello', name: 'Hello' }]);
+    // Before its page has loaded, the extension has no port to take the request.
+    expect(t.runtime.askAssistant('org.example.hello', { type: 'suggest' })).toBe(false);
+    const host = t.only(t.hosts);
+    host.load();
+    expect(t.runtime.askAssistant('org.example.hello', { type: 'suggest' })).toBe(true);
+    expect(host.ports[0]?.postMessage).toHaveBeenLastCalledWith({ assistant: { type: 'suggest' } });
+    expect(t.runtime.askAssistant('org.example.other', { type: 'suggest' })).toBe(false);
+    t.deps.activeAccount.mockReturnValue(undefined);
+    expect(t.runtime.askAssistant('org.example.hello', { type: 'suggest' })).toBe(false);
+  });
+
   it('lists the running extensions’ right-click items, only for commands they declare', async () => {
     const contributes = {
       commands: [{ id: 'translate', title: 'Translate draft' }],

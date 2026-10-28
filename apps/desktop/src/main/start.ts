@@ -3,6 +3,7 @@ import { accountAvatars, type AccountAvatars, type AvatarPage } from './accounts
 import type { AccountSummary } from '../shared/chrome-api.ts';
 import type { AccountMenu, ChromeFeature, WhatsAppContents } from './chrome/feature.ts';
 import type { SidebarPort } from './chrome/sidebar.ts';
+import type { AssistantBarPort } from './assistant/bar-chrome.ts';
 import { watchConnectivity } from './connectivity/connectivity.ts';
 import { PRODUCT_NAME } from './identity.ts';
 import type {
@@ -69,9 +70,11 @@ import {
 import {
   draftReply,
   insertDraft,
+  pressEnter,
   readDraft,
   replaceDraft,
   supportsInlineReply,
+  type KeyContents,
   type ReplyContents,
 } from './notifications/reply.ts';
 import { readOpenChat } from './extensions/chat-reading.ts';
@@ -182,6 +185,7 @@ export type AccountContents = WhatsAppContents &
   AudioPage &
   WebRtcPage &
   ReplyContents &
+  KeyContents &
   CoverablePage &
   ReadyPage &
   FocusablePage &
@@ -230,6 +234,8 @@ export interface StartDependencies<Window extends WindowPort> {
   readonly createWindow: (options: WindowOptions) => Window;
   /** The account sidebar, docked in the main window. */
   readonly createSidebar: (window: Window, renderer: RendererOptions) => SidebarPort;
+  /** The assistant bar beneath the accounts' WhatsApp (ADR 0013). */
+  readonly createAssistantBar: (window: Window, renderer: RendererOptions) => AssistantBarPort;
   /** An account's views in the window, hidden until it is the active one. */
   readonly createAccountHost: (window: Window, renderer: RendererOptions) => AccountHostPort;
   /** Nothing loads in the default session, but it is guarded all the same. */
@@ -568,6 +574,7 @@ function accountMenu(
     readActiveChat: (messages) => readOpenChat(running.active().page.contents, messages),
     replaceDraft: (text) => replaceDraft(running.active().page.contents, text),
     readDraft: () => readDraft(running.active().page.contents),
+    pressEnter: () => pressEnter(running.active().page.contents),
     switchTo: running.switchTo,
     add: running.add,
     update: running.update,
@@ -723,6 +730,7 @@ function accountIndicators<Window extends WindowPort>(
   });
   const tray = accountsTray(wiring, running, visibility, { shares, privacy });
   const sidebar = chrome.attachSidebar((renderer) => deps.createSidebar(window, renderer));
+  chrome.attachAssistantBar((renderer) => deps.createAssistantBar(window, renderer));
   const panel = chrome.attachQuickPanel(panelOwner(window, visibility));
   const refresh = (): void => {
     tray.refresh();

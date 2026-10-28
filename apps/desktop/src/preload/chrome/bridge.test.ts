@@ -18,7 +18,8 @@ describe('createChromeBridge', () => {
     );
     const listen = vi.fn();
     const listenToExtensions = vi.fn();
-    const api = createChromeBridge(invoke, listen, listenToExtensions);
+    const listenToBar = vi.fn();
+    const api = createChromeBridge(invoke, listen, listenToExtensions, listenToBar);
     expect(await api.about.info()).toBe(info);
     await api.about.copyTechnicalDetails();
     expect(await api.recovery.problem()).toBe(problem);
@@ -45,6 +46,12 @@ describe('createChromeBridge', () => {
     await api.sidebar.switchTo('a');
     await api.sidebar.setCompact(true);
     await api.sidebar.stopSharing('a');
+    expect(await api.assistantBar.state()).toBe('ignored');
+    await api.assistantBar.suggest();
+    await api.assistantBar.prompt('Say hi');
+    await api.assistantBar.confirm();
+    await api.assistantBar.use(1);
+    await api.assistantBar.send(2);
     await api.quickPanel.open('a');
     await api.quickPanel.setDoNotDisturb(true);
     expect(await api.extensions.list()).toBe('ignored');
@@ -81,6 +88,8 @@ describe('createChromeBridge', () => {
     const listener = vi.fn();
     api.sidebar.onState(listener);
     expect(listen).toHaveBeenCalledWith(listener);
+    api.assistantBar.onState(listener);
+    expect(listenToBar).toHaveBeenCalledWith(listener);
     expect(invoke.mock.calls).toEqual([
       ['about:info'],
       ['about:copy-technical-details'],
@@ -111,6 +120,12 @@ describe('createChromeBridge', () => {
       ['sidebar:switch', 'a'],
       ['sidebar:set-compact', true],
       ['sidebar:stop-sharing', 'a'],
+      ['assistant-bar:state'],
+      ['assistant-bar:suggest'],
+      ['assistant-bar:prompt', 'Say hi'],
+      ['assistant-bar:confirm'],
+      ['assistant-bar:use', 1],
+      ['assistant-bar:send', 2],
       ['quick-panel:open', 'a'],
       ['quick-panel:set-do-not-disturb', true],
       ['extensions:list'],
@@ -142,7 +157,7 @@ describe('createChromeBridge', () => {
   });
 
   it('exposes nothing but the listed operations', () => {
-    const api = createChromeBridge(vi.fn(), vi.fn(), vi.fn());
+    const api = createChromeBridge(vi.fn(), vi.fn(), vi.fn(), vi.fn());
     expect(Object.keys(api)).toEqual([
       'about',
       'recovery',
@@ -150,6 +165,7 @@ describe('createChromeBridge', () => {
       'chat',
       'accounts',
       'sidebar',
+      'assistantBar',
       'quickPanel',
       'extensions',
       'report',
@@ -167,6 +183,15 @@ describe('createChromeBridge', () => {
       'switchTo',
       'setCompact',
       'stopSharing',
+      'onState',
+    ]);
+    expect(Object.keys(api.assistantBar)).toEqual([
+      'state',
+      'suggest',
+      'prompt',
+      'confirm',
+      'use',
+      'send',
       'onState',
     ]);
     expect(Object.keys(api.extensions)).toEqual([

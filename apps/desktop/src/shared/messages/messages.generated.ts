@@ -345,6 +345,19 @@ export interface Messages {
     readonly full: string;
     readonly doNotDisturb: string;
   };
+  readonly assistantBar: {
+    readonly label: string;
+    readonly from: (params: { readonly extension: string | number }) => string;
+    readonly suggest: string;
+    readonly write: string;
+    readonly writePlaceholder: string;
+    readonly use: string;
+    readonly send: string;
+    readonly sendLabel: string;
+    readonly noChat: string;
+    readonly chatChanged: string;
+    readonly thinking: string;
+  };
   readonly extensions: {
     readonly notificationTitle: (params: {
       readonly extension: string | number;
@@ -410,6 +423,7 @@ export interface Messages {
       readonly 'notifications:show': string;
       readonly 'storage:local': string;
       readonly 'secrets:own': string;
+      readonly 'assistant:bar': string;
     };
     readonly activity: {
       readonly title: string;
