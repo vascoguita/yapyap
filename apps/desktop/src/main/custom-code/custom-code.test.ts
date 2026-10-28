@@ -76,6 +76,9 @@ describe('parseCustomCode', () => {
     expect(isCustomCode(sized(MAX_SNIPPET))).toBe(true);
     expect(isCustomCode(sized(MAX_SNIPPET + 1))).toBe(false);
     expect(isCustomCode({ ...CODE, extra: 1 })).toBe(false);
+    const named = (name: string) => ({ enabled: true, snippets: { [name]: { css: '', js: '' } } });
+    expect(isCustomCode(named('s'.repeat(64)))).toBe(true);
+    expect(isCustomCode(named('s'.repeat(65)))).toBe(false);
   });
 });
 

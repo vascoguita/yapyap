@@ -36,11 +36,12 @@ const ExtensionRecordSchema = Type.Object(
     /** Capabilities and `network:<host>` grants the user took back from the whole extension (#94). */
     revoked: Type.Optional(Revocations),
     /** What the user filled in the extension's settings form (#98). */
+    // TypeBox ignores a Record key schema's limits; `propertyNames` enforces them.
     settings: Type.Optional(
       Type.Record(
-        Type.String({ maxLength: 64 }),
+        Type.String(),
         Type.Union([Type.String({ maxLength: 1000 }), Type.Number(), Type.Boolean()]),
-        { maxProperties: 32 },
+        { maxProperties: 32, propertyNames: { maxLength: 64 } },
       ),
     ),
     /**
@@ -51,7 +52,10 @@ const ExtensionRecordSchema = Type.Object(
     pulled: Type.Optional(Type.String({ minLength: 1, maxLength: 300 })),
     /** Account capabilities the user took back for one account, by account ID. */
     revokedIn: Type.Optional(
-      Type.Record(Type.String({ pattern: ACCOUNT_ID }), Revocations, { maxProperties: 32 }),
+      Type.Record(Type.String(), Revocations, {
+        maxProperties: 32,
+        propertyNames: { pattern: ACCOUNT_ID },
+      }),
     ),
   },
   { additionalProperties: false },

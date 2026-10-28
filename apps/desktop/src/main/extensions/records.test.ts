@@ -80,6 +80,38 @@ describe('readRecords and writeRecords', () => {
     );
     expect([...records.keys()]).toEqual([SIGNED.id]);
   });
+
+  it('bounds what a record may hold, so a tampered file cannot grow without limit', () => {
+    const account = '0123abcd-0123-4abc-8def-0123456789ab';
+    const accounts = (count: number) =>
+      Object.fromEntries(
+        Array.from({ length: count }, (_, i) => [
+          `${i.toString(16).padStart(8, '0')}-0123-4abc-8def-0123456789ab`,
+          [],
+        ]),
+      );
+    const settings = (count: number) =>
+      Object.fromEntries(Array.from({ length: count }, (_, i) => [`key${String(i)}`, true]));
+    const keeps = (extra: Partial<Record<string, unknown>>) =>
+      readRecords(fileWith({ [SIGNED.id]: { ...SIGNED, ...extra } })).size === 1;
+    expect(keeps({ revoked: ['a'.repeat(300)] })).toBe(true);
+    expect(keeps({ revoked: ['a'.repeat(301)] })).toBe(false);
+    expect(keeps({ revoked: Array.from({ length: 64 }, (_, i) => String(i)) })).toBe(true);
+    expect(keeps({ revoked: Array.from({ length: 65 }, (_, i) => String(i)) })).toBe(false);
+    expect(keeps({ revoked: ['a', 'a'] })).toBe(false);
+    expect(keeps({ settings: { ['k'.repeat(64)]: 'v'.repeat(1000) } })).toBe(true);
+    expect(keeps({ settings: { ['k'.repeat(65)]: 'v' } })).toBe(false);
+    expect(keeps({ settings: { k: 'v'.repeat(1001) } })).toBe(false);
+    expect(keeps({ settings: settings(32) })).toBe(true);
+    expect(keeps({ settings: settings(33) })).toBe(false);
+    expect(keeps({ pulled: 'p'.repeat(300) })).toBe(true);
+    expect(keeps({ pulled: '' })).toBe(false);
+    expect(keeps({ pulled: 'p'.repeat(301) })).toBe(false);
+    expect(keeps({ revokedIn: { [account]: ['composer:insert-draft'] } })).toBe(true);
+    expect(keeps({ revokedIn: { 'not-an-account': [] } })).toBe(false);
+    expect(keeps({ revokedIn: accounts(32) })).toBe(true);
+    expect(keeps({ revokedIn: accounts(33) })).toBe(false);
+  });
 });
 
 describe('loadRecords and saveRecords', () => {

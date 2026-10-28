@@ -28,8 +28,10 @@ const SnippetSchema = Type.Object(
 const CustomCodeSchema = Type.Object(
   {
     enabled: Type.Boolean(),
-    snippets: Type.Record(Type.String({ maxLength: 64 }), SnippetSchema, {
+    // TypeBox ignores a Record key schema's limits; `propertyNames` enforces them.
+    snippets: Type.Record(Type.String(), SnippetSchema, {
       maxProperties: MAX_SCOPES,
+      propertyNames: { maxLength: 64 },
     }),
   },
   { additionalProperties: false },
