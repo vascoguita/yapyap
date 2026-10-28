@@ -17,6 +17,13 @@ const NETWORK = 'network:';
 
 type Grants = Pick<ExtensionRecord, 'capabilities' | 'hosts' | 'revoked' | 'revokedIn'>;
 
+/** What the user took back from the whole extension. */
+const revokedFrom = (record: Grants): ReadonlySet<string> => new Set(record.revoked);
+
+/** What the user took back for one account. */
+const revokedIn = (record: Grants, account: string): ReadonlySet<string> =>
+  new Set(record.revokedIn?.[account]);
+
 /** Whether the user approved `capability` at install, `network:<host>` included. */
 function approved(record: Grants, capability: string): boolean {
   return capability.startsWith(NETWORK)
@@ -30,18 +37,19 @@ function approved(record: Grants, capability: string): boolean {
  * account, granted for `account`, the one on screen.
  */
 export function holds(record: Grants, capability: string, account: string | undefined): boolean {
-  if (!approved(record, capability) || (record.revoked ?? []).includes(capability)) {
+  if (!approved(record, capability) || revokedFrom(record).has(capability)) {
     return false;
   }
   if (!ACCOUNT_CAPABILITIES.has(capability)) {
     return true;
   }
-  return account !== undefined && !(record.revokedIn?.[account] ?? []).includes(capability);
+  return account !== undefined && !revokedIn(record, account).has(capability);
 }
 
 /** The hosts the extension may reach now: approved, and not revoked since. */
 export function grantedHosts(record: Grants): string[] {
-  return record.hosts.filter((host) => !(record.revoked ?? []).includes(`${NETWORK}${host}`));
+  const revoked = revokedFrom(record);
+  return record.hosts.filter((host) => !revoked.has(`${NETWORK}${host}`));
 }
 
 const toggled = (list: readonly string[], item: string, present: boolean): string[] =>
@@ -64,9 +72,9 @@ export function withGrant<Record extends Grants>(
   if (account === undefined || !ACCOUNT_CAPABILITIES.has(capability)) {
     return { ...record, revoked: toggled(record.revoked ?? [], capability, !granted) };
   }
-  const revokedIn = { ...record.revokedIn };
-  revokedIn[account] = toggled(revokedIn[account] ?? [], capability, !granted);
-  return { ...record, revokedIn };
+  const byAccount = { ...record.revokedIn };
+  byAccount[account] = toggled(byAccount[account] ?? [], capability, !granted);
+  return { ...record, revokedIn: byAccount };
 }
 
 /** What the Extensions window shows of an extension's grants. */
@@ -76,7 +84,7 @@ export function grantsOf(
 ): ExtensionGrant[] {
   const capabilities = [...record.capabilities, ...record.hosts.map((host) => `${NETWORK}${host}`)];
   return capabilities.map((capability) => {
-    const granted = !(record.revoked ?? []).includes(capability);
+    const granted = !revokedFrom(record).has(capability);
     if (!ACCOUNT_CAPABILITIES.has(capability)) {
       return { capability, granted };
     }
@@ -86,7 +94,7 @@ export function grantsOf(
       accounts: accounts.map(({ id, name }) => ({
         id,
         name,
-        granted: !(record.revokedIn?.[id] ?? []).includes(capability),
+        granted: !revokedIn(record, id).has(capability),
       })),
     };
   });

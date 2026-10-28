@@ -24,8 +24,20 @@ describe('holds', () => {
   });
 
   it('grants a capability that acts on an account only for an account on screen', () => {
-    expect(holds(RECORD, 'composer:insert-draft', WORK)).toBe(true);
-    expect(holds(RECORD, 'composer:insert-draft', undefined)).toBe(false);
+    const all = {
+      ...RECORD,
+      capabilities: [
+        'chat:read-active',
+        'chat:read-unread-summary',
+        'composer:insert-draft',
+        'composer:read-draft',
+        'assistant:bar',
+      ] as ExtensionRecord['capabilities'],
+    };
+    for (const capability of all.capabilities) {
+      expect(holds(all, capability, WORK)).toBe(true);
+      expect(holds(all, capability, undefined)).toBe(false);
+    }
   });
 
   it('honours what the user took back, for the extension or for one account', () => {
@@ -49,6 +61,10 @@ describe('withGrant', () => {
     );
     expect(off.revoked).toEqual(['notifications:show']);
     expect(withGrant(off, 'notifications:show', undefined, true).revoked).toEqual([]);
+    const two = withGrant(off, 'network:api.example.org', undefined, false);
+    expect(withGrant(two, 'notifications:show', undefined, true).revoked).toEqual([
+      'network:api.example.org',
+    ]);
     const work = withGrant(RECORD, 'composer:insert-draft', WORK, false);
     const both = withGrant(work, 'composer:insert-draft', HOME, false);
     expect(both.revokedIn).toEqual({
@@ -108,5 +124,10 @@ describe('grantsOf', () => {
       { capability: 'network:llm.example.net', granted: false },
     ]);
     expect(grantsOf(RECORD, []).every((grant) => grant.granted)).toBe(true);
+    expect(grantsOf(RECORD, [{ id: WORK, name: 'Work' }])[0]).toEqual({
+      capability: 'composer:insert-draft',
+      granted: true,
+      accounts: [{ id: WORK, name: 'Work', granted: true }],
+    });
   });
 });
