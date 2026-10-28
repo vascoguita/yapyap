@@ -269,6 +269,11 @@ To rotate the key without breaking installed extensions:
    sign first-party extensions with the new key.
 4. One release after that, remove the old public key from the anchors.
 
+Keep a copy of the private key offline, such as in a password manager: the
+secret cannot be read back. If the key is lost or leaks, there is no old key
+to keep trusting: replace the first anchor, the secret and the variable in
+one change (ADR 0016).
+
 ## Reporting bugs and security issues
 
 Use the issue forms for bugs and features. Report vulnerabilities privately as

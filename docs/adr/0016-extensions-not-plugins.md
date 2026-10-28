@@ -33,7 +33,12 @@ renaming now costs little; later it would cost every extension author.
      with an `extensions` list;
    - CI: the `EXTENSION_SIGNING_KEY` secret and the
      `EXTENSION_SIGNING_PUBLIC_KEY` variable.
-3. **Accepted ADRs use the new word.** Their decisions are unchanged; only
+3. **A new first-party signing key.** Nobody held a copy of the old private
+   key outside the CI secret, which cannot be read back, so it could not move
+   to the new secret name. A new Ed25519 key replaces it: it is the only
+   trust anchor, and the old public key is no longer trusted. The maintainer
+   keeps a copy of the new private key offline.
+4. **Accepted ADRs use the new word.** Their decisions are unchanged; only
    the term and the names above were updated, so they keep describing the
    code as it is.
 
@@ -45,8 +50,8 @@ renaming now costs little; later it would cost every extension author.
   disk, with secrets still encrypted by the OS, until the user removes them.
 - The Developer Mode switch and the number of messages an extension may read
   return to their defaults, because the old settings section is dropped.
-- Archives signed before the rename keep working (the signature covers the
-  files, not the file name), but older YapYap versions read the old index
+- First-party archives signed before the rename are refused, because
+  their key is no longer trusted. Older YapYap versions read the old index
   address, which is no longer updated. The marketplace lists the same
   entries; their next versions ship as `.yapyap-extension` files.
 - Install in YapYap links on the website use the new address, so they only

@@ -5,5 +5,5 @@
  * (CONTRIBUTING, "Extension signing key rotation").
  */
 export const TRUST_ANCHORS: readonly string[] = [
-  '-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAFGvd082zu4/WS1mD1HlaQSi588wA0hVrA8c6m/61U8k=\n-----END PUBLIC KEY-----',
+  '-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAOAiiab1Af9fLhDSKpegFUSP0ajZwvaHNPmzmY5XVeLY=\n-----END PUBLIC KEY-----',
 ];
