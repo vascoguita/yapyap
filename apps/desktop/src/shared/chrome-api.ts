@@ -83,47 +83,47 @@ export interface SidebarState {
 }
 
 /**
- * Who vouches for a plugin: YapYap's own key, another author's key the user
+ * Who vouches for an extension: YapYap's own key, another author's key the user
  * pins on first install, that key reviewed by YapYap for the marketplace
  * (ADR 0014), or nobody (Developer Mode only).
  */
-export type PluginTrust = 'first-party' | 'reviewed' | 'third-party' | 'developer';
+export type ExtensionTrust = 'first-party' | 'reviewed' | 'third-party' | 'developer';
 
-/** Grants a plugin asks for: capabilities, and network hosts one by one. */
-interface PluginGrants {
+/** Grants an extension asks for: capabilities, and network hosts one by one. */
+interface ExtensionGrants {
   readonly capabilities: readonly string[];
   readonly hosts: readonly string[];
 }
 
-/** What the consent window shows before a plugin is installed or updated (ADR 0004). */
-export interface PluginConsent extends PluginGrants {
+/** What the consent window shows before an extension is installed or updated (ADR 0004). */
+export interface ExtensionConsent extends ExtensionGrants {
   readonly id: string;
   readonly name: string;
   readonly version: string;
   readonly author: { readonly name: string; readonly url: string | null };
-  /** The signing key's fingerprint; null for an unsigned plugin. */
+  /** The signing key's fingerprint; null for an unsigned extension. */
   readonly fingerprint: string | null;
-  readonly trust: PluginTrust;
-  /** An update to an installed plugin, which asks only because it wants more. */
+  readonly trust: ExtensionTrust;
+  /** An update to an installed extension, which asks only because it wants more. */
   readonly update: boolean;
   /** On an update, what it asks for that was not granted before. */
-  readonly added: PluginGrants;
+  readonly added: ExtensionGrants;
 }
 
-/** A plugin the marketplace lists, as the Plugins window shows it (ADR 0014). */
+/** An extension the marketplace lists, as the Extensions window shows it (ADR 0014). */
 export interface MarketplaceEntry {
   readonly id: string;
   readonly name: string;
   readonly summary: string;
   readonly author: { readonly name: string; readonly url: string | null };
   readonly homepage: string;
-  /** YapYap's own plugin, or a third-party plugin the maintainer reviewed. */
+  /** YapYap's own extension, or a third-party extension the maintainer reviewed. */
   readonly review: 'official' | 'reviewed';
   /** The newest version this YapYap runs, or the newest listed when none does. */
   readonly version: string;
   readonly capabilities: readonly string[];
   readonly hosts: readonly string[];
-  /** The installed version, if the plugin is installed. */
+  /** The installed version, if the extension is installed. */
   readonly installed: string | null;
   readonly action: 'install' | 'update' | 'installed' | 'incompatible';
 }
@@ -131,29 +131,29 @@ export interface MarketplaceEntry {
 /** The marketplace, or why it cannot be shown. */
 export interface MarketplaceView {
   readonly status: 'ready' | 'unreachable' | 'invalid' | 'outdated';
-  readonly plugins: readonly MarketplaceEntry[];
+  readonly extensions: readonly MarketplaceEntry[];
 }
 
-/** An installed plugin, as the Plugins window lists it. */
-export interface InstalledPlugin {
+/** An installed extension, as the Extensions window lists it. */
+export interface InstalledExtension {
   readonly id: string;
   readonly version: string;
-  readonly trust: PluginTrust;
+  readonly trust: ExtensionTrust;
   /** Why the marketplace pulled this version, which YapYap then does not run (ADR 0014). */
   readonly pulled: string | null;
   /** What the user approved, and whether each grant still stands (#94). */
-  readonly grants: readonly PluginGrant[];
-  /** The plugin's settings form, with what the user saved; empty when it has none (#98). */
-  readonly settings: readonly PluginSetting[];
+  readonly grants: readonly ExtensionGrant[];
+  /** The extension's settings form, with what the user saved; empty when it has none (#98). */
+  readonly settings: readonly ExtensionSetting[];
 }
 
-/** One field of a plugin's settings form, as YapYap renders it. */
-export interface PluginSetting {
+/** One field of an extension's settings form, as YapYap renders it. */
+export interface ExtensionSetting {
   readonly key: string;
   readonly type: 'string' | 'number' | 'integer' | 'boolean';
   readonly title?: string;
   readonly description?: string;
-  /** The values to choose from, when the plugin lists them. */
+  /** The values to choose from, when the extension lists them. */
   readonly enum?: readonly (string | number)[];
   readonly minimum?: number;
   readonly maximum?: number;
@@ -164,9 +164,9 @@ export interface PluginSetting {
 
 /**
  * One capability or `network:<host>` the user approved: granted for the
- * whole plugin, or, for one that acts on an account, account by account.
+ * whole extension, or, for one that acts on an account, account by account.
  */
-export interface PluginGrant {
+export interface ExtensionGrant {
   readonly capability: string;
   readonly granted: boolean;
   /** Set for a capability that acts on the account on screen. */
@@ -177,17 +177,17 @@ export interface PluginGrant {
   }[];
 }
 
-export interface PluginList {
-  readonly plugins: readonly InstalledPlugin[];
+export interface ExtensionList {
+  readonly extensions: readonly InstalledExtension[];
   readonly developerMode: boolean;
-  /** What plugins asked YapYap to do, newest first; never what they sent or got. */
-  readonly activity: readonly PluginActivity[];
+  /** What extensions asked YapYap to do, newest first; never what they sent or got. */
+  readonly activity: readonly ExtensionActivity[];
 }
 
-/** One call a plugin made, by operation and outcome. */
-export interface PluginActivity {
+/** One call an extension made, by operation and outcome. */
+export interface ExtensionActivity {
   readonly time: string;
-  readonly plugin: string;
+  readonly extension: string;
   readonly capability: string;
   readonly method: string;
   readonly outcome: 'ok' | 'invalid' | 'not-granted' | 'rate-limited' | 'timeout' | 'failed';
@@ -241,32 +241,32 @@ export interface ChromeApi {
     readonly open: (id: string) => Promise<void>;
     readonly setDoNotDisturb: (on: boolean) => Promise<void>;
   };
-  readonly plugins: {
-    readonly list: () => Promise<PluginList>;
+  readonly extensions: {
+    readonly list: () => Promise<ExtensionList>;
     /** Downloads and verifies the marketplace's list; only the Marketplace tab asks (ADR 0014). */
     readonly marketplace: () => Promise<MarketplaceView>;
-    /** Installs the version of a listed plugin the marketplace offers, after the usual consent. */
+    /** Installs the version of a listed extension the marketplace offers, after the usual consent. */
     readonly installListed: (id: string) => Promise<void>;
     /** The pending install this consent window asks about. */
-    readonly consent: () => Promise<PluginConsent>;
-    /** `acknowledged`: the user accepted the risk of a plugin YapYap has not reviewed. */
+    readonly consent: () => Promise<ExtensionConsent>;
+    /** `acknowledged`: the user accepted the risk of an extension YapYap has not reviewed. */
     readonly answer: (install: boolean, acknowledged: boolean) => Promise<void>;
-    /** Saves one setting of a plugin; null goes back to the plugin's own default. */
+    /** Saves one setting of an extension; null goes back to the extension's own default. */
     readonly setSetting: (
       id: string,
       key: string,
       value: string | number | boolean | null,
-    ) => Promise<PluginList>;
-    /** Grants a capability again or takes it back: for one account, or the whole plugin with null. */
+    ) => Promise<ExtensionList>;
+    /** Grants a capability again or takes it back: for one account, or the whole extension with null. */
     readonly setGrant: (
       id: string,
       capability: string,
       account: string | null,
       granted: boolean,
-    ) => Promise<PluginList>;
-    /** Removes a plugin and everything it kept, once the user confirms (#332). */
-    readonly remove: (id: string) => Promise<PluginList>;
-    /** Calls `listener` whenever a plugin is installed, updated, removed or stopped (#342). */
+    ) => Promise<ExtensionList>;
+    /** Removes an extension and everything it kept, once the user confirms (#332). */
+    readonly remove: (id: string) => Promise<ExtensionList>;
+    /** Calls `listener` whenever an extension is installed, updated, removed or stopped (#342). */
     readonly onChange: (listener: () => void) => void;
   };
   readonly report: {
@@ -441,14 +441,14 @@ export const CHROME_CHANNELS = {
   sidebarStopSharing: 'sidebar:stop-sharing',
   reportDiagnostics: 'report:diagnostics',
   reportOpen: 'report:open',
-  pluginsList: 'plugins:list',
-  pluginsConsent: 'plugins:consent',
-  pluginsAnswer: 'plugins:answer',
-  pluginsSetGrant: 'plugins:set-grant',
-  pluginsSetSetting: 'plugins:set-setting',
-  pluginsRemove: 'plugins:remove',
-  pluginsMarketplace: 'plugins:marketplace',
-  pluginsInstallListed: 'plugins:install-listed',
+  extensionsList: 'extensions:list',
+  extensionsConsent: 'extensions:consent',
+  extensionsAnswer: 'extensions:answer',
+  extensionsSetGrant: 'extensions:set-grant',
+  extensionsSetSetting: 'extensions:set-setting',
+  extensionsRemove: 'extensions:remove',
+  extensionsMarketplace: 'extensions:marketplace',
+  extensionsInstallListed: 'extensions:install-listed',
   shortcutsList: 'shortcuts:list',
   shortcutsSet: 'shortcuts:set',
   downloadsList: 'downloads:list',
@@ -468,5 +468,5 @@ export const CHROME_CHANNELS = {
 /** The one channel YapYap sends on, from the main process to the sidebar. */
 export const SIDEBAR_STATE_EVENT = 'sidebar:state-changed';
 
-/** Tells an open Plugins window that the installed plugins changed (#342). */
-export const PLUGINS_CHANGED_EVENT = 'plugins:changed';
+/** Tells an open Extensions window that the installed extensions changed (#342). */
+export const EXTENSIONS_CHANGED_EVENT = 'extensions:changed';

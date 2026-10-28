@@ -160,10 +160,10 @@ export const SettingsSchema = Type.Object(
       },
       { default: {}, additionalProperties: false },
     ),
-    plugins: Type.Object(
+    extensions: Type.Object(
       {
         developerMode: Type.Boolean({ default: false }),
-        // How many of the open chat's latest messages a plugin may read (#100).
+        // How many of the open chat's latest messages an extension may read (#100).
         chatMessages: Type.Union(
           [Type.Literal('5'), Type.Literal('10'), Type.Literal('20'), Type.Literal('50')],
           { default: '20' },

@@ -5,7 +5,7 @@ export default defineConfig({
   main: {
     resolve: {
       // fflate's Node build declares its own `require`, which clashes with the
-      // one the bundle defines. Plugin archives use only its synchronous
+      // one the bundle defines. Extension archives use only its synchronous
       // functions, which the browser build has without worker threads.
       alias: [{ find: /^fflate$/, replacement: 'fflate/browser' }],
     },
@@ -16,7 +16,7 @@ export default defineConfig({
         input: {
           chrome: resolve(import.meta.dirname, 'src/preload/chrome/index.ts'),
           whatsapp: resolve(import.meta.dirname, 'src/preload/whatsapp/index.ts'),
-          plugin: resolve(import.meta.dirname, 'src/preload/plugin/index.ts'),
+          extension: resolve(import.meta.dirname, 'src/preload/extension/index.ts'),
         },
         // Sandboxed preloads cannot load ES modules.
         output: { format: 'cjs', entryFileNames: '[name].cjs' },
@@ -37,8 +37,8 @@ export default defineConfig({
           welcome: resolve(import.meta.dirname, 'src/renderer/welcome.html'),
           report: resolve(import.meta.dirname, 'src/renderer/report.html'),
           sidebar: resolve(import.meta.dirname, 'src/renderer/sidebar.html'),
-          plugins: resolve(import.meta.dirname, 'src/renderer/plugins.html'),
-          'plugin-consent': resolve(import.meta.dirname, 'src/renderer/plugin-consent.html'),
+          extensions: resolve(import.meta.dirname, 'src/renderer/extensions.html'),
+          'extension-consent': resolve(import.meta.dirname, 'src/renderer/extension-consent.html'),
           shortcuts: resolve(import.meta.dirname, 'src/renderer/shortcuts.html'),
           'custom-code': resolve(import.meta.dirname, 'src/renderer/custom-code.html'),
           'quick-panel': resolve(import.meta.dirname, 'src/renderer/quick-panel.html'),

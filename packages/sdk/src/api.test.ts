@@ -1,16 +1,16 @@
 import { describe, expect, it, vi } from 'vitest';
-import { definePlugin } from './api.ts';
+import { defineExtension } from './api.ts';
 import * as sdk from './index.ts';
 
-describe('definePlugin', () => {
-  it('returns the plugin unchanged, only adding types', () => {
-    const plugin = { activate: vi.fn() };
-    expect(definePlugin(plugin)).toBe(plugin);
+describe('defineExtension', () => {
+  it('returns the extension unchanged, only adding types', () => {
+    const extension = { activate: vi.fn() };
+    expect(defineExtension(extension)).toBe(extension);
   });
 });
 
 describe('the SDK entry point', () => {
-  it('exports the runtime values a plugin or YapYap needs', () => {
+  it('exports the runtime values an extension or YapYap needs', () => {
     expect(Object.keys(sdk).sort()).toEqual([
       'CAPABILITIES',
       'MANIFEST_SCHEMA_ID',
@@ -20,7 +20,7 @@ describe('the SDK entry point', () => {
       'MARKETPLACE_SIGNATURE_URL',
       'ManifestSchema',
       'MarketplaceIndexSchema',
-      'definePlugin',
+      'defineExtension',
       'marketplaceArchiveName',
       'marketplaceArchiveUrl',
     ]);

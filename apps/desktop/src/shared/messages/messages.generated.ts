@@ -91,7 +91,7 @@ export interface Messages {
       readonly downloads: string;
       readonly privacy: string;
       readonly network: string;
-      readonly plugins: string;
+      readonly extensions: string;
     };
     readonly backup: {
       readonly title: string;
@@ -233,7 +233,7 @@ export interface Messages {
         };
         readonly proxyServer: { readonly label: string; readonly description: string };
       };
-      readonly plugins: {
+      readonly extensions: {
         readonly developerMode: { readonly label: string; readonly description: string };
         readonly chatMessages: {
           readonly label: string;
@@ -345,12 +345,12 @@ export interface Messages {
     readonly full: string;
     readonly doNotDisturb: string;
   };
-  readonly plugins: {
+  readonly extensions: {
     readonly notificationTitle: (params: {
-      readonly plugin: string | number;
+      readonly extension: string | number;
       readonly title: string | number;
     }) => string;
-    readonly stopped: (params: { readonly plugin: string | number }) => string;
+    readonly stopped: (params: { readonly extension: string | number }) => string;
     readonly title: string;
     readonly hint: string;
     readonly empty: string;
@@ -396,7 +396,7 @@ export interface Messages {
     };
     readonly settings: string;
     readonly remove: string;
-    readonly removeLabel: (params: { readonly plugin: string | number }) => string;
+    readonly removeLabel: (params: { readonly extension: string | number }) => string;
     readonly settingDefault: string;
     readonly permissions: string;
     readonly permissionsHint: string;
@@ -440,10 +440,10 @@ export interface Messages {
       readonly by: (params: { readonly name: string | number }) => string;
       readonly version: (params: { readonly version: string | number }) => string;
       readonly install: string;
-      readonly installLabel: (params: { readonly plugin: string | number }) => string;
+      readonly installLabel: (params: { readonly extension: string | number }) => string;
       readonly update: (params: { readonly version: string | number }) => string;
       readonly updateLabel: (params: {
-        readonly plugin: string | number;
+        readonly extension: string | number;
         readonly version: string | number;
       }) => string;
       readonly installed: string;
@@ -594,12 +594,12 @@ export interface Messages {
     readonly resetSession: string;
     readonly addAccount: string;
     readonly manageAccounts: string;
-    readonly plugins: string;
-    readonly installPlugin: string;
+    readonly extensions: string;
+    readonly installExtension: string;
     readonly customCode: string;
-    readonly pluginCommands: string;
-    readonly pluginCommand: (params: {
-      readonly plugin: string | number;
+    readonly extensionCommands: string;
+    readonly extensionCommand: (params: {
+      readonly extension: string | number;
       readonly title: string | number;
     }) => string;
     readonly removeAccount: string;
@@ -622,29 +622,29 @@ export interface Messages {
     readonly newChat: string;
     readonly spellingLanguages: string;
     readonly accounts: string;
-    readonly plugins: string;
+    readonly extensions: string;
     readonly shortcuts: string;
     readonly customCode: string;
     readonly quickPanel: string;
     readonly downloads: string;
-    readonly pluginConsent: string;
+    readonly extensionConsent: string;
     readonly welcome: string;
     readonly report: string;
     readonly proxyLogin: string;
     readonly offline: (params: { readonly pageTitle: string | number }) => string;
   };
   readonly dialogs: {
-    readonly pluginHost: {
+    readonly extensionHost: {
       readonly message: (params: {
+        readonly extension: string | number;
         readonly host: string | number;
-        readonly plugin: string | number;
       }) => string;
       readonly detail: string;
       readonly allow: string;
       readonly deny: string;
     };
-    readonly removePlugin: {
-      readonly message: (params: { readonly plugin: string | number }) => string;
+    readonly removeExtension: {
+      readonly message: (params: { readonly extension: string | number }) => string;
       readonly detail: string;
       readonly confirm: string;
     };

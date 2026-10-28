@@ -8,17 +8,17 @@ checked channels.
 
 | Zone         | Runs                                                                | Trust                         |
 | ------------ | ------------------------------------------------------------------- | ----------------------------- |
-| Main process | App logic, settings, IPC validation, plugin host                    | Trusted                       |
+| Main process | App logic, settings, IPC validation, extension host                 | Trusted                       |
 | App chrome   | YapYap's own UI, served from a custom `app://` protocol             | Trusted code, untrusted input |
 | WhatsApp     | One sandboxed renderer per account, with its own persistent session | Untrusted (remote)            |
-| Plugins      | One hidden, sandboxed renderer per plugin                           | Untrusted (third party)       |
+| Extensions   | One hidden, sandboxed renderer per extension                        | Untrusted (third party)       |
 
 ## Processes and trust zones
 
 <figure class="diagram">
 <svg viewBox="0 0 760 440" role="img" aria-labelledby="zones-title zones-desc">
 <title id="zones-title">YapYap's processes and trust zones</title>
-<desc id="zones-desc">The trusted main process sits between three kinds of sandboxed renderer: WhatsApp accounts, YapYap's own chrome and plugins. Each reaches the main process through its own checked channel. WhatsApp views reach only web.whatsapp.com, plugins reach only hosts they were allowed, and the main process alone asks GitHub for updates.</desc>
+<desc id="zones-desc">The trusted main process sits between three kinds of sandboxed renderer: WhatsApp accounts, YapYap's own chrome and extensions. Each reaches the main process through its own checked channel. WhatsApp views reach only web.whatsapp.com, extensions reach only hosts they were allowed, and the main process alone asks GitHub for updates.</desc>
 <defs>
 <marker id="zones-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="arrowhead" d="M0,0 L10,5 L0,10 z"/></marker>
 </defs>
@@ -29,12 +29,12 @@ checked channels.
 <text class="title" x="380" y="42" text-anchor="middle">GitHub releases</text>
 <text class="note" x="380" y="59" text-anchor="middle">update metadata only</text>
 <rect class="box untrusted" x="520" y="20" width="220" height="50" rx="8"/>
-<text class="title" x="630" y="42" text-anchor="middle">Hosts a plugin may reach</text>
+<text class="title" x="630" y="42" text-anchor="middle">Hosts an extension may reach</text>
 <text class="note" x="630" y="59" text-anchor="middle">approved HTTPS hosts, loopback</text>
 <rect class="box trusted" x="140" y="130" width="480" height="80" rx="8"/>
 <text class="title" x="380" y="158" text-anchor="middle">Main process (Node.js): trusted</text>
 <text x="380" y="179" text-anchor="middle">settings · accounts · IPC checks · permissions · network filters</text>
-<text x="380" y="197" text-anchor="middle">plugin host · capability checks · audit log · updates</text>
+<text x="380" y="197" text-anchor="middle">extension host · capability checks · audit log · updates</text>
 <rect class="box untrusted" x="20" y="290" width="220" height="130" rx="8"/>
 <text class="title" x="130" y="314" text-anchor="middle">WhatsApp accounts</text>
 <text x="130" y="336" text-anchor="middle">one view per account</text>
@@ -50,9 +50,9 @@ checked channels.
 <text x="380" y="390" text-anchor="middle">strict CSP, no remote code</text>
 <text class="note" x="380" y="410" text-anchor="middle">trusted code, untrusted input</text>
 <rect class="box untrusted" x="520" y="290" width="220" height="130" rx="8"/>
-<text class="title" x="630" y="314" text-anchor="middle">Plugins</text>
+<text class="title" x="630" y="314" text-anchor="middle">Extensions</text>
 <text x="630" y="336" text-anchor="middle">one hidden page each</text>
-<text x="630" y="354" text-anchor="middle">plugin://&lt;id&gt;, own partition</text>
+<text x="630" y="354" text-anchor="middle">extension://&lt;id&gt;, own partition</text>
 <text x="630" y="372" text-anchor="middle">panels: windows, no preload</text>
 <text x="630" y="390" text-anchor="middle">CSP and network filter</text>
 <text class="note" x="630" y="410" text-anchor="middle">untrusted, third party</text>
@@ -83,25 +83,25 @@ checked channels.
   (`src/adapter/`), whose scripts the main process runs in an isolated
   world on demand. They return plain flags or plain data, never page nodes,
   and they add no observers.
-- **App chrome** is YapYap's own UI: the sidebar, Settings, the Plugins
+- **App chrome** is YapYap's own UI: the sidebar, Settings, the Extensions
   window and every other dialog. It is served from `app://chrome/` on an
   in-memory partition under a strict CSP. Its typed preload bridge can
   only invoke named operations, and the main process checks each call's
   sender and payload before acting.
-- **Plugins** each run in a hidden, sandboxed page on a partition of their
-  own, served only from `plugin://<id>/` under a CSP that allows no eval
+- **Extensions** each run in a hidden, sandboxed page on a partition of their
+  own, served only from `extension://<id>/` under a CSP that allows no eval
   and no inline or remote code. A request leaves the page only to a host
-  the user approved, or to this computer with `local-network`. A plugin's
-  panel is a separate window with no preload; it reaches its plugin's page
+  the user approved, or to this computer with `local-network`. An extension's
+  panel is a separate window with no preload; it reaches its extension's page
   over a `BroadcastChannel`, never the main process
-  ([ADR 0004](/adr/0004-plugin-isolation-and-trust-model)).
+  ([ADR 0004](/adr/0004-extension-isolation-and-trust-model)).
 - **The main process** owns everything that touches the system: files,
   settings, secrets (through the system keychain), notifications, the tray,
   permissions and updates. It denies every permission by default
   ([ADR 0001](/adr/0001-process-model-and-security-boundaries)).
 
 The [security review](/architecture/security-review) checks this design
-against Electron's security checklist and a threat model for plugins.
+against Electron's security checklist and a threat model for extensions.
 
 ## Data flows
 
@@ -118,17 +118,17 @@ against Electron's security checklist and a threat model for plugins.
 4. Clicking it brings YapYap forward, switches to the account and opens the
    chat. Reading the chat closes the notification.
 
-### A plugin call
+### An extension call
 
 <figure class="diagram">
 <svg viewBox="-2 0 764 190" role="img" aria-labelledby="rpc-title rpc-desc">
-<title id="rpc-title">How YapYap checks a plugin's call</title>
-<desc id="rpc-desc">A call from a plugin page crosses its port and is checked in order: the message envelope and parameters, the plugin's grant for the account on screen, and its rate. Only then does the host method run, with a timeout, reaching the adapter or the system and returning plain data. Each call's operation and outcome go to the audit log, never its parameters or result.</desc>
+<title id="rpc-title">How YapYap checks an extension's call</title>
+<desc id="rpc-desc">A call from an extension page crosses its port and is checked in order: the message envelope and parameters, the extension's grant for the account on screen, and its rate. Only then does the host method run, with a timeout, reaching the adapter or the system and returning plain data. Each call's operation and outcome go to the audit log, never its parameters or result.</desc>
 <defs>
 <marker id="rpc-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="arrowhead" d="M0,0 L10,5 L0,10 z"/></marker>
 </defs>
 <rect class="box untrusted" x="0" y="20" width="110" height="60" rx="8"/>
-<text class="title" x="55" y="45" text-anchor="middle">Plugin page</text>
+<text class="title" x="55" y="45" text-anchor="middle">Extension page</text>
 <text class="note" x="55" y="64" text-anchor="middle">calls the host API</text>
 <rect class="box trusted" x="130" y="20" width="110" height="60" rx="8"/>
 <text class="title" x="185" y="45" text-anchor="middle">Shape</text>
@@ -159,15 +159,15 @@ against Electron's security checklist and a threat model for plugins.
 <figcaption>Any failed check ends the call with a typed error, which the audit log records too.</figcaption>
 </figure>
 
-A plugin never names its own identity: the main process knows which port a
-call came from, so a plugin's storage and secrets are always its own. There
-is no operation that sends a message; a plugin can only put a draft in the
+An extension never names its own identity: the main process knows which port a
+call came from, so an extension's storage and secrets are always its own. There
+is no operation that sends a message; an extension can only put a draft in the
 message box for you to send.
 
 ### An AI assistant reply
 
 1. You open the assistant's panel and ask for replies. The panel asks the
-   plugin's page over its `BroadcastChannel`.
+   extension's page over its `BroadcastChannel`.
 2. The page reads the open chat through `chat:read-active`, which needs your
    grant for that account and returns at most the number of messages you
    set.
@@ -187,17 +187,17 @@ the [privacy page](/privacy) for everything YapYap keeps on disk.
 Each design choice is recorded in an
 [Architecture Decision Record](/adr/):
 
-| Topic                                                  | ADR                                                     |
-| ------------------------------------------------------ | ------------------------------------------------------- |
-| Processes, trust zones, web preferences, permissions   | [0001](/adr/0001-process-model-and-security-boundaries) |
-| Toolchain and pinned versions                          | [0002](/adr/0002-toolchain-and-resolved-versions)       |
-| Package formats and update channels                    | [0003](/adr/0003-packaging-and-update-channels)         |
-| Plugin isolation, signatures, capabilities, audit log  | [0004](/adr/0004-plugin-isolation-and-trust-model)      |
-| Tests, coverage and mutation testing                   | [0005](/adr/0005-test-strategy)                         |
-| Settings schema and migrations                         | [0006](/adr/0006-settings-schema-and-migrations)        |
-| Branches, commits and merging                          | [0007](/adr/0007-git-and-merge-strategy)                |
-| Requirements that conflicted, and how each was settled | [0008](/adr/0008-requirement-conflicts)                 |
-| Memory, CPU and startup budgets                        | [0009](/adr/0009-performance-budgets)                   |
-| Static analysis                                        | [0010](/adr/0010-static-analysis-with-sonarqube-cloud)  |
-| WhatsApp notifications                                 | [0011](/adr/0011-whatsapp-notifications)                |
-| Translations and right-to-left support                 | [0012](/adr/0012-translations)                          |
+| Topic                                                    | ADR                                                     |
+| -------------------------------------------------------- | ------------------------------------------------------- |
+| Processes, trust zones, web preferences, permissions     | [0001](/adr/0001-process-model-and-security-boundaries) |
+| Toolchain and pinned versions                            | [0002](/adr/0002-toolchain-and-resolved-versions)       |
+| Package formats and update channels                      | [0003](/adr/0003-packaging-and-update-channels)         |
+| Extension isolation, signatures, capabilities, audit log | [0004](/adr/0004-extension-isolation-and-trust-model)   |
+| Tests, coverage and mutation testing                     | [0005](/adr/0005-test-strategy)                         |
+| Settings schema and migrations                           | [0006](/adr/0006-settings-schema-and-migrations)        |
+| Branches, commits and merging                            | [0007](/adr/0007-git-and-merge-strategy)                |
+| Requirements that conflicted, and how each was settled   | [0008](/adr/0008-requirement-conflicts)                 |
+| Memory, CPU and startup budgets                          | [0009](/adr/0009-performance-budgets)                   |
+| Static analysis                                          | [0010](/adr/0010-static-analysis-with-sonarqube-cloud)  |
+| WhatsApp notifications                                   | [0011](/adr/0011-whatsapp-notifications)                |
+| Translations and right-to-left support                   | [0012](/adr/0012-translations)                          |

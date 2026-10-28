@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { expect, test } from './fixtures.ts';
-import { clickMenu } from './plugin-helpers.ts';
+import { clickMenu } from './extension-helpers.ts';
 
 test('records a performance trace where the user chose, once they agree', async ({
   app,

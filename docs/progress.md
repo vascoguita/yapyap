@@ -1147,6 +1147,15 @@ not edit the same lines.
   ID (landmarks v5). The fake page follows today's structure. Groups still
   need a new marker.
 
+- Extensions, not plugins (#426, ADR 0016): YapYap's add-ons are called
+  extensions everywhere, with no backward compatibility: new package,
+  scheme, archive, folder, link and index names, and the
+  `EXTENSION_SIGNING_KEY` secret. Notes above keep the old word. The
+  AI assistant's marketplace entry returns with the next beta's
+  `.yapyap-extension` archive. TypeBox ignores the limits of a Record's key
+  schema, so extension setting names, per-account revocations and custom
+  code snippet names now check their keys with `propertyNames`.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).

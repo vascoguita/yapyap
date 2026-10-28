@@ -63,7 +63,7 @@ describe('ManifestSchema', () => {
     ['an upper-case id', { id: 'Org.Example.Hello' }],
     ['a version that is not semver', { version: '1.0' }],
     ['an API range it cannot read', { apiVersion: '>=1.0.0' }],
-    ['an entry outside the plugin', { entry: '../main.js' }],
+    ['an entry outside the extension', { entry: '../main.js' }],
     ['an absolute entry', { entry: '/main.js' }],
     ['an entry that is not a script', { entry: 'main.html' }],
     ['an unknown capability', { capabilities: ['chat:send'] }],

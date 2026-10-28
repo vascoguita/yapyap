@@ -1,8 +1,11 @@
 import { Value } from 'typebox/value';
-import { readPluginArchive, verifyArchive } from '../../../packages/plugin-sign/src/archive.ts';
-import { signIndex, verifyIndex } from '../../../packages/plugin-sign/src/index-signature.ts';
-import { matchesIntegrity } from '../../../packages/plugin-sign/src/integrity.ts';
-import { readPrivateKey } from '../../../packages/plugin-sign/src/keys.ts';
+import {
+  readExtensionArchive,
+  verifyArchive,
+} from '../../../packages/extension-sign/src/archive.ts';
+import { signIndex, verifyIndex } from '../../../packages/extension-sign/src/index-signature.ts';
+import { matchesIntegrity } from '../../../packages/extension-sign/src/integrity.ts';
+import { readPrivateKey } from '../../../packages/extension-sign/src/keys.ts';
 import { ManifestSchema } from '../../../packages/sdk/src/manifest.ts';
 import {
   MARKETPLACE_MAX_VALIDITY_MS,
@@ -12,7 +15,7 @@ import {
 } from '../../../packages/sdk/src/marketplace.ts';
 import type { Entry, Revocations } from './entries.ts';
 
-type Listed = MarketplaceIndex['plugins'][number];
+type Listed = MarketplaceIndex['extensions'][number];
 type ListedVersion = Listed['versions'][number];
 
 /** What an archive's manifest says, as far as the index repeats it. */
@@ -24,7 +27,7 @@ interface Described {
 
 /** Reads a version's manifest for the index, after its signature and identity check out. */
 function describe(entry: Entry, listed: Entry['versions'][number], bytes: Uint8Array): Described {
-  const { manifest, files } = readPluginArchive(bytes);
+  const { manifest, files } = readExtensionArchive(bytes);
   const verification = verifyArchive({ manifest, files });
   if (!verification.valid) {
     throw new Error(verification.reason);
@@ -36,7 +39,7 @@ function describe(entry: Entry, listed: Entry['versions'][number], bytes: Uint8A
     throw new Error('its manifest does not match the manifest schema.');
   }
   if (manifest.id !== entry.id || manifest.version !== listed.version) {
-    throw new Error('its manifest names another plugin or version.');
+    throw new Error('its manifest names another extension or version.');
   }
   return {
     name: manifest.name,
@@ -67,13 +70,13 @@ function checkVersion(
     throw new Error('its archive does not match the listed SHA-256.');
   }
   if (entry.review === 'official' && !anchors.has(entry.signer)) {
-    throw new Error('an official plugin must be signed by a trust anchor.');
+    throw new Error('an official extension must be signed by a trust anchor.');
   }
   return describe(entry, listed, bytes);
 }
 
-/** A plugin as the index lists it, named after its newest version's manifest. */
-function listPlugin(
+/** An extension as the index lists it, named after its newest version's manifest. */
+function listExtension(
   entry: Entry,
   archives: ReadonlyMap<string, Uint8Array>,
   anchors: ReadonlySet<string>,
@@ -117,7 +120,7 @@ export interface IndexSources {
 /**
  * Builds the marketplace index (ADR 0014) from the entries, checking every
  * listed archive's hash, signature, signer and manifest, and failing on the
- * first problem with the plugin and version it is in. The serial is the
+ * first problem with the extension and version it is in. The serial is the
  * time in seconds, so every build is newer than the one before.
  */
 export function buildIndex(sources: IndexSources): MarketplaceIndex {
@@ -127,9 +130,9 @@ export function buildIndex(sources: IndexSources): MarketplaceIndex {
     serial: Math.floor(now.getTime() / 1000),
     generated: now.toISOString(),
     expires: new Date(now.getTime() + MARKETPLACE_MAX_VALIDITY_MS).toISOString(),
-    plugins: [...entries]
+    extensions: [...entries]
       .sort((a, b) => a.id.localeCompare(b.id))
-      .map((entry) => listPlugin(entry, archives, anchors)),
+      .map((entry) => listExtension(entry, archives, anchors)),
     revoked: [...revoked],
   };
   if (!Value.Check(MarketplaceIndexSchema, index)) {
@@ -159,7 +162,7 @@ export const sourcesOf = (entries: readonly Entry[]): string[] => [
 ];
 
 /**
- * Signs the index's exact bytes with YapYap's plugin key, and refuses a key
+ * Signs the index's exact bytes with YapYap's extension key, and refuses a key
  * the app would not accept: one that is not among the trust anchors.
  */
 export function signMarketplaceIndex(
@@ -176,7 +179,7 @@ export function signMarketplaceIndex(
 
 /**
  * Downloads every source at once. A source that fails is left out, so the
- * build names the plugin and version whose archive is missing.
+ * build names the extension and version whose archive is missing.
  */
 export async function downloadArchives(
   sources: readonly string[],

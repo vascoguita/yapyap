@@ -158,7 +158,7 @@ export default defineConfig(
   },
   {
     // Every renderer must start from the hardened factory (ADR 0001).
-    files: ['apps/**/*.ts', 'packages/**/*.ts', 'plugins/**/*.ts'],
+    files: ['apps/**/*.ts', 'packages/**/*.ts', 'extensions/**/*.ts'],
     ignores: ['apps/desktop/src/main/windows.ts'],
     rules: {
       'no-restricted-syntax': [

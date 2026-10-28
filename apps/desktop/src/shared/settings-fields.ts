@@ -12,7 +12,7 @@ export const SETTINGS_SECTIONS = [
   { id: 'downloads', title: en.settings.sections.downloads },
   { id: 'privacy', title: en.settings.sections.privacy },
   { id: 'network', title: en.settings.sections.network },
-  { id: 'plugins', title: en.settings.sections.plugins },
+  { id: 'extensions', title: en.settings.sections.extensions },
 ] as const;
 
 type SettingsSection = (typeof SETTINGS_SECTIONS)[number]['id'];
@@ -153,10 +153,10 @@ export const SETTING_FIELDS: readonly SettingField[] = [
     restart: false,
     text: { placeholder: en.settings.proxyPlaceholder },
   },
-  { ...described('plugins', 'developerMode'), restart: false },
+  { ...described('extensions', 'developerMode'), restart: false },
   {
-    ...described('plugins', 'chatMessages'),
+    ...described('extensions', 'chatMessages'),
     restart: false,
-    options: choices(text.plugins.chatMessages.options),
+    options: choices(text.extensions.chatMessages.options),
   },
 ];

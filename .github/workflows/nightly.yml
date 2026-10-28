@@ -40,7 +40,7 @@ jobs:
         env:
           SHARD: ${{ matrix.shard }}
         run: |
-          targets=$(node scripts/src/bin/mutation-targets.ts --shard "$SHARD/16")
+          targets=$(node scripts/src/bin/mutation-targets.ts --all --shard "$SHARD/16")
           echo "Mutating: $targets" >> "$GITHUB_STEP_SUMMARY"
           STRYKER_RELATED="$targets" pnpm exec stryker run --mutate "$targets"
       - name: Upload mutation report

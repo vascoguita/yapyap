@@ -3,8 +3,8 @@ import {
   MARKETPLACE_MAX_VALIDITY_MS,
   MarketplaceIndexSchema,
   type MarketplaceIndex,
-} from '@yapyap/plugin-sdk';
-import { verifyIndex } from '@yapyap/plugin-sign';
+} from '@yapyap/extension-sdk';
+import { verifyIndex } from '@yapyap/extension-sign';
 import { Value } from 'typebox/value';
 
 /** How far ahead of this computer's clock a signed index may be, for a clock that runs late. */

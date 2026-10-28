@@ -37,8 +37,8 @@ async function focused(contents: ReplyContents, code = FOCUS_COMPOSER): Promise<
 }
 
 /**
- * Puts a plugin's draft into the open chat's message box, as if typed,
- * for the user to edit and send (ADR 0004: plugins never send). False when
+ * Puts an extension's draft into the open chat's message box, as if typed,
+ * for the user to edit and send (ADR 0004: extensions never send). False when
  * no chat is open to take it. The text is message content, so it is never
  * logged.
  */
@@ -64,7 +64,7 @@ export async function replaceDraft(contents: ReplyContents, text: string): Promi
 }
 
 /**
- * What the user typed in the open chat's message box, for a plugin holding
+ * What the user typed in the open chat's message box, for an extension holding
  * `composer:read-draft`; null when no chat is open. It is message content,
  * so it is never logged.
  */

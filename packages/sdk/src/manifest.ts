@@ -1,7 +1,7 @@
 import { Type, type Static } from 'typebox';
 
 /**
- * What a plugin can ask for (ADR 0004). Network access is declared host by
+ * What an extension can ask for (ADR 0004). Network access is declared host by
  * host in `network.hosts` instead, and each host becomes its own grant.
  */
 export const CAPABILITIES = [
@@ -23,8 +23,8 @@ export const MANIFEST_SCHEMA_ID = 'https://yapyap.guita.org/schema/manifest.sche
 
 const SEMVER = String.raw`^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?$`;
 const IDENTIFIER = '^[a-z][a-z0-9-]*$';
-/** A file inside the plugin: relative, `/`-separated, never climbing out. */
-const PLUGIN_FILE = String.raw`^(?!/)(?!.*(?:^|/)\.\.(?:/|$))[A-Za-z0-9._/-]+\.m?js$`;
+/** A file inside the extension: relative, `/`-separated, never climbing out. */
+const EXTENSION_FILE = String.raw`^(?!/)(?!.*(?:^|/)\.\.(?:/|$))[A-Za-z0-9._/-]+\.m?js$`;
 const HOSTNAME = String.raw`^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$`;
 const BASE64 = '^[A-Za-z0-9+/]+={0,2}$';
 
@@ -70,9 +70,9 @@ export const ManifestSchema = Type.Object(
     ),
     apiVersion: Type.String({
       pattern: String.raw`^[\^~]?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$`,
-      description: 'The SDK versions the plugin works with: exact, ^ or ~.',
+      description: 'The SDK versions the extension works with: exact, ^ or ~.',
     }),
-    entry: Type.String({ pattern: PLUGIN_FILE, maxLength: 200 }),
+    entry: Type.String({ pattern: EXTENSION_FILE, maxLength: 200 }),
     capabilities: Type.Array(
       Type.Union([
         Type.Literal('chat:read-active'),
@@ -92,7 +92,7 @@ export const ManifestSchema = Type.Object(
           hosts: Type.Array(Type.String({ pattern: HOSTNAME }), {
             uniqueItems: true,
             maxItems: 32,
-            description: 'HTTPS hosts the plugin may reach; nothing else is allowed.',
+            description: 'HTTPS hosts the extension may reach; nothing else is allowed.',
           }),
         },
         { additionalProperties: false },
@@ -106,12 +106,12 @@ export const ManifestSchema = Type.Object(
           contextMenu: Type.Optional(Type.Array(ContextMenuItem, { maxItems: 16 })),
           settings: Type.Optional(
             Type.Record(Type.String(), Type.Unknown(), {
-              description: 'A JSON Schema for the plugin settings form YapYap renders.',
+              description: 'A JSON Schema for the extension settings form YapYap renders.',
             }),
           ),
           panel: Type.Optional(
             Type.Object(
-              { title: Title, entry: Type.String({ pattern: PLUGIN_FILE, maxLength: 200 }) },
+              { title: Title, entry: Type.String({ pattern: EXTENSION_FILE, maxLength: 200 }) },
               { additionalProperties: false },
             ),
           ),
@@ -133,10 +133,10 @@ export const ManifestSchema = Type.Object(
   {
     $id: MANIFEST_SCHEMA_ID,
     $schema: 'https://json-schema.org/draft/2020-12/schema',
-    title: 'YapYap plugin manifest',
+    title: 'YapYap extension manifest',
     additionalProperties: false,
   },
 );
 
-/** A plugin's `manifest.json`, as {@link ManifestSchema} describes it. */
+/** An extension's `manifest.json`, as {@link ManifestSchema} describes it. */
 export type Manifest = Static<typeof ManifestSchema>;

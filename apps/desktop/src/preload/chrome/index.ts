@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import {
-  PLUGINS_CHANGED_EVENT,
+  EXTENSIONS_CHANGED_EVENT,
   SIDEBAR_STATE_EVENT,
   type SidebarState,
 } from '../../shared/chrome-api.ts';
@@ -17,7 +17,7 @@ contextBridge.exposeInMainWorld(
       });
     },
     (listener) => {
-      ipcRenderer.on(PLUGINS_CHANGED_EVENT, () => {
+      ipcRenderer.on(EXTENSIONS_CHANGED_EVENT, () => {
         listener();
       });
     },

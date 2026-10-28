@@ -1,14 +1,14 @@
 import type { MenuItemConstructorOptions } from 'electron';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
-import { RPC_OPTIONS } from '../plugins/rpc.ts';
+import { RPC_OPTIONS } from '../extensions/rpc.ts';
 import { defaultSettings } from '../settings/decode.ts';
 import type { Settings } from '../settings/schema.ts';
 import type { ViewInfo } from '../views.ts';
 import {
   CHROME_PARTITION,
   createChromeFeature,
-  pluginAccounts,
+  extensionAccounts,
   type AccountMenu,
   type ChromeFeatureDependencies,
 } from './feature.ts';
@@ -75,8 +75,8 @@ function setup() {
     },
     settingEffects: {},
     hiddenSettings: [],
-    plugins: {
-      root: '/nonexistent/plugins',
+    extensions: {
+      root: '/nonexistent/extensions',
       anchors: new Set<string>(),
       chooseArchive: vi.fn(() => Promise.resolve<string | undefined>(undefined)),
       readFile: vi.fn(() => Promise.resolve(new Uint8Array())),
@@ -93,8 +93,8 @@ function setup() {
       forgetData: vi.fn(),
       marketplace: {
         source: {
-          indexUrl: 'https://packages.example/plugins/index.json',
-          signatureUrl: 'https://packages.example/plugins/index.json.sig',
+          indexUrl: 'https://packages.example/extensions/index.json',
+          signatureUrl: 'https://packages.example/extensions/index.json.sig',
           archiveUrl: (id: string, version: string) => `https://packages.example/${id}-${version}`,
           anchors: [],
         },
@@ -167,12 +167,12 @@ function setup() {
 }
 
 describe('createChromeFeature', () => {
-  it('registers app: and plugin: as standard, secure schemes before the app is ready', () => {
+  it('registers app: and extension: as standard, secure schemes before the app is ready', () => {
     const t = setup();
     t.feature.beforeReady();
     expect(t.deps.registerSchemesAsPrivileged).toHaveBeenCalledExactlyOnceWith([
       { scheme: 'app', privileges: { standard: true, secure: true } },
-      { scheme: 'plugin', privileges: { standard: true, secure: true } },
+      { scheme: 'extension', privileges: { standard: true, secure: true } },
     ]);
   });
 
@@ -460,8 +460,8 @@ describe('createChromeFeature', () => {
         'privacy.blurWhenIdle': false,
         'network.proxyMode': 'system',
         'network.proxyServer': '',
-        'plugins.developerMode': false,
-        'plugins.chatMessages': '20',
+        'extensions.developerMode': false,
+        'extensions.chatMessages': '20',
         'downloads.askWhere': false,
         'downloads.openWhenDone': false,
         'downloads.folder': '',
@@ -1050,9 +1050,9 @@ describe('createChromeFeature', () => {
     expect(() => t.call('recovery:retry')).toThrow('No recovery screen belongs to this window.');
   });
 
-  it('shows plugins the accounts: drafts and grants go to the active one, none before there are any', async () => {
+  it('shows extensions the accounts: drafts and grants go to the active one, none before there are any', async () => {
     const slot: { current?: AccountMenu } = {};
-    const accounts = pluginAccounts(slot);
+    const accounts = extensionAccounts(slot);
     await expect(accounts.insertDraft('Hi')).resolves.toBe(false);
     await expect(accounts.readActiveChat(5)).resolves.toBeNull();
     await expect(accounts.replaceDraft('Hi')).resolves.toBe(false);

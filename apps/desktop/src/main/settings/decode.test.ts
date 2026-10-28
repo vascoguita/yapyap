@@ -39,7 +39,7 @@ const DEFAULTS = {
     blurWhenIdle: false,
   },
   network: { proxyMode: 'system', proxyServer: '' },
-  plugins: { developerMode: false, chatMessages: '20' },
+  extensions: { developerMode: false, chatMessages: '20' },
   shortcuts: { custom: {}, global: { toggleWindow: '' } },
   downloads: { askWhere: false, openWhenDone: false, folder: '' },
   spelling: { enabled: false, languages: [] },

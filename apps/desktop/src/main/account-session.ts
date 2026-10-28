@@ -4,7 +4,7 @@ import { followProxySetting, launchProxyOf, type ProxyController } from './netwo
 import type { PermissionMemory } from './permissions/session-guard.ts';
 import { secureSession } from './security.ts';
 import { attachContextMenu } from './spelling/context-menu.ts';
-import { pluginMenuItems } from './plugins/plugin-menu-items.ts';
+import { extensionMenuItems } from './extensions/extension-menu-items.ts';
 import type { SpellingSession } from './spelling/spelling.ts';
 import type { AccountContents, AccountWiring, StartDependencies, WindowPort } from './start.ts';
 
@@ -40,7 +40,7 @@ export function guardAccountSession<Window extends WindowPort>(
   return { session, permissions, proxied: wiring.proxy.guard(session, account.id) };
 }
 
-/** The right-click menu of an account's WhatsApp, with spelling suggestions (#73) and plugin items (#98). */
+/** The right-click menu of an account's WhatsApp, with spelling suggestions (#73) and extension items (#98). */
 export function contextMenuFor<Window extends WindowPort>(
   { deps, chrome }: Pick<AccountWiring<Window>, 'deps' | 'chrome'>,
   contents: AccountContents,
@@ -63,9 +63,9 @@ export function contextMenuFor<Window extends WindowPort>(
     openSettings: chrome.openSettings,
     openLanguages: chrome.openSpellingLanguages,
   };
-  const plugins = { actions: chrome.pluginActions, run: chrome.runPluginCommand };
+  const extensions = { actions: chrome.extensionActions, run: chrome.runExtensionCommand };
   attachContextMenu(contents, actions, deps.contextMenu, (params) =>
-    pluginMenuItems(contents, plugins, params),
+    extensionMenuItems(contents, extensions, params),
   );
 }
 

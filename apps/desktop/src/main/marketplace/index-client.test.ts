@@ -1,6 +1,6 @@
 import { generateKeyPairSync } from 'node:crypto';
-import type { MarketplaceIndex } from '@yapyap/plugin-sdk';
-import { signIndex } from '@yapyap/plugin-sign';
+import type { MarketplaceIndex } from '@yapyap/extension-sdk';
+import { signIndex } from '@yapyap/extension-sign';
 import { describe, expect, it, vi } from 'vitest';
 import { loadMarketplace, type IndexClientDependencies } from './index-client.ts';
 
@@ -12,7 +12,7 @@ const INDEX: MarketplaceIndex = {
   serial: 100,
   generated: '2026-10-27T08:00:00.000Z',
   expires: '2026-11-20T08:00:00.000Z',
-  plugins: [],
+  extensions: [],
   revoked: [],
 };
 
@@ -29,8 +29,8 @@ function served(index: unknown, signer = key.privateKey) {
 function setup(files: { bytes?: Uint8Array; signature?: Uint8Array } = served(INDEX), last = 0) {
   const saveSerial = vi.fn(() => Promise.resolve());
   const deps: IndexClientDependencies = {
-    indexUrl: 'https://packages.example/plugins/index.json',
-    signatureUrl: 'https://packages.example/plugins/index.json.sig',
+    indexUrl: 'https://packages.example/extensions/index.json',
+    signatureUrl: 'https://packages.example/extensions/index.json.sig',
     anchors: [ANCHOR],
     fetch: vi.fn((url: string) =>
       Promise.resolve(url.endsWith('.sig') ? files.signature : files.bytes),
@@ -47,7 +47,7 @@ describe('loadMarketplace', () => {
     const t = setup();
     expect(await loadMarketplace(t.deps)).toEqual({ status: 'ready', index: INDEX });
     expect(t.saveSerial).toHaveBeenCalledExactlyOnceWith(100);
-    expect(t.deps.fetch).toHaveBeenCalledWith('https://packages.example/plugins/index.json');
+    expect(t.deps.fetch).toHaveBeenCalledWith('https://packages.example/extensions/index.json');
   });
 
   it('accepts the same serial again, and an index signed a little ahead of this clock', async () => {

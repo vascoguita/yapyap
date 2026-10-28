@@ -125,12 +125,12 @@ describe('attachContextMenu', () => {
   it('adds others’ items after its own, apart, or alone where it offers nothing', async () => {
     const clicked = page();
     const popup = vi.fn();
-    const plugin = { label: 'Hello: Translate' };
-    const added = vi.fn(() => Promise.resolve([plugin]));
+    const extension = { label: 'Hello: Translate' };
+    const added = vi.fn(() => Promise.resolve([extension]));
     attachContextMenu(clicked, actions(), popup, added);
     clicked.click(params({ isEditable: false }));
     await vi.waitFor(() => {
-      expect(popup).toHaveBeenLastCalledWith([plugin]);
+      expect(popup).toHaveBeenLastCalledWith([extension]);
     });
     expect(added).toHaveBeenCalledWith(params({ isEditable: false }));
     clicked.click(params());
@@ -138,7 +138,7 @@ describe('attachContextMenu', () => {
       expect(popup).toHaveBeenCalledTimes(2);
     });
     const [items] = popup.mock.lastCall as [{ label?: string; type?: string }[]];
-    expect(items.slice(-2)).toEqual([{ type: 'separator' }, plugin]);
+    expect(items.slice(-2)).toEqual([{ type: 'separator' }, extension]);
   });
 
   it('still shows its own items when the others fail', async () => {

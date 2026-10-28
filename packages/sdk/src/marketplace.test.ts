@@ -16,7 +16,7 @@ const INDEX: MarketplaceIndex = {
   serial: 1_793_000_000,
   generated: '2026-10-27T09:00:00.000Z',
   expires: '2026-11-26T09:00:00.000Z',
-  plugins: [
+  extensions: [
     {
       id: 'org.guita.yapyap.ai-assistant',
       name: 'AI assistant',
@@ -43,7 +43,7 @@ const INDEX: MarketplaceIndex = {
 };
 
 describe('MarketplaceIndexSchema', () => {
-  it('accepts an index of official and reviewed plugins, and revocations', () => {
+  it('accepts an index of official and reviewed extensions, and revocations', () => {
     expect(Value.Check(MarketplaceIndexSchema, INDEX)).toBe(true);
     expect(
       Value.Check(MarketplaceIndexSchema, {
@@ -53,28 +53,28 @@ describe('MarketplaceIndexSchema', () => {
     ).toBe(true);
   });
 
-  const [plugin] = INDEX.plugins;
-  const [version] = plugin?.versions ?? [];
+  const [extension] = INDEX.extensions;
+  const [version] = extension?.versions ?? [];
   it.each([
     ['another format', { format: 2 }],
     ['a serial below one', { serial: 0 }],
     ['a time that is not one', { generated: 'yesterday' }],
     ['an unknown field', { mirror: 'https://example.org' }],
-    ['an unknown review', { plugins: [{ ...plugin, review: 'trusted' }] }],
-    ['a short fingerprint', { plugins: [{ ...plugin, signer: 'ab:cd' }] }],
-    ['a plugin with no versions', { plugins: [{ ...plugin, versions: [] }] }],
-    ['a homepage over HTTP', { plugins: [{ ...plugin, homepage: 'http://example.org' }] }],
+    ['an unknown review', { extensions: [{ ...extension, review: 'trusted' }] }],
+    ['a short fingerprint', { extensions: [{ ...extension, signer: 'ab:cd' }] }],
+    ['an extension with no versions', { extensions: [{ ...extension, versions: [] }] }],
+    ['a homepage over HTTP', { extensions: [{ ...extension, homepage: 'http://example.org' }] }],
     [
       'a hash in another form',
-      { plugins: [{ ...plugin, versions: [{ ...version, sha256: 'abc' }] }] },
+      { extensions: [{ ...extension, versions: [{ ...version, sha256: 'abc' }] }] },
     ],
     [
       'an archive over 20 MB',
-      { plugins: [{ ...plugin, versions: [{ ...version, size: 20 * 1024 * 1024 + 1 }] }] },
+      { extensions: [{ ...extension, versions: [{ ...version, size: 20 * 1024 * 1024 + 1 }] }] },
     ],
     [
       'a grant with markup',
-      { plugins: [{ ...plugin, versions: [{ ...version, hosts: ['<b>'] }] }] },
+      { extensions: [{ ...extension, versions: [{ ...version, hosts: ['<b>'] }] }] },
     ],
     ['a revocation without a reason', { revoked: [{ ...INDEX.revoked[0], reason: '' }] }],
   ])('refuses %s', (_case, change) => {
@@ -84,13 +84,13 @@ describe('MarketplaceIndexSchema', () => {
 
 describe('marketplace addresses', () => {
   it('keeps the index, its signature and every archive on YapYap’s own host', () => {
-    expect(MARKETPLACE_INDEX_URL).toBe('https://packages.guita.org/plugins/index.json');
-    expect(MARKETPLACE_SIGNATURE_URL).toBe('https://packages.guita.org/plugins/index.json.sig');
+    expect(MARKETPLACE_INDEX_URL).toBe('https://packages.guita.org/extensions/index.json');
+    expect(MARKETPLACE_SIGNATURE_URL).toBe('https://packages.guita.org/extensions/index.json.sig');
     expect(marketplaceArchiveName('org.example.hello', '1.2.0-beta.1')).toBe(
-      'org.example.hello-1.2.0-beta.1.yapyap-plugin',
+      'org.example.hello-1.2.0-beta.1.yapyap-extension',
     );
     expect(marketplaceArchiveUrl('org.example.hello', '1.2.0')).toBe(
-      'https://packages.guita.org/plugins/org.example.hello/org.example.hello-1.2.0.yapyap-plugin',
+      'https://packages.guita.org/extensions/org.example.hello/org.example.hello-1.2.0.yapyap-extension',
     );
   });
 });

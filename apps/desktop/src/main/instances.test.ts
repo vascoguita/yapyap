@@ -88,27 +88,27 @@ describe('claimSingleInstance', () => {
     t.openLink('https://example.com/?phone=42');
     expect(t.page.loadURL).toHaveBeenCalledOnce();
     expect(t.warn).toHaveBeenCalledExactlyOnceWith(
-      'Ignored a link that is neither a WhatsApp chat link nor a plugin install link.',
+      'Ignored a link that is neither a WhatsApp chat link nor an extension install link.',
     );
   });
 
-  it('hands plugin install links to the installer, from a launch or from macOS', () => {
+  it('hands extension install links to the installer, from a launch or from macOS', () => {
     const t = setup();
     t.instances?.attach(t.window, t.page, t.install);
-    t.launchAgain('yapyap://plugins/install/org.example.hello', 'https://wa.me/1');
+    t.launchAgain('yapyap://extensions/install/org.example.hello', 'https://wa.me/1');
     expect(t.install).toHaveBeenCalledExactlyOnceWith('org.example.hello');
     expect(t.page.loadURL).toHaveBeenCalledExactlyOnceWith(`${HOME}/send?phone=1`);
-    t.openLink('yapyap://plugins/install/org.example.other');
+    t.openLink('yapyap://extensions/install/org.example.other');
     expect(t.install).toHaveBeenLastCalledWith('org.example.other');
-    t.launchAgain('yapyap://plugins/install/../../etc/passwd');
-    t.openLink('yapyap://plugins/install/org.example.hello?url=https://evil.example/');
+    t.launchAgain('yapyap://extensions/install/../../etc/passwd');
+    t.openLink('yapyap://extensions/install/org.example.hello?url=https://evil.example/');
     expect(t.install).toHaveBeenCalledTimes(2);
     expect(t.warn).toHaveBeenCalledOnce();
   });
 
   it('keeps an install link that arrives before the window, and installs it once attached', () => {
     const t = setup();
-    t.openLink('yapyap://plugins/install/org.example.hello');
+    t.openLink('yapyap://extensions/install/org.example.hello');
     expect(t.install).not.toHaveBeenCalled();
     t.instances?.attach(t.window, t.page, t.install);
     expect(t.install).toHaveBeenCalledExactlyOnceWith('org.example.hello');

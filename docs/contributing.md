@@ -3,7 +3,7 @@
 Contributions are welcome. The full guide lives in
 [CONTRIBUTING.md](https://github.com/vascoguita/yapyap/blob/master/CONTRIBUTING.md)
 and covers setup, commands, workflow, repository settings, secrets, and the
-plugin key rotation procedure.
+extension key rotation procedure.
 
 ## In short
 

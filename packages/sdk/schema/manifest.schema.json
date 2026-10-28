@@ -52,7 +52,7 @@
     "apiVersion": {
       "type": "string",
       "pattern": "^[\\^~]?(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
-      "description": "The SDK versions the plugin works with: exact, ^ or ~."
+      "description": "The SDK versions the extension works with: exact, ^ or ~."
     },
     "entry": {
       "type": "string",
@@ -113,7 +113,7 @@
           },
           "uniqueItems": true,
           "maxItems": 32,
-          "description": "HTTPS hosts the plugin may reach; nothing else is allowed."
+          "description": "HTTPS hosts the extension may reach; nothing else is allowed."
         }
       },
       "additionalProperties": false
@@ -212,7 +212,7 @@
           "patternProperties": {
             "^.*$": {}
           },
-          "description": "A JSON Schema for the plugin settings form YapYap renders."
+          "description": "A JSON Schema for the extension settings form YapYap renders."
         },
         "panel": {
           "type": "object",
@@ -264,6 +264,6 @@
   },
   "$id": "https://yapyap.guita.org/schema/manifest.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "YapYap plugin manifest",
+  "title": "YapYap extension manifest",
   "additionalProperties": false
 }

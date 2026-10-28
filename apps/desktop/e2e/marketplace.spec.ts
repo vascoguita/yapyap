@@ -3,12 +3,12 @@ import { readFile } from 'node:fs/promises';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { join } from 'node:path';
-import { signIndex } from '@yapyap/plugin-sign';
-import { signedArchive, testKey, testManifest, zipArchive } from '../test/plugins.ts';
+import { signIndex } from '@yapyap/extension-sign';
+import { signedArchive, testKey, testManifest, zipArchive } from '../test/extensions.ts';
 import { closeApp, expect, launchApp, test } from './fixtures.ts';
-import { chromePage, clickMenu } from './plugin-helpers.ts';
+import { chromePage, clickMenu } from './extension-helpers.ts';
 
-/** A local marketplace: a signed index listing one reviewed plugin, and its archive. */
+/** A local marketplace: a signed index listing one reviewed extension, and its archive. */
 async function fakeMarketplace(): Promise<{ origin: string; anchor: string; server: Server }> {
   const author = testKey();
   const archive = zipArchive(signedArchive(author, testManifest()));
@@ -20,7 +20,7 @@ async function fakeMarketplace(): Promise<{ origin: string; anchor: string; serv
       serial: Math.floor(now / 1000),
       generated: new Date(now - 60_000).toISOString(),
       expires: new Date(now + 86_400_000).toISOString(),
-      plugins: [
+      extensions: [
         {
           id: 'org.example.hello',
           name: 'Hello',
@@ -47,9 +47,9 @@ async function fakeMarketplace(): Promise<{ origin: string; anchor: string; serv
     }),
   );
   const files = new Map<string, Uint8Array>([
-    ['/plugins/index.json', index],
-    ['/plugins/index.json.sig', new TextEncoder().encode(signIndex(index, indexKey.privateKey))],
-    ['/plugins/org.example.hello/org.example.hello-1.0.0.yapyap-plugin', archive],
+    ['/extensions/index.json', index],
+    ['/extensions/index.json.sig', new TextEncoder().encode(signIndex(index, indexKey.privateKey))],
+    ['/extensions/org.example.hello/org.example.hello-1.0.0.yapyap-extension', archive],
   ]);
   const server = createServer((request, response) => {
     const body = files.get(request.url ?? '');
@@ -64,7 +64,7 @@ async function fakeMarketplace(): Promise<{ origin: string; anchor: string; serv
   };
 }
 
-test('installs a reviewed plugin from the marketplace, through the usual consent', async ({
+test('installs a reviewed extension from the marketplace, through the usual consent', async ({
   fakeWhatsApp,
   profile,
 }) => {
@@ -80,24 +80,24 @@ test('installs a reviewed plugin from the marketplace, through the usual consent
     await app.evaluate(({ dialog }) => {
       dialog.showMessageBox = () => Promise.resolve({ response: 0, checkboxChecked: false });
     });
-    await clickMenu(app, 'Plugins…');
-    const plugins = await chromePage(app, '/plugins.html');
-    await plugins.getByRole('tab', { name: 'Marketplace' }).click();
-    await expect(plugins.getByRole('heading', { name: 'Hello' })).toBeVisible();
-    await expect(plugins.getByText('Third-party, reviewed by YapYap')).toBeVisible();
-    await plugins.getByRole('button', { name: 'Install Hello' }).click();
-    const consent = await chromePage(app, '/plugin-consent.html');
+    await clickMenu(app, 'Extensions…');
+    const extensions = await chromePage(app, '/extensions.html');
+    await extensions.getByRole('tab', { name: 'Marketplace' }).click();
+    await expect(extensions.getByRole('heading', { name: 'Hello' })).toBeVisible();
+    await expect(extensions.getByText('Third-party, reviewed by YapYap')).toBeVisible();
+    await extensions.getByRole('button', { name: 'Install Hello' }).click();
+    const consent = await chromePage(app, '/extension-consent.html');
     await expect(consent.getByText(/YapYap reviewed this version/)).toBeVisible();
     const install = consent.getByRole('button', { name: 'Install' });
-    // A reviewed plugin needs no acknowledgement of risk, unlike one from a file.
+    // A reviewed extension needs no acknowledgement of risk, unlike one from a file.
     await expect(install).toBeEnabled();
     await Promise.all([consent.waitForEvent('close'), install.click().catch(() => undefined)]);
-    // The plugin is on disk, and the listing says so once it loads the list again.
+    // The extension is on disk, and the listing says so once it loads the list again.
     const records = () =>
-      readFile(join(profile, 'plugins', '.plugins.json'), 'utf8').catch(() => '');
+      readFile(join(profile, 'extensions', '.extensions.json'), 'utf8').catch(() => '');
     await expect.poll(records, { timeout: 20_000 }).toContain('"org.example.hello"');
     await expect(
-      plugins.locator('.marketplace').getByText('Installed', { exact: true }),
+      extensions.locator('.marketplace').getByText('Installed', { exact: true }),
     ).toBeVisible({ timeout: 20_000 });
   } finally {
     await closeApp(app);
@@ -115,11 +115,11 @@ test('shows nothing it cannot verify', async ({ fakeWhatsApp, profile }) => {
     },
   });
   try {
-    await clickMenu(app, 'Plugins…');
-    const plugins = await chromePage(app, '/plugins.html');
-    await plugins.getByRole('tab', { name: 'Marketplace' }).click();
-    await expect(plugins.getByRole('alert')).toHaveText(/could not verify/);
-    await expect(plugins.getByRole('heading', { name: 'Hello' })).toHaveCount(0);
+    await clickMenu(app, 'Extensions…');
+    const extensions = await chromePage(app, '/extensions.html');
+    await extensions.getByRole('tab', { name: 'Marketplace' }).click();
+    await expect(extensions.getByRole('alert')).toHaveText(/could not verify/);
+    await expect(extensions.getByRole('heading', { name: 'Hello' })).toHaveCount(0);
   } finally {
     await closeApp(app);
     marketplace.server.close();

@@ -2,10 +2,10 @@ import { generateKeyPairSync } from 'node:crypto';
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { MarketplaceIndex } from '@yapyap/plugin-sdk';
-import { signIndex } from '@yapyap/plugin-sign';
+import type { MarketplaceIndex } from '@yapyap/extension-sdk';
+import { signIndex } from '@yapyap/extension-sign';
 import { describe, expect, it, vi } from 'vitest';
-import type { PluginRecord, PluginRecords } from '../plugins/records.ts';
+import type { ExtensionRecord, ExtensionRecords } from '../extensions/records.ts';
 import { linkInstaller, marketplaceHandlers, type MarketplaceDependencies } from './chrome.ts';
 
 const key = generateKeyPairSync('ed25519');
@@ -17,7 +17,7 @@ const INDEX: MarketplaceIndex = {
   serial: 1_793_000_000,
   generated: new Date(Date.now() - 60_000).toISOString(),
   expires: new Date(Date.now() + 86_400_000).toISOString(),
-  plugins: [
+  extensions: [
     {
       id: 'org.example.hello',
       name: 'Hello',
@@ -43,7 +43,7 @@ const INDEX: MarketplaceIndex = {
   revoked: [],
 };
 
-const installed = (id: string, extra: Partial<PluginRecord> = {}): [string, PluginRecord] => [
+const installed = (id: string, extra: Partial<ExtensionRecord> = {}): [string, ExtensionRecord] => [
   id,
   {
     id,
@@ -59,10 +59,10 @@ const installed = (id: string, extra: Partial<PluginRecord> = {}): [string, Plug
 
 function setup(
   index: unknown = INDEX,
-  records: PluginRecords = new Map([installed('org.example.other')]),
+  records: ExtensionRecords = new Map([installed('org.example.other')]),
 ) {
-  // A fresh profile has no plugins folder until something is installed.
-  const root = join(mkdtempSync(join(tmpdir(), 'yapyap-marketplace-')), 'plugins');
+  // A fresh profile has no extensions folder until something is installed.
+  const root = join(mkdtempSync(join(tmpdir(), 'yapyap-marketplace-')), 'extensions');
   const bytes = new TextEncoder().encode(JSON.stringify(index));
   const signature = new TextEncoder().encode(signIndex(bytes, key.privateKey));
   const deps: MarketplaceDependencies = {
@@ -94,12 +94,12 @@ function setup(
 describe('marketplaceHandlers', () => {
   it('lists the verified marketplace, and keeps the serial it accepted', async () => {
     const t = setup();
-    const list = t.handler('plugins:marketplace');
+    const list = t.handler('extensions:marketplace');
     expect(list.accepts([])).toBe(true);
     expect(list.accepts([1])).toBe(false);
     expect(await list.handle(CALL)).toEqual({
       status: 'ready',
-      plugins: [expect.objectContaining({ id: 'org.example.hello', action: 'install' })],
+      extensions: [expect.objectContaining({ id: 'org.example.hello', action: 'install' })],
     });
     expect(JSON.parse(readFileSync(join(t.root, '.marketplace.json'), 'utf8'))).toEqual({
       serial: 1_793_000_000,
@@ -111,13 +111,13 @@ describe('marketplaceHandlers', () => {
     const t = setup();
     mkdirSync(t.root);
     writeFileSync(join(t.root, '.marketplace.json'), JSON.stringify({ serial: 1_793_000_001 }));
-    expect(await t.handler('plugins:marketplace').handle(CALL)).toEqual({
+    expect(await t.handler('extensions:marketplace').handle(CALL)).toEqual({
       status: 'outdated',
-      plugins: [],
+      extensions: [],
     });
     for (const text of ['{', JSON.stringify({ serial: 'many' })]) {
       writeFileSync(join(t.root, '.marketplace.json'), text);
-      expect(await t.handler('plugins:marketplace').handle(CALL)).toMatchObject({
+      expect(await t.handler('extensions:marketplace').handle(CALL)).toMatchObject({
         status: 'ready',
       });
     }
@@ -133,9 +133,9 @@ describe('marketplaceHandlers', () => {
       },
       new Map([installed('org.example.bad'), installed('org.example.hello', { version: '0.9.0' })]),
     );
-    expect(await t.handler('plugins:marketplace').handle(CALL)).toEqual({
+    expect(await t.handler('extensions:marketplace').handle(CALL)).toEqual({
       status: 'ready',
-      plugins: [
+      extensions: [
         expect.objectContaining({ id: 'org.example.hello', installed: '0.9.0', action: 'update' }),
       ],
     });
@@ -146,15 +146,15 @@ describe('marketplaceHandlers', () => {
 
   it('says why there is no list', async () => {
     const t = setup({ ...INDEX, format: 2 });
-    expect(await t.handler('plugins:marketplace').handle(CALL)).toEqual({
+    expect(await t.handler('extensions:marketplace').handle(CALL)).toEqual({
       status: 'invalid',
-      plugins: [],
+      extensions: [],
     });
   });
 
-  it('installs a listed plugin by its ID only, downloading from the marketplace', async () => {
+  it('installs a listed extension by its ID only, downloading from the marketplace', async () => {
     const t = setup();
-    const install = t.handler('plugins:install-listed');
+    const install = t.handler('extensions:install-listed');
     expect(install.accepts(['org.example.hello'])).toBe(true);
     for (const args of [
       [],
@@ -177,7 +177,7 @@ describe('marketplaceHandlers', () => {
 });
 
 describe('linkInstaller', () => {
-  it('installs a linked plugin from the marketplace, one link at a time', async () => {
+  it('installs a linked extension from the marketplace, one link at a time', async () => {
     const t = setup();
     let finish: (bytes: Uint8Array | undefined) => void = () => undefined;
     vi.mocked(t.deps.fetchArchive).mockImplementation(

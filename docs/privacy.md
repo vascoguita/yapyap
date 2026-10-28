@@ -99,16 +99,16 @@ spelling dictionary are kept with the account's data.
 | `logs/`                                 | Redacted logs                                                                                      | YapYap deletes them after 14 days; delete them yourself at any time |
 | `Dictionaries/`                         | Spelling dictionaries downloaded once you turned spell checking on                                 | Delete it while YapYap is closed                                    |
 
-### Plugins
+### Extensions
 
-| Path                          | What it holds                                                                                                           | How to delete it                          |
-| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
-| `plugins/<id>/`               | The plugin's files                                                                                                      | **Remove…** in **Plugins…**               |
-| `plugins/.plugins.json`       | Each plugin's version, signing key fingerprint, permissions, approved hosts and settings                                | **Remove…** deletes the plugin's entry    |
-| `plugins/.storage/<id>.json`  | Data the plugin stored for itself                                                                                       | **Remove…**                               |
-| `plugins/.secrets.json`       | Secrets plugins keep, such as API keys, encrypted by your system's keychain                                             | **Remove…** deletes that plugin's secrets |
-| `Partitions/…plugin…`         | For a plugin allowed to keep its own data, its browser data, apart from WhatsApp's and other plugins'. Others keep none | **Remove…**                               |
-| `plugins/audit.log`, `.log.1` | Which operations plugins called and how each went: never what they sent or received. Two files of 256 KiB at most       | Delete them while YapYap is closed        |
+| Path                             | What it holds                                                                                                                  | How to delete it                             |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------- |
+| `extensions/<id>/`               | The extension's files                                                                                                          | **Remove…** in **Extensions…**               |
+| `extensions/.extensions.json`    | Each extension's version, signing key fingerprint, permissions, approved hosts and settings                                    | **Remove…** deletes the extension's entry    |
+| `extensions/.storage/<id>.json`  | Data the extension stored for itself                                                                                           | **Remove…**                                  |
+| `extensions/.secrets.json`       | Secrets extensions keep, such as API keys, encrypted by your system's keychain                                                 | **Remove…** deletes that extension's secrets |
+| `Partitions/…extension…`         | For an extension allowed to keep its own data, its browser data, apart from WhatsApp's and other extensions'. Others keep none | **Remove…**                                  |
+| `extensions/audit.log`, `.log.1` | Which operations extensions called and how each went: never what they sent or received. Two files of 256 KiB at most           | Delete them while YapYap is closed           |
 
 ### Everything else
 

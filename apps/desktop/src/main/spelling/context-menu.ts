@@ -106,7 +106,7 @@ export interface MenuPage {
   on(event: 'context-menu', listener: (event: unknown, params: ContextMenuParams) => void): unknown;
 }
 
-/** Items others add to a right click, such as plugins' (#98), once they know where it was. */
+/** Items others add to a right click, such as extensions' (#98), once they know where it was. */
 export type AddedItems = (params: ContextMenuParams) => Promise<ContextMenuItem[]>;
 
 const NONE: AddedItems = () => Promise.resolve([]);

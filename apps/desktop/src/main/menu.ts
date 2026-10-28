@@ -3,7 +3,7 @@ import type { ZoomStep } from './appearance/zoom.ts';
 import { PRODUCT_NAME } from './identity.ts';
 import type { AccountSummary } from '../shared/chrome-api.ts';
 import { en } from '../shared/messages/en.ts';
-import type { PluginCommand, PluginPanel } from './plugins/runtime.ts';
+import type { ExtensionCommand, ExtensionPanel } from './extensions/runtime.ts';
 import { acceleratorOf, type CustomShortcuts, type ShortcutId } from '../shared/shortcuts.ts';
 
 /** The platform the menu is for, and the keys the user chose instead of YapYap's. */
@@ -35,15 +35,15 @@ export interface MenuActions {
   readonly setMuted: (muted: boolean) => void;
   readonly openAbout: () => void;
   readonly openSettings: () => void;
-  readonly openPlugins: () => void;
-  readonly installPlugin: () => void;
+  readonly openExtensions: () => void;
+  readonly installExtension: () => void;
   readonly openCustomCode: () => void;
-  /** Commands of the running plugins, each under its plugin's name (#98). */
-  readonly pluginCommands: readonly PluginCommand[];
-  readonly runPluginCommand: (plugin: string, command: string) => void;
-  /** Panels of the running plugins, each under its plugin's name (#98). */
-  readonly pluginPanels: readonly PluginPanel[];
-  readonly openPluginPanel: (plugin: string) => void;
+  /** Commands of the running extensions, each under its extension's name (#98). */
+  readonly extensionCommands: readonly ExtensionCommand[];
+  readonly runExtensionCommand: (extension: string, command: string) => void;
+  /** Panels of the running extensions, each under its extension's name (#98). */
+  readonly extensionPanels: readonly ExtensionPanel[];
+  readonly openExtensionPanel: (extension: string) => void;
   readonly openNewChat: () => void;
   readonly clearCache: () => void;
   readonly resetSession: () => void;
@@ -242,20 +242,20 @@ function commonItems(
 }
 
 /**
- * A plugin's commands never pass for YapYap's own: they sit in their own
- * submenu, each named after its plugin.
+ * An extension's commands never pass for YapYap's own: they sit in their own
+ * submenu, each named after its extension.
  */
-function pluginCommandItems(actions: MenuActions): MenuItemConstructorOptions[] {
-  const commands = actions.pluginCommands.map(({ plugin, pluginName, id, title }) => ({
-    label: en.menu.pluginCommand({ plugin: pluginName, title }),
+function extensionCommandItems(actions: MenuActions): MenuItemConstructorOptions[] {
+  const commands = actions.extensionCommands.map(({ extension, extensionName, id, title }) => ({
+    label: en.menu.extensionCommand({ extension: extensionName, title }),
     click: () => {
-      actions.runPluginCommand(plugin, id);
+      actions.runExtensionCommand(extension, id);
     },
   }));
-  const panels = actions.pluginPanels.map(({ plugin, pluginName, title }) => ({
-    label: en.menu.pluginCommand({ plugin: pluginName, title }),
+  const panels = actions.extensionPanels.map(({ extension, extensionName, title }) => ({
+    label: en.menu.extensionCommand({ extension: extensionName, title }),
     click: () => {
-      actions.openPluginPanel(plugin);
+      actions.openExtensionPanel(extension);
     },
   }));
   if (commands.length + panels.length === 0) {
@@ -263,19 +263,19 @@ function pluginCommandItems(actions: MenuActions): MenuItemConstructorOptions[] 
   }
   const apart: MenuItemConstructorOptions[] =
     commands.length > 0 && panels.length > 0 ? [{ type: 'separator' }] : [];
-  return [{ label: en.menu.pluginCommands, submenu: [...commands, ...apart, ...panels] }];
+  return [{ label: en.menu.extensionCommands, submenu: [...commands, ...apart, ...panels] }];
 }
 
 /**
- * Plugins sit beside Settings, as Settings is where Developer Mode lives;
+ * Extensions sit beside Settings, as Settings is where Developer Mode lives;
  * the user's own code is the other way to change WhatsApp.
  */
-function pluginItems(actions: MenuActions): MenuItemConstructorOptions[] {
+function extensionItems(actions: MenuActions): MenuItemConstructorOptions[] {
   return [
-    { label: en.menu.plugins, click: actions.openPlugins },
-    { label: en.menu.installPlugin, click: actions.installPlugin },
+    { label: en.menu.extensions, click: actions.openExtensions },
+    { label: en.menu.installExtension, click: actions.installExtension },
     { label: en.menu.customCode, click: actions.openCustomCode },
-    ...pluginCommandItems(actions),
+    ...extensionCommandItems(actions),
   ];
 }
 
@@ -295,7 +295,7 @@ export function buildMenuTemplate(
   if (platform !== 'darwin') {
     const file: MenuItemConstructorOptions = {
       label: en.menu.file,
-      submenu: [...settings, ...pluginItems(actions), { type: 'separator' }, quit],
+      submenu: [...settings, ...extensionItems(actions), { type: 'separator' }, quit],
     };
     return [
       file,
@@ -305,7 +305,7 @@ export function buildMenuTemplate(
     ];
   }
   return [
-    macAppMenu([...about], [...settings, ...pluginItems(actions)], quit, keys),
+    macAppMenu([...about], [...settings, ...extensionItems(actions)], quit, keys),
     { role: 'fileMenu' },
     accountMenu(actions, keys),
     ...standard,
