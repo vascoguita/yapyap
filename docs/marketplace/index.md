@@ -1,31 +1,31 @@
 ---
 title: Marketplace
-description: Plugins for YapYap, by YapYap and reviewed third-party authors.
+description: Extensions for YapYap, by YapYap and reviewed third-party authors.
 ---
 
 <script setup>
-import { data as plugins } from './marketplace.data.ts';
+import { data as extensions } from './marketplace.data.ts';
 </script>
 
 # Marketplace
 
-Plugins add features to YapYap. Each one runs in its own sandbox and can do
-only what you allow when you install it. Every plugin here is either made by
-YapYap or reviewed by YapYap. You can also install them from **Plugins… →
+Extensions add features to YapYap. Each one runs in its own sandbox and can do
+only what you allow when you install it. Every extension here is either made by
+YapYap or reviewed by YapYap. You can also install them from **Extensions… →
 Marketplace** in the app.
 
-<p v-if="plugins === null">
-The marketplace list is unavailable right now. Open <strong>Plugins… →
+<p v-if="extensions === null">
+The marketplace list is unavailable right now. Open <strong>Extensions… →
 Marketplace</strong> in YapYap to see it.
 </p>
-<p v-else-if="plugins.length === 0">No plugins are listed yet.</p>
+<p v-else-if="extensions.length === 0">No extensions are listed yet.</p>
 <ul v-else class="marketplace-list">
-  <li v-for="plugin in plugins" :key="plugin.id">
-    <a :href="`./${plugin.id}`"><strong>{{ plugin.name }}</strong></a>
-    <span class="badge">{{ plugin.review === 'official' ? 'By YapYap' : 'Reviewed by YapYap' }}</span>
+  <li v-for="extension in extensions" :key="extension.id">
+    <a :href="`./${extension.id}`"><strong>{{ extension.name }}</strong></a>
+    <span class="badge">{{ extension.review === 'official' ? 'By YapYap' : 'Reviewed by YapYap' }}</span>
     <br />
-    {{ plugin.summary }}
+    {{ extension.summary }}
   </li>
 </ul>
 
-Want to publish a plugin? See [how a plugin is listed](/plugins/marketplace).
+Want to publish an extension? See [how an extension is listed](/extensions/marketplace).

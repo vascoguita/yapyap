@@ -2,9 +2,9 @@ import { Type } from 'typebox';
 import { Value } from 'typebox/value';
 import { LANDMARKS } from './page-state.ts';
 
-/** Longest message text a plugin receives; a longer message is cut. */
+/** Longest message text an extension receives; a longer message is cut. */
 const MAX_TEXT = 4096;
-/** Longest chat name a plugin receives. */
+/** Longest chat name an extension receives. */
 const MAX_NAME = 256;
 
 interface ReadElement {
@@ -37,7 +37,7 @@ interface Limits {
 /**
  * Reads the open chat as plain data: its name, whether it is a group, and
  * the text of its last `limits.messages` messages, oldest first. Unlike the
- * probes, it returns page text, so it runs only when a plugin holding
+ * probes, it returns page text, so it runs only when an extension holding
  * `chat:read-active` asks (ADR 0004, #100), and its result is never logged.
  * It runs inside the page as source text, so it must stay self-contained.
  * Messages without text, such as photos, are left out.
@@ -96,7 +96,7 @@ const ActiveChatSchema = Type.Object(
   { additionalProperties: false },
 );
 
-/** What a plugin receives of the open chat. */
+/** What an extension receives of the open chat. */
 export interface ReadChat {
   readonly name: string;
   readonly group: boolean;

@@ -4,11 +4,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { strToU8, zipSync } from 'fflate';
 import { describe, expect, it } from 'vitest';
-import { verifyIndex } from '../../../packages/plugin-sign/src/index-signature.ts';
+import { verifyIndex } from '../../../packages/extension-sign/src/index-signature.ts';
 import {
-  packPluginFolder,
-  signPluginFolder,
-} from '../../../packages/plugin-sign/src/plugin-folder.ts';
+  packExtensionFolder,
+  signExtensionFolder,
+} from '../../../packages/extension-sign/src/extension-folder.ts';
 import {
   archiveRedirects,
   buildIndex,
@@ -31,13 +31,13 @@ function testKey() {
   };
 }
 
-/** A signed archive of a plugin with `manifest`, and the fingerprint that signed it. */
+/** A signed archive of an extension with `manifest`, and the fingerprint that signed it. */
 function archive(manifest: object, key = testKey().pem) {
   const folder = mkdtempSync(join(tmpdir(), 'yapyap-marketplace-'));
   writeFileSync(join(folder, 'manifest.json'), JSON.stringify(manifest));
   writeFileSync(join(folder, 'main.js'), 'export default { activate() {} };');
-  const signer = signPluginFolder(folder, key);
-  const bytes = packPluginFolder(folder);
+  const signer = signExtensionFolder(folder, key);
+  const bytes = packExtensionFolder(folder);
   const sha256 = `sha256-${createHash('sha256').update(bytes).digest('base64')}`;
   return { bytes, signer, sha256 };
 }
@@ -54,9 +54,9 @@ const MANIFEST = {
 };
 
 const source = (id: string, version: string) =>
-  `${RELEASES}/plugins/${id}-${version}.yapyap-plugin`;
+  `${RELEASES}/extensions/${id}-${version}.yapyap-extension`;
 
-/** An entry for `built`, a version of the hello plugin, with everything it needs to build. */
+/** An entry for `built`, a version of the hello extension, with everything it needs to build. */
 function setup(
   manifest: { readonly id: string } & Record<string, unknown> = MANIFEST,
   entryChange: Partial<Entry> = {},
@@ -92,7 +92,7 @@ function setup(
 }
 
 describe('buildIndex', () => {
-  it('lists each plugin as its archive’s manifest describes it, with its hash and size', () => {
+  it('lists each extension as its archive’s manifest describes it, with its hash and size', () => {
     const { built, sources } = setup();
     const revoked = [
       { id: 'org.example.bad', versions: '*' as const, signer: built.signer, reason: 'Gone.' },
@@ -102,7 +102,7 @@ describe('buildIndex', () => {
       serial: 1_793_091_600,
       generated: '2026-10-27T09:00:00.000Z',
       expires: '2026-11-26T09:00:00.000Z',
-      plugins: [
+      extensions: [
         {
           id: 'org.example.hello',
           name: 'Hello',
@@ -129,7 +129,7 @@ describe('buildIndex', () => {
     });
   });
 
-  it('names a plugin after its newest version, lists plugins by ID, and allows no hosts', () => {
+  it('names an extension after its newest version, lists extensions by ID, and allows no hosts', () => {
     const key = testKey().pem;
     const older = archive({ ...MANIFEST, name: 'Hi' }, key);
     const newer = archive({ ...MANIFEST, version: '1.1.0', network: undefined }, key);
@@ -156,16 +156,16 @@ describe('buildIndex', () => {
         ...aardvark.sources.archives,
       ]),
     });
-    expect(index.plugins.map(({ id }) => id)).toEqual([
+    expect(index.extensions.map(({ id }) => id)).toEqual([
       'org.example.aardvark',
       'org.example.hello',
     ]);
-    const hello = index.plugins[1];
+    const hello = index.extensions[1];
     expect(hello?.name).toBe('Hello');
     expect(hello?.versions.map(({ hosts }) => hosts)).toEqual([['api.example.org'], []]);
   });
 
-  it('lists an official plugin only when a trust anchor signed it', () => {
+  it('lists an official extension only when a trust anchor signed it', () => {
     const anchor = testKey();
     const id = 'org.guita.yapyap.hello';
     const built = archive({ ...MANIFEST, id }, anchor.pem);
@@ -188,9 +188,9 @@ describe('buildIndex', () => {
       archives: new Map([[source(id, '1.0.0'), built.bytes]]),
     };
     expect(() => buildIndex(sources)).toThrow(
-      `${id} 1.0.0: an official plugin must be signed by a trust anchor.`,
+      `${id} 1.0.0: an official extension must be signed by a trust anchor.`,
     );
-    expect(buildIndex({ ...sources, anchors: new Set([built.signer]) }).plugins).toHaveLength(1);
+    expect(buildIndex({ ...sources, anchors: new Set([built.signer]) }).extensions).toHaveLength(1);
   });
 
   it.each([
@@ -215,18 +215,18 @@ describe('buildIndex', () => {
       }),
       'it is signed by',
     ],
-  ])('refuses %s, naming the plugin and version', (_case, change, problem) => {
+  ])('refuses %s, naming the extension and version', (_case, change, problem) => {
     const t = setup();
     expect(() => buildIndex(change(t))).toThrow(`org.example.hello 1.0.0: ${problem}`);
   });
 
-  it('refuses an archive whose manifest names another plugin or version, or breaks the schema', () => {
+  it('refuses an archive whose manifest names another extension or version, or breaks the schema', () => {
     for (const manifest of [
       { ...MANIFEST, id: 'org.example.other' },
       { ...MANIFEST, version: '2.0.0' },
     ]) {
       expect(() => buildIndex(setup(manifest).sources)).toThrow(
-        'its manifest names another plugin or version.',
+        'its manifest names another extension or version.',
       );
     }
     expect(() => buildIndex(setup({ ...MANIFEST, capabilities: ['send'] }).sources)).toThrow(
@@ -250,7 +250,7 @@ describe('buildIndex', () => {
         entries,
         archives: new Map([[source('org.example.hello', '1.0.0'), unsigned]]),
       }),
-    ).toThrow('org.example.hello 1.0.0: The plugin is not signed.');
+    ).toThrow('org.example.hello 1.0.0: The extension is not signed.');
   });
 
   it('refuses an entry that lists no versions', () => {
@@ -276,7 +276,7 @@ describe('archiveRedirects and sourcesOf', () => {
     const { entry } = setup();
     const twice = { ...entry, id: 'org.example.twin' };
     expect(archiveRedirects([entry])).toBe(
-      `/plugins/org.example.hello/org.example.hello-1.0.0.yapyap-plugin ${source('org.example.hello', '1.0.0')} 302`,
+      `/extensions/org.example.hello/org.example.hello-1.0.0.yapyap-extension ${source('org.example.hello', '1.0.0')} 302`,
     );
     expect(archiveRedirects([])).toBe('');
     expect(sourcesOf([entry, twice])).toEqual([source('org.example.hello', '1.0.0')]);

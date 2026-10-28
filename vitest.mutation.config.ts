@@ -7,7 +7,7 @@ export default defineConfig({
     include: [
       'apps/*/src/**/*.test.ts',
       'packages/*/src/**/*.test.ts',
-      'plugins/*/src/**/*.test.ts',
+      'extensions/*/src/**/*.test.ts',
       'scripts/src/**/*.test.ts',
     ],
     environment: 'node',

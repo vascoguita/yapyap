@@ -1,8 +1,8 @@
 import { generateKeyPairSync } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
-import { signIndex } from '../../../packages/plugin-sign/src/index-signature.ts';
+import { signIndex } from '../../../packages/extension-sign/src/index-signature.ts';
 import type { MarketplaceIndex } from '../../../packages/sdk/src/marketplace.ts';
-import { sitePlugins, verifiedIndex } from './site.ts';
+import { siteExtensions, verifiedIndex } from './site.ts';
 
 const SIGNER = Array.from({ length: 32 }, () => 'ab').join(':');
 const NOW = new Date('2026-10-27T09:00:00.000Z');
@@ -17,7 +17,7 @@ const version = (number: string, published = '2026-10-20T08:00:00.000Z') => ({
   published,
 });
 
-const PLUGIN: MarketplaceIndex['plugins'][number] = {
+const EXTENSION: MarketplaceIndex['extensions'][number] = {
   id: 'org.example.hello',
   name: 'Hello',
   summary: 'Says hello.',
@@ -38,7 +38,7 @@ const INDEX: MarketplaceIndex = {
   serial: 1,
   generated: '2026-10-27T08:00:00.000Z',
   expires: '2026-11-20T08:00:00.000Z',
-  plugins: [PLUGIN],
+  extensions: [EXTENSION],
   revoked: [],
 };
 
@@ -72,23 +72,25 @@ describe('verifiedIndex', () => {
   });
 });
 
-describe('sitePlugins', () => {
+describe('siteExtensions', () => {
   const describeCapability = (capability: string) => `can ${capability}`;
 
-  it('shows each plugin by name, with its newest version’s requests and every version offered', () => {
+  it('shows each extension by name, with its newest version’s requests and every version offered', () => {
     const official = {
-      ...PLUGIN,
+      ...EXTENSION,
       id: 'org.guita.yapyap.ai-assistant',
       name: 'AI assistant',
       review: 'official' as const,
       author: { name: 'YapYap' },
     };
-    expect(sitePlugins({ ...INDEX, plugins: [PLUGIN, official] }, describeCapability)).toEqual([
+    expect(
+      siteExtensions({ ...INDEX, extensions: [EXTENSION, official] }, describeCapability),
+    ).toEqual([
       expect.objectContaining({
         id: 'org.guita.yapyap.ai-assistant',
         review: 'official',
         author: { name: 'YapYap', url: null },
-        installLink: 'yapyap://plugins/install/org.guita.yapyap.ai-assistant',
+        installLink: 'yapyap://extensions/install/org.guita.yapyap.ai-assistant',
       }),
       {
         id: 'org.example.hello',
@@ -105,16 +107,16 @@ describe('sitePlugins', () => {
           { version: '1.1.0-beta.1', published: '2026-10-20', minYapYap: '0.1.2' },
           { version: '1.0.0', published: '2026-10-20', minYapYap: '0.1.2' },
         ],
-        installLink: 'yapyap://plugins/install/org.example.hello',
+        installLink: 'yapyap://extensions/install/org.example.hello',
       },
     ]);
   });
 
-  it('leaves out pulled versions, and plugins with none left', () => {
-    const pulledSome = sitePlugins(
+  it('leaves out pulled versions, and extensions with none left', () => {
+    const pulledSome = siteExtensions(
       {
         ...INDEX,
-        revoked: [{ id: PLUGIN.id, versions: ['1.1.0'], signer: SIGNER, reason: 'Broken.' }],
+        revoked: [{ id: EXTENSION.id, versions: ['1.1.0'], signer: SIGNER, reason: 'Broken.' }],
       },
       describeCapability,
     );
@@ -124,13 +126,13 @@ describe('sitePlugins', () => {
     ]);
     const other = Array.from({ length: 32 }, () => 'cd').join(':');
     expect(
-      sitePlugins(
-        { ...INDEX, revoked: [{ id: PLUGIN.id, versions: '*', signer: other, reason: 'x' }] },
+      siteExtensions(
+        { ...INDEX, revoked: [{ id: EXTENSION.id, versions: '*', signer: other, reason: 'x' }] },
         describeCapability,
       ),
     ).toHaveLength(1);
     expect(
-      sitePlugins(
+      siteExtensions(
         {
           ...INDEX,
           revoked: [{ id: 'org.example.other', versions: '*', signer: SIGNER, reason: 'x' }],
@@ -139,8 +141,11 @@ describe('sitePlugins', () => {
       ),
     ).toHaveLength(1);
     expect(
-      sitePlugins(
-        { ...INDEX, revoked: [{ id: PLUGIN.id, versions: '*', signer: SIGNER, reason: 'Gone.' }] },
+      siteExtensions(
+        {
+          ...INDEX,
+          revoked: [{ id: EXTENSION.id, versions: '*', signer: SIGNER, reason: 'Gone.' }],
+        },
         describeCapability,
       ),
     ).toEqual([]);

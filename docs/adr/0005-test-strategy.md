@@ -17,11 +17,11 @@ coverage numbers mean something, and must never touch real WhatsApp.
 | Layer         | Tool                      | Scope                                                                                                                                              |
 | ------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Unit          | Vitest (node / happy-dom) | All pure logic: settings migrations, URL policy, UA builder, capability checker, signature verification, redaction, update policy, adapter parsing |
-| Integration   | Vitest                    | IPC handlers with a fake Electron surface, plugin host RPC pipeline, protocol handlers, plugin installer                                           |
-| Property      | Vitest + fast-check       | Parsers and validators of untrusted input (origin overrides, license expressions, versions, later IPC payloads and plugin manifests)               |
-| E2E           | Playwright `_electron`    | App chrome, multi-account, tray, settings, recovery actions, plugins, the malicious-plugin suite, and accessibility (axe)                          |
+| Integration   | Vitest                    | IPC handlers with a fake Electron surface, extension host RPC pipeline, protocol handlers, extension installer                                     |
+| Property      | Vitest + fast-check       | Parsers and validators of untrusted input (origin overrides, license expressions, versions, later IPC payloads and extension manifests)            |
+| E2E           | Playwright `_electron`    | App chrome, multi-account, tray, settings, recovery actions, extensions, the malicious-extension suite, and accessibility (axe)                    |
 | Visual        | Playwright screenshots    | App chrome in light and dark themes, per OS baseline                                                                                               |
-| Mutation      | Stryker (command runner)  | WhatsApp adapter, plugin host, capability checker, signature verification, settings migrations, AI providers. Score ≥ 90%, enforced.               |
+| Mutation      | Stryker (command runner)  | WhatsApp adapter, extension host, capability checker, signature verification, settings migrations, AI providers. Score ≥ 90%, enforced.            |
 | Package smoke | CI per artifact           | Install, launch, window opens, fake WhatsApp loads                                                                                                 |
 | Benchmarks    | Nightly                   | Cold start and idle memory per account against budgets                                                                                             |
 
@@ -52,31 +52,31 @@ attacker-controlled redirect.
 - Files excluded from coverage are listed in `vitest.config.ts` and justified
   here, and nowhere else:
 
-  | Excluded                                                               | Why                                                                                                                               |
-  | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-  | `apps/desktop/src/main/index.ts`                                       | Process entry: wires real Electron modules into tested factories. Only runnable inside Electron, and exercised by every E2E test. |
-  | `apps/desktop/src/preload/*/index.ts`                                  | `contextBridge.exposeInMainWorld` calls. Each only binds an already unit-tested API object, and exercised by E2E.                 |
-  | `scripts/src/bin/*.ts`                                                 | Command entry points that only read `process.env` and pass real `fetch` and `fs` into tested modules; branch-free by lint rule.   |
-  | `packages/*/src/bin/*.ts`                                              | The same for package CLIs such as `yapyap-plugin-sign`: they pass `process.argv` and real `fs` and streams into tested modules.   |
-  | `**/*.d.ts`, generated `*.schema.json`                                 | No executable code                                                                                                                |
-  | `**/*.test.ts`, `**/*.test.tsx`, `test/**`, `e2e/**`, `**/*.config.ts` | Test and build infrastructure                                                                                                     |
+  | Excluded                                                               | Why                                                                                                                                |
+  | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+  | `apps/desktop/src/main/index.ts`                                       | Process entry: wires real Electron modules into tested factories. Only runnable inside Electron, and exercised by every E2E test.  |
+  | `apps/desktop/src/preload/*/index.ts`                                  | `contextBridge.exposeInMainWorld` calls. Each only binds an already unit-tested API object, and exercised by E2E.                  |
+  | `scripts/src/bin/*.ts`                                                 | Command entry points that only read `process.env` and pass real `fetch` and `fs` into tested modules; branch-free by lint rule.    |
+  | `packages/*/src/bin/*.ts`                                              | The same for package CLIs such as `yapyap-extension-sign`: they pass `process.argv` and real `fs` and streams into tested modules. |
+  | `**/*.d.ts`, generated `*.schema.json`                                 | No executable code                                                                                                                 |
+  | `**/*.test.ts`, `**/*.test.tsx`, `test/**`, `e2e/**`, `**/*.config.ts` | Test and build infrastructure                                                                                                      |
 
 The rule for entry files: they may only import factories and call them with
 real dependencies. They contain no branches. A lint rule (`complexity: 1`
 for these paths) enforces it.
 
-### Malicious-plugin suite
+### Malicious-extension suite
 
-`plugins/test-malicious/` (never shipped, signed with a test key generated
+`extensions/test-malicious/` (never shipped, signed with a test key generated
 in-memory per test run) attempts each attack below. Each test asserts the
 specific failure:
 
-1. DOM access: there is no `document` of WhatsApp. The plugin can only see its
+1. DOM access: there is no `document` of WhatsApp. The extension can only see its
    own blank page, and adapter RPCs return data only.
 2. Undeclared network: `fetch`, `XMLHttpRequest`, `WebSocket`, `<img>`,
    `EventSource` and `sendBeacon` to an undeclared host are all blocked at the
    session level.
-3. Other plugins' secrets and storage: `secrets.get` with a foreign namespace
+3. Other extensions' secrets and storage: `secrets.get` with a foreign namespace
    is rejected, and partitions are distinct.
 4. Sending messages: no such RPC method exists, so an `unknown method` error is
    asserted. Draft insertion leaves the composer unsent.
@@ -85,7 +85,7 @@ specific failure:
 6. Resource limits: a busy loop and memory balloon lead to termination, then
    disablement.
 7. Additional cases: eval or inline script blocked by CSP, path traversal on
-   `plugin://`, RPC flood rate-limited, oversized messages rejected, tampered
+   `extension://`, RPC flood rate-limited, oversized messages rejected, tampered
    archive rejected, key-change update rejected.
 
 ### Platforms
@@ -96,7 +96,7 @@ locally when available. Visual baselines are per-OS.
 
 ### Mutation testing
 
-Stryker uses its `command` runner. Each mutant runs `vitest run --config vitest.mutation.config.ts`, a flat single-project config, and the mutant is switched on through the environment. The Vitest runner plugin does not activate mutants under Vitest 5 (ADR 0008, C12). The scope lives in `scripts/src/mutation/scope.ts`, which both Stryker and the PR target selection use. On PRs, Stryker mutates only changed files within the mutation scope
+Stryker uses its `command` runner. Each mutant runs `vitest run --config vitest.mutation.config.ts`, a flat single-project config, and the mutant is switched on through the environment. The Vitest runner extension does not activate mutants under Vitest 5 (ADR 0008, C12). The scope lives in `scripts/src/mutation/scope.ts`, which both Stryker and the PR target selection use. On PRs, Stryker mutates only changed files within the mutation scope
 (`--mutate` from the diff). Nightly runs the full scope in 16 shards
 (`mutation-targets.ts --shard i/16` deals the sorted modules out in turn),
 each mutating its modules and running only their related tests, as PRs do;

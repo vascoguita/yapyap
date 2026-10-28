@@ -2,13 +2,13 @@ import { defineConfig } from 'vitepress';
 
 const repository = 'https://github.com/vascoguita/yapyap';
 
-const pluginsSidebar = [
+const extensionsSidebar = [
   {
-    text: 'Plugins',
+    text: 'Extensions',
     items: [
-      { text: 'Writing a plugin', link: '/plugins/' },
-      { text: 'Manifest', link: '/plugins/manifest' },
-      { text: 'Marketplace', link: '/plugins/marketplace' },
+      { text: 'Writing an extension', link: '/extensions/' },
+      { text: 'Manifest', link: '/extensions/manifest' },
+      { text: 'Marketplace', link: '/extensions/marketplace' },
       { text: 'SDK API reference', link: '/api/' },
     ],
   },
@@ -23,7 +23,7 @@ export default defineConfig({
   srcExclude: ['progress.md'],
   // ADR folders keep README.md so they also read well on GitHub.
   rewrites: { 'adr/README.md': 'adr/index.md' },
-  // Each marketplace plugin's page is titled after the plugin (#390).
+  // Each marketplace extension's page is titled after the extension (#390).
   transformPageData(pageData) {
     const params: Readonly<Record<string, unknown>> = pageData.params ?? {};
     const { name, summary } = params;
@@ -48,7 +48,7 @@ export default defineConfig({
       {
         text: 'Developers',
         items: [
-          { text: 'Writing a plugin', link: '/plugins/' },
+          { text: 'Writing an extension', link: '/extensions/' },
           { text: 'SDK API reference', link: '/api/' },
           { text: 'Architecture', link: '/architecture/' },
           { text: 'Decision records', link: '/adr/' },
@@ -83,8 +83,8 @@ export default defineConfig({
           ],
         },
       ],
-      '/plugins/': pluginsSidebar,
-      '/api/': pluginsSidebar,
+      '/extensions/': extensionsSidebar,
+      '/api/': extensionsSidebar,
       '/architecture/': [
         {
           text: 'Architecture',
@@ -104,7 +104,10 @@ export default defineConfig({
             { text: '0001 Process model', link: '/adr/0001-process-model-and-security-boundaries' },
             { text: '0002 Toolchain', link: '/adr/0002-toolchain-and-resolved-versions' },
             { text: '0003 Packaging and updates', link: '/adr/0003-packaging-and-update-channels' },
-            { text: '0004 Plugin trust model', link: '/adr/0004-plugin-isolation-and-trust-model' },
+            {
+              text: '0004 Extension trust model',
+              link: '/adr/0004-extension-isolation-and-trust-model',
+            },
             { text: '0005 Test strategy', link: '/adr/0005-test-strategy' },
             { text: '0006 Settings', link: '/adr/0006-settings-schema-and-migrations' },
             { text: '0007 Git and merging', link: '/adr/0007-git-and-merge-strategy' },
@@ -126,6 +129,9 @@ export default defineConfig({
               text: '0013 In-chat assistant',
               link: '/adr/0013-in-chat-assistant-bar',
             },
+            { text: '0014 Marketplace', link: '/adr/0014-extension-marketplace' },
+            { text: '0015 Call recording', link: '/adr/0015-call-recording' },
+            { text: '0016 Extensions', link: '/adr/0016-extensions-not-plugins' },
           ],
         },
       ],

@@ -15,13 +15,18 @@ function actions(accounts: AccountSummary[] = []) {
     setMuted: vi.fn(),
     openAbout: vi.fn(),
     openSettings: vi.fn(),
-    openPlugins: vi.fn(),
-    installPlugin: vi.fn(),
+    openExtensions: vi.fn(),
+    installExtension: vi.fn(),
     openCustomCode: vi.fn(),
-    pluginCommands: [] as { plugin: string; pluginName: string; id: string; title: string }[],
-    runPluginCommand: vi.fn(),
-    pluginPanels: [] as { plugin: string; pluginName: string; title: string }[],
-    openPluginPanel: vi.fn(),
+    extensionCommands: [] as {
+      extension: string;
+      extensionName: string;
+      id: string;
+      title: string;
+    }[],
+    runExtensionCommand: vi.fn(),
+    extensionPanels: [] as { extension: string; extensionName: string; title: string }[],
+    openExtensionPanel: vi.fn(),
     openNewChat: vi.fn(),
     clearCache: vi.fn(),
     resetSession: vi.fn(),
@@ -159,8 +164,8 @@ describe('buildMenuTemplate', () => {
     ]);
     expect(items(template[0])).toEqual([
       { label: 'Settings…', accelerator: 'CmdOrCtrl+,', click: a.openSettings },
-      { label: 'Plugins…', click: a.openPlugins },
-      { label: 'Install Plugin…', click: a.installPlugin },
+      { label: 'Extensions…', click: a.openExtensions },
+      { label: 'Install Extension…', click: a.installExtension },
       { label: 'Custom CSS and JavaScript…', click: a.openCustomCode },
       { type: 'separator' },
       { role: 'quit', accelerator: 'CmdOrCtrl+Q' },
@@ -201,7 +206,7 @@ describe('buildMenuTemplate', () => {
     expect(on.setMuted).toHaveBeenCalledWith(false);
   });
 
-  it('puts About, Settings and Plugins in the app menu on macOS', () => {
+  it('puts About, Settings and Extensions in the app menu on macOS', () => {
     const a = actions();
     const [appMenu, ...rest] = buildMenuTemplate('darwin', a);
     expect(appMenu?.label).toBe('YapYap');
@@ -213,8 +218,8 @@ describe('buildMenuTemplate', () => {
       click: a.openSettings,
     });
     expect(entries.slice(3, 6)).toEqual([
-      { label: 'Plugins…', click: a.openPlugins },
-      { label: 'Install Plugin…', click: a.installPlugin },
+      { label: 'Extensions…', click: a.openExtensions },
+      { label: 'Install Extension…', click: a.installExtension },
       { label: 'Custom CSS and JavaScript…', click: a.openCustomCode },
     ]);
     expect(entries.map((item) => item.role ?? item.type)).toEqual([
@@ -339,39 +344,39 @@ describe('custom shortcuts in the menus', () => {
     ).toEqual(['Alt+1', 'Alt+2']);
   });
 
-  it('lists the running plugins’ commands in a submenu of their own, named after each plugin', () => {
+  it('lists the running extensions’ commands in a submenu of their own, named after each extension', () => {
     const a = {
       ...actions(),
-      pluginCommands: [
+      extensionCommands: [
         {
-          plugin: 'org.example.hello',
-          pluginName: 'Hello',
+          extension: 'org.example.hello',
+          extensionName: 'Hello',
           id: 'translate',
           title: 'Translate draft',
         },
       ],
     };
     const [file] = buildMenuTemplate('linux', a);
-    const commands = items(file).find((item) => item.label === 'Plugin Commands');
+    const commands = items(file).find((item) => item.label === 'Extension Commands');
     const [command] = Array.isArray(commands?.submenu) ? commands.submenu : [];
     expect(command?.label).toBe('Hello: Translate draft');
     (command?.click as (() => void) | undefined)?.();
-    expect(a.runPluginCommand).toHaveBeenCalledExactlyOnceWith('org.example.hello', 'translate');
+    expect(a.runExtensionCommand).toHaveBeenCalledExactlyOnceWith('org.example.hello', 'translate');
     expect(items(buildMenuTemplate('linux', actions())[0]).map((item) => item.label)).not.toContain(
-      'Plugin Commands',
+      'Extension Commands',
     );
   });
 
-  it('lists the running plugins’ panels after their commands, and opens the one picked', () => {
-    const panel = { plugin: 'org.example.hello', pluginName: 'Hello', title: 'Notes' };
+  it('lists the running extensions’ panels after their commands, and opens the one picked', () => {
+    const panel = { extension: 'org.example.hello', extensionName: 'Hello', title: 'Notes' };
     const command = { ...panel, id: 'translate', title: 'Translate draft' };
     const submenu = (a: ReturnType<typeof actions>) => {
       const found = items(buildMenuTemplate('linux', a)[0]).find(
-        (item) => item.label === 'Plugin Commands',
+        (item) => item.label === 'Extension Commands',
       );
       return Array.isArray(found?.submenu) ? found.submenu : [];
     };
-    const a = { ...actions(), pluginCommands: [command], pluginPanels: [panel] };
+    const a = { ...actions(), extensionCommands: [command], extensionPanels: [panel] };
     const both = submenu(a);
     expect(both.map((item) => item.label ?? item.type)).toEqual([
       'Hello: Translate draft',
@@ -379,8 +384,8 @@ describe('custom shortcuts in the menus', () => {
       'Hello: Notes',
     ]);
     (both[2]?.click as (() => void) | undefined)?.();
-    expect(a.openPluginPanel).toHaveBeenCalledExactlyOnceWith('org.example.hello');
-    const alone = submenu({ ...actions(), pluginPanels: [panel] });
+    expect(a.openExtensionPanel).toHaveBeenCalledExactlyOnceWith('org.example.hello');
+    const alone = submenu({ ...actions(), extensionPanels: [panel] });
     expect(alone.map((item) => item.label)).toEqual(['Hello: Notes']);
   });
 });

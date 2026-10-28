@@ -6,8 +6,8 @@ import {
   type DownloadEntry,
   type MarketplaceView,
   type PickerOffer,
-  type PluginConsent,
-  type PluginList,
+  type ExtensionConsent,
+  type ExtensionList,
   type ShortcutChange,
   type ShortcutList,
   type CustomCodeView,
@@ -22,7 +22,7 @@ import {
 type Invoke = (channel: string, ...args: unknown[]) => Promise<unknown>;
 /** Hears the sidebar's state, the only thing the main process sends. */
 type Listen = (listener: (state: SidebarState) => void) => void;
-type ListenToPlugins = (listener: () => void) => void;
+type ListenToExtensions = (listener: () => void) => void;
 
 function accountsBridge(invoke: Invoke): ChromeApi['accounts'] {
   return {
@@ -53,27 +53,27 @@ function sidebarBridge(invoke: Invoke, listen: Listen): ChromeApi['sidebar'] {
   };
 }
 
-function pluginsBridge(invoke: Invoke, onChange: ListenToPlugins): ChromeApi['plugins'] {
+function extensionsBridge(invoke: Invoke, onChange: ListenToExtensions): ChromeApi['extensions'] {
   return {
-    list: () => invoke(CHROME_CHANNELS.pluginsList) as Promise<PluginList>,
-    consent: () => invoke(CHROME_CHANNELS.pluginsConsent) as Promise<PluginConsent>,
+    list: () => invoke(CHROME_CHANNELS.extensionsList) as Promise<ExtensionList>,
+    consent: () => invoke(CHROME_CHANNELS.extensionsConsent) as Promise<ExtensionConsent>,
     answer: async (install, acknowledged) => {
-      await invoke(CHROME_CHANNELS.pluginsAnswer, install, acknowledged);
+      await invoke(CHROME_CHANNELS.extensionsAnswer, install, acknowledged);
     },
     setSetting: (id, key, value) =>
-      invoke(CHROME_CHANNELS.pluginsSetSetting, id, key, value) as Promise<PluginList>,
+      invoke(CHROME_CHANNELS.extensionsSetSetting, id, key, value) as Promise<ExtensionList>,
     setGrant: (id, capability, account, granted) =>
       invoke(
-        CHROME_CHANNELS.pluginsSetGrant,
+        CHROME_CHANNELS.extensionsSetGrant,
         id,
         capability,
         account,
         granted,
-      ) as Promise<PluginList>,
-    remove: (id) => invoke(CHROME_CHANNELS.pluginsRemove, id) as Promise<PluginList>,
-    marketplace: () => invoke(CHROME_CHANNELS.pluginsMarketplace) as Promise<MarketplaceView>,
+      ) as Promise<ExtensionList>,
+    remove: (id) => invoke(CHROME_CHANNELS.extensionsRemove, id) as Promise<ExtensionList>,
+    marketplace: () => invoke(CHROME_CHANNELS.extensionsMarketplace) as Promise<MarketplaceView>,
     installListed: async (id) => {
-      await invoke(CHROME_CHANNELS.pluginsInstallListed, id);
+      await invoke(CHROME_CHANNELS.extensionsInstallListed, id);
     },
     onChange,
   };
@@ -191,7 +191,7 @@ function settingsBridge(invoke: Invoke): ChromeApi['settings'] {
 export function createChromeBridge(
   invoke: Invoke,
   listen: Listen,
-  listenToPlugins: ListenToPlugins,
+  listenToExtensions: ListenToExtensions,
 ): ChromeApi {
   const run = (channel: string) => async (): Promise<void> => {
     await invoke(channel);
@@ -214,7 +214,7 @@ export function createChromeBridge(
     accounts: accountsBridge(invoke),
     sidebar: sidebarBridge(invoke, listen),
     quickPanel: quickPanelBridge(invoke),
-    plugins: pluginsBridge(invoke, listenToPlugins),
+    extensions: extensionsBridge(invoke, listenToExtensions),
     report: reportBridge(invoke),
     spelling: spellingBridge(invoke),
     picker: pickerBridge(invoke),

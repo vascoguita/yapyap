@@ -1,6 +1,6 @@
 import { LANDMARKS } from './page-state.ts';
 
-/** Where in WhatsApp the user right-clicked, as far as plugins' menu items care. */
+/** Where in WhatsApp the user right-clicked, as far as extensions' menu items care. */
 export type ClickTarget = 'composer' | 'message' | 'chat' | 'other';
 
 interface HitDocument {

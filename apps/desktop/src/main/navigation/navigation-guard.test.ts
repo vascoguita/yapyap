@@ -73,14 +73,14 @@ describe('will-navigate', () => {
     expect(t.deps.openExternal).not.toHaveBeenCalled();
   });
 
-  it('keeps a confined view, such as a plugin, from opening links anywhere else', () => {
-    const t = setup('plugin://org.example.hello');
+  it('keeps a confined view, such as an extension, from opening links anywhere else', () => {
+    const t = setup('extension://org.example.hello');
     t.deps.confined.mockReturnValue(true);
     const event = t.navigation('https://example.com/');
     t.fire('will-navigate', event);
     expect(event.preventDefault).toHaveBeenCalledOnce();
     expect(t.open('https://example.com/')).toEqual({ action: 'deny' });
-    expect(t.open('plugin://org.example.hello/other')).toEqual({ action: 'deny' });
+    expect(t.open('extension://org.example.hello/other')).toEqual({ action: 'deny' });
     expect(t.open('about:blank')).toEqual({ action: 'deny' });
     expect(t.deps.openExternal).not.toHaveBeenCalled();
   });

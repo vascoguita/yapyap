@@ -34,13 +34,13 @@ ID.
 In scope:
 
 - the YapYap app
-- the plugin host, its capability system and signature verification
-- first-party plugins
-- the plugin SDK and signing CLI
+- the extension host, its capability system and signature verification
+- first-party extensions
+- the extension SDK and signing CLI
 - release and update infrastructure
 
 Out of scope: vulnerabilities in WhatsApp itself (report them to Meta's bug
-bounty program), and third-party plugins (report them to their authors).
+bounty program), and third-party extensions (report them to their authors).
 
-The plugin threat model is documented in the plugin author guide on the
+The extension threat model is documented in the extension author guide on the
 [documentation site](https://yapyap.guita.org/).

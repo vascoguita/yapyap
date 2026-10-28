@@ -1,5 +1,5 @@
 ---
-title: Marketplace plugin
+title: Marketplace extension
 ---
 
 <script setup>
@@ -18,7 +18,7 @@ const { params } = useData();
 </p>
 
 Don't have YapYap yet? [Install YapYap](/guide/install) first, then come back
-and choose **Install in YapYap**. YapYap shows what the plugin asks for and
+and choose **Install in YapYap**. YapYap shows what the extension asks for and
 installs nothing until you agree.
 
 ## What it asks for

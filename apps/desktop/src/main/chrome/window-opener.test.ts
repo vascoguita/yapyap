@@ -124,14 +124,16 @@ describe('createChromeWindowSlot', () => {
     const t = setup();
     const slot = createChromeWindowSlot(
       { createWindow: t.createWindow, views: t.views, warn: t.warn },
-      { path: 'plugins.html', window: {} },
+      { path: 'extensions.html', window: {} },
     );
-    slot.notify('plugins:changed');
+    slot.notify('extensions:changed');
     slot.open();
-    slot.notify('plugins:changed');
-    expect(t.windows[0].window.webContents.send).toHaveBeenCalledExactlyOnceWith('plugins:changed');
+    slot.notify('extensions:changed');
+    expect(t.windows[0].window.webContents.send).toHaveBeenCalledExactlyOnceWith(
+      'extensions:changed',
+    );
     t.windows[0].destroy();
-    slot.notify('plugins:changed');
+    slot.notify('extensions:changed');
     expect(t.windows[0].window.webContents.send).toHaveBeenCalledOnce();
   });
 });

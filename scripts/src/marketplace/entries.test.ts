@@ -16,7 +16,7 @@ const ENTRY: Entry = {
     {
       version: '1.0.0',
       tag: 'v1.0.0',
-      source: `${RELEASES}/plugins/org.example.hello-1.0.0.yapyap-plugin`,
+      source: `${RELEASES}/extensions/org.example.hello-1.0.0.yapyap-extension`,
       sha256: `sha256-${'A'.repeat(43)}=`,
       minYapYap: '0.1.2',
       published: '2026-10-27T08:00:00.000Z',
@@ -33,7 +33,7 @@ describe('readEntry', () => {
       id: 'org.guita.yapyap.hello',
       review: 'official',
       versions: [
-        { ...VERSION, source: `${RELEASES}/v0.1.2/org.guita.yapyap.hello-1.0.0.yapyap-plugin` },
+        { ...VERSION, source: `${RELEASES}/v0.1.2/org.guita.yapyap.hello-1.0.0.yapyap-extension` },
       ],
     };
     expect(readEntry(official, 'org.guita.yapyap.hello.json')).toEqual(official);
@@ -59,18 +59,18 @@ describe('readEntry', () => {
       'must be named org.example.hello.json',
     ],
     [
-      'a third-party plugin marked official',
+      'a third-party extension marked official',
       { ...ENTRY, review: 'official' },
       'org.example.hello.json',
       'are official',
     ],
     [
-      'YapYap’s own plugin marked reviewed',
+      'YapYap’s own extension marked reviewed',
       {
         ...ENTRY,
         id: 'org.guita.yapyap.hello',
         versions: [
-          { ...VERSION, source: `${RELEASES}/v1/org.guita.yapyap.hello-1.0.0.yapyap-plugin` },
+          { ...VERSION, source: `${RELEASES}/v1/org.guita.yapyap.hello-1.0.0.yapyap-extension` },
         ],
       },
       'org.guita.yapyap.hello.json',
@@ -87,11 +87,11 @@ describe('readEntry', () => {
       {
         ...ENTRY,
         versions: [
-          { ...VERSION, source: 'https://example.org/org.example.hello-1.0.0.yapyap-plugin' },
+          { ...VERSION, source: 'https://example.org/org.example.hello-1.0.0.yapyap-extension' },
         ],
       },
       'org.example.hello.json',
-      'release asset named org.example.hello-1.0.0.yapyap-plugin',
+      'release asset named org.example.hello-1.0.0.yapyap-extension',
     ],
     [
       'a source in another repository',
@@ -101,7 +101,7 @@ describe('readEntry', () => {
           {
             ...VERSION,
             source:
-              'https://github.com/someone/yapyap/releases/download/v1/org.example.hello-1.0.0.yapyap-plugin',
+              'https://github.com/someone/yapyap/releases/download/v1/org.example.hello-1.0.0.yapyap-extension',
           },
         ],
       },
@@ -113,7 +113,7 @@ describe('readEntry', () => {
       {
         ...ENTRY,
         versions: [
-          { ...VERSION, source: `${RELEASES}/plugins/org.example.hello-2.0.0.yapyap-plugin` },
+          { ...VERSION, source: `${RELEASES}/extensions/org.example.hello-2.0.0.yapyap-extension` },
         ],
       },
       'org.example.hello.json',
@@ -124,7 +124,10 @@ describe('readEntry', () => {
       {
         ...ENTRY,
         versions: [
-          { ...VERSION, source: `${RELEASES}/plugins/org.example.hello-1.0.0.yapyap-plugin?x=1` },
+          {
+            ...VERSION,
+            source: `${RELEASES}/extensions/org.example.hello-1.0.0.yapyap-extension?x=1`,
+          },
         ],
       },
       'org.example.hello.json',
@@ -135,19 +138,19 @@ describe('readEntry', () => {
   });
 });
 
-describe('readEntry for a reviewed plugin', () => {
+describe('readEntry for a reviewed extension', () => {
   it('needs its source repository, and the tag of each version', () => {
     // Entries are JSON, where a missing field is simply absent.
     const without = (value: object): unknown => JSON.parse(JSON.stringify(value));
     expect(
       readEntry(without({ ...ENTRY, repository: undefined }), 'org.example.hello.json'),
-    ).toEqual(['A reviewed plugin names its source repository.']);
+    ).toEqual(['A reviewed extension names its source repository.']);
     expect(
       readEntry(
         without({ ...ENTRY, versions: [{ ...VERSION, tag: undefined }] }),
         'org.example.hello.json',
       ),
-    ).toEqual(['1.0.0: a reviewed plugin names the tag of its source.']);
+    ).toEqual(['1.0.0: a reviewed extension names the tag of its source.']);
     expect(
       readEntry({ ...ENTRY, versions: [{ ...VERSION, tag: 'v1 0' }] }, 'org.example.hello.json'),
     ).toHaveLength(1);

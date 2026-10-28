@@ -3,20 +3,20 @@ import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect } from './fixtures.ts';
-import { chromePage, installPlugin } from './plugin-helpers.ts';
+import { chromePage, installExtension } from './extension-helpers.ts';
 
 // `pnpm build` bundles the assistant with Vite, as its release would be.
-const DIST = fileURLToPath(new URL('../../../plugins/ai-assistant/dist/', import.meta.url));
+const DIST = fileURLToPath(new URL('../../../extensions/ai-assistant/dist/', import.meta.url));
 
 /** The built assistant, under a third-party ID: only YapYap's own key may sign its real one. */
 /** The built assistant's manifest, its `main.js` and its other files. */
-export interface BuiltPlugin {
+export interface BuiltExtension {
   readonly manifest: Record<string, unknown>;
   readonly main: string;
   readonly others: Readonly<Record<string, string>>;
 }
 
-export async function builtAssistant(): Promise<BuiltPlugin> {
+export async function builtAssistant(): Promise<BuiltExtension> {
   const manifest = JSON.parse(await readFile(join(DIST, 'manifest.json'), 'utf8')) as Record<
     string,
     unknown
@@ -89,13 +89,13 @@ export async function readyAssistant(
       });
   });
   const { manifest, main, others } = await builtAssistant();
-  await installPlugin(app, profile, manifest, main, others);
-  // Claude is played by a handler on the plugin's own session; nothing reaches the real API.
+  await installExtension(app, profile, manifest, main, others);
+  // Claude is played by a handler on the extension's own session; nothing reaches the real API.
   await app.evaluate(({ session }, body) => {
     const asked: string[] = [];
     Object.assign(globalThis, { claudeRequests: asked });
     session
-      .fromPartition('persist:plugin:org.example.ai-assistant')
+      .fromPartition('persist:extension:org.example.ai-assistant')
       .protocol.handle('https', async (request) => {
         asked.push(await request.text());
         return new Response(body, { headers: { 'content-type': 'text/event-stream' } });
@@ -105,7 +105,7 @@ export async function readyAssistant(
     app.evaluate(({ Menu }) => {
       const panel = Menu.getApplicationMenu()
         ?.items.flatMap((menu) => menu.submenu?.items ?? [])
-        .find((entry) => entry.label === 'Plugin Commands')
+        .find((entry) => entry.label === 'Extension Commands')
         ?.submenu?.items.find((entry) => entry.label === 'AI assistant: Assistant');
       panel?.click();
       return panel !== undefined;

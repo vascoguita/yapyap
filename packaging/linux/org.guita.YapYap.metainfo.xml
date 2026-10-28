@@ -15,7 +15,7 @@
       logging out.
     </p>
     <p>
-      It has no telemetry, keeps its logs local and redacted, and supports signed, sandboxed plugins,
+      It has no telemetry, keeps its logs local and redacted, and supports signed, sandboxed extensions,
       including an optional bring-your-own-model writing assistant that only ever inserts drafts.
     </p>
     <p>YapYap is unofficial and is not affiliated with, endorsed by, or sponsored by WhatsApp or Meta.</p>

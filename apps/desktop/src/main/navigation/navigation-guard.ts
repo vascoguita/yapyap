@@ -55,7 +55,7 @@ export interface NavigationContents {
 export interface NavigationDependencies {
   /** The origin a web contents was created for; undefined for popups and DevTools. */
   readonly homeOf: (contents: NavigationContents) => string | undefined;
-  /** Views that may open no windows and no links elsewhere, such as plugins (ADR 0004). */
+  /** Views that may open no windows and no links elsewhere, such as extensions (ADR 0004). */
   readonly confined: (contents: NavigationContents) => boolean;
   readonly openExternal: (url: string) => Promise<unknown>;
   /** A popup's preferences, which depend on the view that opens it. */

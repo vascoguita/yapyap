@@ -1,5 +1,5 @@
 import { chatLinkInArguments, chatLinkTarget } from './navigation/deep-link.ts';
-import { pluginLinkInArguments, pluginLinkTarget } from './navigation/plugin-link.ts';
+import { extensionLinkInArguments, extensionLinkTarget } from './navigation/extension-link.ts';
 
 export interface InstanceApp {
   requestSingleInstanceLock(): boolean;
@@ -28,7 +28,7 @@ export interface LinkPage {
 
 export interface Instances {
   /**
-   * Hands chat links to WhatsApp and plugin install links to `install`,
+   * Hands chat links to WhatsApp and extension install links to `install`,
    * including any that arrived before them, and brings the window to the
    * front for later launches.
    */
@@ -50,16 +50,16 @@ export function bringToFront(window: LinkWindow): void {
   window.focus();
 }
 
-/** A link handed to the running app: a chat link, a plugin install link, or neither. */
+/** A link handed to the running app: a chat link, an extension install link, or neither. */
 function follow(url: string, home: string, links: LinkTargets): boolean {
   const target = chatLinkTarget(url, home);
   if (target !== undefined) {
     links.open(target);
     return true;
   }
-  const plugin = pluginLinkTarget(url);
-  if (plugin !== undefined) {
-    links.install(plugin);
+  const extension = extensionLinkTarget(url);
+  if (extension !== undefined) {
+    links.install(extension);
     return true;
   }
   return false;
@@ -78,12 +78,12 @@ function listenForLaunches(
       bringToFront(window);
     }
     const target = chatLinkInArguments(argv, home);
-    const plugin = pluginLinkInArguments(argv);
+    const extension = extensionLinkInArguments(argv);
     if (target !== undefined) {
       links.open(target);
     }
-    if (plugin !== undefined) {
-      links.install(plugin);
+    if (extension !== undefined) {
+      links.install(extension);
     }
   });
   // macOS hands links to the running app instead of starting another one.
@@ -91,7 +91,7 @@ function listenForLaunches(
     event.preventDefault();
     if (!follow(url, home, links)) {
       // The link itself is never logged: a chat link names a phone number.
-      warn('Ignored a link that is neither a WhatsApp chat link nor a plugin install link.');
+      warn('Ignored a link that is neither a WhatsApp chat link nor an extension install link.');
     }
   });
 }
@@ -115,14 +115,14 @@ export function claimSingleInstance(
   let page: LinkPage | undefined;
   let installer: ((id: string) => void) | undefined;
   let pending: string | undefined;
-  let pendingPlugin: string | undefined;
+  let pendingExtension: string | undefined;
   const open = (target: string): void => {
     pending = page === undefined ? target : undefined;
     // A failed load is reported by the recovery monitor.
     page?.loadURL(target).catch(() => undefined);
   };
   const install = (id: string): void => {
-    pendingPlugin = installer === undefined ? id : undefined;
+    pendingExtension = installer === undefined ? id : undefined;
     installer?.(id);
   };
   listenForLaunches(app, home, warn, { window: () => window, open, install });
@@ -134,8 +134,8 @@ export function claimSingleInstance(
       if (pending !== undefined) {
         open(pending);
       }
-      if (pendingPlugin !== undefined) {
-        install(pendingPlugin);
+      if (pendingExtension !== undefined) {
+        install(pendingExtension);
       }
     },
   };

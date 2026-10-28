@@ -5,7 +5,7 @@ export default defineConfig({
     projects: [
       'apps/*/vitest.config.ts',
       'packages/*/vitest.config.ts',
-      'plugins/*/vitest.config.ts',
+      'extensions/*/vitest.config.ts',
       'scripts/vitest.config.ts',
     ],
     coverage: {
@@ -13,7 +13,7 @@ export default defineConfig({
       include: [
         'apps/*/src/**/*.{ts,tsx}',
         'packages/*/src/**/*.ts',
-        'plugins/*/src/**/*.{ts,tsx}',
+        'extensions/*/src/**/*.{ts,tsx}',
         'scripts/src/**/*.ts',
       ],
       // Every exclusion must be justified in docs/adr/0005-test-strategy.md.

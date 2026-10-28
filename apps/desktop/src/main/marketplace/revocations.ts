@@ -1,19 +1,19 @@
-import type { MarketplaceIndex } from '@yapyap/plugin-sdk';
-import type { PluginRecords } from '../plugins/records.ts';
+import type { MarketplaceIndex } from '@yapyap/extension-sdk';
+import type { ExtensionRecords } from '../extensions/records.ts';
 
-/** An installed plugin the marketplace pulled, and the reason it gives. */
+/** An installed extension the marketplace pulled, and the reason it gives. */
 export interface Pulled {
   readonly id: string;
   readonly reason: string;
 }
 
 /**
- * The installed plugins a revocation in the index matches (ADR 0014): the
+ * The installed extensions a revocation in the index matches (ADR 0014): the
  * same ID, a pulled version, and the same signing key, so nobody can pull
- * someone else's plugin by reusing its ID. Plugins already marked are left
+ * someone else's extension by reusing its ID. Extensions already marked are left
  * as they are.
  */
-export function pulledPlugins(index: MarketplaceIndex, records: PluginRecords): Pulled[] {
+export function pulledExtensions(index: MarketplaceIndex, records: ExtensionRecords): Pulled[] {
   return [...records.values()].flatMap((record) => {
     const revocation = index.revoked.find(
       ({ id, signer, versions }) =>

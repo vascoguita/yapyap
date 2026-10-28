@@ -7,8 +7,8 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
-import { TRUST_ANCHORS } from '../../../packages/plugin-sign/src/anchors.ts';
-import { anchorFingerprints } from '../../../packages/plugin-sign/src/trust.ts';
+import { TRUST_ANCHORS } from '../../../packages/extension-sign/src/anchors.ts';
+import { anchorFingerprints } from '../../../packages/extension-sign/src/trust.ts';
 import {
   archiveRedirects,
   buildIndex,
@@ -20,18 +20,18 @@ import { readEntry, readRevocations, type Entry } from '../marketplace/entries.t
 
 // Usage: marketplace-index.ts <marketplace directory> [site directory]
 // Checks every entry and the archive each lists (ADR 0014). With a site
-// directory, it also writes plugins/index.json, signs it with
-// PLUGIN_SIGNING_KEY when that is set, and adds the archives' redirects.
+// directory, it also writes extensions/index.json, signs it with
+// EXTENSION_SIGNING_KEY when that is set, and adds the archives' redirects.
 const [folder = 'marketplace', site] = process.argv.slice(2);
 const read = (path: string): unknown => JSON.parse(readFileSync(path, 'utf8'));
-const pluginsFolder = join(folder, 'plugins');
-const files = existsSync(pluginsFolder)
-  ? readdirSync(pluginsFolder).filter((name) => name.endsWith('.json'))
+const extensionsFolder = join(folder, 'extensions');
+const files = existsSync(extensionsFolder)
+  ? readdirSync(extensionsFolder).filter((name) => name.endsWith('.json'))
   : [];
 const entries: Entry[] = [];
 const problems: string[] = [];
 for (const file of files) {
-  const entry = readEntry(read(join(pluginsFolder, file)), file);
+  const entry = readEntry(read(join(extensionsFolder, file)), file);
   if (Array.isArray(entry)) {
     problems.push(...entry.map((problem) => `${file}: ${problem}`));
   } else {
@@ -57,13 +57,13 @@ const index = buildIndex({
   anchors: anchorFingerprints(TRUST_ANCHORS),
   now: new Date(),
 });
-console.info(`Checked ${String(index.plugins.length)} plugins.`);
+console.info(`Checked ${String(index.extensions.length)} extensions.`);
 if (site !== undefined) {
-  const out = join(site, 'plugins');
+  const out = join(site, 'extensions');
   mkdirSync(out, { recursive: true });
   const bytes = new TextEncoder().encode(`${JSON.stringify(index, null, 2)}\n`);
   writeFileSync(join(out, 'index.json'), bytes);
-  const key = process.env['PLUGIN_SIGNING_KEY'] ?? '';
+  const key = process.env['EXTENSION_SIGNING_KEY'] ?? '';
   if (key !== '') {
     writeFileSync(
       join(out, 'index.json.sig'),

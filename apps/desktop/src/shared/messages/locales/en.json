@@ -96,7 +96,7 @@
       "downloads": "Downloads",
       "privacy": "Privacy",
       "network": "Network",
-      "plugins": "Plugins"
+      "extensions": "Extensions"
     },
     "backup": {
       "title": "Backup",
@@ -300,14 +300,14 @@
           "description": "Used when Proxy is set to “This proxy”: http://, https:// or socks5://, a host and a port. Press Enter to save it."
         }
       },
-      "plugins": {
+      "extensions": {
         "developerMode": {
           "label": "Developer Mode",
-          "description": "Lets you install unsigned plugins while you write them. Nobody vouches for an unsigned plugin, so YapYap marks it wherever it appears."
+          "description": "Lets you install unsigned extensions while you write them. Nobody vouches for an unsigned extension, so YapYap marks it wherever it appears."
         },
         "chatMessages": {
-          "label": "Messages a plugin may read",
-          "description": "How many of the open chat’s latest messages a plugin you allowed to read chats receives when it asks.",
+          "label": "Messages an extension may read",
+          "description": "How many of the open chat’s latest messages an extension you allowed to read chats receives when it asks.",
           "options": {
             "5": "5",
             "10": "10",
@@ -429,14 +429,14 @@
     "full": "Show account names",
     "doNotDisturb": "Do not disturb"
   },
-  "plugins": {
-    "notificationTitle": "{{plugin}}: {{title}}",
-    "stopped": "{{plugin}} kept using too much of your computer, so YapYap stopped it. Install it again to start it.",
-    "title": "Plugins",
-    "hint": "Each plugin runs in its own sandbox and can do only what you allowed when you installed it.",
-    "empty": "No plugins are installed.",
-    "install": "Install Plugin…",
-    "fileType": "YapYap plugins",
+  "extensions": {
+    "notificationTitle": "{{extension}}: {{title}}",
+    "stopped": "{{extension}} kept using too much of your computer, so YapYap stopped it. Install it again to start it.",
+    "title": "Extensions",
+    "hint": "Each extension runs in its own sandbox and can do only what you allowed when you installed it.",
+    "empty": "No extensions are installed.",
+    "install": "Install Extension…",
+    "fileType": "YapYap extensions",
     "version": "Version {{version}}",
     "trust": {
       "first-party": "By YapYap",
@@ -445,11 +445,11 @@
       "developer": "Unsigned"
     },
     "pulled": "The marketplace pulled this version, so it does not run: {{reason}} Remove it, or install another version from the Marketplace tab.",
-    "developerMode": "Developer Mode is on, so unsigned plugins can be installed. Turn it off in Settings when you no longer need it.",
+    "developerMode": "Developer Mode is on, so unsigned extensions can be installed. Turn it off in Settings when you no longer need it.",
     "result": {
       "installed": "{{name}} {{version}} is installed.",
-      "rejected": "This plugin cannot be installed.",
-      "failed": "The plugin could not be installed. Try again."
+      "rejected": "This extension cannot be installed.",
+      "failed": "The extension could not be installed. Try again."
     },
     "consent": {
       "install": "Install {{name}}?",
@@ -463,18 +463,18 @@
       "updateAsks": "This update asks for more than before:",
       "hosts": "Connect to:",
       "nothing": "It asks for nothing.",
-      "risk": "YapYap has not reviewed this plugin. Install it only if you trust its author: you install it at your own risk.",
-      "unsignedRisk": "Nobody signed this plugin, so nothing shows who made it or that it is unchanged. Install it only if you wrote it yourself.",
-      "acknowledge": "I understand that I install this plugin at my own risk",
+      "risk": "YapYap has not reviewed this extension. Install it only if you trust its author: you install it at your own risk.",
+      "unsignedRisk": "Nobody signed this extension, so nothing shows who made it or that it is unchanged. Install it only if you wrote it yourself.",
+      "acknowledge": "I understand that I install this extension at my own risk",
       "confirmInstall": "Install",
       "confirmUpdate": "Update"
     },
     "settings": "Settings",
     "remove": "Remove…",
-    "removeLabel": "Remove {{plugin}}",
-    "settingDefault": "Plugin’s default",
+    "removeLabel": "Remove {{extension}}",
+    "settingDefault": "Extension’s default",
     "permissions": "Permissions",
-    "permissionsHint": "Turn off anything you no longer want this plugin to do. Turning something back on gives back only what you allowed when you installed it.",
+    "permissionsHint": "Turn off anything you no longer want this extension to do. Turning something back on gives back only what you allowed when you installed it.",
     "connectTo": "Connect to {{host}}",
     "capabilities": {
       "chat:read-active": "Read the messages of the chat you have open",
@@ -488,8 +488,8 @@
     },
     "activity": {
       "title": "Recent activity",
-      "hint": "What each plugin asked YapYap to do, and how it went. YapYap never records what a plugin sent or received.",
-      "empty": "No plugin has asked for anything yet.",
+      "hint": "What each extension asked YapYap to do, and how it went. YapYap never records what an extension sent or received.",
+      "empty": "No extension has asked for anything yet.",
       "outcomes": {
         "ok": "Done",
         "invalid": "Refused: not a valid request",
@@ -502,28 +502,28 @@
     "marketplace": {
       "installedTab": "Installed",
       "marketplaceTab": "Marketplace",
-      "tabsLabel": "Plugins",
-      "search": "Search plugins",
+      "tabsLabel": "Extensions",
+      "search": "Search extensions",
       "loading": "Loading the marketplace…",
       "unreachable": "The marketplace could not be reached. Check your connection and try again.",
       "invalid": "The marketplace sent a list YapYap could not verify, so nothing is shown. Try again later.",
       "outdated": "The marketplace list is out of date, so nothing is shown. Try again later.",
       "retry": "Try Again",
-      "empty": "No plugins match.",
+      "empty": "No extensions match.",
       "official": "By YapYap",
       "reviewed": "Third-party, reviewed by YapYap",
       "by": "By {{name}}",
       "version": "Version {{version}}",
       "install": "Install",
-      "installLabel": "Install {{plugin}}",
+      "installLabel": "Install {{extension}}",
       "update": "Update to {{version}}",
-      "updateLabel": "Update {{plugin}} to {{version}}",
+      "updateLabel": "Update {{extension}} to {{version}}",
       "installed": "Installed",
       "incompatible": "Needs a newer YapYap",
       "homepage": "Website",
       "privacy": "YapYap downloads the marketplace list only while this tab is open, without saying who you are.",
       "mismatch": "The download does not match what the marketplace lists, so it was not installed.",
-      "unlisted": "The marketplace does not list this plugin for this version of YapYap."
+      "unlisted": "The marketplace does not list this extension for this version of YapYap."
     }
   },
   "notifications": {
@@ -664,11 +664,11 @@
     "resetSession": "Reset Session…",
     "addAccount": "Add Account",
     "manageAccounts": "Manage Accounts…",
-    "plugins": "Plugins…",
-    "installPlugin": "Install Plugin…",
+    "extensions": "Extensions…",
+    "installExtension": "Install Extension…",
     "customCode": "Custom CSS and JavaScript…",
-    "pluginCommands": "Plugin Commands",
-    "pluginCommand": "{{plugin}}: {{title}}",
+    "extensionCommands": "Extension Commands",
+    "extensionCommand": "{{extension}}: {{title}}",
     "removeAccount": "Remove Account…",
     "doNotDisturb": "Do Not Disturb",
     "muteAccount": "Mute This Account",
@@ -689,28 +689,28 @@
     "newChat": "New Chat",
     "spellingLanguages": "Spelling Languages",
     "accounts": "Accounts",
-    "plugins": "Plugins",
+    "extensions": "Extensions",
     "shortcuts": "Keyboard Shortcuts",
     "customCode": "Custom CSS and JavaScript",
     "quickPanel": "YapYap",
     "downloads": "Downloads",
-    "pluginConsent": "Install Plugin",
+    "extensionConsent": "Install Extension",
     "welcome": "Welcome",
     "report": "Report a Problem",
     "proxyLogin": "Proxy Sign-In",
     "offline": "{{pageTitle}} (offline)"
   },
   "dialogs": {
-    "pluginHost": {
-      "message": "Let {{plugin}} connect to {{host}}?",
-      "detail": "The plugin wants to send data there and read the answer. Only allow a host you trust, such as a service you set up for this plugin.",
+    "extensionHost": {
+      "message": "Let {{extension}} connect to {{host}}?",
+      "detail": "The extension wants to send data there and read the answer. Only allow a host you trust, such as a service you set up for this extension.",
       "allow": "Allow",
       "deny": "Deny"
     },
-    "removePlugin": {
-      "message": "Remove {{plugin}}?",
-      "detail": "This stops the plugin and deletes it, with its settings, its stored data and its saved secrets, such as API keys. Its past activity stays listed.",
-      "confirm": "Remove Plugin"
+    "removeExtension": {
+      "message": "Remove {{extension}}?",
+      "detail": "This stops the extension and deletes it, with its settings, its stored data and its saved secrets, such as API keys. Its past activity stays listed.",
+      "confirm": "Remove Extension"
     },
     "resetSession": {
       "message": "Reset this WhatsApp session?",

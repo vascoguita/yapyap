@@ -1,13 +1,13 @@
 import { Value } from 'typebox/value';
-import { verifyIndex } from '../../../packages/plugin-sign/src/index-signature.ts';
+import { verifyIndex } from '../../../packages/extension-sign/src/index-signature.ts';
 import {
   MarketplaceIndexSchema,
   type MarketplaceIndex,
 } from '../../../packages/sdk/src/marketplace.ts';
 import { compareVersions } from '../../../apps/desktop/src/main/marketplace/versions.ts';
 
-/** A listed plugin as its page on the website shows it (#390). */
-export interface SitePlugin {
+/** A listed extension as its page on the website shows it (#390). */
+export interface SiteExtension {
   readonly id: string;
   readonly name: string;
   readonly summary: string;
@@ -52,32 +52,32 @@ export function verifiedIndex(
   }
 }
 
-type Listed = MarketplaceIndex['plugins'][number];
+type Listed = MarketplaceIndex['extensions'][number];
 
-const pulled = (index: MarketplaceIndex, plugin: Listed, version: string): boolean =>
+const pulled = (index: MarketplaceIndex, extension: Listed, version: string): boolean =>
   index.revoked.some(
     (revocation) =>
-      revocation.id === plugin.id &&
-      revocation.signer === plugin.signer &&
+      revocation.id === extension.id &&
+      revocation.signer === extension.signer &&
       (revocation.versions === '*' || revocation.versions.includes(version)),
   );
 
 type ListedVersion = Listed['versions'][number];
 
-function sitePlugin(
-  plugin: Listed,
+function siteExtension(
+  extension: Listed,
   newest: ListedVersion,
   versions: readonly ListedVersion[],
   describe: (capability: string) => string,
-): SitePlugin {
+): SiteExtension {
   return {
-    id: plugin.id,
-    name: plugin.name,
-    summary: plugin.summary,
-    author: { name: plugin.author.name, url: plugin.author.url ?? null },
-    homepage: plugin.homepage,
-    license: plugin.license,
-    review: plugin.review,
+    id: extension.id,
+    name: extension.name,
+    summary: extension.summary,
+    author: { name: extension.author.name, url: extension.author.url ?? null },
+    homepage: extension.homepage,
+    license: extension.license,
+    review: extension.review,
     asks: newest.capabilities.map(describe),
     hosts: newest.hosts,
     versions: versions.map(({ version, published, minYapYap }) => ({
@@ -85,25 +85,25 @@ function sitePlugin(
       published: published.slice(0, 10),
       minYapYap,
     })),
-    installLink: `yapyap://plugins/install/${plugin.id}`,
+    installLink: `yapyap://extensions/install/${extension.id}`,
   };
 }
 
 /**
- * The plugins the website lists, by name: every plugin with a version
+ * The extensions the website lists, by name: every extension with a version
  * still offered, which is what YapYap would install from its link.
  */
-export function sitePlugins(
+export function siteExtensions(
   index: MarketplaceIndex,
   describe: (capability: string) => string,
-): SitePlugin[] {
-  return index.plugins
-    .flatMap((plugin) => {
-      const offered = plugin.versions
-        .filter(({ version }) => !pulled(index, plugin, version))
+): SiteExtension[] {
+  return index.extensions
+    .flatMap((extension) => {
+      const offered = extension.versions
+        .filter(({ version }) => !pulled(index, extension, version))
         .sort((a, b) => compareVersions(b.version, a.version));
       const [newest] = offered;
-      return newest === undefined ? [] : [sitePlugin(plugin, newest, offered, describe)];
+      return newest === undefined ? [] : [siteExtension(extension, newest, offered, describe)];
     })
     .sort((a, b) => a.name.localeCompare(b.name));
 }

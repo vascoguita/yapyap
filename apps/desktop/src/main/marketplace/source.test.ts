@@ -11,24 +11,24 @@ describe('marketplaceSource', () => {
   it('uses packages.guita.org and the first-party anchors', () => {
     const source = marketplaceSource({}, true, ANCHORS);
     expect(source).toMatchObject({
-      indexUrl: 'https://packages.guita.org/plugins/index.json',
-      signatureUrl: 'https://packages.guita.org/plugins/index.json.sig',
+      indexUrl: 'https://packages.guita.org/extensions/index.json',
+      signatureUrl: 'https://packages.guita.org/extensions/index.json.sig',
       anchors: ANCHORS,
     });
     expect(source.archiveUrl('org.example.hello', '1.0.0')).toBe(
-      'https://packages.guita.org/plugins/org.example.hello/org.example.hello-1.0.0.yapyap-plugin',
+      'https://packages.guita.org/extensions/org.example.hello/org.example.hello-1.0.0.yapyap-extension',
     );
   });
 
   it('lets an unpackaged build use a local test marketplace with its own key', () => {
     const source = marketplaceSource(TEST, false, ANCHORS);
     expect(source).toMatchObject({
-      indexUrl: 'http://127.0.0.1:4100/plugins/index.json',
-      signatureUrl: 'http://127.0.0.1:4100/plugins/index.json.sig',
+      indexUrl: 'http://127.0.0.1:4100/extensions/index.json',
+      signatureUrl: 'http://127.0.0.1:4100/extensions/index.json.sig',
       anchors: ['test anchor'],
     });
     expect(source.archiveUrl('org.example.hello', '1.0.0')).toBe(
-      'http://127.0.0.1:4100/plugins/org.example.hello/org.example.hello-1.0.0.yapyap-plugin',
+      'http://127.0.0.1:4100/extensions/org.example.hello/org.example.hello-1.0.0.yapyap-extension',
     );
   });
 
@@ -39,7 +39,7 @@ describe('marketplaceSource', () => {
     ['no test origin', { YAPYAP_TEST_MARKETPLACE_ANCHOR: 'test anchor' }, false],
   ])('ignores the test marketplace for %s', (_case, env, packaged) => {
     expect(marketplaceSource(env, packaged, ANCHORS)).toMatchObject({
-      indexUrl: 'https://packages.guita.org/plugins/index.json',
+      indexUrl: 'https://packages.guita.org/extensions/index.json',
       anchors: ANCHORS,
     });
   });

@@ -164,7 +164,7 @@ The Flatpak runs in a sandbox with only the access it needs:
 
 | Permission                                | Why                                                        |
 | ----------------------------------------- | ---------------------------------------------------------- |
-| Network                                   | WhatsApp Web and plugin connections                        |
+| Network                                   | WhatsApp Web and extension connections                     |
 | Wayland, or X11 as a fallback; GPU        | Drawing the window with hardware acceleration              |
 | PulseAudio                                | Voice and video calls, voice messages, notification sounds |
 | Notifications and StatusNotifier on D-Bus | Native notifications and the tray icon                     |

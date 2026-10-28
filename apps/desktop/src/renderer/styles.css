@@ -609,7 +609,7 @@ body.sidebar .sharing .dot {
 }
 
 main.consent,
-main.plugins {
+main.extensions {
   align-items: stretch;
   max-width: 560px;
   margin: 0 auto;
@@ -622,7 +622,7 @@ main.consent h2 {
 }
 
 main.consent .hint,
-main.plugins .hint {
+main.extensions .hint {
   margin: 0;
   color: var(--muted);
   font-size: 0.9rem;
@@ -682,7 +682,7 @@ main.consent .actions {
   justify-content: flex-end;
 }
 
-main.plugins .warning {
+main.extensions .warning {
   margin: 0;
   padding: 8px 12px;
   border: 1px solid var(--danger);
@@ -690,13 +690,13 @@ main.plugins .warning {
   color: var(--danger);
 }
 
-main.plugins .plugin-list {
+main.extensions .extension-list {
   flex-direction: column;
   align-items: stretch;
   gap: 0;
 }
 
-main.plugins .plugin-list li {
+main.extensions .extension-list li {
   display: flex;
   flex-wrap: wrap;
   gap: 4px 12px;
@@ -705,13 +705,13 @@ main.plugins .plugin-list li {
   border-bottom: 1px solid var(--border);
 }
 
-main.plugins .activity {
+main.extensions .activity {
   flex-direction: column;
   align-items: stretch;
   gap: 0;
 }
 
-main.plugins .activity li {
+main.extensions .activity li {
   display: flex;
   flex-wrap: wrap;
   gap: 2px 12px;
@@ -721,71 +721,71 @@ main.plugins .activity li {
   font-size: 0.9rem;
 }
 
-main.plugins .activity time {
+main.extensions .activity time {
   color: var(--muted);
 }
 
-main.plugins .outcome:not(.outcome-ok) {
+main.extensions .outcome:not(.outcome-ok) {
   color: var(--danger);
 }
 
-main.plugins .name {
+main.extensions .name {
   flex: 1;
   overflow-wrap: anywhere;
 }
 
-main.plugins .trust {
+main.extensions .trust {
   padding: 0 8px;
   border: 1px solid var(--border);
   border-radius: 10px;
   font-size: 0.8rem;
 }
 
-main.plugins .trust-third-party,
-main.plugins .trust-developer {
+main.extensions .trust-third-party,
+main.extensions .trust-developer {
   border-color: var(--danger);
   color: var(--danger);
 }
 
-/* The Plugins window's tabs: the installed plugins and the marketplace (ADR 0014). */
-main.plugins [role='tablist'] {
+/* The Extensions window's tabs: the installed extensions and the marketplace (ADR 0014). */
+main.extensions [role='tablist'] {
   display: flex;
   gap: 4px;
   border-bottom: 1px solid var(--border);
 }
 
-main.plugins [role='tab'] {
+main.extensions [role='tab'] {
   margin-bottom: -1px;
   border: 1px solid transparent;
   border-radius: 6px 6px 0 0;
   background: none;
 }
 
-main.plugins [role='tab'][aria-selected='true'] {
+main.extensions [role='tab'][aria-selected='true'] {
   border-color: var(--border);
   border-bottom-color: var(--surface);
   background: var(--surface);
   font-weight: 600;
 }
 
-main.plugins [role='tabpanel'] {
+main.extensions [role='tabpanel'] {
   display: flex;
   flex-direction: column;
   gap: 12px;
   padding-top: 12px;
 }
 
-main.plugins .marketplace h2 {
+main.extensions .marketplace h2 {
   margin: 0;
   font-size: 1rem;
 }
 
-main.plugins .marketplace p {
+main.extensions .marketplace p {
   flex-basis: 100%;
   margin: 0;
 }
 
-main.plugins .marketplace .grants {
+main.extensions .marketplace .grants {
   flex-basis: 100%;
   margin: 0;
   padding-inline-start: 18px;
@@ -985,23 +985,23 @@ main.downloads .download .actions {
   gap: 6px;
 }
 
-main.plugins .permissions {
+main.extensions .permissions {
   flex-basis: 100%;
 }
 
-main.plugins .permissions ul {
+main.extensions .permissions ul {
   flex-direction: column;
   align-items: stretch;
   gap: 4px;
 }
 
-main.plugins .grant {
+main.extensions .grant {
   display: flex;
   gap: 6px;
   align-items: center;
 }
 
-main.plugins .grant-accounts {
+main.extensions .grant-accounts {
   display: flex;
   flex-wrap: wrap;
   gap: 4px 16px;

@@ -1,12 +1,12 @@
-import type { MarketplaceIndex } from '@yapyap/plugin-sdk';
+import type { MarketplaceIndex } from '@yapyap/extension-sdk';
 import { describe, expect, it } from 'vitest';
-import type { PluginRecord } from '../plugins/records.ts';
-import { pulledPlugins } from './revocations.ts';
+import type { ExtensionRecord } from '../extensions/records.ts';
+import { pulledExtensions } from './revocations.ts';
 
 const SIGNER = Array.from({ length: 32 }, () => 'ab').join(':');
 const OTHER = Array.from({ length: 32 }, () => 'cd').join(':');
 
-const record = (id: string, extra: Partial<PluginRecord> = {}): PluginRecord => ({
+const record = (id: string, extra: Partial<ExtensionRecord> = {}): ExtensionRecord => ({
   id,
   version: '1.0.0',
   fingerprint: SIGNER,
@@ -22,11 +22,11 @@ const index = (revoked: MarketplaceIndex['revoked']): MarketplaceIndex => ({
   serial: 1,
   generated: '2026-10-27T08:00:00.000Z',
   expires: '2026-11-20T08:00:00.000Z',
-  plugins: [],
+  extensions: [],
   revoked,
 });
 
-describe('pulledPlugins', () => {
+describe('pulledExtensions', () => {
   it('finds installed copies of pulled versions signed by the same key', () => {
     const records = new Map([
       ['org.example.all', record('org.example.all')],
@@ -39,7 +39,7 @@ describe('pulledPlugins', () => {
       ],
       ['org.example.marked', record('org.example.marked', { pulled: 'Old news.' })],
     ]);
-    const pulled = pulledPlugins(
+    const pulled = pulledExtensions(
       index([
         { id: 'org.example.all', versions: '*', signer: SIGNER, reason: 'Sent chats away.' },
         { id: 'org.example.some', versions: ['1.1.0'], signer: SIGNER, reason: 'Crashes.' },

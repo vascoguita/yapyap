@@ -6,13 +6,13 @@ message: nothing about a chat is sent until you allow the assistant in it
 and see exactly what will go, and a suggested reply only ever becomes a
 draft that you edit and send yourself.
 
-The assistant is a plugin made by YapYap, released with YapYap as a
-`.yapyap-plugin` file. Install it with **Install Plugin…** like any other
-plugin.
+The assistant is an extension made by YapYap, released with YapYap as a
+`.yapyap-extension` file. Install it with **Install Extension…** like any other
+extension.
 
 ## Choose a provider
 
-Open **Plugins…**, find **AI assistant**, and open **Settings**:
+Open **Extensions…**, find **AI assistant**, and open **Settings**:
 
 | Setting          | What it does                                                                                                                                                      |
 | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -22,8 +22,8 @@ Open **Plugins…**, find **AI assistant**, and open **Settings**:
 | Messages to send | How many of the chat's latest messages the assistant sends: 5, 10 or 20                                                                                           |
 | Local-only mode  | Only ask an AI server running on this computer, so nothing about your chats leaves it                                                                             |
 
-YapYap's own **Settings → Plugins → Messages a plugin may read** still caps
-what any plugin can read, whatever the assistant asks for.
+YapYap's own **Settings → Extensions → Messages an extension may read** still caps
+what any extension can read, whatever the assistant asks for.
 
 ## Run a model on your own computer
 
@@ -38,7 +38,7 @@ and never other machines on your network.
 
 ## Add your key
 
-Choose **Plugin Commands → AI assistant: Assistant** to open its panel,
+Choose **Extension Commands → AI assistant: Assistant** to open its panel,
 paste the API key from your provider's account into **API key**, and
 choose **Save key**. YapYap keeps it encrypted with your system's secret
 store (Keychain, Credential Manager or the Secret Service). The panel
@@ -81,7 +81,7 @@ nothing of it goes to the chat or the message box.
 ## What the assistant can do
 
 When you install it, YapYap shows everything the assistant asks for, and
-you can take any of it back later in **Plugins…**, for every account or
+you can take any of it back later in **Extensions…**, for every account or
 just one:
 
 - read the open chat, but only when you ask it to look at it;

@@ -150,8 +150,8 @@ job summary instead of failing.
 
 | Secret / variable                                                            | Used for                                                                                                                                                                                 | Missing →                                                                               |
 | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `PLUGIN_SIGNING_KEY` (secret)                                                | Signing first-party plugins (PKCS#8 PEM, Ed25519)                                                                                                                                        | First-party plugins are not signed; release blocked                                     |
-| `PLUGIN_SIGNING_PUBLIC_KEY` (variable)                                       | Embedded first-party trust anchor (SPKI PEM)                                                                                                                                             | Build fails                                                                             |
+| `EXTENSION_SIGNING_KEY` (secret)                                             | Signing first-party extensions (PKCS#8 PEM, Ed25519)                                                                                                                                     | First-party extensions are not signed; release blocked                                  |
+| `EXTENSION_SIGNING_PUBLIC_KEY` (variable)                                    | Embedded first-party trust anchor (SPKI PEM)                                                                                                                                             | Build fails                                                                             |
 | `AUTOMATION_APP_CLIENT_ID` (variable), `AUTOMATION_APP_PRIVATE_KEY` (secret) | The YapYap automation GitHub App. Release and pinned-version workflows mint an hour-long token from it, so their PRs trigger the required checks (see [Automation app](#automation-app)) | PRs are opened with the workflow token, and the maintainer re-runs their checks by hand |
 | `CSC_LINK`, `CSC_KEY_PASSWORD`                                               | macOS signing: the Developer ID Application certificate and its key, as a base64 `.p12`, and the `.p12` password                                                                         | Unsigned DMG, no macOS self-update                                                      |
 | `APPLE_API_KEY`, `APPLE_API_KEY_ID`, `APPLE_API_ISSUER`                      | macOS notarization with an App Store Connect team API key (the `.p8` file's text, its key ID and the issuer ID); preferred over the Apple ID secrets (#400)                              | The Apple ID secrets are used, if set                                                   |
@@ -208,65 +208,65 @@ Cloudflare token for `CLOUDFLARE_API_TOKEN` is an account API token with the
 **Pages Write** permission on the account that holds `guita.org`, and
 nothing else.
 
-## Plugin marketplace
+## Extension marketplace
 
-The marketplace (ADR 0014) lists the plugins in `marketplace/plugins/`, one
-`<id>.json` per plugin, and the pulled versions in `marketplace/revoked.json`.
-The package repositories workflow builds `plugins/index.json` from them,
+The marketplace (ADR 0014) lists the extensions in `marketplace/extensions/`, one
+`<id>.json` per extension, and the pulled versions in `marketplace/revoked.json`.
+The package repositories workflow builds `extensions/index.json` from them,
 downloads and checks every archive, signs the index with
-`PLUGIN_SIGNING_KEY`, and deploys it to packages.guita.org every Monday and
+`EXTENSION_SIGNING_KEY`, and deploys it to packages.guita.org every Monday and
 whenever `marketplace/` changes on `master`. The index expires 30 days after
 it is signed, so a stopped schedule takes the marketplace down within a
 month: re-run **Package repositories** by hand if it fails.
 
-To list a new version of an official plugin:
+To list a new version of an official extension:
 
 1. Release YapYap. The release carries the signed
-   `<id>-<version>.yapyap-plugin` of each first-party plugin.
-2. Add the version to the plugin's entry, with the release asset's URL as
+   `<id>-<version>.yapyap-extension` of each first-party extension.
+2. Add the version to the extension's entry, with the release asset's URL as
    `source`, its `sha256-<base64>` hash (`openssl dgst -sha256 -binary
 <file> | base64`), the oldest YapYap version that runs it, and when the
    release was published.
 3. Check it locally: `node scripts/src/bin/marketplace-index.ts marketplace`.
    CI runs the same check on every pull request.
 
-To list a reviewed third-party version from a plugin submission issue:
+To list a reviewed third-party version from an extension submission issue:
 
 1. Download the archive, check its SHA-256 against the submission, and
-   verify it: `node packages/plugin-sign/src/bin/yapyap-plugin-sign.ts
+   verify it: `node packages/extension-sign/src/bin/yapyap-extension-sign.ts
 verify <file>` prints the signer, which must match the submission (and
    the entry's `signer` for later versions).
 2. Review it against the checklist in
-   [the plugin guide](https://yapyap.guita.org/plugins/marketplace#the-review-checklist):
+   [the extension guide](https://yapyap.guita.org/extensions/marketplace#the-review-checklist):
    unpack it and read every file, compare it with the tag in the
    repository, and check each capability, host and the privacy policy.
 3. Upload the unchanged archive to the release that holds reviewed
    archives. Where that is is still to be decided (#419), so no
-   third-party plugin can be listed until then.
-4. Open a pull request adding or updating `marketplace/plugins/<id>.json`
+   third-party extension can be listed until then.
+4. Open a pull request adding or updating `marketplace/extensions/<id>.json`
    with `review: "reviewed"`, the `repository`, and the version's `tag`,
    with `source` pointing at that asset. Link the submission.
 
-To take a plugin down, add the version, or `"*"` for all of them, to
+To take an extension down, add the version, or `"*"` for all of them, to
 `revoked.json` with the signer's fingerprint and a reason the user will
 read, and merge it: the index is signed and deployed again at once. Keep
-the entry, so the reason stays with the plugin's history.
+the entry, so the reason stays with the extension's history.
 
-## Plugin signing key rotation
+## Extension signing key rotation
 
-First-party plugins are verified against public keys embedded in the app.
-To rotate the key without breaking installed plugins:
+First-party extensions are verified against public keys embedded in the app.
+To rotate the key without breaking installed extensions:
 
 1. Generate a new Ed25519 key pair offline:
    `openssl genpkey -algorithm ed25519 -out new.pem`, then
    `openssl pkey -in new.pem -pubout`. Never commit or log the private key.
 2. Add the new public key to `TRUST_ANCHORS` in
-   `packages/plugin-sign/src/anchors.ts` (keep the old one) and ship that in
+   `packages/extension-sign/src/anchors.ts` (keep the old one) and ship that in
    a release.
-3. In a later release, update the `PLUGIN_SIGNING_KEY` secret and the
-   `PLUGIN_SIGNING_PUBLIC_KEY` variable, move the new key to the front of
+3. In a later release, update the `EXTENSION_SIGNING_KEY` secret and the
+   `EXTENSION_SIGNING_PUBLIC_KEY` variable, move the new key to the front of
    `TRUST_ANCHORS` (CI checks that the variable is the first anchor), and
-   sign first-party plugins with the new key.
+   sign first-party extensions with the new key.
 4. One release after that, remove the old public key from the anchors.
 
 ## Reporting bugs and security issues
@@ -307,7 +307,7 @@ release workflow merges the entry release-please writes for a commit with
 the one for its pull request's merge commit (#358). A fix for a publicly known
 vulnerability uses the `security` scope and names its advisory in the
 subject, for example
-`fix(security): validate plugin manifests before parsing (GHSA-xxxx-xxxx-xxxx)`,
+`fix(security): validate extension manifests before parsing (GHSA-xxxx-xxxx-xxxx)`,
 so the release notes list the CVE or GHSA ID of every vulnerability the
 release fixes. If the advisory becomes public only after the release, add
 its ID to that release's entry in `CHANGELOG.md` and to the GitHub Release

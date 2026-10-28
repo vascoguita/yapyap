@@ -4,35 +4,35 @@ import {
   marketplaceArchiveName,
   MarketplaceIndexSchema,
 } from '../../../packages/sdk/src/marketplace.ts';
-import { FIRST_PARTY_PREFIX } from '../../../packages/plugin-sign/src/trust.ts';
+import { FIRST_PARTY_PREFIX } from '../../../packages/extension-sign/src/trust.ts';
 
-const { plugins: Plugins, revoked: Revoked } = MarketplaceIndexSchema.properties;
-const Plugin = Plugins.items;
+const { extensions: Extensions, revoked: Revoked } = MarketplaceIndexSchema.properties;
+const Extension = Extensions.items;
 const {
   version: Version,
   sha256: Sha256,
   minYapYap,
   published,
-} = Plugin.properties.versions.items.properties;
+} = Extension.properties.versions.items.properties;
 
 /** Release assets of this repository: the only place a listed archive is downloaded from (ADR 0014). */
 const RELEASE_ASSET =
   /^https:\/\/github\.com\/vascoguita\/yapyap\/releases\/download\/[\w.-]{1,100}\/([\w.-]{1,250})$/;
 
 /**
- * A listed plugin, as `marketplace/plugins/<id>.json` holds it. Its name,
+ * A listed extension, as `marketplace/extensions/<id>.json` holds it. Its name,
  * author, capabilities and hosts come from each archive's own manifest, so
- * the index can never describe a plugin otherwise than it is.
+ * the index can never describe an extension otherwise than it is.
  */
 const EntrySchema = Type.Object(
   {
-    id: Plugin.properties.id,
-    summary: Plugin.properties.summary,
-    homepage: Plugin.properties.homepage,
-    license: Plugin.properties.license,
-    review: Plugin.properties.review,
-    signer: Plugin.properties.signer,
-    /** Where the plugin's source code lives, which a review of a third-party plugin starts from. */
+    id: Extension.properties.id,
+    summary: Extension.properties.summary,
+    homepage: Extension.properties.homepage,
+    license: Extension.properties.license,
+    review: Extension.properties.review,
+    signer: Extension.properties.signer,
+    /** Where the extension's source code lives, which a review of a third-party extension starts from. */
     repository: Type.Optional(Type.String({ pattern: '^https://', maxLength: 300 })),
     versions: Type.Array(
       Type.Object(
@@ -73,16 +73,18 @@ function sourceProblems(entry: Entry): string[] {
   });
 }
 
-/** A third-party plugin is reviewed from its source, so its entry names the repository and each tag. */
+/** A third-party extension is reviewed from its source, so its entry names the repository and each tag. */
 function reviewProblems(entry: Entry): string[] {
   if (entry.review === 'official') {
     return [];
   }
   return [
-    ...(entry.repository === undefined ? ['A reviewed plugin names its source repository.'] : []),
+    ...(entry.repository === undefined
+      ? ['A reviewed extension names its source repository.']
+      : []),
     ...entry.versions
       .filter(({ tag }) => tag === undefined)
-      .map(({ version }) => `${version}: a reviewed plugin names the tag of its source.`),
+      .map(({ version }) => `${version}: a reviewed extension names the tag of its source.`),
   ];
 }
 
@@ -93,7 +95,7 @@ function entryProblems(entry: Entry, file: string): string[] {
     ...(file === `${entry.id}.json` ? [] : [`The file must be named ${entry.id}.json.`]),
     ...((entry.review === 'official') === entry.id.startsWith(FIRST_PARTY_PREFIX)
       ? []
-      : [`Only plugins under ${FIRST_PARTY_PREFIX} are official, and they all are.`]),
+      : [`Only extensions under ${FIRST_PARTY_PREFIX} are official, and they all are.`]),
     ...(new Set(versions).size === versions.length ? [] : ['A version is listed twice.']),
     ...reviewProblems(entry),
     ...sourceProblems(entry),

@@ -32,8 +32,8 @@ describe('exportSettings', () => {
   it('writes the settings under a format marker, readable by people', () => {
     const settings = defaultSettings();
     const text = exportSettings(settings);
-    const { plugins, ...exported } = settings;
-    expect(plugins).toEqual({ developerMode: false, chatMessages: '20' });
+    const { extensions, ...exported } = settings;
+    expect(extensions).toEqual({ developerMode: false, chatMessages: '20' });
     expect(JSON.parse(text)).toEqual({ format: 'yapyap-settings', settings: exported });
     expect(text).toMatch(/^\{\n {2}"format": "yapyap-settings",\n/);
     expect(text.endsWith('}\n')).toBe(true);
@@ -42,8 +42,8 @@ describe('exportSettings', () => {
   it('leaves out anything the schema does not define, whatever got into memory', () => {
     const settings = { ...defaultSettings(), session: 'cookie=secret' };
     const exported = JSON.parse(exportSettings(settings)) as { settings: Record<string, unknown> };
-    const { plugins, ...expected } = defaultSettings();
-    expect(plugins).toBeDefined();
+    const { extensions, ...expected } = defaultSettings();
+    expect(extensions).toBeDefined();
     expect(exported.settings).toEqual(expected);
     expect(settings.session).toBe('cookie=secret');
   });
@@ -132,15 +132,15 @@ describe('readImport', () => {
 });
 
 describe('keepLocal', () => {
-  it('keeps the plugin settings as they are, whatever the imported file says', () => {
+  it('keeps the extension settings as they are, whatever the imported file says', () => {
     const local = { developerMode: true, chatMessages: '5' } as const;
-    const current = { ...defaultSettings(), plugins: local };
+    const current = { ...defaultSettings(), extensions: local };
     const imported = {
       ...defaultSettings(),
       general: { ...defaultSettings().general, autostart: true },
-      plugins: { developerMode: false, chatMessages: '50' } as const,
+      extensions: { developerMode: false, chatMessages: '50' } as const,
     };
-    expect(keepLocal(imported, current)).toEqual({ ...imported, plugins: local });
-    expect(keepLocal(current, imported).plugins).toEqual(imported.plugins);
+    expect(keepLocal(imported, current)).toEqual({ ...imported, extensions: local });
+    expect(keepLocal(current, imported).extensions).toEqual(imported.extensions);
   });
 });

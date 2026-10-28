@@ -1,10 +1,10 @@
-import { loadSitePlugins } from '../.vitepress/marketplace.ts';
-import type { SitePlugin } from '../../scripts/src/marketplace/site.ts';
+import { loadSiteExtensions } from '../.vitepress/marketplace.ts';
+import type { SiteExtension } from '../../scripts/src/marketplace/site.ts';
 
-/** One page per listed plugin, which `[id].md` renders from its parameters (#390). */
+/** One page per listed extension, which `[id].md` renders from its parameters (#390). */
 export default {
-  async paths(): Promise<{ params: SitePlugin }[]> {
-    const plugins = (await loadSitePlugins()) ?? [];
-    return plugins.map((plugin) => ({ params: plugin }));
+  async paths(): Promise<{ params: SiteExtension }[]> {
+    const extensions = (await loadSiteExtensions()) ?? [];
+    return extensions.map((extension) => ({ params: extension }));
   },
 };

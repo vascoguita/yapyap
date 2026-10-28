@@ -7,7 +7,7 @@ import {
   readyAssistant,
 } from './assistant-helpers.ts';
 import { expect, test } from './fixtures.ts';
-import { chromePage, installPlugin } from './plugin-helpers.ts';
+import { chromePage, installExtension } from './extension-helpers.ts';
 
 test('keeps the key the user pastes in the assistant’s panel with YapYap’s secrets', async ({
   app,
@@ -26,13 +26,13 @@ test('keeps the key the user pastes in the assistant’s panel with YapYap’s s
       });
   });
   const { manifest, main, others } = await builtAssistant();
-  await installPlugin(app, profile, manifest, main, others);
+  await installExtension(app, profile, manifest, main, others);
   const open = () =>
     app.evaluate(({ Menu }) => {
-      const plugins = Menu.getApplicationMenu()
+      const extensions = Menu.getApplicationMenu()
         ?.items.flatMap((menu) => menu.submenu?.items ?? [])
-        .find((entry) => entry.label === 'Plugin Commands');
-      const panel = plugins?.submenu?.items.find(
+        .find((entry) => entry.label === 'Extension Commands');
+      const panel = extensions?.submenu?.items.find(
         (entry) => entry.label === 'AI assistant: Assistant',
       );
       panel?.click();
@@ -48,7 +48,7 @@ test('keeps the key the user pastes in the assistant’s panel with YapYap’s s
   await panel.getByRole('button', { name: 'Save key' }).click();
   await expect(status).toHaveText('Using Claude (Anthropic), model claude-opus-5-5. Ready.');
   await expect(panel.getByLabel('API key')).toHaveValue('');
-  const kept = await readFile(join(profile, 'plugins', '.secrets.json'), 'utf8');
+  const kept = await readFile(join(profile, 'extensions', '.secrets.json'), 'utf8');
   expect(kept).not.toContain('sk-ant-e2e-key');
   await panel.getByRole('button', { name: 'Forget key' }).click();
   await expect(status).toContainText('Paste your API key to start.');

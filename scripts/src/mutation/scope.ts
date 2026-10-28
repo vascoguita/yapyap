@@ -2,7 +2,7 @@ import { matchesGlob } from 'node:path';
 
 /**
  * Modules whose tests must kill at least 90% of mutants (ADR 0005): the
- * WhatsApp adapter, plugin host, capability checker, signature verification,
+ * WhatsApp adapter, extension host, capability checker, signature verification,
  * settings migrations and AI providers, plus other security-sensitive parsers.
  */
 export const MUTATION_SCOPE: readonly string[] = [
@@ -12,7 +12,7 @@ export const MUTATION_SCOPE: readonly string[] = [
   'apps/desktop/src/main/logging/**/*.ts',
   'apps/desktop/src/main/navigation/**/*.ts',
   'apps/desktop/src/main/permissions/**/*.ts',
-  'apps/desktop/src/main/plugins/**/*.ts',
+  'apps/desktop/src/main/extensions/**/*.ts',
   'apps/desktop/src/main/recovery/**/*.ts',
   'apps/desktop/src/main/settings/**/*.ts',
   'apps/desktop/src/main/updates/**/*.ts',
@@ -20,8 +20,8 @@ export const MUTATION_SCOPE: readonly string[] = [
   'apps/desktop/src/main/web-contents-guards.ts',
   'apps/desktop/src/main/whatsapp-origin.ts',
   'apps/desktop/src/main/windows.ts',
-  'packages/plugin-sign/src/**/*.ts',
-  'plugins/ai-assistant/src/providers/**/*.ts',
+  'packages/extension-sign/src/**/*.ts',
+  'extensions/ai-assistant/src/providers/**/*.ts',
   'scripts/src/licenses/**/*.ts',
   'scripts/src/release/**/*.ts',
 ];

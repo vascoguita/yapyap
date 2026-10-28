@@ -74,7 +74,7 @@ import {
   supportsInlineReply,
   type ReplyContents,
 } from './notifications/reply.ts';
-import { readOpenChat } from './plugins/chat-reading.ts';
+import { readOpenChat } from './extensions/chat-reading.ts';
 import type { WindowOptions } from './windows.ts';
 import {
   bringToFront,
@@ -84,7 +84,7 @@ import {
   type LinkWindow,
 } from './instances.ts';
 import { chatLinkInArguments } from './navigation/deep-link.ts';
-import { pluginLinkInArguments } from './navigation/plugin-link.ts';
+import { extensionLinkInArguments } from './navigation/extension-link.ts';
 import { type UnsafeStartDependencies } from './sandbox-check.ts';
 import { type DownloadDependencies, type DownloadingSession } from './downloads/downloads.ts';
 import { quitOnShutdown, type ShutdownSources } from './shutdown.ts';
@@ -107,7 +107,7 @@ import { type ManagedWindow, type WindowStateStore } from './window/main-window.
 import type { Rect } from './window/window-state.ts';
 import { type GlobalShortcutPort } from './shortcuts/global-shortcuts.ts';
 import type { ContextMenuItem, MenuPage } from './spelling/context-menu.ts';
-import type { ClickedPage } from './plugins/plugin-menu-items.ts';
+import type { ClickedPage } from './extensions/extension-menu-items.ts';
 import { followSpellingSetting, type SpellingController } from './spelling/spelling.ts';
 import { type AuthInfo, type LoginCallback } from './network/proxy-login.ts';
 import type { SecretStore } from './secrets/secret-store.ts';
@@ -927,12 +927,12 @@ async function openWindow<Window extends WindowPort>(
   instances.attach(
     window,
     wireMainWindow(deps, chrome, window, running, origin),
-    chrome.installPluginFromLink,
+    chrome.installExtensionFromLink,
   );
   // An install link that started YapYap waits for its window, like a chat link.
-  const plugin = pluginLinkInArguments(deps.argv);
-  if (plugin !== undefined) {
-    chrome.installPluginFromLink(plugin);
+  const extension = extensionLinkInArguments(deps.argv);
+  if (extension !== undefined) {
+    chrome.installExtensionFromLink(extension);
   }
   // A failed load must not end startup: the monitor shows the recovery screen.
   await Promise.all(running.opened().map(({ page }) => page.loaded));

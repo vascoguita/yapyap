@@ -9,7 +9,7 @@ ADR that supersedes the old one.
 | [0001](0001-process-model-and-security-boundaries.md) | Electron process model and security boundaries     | Accepted |
 | [0002](0002-toolchain-and-resolved-versions.md)       | Toolchain and resolved versions                    | Accepted |
 | [0003](0003-packaging-and-update-channels.md)         | Packaging and update channels                      | Accepted |
-| [0004](0004-plugin-isolation-and-trust-model.md)      | Plugin isolation and trust model                   | Accepted |
+| [0004](0004-extension-isolation-and-trust-model.md)   | Extension isolation and trust model                | Accepted |
 | [0005](0005-test-strategy.md)                         | Test strategy                                      | Accepted |
 | [0006](0006-settings-schema-and-migrations.md)        | Settings schema and migrations                     | Accepted |
 | [0007](0007-git-and-merge-strategy.md)                | Git and merge strategy                             | Accepted |
@@ -19,7 +19,8 @@ ADR that supersedes the old one.
 | [0011](0011-whatsapp-notifications.md)                | WhatsApp notifications                             | Accepted |
 | [0012](0012-translations.md)                          | Translations                                       | Accepted |
 | [0013](0013-in-chat-assistant-bar.md)                 | The in-chat assistant bar                          | Accepted |
-| [0014](0014-plugin-marketplace.md)                    | The plugin marketplace                             | Accepted |
+| [0014](0014-extension-marketplace.md)                 | The extension marketplace                          | Accepted |
 | [0015](0015-call-recording.md)                        | Call recording                                     | Accepted |
+| [0016](0016-extensions-not-plugins.md)                | Extensions, not plugins                            | Accepted |
 
 New ADRs copy [`template.md`](template.md) and take the next free number.

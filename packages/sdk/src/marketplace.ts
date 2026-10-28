@@ -1,8 +1,8 @@
 import { Type, type Static } from 'typebox';
 import { ManifestSchema } from './manifest.ts';
 
-/** Where YapYap downloads the plugin marketplace's index (ADR 0014). */
-export const MARKETPLACE_INDEX_URL = 'https://packages.guita.org/plugins/index.json';
+/** Where YapYap downloads the extension marketplace's index (ADR 0014). */
+export const MARKETPLACE_INDEX_URL = 'https://packages.guita.org/extensions/index.json';
 
 /** Where the index's Ed25519 signature over its exact bytes lives, beside it. */
 export const MARKETPLACE_SIGNATURE_URL = `${MARKETPLACE_INDEX_URL}.sig`;
@@ -15,16 +15,16 @@ export const MARKETPLACE_MAX_VALIDITY_MS = 2_592_000_000;
 
 /** The file name of a listed version's archive, as it is published. */
 export const marketplaceArchiveName = (id: string, version: string): string =>
-  `${id}-${version}.yapyap-plugin`;
+  `${id}-${version}.yapyap-extension`;
 
 /**
  * Where a listed version's archive downloads from: always beside the index,
  * never a third party's server (ADR 0014).
  */
 export const marketplaceArchiveUrl = (id: string, version: string): string =>
-  `https://packages.guita.org/plugins/${id}/${marketplaceArchiveName(id, version)}`;
+  `https://packages.guita.org/extensions/${id}/${marketplaceArchiveName(id, version)}`;
 
-const { id: PluginId, version: Version, name: Name, author: Author } = ManifestSchema.properties;
+const { id: ExtensionId, version: Version, name: Name, author: Author } = ManifestSchema.properties;
 const Fingerprint = Type.String({ pattern: '^[0-9a-f]{2}(?::[0-9a-f]{2}){31}$' });
 const Time = Type.String({ format: 'date-time', maxLength: 40 });
 /** A capability or host the version asks for; newer YapYap versions may list kinds this one does not know. */
@@ -44,9 +44,9 @@ const MarketplaceVersion = Type.Object(
   { additionalProperties: false },
 );
 
-const MarketplacePlugin = Type.Object(
+const MarketplaceExtension = Type.Object(
   {
-    id: PluginId,
+    id: ExtensionId,
     name: Name,
     summary: Type.String({ minLength: 1, maxLength: 300 }),
     author: Author,
@@ -61,7 +61,7 @@ const MarketplacePlugin = Type.Object(
 
 const Revocation = Type.Object(
   {
-    id: PluginId,
+    id: ExtensionId,
     versions: Type.Union([Type.Literal('*'), Type.Array(Version, { minItems: 1, maxItems: 50 })]),
     signer: Fingerprint,
     reason: Type.String({ minLength: 1, maxLength: 300 }),
@@ -70,8 +70,8 @@ const Revocation = Type.Object(
 );
 
 /**
- * The plugin marketplace's index (ADR 0014): the official and reviewed
- * plugins, each version's archive hash, and the versions pulled since.
+ * The extension marketplace's index (ADR 0014): the official and reviewed
+ * extensions, each version's archive hash, and the versions pulled since.
  * YapYap trusts it only with a valid signature from a first-party key, a
  * `serial` no lower than the last one it accepted, and an unexpired
  * `expires`.
@@ -82,11 +82,11 @@ export const MarketplaceIndexSchema = Type.Object(
     serial: Type.Integer({ minimum: 1 }),
     generated: Time,
     expires: Time,
-    plugins: Type.Array(MarketplacePlugin, { maxItems: 1000 }),
+    extensions: Type.Array(MarketplaceExtension, { maxItems: 1000 }),
     revoked: Type.Array(Revocation, { maxItems: 1000 }),
   },
   { additionalProperties: false },
 );
 
-/** The plugin marketplace's index; see {@link MarketplaceIndexSchema}. */
+/** The extension marketplace's index; see {@link MarketplaceIndexSchema}. */
 export type MarketplaceIndex = Static<typeof MarketplaceIndexSchema>;

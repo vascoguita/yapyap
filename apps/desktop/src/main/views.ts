@@ -1,5 +1,5 @@
-/** Trust zones from ADR 0001, and plugins from ADR 0004. */
-export type Zone = 'whatsapp' | 'chrome' | 'plugin';
+/** Trust zones from ADR 0001, and extensions from ADR 0004. */
+export type Zone = 'whatsapp' | 'chrome' | 'extension';
 
 /** What YapYap knows about a web contents it created. */
 export interface ViewInfo {

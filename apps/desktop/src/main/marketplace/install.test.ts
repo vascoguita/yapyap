@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
-import type { MarketplaceIndex } from '@yapyap/plugin-sdk';
+import type { MarketplaceIndex } from '@yapyap/extension-sdk';
 import { describe, expect, it, vi } from 'vitest';
-import type { InstallRequest } from '../plugins/install-request.ts';
-import type { PreparedInstall } from '../plugins/installer.ts';
+import type { InstallRequest } from '../extensions/install-request.ts';
+import type { PreparedInstall } from '../extensions/installer.ts';
 import type { MarketplaceState } from './index-client.ts';
 import { installListed } from './install.ts';
 
@@ -25,7 +25,7 @@ const REQUEST: InstallRequest = {
 const archive = { manifest: {}, files: new Map() } as never;
 const CONSENT: PreparedInstall = { decision: { kind: 'consent', request: REQUEST }, archive };
 
-const PLUGIN: MarketplaceIndex['plugins'][number] = {
+const EXTENSION: MarketplaceIndex['extensions'][number] = {
   id: 'org.example.hello',
   name: 'Hello',
   summary: 'Says hello.',
@@ -47,14 +47,14 @@ const PLUGIN: MarketplaceIndex['plugins'][number] = {
   ],
 };
 
-const ready = (plugins = [PLUGIN]): MarketplaceState => ({
+const ready = (extensions = [EXTENSION]): MarketplaceState => ({
   status: 'ready',
   index: {
     format: 1,
     serial: 1,
     generated: '2026-10-27T08:00:00.000Z',
     expires: '2026-11-20T08:00:00.000Z',
-    plugins,
+    extensions,
     revoked: [],
   },
 });
@@ -73,7 +73,7 @@ function setup(
     download: vi.fn(() => Promise.resolve('bytes' in options ? options.bytes : BYTES)),
     archiveUrl: (id: string, version: string) => `https://packages.example/${id}-${version}`,
     prepare: vi.fn(() => Promise.resolve(options.prepared ?? CONSENT)),
-    commit: vi.fn(() => Promise.resolve('/plugins/org.example.hello/1.1.0')),
+    commit: vi.fn(() => Promise.resolve('/extensions/org.example.hello/1.1.0')),
     ask: vi.fn(() => Promise.resolve(true)),
     report: vi.fn(),
   };
@@ -81,7 +81,7 @@ function setup(
 }
 
 describe('installListed', () => {
-  it('downloads the listed archive, asks as a reviewed plugin, and installs it', async () => {
+  it('downloads the listed archive, asks as a reviewed extension, and installs it', async () => {
     const t = setup();
     await t.run();
     expect(t.deps.download).toHaveBeenCalledWith(
@@ -97,9 +97,9 @@ describe('installListed', () => {
     });
   });
 
-  it('keeps YapYap’s own plugins first-party, and asks nothing of an update that adds nothing', async () => {
+  it('keeps YapYap’s own extensions first-party, and asks nothing of an update that adds nothing', async () => {
     const own = { ...REQUEST, id: 'org.guita.yapyap.hello', firstParty: true };
-    const official = { ...PLUGIN, id: own.id, review: 'official' as const };
+    const official = { ...EXTENSION, id: own.id, review: 'official' as const };
     const t = setup({
       state: ready([official]),
       prepared: { decision: { kind: 'consent', request: own }, archive },
@@ -116,7 +116,7 @@ describe('installListed', () => {
 
   it.each([
     ['the marketplace cannot be loaded', { state: { status: 'unreachable' } as const }],
-    ['the plugin is not listed', { state: ready([]) }],
+    ['the extension is not listed', { state: ready([]) }],
     ['this YapYap is too old for it', { appVersion: '0.0.1' }],
   ])('installs nothing when %s', async (_case, options) => {
     const t = setup(options);
@@ -124,7 +124,7 @@ describe('installListed', () => {
     expect(t.deps.download).not.toHaveBeenCalled();
     expect(t.deps.report).toHaveBeenCalledWith({
       kind: 'rejected',
-      reason: 'The marketplace does not list this plugin for this version of YapYap.',
+      reason: 'The marketplace does not list this extension for this version of YapYap.',
     });
   });
 
@@ -133,7 +133,7 @@ describe('installListed', () => {
     ['an archive of another size', { bytes: new Uint8Array([1, 2]) }],
     ['an archive with another hash', { bytes: new Uint8Array([1, 2, 4]) }],
     [
-      'another plugin',
+      'another extension',
       {
         prepared: {
           ...CONSENT,

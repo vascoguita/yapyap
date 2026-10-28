@@ -6,7 +6,7 @@ YapYap is a desktop window for the official WhatsApp Web, the same page you
 would open in Chrome. It loads `https://web.whatsapp.com` unchanged, on
 Chromium, and identifies itself as the Chrome version it is built on. It
 never sends messages or acts on WhatsApp for you: there is no automation of
-any kind, and plugins can only write drafts that you send yourself.
+any kind, and extensions can only write drafts that you send yourself.
 
 YapYap is not made by WhatsApp or Meta, and nobody but WhatsApp can promise
 what WhatsApp will do. What YapYap can promise is that it behaves like a

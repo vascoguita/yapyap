@@ -46,11 +46,11 @@ import { buildMenuTemplate, type MenuActions } from '../menu.ts';
 import { accountsHandlers, type AccountManager } from './accounts.ts';
 import { problemReportHandlers } from './problem-report.ts';
 import {
-  createPluginChrome,
-  type PluginAccounts,
-  type PluginChrome,
-  type PluginChromeDependencies,
-} from '../plugins/plugin-chrome.ts';
+  createExtensionChrome,
+  type ExtensionAccounts,
+  type ExtensionChrome,
+  type ExtensionChromeDependencies,
+} from '../extensions/extension-chrome.ts';
 import {
   attachSidebar,
   sidebarHandlers,
@@ -67,7 +67,7 @@ import {
 import { guardCrashes, type CrashableContents } from '../recovery/crash-guard.ts';
 import { monitorPage, type MonitoredContents } from '../recovery/monitor.ts';
 import { isAccountColor } from '../accounts/accounts.ts';
-import { PLUGIN_SCHEME } from '../plugins/plugin-files.ts';
+import { EXTENSION_SCHEME } from '../extensions/extension-files.ts';
 import { setDoNotDisturb } from '../notifications/quiet.ts';
 import { settingsHandlers, type SettingEffect } from '../settings/handlers.ts';
 import type { SettingsService } from '../settings/service.ts';
@@ -272,7 +272,7 @@ export interface ChromeFeatureDependencies {
   readonly confirmReset: () => Promise<boolean>;
   /** Asks before removing the account named `name`; true when the user agrees. */
   readonly confirmRemoveAccount: (name: string) => Promise<boolean>;
-  readonly plugins: PluginChromeDependencies;
+  readonly extensions: ExtensionChromeDependencies;
   readonly captureSources: (kind: SourceKind) => Promise<readonly DesktopSource[]>;
   /** The window showing `contents`, so the picker can sit on top of it. */
   readonly windowOf: (contents: object) => WindowOptions['parent'] | null;
@@ -312,11 +312,11 @@ interface ChromeRuntime {
   readonly askProxyLogin: ProxyLoginPrompt['ask'];
   /** Shows the quick-access panel as the settings ask, beside `owner`; returns how to show it the accounts. */
   readonly attachQuickPanel: (owner: PanelOwner) => (source: SidebarSource) => void;
-  /** The running plugins' right-click items, and how to run one (#98). */
-  readonly pluginActions: PluginChrome['actions'];
-  readonly runPluginCommand: PluginChrome['runCommand'];
-  /** Installs the plugin an **Install in YapYap** link names (#389). */
-  readonly installPluginFromLink: PluginChrome['installFromLink'];
+  /** The running extensions' right-click items, and how to run one (#98). */
+  readonly extensionActions: ExtensionChrome['actions'];
+  readonly runExtensionCommand: ExtensionChrome['runCommand'];
+  /** Installs the extension an **Install in YapYap** link names (#389). */
+  readonly installExtensionFromLink: ExtensionChrome['installFromLink'];
   /** Docks the account sidebar; returns how to show it the accounts. */
   readonly attachSidebar: (
     create: (renderer: RendererOptions) => SidebarPort,
@@ -327,13 +327,13 @@ interface ChromeRuntime {
 export interface AccountMenu extends AccountManager {
   /** The active account's WhatsApp, which Clear Cache and Reset Session act on. */
   readonly activeContents: () => object;
-  /** Puts a plugin's draft in the active account's open chat; false when none is open. */
+  /** Puts an extension's draft in the active account's open chat; false when none is open. */
   readonly insertDraft: (text: string) => Promise<boolean>;
-  /** The active account's open chat, for a plugin that may read it (#100). */
-  readonly readActiveChat: PluginAccounts['readActiveChat'];
-  /** The active account's draft, for a plugin that may rewrite it (#105). */
-  readonly replaceDraft: PluginAccounts['replaceDraft'];
-  readonly readDraft: PluginAccounts['readDraft'];
+  /** The active account's open chat, for an extension that may read it (#100). */
+  readonly readActiveChat: ExtensionAccounts['readActiveChat'];
+  /** The active account's draft, for an extension that may rewrite it (#105). */
+  readonly replaceDraft: ExtensionAccounts['replaceDraft'];
+  readonly readDraft: ExtensionAccounts['readDraft'];
   readonly switchTo: (id: string) => void;
   readonly add: () => void;
   readonly privacyScreen: boolean;
@@ -576,15 +576,18 @@ type ChromeOpeners = Pick<
   | 'openAbout'
   | 'openSettings'
   | 'openNewChat'
-  | 'openPlugins'
-  | 'installPlugin'
+  | 'openExtensions'
+  | 'installExtension'
   | 'openShortcuts'
   | 'openCustomCode'
   | 'openDownloads'
   | 'openReport'
 >;
 
-function chromeOpeners(windows: ChromeWindowDependencies, plugins: PluginChrome): ChromeOpeners {
+function chromeOpeners(
+  windows: ChromeWindowDependencies,
+  extensions: ExtensionChrome,
+): ChromeOpeners {
   const opener = (page: ChromePage) => createChromeWindowOpener(windows, page);
   return {
     openAccounts: opener(ACCOUNTS_PAGE),
@@ -594,9 +597,9 @@ function chromeOpeners(windows: ChromeWindowDependencies, plugins: PluginChrome)
     openShortcuts: opener(SHORTCUTS_PAGE),
     openCustomCode: opener(CUSTOM_CODE_PAGE),
     openDownloads: opener(DOWNLOADS_PAGE),
-    openPlugins: plugins.openPlugins,
+    openExtensions: extensions.openExtensions,
     openReport: opener(REPORT_PAGE),
-    installPlugin: plugins.install,
+    installExtension: extensions.install,
   };
 }
 
@@ -625,17 +628,17 @@ function menuAccounts(
   };
 }
 
-type MenuPlugins = Pick<
-  PluginChrome,
+type MenuExtensions = Pick<
+  ExtensionChrome,
   'commands' | 'runCommand' | 'panels' | 'openPanel' | 'onCommandsChange'
 >;
 
-/** The menu's actions for the accounts as they are, and the running plugins' commands. */
+/** The menu's actions for the accounts as they are, and the running extensions' commands. */
 function menuActionsOf(
   deps: Omit<ChromeFeatureDependencies, 'facts'> & FactsSource,
   slots: Pick<ChromeSlots, 'recoveries' | 'pages'>,
   openers: ChromeOpeners,
-  plugins: MenuPlugins,
+  extensions: MenuExtensions,
   warn: (message: string) => void,
 ): (menu: AccountMenu | undefined) => MenuActions {
   const copyDiagnostics = diagnosticsCopier(deps, slots.pages, warn);
@@ -649,10 +652,10 @@ function menuActionsOf(
     },
     copyDiagnostics,
     recordTrace: deps.recordTrace,
-    pluginCommands: plugins.commands(),
-    runPluginCommand: plugins.runCommand,
-    pluginPanels: plugins.panels(),
-    openPluginPanel: plugins.openPanel,
+    extensionCommands: extensions.commands(),
+    runExtensionCommand: extensions.runCommand,
+    extensionPanels: extensions.panels(),
+    openExtensionPanel: extensions.openPanel,
   });
 }
 
@@ -670,17 +673,17 @@ function onShortcutChange(settings: SettingsService, rebuild: () => void): void 
 
 /**
  * Sets the application menu now, without accounts, and again whenever the
- * accounts, a shortcut or the running plugins change; returns how to give
+ * accounts, a shortcut or the running extensions change; returns how to give
  * it the accounts.
  */
 function accountMenuSetter(
   deps: Omit<ChromeFeatureDependencies, 'facts'> & FactsSource,
   slots: Pick<ChromeSlots, 'recoveries' | 'pages' | 'accounts'>,
   openers: ChromeOpeners,
-  plugins: MenuPlugins,
+  extensions: MenuExtensions,
   warn: (message: string) => void,
 ): (menu: AccountMenu) => void {
-  const actions = menuActionsOf(deps, slots, openers, plugins, warn);
+  const actions = menuActionsOf(deps, slots, openers, extensions, warn);
   const set = (menu: AccountMenu | undefined): void => {
     deps.setMenu(
       buildMenuTemplate(deps.platform, actions(menu), deps.settings.current().shortcuts.custom),
@@ -690,7 +693,7 @@ function accountMenuSetter(
     set(slots.accounts.current);
   };
   set(undefined);
-  plugins.onCommandsChange(rebuild);
+  extensions.onCommandsChange(rebuild);
   onShortcutChange(deps.settings, rebuild);
   return (menu) => {
     slots.accounts.current = menu;
@@ -748,10 +751,10 @@ function diagnosticsCopier(
 }
 
 /**
- * The accounts as plugins see them: drafts go to the active account's open
+ * The accounts as extensions see them: drafts go to the active account's open
  * chat, and before there are accounts, there is no account to act on.
  */
-export function pluginAccounts(accounts: AccountsSlot): PluginAccounts {
+export function extensionAccounts(accounts: AccountsSlot): ExtensionAccounts {
   return {
     insertDraft: (text) =>
       accounts.current === undefined ? Promise.resolve(false) : accounts.current.insertDraft(text),
@@ -792,15 +795,20 @@ function chromeSlots(
   };
 }
 
-/** Windows that ask or stand by: plugin prompts, proxy sign-in and the quick-access panel. */
+/** Windows that ask or stand by: extension prompts, proxy sign-in and the quick-access panel. */
 function standbyWindows(
   deps: ChromeFeatureDependencies,
   windows: ChromeWindowDependencies<PanelWindow>,
   wayland: boolean,
   accounts: AccountsSlot,
-): { plugins: PluginChrome; proxyLogin: ProxyLoginPrompt; quickPanel: QuickPanel } {
+): { extensions: ExtensionChrome; proxyLogin: ProxyLoginPrompt; quickPanel: QuickPanel } {
   return {
-    plugins: createPluginChrome(deps.plugins, deps.settings, windows, pluginAccounts(accounts)),
+    extensions: createExtensionChrome(
+      deps.extensions,
+      deps.settings,
+      windows,
+      extensionAccounts(accounts),
+    ),
     proxyLogin: createProxyLoginPrompt(() => openPromptWindow(windows, PROXY_LOGIN_PAGE)),
     quickPanel: createQuickPanel({
       wayland,
@@ -829,15 +837,15 @@ function startChrome(
   const windows = chromeWindows(deps, renderer, views, warn);
   const slots = chromeSlots(deps, windows);
   const { recoveries, pages, picker, chats, accounts, sidebar } = slots;
-  const { plugins, proxyLogin, quickPanel } = standbyWindows(deps, windows, wayland, accounts);
+  const { extensions, proxyLogin, quickPanel } = standbyWindows(deps, windows, wayland, accounts);
   const handlers = [
     ...allHandlers({ ...withGraphics, unavailableSettings: unavailableOn(wayland) }, slots),
-    ...plugins.handlers,
+    ...extensions.handlers,
     ...proxyLogin.handlers,
     ...quickPanel.handlers,
   ];
   registerChromeHandlers(deps.ipc, views, handlers, warn);
-  const openers = chromeOpeners(windows, plugins);
+  const openers = chromeOpeners(windows, extensions);
   return {
     attachRecovery: recoveryAttacher(withGraphics, renderer, views, warn, recoveries, pages),
     pickCaptureSource: picker.pick,
@@ -845,16 +853,16 @@ function startChrome(
     openChatsWith: (open) => {
       chats.open = open;
     },
-    setAccountMenu: accountMenuSetter(withGraphics, slots, openers, plugins, warn),
+    setAccountMenu: accountMenuSetter(withGraphics, slots, openers, extensions, warn),
     openSettings: openers.openSettings,
     openWelcome: createChromeWindowOpener(windows, WELCOME_PAGE),
     openSpellingLanguages: createChromeWindowOpener(windows, SPELLING_LANGUAGES_PAGE),
     askProxyLogin: proxyLogin.ask,
     attachQuickPanel: quickPanel.attach,
     attachSidebar: (create) => attachSidebar(create(renderer), views, sidebar, warn),
-    pluginActions: plugins.actions,
-    runPluginCommand: plugins.runCommand,
-    installPluginFromLink: plugins.installFromLink,
+    extensionActions: extensions.actions,
+    runExtensionCommand: extensions.runCommand,
+    installExtensionFromLink: extensions.installFromLink,
   };
 }
 
@@ -864,8 +872,8 @@ export function createChromeFeature(deps: ChromeFeatureDependencies): ChromeFeat
     beforeReady: () => {
       deps.registerSchemesAsPrivileged([
         { scheme: CHROME_SCHEME, privileges: { standard: true, secure: true } },
-        // Served only on each plugin's own session (ADR 0004).
-        { scheme: PLUGIN_SCHEME, privileges: { standard: true, secure: true } },
+        // Served only on each extension's own session (ADR 0004).
+        { scheme: EXTENSION_SCHEME, privileges: { standard: true, secure: true } },
       ]);
     },
     afterReady: (views, warn, graphics, wayland) => {

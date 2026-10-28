@@ -3,7 +3,7 @@ import {
   MARKETPLACE_SIGNATURE_URL,
   marketplaceArchiveName,
   marketplaceArchiveUrl,
-} from '@yapyap/plugin-sdk';
+} from '@yapyap/extension-sdk';
 import { resolveWhatsAppOrigin } from '../whatsapp-origin.ts';
 
 /** Where the marketplace's index, signature and archives come from, and who may sign the index. */
@@ -38,10 +38,10 @@ export function marketplaceSource(
     };
   }
   return {
-    indexUrl: `${test.origin}/plugins/index.json`,
-    signatureUrl: `${test.origin}/plugins/index.json.sig`,
+    indexUrl: `${test.origin}/extensions/index.json`,
+    signatureUrl: `${test.origin}/extensions/index.json.sig`,
     archiveUrl: (id, version) =>
-      `${test.origin}/plugins/${id}/${marketplaceArchiveName(id, version)}`,
+      `${test.origin}/extensions/${id}/${marketplaceArchiveName(id, version)}`,
     anchors: [anchor],
   };
 }

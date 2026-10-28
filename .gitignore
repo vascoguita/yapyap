@@ -160,10 +160,10 @@ reports/
 docs/.vitepress/cache/
 docs/.vitepress/dist/
 docs/api/
-*.yapyap-plugin
+*.yapyap-extension
 *.pem
 !**/test/**/fixtures/**/*.pem
 .flatpak-builder/
 flatpak-build/
 *.flatpak
-plugins-out/
+extensions-out/

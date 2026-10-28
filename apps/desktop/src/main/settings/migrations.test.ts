@@ -54,18 +54,18 @@ describe('migrate', () => {
 describe('version 13 to 14', () => {
   const toVersion14 = MIGRATIONS[12];
 
-  it('lets plugins read 20 messages, keeping the other plugin settings', () => {
-    expect(toVersion14?.({ schemaVersion: 13, plugins: { developerMode: true } })).toEqual({
+  it('lets extensions read 20 messages, keeping the other extension settings', () => {
+    expect(toVersion14?.({ schemaVersion: 13, extensions: { developerMode: true } })).toEqual({
       schemaVersion: 13,
-      plugins: { chatMessages: '20', developerMode: true },
+      extensions: { chatMessages: '20', developerMode: true },
     });
   });
 
   it('keeps a choice that is already there, and leaves a broken section to validation', () => {
-    expect(toVersion14?.({ plugins: { chatMessages: '5' } })).toEqual({
-      plugins: { chatMessages: '5' },
+    expect(toVersion14?.({ extensions: { chatMessages: '5' } })).toEqual({
+      extensions: { chatMessages: '5' },
     });
-    const settings = { schemaVersion: 13, plugins: 7 };
+    const settings = { schemaVersion: 13, extensions: 7 };
     expect(toVersion14?.(settings)).toBe(settings);
   });
 });
@@ -130,18 +130,18 @@ describe('version 10 to 11', () => {
 describe('version 9 to 10', () => {
   const toVersion10 = MIGRATIONS[8];
 
-  it('turns Developer Mode off in a plugins section, and leaves a missing one to validation', () => {
-    expect(toVersion10?.({ schemaVersion: 9, plugins: {} })).toEqual({
+  it('turns Developer Mode off in an extensions section, and leaves a missing one to validation', () => {
+    expect(toVersion10?.({ schemaVersion: 9, extensions: {} })).toEqual({
       schemaVersion: 9,
-      plugins: { developerMode: false },
+      extensions: { developerMode: false },
     });
     const settings = { schemaVersion: 9 };
     expect(toVersion10?.(settings)).toBe(settings);
   });
 
   it('keeps a choice that is already there', () => {
-    expect(toVersion10?.({ plugins: { developerMode: true } })).toEqual({
-      plugins: { developerMode: true },
+    expect(toVersion10?.({ extensions: { developerMode: true } })).toEqual({
+      extensions: { developerMode: true },
     });
   });
 });

@@ -8,7 +8,7 @@ const ROOT = join(import.meta.dirname, '..', '..', '..');
 
 describe('the published manifest schema', () => {
   it.each(['packages/sdk/schema/manifest.schema.json', 'docs/public/schema/manifest.schema.json'])(
-    '%s matches the TypeBox schema (regenerate with pnpm --filter @yapyap/plugin-sdk schema)',
+    '%s matches the TypeBox schema (regenerate with pnpm --filter @yapyap/extension-sdk schema)',
     (path) => {
       expect(readFileSync(join(ROOT, path), 'utf8')).toBe(manifestSchemaJson());
     },

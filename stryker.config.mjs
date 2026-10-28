@@ -9,7 +9,7 @@ const tests = related.length === 0 ? 'run' : `related --run --passWithNoTests ${
 
 export default {
   packageManager: 'pnpm',
-  // The Vitest runner plugin does not activate mutants under Vitest 5 (every
+  // The Vitest runner extension does not activate mutants under Vitest 5 (every
   // mutant survives), so each mutant runs the suite as a command and is
   // switched on through the environment instead (ADR 0008, C12).
   testRunner: 'command',

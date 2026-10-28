@@ -19,7 +19,7 @@ function sources(folder: string): string[] {
 const ENDPOINT = /createServer|\.listen\(|from 'node:(?:net|http|https|http2|dgram)'/;
 
 describe('local endpoints', () => {
-  // ADR 0004 and #94: nothing on this computer, a plugin included, can drive
+  // ADR 0004 and #94: nothing on this computer, an extension included, can drive
   // YapYap from outside, because YapYap listens on no port or socket.
   it('are never opened by YapYap’s own code', () => {
     const files = sources(SOURCE);

@@ -6,7 +6,7 @@ import { SETTINGS_VERSION } from '../../src/main/settings/schema.ts';
 import { claudeAnswer, readyAssistant } from '../assistant-helpers.ts';
 import { startFakeWhatsApp } from '../fake-whatsapp-server.ts';
 import { closeApp, expect, launchApp, test } from '../fixtures.ts';
-import { chromePage, clickMenu } from '../plugin-helpers.ts';
+import { chromePage, clickMenu } from '../extension-helpers.ts';
 
 /**
  * Screenshots of YapYap's own windows for the website (#384), taken on the

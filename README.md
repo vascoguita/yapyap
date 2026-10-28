@@ -48,7 +48,7 @@ YapYap is young: v0.1.0 is its first release. Follow what comes next on the
 - Multiple accounts with fully isolated sessions
 - Native notifications, tray or menu bar with unread counts, and do-not-disturb
 - Recovery tools that fix a stuck session without logging you out
-- A sandboxed, signed plugin system with per-account permissions
+- A sandboxed, signed extension system with per-account permissions
 - An optional "bring your own model" AI writing assistant that only ever
   inserts drafts
 - No telemetry

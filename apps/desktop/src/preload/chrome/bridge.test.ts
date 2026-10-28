@@ -17,8 +17,8 @@ describe('createChromeBridge', () => {
       Promise.resolve(answers[channel] ?? 'ignored'),
     );
     const listen = vi.fn();
-    const listenToPlugins = vi.fn();
-    const api = createChromeBridge(invoke, listen, listenToPlugins);
+    const listenToExtensions = vi.fn();
+    const api = createChromeBridge(invoke, listen, listenToExtensions);
     expect(await api.about.info()).toBe(info);
     await api.about.copyTechnicalDetails();
     expect(await api.recovery.problem()).toBe(problem);
@@ -47,19 +47,19 @@ describe('createChromeBridge', () => {
     await api.sidebar.stopSharing('a');
     await api.quickPanel.open('a');
     await api.quickPanel.setDoNotDisturb(true);
-    expect(await api.plugins.list()).toBe('ignored');
-    expect(await api.plugins.consent()).toBe('ignored');
-    await api.plugins.answer(true, false);
-    expect(await api.plugins.setSetting('org.example.hello', 'model', 'small')).toBe('ignored');
-    expect(await api.plugins.setGrant('org.example.hello', 'secrets:own', null, false)).toBe(
+    expect(await api.extensions.list()).toBe('ignored');
+    expect(await api.extensions.consent()).toBe('ignored');
+    await api.extensions.answer(true, false);
+    expect(await api.extensions.setSetting('org.example.hello', 'model', 'small')).toBe('ignored');
+    expect(await api.extensions.setGrant('org.example.hello', 'secrets:own', null, false)).toBe(
       'ignored',
     );
-    expect(await api.plugins.remove('org.example.hello')).toBe('ignored');
-    expect(await api.plugins.marketplace()).toBe('ignored');
-    await api.plugins.installListed('org.example.hello');
+    expect(await api.extensions.remove('org.example.hello')).toBe('ignored');
+    expect(await api.extensions.marketplace()).toBe('ignored');
+    await api.extensions.installListed('org.example.hello');
     const changed = vi.fn();
-    api.plugins.onChange(changed);
-    expect(listenToPlugins).toHaveBeenCalledExactlyOnceWith(changed);
+    api.extensions.onChange(changed);
+    expect(listenToExtensions).toHaveBeenCalledExactlyOnceWith(changed);
     expect(await api.shortcuts.list()).toBe('ignored');
     expect(await api.shortcuts.set('settings', 'CmdOrCtrl+K')).toBe('ignored');
     expect(await api.downloads.list()).toBe('ignored');
@@ -113,14 +113,14 @@ describe('createChromeBridge', () => {
       ['sidebar:stop-sharing', 'a'],
       ['quick-panel:open', 'a'],
       ['quick-panel:set-do-not-disturb', true],
-      ['plugins:list'],
-      ['plugins:consent'],
-      ['plugins:answer', true, false],
-      ['plugins:set-setting', 'org.example.hello', 'model', 'small'],
-      ['plugins:set-grant', 'org.example.hello', 'secrets:own', null, false],
-      ['plugins:remove', 'org.example.hello'],
-      ['plugins:marketplace'],
-      ['plugins:install-listed', 'org.example.hello'],
+      ['extensions:list'],
+      ['extensions:consent'],
+      ['extensions:answer', true, false],
+      ['extensions:set-setting', 'org.example.hello', 'model', 'small'],
+      ['extensions:set-grant', 'org.example.hello', 'secrets:own', null, false],
+      ['extensions:remove', 'org.example.hello'],
+      ['extensions:marketplace'],
+      ['extensions:install-listed', 'org.example.hello'],
       ['shortcuts:list'],
       ['shortcuts:set', 'settings', 'CmdOrCtrl+K'],
       ['downloads:list'],
@@ -151,7 +151,7 @@ describe('createChromeBridge', () => {
       'accounts',
       'sidebar',
       'quickPanel',
-      'plugins',
+      'extensions',
       'report',
       'spelling',
       'picker',
@@ -169,7 +169,7 @@ describe('createChromeBridge', () => {
       'stopSharing',
       'onState',
     ]);
-    expect(Object.keys(api.plugins)).toEqual([
+    expect(Object.keys(api.extensions)).toEqual([
       'list',
       'consent',
       'answer',

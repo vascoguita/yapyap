@@ -13,7 +13,7 @@ import type { ContextMenuItem, ContextMenuParams } from './spelling/context-menu
 import type { ProxyLoginAnswer } from '../shared/chrome-api.ts';
 import { WHATSAPP_ORIGIN } from './whatsapp-origin.ts';
 import type { WindowOptions } from './windows.ts';
-import type { PluginAction } from './plugins/runtime.ts';
+import type { ExtensionAction } from './extensions/runtime.ts';
 
 type Listener = (...args: never[]) => void;
 
@@ -145,9 +145,9 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     }),
     panel,
     attachQuickPanel: vi.fn<(owner: PanelOwner) => typeof panel>(() => panel),
-    pluginActions: vi.fn<() => readonly PluginAction[]>(() => []),
-    runPluginCommand: vi.fn(() => true),
-    installPluginFromLink: vi.fn(),
+    extensionActions: vi.fn<() => readonly ExtensionAction[]>(() => []),
+    runExtensionCommand: vi.fn(() => true),
+    installExtensionFromLink: vi.fn(),
   };
   const createSidebar = vi.fn(() => ({
     webContents: { loadURL: vi.fn(() => Promise.resolve()), send: vi.fn() },
@@ -819,7 +819,7 @@ describe('startApp', () => {
     expect(f.runtime.panel).toHaveBeenLastCalledWith(f.runtime.sidebar.mock.calls.at(-1)?.[0]);
   });
 
-  it('reads the active account’s open chat for a plugin, through the adapter', async () => {
+  it('reads the active account’s open chat for an extension, through the adapter', async () => {
     const f = fakes();
     await startApp(f);
     const [menu] = f.runtime.setAccountMenu.mock.calls.at(-1) ?? [];
@@ -832,7 +832,7 @@ describe('startApp', () => {
     expect(f.web.contents.insertText).toHaveBeenLastCalledWith('New');
   });
 
-  it('puts a plugin’s draft in the active account’s open chat, and only there', async () => {
+  it('puts an extension’s draft in the active account’s open chat, and only there', async () => {
     const f = fakes();
     await startApp(f);
     const [menu] = f.runtime.setAccountMenu.mock.calls.at(-1) ?? [];
@@ -1322,12 +1322,12 @@ describe('startApp', () => {
       expect(f.runtime.openSettings).toHaveBeenCalledOnce();
     });
 
-    it('adds the running plugins’ items for where the user clicked, and runs the one picked', async () => {
+    it('adds the running extensions’ items for where the user clicked, and runs the one picked', async () => {
       const f = fakes();
-      f.runtime.pluginActions.mockReturnValue([
+      f.runtime.extensionActions.mockReturnValue([
         {
-          plugin: 'org.example.hello',
-          pluginName: 'Hello',
+          extension: 'org.example.hello',
+          extensionName: 'Hello',
           command: 'fix',
           title: 'Fix',
           on: 'composer',
@@ -1337,7 +1337,7 @@ describe('startApp', () => {
       const items = await rightClick(f);
       expect(items.at(-1)?.label).toBe('Hello: Fix');
       items.at(-1)?.click?.();
-      expect(f.runtime.runPluginCommand).toHaveBeenCalledExactlyOnceWith(
+      expect(f.runtime.runExtensionCommand).toHaveBeenCalledExactlyOnceWith(
         'org.example.hello',
         'fix',
       );
@@ -1448,16 +1448,16 @@ describe('startApp', () => {
     expect(f.web.contents.loadURL).toHaveBeenLastCalledWith(`${WHATSAPP_ORIGIN}/send?text=Hi`);
   });
 
-  it('installs from a plugin link, whether it started YapYap or came with a later launch', async () => {
-    const f = fakes({}, ['/opt/YapYap/yapyap', 'yapyap://plugins/install/org.example.hello']);
+  it('installs from an extension link, whether it started YapYap or came with a later launch', async () => {
+    const f = fakes({}, ['/opt/YapYap/yapyap', 'yapyap://extensions/install/org.example.hello']);
     await startApp(f);
-    expect(f.runtime.installPluginFromLink).toHaveBeenCalledExactlyOnceWith('org.example.hello');
+    expect(f.runtime.installExtensionFromLink).toHaveBeenCalledExactlyOnceWith('org.example.hello');
     const secondInstance = f.listeners.get('second-instance') as unknown as (
       event: unknown,
       argv: readonly string[],
     ) => void;
-    secondInstance({}, ['/opt/YapYap/yapyap', 'yapyap://plugins/install/org.example.other']);
-    expect(f.runtime.installPluginFromLink).toHaveBeenLastCalledWith('org.example.other');
+    secondInstance({}, ['/opt/YapYap/yapyap', 'yapyap://extensions/install/org.example.other']);
+    expect(f.runtime.installExtensionFromLink).toHaveBeenLastCalledWith('org.example.other');
   });
 
   it('reopens the window where it was left and quits on termination signals', async () => {

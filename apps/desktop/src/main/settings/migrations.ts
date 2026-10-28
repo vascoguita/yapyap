@@ -74,13 +74,13 @@ function addTrayIcon(settings: Raw): Raw {
 }
 
 /**
- * Version 10 adds the plugins section, with Developer Mode off (#91). Older
+ * Version 10 adds the extensions section, with Developer Mode off (#91). Older
  * files have no such section, so validation gives it its defaults.
  */
-function addPlugins(settings: Raw): Raw {
-  const plugins = settings['plugins'];
-  return isSection(plugins)
-    ? { ...settings, plugins: { developerMode: false, ...plugins } }
+function addExtensions(settings: Raw): Raw {
+  const extensions = settings['extensions'];
+  return isSection(extensions)
+    ? { ...settings, extensions: { developerMode: false, ...extensions } }
     : settings;
 }
 
@@ -108,11 +108,11 @@ function addResourceLimits(settings: Raw): Raw {
     : settings;
 }
 
-/** Version 14 adds how many messages plugins may read, 20 by default (#100). */
+/** Version 14 adds how many messages extensions may read, 20 by default (#100). */
 function addChatMessages(settings: Raw): Raw {
-  const plugins = settings['plugins'];
-  return isSection(plugins)
-    ? { ...settings, plugins: { chatMessages: '20', ...plugins } }
+  const extensions = settings['extensions'];
+  return isSection(extensions)
+    ? { ...settings, extensions: { chatMessages: '20', ...extensions } }
     : settings;
 }
 
@@ -130,7 +130,7 @@ export const MIGRATIONS: readonly ((settings: Raw) => Raw)[] = [
   addDoNotDisturb,
   addCompactSidebar,
   addTrayIcon,
-  addPlugins,
+  addExtensions,
   addPrivacyScreen,
   addPinchZoom,
   addResourceLimits,
