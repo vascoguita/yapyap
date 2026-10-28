@@ -97,9 +97,12 @@ locally when available. Visual baselines are per-OS.
 ### Mutation testing
 
 Stryker uses its `command` runner. Each mutant runs `vitest run --config vitest.mutation.config.ts`, a flat single-project config, and the mutant is switched on through the environment. The Vitest runner extension does not activate mutants under Vitest 5 (ADR 0008, C12). The scope lives in `scripts/src/mutation/scope.ts`, which both Stryker and the PR target selection use. On PRs, Stryker mutates only changed files within the mutation scope
-(`--mutate` from the diff). Nightly runs the full scope in 16 shards
-(`mutation-targets.ts --shard i/16` deals the sorted modules out in turn),
-each mutating its modules and running only their related tests, as PRs do;
+(`--mutate` from the diff), dealt out to 16 shards so that a change touching
+most modules, such as a rename, stays within a runner's time limit; a shard
+with nothing to mutate stops before installing. Nightly runs the full scope
+in 16 shards (`mutation-targets.ts --all --shard i/16` deals the sorted
+modules out in turn), each mutating its modules and running only their
+related tests, as PRs do;
 one run over everything with the whole suite per mutant took more than a
 runner's two hours. The threshold is `break: 90`, for each shard.
 
