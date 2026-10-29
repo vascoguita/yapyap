@@ -1,5 +1,5 @@
 import type { JSX } from 'preact';
-import { useCallback, useEffect, useState } from 'preact/hooks';
+import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import type {
   ChromeApi,
   InstalledExtension,
@@ -90,11 +90,12 @@ function Grant(props: {
   );
 }
 
+/** Saves a setting; resolves with whether YapYap accepted it. */
 type SettingChange = (
   extension: string,
   key: string,
   value: string | number | boolean | null,
-) => void;
+) => Promise<boolean>;
 
 /** A value from an input, in the setting's own type; empty text means the extension's default. */
 function parsed(setting: ExtensionSetting, entered: string): string | number | null {
@@ -119,7 +120,7 @@ function BooleanSetting({ extension, setting, onChange }: SettingProps): JSX.Ele
       type="checkbox"
       checked={setting.value === true}
       onChange={(event) => {
-        onChange(extension, setting.key, event.currentTarget.checked);
+        void onChange(extension, setting.key, event.currentTarget.checked);
       }}
     />
   );
@@ -134,7 +135,7 @@ function ChoiceSetting(
       id={inputId(extension, setting.key)}
       value={String(setting.value ?? '')}
       onChange={(event) => {
-        onChange(extension, setting.key, parsed(setting, event.currentTarget.value));
+        void onChange(extension, setting.key, parsed(setting, event.currentTarget.value));
       }}
     >
       <option value="">{text.settingDefault}</option>
@@ -147,19 +148,45 @@ function ChoiceSetting(
   );
 }
 
-/** Text and numbers are saved when the field is left, so a half-typed value is never checked. */
+/**
+ * Text and numbers are saved on Enter, when the field is left, and when the
+ * window closes, so a half-typed value is never checked and a typed one is
+ * never lost (#431). The field says whether YapYap kept it.
+ */
 function TextSetting({ extension, setting, onChange }: SettingProps): JSX.Element {
+  const [kept, setKept] = useState<boolean | null>(null);
+  const stored = String(setting.value ?? '');
+  const typed = useRef(stored);
+  const save = useCallback((): void => {
+    const entered = typed.current;
+    if (entered !== stored) {
+      void onChange(extension, setting.key, parsed(setting, entered)).then(setKept);
+    }
+  }, [extension, setting, stored, onChange]);
+  useEffect(() => {
+    globalThis.addEventListener('pagehide', save);
+    return () => {
+      globalThis.removeEventListener('pagehide', save);
+    };
+  }, [save]);
   return (
-    <input
-      id={inputId(extension, setting.key)}
-      type="text"
-      inputMode={setting.type === 'string' ? 'text' : 'decimal'}
-      spellcheck={false}
-      defaultValue={String(setting.value ?? '')}
-      onBlur={(event) => {
-        onChange(extension, setting.key, parsed(setting, event.currentTarget.value));
-      }}
-    />
+    <>
+      <input
+        id={inputId(extension, setting.key)}
+        type="text"
+        inputMode={setting.type === 'string' ? 'text' : 'decimal'}
+        spellcheck={false}
+        defaultValue={stored}
+        onInput={(event) => {
+          typed.current = event.currentTarget.value;
+          setKept(null);
+        }}
+        onChange={save}
+      />
+      {kept === null ? null : (
+        <output class="saved">{kept ? text.settingSaved : text.settingRefused}</output>
+      )}
+    </>
   );
 }
 
@@ -304,9 +331,14 @@ function useExtensionList(api: ChromeApi) {
     api.extensions.onChange(load);
   }, [api]);
   const setting = useCallback<SettingChange>(
-    (extension, key, value) => {
-      api.extensions.setSetting(extension, key, value).then(setList, () => undefined);
-    },
+    (extension, key, value) =>
+      api.extensions.setSetting(extension, key, value).then(
+        (updated) => {
+          setList(updated);
+          return true;
+        },
+        () => false,
+      ),
     [api],
   );
   const grant = useCallback<GrantChange>(

@@ -411,6 +411,8 @@ export interface Messages {
     readonly remove: string;
     readonly removeLabel: (params: { readonly extension: string | number }) => string;
     readonly settingDefault: string;
+    readonly settingSaved: string;
+    readonly settingRefused: string;
     readonly permissions: string;
     readonly permissionsHint: string;
     readonly connectTo: (params: { readonly host: string | number }) => string;

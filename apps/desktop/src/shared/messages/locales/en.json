@@ -486,6 +486,8 @@
     "remove": "Remove…",
     "removeLabel": "Remove {{extension}}",
     "settingDefault": "Extension’s default",
+    "settingSaved": "Saved",
+    "settingRefused": "Not saved: YapYap could not use this value",
     "permissions": "Permissions",
     "permissionsHint": "Turn off anything you no longer want this extension to do. Turning something back on gives back only what you allowed when you installed it.",
     "connectTo": "Connect to {{host}}",

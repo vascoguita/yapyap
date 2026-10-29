@@ -1164,6 +1164,11 @@ not edit the same lines.
   schema, so extension setting names, per-account revocations and custom
   code snippet names now check their keys with `propertyNames`.
 
+- Extension settings that stick (#431): text and number settings in
+  Extensions… now save on Enter, on leaving the field, and when the window
+  closes, and say "Saved" or why not; before, closing the window right after
+  typing lost the edit without a sign.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).
