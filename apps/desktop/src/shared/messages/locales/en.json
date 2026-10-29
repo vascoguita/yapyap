@@ -335,6 +335,7 @@
   "welcome": {
     "title": "Welcome to YapYap",
     "intro": "A few choices to start with. You can change any of them later in Settings, and skip this with Escape.",
+    "guide": "New to YapYap? Read the six-step guide",
     "language": "Language",
     "languageNote": "YapYap is in English for now. More languages are on their way.",
     "look": "Look",

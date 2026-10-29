@@ -4,6 +4,9 @@ import { en } from '../../shared/messages/en.ts';
 import { SETTING_FIELDS, type SettingValue } from '../../shared/settings-fields.ts';
 import { Field, useSnapshot } from '../settings/Settings.tsx';
 
+/** The six-step guide on the website, which opens in the browser (#385). */
+const GET_STARTED = 'https://yapyap.guita.org/guide/get-started';
+
 const text = en.welcome;
 
 /** The first choices, grouped as the welcome asks them; fields this platform lacks are left out. */
@@ -52,6 +55,11 @@ export function Welcome({ api }: { readonly api: ChromeApi }): JSX.Element | nul
     <main class="welcome">
       <h1>{text.title}</h1>
       <p class="hint">{text.intro}</p>
+      <p class="hint">
+        <a href={GET_STARTED} target="_blank" rel="noreferrer">
+          {text.guide}
+        </a>
+      </p>
       <section>
         <h2>{text.language}</h2>
         <p>{text.languageNote}</p>

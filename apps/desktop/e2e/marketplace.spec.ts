@@ -1,68 +1,9 @@
-import { generateKeyPairSync, createHash } from 'node:crypto';
+import { generateKeyPairSync } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
-import { createServer, type Server } from 'node:http';
-import type { AddressInfo } from 'node:net';
 import { join } from 'node:path';
-import { signIndex } from '@yapyap/extension-sign';
-import { signedArchive, testKey, testManifest, zipArchive } from '../test/extensions.ts';
 import { closeApp, expect, launchApp, test } from './fixtures.ts';
 import { chromePage, clickMenu } from './extension-helpers.ts';
-
-/** A local marketplace: a signed index listing one reviewed extension, and its archive. */
-async function fakeMarketplace(): Promise<{ origin: string; anchor: string; server: Server }> {
-  const author = testKey();
-  const archive = zipArchive(signedArchive(author, testManifest()));
-  const indexKey = generateKeyPairSync('ed25519');
-  const now = Date.now();
-  const index = new TextEncoder().encode(
-    JSON.stringify({
-      format: 1,
-      serial: Math.floor(now / 1000),
-      generated: new Date(now - 60_000).toISOString(),
-      expires: new Date(now + 86_400_000).toISOString(),
-      extensions: [
-        {
-          id: 'org.example.hello',
-          name: 'Hello',
-          summary: 'Says hello in your drafts.',
-          author: { name: 'Example Author' },
-          homepage: 'https://example.org/hello',
-          license: 'MIT',
-          review: 'reviewed',
-          signer: author.fingerprint,
-          versions: [
-            {
-              version: '1.0.0',
-              size: archive.length,
-              sha256: `sha256-${createHash('sha256').update(archive).digest('base64')}`,
-              capabilities: ['composer:insert-draft'],
-              hosts: ['api.example.org'],
-              minYapYap: '0.0.1',
-              published: new Date(now - 60_000).toISOString(),
-            },
-          ],
-        },
-      ],
-      revoked: [],
-    }),
-  );
-  const files = new Map<string, Uint8Array>([
-    ['/extensions/index.json', index],
-    ['/extensions/index.json.sig', new TextEncoder().encode(signIndex(index, indexKey.privateKey))],
-    ['/extensions/org.example.hello/org.example.hello-1.0.0.yapyap-extension', archive],
-  ]);
-  const server = createServer((request, response) => {
-    const body = files.get(request.url ?? '');
-    response.writeHead(body === undefined ? 404 : 200).end(body);
-  });
-  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
-  const { port } = server.address() as AddressInfo;
-  return {
-    origin: `http://127.0.0.1:${String(port)}`,
-    anchor: indexKey.publicKey.export({ format: 'pem', type: 'spki' }),
-    server,
-  };
-}
+import { fakeMarketplace, marketplaceEnv } from './marketplace-helpers.ts';
 
 test('installs a reviewed extension from the marketplace, through the usual consent', async ({
   fakeWhatsApp,
@@ -70,10 +11,7 @@ test('installs a reviewed extension from the marketplace, through the usual cons
 }) => {
   const marketplace = await fakeMarketplace();
   const app = await launchApp(fakeWhatsApp.origin, profile, [], {
-    env: {
-      YAPYAP_TEST_MARKETPLACE_ORIGIN: marketplace.origin,
-      YAPYAP_TEST_MARKETPLACE_ANCHOR: marketplace.anchor,
-    },
+    env: marketplaceEnv(marketplace),
   });
   try {
     // The result shows in a message box, which would wait for a click on a real desktop.

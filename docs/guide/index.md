@@ -1,4 +1,6 @@
-# Getting started
+# User guide
+
+New to YapYap? [Get started](/guide/get-started) in six short steps.
 
 YapYap wraps the official [WhatsApp Web](https://web.whatsapp.com) in a
 hardened desktop app. Link it like any other device: open YapYap, then on

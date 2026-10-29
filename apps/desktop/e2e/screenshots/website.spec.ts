@@ -7,6 +7,7 @@ import { claudeAnswer, readyAssistant } from '../assistant-helpers.ts';
 import { startFakeWhatsApp } from '../fake-whatsapp-server.ts';
 import { closeApp, expect, launchApp, test } from '../fixtures.ts';
 import { chromePage, clickMenu } from '../extension-helpers.ts';
+import { fakeMarketplace, marketplaceEnv, type Listing } from '../marketplace-helpers.ts';
 
 /**
  * Screenshots of YapYap's own windows for the website (#384), taken on the
@@ -140,6 +141,54 @@ test('Settings window', async ({ profile }) => {
   } finally {
     await closeApp(app);
     await showcase.close();
+  }
+});
+
+/** What the Marketplace shows in the get-started guide: the assistant, and an invented extension. */
+const LISTINGS: readonly Listing[] = [
+  {
+    id: 'org.guita.yapyap.ai-assistant',
+    name: 'AI assistant',
+    summary:
+      'Suggests replies, summarizes chats and rewrites your drafts with the AI model you choose, using your own key.',
+    review: 'official',
+    author: 'YapYap',
+    capabilities: ['assistant:bar', 'chat:read-active', 'composer:insert-draft', 'secrets:own'],
+    hosts: ['api.anthropic.com', 'api.openai.com'],
+  },
+  {
+    id: 'org.example.translate',
+    name: 'Translate',
+    summary: 'Translates your draft into the language of the chat before you send it.',
+    review: 'reviewed',
+    capabilities: ['composer:read-draft', 'composer:insert-draft'],
+    hosts: ['api.example.org'],
+  },
+];
+
+test('Accounts and Extensions windows, for the get-started guide (#385)', async ({ profile }) => {
+  const showcase = await startFakeWhatsApp('showcase.html');
+  const marketplace = await fakeMarketplace(LISTINGS);
+  await seed(profile, 'light');
+  await preparePersonas(showcase.origin, profile);
+  const app = await launchApp(
+    showcase.origin,
+    profile,
+    [`--force-device-scale-factor=${String(SCALE)}`],
+    { env: marketplaceEnv(marketplace) },
+  );
+  try {
+    await clickMenu(app, 'Manage Accounts…');
+    await captureWindow(app, '/accounts.html', 'accounts');
+    await clickMenu(app, 'Extensions…');
+    const extensions = await chromePage(app, '/extensions.html');
+    await extensions.getByRole('tab', { name: 'Marketplace' }).click();
+    await expect(extensions.getByText('Translate', { exact: true })).toBeVisible();
+    await captureWindow(app, '/extensions.html', 'extensions');
+  } finally {
+    await closeApp(app);
+    await showcase.close();
+    marketplace.server.close();
   }
 });
 

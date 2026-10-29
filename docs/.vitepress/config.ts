@@ -74,7 +74,8 @@ export default defineConfig({
         {
           text: 'User guide',
           items: [
-            { text: 'Getting started', link: '/guide/' },
+            { text: 'Get started', link: '/guide/get-started' },
+            { text: 'User guide', link: '/guide/' },
             { text: 'Install', link: '/guide/install' },
             { text: 'Troubleshooting', link: '/guide/troubleshooting' },
             { text: 'Reference', link: '/guide/reference' },
