@@ -1,35 +1,15 @@
 import type { ElectronApplication, Page } from '@playwright/test';
-import { readdir, readFile } from 'node:fs/promises';
-import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { expect } from './fixtures.ts';
-import { chromePage, installExtension } from './extension-helpers.ts';
-
-// `pnpm build` bundles the assistant with Vite, as its release would be.
-const DIST = fileURLToPath(new URL('../../../extensions/ai-assistant/dist/', import.meta.url));
+import {
+  builtExtension,
+  chromePage,
+  installExtension,
+  type BuiltExtension,
+} from './extension-helpers.ts';
 
 /** The built assistant, under a third-party ID: only YapYap's own key may sign its real one. */
-/** The built assistant's manifest, its `main.js` and its other files. */
-export interface BuiltExtension {
-  readonly manifest: Record<string, unknown>;
-  readonly main: string;
-  readonly others: Readonly<Record<string, string>>;
-}
-
-export async function builtAssistant(): Promise<BuiltExtension> {
-  const manifest = JSON.parse(await readFile(join(DIST, 'manifest.json'), 'utf8')) as Record<
-    string,
-    unknown
-  >;
-  const names = (await readdir(DIST)).filter((name) => name.endsWith('.js'));
-  const files = Object.fromEntries(
-    await Promise.all(
-      names.map(async (name) => [name, await readFile(join(DIST, name), 'utf8')] as const),
-    ),
-  );
-  const { 'main.js': main = '', ...others } = files;
-  return { manifest: { ...manifest, id: 'org.example.ai-assistant' }, main, others };
-}
+export const builtAssistant = (): Promise<BuiltExtension> =>
+  builtExtension('ai-assistant', 'org.example.ai-assistant');
 
 /** Claude's streamed answer saying `text`, as the Messages API sends it. */
 export const claudeAnswer = (text: string): string =>

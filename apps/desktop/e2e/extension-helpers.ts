@@ -1,5 +1,6 @@
-import { writeFile } from 'node:fs/promises';
+import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { ElectronApplication, Page } from '@playwright/test';
 import { signedArchive, testKey, zipArchive } from '../test/extensions.ts';
 import { expect, whatsAppPage } from './fixtures.ts';
@@ -112,4 +113,31 @@ export async function installExtension(
   await consent.getByLabel('I understand that I install this extension at my own risk').check();
   const install = consent.getByRole('button', { name: 'Install' });
   await Promise.all([consent.waitForEvent('close'), install.click().catch(() => undefined)]);
+}
+
+/** A built extension's manifest, its `main.js` and its other files. */
+export interface BuiltExtension {
+  readonly manifest: Record<string, unknown>;
+  readonly main: string;
+  readonly others: Readonly<Record<string, string>>;
+}
+
+/**
+ * A first-party extension as `pnpm build` bundles it, under a third-party `id`:
+ * only YapYap's own key may sign its real one.
+ */
+export async function builtExtension(folder: string, id: string): Promise<BuiltExtension> {
+  const dist = fileURLToPath(new URL(`../../../extensions/${folder}/dist/`, import.meta.url));
+  const manifest = JSON.parse(await readFile(join(dist, 'manifest.json'), 'utf8')) as Record<
+    string,
+    unknown
+  >;
+  const names = (await readdir(dist)).filter((name) => name.endsWith('.js'));
+  const files = Object.fromEntries(
+    await Promise.all(
+      names.map(async (name) => [name, await readFile(join(dist, name), 'utf8')] as const),
+    ),
+  );
+  const { 'main.js': main = '', ...others } = files;
+  return { manifest: { ...manifest, id }, main, others };
 }
