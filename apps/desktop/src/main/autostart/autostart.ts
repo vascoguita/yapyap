@@ -4,9 +4,9 @@ import type { SettingsService } from '../settings/service.ts';
 /** Whether YapYap starts when the user logs in, as the operating system sees it. */
 export interface AutostartPort {
   readonly enabled: () => boolean;
-  /** Throws when the system refuses; so can `disable`. */
-  readonly enable: () => void;
-  readonly disable: () => void;
+  /** Throws or rejects when the system refuses; so can `disable`. */
+  readonly enable: () => void | Promise<void>;
+  readonly disable: () => void | Promise<void>;
   /**
    * Keeps an existing entry starting this YapYap where it would otherwise
    * start nothing, such as after an AppImage moved (#362).
@@ -35,21 +35,36 @@ export function loginItemAutostart(items: LoginItems): AutostartPort {
   };
 }
 
-/** Flatpak apps cannot write the autostart folder; only the Background portal can (#234). */
-export const UNSUPPORTED_AUTOSTART: AutostartPort = {
-  enabled: () => false,
-  enable: () => {
-    throw new Error('Autostart is not available in this package.');
-  },
-  disable: () => undefined,
-  refresh: () => undefined,
-};
+/**
+ * Flatpak apps cannot write the autostart folder; the Background portal
+ * does it for them, after asking the user (#234). Nothing in the sandbox can
+ * read the entry back, so the port remembers what the portal last granted,
+ * starting from the setting.
+ */
+export function portalAutostart(
+  ask: (autostart: boolean) => Promise<boolean>,
+  remembered: boolean,
+): AutostartPort {
+  let granted = remembered;
+  return {
+    enabled: () => granted,
+    enable: async () => {
+      granted = await ask(true);
+    },
+    disable: async () => {
+      granted = await ask(false);
+    },
+    refresh: () => undefined,
+  };
+}
 
 export interface AutostartSources {
   readonly platform: string;
   readonly flatpak: boolean;
   readonly loginItems: LoginItems;
   readonly xdg: () => AutostartPort;
+  /** The Background portal, for the Flatpak. */
+  readonly portal: () => AutostartPort;
 }
 
 /** How autostart works for this platform and package. */
@@ -57,7 +72,7 @@ export function chooseAutostart(sources: AutostartSources): AutostartPort {
   if (sources.platform !== 'linux') {
     return loginItemAutostart(sources.loginItems);
   }
-  return sources.flatpak ? UNSUPPORTED_AUTOSTART : sources.xdg();
+  return sources.flatpak ? sources.portal() : sources.xdg();
 }
 
 /**
@@ -93,20 +108,14 @@ export function syncAutostartSetting(
 export function applyAutostart(
   port: AutostartPort,
   warn: (message: string) => void,
-): (value: unknown) => string | undefined {
-  return (value) => {
+): (value: unknown) => Promise<string | undefined> {
+  return async (value) => {
     const enabled = value === true;
     try {
-      if (enabled) {
-        port.enable();
-      } else {
-        port.disable();
-      }
+      await (enabled ? port.enable() : port.disable());
     } catch (error) {
       warn(`Could not change autostart: ${String(error)}`);
-      return port === UNSUPPORTED_AUTOSTART
-        ? en.settings.problems.autostartUnsupported
-        : en.settings.problems.autostartFailed;
+      return en.settings.problems.autostartFailed;
     }
     return port.enabled() === enabled ? undefined : en.settings.problems.autostartFailed;
   };

@@ -6,8 +6,8 @@ import {
   applyAutostart,
   chooseAutostart,
   loginItemAutostart,
+  portalAutostart,
   syncAutostartSetting,
-  UNSUPPORTED_AUTOSTART,
   type AutostartPort,
 } from './autostart.ts';
 
@@ -46,19 +46,54 @@ const port = (enabled: boolean) => ({
 
 describe('chooseAutostart', () => {
   const xdg = port(false);
+  const portal = port(false);
 
-  it('uses login items on Windows and macOS', () => {
+  it('uses login items on Windows and macOS', async () => {
     const items = loginItems();
     for (const platform of ['win32', 'darwin']) {
-      chooseAutostart({ platform, flatpak: false, loginItems: items, xdg: () => xdg }).enable();
+      await chooseAutostart({
+        platform,
+        flatpak: false,
+        loginItems: items,
+        xdg: () => xdg,
+        portal: () => portal,
+      }).enable();
     }
     expect(items.setLoginItemSettings).toHaveBeenCalledTimes(2);
   });
 
-  it('uses the autostart folder on Linux, except inside Flatpak', () => {
-    const sources = { platform: 'linux', loginItems: loginItems(), xdg: () => xdg };
+  it('uses the autostart folder on Linux, and the Background portal inside Flatpak', () => {
+    const sources = {
+      platform: 'linux',
+      loginItems: loginItems(),
+      xdg: () => xdg,
+      portal: () => portal,
+    };
     expect(chooseAutostart({ ...sources, flatpak: false })).toBe(xdg);
-    expect(chooseAutostart({ ...sources, flatpak: true })).toBe(UNSUPPORTED_AUTOSTART);
+    expect(chooseAutostart({ ...sources, flatpak: true })).toBe(portal);
+  });
+});
+
+describe('portalAutostart', () => {
+  it('asks the portal, and remembers what it granted, starting from the setting', async () => {
+    const ask = vi.fn((autostart: boolean) => Promise.resolve(autostart));
+    const autostart = portalAutostart(ask, false);
+    expect(autostart.enabled()).toBe(false);
+    await autostart.enable();
+    expect(ask).toHaveBeenLastCalledWith(true);
+    expect(autostart.enabled()).toBe(true);
+    await autostart.disable();
+    expect(ask).toHaveBeenLastCalledWith(false);
+    expect(autostart.enabled()).toBe(false);
+    autostart.refresh();
+    expect(ask).toHaveBeenCalledTimes(2);
+    expect(portalAutostart(ask, true).enabled()).toBe(true);
+  });
+
+  it('keeps what it had when the portal refuses', async () => {
+    const autostart = portalAutostart(() => Promise.reject(new Error('cancelled')), true);
+    await expect(autostart.disable()).rejects.toThrow('cancelled');
+    expect(autostart.enabled()).toBe(true);
   });
 });
 
@@ -66,28 +101,13 @@ describe('loginItemAutostart', () => {
   it('reads and writes the login item', () => {
     const items = loginItems();
     const autostart = loginItemAutostart(items);
-    autostart.enable();
+    void autostart.enable();
     expect(items.setLoginItemSettings).toHaveBeenCalledWith({ openAtLogin: true });
     expect(autostart.enabled()).toBe(true);
-    autostart.disable();
+    void autostart.disable();
     expect(autostart.enabled()).toBe(false);
     autostart.refresh();
     expect(items.setLoginItemSettings).toHaveBeenLastCalledWith({ openAtLogin: true });
-  });
-});
-
-describe('UNSUPPORTED_AUTOSTART', () => {
-  it('is never on, refuses to turn on and allows turning off', () => {
-    expect(UNSUPPORTED_AUTOSTART.enabled()).toBe(false);
-    expect(() => {
-      UNSUPPORTED_AUTOSTART.enable();
-    }).toThrow('not available');
-    expect(() => {
-      UNSUPPORTED_AUTOSTART.disable();
-    }).not.toThrow();
-    expect(() => {
-      UNSUPPORTED_AUTOSTART.refresh();
-    }).not.toThrow();
   });
 });
 
@@ -131,27 +151,29 @@ describe('syncAutostartSetting', () => {
 });
 
 describe('applyAutostart', () => {
-  it('changes the login item and reports nothing when it took hold', () => {
+  it('changes the login item and reports nothing when it took hold', async () => {
     const items = loginItems();
     const apply = applyAutostart(loginItemAutostart(items), vi.fn());
-    expect(apply(true)).toBeUndefined();
+    expect(await apply(true)).toBeUndefined();
     expect(items.openAtLogin).toBe(true);
-    expect(apply(false)).toBeUndefined();
+    expect(await apply(false)).toBeUndefined();
     expect(items.openAtLogin).toBe(false);
   });
 
-  it('treats anything but true as off', () => {
+  it('treats anything but true as off', async () => {
     const autostart = port(false);
-    applyAutostart(autostart, vi.fn())('yes');
+    await applyAutostart(autostart, vi.fn())('yes');
     expect(autostart.disable).toHaveBeenCalledOnce();
     expect(autostart.enable).not.toHaveBeenCalled();
   });
 
-  it('says so when the system ignored the change', () => {
-    expect(applyAutostart(port(false), vi.fn())(true)).toBe(en.settings.problems.autostartFailed);
+  it('says so when the system ignored the change', async () => {
+    expect(await applyAutostart(port(false), vi.fn())(true)).toBe(
+      en.settings.problems.autostartFailed,
+    );
   });
 
-  it('says so and warns when the system refused', () => {
+  it('says so and warns when the system refused', async () => {
     const warn = vi.fn();
     const refusing: AutostartPort = {
       enabled: () => false,
@@ -161,13 +183,7 @@ describe('applyAutostart', () => {
       disable: vi.fn(),
       refresh: vi.fn(),
     };
-    expect(applyAutostart(refusing, warn)(true)).toBe(en.settings.problems.autostartFailed);
+    expect(await applyAutostart(refusing, warn)(true)).toBe(en.settings.problems.autostartFailed);
     expect(warn).toHaveBeenCalledWith('Could not change autostart: Error: denied');
-  });
-
-  it('points to the system settings when the package cannot autostart', () => {
-    expect(applyAutostart(UNSUPPORTED_AUTOSTART, vi.fn())(true)).toBe(
-      en.settings.problems.autostartUnsupported,
-    );
   });
 });

@@ -15,8 +15,14 @@ function sources(folder: string): string[] {
   });
 }
 
-/** What a local server or socket needs; YapYap's code has no use for any of it. */
-const ENDPOINT = /createServer|\.listen\(|from 'node:(?:net|http|https|http2|dgram)'/;
+/**
+ * What a local server or socket needs; YapYap's code has no use for any of
+ * it. The one import of `node:net` allowed connects out to the session bus,
+ * for the Background portal (#234, C33 in ADR 0008): a client, never a
+ * server, so nothing can connect to YapYap.
+ */
+const ENDPOINT =
+  /createServer|\.listen\(|from 'node:(?:http|https|http2|dgram)'|import (?!\{ createConnection \} from 'node:net')[^;]*from 'node:net'/;
 
 describe('local endpoints', () => {
   // ADR 0004 and #94: nothing on this computer, an extension included, can drive
@@ -25,5 +31,13 @@ describe('local endpoints', () => {
     const files = sources(SOURCE);
     expect(files.length).toBeGreaterThan(100);
     expect(files.filter((file) => ENDPOINT.test(readFileSync(file, 'utf8')))).toEqual([]);
+  });
+
+  it('allow only connecting out over node:net, never listening', () => {
+    expect(ENDPOINT.test("import { createConnection } from 'node:net';")).toBe(false);
+    expect(ENDPOINT.test("import { createServer } from 'node:net';")).toBe(true);
+    expect(ENDPOINT.test("import { createConnection, Server } from 'node:net';")).toBe(true);
+    expect(ENDPOINT.test("import * as net from 'node:net';")).toBe(true);
+    expect(ENDPOINT.test("import { request } from 'node:http';")).toBe(true);
   });
 });

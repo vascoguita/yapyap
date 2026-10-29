@@ -11,7 +11,7 @@ vi.mock('../../shared/settings-fields.ts', () => ({
 }));
 
 describe('settingsHandlers with settings that apply at once', () => {
-  it('asks for a restart only when a setting that needs one has changed', () => {
+  it('asks for a restart only when a setting that needs one has changed', async () => {
     let settings: Settings = defaultSettings();
     const service = {
       current: () => settings,
@@ -27,14 +27,14 @@ describe('settingsHandlers with settings that apply at once', () => {
       (handler) => handler.channel === 'settings:set',
     );
     const call = { sender: {} };
-    expect(set?.handle(call, 'general.startMinimized', true)).toEqual({
+    expect(await set?.handle(call, 'general.startMinimized', true)).toEqual({
       values: { 'general.startMinimized': true, 'reliability.hardwareAcceleration': true },
       restartPending: false,
       readOnly: false,
       problems: {},
       unavailable: {},
     });
-    expect(set?.handle(call, 'reliability.hardwareAcceleration', false)).toEqual(
+    expect(await set?.handle(call, 'reliability.hardwareAcceleration', false)).toEqual(
       expect.objectContaining({ restartPending: true }),
     );
   });
