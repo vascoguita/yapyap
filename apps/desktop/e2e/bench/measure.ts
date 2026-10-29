@@ -10,17 +10,37 @@ export interface Sample {
   readonly coldStartMs: number;
   /** All of YapYap's processes together, after it has settled. */
   readonly idleMemoryMb: number;
+  /** The same memory by process, so a budget overrun shows where it went (#428). */
+  readonly processesMb: Readonly<Record<string, number>>;
 }
 
 /** Long enough for start-up work to finish and memory to settle. */
 const SETTLE_MS = 10_000;
 
-async function idleMemoryMb(app: ElectronApplication): Promise<number> {
-  const kilobytes = await app.evaluate(({ app: electronApp }) =>
-    electronApp.getAppMetrics().reduce((sum, metric) => sum + metric.memory.workingSetSize, 0),
-  );
-  return Math.round(kilobytes / 1024);
+/**
+ * Working-set kilobytes by process: a page's process by what it shows, the
+ * fake WhatsApp page as `whatsapp`, and others by their service or kind.
+ */
+async function memoryByProcess(app: ElectronApplication): Promise<Record<string, number>> {
+  return app.evaluate(({ app: electronApp, webContents }) => {
+    const labels = new Map(
+      webContents.getAllWebContents().map((page) => {
+        const url = page.getURL();
+        const shown = url.startsWith('http') ? 'whatsapp' : (url.split('?')[0] ?? url);
+        // The main window's own page stays empty; WhatsApp runs in a view inside it.
+        return [page.getOSProcessId(), shown === '' ? 'main window' : shown] as const;
+      }),
+    );
+    const found: Record<string, number> = {};
+    for (const metric of electronApp.getAppMetrics()) {
+      const label = labels.get(metric.pid) ?? metric.serviceName ?? metric.type;
+      found[label] = (found[label] ?? 0) + metric.memory.workingSetSize;
+    }
+    return found;
+  });
 }
+
+const megabytes = (kilobytes: number): number => Math.round(kilobytes / 1024);
 
 /** One cold start on a fresh profile, as a first launch after install. */
 export async function measureOnce(): Promise<Sample> {
@@ -33,7 +53,14 @@ export async function measureOnce(): Promise<Sample> {
     await window.getByTestId('fake-whatsapp').waitFor({ state: 'visible' });
     const coldStartMs = Math.round(performance.now() - started);
     await new Promise((resolve) => setTimeout(resolve, SETTLE_MS));
-    return { coldStartMs, idleMemoryMb: await idleMemoryMb(app) };
+    const processes = await memoryByProcess(app);
+    return {
+      coldStartMs,
+      idleMemoryMb: megabytes(Object.values(processes).reduce((sum, value) => sum + value, 0)),
+      processesMb: Object.fromEntries(
+        Object.entries(processes).map(([label, kilobytes]) => [label, megabytes(kilobytes)]),
+      ),
+    };
   } finally {
     await app.close();
     await fake.close();

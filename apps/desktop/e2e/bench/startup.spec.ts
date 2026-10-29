@@ -10,6 +10,15 @@ interface Budget {
   readonly idleMemoryMb: number;
 }
 
+/** Each process's median memory across the samples, largest first. */
+function medianByProcess(samples: readonly Sample[]): Record<string, number> {
+  const labels = new Set(samples.flatMap((sample) => Object.keys(sample.processesMb)));
+  const medians = [...labels].map(
+    (label) => [label, median(samples.map((sample) => sample.processesMb[label] ?? 0))] as const,
+  );
+  return Object.fromEntries(medians.sort(([, a], [, b]) => b - a));
+}
+
 test('stays within the cold-start and idle-memory budgets', async ({}, testInfo) => {
   test.setTimeout((RUNS + 1) * 60_000);
   const budgets = JSON.parse(
@@ -30,6 +39,7 @@ test('stays within the cold-start and idle-memory budgets', async ({}, testInfo)
     platform: process.platform,
     coldStartMs: median(samples.map((sample) => sample.coldStartMs)),
     idleMemoryMb: median(samples.map((sample) => sample.idleMemoryMb)),
+    processesMb: medianByProcess(samples),
     budget,
     samples,
   };
