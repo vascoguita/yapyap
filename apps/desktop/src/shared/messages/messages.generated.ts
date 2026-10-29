@@ -424,6 +424,7 @@ export interface Messages {
       readonly 'storage:local': string;
       readonly 'secrets:own': string;
       readonly 'assistant:bar': string;
+      readonly 'calls:record': string;
     };
     readonly activity: {
       readonly title: string;
@@ -710,5 +711,22 @@ export interface Messages {
     readonly downloaded: (params: { readonly name: string | number }) => string;
     readonly downloadFailed: (params: { readonly name: string | number }) => string;
     readonly saved: (params: { readonly name: string | number }) => string;
+  };
+  readonly recording: {
+    readonly windowTitle: string;
+    readonly asks: (params: { readonly extension: string | number }) => string;
+    readonly consentHint: string;
+    readonly record: string;
+    readonly notNow: string;
+    readonly recording: string;
+    readonly stop: string;
+    readonly saved: string;
+    readonly consent: {
+      readonly message: string;
+      readonly detail: string;
+      readonly checkbox: string;
+      readonly record: string;
+      readonly cancel: string;
+    };
   };
 }

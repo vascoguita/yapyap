@@ -185,6 +185,7 @@ export default defineConfig(
     extends: [tseslint.configs.disableTypeChecked],
     languageOptions: {
       globals: {
+        AudioContext: 'readonly',
         document: 'readonly',
         localStorage: 'readonly',
         navigator: 'readonly',

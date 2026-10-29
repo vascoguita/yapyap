@@ -51,6 +51,7 @@ describe('ManifestSchema', () => {
       'secrets:own',
       'local-network',
       'assistant:bar',
+      'calls:record',
     ]);
     expect(CAPABILITIES.some((capability) => capability.includes('send'))).toBe(false);
     const listed = JSON.parse(JSON.stringify(ManifestSchema.properties.capabilities.items)) as {

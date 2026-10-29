@@ -11,6 +11,7 @@ const ACCOUNT_CAPABILITIES: ReadonlySet<string> = new Set([
   'composer:insert-draft',
   'composer:read-draft',
   'assistant:bar',
+  'calls:record',
 ]);
 
 const NETWORK = 'network:';

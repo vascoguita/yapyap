@@ -9,6 +9,8 @@ import {
   type PickerOffer,
   type ExtensionConsent,
   type ExtensionList,
+  type RecordPromptState,
+  type RecorderCommand,
   type ShortcutChange,
   type ShortcutList,
   type CustomCodeView,
@@ -25,6 +27,36 @@ type Invoke = (channel: string, ...args: unknown[]) => Promise<unknown>;
 type Listen = (listener: (state: SidebarState) => void) => void;
 type ListenToExtensions = (listener: () => void) => void;
 type ListenToBar = (listener: (state: AssistantBarState) => void) => void;
+type ListenToPrompt = (listener: (state: RecordPromptState) => void) => void;
+type ListenToRecorder = (listener: (command: RecorderCommand) => void) => void;
+
+function recordPromptBridge(invoke: Invoke, listen: ListenToPrompt): ChromeApi['recordPrompt'] {
+  return {
+    state: () => invoke(CHROME_CHANNELS.recordPromptState) as Promise<RecordPromptState>,
+    answer: async (record) => {
+      await invoke(CHROME_CHANNELS.recordPromptAnswer, record);
+    },
+    stop: async () => {
+      await invoke(CHROME_CHANNELS.recordPromptStop);
+    },
+    onState: listen,
+  };
+}
+
+function recorderBridge(invoke: Invoke, listen: ListenToRecorder): ChromeApi['recorder'] {
+  return {
+    onCommand: listen,
+    chunk: async (bytes) => {
+      await invoke(CHROME_CHANNELS.recorderChunk, bytes);
+    },
+    ended: async () => {
+      await invoke(CHROME_CHANNELS.recorderEnded);
+    },
+    failed: async () => {
+      await invoke(CHROME_CHANNELS.recorderFailed);
+    },
+  };
+}
 
 function accountsBridge(invoke: Invoke): ChromeApi['accounts'] {
   return {
@@ -208,6 +240,26 @@ function settingsBridge(invoke: Invoke): ChromeApi['settings'] {
   };
 }
 
+const running = (invoke: Invoke, channel: string) => async (): Promise<void> => {
+  await invoke(channel);
+};
+
+function aboutBridge(invoke: Invoke): ChromeApi['about'] {
+  return {
+    info: () => invoke(CHROME_CHANNELS.aboutInfo) as Promise<AboutInfo>,
+    copyTechnicalDetails: running(invoke, CHROME_CHANNELS.copyTechnicalDetails),
+  };
+}
+
+function recoveryBridge(invoke: Invoke): ChromeApi['recovery'] {
+  return {
+    problem: () => invoke(CHROME_CHANNELS.recoveryProblem) as Promise<RecoveryProblem | null>,
+    retry: running(invoke, CHROME_CHANNELS.recoveryRetry),
+    clearCache: running(invoke, CHROME_CHANNELS.recoveryClearCache),
+    copyDiagnostics: running(invoke, CHROME_CHANNELS.recoveryCopyDiagnostics),
+  };
+}
+
 /**
  * Builds the chrome API from a single invoke function. Each operation has its
  * own fixed channel, so the page can never choose what it calls.
@@ -217,21 +269,12 @@ export function createChromeBridge(
   listen: Listen,
   listenToExtensions: ListenToExtensions,
   listenToBar: ListenToBar,
+  listenToPrompt: ListenToPrompt,
+  listenToRecorder: ListenToRecorder,
 ): ChromeApi {
-  const run = (channel: string) => async (): Promise<void> => {
-    await invoke(channel);
-  };
   return {
-    about: {
-      info: () => invoke(CHROME_CHANNELS.aboutInfo) as Promise<AboutInfo>,
-      copyTechnicalDetails: run(CHROME_CHANNELS.copyTechnicalDetails),
-    },
-    recovery: {
-      problem: () => invoke(CHROME_CHANNELS.recoveryProblem) as Promise<RecoveryProblem | null>,
-      retry: run(CHROME_CHANNELS.recoveryRetry),
-      clearCache: run(CHROME_CHANNELS.recoveryClearCache),
-      copyDiagnostics: run(CHROME_CHANNELS.recoveryCopyDiagnostics),
-    },
+    about: aboutBridge(invoke),
+    recovery: recoveryBridge(invoke),
     settings: settingsBridge(invoke),
     chat: {
       openNumber: (number) => invoke(CHROME_CHANNELS.chatOpenNumber, number) as Promise<boolean>,
@@ -241,6 +284,8 @@ export function createChromeBridge(
     assistantBar: assistantBarBridge(invoke, listenToBar),
     quickPanel: quickPanelBridge(invoke),
     extensions: extensionsBridge(invoke, listenToExtensions),
+    recordPrompt: recordPromptBridge(invoke, listenToPrompt),
+    recorder: recorderBridge(invoke, listenToRecorder),
     report: reportBridge(invoke),
     spelling: spellingBridge(invoke),
     picker: pickerBridge(invoke),

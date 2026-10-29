@@ -49,6 +49,8 @@ export default defineConfig({
             'src/renderer/spelling-languages.html',
           ),
           'proxy-login': resolve(import.meta.dirname, 'src/renderer/proxy-login.html'),
+          recorder: resolve(import.meta.dirname, 'src/renderer/recorder.html'),
+          'record-prompt': resolve(import.meta.dirname, 'src/renderer/record-prompt.html'),
         },
       },
     },

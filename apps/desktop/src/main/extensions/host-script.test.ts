@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   bootExtension,
   hostApi,
+  ownApi,
   hostScript,
   rpcClient,
   settleReply,
@@ -35,7 +36,7 @@ function page() {
   };
 }
 
-const helpers = { hostApi, rpcClient, settleReply };
+const helpers = { hostApi, ownApi, rpcClient, settleReply };
 
 describe('bootExtension', () => {
   it('activates the entry with the host API, whose calls wait for YapYap’s port', async () => {
@@ -173,13 +174,18 @@ describe('hostApi', () => {
   it('turns every SDK method into one call, and keeps command handlers by ID', async () => {
     const call = vi.fn(() => Promise.resolve(undefined as never));
     const handlers: HostHandlers = { commands: new Map() };
-    const api = hostApi(call, handlers);
+    const api = hostApi(call, handlers, ownApi);
     await api.chat.readActive();
     await api.chat.readUnreadSummary();
     await api.composer.insertDraft('Hi');
     await api.composer.replaceDraft('Hello');
     await api.composer.readDraft();
     await api.notifications.show({ title: 'T', body: 'B' });
+    await api.calls.record();
+    await api.calls.stop();
+    await api.calls.state();
+    await api.calls.recordings();
+    await api.calls.reveal('a'.repeat(32));
     await api.storage.get('k');
     await api.storage.set('k', 1);
     await api.storage.delete('k');
@@ -201,6 +207,11 @@ describe('hostApi', () => {
       ['composer.replaceDraft', 'Hello'],
       ['composer.readDraft'],
       ['notifications.show', { title: 'T', body: 'B' }],
+      ['calls.record'],
+      ['calls.stop'],
+      ['calls.state'],
+      ['calls.recordings'],
+      ['calls.reveal', 'a'.repeat(32)],
       ['storage.get', 'k'],
       ['storage.set', 'k', 1],
       ['storage.delete', 'k'],

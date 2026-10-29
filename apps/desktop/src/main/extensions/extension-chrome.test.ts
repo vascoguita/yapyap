@@ -93,6 +93,13 @@ function setup(root: string, developerMode = false, overrides: object = {}) {
     { createWindow, views, warn },
     {
       insertDraft,
+      calls: {
+        record: vi.fn(),
+        stop: vi.fn(),
+        state: vi.fn(),
+        recordings: vi.fn(),
+        reveal: vi.fn(),
+      },
       readActiveChat: vi.fn(),
       replaceDraft: vi.fn(),
       readDraft: vi.fn(),

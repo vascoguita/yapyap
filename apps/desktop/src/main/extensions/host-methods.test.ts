@@ -13,6 +13,13 @@ function services() {
   const kept = new Map<string, unknown>();
   return {
     kept,
+    calls: {
+      record: vi.fn(() => Promise.resolve('recording' as const)),
+      stop: vi.fn(() => Promise.resolve()),
+      state: vi.fn(() => ({ supported: true, call: true, recordingSince: null })),
+      recordings: vi.fn(() => Promise.resolve([])),
+      reveal: vi.fn((id: string) => Promise.resolve(id === 'a'.repeat(32))),
+    },
     storage: {
       get: vi.fn((key: string) => kept.get(key)),
       set: vi.fn((key: string, value: unknown) => {
@@ -165,7 +172,35 @@ describe('hostMethods', () => {
       'composer.readDraft',
       // The assistant bar takes text to show; only YapYap's bar sends, on a click (ADR 0013).
       'assistant.offer',
+      'calls.record',
+      'calls.stop',
+      'calls.state',
+      'calls.recordings',
+      'calls.reveal',
     ]);
+  });
+});
+
+describe('calls', () => {
+  it('asks YapYap, naming the extension, and offers only recordings by ID, behind calls:record', async () => {
+    const given = services();
+    const methods = hostMethods(HELLO, given);
+    const run = (name: string, params: unknown[] = []) => {
+      const method = methods[name];
+      if (method === undefined) {
+        throw new Error(`No ${name}.`);
+      }
+      expect(method.capability).toBe('calls:record');
+      return method.run(params);
+    };
+    expect(await run('calls.record')).toBe('recording');
+    expect(given.calls.record).toHaveBeenCalledWith('Hello');
+    await run('calls.stop');
+    expect(given.calls.stop).toHaveBeenCalledOnce();
+    expect(await run('calls.state')).toEqual({ supported: true, call: true, recordingSince: null });
+    expect(await run('calls.recordings')).toEqual([]);
+    await run('calls.reveal', ['a'.repeat(32)]);
+    await expect(run('calls.reveal', ['b'.repeat(32)])).rejects.toThrow('No such recording.');
   });
 });
 
