@@ -147,6 +147,12 @@
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 64
+              },
+              "shortcut": {
+                "type": "string",
+                "maxLength": 64,
+                "pattern": "^[A-Za-z0-9+`=\\[\\];',./\\\\-]+$",
+                "description": "Suggested keys, in Electron's accelerator syntax, such as `CmdOrCtrl+Shift+R`. YapYap uses them only when they clash with none of its own shortcuts or an earlier extension's."
               }
             },
             "additionalProperties": false,

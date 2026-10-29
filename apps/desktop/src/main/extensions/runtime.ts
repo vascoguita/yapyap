@@ -157,6 +157,8 @@ export interface ExtensionCommand {
   readonly extensionName: string;
   readonly id: string;
   readonly title: string;
+  /** The keys the manifest suggests, which the menu uses only where nothing else has them. */
+  readonly shortcut?: string | undefined;
 }
 
 /** The installed manifest, or undefined when the file is missing or not a manifest. */
@@ -224,7 +226,11 @@ async function approveHost(root: string, id: string, host: string): Promise<void
 interface RunningExtension {
   readonly host: ExtensionHost;
   readonly name: string;
-  readonly commands: readonly { readonly id: string; readonly title: string }[];
+  readonly commands: readonly {
+    readonly id: string;
+    readonly title: string;
+    readonly shortcut?: string;
+  }[];
   readonly actions: readonly Omit<ExtensionAction, 'extension' | 'extensionName'>[];
   readonly partition: string;
   /** The panel's title, if the extension has one. */
@@ -437,7 +443,13 @@ function openPanel(
 /** The commands of the extensions that run, in the order they started. */
 function commandsOf(state: RuntimeState): ExtensionCommand[] {
   return [...state.hosts].flatMap(([extension, { name, commands }]) =>
-    commands.map(({ id, title }) => ({ extensionName: name, extension, id, title })),
+    commands.map(({ id, title, shortcut }) => ({
+      extensionName: name,
+      extension,
+      id,
+      title,
+      shortcut,
+    })),
   );
 }
 

@@ -367,6 +367,29 @@ describe('custom shortcuts in the menus', () => {
     );
   });
 
+  it('gives an extension command the keys its manifest suggests, unless they are taken', () => {
+    const a = {
+      ...actions(),
+      extensionCommands: [
+        { extension: 'org.example.rec', extensionName: 'Rec', id: 'record', title: 'Record' },
+        { extension: 'org.example.rec', extensionName: 'Rec', id: 'go', title: 'Go' },
+        { extension: 'org.example.rec', extensionName: 'Rec', id: 'again', title: 'Again' },
+      ].map((command, index) => ({
+        ...command,
+        shortcut: ['CmdOrCtrl+Shift+E', 'CmdOrCtrl+R', 'Ctrl+Shift+E'][index],
+      })),
+    };
+    const found = items(buildMenuTemplate('linux', a)[0]).find(
+      (item) => item.label === 'Extension Commands',
+    );
+    const submenu = Array.isArray(found?.submenu) ? found.submenu : [];
+    expect(submenu.map((item) => item.accelerator)).toEqual([
+      'CmdOrCtrl+Shift+E',
+      undefined,
+      undefined,
+    ]);
+  });
+
   it('lists the running extensions’ panels after their commands, and opens the one picked', () => {
     const panel = { extension: 'org.example.hello', extensionName: 'Hello', title: 'Notes' };
     const command = { ...panel, id: 'translate', title: 'Translate draft' };

@@ -1,5 +1,5 @@
 import { en } from './messages/en.ts';
-import { isValidShortcut } from './shortcut-keys.ts';
+import { conflictOf, isValidShortcut } from './shortcut-keys.ts';
 
 /** A keyboard shortcut YapYap's menus answer to. */
 export interface Shortcut {
@@ -72,6 +72,39 @@ export interface ActiveShortcut extends Shortcut {
   readonly standard: string;
   /** Whether the user chose `accelerator`. */
   readonly custom: boolean;
+}
+
+/** An extension command and the keys its manifest suggests, if any. */
+interface SuggestedShortcut {
+  readonly extension: string;
+  readonly id: string;
+  readonly shortcut?: string | undefined;
+}
+
+/**
+ * The keys each extension command gets, by `extension/command` (#443): its
+ * suggestion, where the keys fit and clash with none of YapYap's shortcuts,
+ * as the user set them, nor with an extension command that started earlier.
+ */
+export function extensionShortcuts(
+  commands: readonly SuggestedShortcut[],
+  platform: string,
+  custom: CustomShortcuts = {},
+): ReadonlyMap<string, string> {
+  const taken: { id: string; accelerator: string }[] = [...shortcutsFor(platform, custom)];
+  const given = new Map<string, string>();
+  for (const { extension, id, shortcut } of commands) {
+    const key = `${extension}/${id}`;
+    if (
+      shortcut !== undefined &&
+      isValidShortcut(shortcut) &&
+      conflictOf(key, shortcut, taken, platform) === undefined
+    ) {
+      given.set(key, shortcut);
+      taken.push({ id: key, accelerator: shortcut });
+    }
+  }
+  return given;
 }
 
 /** Keys the user may give a shortcut; account switching must end in 1, as it takes 1 to 9. */
