@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   recordingName,
   recordings,
+  recordingsFolder,
   recordingSink,
   revealRecording,
   type LibraryPaths,
@@ -23,6 +24,23 @@ afterEach(() => {
 });
 
 const at = (hours: number, minutes: number) => new Date(2026, 9, 27, hours, minutes, 30);
+
+describe('recordingsFolder', () => {
+  it('uses the folder chosen in Settings while it is one, and the default otherwise', () => {
+    const chosen = mkdtempSync(join(tmpdir(), 'yapyap-chosen-'));
+    const file = join(chosen, 'not-a-folder');
+    writeFileSync(file, '');
+    const fallback = () => '/music/YapYap';
+    try {
+      expect(recordingsFolder('', fallback)).toBe('/music/YapYap');
+      expect(recordingsFolder(chosen, fallback)).toBe(chosen);
+      expect(recordingsFolder(file, fallback)).toBe('/music/YapYap');
+      expect(recordingsFolder(join(chosen, 'gone'), fallback)).toBe('/music/YapYap');
+    } finally {
+      rmSync(chosen, { recursive: true, force: true });
+    }
+  });
+});
 
 describe('recordingName', () => {
   it('names a recording by its local date and time only', () => {

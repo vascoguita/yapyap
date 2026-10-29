@@ -473,6 +473,7 @@ describe('createChromeFeature', () => {
         'downloads.askWhere': false,
         'downloads.openWhenDone': false,
         'downloads.folder': '',
+        'recording.folder': '',
         'spelling.enabled': false,
         'general.autostart': false,
         'general.startMinimized': false,

@@ -112,11 +112,11 @@ spelling dictionary are kept with the account's data.
 
 ### Call recordings
 
-| Path                           | What it holds                                                                                           | How to delete it                            |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
-| `YapYap/` in your Music folder | The calls you chose to record, named by date and time only, never by contact                            | Delete the files; YapYap stops listing them |
-| `recordings.json`              | Each recording's file name, start time and length, so extensions can list them without seeing the files | Delete it while YapYap is closed            |
-| `recording-consent.json`       | That you confirmed the warning about asking everyone on a call before recording it, and which version   | Delete it to see the warning again          |
+| Path                                                             | What it holds                                                                                           | How to delete it                            |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| `YapYap/` in your Music folder, or the folder chosen in Settings | The calls you chose to record, named by date and time only, never by contact                            | Delete the files; YapYap stops listing them |
+| `recordings.json`                                                | Each recording's file name, start time and length, so extensions can list them without seeing the files | Delete it while YapYap is closed            |
+| `recording-consent.json`                                         | That you confirmed the warning about asking everyone on a call before recording it, and which version   | Delete it to see the warning again          |
 
 ### Everything else
 
@@ -125,7 +125,7 @@ deletes memory dumps Chromium leaves behind at every start.
 
 YapYap writes outside its profile folder only where you tell it to:
 downloads, performance traces, exported settings, and the calls you
-record, in the `YapYap` folder of your Music folder.
+record, in the `YapYap` folder of your Music folder or the folder you chose.
 
 To remove everything, quit YapYap and delete its profile folder. This logs
 every account out of WhatsApp; your chats stay on your phone.

@@ -1,3 +1,4 @@
+import { statSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
 import { appendFile, mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -36,6 +37,22 @@ const two = (value: number): string => String(value).padStart(2, '0');
  * A recording's file name: only the local date and time it started, never
  * a contact's name, which is page text (ADR 0015).
  */
+/**
+ * Where recordings go: the folder the user chose in Settings while it is
+ * still a folder, else `fallback`, `YapYap` in the Music folder (#442).
+ */
+export function recordingsFolder(chosen: string, fallback: () => string): string {
+  if (chosen === '') {
+    return fallback();
+  }
+  try {
+    return statSync(chosen).isDirectory() ? chosen : fallback();
+  } catch {
+    // Gone since it was chosen: the default folder takes over.
+    return fallback();
+  }
+}
+
 export function recordingName(started: Date): string {
   const day = `${String(started.getFullYear())}-${two(started.getMonth() + 1)}-${two(started.getDate())}`;
   return `YapYap call ${day} ${two(started.getHours())}.${two(started.getMinutes())}`;

@@ -88,12 +88,15 @@
     "defaultFolder": "Your Downloads folder",
     "chooseFolder": "Choose…",
     "useDefaultFolder": "Use Downloads Folder",
+    "defaultRecordingFolder": "YapYap in your Music folder",
+    "useDefaultRecordingFolder": "Use Default Folder",
     "sections": {
       "general": "General",
       "spelling": "Spelling",
       "appearance": "Appearance",
       "reliability": "Reliability",
       "downloads": "Downloads",
+      "recording": "Call recordings",
       "privacy": "Privacy",
       "network": "Network",
       "extensions": "Extensions"
@@ -328,6 +331,12 @@
         "openWhenDone": {
           "label": "Open files when they finish downloading",
           "description": "Opens PDFs, pictures, sound, video and text in their usual app. Anything that could run a program is only saved."
+        }
+      },
+      "recording": {
+        "folder": {
+          "label": "Save recordings to",
+          "description": "Where YapYap keeps the calls you record. If the folder is gone, recordings go to the default folder again."
         }
       }
     }

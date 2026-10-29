@@ -111,7 +111,9 @@ export function settingsHandlers(
       accepts: (args) =>
         args.length === 2 &&
         !(String(args[0]) in unavailable) &&
-        fields.some((field) => field.id === args[0] && (field.folder !== true || args[1] === '')) &&
+        fields.some(
+          (field) => field.id === args[0] && (field.folder === undefined || args[1] === ''),
+        ) &&
         Value.Check(SettingsSchema, change(args)),
       handle: (_call, ...args) => {
         const next = change(args);

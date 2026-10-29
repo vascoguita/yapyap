@@ -10,6 +10,7 @@ export const SETTINGS_SECTIONS = [
   { id: 'appearance', title: en.settings.sections.appearance },
   { id: 'reliability', title: en.settings.sections.reliability },
   { id: 'downloads', title: en.settings.sections.downloads },
+  { id: 'recording', title: en.settings.sections.recording },
   { id: 'privacy', title: en.settings.sections.privacy },
   { id: 'network', title: en.settings.sections.network },
   { id: 'extensions', title: en.settings.sections.extensions },
@@ -28,8 +29,8 @@ export interface SettingField {
   readonly options?: readonly { readonly value: string | number; readonly label: string }[];
   /** A line of text, such as an address, instead of a switch or a choice. */
   readonly text?: { readonly placeholder: string };
-  /** A folder, picked in the system's folder dialog; empty is the default folder. */
-  readonly folder?: true;
+  /** A folder, picked in the system's folder dialog; empty is the default folder, named here. */
+  readonly folder?: { readonly defaultName: string; readonly useDefault: string };
   /** The platforms (`process.platform`) where it does something; all of them when absent. */
   readonly platforms?: readonly string[];
 }
@@ -141,8 +142,20 @@ export const SETTING_FIELDS: readonly SettingField[] = [
   { ...described('privacy', 'blurWhenUnfocused'), restart: false },
   { ...described('privacy', 'blurWhenIdle'), restart: false },
   { ...described('downloads', 'askWhere'), restart: false },
-  { ...described('downloads', 'folder'), restart: false, folder: true },
+  {
+    ...described('downloads', 'folder'),
+    restart: false,
+    folder: { defaultName: en.settings.defaultFolder, useDefault: en.settings.useDefaultFolder },
+  },
   { ...described('downloads', 'openWhenDone'), restart: false },
+  {
+    ...described('recording', 'folder'),
+    restart: false,
+    folder: {
+      defaultName: en.settings.defaultRecordingFolder,
+      useDefault: en.settings.useDefaultRecordingFolder,
+    },
+  },
   {
     ...described('network', 'proxyMode'),
     restart: false,

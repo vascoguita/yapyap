@@ -83,12 +83,15 @@ export interface Messages {
     readonly defaultFolder: string;
     readonly chooseFolder: string;
     readonly useDefaultFolder: string;
+    readonly defaultRecordingFolder: string;
+    readonly useDefaultRecordingFolder: string;
     readonly sections: {
       readonly general: string;
       readonly spelling: string;
       readonly appearance: string;
       readonly reliability: string;
       readonly downloads: string;
+      readonly recording: string;
       readonly privacy: string;
       readonly network: string;
       readonly extensions: string;
@@ -250,6 +253,9 @@ export interface Messages {
         readonly askWhere: { readonly label: string; readonly description: string };
         readonly folder: { readonly label: string; readonly description: string };
         readonly openWhenDone: { readonly label: string; readonly description: string };
+      };
+      readonly recording: {
+        readonly folder: { readonly label: string; readonly description: string };
       };
     };
   };

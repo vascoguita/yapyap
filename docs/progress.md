@@ -1203,6 +1203,12 @@ not edit the same lines.
   closes, and say "Saved" or why not; before, closing the window right after
   typing lost the edit without a sign.
 
+- Recordings folder (#442): Settings → Call recordings → **Save recordings
+  to** picks the folder with the system's dialog, like the downloads folder,
+  and a folder that is gone means `YapYap` in the Music folder again
+  (settings version 15). Folder fields name their own default now, and each
+  **Choose…** button is named after its field.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).

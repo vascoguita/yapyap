@@ -358,7 +358,7 @@ describe('a folder setting', () => {
     label: 'Save files to',
     description: 'Where files go.',
     restart: false,
-    folder: true as const,
+    folder: { defaultName: 'Your Downloads folder', useDefault: 'Use Downloads Folder' },
   };
 
   it('shows the Downloads folder until another is chosen, and goes back to it', () => {
@@ -374,7 +374,7 @@ describe('a folder setting', () => {
     );
     expect(screen.getByText('Your Downloads folder')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Use Downloads Folder' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Choose…' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Choose… Save files to' }));
     expect(onChooseFolder).toHaveBeenCalledExactlyOnceWith('downloads.folder');
     rerender(
       <Field
@@ -391,7 +391,7 @@ describe('a folder setting', () => {
 
   it('chooses nothing where no folder dialog is offered', () => {
     render(<Field field={field} snapshot={snapshot()} onChange={vi.fn()} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Choose…' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Choose… Save files to' }));
     expect(screen.getByText('Your Downloads folder')).toBeTruthy();
   });
 
@@ -399,7 +399,7 @@ describe('a folder setting', () => {
     const withFolder = snapshot({ values: { ...snapshot().values, 'downloads.folder': '' } });
     const yapyap = api({ get: vi.fn(() => Promise.resolve(withFolder)) });
     render(<Settings api={yapyap} />);
-    fireEvent.click(await screen.findByRole('button', { name: 'Choose…' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Choose… Save files to' }));
     expect(yapyap.settings.chooseFolder).toHaveBeenCalledExactlyOnceWith('downloads.folder');
     await vi.waitFor(() => {
       expect(yapyap.settings.get).toHaveBeenCalledTimes(2);

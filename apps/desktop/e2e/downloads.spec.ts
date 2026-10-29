@@ -160,7 +160,7 @@ test('saves into the folder chosen in Settings', async ({ app, window, profile }
   });
   const settings = await opened;
   await settings.waitForURL('app://chrome/settings.html');
-  await settings.getByRole('button', { name: 'Choose…' }).click();
+  await settings.getByRole('button', { name: 'Choose… Save files to' }).click();
   await expect(settings.getByText(chosen)).toBeVisible();
   await download(window, 'Ticket.pdf');
   await expect.poll(() => readdir(chosen)).toEqual(['Ticket.pdf']);
