@@ -737,6 +737,10 @@ not edit the same lines.
   diagram library. It walks through a notification, a plugin call and an
   AI assistant reply, and indexes the ADRs by topic.
 
+- README polish (#117): the README shows the main window, links the
+  get-started guide, and its highlights cover the assistant bar, the
+  marketplace and call recording. Store screenshots came in #435.
+
 - Screen-sharing indicator (#161): the WhatsApp preload's second stand-in
   (`installShareShim`, ADR 0011) reports when a screen share starts and
   ends, by a random ID only, and stops one when YapYap asks. The main
