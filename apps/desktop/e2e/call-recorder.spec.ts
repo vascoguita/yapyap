@@ -36,6 +36,19 @@ test('the call recorder extension records a call from its panel, after the user 
         return item !== undefined;
       });
     await expect.poll(open, { timeout: 20_000 }).toBe(true);
+    // The commands get the keys the extension suggests, as nothing else has them.
+    const keys = await app.evaluate(({ Menu }) =>
+      Menu.getApplicationMenu()
+        ?.items.flatMap((menu) => menu.submenu?.items ?? [])
+        .find((entry) => entry.label === 'Extension Commands')
+        ?.submenu?.items.filter((entry) => entry.label.startsWith('Call recorder: '))
+        .map((entry) => `${entry.label}=${entry.accelerator ?? ''}`),
+    );
+    expect(keys).toEqual([
+      'Call recorder: Record this call=CmdOrCtrl+Alt+R',
+      'Call recorder: Stop recording=CmdOrCtrl+Alt+S',
+      'Call recorder: Recordings=',
+    ]);
     const panel = await chromePage(app, '/__yapyap/panel.html');
     const status = panel.locator('output');
     if (process.platform === 'darwin') {

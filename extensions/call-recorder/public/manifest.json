@@ -10,8 +10,8 @@
   "network": { "hosts": [] },
   "contributes": {
     "commands": [
-      { "id": "record", "title": "Record this call" },
-      { "id": "stop", "title": "Stop recording" }
+      { "id": "record", "title": "Record this call", "shortcut": "CmdOrCtrl+Alt+R" },
+      { "id": "stop", "title": "Stop recording", "shortcut": "CmdOrCtrl+Alt+S" }
     ],
     "panel": { "title": "Recordings", "entry": "panel.js" }
   }
