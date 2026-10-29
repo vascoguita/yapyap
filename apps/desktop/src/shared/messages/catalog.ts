@@ -52,26 +52,11 @@ interface Language {
   readonly plurals: Intl.PluralRules;
 }
 
-/**
- * A language's number and plural rules, made on first use: making them loads
- * ICU's data for the locale, which a process that never writes a count or a
- * number should not carry (#428).
- */
-function language(locale: string): Language {
-  let numbers: Intl.NumberFormat | undefined;
-  let plurals: Intl.PluralRules | undefined;
-  return {
-    locale,
-    get numbers() {
-      numbers ??= new Intl.NumberFormat(locale);
-      return numbers;
-    },
-    get plurals() {
-      plurals ??= new Intl.PluralRules(locale);
-      return plurals;
-    },
-  };
-}
+const language = (locale: string): Language => ({
+  locale,
+  numbers: new Intl.NumberFormat(locale),
+  plurals: new Intl.PluralRules(locale),
+});
 
 /** One message: the text itself, or a function of its placeholders. */
 function message(text: string, from: Language): string | ((params: Params) => string) {
@@ -91,20 +76,14 @@ function plural(
   languages: Languages,
 ): (params: Params) => string {
   const names = (text: string): string[] => placeholders(text).filter((name) => name !== 'count');
-  // Chosen on first use, so building the catalog loads no plural rules.
-  const choose = (): readonly [Readonly<Record<string, string>>, Language] => {
-    const expected = names(english['other'] ?? '');
-    const needed = languages.translated.plurals.resolvedOptions().pluralCategories;
-    const usable = needed.every((form) => {
-      const text = translated[form];
-      return text !== undefined && sameNames(names(text), expected);
-    });
-    return usable ? [translated, languages.translated] : [english, languages.english];
-  };
-  let chosen: ReturnType<typeof choose> | undefined;
+  const expected = names(english['other'] ?? '');
+  const needed = languages.translated.plurals.resolvedOptions().pluralCategories;
+  const usable = needed.every((form) => {
+    const text = translated[form];
+    return text !== undefined && sameNames(names(text), expected);
+  });
+  const [forms, from] = usable ? [translated, languages.translated] : [english, languages.english];
   return (params) => {
-    chosen ??= choose();
-    const [forms, from] = chosen;
     const count = Number(params['count'] ?? 0);
     const text = forms[from.plurals.select(count)] ?? forms['other'] ?? '';
     return interpolate(text, params, from.numbers);
