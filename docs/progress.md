@@ -1021,6 +1021,9 @@ not edit the same lines.
   Accounts and Marketplace screenshots from the showcase page and a local
   signed marketplace. The Marketplace tab's permission list was laid out as
   centered rows by the global list style; it is a bulleted list now.
+- Store screenshots (#384): the AppStream metainfo lists the website's
+  screenshots with captions, so software centers and Flathub show them. The
+  Marketplace shot waits for the marketplace to list the assistant again.
 
 - Plugin marketplace design (#386): ADR 0014. One `index.json` on
   packages.guita.org, signed with the plugin signing key and checked against
