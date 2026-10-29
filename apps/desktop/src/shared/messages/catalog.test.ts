@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { buildCatalog, placeholders, pluralKey, type CatalogJson } from './catalog.ts';
 
 const ENGLISH: CatalogJson = {
@@ -113,5 +113,21 @@ describe('buildCatalog', () => {
       n: (params: object) => string;
     };
     expect(none.n({})).toBe('');
+  });
+
+  it('makes number and plural rules only when a message first needs them', () => {
+    const plurals = vi.spyOn(Intl, 'PluralRules');
+    const numbers = vi.spyOn(Intl, 'NumberFormat');
+    // As YapYap builds English: the catalog is its own translation.
+    const built = build(ENGLISH, 'en');
+    expect(plurals).not.toHaveBeenCalled();
+    expect(numbers).not.toHaveBeenCalled();
+    expect(built.unread({ count: 2 })).toBe('2 unread chats');
+    expect(built.unread({ count: 1 })).toBe('1 unread chat');
+    // One set of rules for the language, however often its messages are used.
+    expect(plurals).toHaveBeenCalledOnce();
+    expect(numbers).toHaveBeenCalledOnce();
+    plurals.mockRestore();
+    numbers.mockRestore();
   });
 });
