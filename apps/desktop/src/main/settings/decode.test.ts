@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { decodeSettings, defaultSettings } from './decode.ts';
 
 const DEFAULTS = {
-  schemaVersion: 16,
+  schemaVersion: 17,
   general: {
     language: 'system',
     startMinimized: false,
@@ -42,7 +42,7 @@ const DEFAULTS = {
   extensions: { developerMode: false, chatMessages: '20' },
   shortcuts: { custom: {}, extensions: {}, global: { toggleWindow: '' } },
   downloads: { askWhere: false, openWhenDone: false, folder: '' },
-  recording: { folder: '' },
+  recording: { folder: '', format: 'webm' },
   spelling: { enabled: false, languages: [] },
 };
 
@@ -129,9 +129,9 @@ describe('decodeSettings', () => {
       trayIcon: 'color',
     };
     const decoded = decodeSettings(
-      JSON.stringify({ ...DEFAULTS, appearance, schemaVersion: 17, future: true }),
+      JSON.stringify({ ...DEFAULTS, appearance, schemaVersion: 18, future: true }),
     );
-    expect(decoded).toEqual({ kind: 'newer', settings: { ...DEFAULTS, appearance }, version: 17 });
+    expect(decoded).toEqual({ kind: 'newer', settings: { ...DEFAULTS, appearance }, version: 18 });
   });
 
   it('accepts every option of each choice', () => {

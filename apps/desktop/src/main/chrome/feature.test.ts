@@ -77,6 +77,7 @@ function setup() {
     hiddenSettings: [],
     recording: {
       supported: true,
+      format: () => 'webm' as const,
       paths: { folder: '/recordings', index: '/user-data/recordings.json' },
       consentFile: '/user-data/recording-consent.json',
       askConsent: vi.fn(() => Promise.resolve(false)),
@@ -474,6 +475,7 @@ describe('createChromeFeature', () => {
         'downloads.openWhenDone': false,
         'downloads.folder': '',
         'recording.folder': '',
+        'recording.format': 'webm',
         'spelling.enabled': false,
         'general.autostart': false,
         'general.startMinimized': false,

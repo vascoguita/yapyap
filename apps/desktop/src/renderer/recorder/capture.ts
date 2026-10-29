@@ -1,4 +1,4 @@
-import type { ChromeApi } from '../../shared/chrome-api.ts';
+import type { ChromeApi, RecordingFormat } from '../../shared/chrome-api.ts';
 
 /** How often the encoder hands over sound, so a crash loses at most this much. */
 const SLICE_MS = 1000;
@@ -16,7 +16,8 @@ export interface CaptureEnvironment {
   readonly getUserMedia: (constraints: MediaStreamConstraints) => Promise<MediaStream>;
   /** One stream holding the sound of every stream given. */
   readonly mix: (streams: readonly MediaStream[]) => MediaStream;
-  readonly encoder: (stream: MediaStream) => Encoder;
+  /** Encodes `stream` in `format`: Opus in WebM, or WAV (#442). */
+  readonly encoder: (stream: MediaStream, format: RecordingFormat) => Encoder;
 }
 
 /** The microphone, if the user has one YapYap may use; the call is recorded either way. */
@@ -31,14 +32,14 @@ interface Capture {
   readonly streams: readonly MediaStream[];
 }
 
-async function startCapture(env: CaptureEnvironment): Promise<Capture> {
+async function startCapture(env: CaptureEnvironment, format: RecordingFormat): Promise<Capture> {
   // The main process answers with the call window's own sound; its picture is not wanted.
   const call = await env.getDisplayMedia({ audio: true, video: true });
   for (const track of call.getVideoTracks()) {
     track.stop();
   }
   const streams = [call, ...(await microphone(env))];
-  return { encoder: env.encoder(env.mix(streams)), streams };
+  return { encoder: env.encoder(env.mix(streams), format), streams };
 }
 
 /**
@@ -50,10 +51,10 @@ async function startCapture(env: CaptureEnvironment): Promise<Capture> {
 export function serveRecorder(api: ChromeApi['recorder'], env: CaptureEnvironment): void {
   let capture: Capture | undefined;
   let handed: Promise<unknown> = Promise.resolve();
-  const start = async (): Promise<void> => {
+  const start = async (format: RecordingFormat): Promise<void> => {
     let running: Capture;
     try {
-      running = await startCapture(env);
+      running = await startCapture(env, format);
     } catch {
       await api.failed();
       return;
@@ -71,8 +72,8 @@ export function serveRecorder(api: ChromeApi['recorder'], env: CaptureEnvironmen
     running.encoder.start(SLICE_MS, onData, onStop);
   };
   api.onCommand((command) => {
-    if (command === 'start') {
-      void start();
+    if (command === 'start' || command === 'start-wav') {
+      void start(command === 'start' ? 'webm' : 'wav');
     } else {
       capture?.encoder.stop();
     }

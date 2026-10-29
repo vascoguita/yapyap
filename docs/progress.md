@@ -1233,6 +1233,12 @@ not edit the same lines.
   (settings version 15). Folder fields name their own default now, and each
   **Choose…** button is named after its field.
 
+- Recording format (#442): Settings → Call recordings → **Record as** offers
+  WAV beside Opus in WebM (settings version 17). The recorder page reads the
+  mixed track's frames with `MediaStreamTrackProcessor` and writes 16-bit
+  stereo PCM after a header, whose sizes the main process completes when the
+  recording ends.
+
 - Extension command shortcuts (#443, first part): a command may suggest
   keys in its manifest (`shortcut`), which the menu gives it only when they
   clash with none of YapYap's shortcuts, as the user set them, nor an earlier

@@ -8,7 +8,7 @@ import { SHORTCUT_IDS, type ShortcutId } from '../../shared/shortcuts.ts';
  * it, so the schema is the only source of truth. Every value has a default,
  * which is what an invalid or missing value falls back to.
  */
-export const SETTINGS_VERSION = 16;
+export const SETTINGS_VERSION = 17;
 
 export const SettingsSchema = Type.Object(
   {
@@ -113,6 +113,8 @@ export const SettingsSchema = Type.Object(
       {
         // Empty means `YapYap` in the Music folder; set only through the folder picker.
         folder: Type.String({ maxLength: 4096, default: '' }),
+        // Opus in WebM is small; WAV is large, but every program opens it (#442).
+        format: Type.Union([Type.Literal('webm'), Type.Literal('wav')], { default: 'webm' }),
       },
       { default: {}, additionalProperties: false },
     ),

@@ -334,6 +334,14 @@
         }
       },
       "recording": {
+        "format": {
+          "label": "Record as",
+          "description": "Applies to the next recording.",
+          "options": {
+            "webm": "Opus in WebM: small files that browsers and players such as VLC open",
+            "wav": "WAV: many times larger, but every program opens it"
+          }
+        },
         "folder": {
           "label": "Save recordings to",
           "description": "Where YapYap keeps the calls you record. If the folder is gone, recordings go to the default folder again."

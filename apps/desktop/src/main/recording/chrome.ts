@@ -4,6 +4,7 @@ import {
   RECORDER_COMMAND_EVENT,
   type RecordPromptState,
   type RecorderCommand,
+  type RecordingFormat,
 } from '../../shared/chrome-api.ts';
 import { noArguments, type ChromeCall, type ChromeHandler } from '../chrome/ipc.ts';
 import type { CallRecorderService } from '../extensions/host-methods.ts';
@@ -26,6 +27,8 @@ export interface RecordingDependencies {
   /** Whether this system can capture a call's sound (ADR 0015). */
   readonly supported: boolean;
   readonly paths: LibraryPaths;
+  /** How the next recording is encoded, as Settings says (#442). */
+  readonly format: () => RecordingFormat;
   /** The call running for the account on screen, if any. */
   readonly callOf: () => CallTarget | undefined;
   /** Opens the hidden recorder page. */
@@ -80,7 +83,7 @@ function ask(deps: RecordingDependencies, slots: Slots, extension: string, call:
 }
 
 /** The recorder page, opened once and reused, which acts only once loaded. */
-function page(deps: RecordingDependencies, slots: Slots) {
+function page(deps: RecordingDependencies, slots: Slots, format: () => RecordingFormat) {
   let window = slots.page;
   if (window === undefined) {
     const opened = deps.openRecorder();
@@ -96,17 +99,28 @@ function page(deps: RecordingDependencies, slots: Slots) {
       loaded.webContents.send(RECORDER_COMMAND_EVENT, command);
     });
   };
-  return { contents: loaded.webContents, start: send('start'), stop: send('stop') };
+  return {
+    contents: loaded.webContents,
+    start: () => {
+      send(format() === 'wav' ? 'start-wav' : 'start')();
+    },
+    stop: send('stop'),
+  };
 }
 
 function recorderOf(deps: RecordingDependencies, slots: Slots): CallRecorder {
+  // Read when the file is made, so the page encodes what the file is named for.
+  let format: RecordingFormat = 'webm';
   return createCallRecorder({
     supported: deps.supported,
     callOf: deps.callOf,
     ask: (extension, call) => ask(deps, slots, extension, call),
     consent: deps.consent,
-    page: () => page(deps, slots),
-    sink: (started) => recordingSink(deps.paths, started),
+    page: () => page(deps, slots, () => format),
+    sink: (started) => {
+      format = deps.format();
+      return recordingSink(deps.paths, started, format);
+    },
     now: deps.now,
     after: deps.after,
     onChange: ({ recordingSince }) => {

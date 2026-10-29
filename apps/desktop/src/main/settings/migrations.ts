@@ -132,6 +132,14 @@ function addExtensionShortcuts(settings: Raw): Raw {
   return settings;
 }
 
+/** Version 17 adds the recordings' format, Opus in WebM as before (#442). */
+function addRecordingFormat(settings: Raw): Raw {
+  const recording = settings['recording'];
+  return isSection(recording)
+    ? { ...settings, recording: { format: 'webm', ...recording } }
+    : settings;
+}
+
 /**
  * `MIGRATIONS[n]` turns a version n+1 file into version n+2. They are pure,
  * forward-only, and each has its own test; a test also checks that there is
@@ -153,6 +161,7 @@ export const MIGRATIONS: readonly ((settings: Raw) => Raw)[] = [
   addChatMessages,
   addRecording,
   addExtensionShortcuts,
+  addRecordingFormat,
 ];
 
 export type MigrationResult =

@@ -149,6 +149,11 @@ export const SETTING_FIELDS: readonly SettingField[] = [
   },
   { ...described('downloads', 'openWhenDone'), restart: false },
   {
+    ...described('recording', 'format'),
+    restart: false,
+    options: choices(text.recording.format.options),
+  },
+  {
     ...described('recording', 'folder'),
     restart: false,
     folder: {
