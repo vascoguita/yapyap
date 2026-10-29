@@ -1,5 +1,6 @@
 import {
   appendFileSync,
+  copyFileSync,
   existsSync,
   mkdirSync,
   readdirSync,
@@ -17,6 +18,7 @@ import {
   sourcesOf,
 } from '../marketplace/build.ts';
 import { readEntry, readRevocations, type Entry } from '../marketplace/entries.ts';
+import { screenshotPath, screenshotReader } from '../marketplace/screenshots.ts';
 
 // Usage: marketplace-index.ts <marketplace directory> [site directory]
 // Checks every entry and the archive each lists (ADR 0014). With a site
@@ -56,6 +58,7 @@ const index = buildIndex({
   archives,
   anchors: anchorFingerprints(TRUST_ANCHORS),
   now: new Date(),
+  screenshots: screenshotReader(folder),
 });
 console.info(`Checked ${String(index.extensions.length)} extensions.`);
 if (site !== undefined) {
@@ -71,4 +74,11 @@ if (site !== undefined) {
     );
   }
   appendFileSync(join(site, '_redirects'), `${archiveRedirects(entries)}\n`);
+  // Screenshots are served beside the index, checked by buildIndex above.
+  for (const { id, screenshots = [] } of entries) {
+    mkdirSync(join(out, id, 'screenshots'), { recursive: true });
+    for (const { file } of screenshots) {
+      copyFileSync(screenshotPath(folder, id, file), join(out, id, 'screenshots', file));
+    }
+  }
 }

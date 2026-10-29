@@ -39,6 +39,7 @@ Each listed extension has an entry in the YapYap repository, in
   "review": "reviewed",
   "signer": "18:1e:…:d7",
   "repository": "https://github.com/example/translate",
+  "screenshots": [{ "file": "main.png", "caption": "Translating a draft" }],
   "versions": [
     {
       "version": "1.0.0",
@@ -56,6 +57,10 @@ Each listed extension has an entry in the YapYap repository, in
 - `signer` is the fingerprint of your signing key, as the consent window
   and `yapyap-extension-sign verify` show it. Every version must be signed by
   that key; a new key needs a new review.
+- `screenshots` is optional: up to five PNG or WebP images of at most 1 MiB
+  each, committed in `marketplace/screenshots/<id>/` with the entry, and a
+  caption for each. They are served beside the index and shown on the
+  extension's page on the website, never loaded from your server.
 - `notes` is optional: what changed in that version, in plain text of up to
   2,000 characters. YapYap shows it with an update, and the extension's page
   on the website lists it beside each version.

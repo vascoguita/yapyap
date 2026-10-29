@@ -92,6 +92,27 @@ function setup(
 }
 
 describe('buildIndex', () => {
+  it('lists an entry’s screenshots, checked, and none when it has none', () => {
+    const { entry, sources } = setup();
+    const shot = { file: 'main.png', caption: 'The main window' };
+    const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    const index = buildIndex({
+      ...sources,
+      entries: [{ ...entry, screenshots: [shot] }],
+      screenshots: () => png,
+    });
+    expect(index.extensions[0]?.screenshots).toEqual([
+      {
+        url: 'https://packages.guita.org/extensions/org.example.hello/screenshots/main.png',
+        caption: 'The main window',
+      },
+    ]);
+    expect(() => buildIndex({ ...sources, entries: [{ ...entry, screenshots: [shot] }] })).toThrow(
+      'screenshot main.png is not in',
+    );
+    expect(buildIndex(sources).extensions[0]).not.toHaveProperty('screenshots');
+  });
+
   it('carries what changed in a version into the index, and nothing when an entry says nothing', () => {
     const { entry, sources } = setup();
     const noted = {

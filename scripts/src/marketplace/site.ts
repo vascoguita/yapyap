@@ -19,6 +19,8 @@ export interface SiteExtension {
   readonly asks: readonly string[];
   readonly hosts: readonly string[];
   /** Every version still offered, newest first, with the day it was published. */
+  /** Pictures of the extension in use, served beside the index. */
+  readonly screenshots: readonly { readonly url: string; readonly caption: string }[];
   readonly versions: readonly {
     readonly version: string;
     readonly published: string;
@@ -82,6 +84,7 @@ function siteExtension(
     review: extension.review,
     asks: newest.capabilities.map(describe),
     hosts: newest.hosts,
+    screenshots: extension.screenshots ?? [],
     versions: versions.map(({ version, published, minYapYap, notes }) => ({
       version,
       published: published.slice(0, 10),

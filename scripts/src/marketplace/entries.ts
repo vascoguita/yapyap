@@ -33,6 +33,19 @@ const EntrySchema = Type.Object(
     license: Extension.properties.license,
     review: Extension.properties.review,
     signer: Extension.properties.signer,
+    /** Pictures of the extension in use, as files in `marketplace/screenshots/<id>/` (#434). */
+    screenshots: Type.Optional(
+      Type.Array(
+        Type.Object(
+          {
+            file: Type.String({ pattern: '^[a-z0-9-]{1,40}\\.(?:png|webp)$' }),
+            caption: Type.String({ minLength: 1, maxLength: 200 }),
+          },
+          { additionalProperties: false },
+        ),
+        { maxItems: 5 },
+      ),
+    ),
     /** Where the extension's source code lives, which a review of a third-party extension starts from. */
     repository: Type.Optional(Type.String({ pattern: '^https://', maxLength: 300 })),
     versions: Type.Array(

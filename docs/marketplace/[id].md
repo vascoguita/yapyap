@@ -21,6 +21,13 @@ Don't have YapYap yet? [Install YapYap](/guide/install) first, then come back
 and choose **Install in YapYap**. YapYap shows what the extension asks for and
 installs nothing until you agree.
 
+<div class="screenshots" v-if="$params.screenshots.length > 0">
+  <figure v-for="shot in $params.screenshots" :key="shot.url">
+    <img :src="shot.url" :alt="shot.caption" loading="lazy">
+    <figcaption>{{ shot.caption }}</figcaption>
+  </figure>
+</div>
+
 ## What it asks for
 
 <ul>

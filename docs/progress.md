@@ -1229,6 +1229,12 @@ not edit the same lines.
 - Recorder keys: the call recorder suggests Ctrl+Alt+R to record and
   Ctrl+Alt+S to stop (⌘⌥ on macOS), which the menu gives it as nothing else
   has them (#443).
+- Release notes in the marketplace (#434, first part): a listed version may
+  carry `notes`, plain text that the signed index keeps, the website shows
+  beside each version, and the Marketplace tab shows under **What's new**
+  when it offers an update. An entry may also list up to five screenshots,
+  committed in `marketplace/screenshots/<id>/`, checked as PNG or WebP of at
+  most 1 MiB, served beside the index and shown on the extension's page.
 
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,

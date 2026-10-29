@@ -102,6 +102,7 @@ describe('siteExtensions', () => {
         review: 'reviewed',
         asks: ['can composer:insert-draft', 'can local-network'],
         hosts: ['api.example.org'],
+        screenshots: [],
         versions: [
           {
             version: '1.1.0',

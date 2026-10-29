@@ -58,3 +58,26 @@
 .vp-doc .marketplace-list li {
   margin-bottom: 12px;
 }
+
+/* An extension's screenshots (#434): a row that scrolls sideways on a narrow screen. */
+.vp-doc .screenshots {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+}
+
+.vp-doc .screenshots figure {
+  flex: 0 0 auto;
+  max-width: 320px;
+  margin: 0;
+}
+
+.vp-doc .screenshots img {
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+}
+
+.vp-doc .screenshots figcaption {
+  color: var(--vp-c-text-2);
+  font-size: 0.875rem;
+}
