@@ -99,52 +99,62 @@ describe('sessionBusPath', () => {
 });
 
 describe('backgroundAsker', () => {
-  it('asks over a session bus of its own, and closes it after', async () => {
-    const folder = mkdtempSync(join(tmpdir(), 'yapyap-bus-'));
-    const address = join(folder, 'bus');
-    let connected: Socket | undefined;
-    const server = createServer((socket) => {
-      connected = socket;
-      const t = portal((call) => {
-        const options = call.body[1] as ReadonlyMap<string, Variant>;
-        const token = options.get('handle_token')?.value as string;
-        return [response(0, true, `/org/freedesktop/portal/desktop/request/1_42/${token}`)];
+  // The session bus, and the Flatpak it serves, are Linux's; Windows cannot listen on a socket path.
+  it.skipIf(process.platform === 'win32')(
+    'asks over a session bus of its own, and closes it after',
+    async () => {
+      const folder = mkdtempSync(join(tmpdir(), 'yapyap-bus-'));
+      const address = join(folder, 'bus');
+      let connected: Socket | undefined;
+      const server = createServer((socket) => {
+        connected = socket;
+        const t = portal((call) => {
+          const options = call.body[1] as ReadonlyMap<string, Variant>;
+          const token = options.get('handle_token')?.value as string;
+          return [response(0, true, `/org/freedesktop/portal/desktop/request/1_42/${token}`)];
+        });
+        t.socket.on('data', (bytes) => socket.write(bytes));
+        // The handshake is lines of text until BEGIN; after it, the stream is messages.
+        let handshake = true;
+        let text = '';
+        socket.on('data', (bytes) => {
+          if (!handshake) {
+            t.socket.write(Buffer.from(bytes));
+            return;
+          }
+          text += bytes.toString('latin1');
+          for (
+            let end = text.indexOf('\r\n');
+            end !== -1 && handshake;
+            end = text.indexOf('\r\n')
+          ) {
+            const line = text.slice(0, end + 2);
+            text = text.slice(end + 2);
+            handshake = line !== 'BEGIN\r\n';
+            t.socket.write(line);
+          }
+          if (!handshake && text.length > 0) {
+            t.socket.write(Uint8Array.from(Buffer.from(text, 'latin1')));
+          }
+        });
       });
-      t.socket.on('data', (bytes) => socket.write(bytes));
-      // The handshake is lines of text until BEGIN; after it, the stream is messages.
-      let handshake = true;
-      let text = '';
-      socket.on('data', (bytes) => {
-        if (!handshake) {
-          t.socket.write(Buffer.from(bytes));
-          return;
-        }
-        text += bytes.toString('latin1');
-        for (let end = text.indexOf('\r\n'); end !== -1 && handshake; end = text.indexOf('\r\n')) {
-          const line = text.slice(0, end + 2);
-          text = text.slice(end + 2);
-          handshake = line !== 'BEGIN\r\n';
-          t.socket.write(line);
-        }
-        if (!handshake && text.length > 0) {
-          t.socket.write(Uint8Array.from(Buffer.from(text, 'latin1')));
-        }
-      });
-    });
-    await new Promise<void>((resolve) => server.listen(address, resolve));
-    try {
-      const ask = backgroundAsker(
-        { env: { DBUS_SESSION_BUS_ADDRESS: `unix:path=${address}` }, getuid: () => 1000 },
-        'At login.',
-      );
-      expect(await ask(true)).toBe(true);
-      await new Promise((resolve) => setTimeout(resolve, 50));
-      expect(connected?.readableEnded ?? connected?.destroyed).toBe(true);
-      const nobody = backgroundAsker({ env: {} }, 'At login.');
-      await expect(nobody(true)).rejects.toThrow('No session bus to reach the Background portal.');
-    } finally {
-      server.close();
-      rmSync(folder, { recursive: true, force: true });
-    }
-  });
+      await new Promise<void>((resolve) => server.listen(address, resolve));
+      try {
+        const ask = backgroundAsker(
+          { env: { DBUS_SESSION_BUS_ADDRESS: `unix:path=${address}` }, getuid: () => 1000 },
+          'At login.',
+        );
+        expect(await ask(true)).toBe(true);
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        expect(connected?.readableEnded ?? connected?.destroyed).toBe(true);
+        const nobody = backgroundAsker({ env: {} }, 'At login.');
+        await expect(nobody(true)).rejects.toThrow(
+          'No session bus to reach the Background portal.',
+        );
+      } finally {
+        server.close();
+        rmSync(folder, { recursive: true, force: true });
+      }
+    },
+  );
 });
