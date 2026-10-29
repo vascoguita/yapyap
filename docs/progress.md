@@ -987,6 +987,11 @@ not edit the same lines.
   which Weblate uses; so did the dotted one, so this guards other tools
   and keeps keys simple rather than fixing a breakage seen in Weblate.
 
+- Drafts take the keyboard first (#376): inserting an extension's or a
+  notification's draft now focuses WhatsApp's view before typing, since
+  typed text goes to the page holding the keyboard, which another YapYap
+  window may hold. Likely cause of the macOS example-extension flake.
+
 - Memory watchdog after an account's page goes away (#377): `watchMemory`
   sampled each account's renderer every minute with no end, so after the
   page was destroyed, as when its account is removed, every sample threw

@@ -13,6 +13,8 @@ export interface ReplyContents {
   ): Promise<unknown>;
   /** Typed into the focused element as the user's own input. */
   insertText(text: string): Promise<void>;
+  /** Gives the page keyboard focus within its window. */
+  focus(): void;
 }
 
 export interface ReplyDependencies {
@@ -30,6 +32,9 @@ export function supportsInlineReply(platform: string): boolean {
 }
 
 async function focused(contents: ReplyContents, code = FOCUS_COMPOSER): Promise<boolean> {
+  // Typing goes to the page that has the keyboard, so WhatsApp's view takes
+  // it first: a YapYap window, such as Extensions, may still hold it (#376).
+  contents.focus();
   const result = await contents
     .executeJavaScriptInIsolatedWorld(ADAPTER_WORLD_ID, [{ code }])
     .catch(() => false);

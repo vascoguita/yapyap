@@ -15,6 +15,7 @@ function setup(answers: unknown[]) {
       return answer instanceof Error ? Promise.reject(answer) : Promise.resolve(answer);
     }),
     insertText: vi.fn(() => Promise.resolve()),
+    focus: vi.fn(),
     sendInputEvent: vi.fn(),
   };
   const deps = { wait: vi.fn(() => Promise.resolve()), warn: vi.fn() };
@@ -51,6 +52,10 @@ describe('insertDraft', () => {
     const t = setup([true, false]);
     await expect(insertDraft(t.contents, 'Draft')).resolves.toBe(true);
     expect(t.contents.insertText).toHaveBeenCalledExactlyOnceWith('Draft');
+    // WhatsApp's view takes the keyboard before anything is typed (#376).
+    expect(t.contents.focus.mock.invocationCallOrder[0]).toBeLessThan(
+      t.contents.insertText.mock.invocationCallOrder[0] ?? 0,
+    );
     await expect(insertDraft(t.contents, 'Again')).resolves.toBe(false);
     expect(t.contents.insertText).toHaveBeenCalledOnce();
   });
