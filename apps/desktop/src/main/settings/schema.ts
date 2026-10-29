@@ -8,7 +8,7 @@ import { SHORTCUT_IDS, type ShortcutId } from '../../shared/shortcuts.ts';
  * it, so the schema is the only source of truth. Every value has a default,
  * which is what an invalid or missing value falls back to.
  */
-export const SETTINGS_VERSION = 15;
+export const SETTINGS_VERSION = 16;
 
 export const SettingsSchema = Type.Object(
   {
@@ -159,6 +159,12 @@ export const SettingsSchema = Type.Object(
           ),
           { default: {} },
         ),
+        // Keys the user chose for extension commands, by `extension/command`; empty means none.
+        extensions: Type.Record(Type.String(), Type.String({ maxLength: 64 }), {
+          default: {},
+          maxProperties: 128,
+          propertyNames: { pattern: '^[A-Za-z0-9._-]{1,200}/[A-Za-z0-9._-]{1,64}$' },
+        }),
         // Shortcuts that work from any app; empty means none.
         global: Type.Object(
           { toggleWindow: Type.String({ maxLength: 64, default: '' }) },

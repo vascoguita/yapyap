@@ -125,6 +125,14 @@ function addRecording(settings: Raw): Raw {
 }
 
 /**
+ * Version 16 adds the keys the user chose for extension commands (#443).
+ * Older files have none, so validation gives them an empty list.
+ */
+function addExtensionShortcuts(settings: Raw): Raw {
+  return settings;
+}
+
+/**
  * `MIGRATIONS[n]` turns a version n+1 file into version n+2. They are pure,
  * forward-only, and each has its own test; a test also checks that there is
  * exactly one migration per version step.
@@ -144,6 +152,7 @@ export const MIGRATIONS: readonly ((settings: Raw) => Raw)[] = [
   addResourceLimits,
   addChatMessages,
   addRecording,
+  addExtensionShortcuts,
 ];
 
 export type MigrationResult =

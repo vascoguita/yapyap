@@ -49,7 +49,8 @@ such as `"shortcut": "CmdOrCtrl+Shift+E"` (`CmdOrCtrl` is ⌘ on macOS and Ctrl
 elsewhere). YapYap gives the command those keys only when they are valid and
 clash with none of YapYap's shortcuts, as the user set them, nor with a
 command of an extension that started earlier; otherwise the command has no
-keys.
+keys. Users can change or remove the keys in **Keyboard Shortcuts**, and
+their choice comes before any suggestion.
 
 `contributes.panel` (`title` and `entry`) gives the extension a panel, which
 the user opens from **Extension Commands**. It opens in a window of its own,

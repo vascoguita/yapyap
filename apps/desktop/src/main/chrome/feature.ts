@@ -73,6 +73,7 @@ import { EXTENSION_SCHEME } from '../extensions/extension-files.ts';
 import { setDoNotDisturb } from '../notifications/quiet.ts';
 import { settingsHandlers, type SettingEffect } from '../settings/handlers.ts';
 import type { SettingsService } from '../settings/service.ts';
+import type { Settings } from '../settings/schema.ts';
 import { settingsTransferHandlers, type SettingsFiles } from '../settings/transfer-handlers.ts';
 import type { ViewRegistry } from '../views.ts';
 import type { RendererOptions } from '../web-preferences.ts';
@@ -670,11 +671,13 @@ function menuActionsOf(
   });
 }
 
-/** Calls `rebuild` when the user changes an in-app shortcut, whose keys the menu shows. */
+/** Calls `rebuild` when the user changes an in-app or extension shortcut, whose keys the menu shows. */
 function onShortcutChange(settings: SettingsService, rebuild: () => void): void {
-  let keys = JSON.stringify(settings.current().shortcuts.custom);
+  const keysOf = ({ shortcuts }: Settings): string =>
+    JSON.stringify([shortcuts.custom, shortcuts.extensions]);
+  let keys = keysOf(settings.current());
   settings.onChange((current) => {
-    const changed = JSON.stringify(current.shortcuts.custom);
+    const changed = keysOf(current);
     if (changed !== keys) {
       keys = changed;
       rebuild();
@@ -696,9 +699,8 @@ function accountMenuSetter(
 ): (menu: AccountMenu) => void {
   const actions = menuActionsOf(deps, slots, openers, extensions, warn);
   const set = (menu: AccountMenu | undefined): void => {
-    deps.setMenu(
-      buildMenuTemplate(deps.platform, actions(menu), deps.settings.current().shortcuts.custom),
-    );
+    const { custom, extensions: chosen } = deps.settings.current().shortcuts;
+    deps.setMenu(buildMenuTemplate(deps.platform, actions(menu), custom, chosen));
   };
   const rebuild = (): void => {
     set(slots.accounts.current);
@@ -740,7 +742,6 @@ function allHandlers(
     ...settingsTransferHandlers(deps.settings, deps.settingsFiles),
     ...folderChoiceHandlers(deps.settings, deps.chooseFolder),
     ...newChatHandlers(chats),
-    ...shortcutHandlers(deps.settings, deps.platform, deps.isGlobalShortcutRegistered),
     ...spellingHandlers(deps.settings, deps.spelling),
     ...downloadsHandlers(deps.downloads),
     ...accountsHandlers(() => accounts.current, deps.confirmRemoveAccount),
@@ -855,8 +856,17 @@ function menuSetter(
 }
 
 /** The operations of the windows that wait in the background until needed. */
-function standbyHandlers(standby: ReturnType<typeof standbyWindows>): ChromeHandler[] {
+function standbyHandlers(
+  standby: ReturnType<typeof standbyWindows>,
+  deps: ChromeFeatureDependencies,
+): ChromeHandler[] {
   return [
+    ...shortcutHandlers(
+      deps.settings,
+      deps.platform,
+      deps.isGlobalShortcutRegistered,
+      standby.extensions.commands,
+    ),
     ...standby.recording.handlers,
     ...standby.extensions.handlers,
     ...standby.proxyLogin.handlers,
@@ -910,7 +920,7 @@ function startChrome(
   const { extensions, proxyLogin, quickPanel, recording } = standby;
   const handlers = [
     ...allHandlers({ ...withGraphics, unavailableSettings: unavailableOn(wayland) }, slots),
-    ...standbyHandlers(standby),
+    ...standbyHandlers(standby, deps),
   ];
   registerChromeHandlers(deps.ipc, views, handlers, warn);
   const openers = chromeOpeners(windows, extensions);

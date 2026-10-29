@@ -81,28 +81,42 @@ interface SuggestedShortcut {
   readonly shortcut?: string | undefined;
 }
 
+/** Keys the user chose for extension commands, by `extension/command`; empty means none. */
+export type ChosenExtensionShortcuts = Readonly<Record<string, string>>;
+
+export const extensionShortcutKey = (extension: string, command: string): string =>
+  `${extension}/${command}`;
+
 /**
- * The keys each extension command gets, by `extension/command` (#443): its
- * suggestion, where the keys fit and clash with none of YapYap's shortcuts,
- * as the user set them, nor with an extension command that started earlier.
+ * The keys each extension command gets, by `extension/command` (#443): the
+ * keys the user chose, else its suggestion, where the keys fit and clash with
+ * none of YapYap's shortcuts, as the user set them, nor with keys given
+ * before. The user's choices come first, then suggestions in start order.
  */
 export function extensionShortcuts(
   commands: readonly SuggestedShortcut[],
   platform: string,
   custom: CustomShortcuts = {},
+  chosen: ChosenExtensionShortcuts = {},
 ): ReadonlyMap<string, string> {
   const taken: { id: string; accelerator: string }[] = [...shortcutsFor(platform, custom)];
   const given = new Map<string, string>();
-  for (const { extension, id, shortcut } of commands) {
-    const key = `${extension}/${id}`;
-    if (
-      shortcut !== undefined &&
-      isValidShortcut(shortcut) &&
-      conflictOf(key, shortcut, taken, platform) === undefined
-    ) {
-      given.set(key, shortcut);
-      taken.push({ id: key, accelerator: shortcut });
+  const give = (key: string, keys: string | undefined): void => {
+    const free = keys !== undefined && conflictOf(key, keys, taken, platform) === undefined;
+    if (free && isValidShortcut(keys)) {
+      given.set(key, keys);
+      taken.push({ id: key, accelerator: keys });
     }
+  };
+  const keyed = commands.map((command) => ({
+    ...command,
+    key: extensionShortcutKey(command.extension, command.id),
+  }));
+  for (const { key } of keyed) {
+    give(key, chosen[key]);
+  }
+  for (const { key, shortcut } of keyed) {
+    give(key, key in chosen ? undefined : shortcut);
   }
   return given;
 }

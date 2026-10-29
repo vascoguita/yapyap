@@ -51,6 +51,15 @@ describe('migrate', () => {
   });
 });
 
+describe('version 15 to 16', () => {
+  const toVersion16 = MIGRATIONS[14];
+
+  it('changes nothing: validation gives the extension shortcuts an empty list', () => {
+    const settings = { schemaVersion: 15, shortcuts: { custom: { reload: 'F5' } } };
+    expect(toVersion16?.(settings)).toBe(settings);
+  });
+});
+
 describe('version 14 to 15', () => {
   const toVersion15 = MIGRATIONS[13];
 

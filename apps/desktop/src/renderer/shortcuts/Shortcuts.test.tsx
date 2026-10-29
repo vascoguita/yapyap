@@ -1,9 +1,11 @@
 /** @vitest-environment happy-dom */
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { ChromeApi } from '../../shared/chrome-api.ts';
+import type { ChromeApi, ExtensionShortcutState } from '../../shared/chrome-api.ts';
 import { shortcutsFor } from '../../shared/shortcuts.ts';
 import { Shortcuts } from './Shortcuts.tsx';
+
+const NO_EXTENSIONS: readonly ExtensionShortcutState[] = [];
 
 const globalOf = (accelerator: string, registered = true) => [
   { id: 'toggleWindow', label: 'Show or hide YapYap, from any app', accelerator, registered },
@@ -67,7 +69,12 @@ function api(platform: string) {
     proxyLogin: { request: vi.fn(), answer: vi.fn() },
     shortcuts: {
       list: vi.fn(() =>
-        Promise.resolve({ platform, shortcuts: shortcutsFor(platform), global: globalOf('') }),
+        Promise.resolve({
+          platform,
+          shortcuts: shortcutsFor(platform),
+          global: globalOf(''),
+          extensions: NO_EXTENSIONS,
+        }),
       ),
       set: vi.fn((id: string, accelerator: string | null) =>
         Promise.resolve({
@@ -77,6 +84,7 @@ function api(platform: string) {
             accelerator === null || id === 'toggleWindow' ? {} : { [id]: accelerator },
           ),
           global: globalOf(id === 'toggleWindow' ? (accelerator ?? '') : '', accelerator !== 'F9'),
+          extensions: NO_EXTENSIONS,
           problem:
             accelerator === 'CmdOrCtrl+Q' ? 'Those keys are already used for “Quit YapYap”.' : '',
         }),
@@ -199,5 +207,66 @@ describe('a shortcut that works from any app', () => {
     );
     fireEvent.keyDown(window, { code: 'F9' });
     expect(await screen.findByText(/Another app already uses those keys/)).toBeTruthy();
+  });
+});
+
+describe('an extension command’s keys', () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  const state = (accelerator: string, custom: boolean) => ({
+    id: 'org.example.rec/record',
+    label: 'Rec: Record this call',
+    accelerator,
+    suggested: 'CmdOrCtrl+Alt+R',
+    custom,
+  });
+
+  it('shows the keys an extension suggests, removes them, takes others, and resets', async () => {
+    const yapyap = api('linux');
+    const listed = (accelerator: string, custom: boolean) => ({
+      platform: 'linux',
+      shortcuts: shortcutsFor('linux'),
+      global: globalOf(''),
+      extensions: [state(accelerator, custom)],
+    });
+    yapyap.shortcuts.list.mockResolvedValue(listed('CmdOrCtrl+Alt+R', false));
+    yapyap.shortcuts.set.mockImplementation((_id: string, accelerator: string | null) =>
+      Promise.resolve({
+        ...listed(accelerator ?? 'CmdOrCtrl+Alt+R', accelerator !== null),
+        problem: '',
+      }),
+    );
+    render(<Shortcuts api={yapyap} />);
+    expect(await screen.findByText('Extension commands')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Reset: Rec: Record this call' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Remove: Rec: Record this call' }));
+    expect(yapyap.shortcuts.set).toHaveBeenLastCalledWith('org.example.rec/record', '');
+    fireEvent.click(await screen.findByRole('button', { name: 'Reset: Rec: Record this call' }));
+    expect(yapyap.shortcuts.set).toHaveBeenLastCalledWith('org.example.rec/record', null);
+    fireEvent.click(await screen.findByRole('button', { name: 'Change: Rec: Record this call' }));
+    fireEvent.keyDown(window, { code: 'KeyQ', ctrlKey: true, altKey: true });
+    expect(yapyap.shortcuts.set).toHaveBeenLastCalledWith(
+      'org.example.rec/record',
+      'CmdOrCtrl+Alt+Q',
+    );
+  });
+
+  it('shows no section without extension commands, and None for a command without keys', async () => {
+    const yapyap = api('linux');
+    render(<Shortcuts api={yapyap} />);
+    expect(await screen.findByText('Keyboard shortcuts')).toBeTruthy();
+    expect(screen.queryByText('Extension commands')).toBeNull();
+    cleanup();
+    yapyap.shortcuts.list.mockResolvedValue({
+      platform: 'linux',
+      shortcuts: shortcutsFor('linux'),
+      global: globalOf('CmdOrCtrl+Alt+Y'),
+      extensions: [state('', false)],
+    });
+    render(<Shortcuts api={yapyap} />);
+    expect(await screen.findByText('None')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Remove: Rec: Record this call' })).toBeNull();
   });
 });

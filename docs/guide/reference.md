@@ -136,7 +136,12 @@ follow.
 Under **From any app**, **Show or hide YapYap** works while you use other
 apps. It has no keys until you give it some; **Remove** gives them back.
 If another app already holds the keys, or your system does not let apps use
-keys everywhere (as on some Wayland desktops), the window says so. On macOS, use
+keys everywhere (as on some Wayland desktops), the window says so.
+
+Under **Extension commands**, the commands of your running extensions show the
+keys they suggest, as long as nothing else uses them. **Change** gives one
+other keys, **Remove** leaves it without keys, and **Reset** goes back to
+the extension's suggestion. On macOS, use
 <kbd>⌘</kbd> where this table says <kbd>Ctrl</kbd>, unless it names other keys.
 
 | Shortcut                                                                                                | Action                                                      |
