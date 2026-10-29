@@ -40,6 +40,24 @@ timings in PRs would flap.
   | windows-latest | 936 ms, 771 ms        | 313 MB      | 2000 ms, 390 MB |
   | macos-latest   | 1444 ms, 1252 ms      | 411 MB      | 3500 ms, 510 MB |
 
+  **Recalibrated on 2026-10-29 (#428).** The same code measured more idle
+  memory than a few days earlier, on the same runner image and Electron:
+  commit `98910fc` used 386 MB on Windows on 2026-10-26 and 399 MB on
+  2026-10-29, and about 575 MB and 650 MB on Linux. The growth is the
+  runners', not YapYap's. The idle-memory budgets now sit 10% above the
+  medians of 2026-10-29, not 25%, because YapYap's own memory also grew
+  (Windows went from 313 MB to 386 MB in its first week), and a 25% margin
+  would let that much growth pass unnoticed again:
+
+  | Runner         | Idle memory | Budget |
+  | -------------- | ----------- | ------ |
+  | ubuntu-latest  | 651 MB      | 715 MB |
+  | windows-latest | 399 MB      | 440 MB |
+  | macos-latest   | 489 MB      | 540 MB |
+
+  The benchmark reports each process's memory too, so the next overrun
+  shows which process grew.
+
 - **Accounts (#109).** A second benchmark (`bench/accounts.spec.ts`)
   launches three times and takes the median of two more numbers:
   - **Memory per account:** what all of YapYap's processes hold more after

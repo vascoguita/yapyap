@@ -1202,6 +1202,12 @@ not edit the same lines.
   Extensions… now save on Enter, on leaving the field, and when the window
   closes, and say "Saved" or why not; before, closing the window right after
   typing lost the edit without a sign.
+- Idle memory by process (#428): the startup benchmark also reports each
+  process's memory (main window, WhatsApp, YapYap's own pages, GPU, network
+  and so on), so an overrun shows where it went. Windows went over its
+  budget because the runners grew, not YapYap: the same code measured 13 MB
+  more three days later. The idle-memory budgets are recalibrated 10% above
+  today's medians (ADR 0009).
 
 - Recordings folder (#442): Settings → Call recordings → **Save recordings
   to** picks the folder with the system's dialog, like the downloads folder,
