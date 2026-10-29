@@ -1107,6 +1107,13 @@ not edit the same lines.
   the call window. The sidebar and tray marks come next. E2E records the
   fake call's tone with Chromium's fake microphone.
 
+- Call recorder extension (#393): `extensions/call-recorder`, YapYap's own
+  extension over `calls:record`, with Record and Stop commands and a panel
+  listing the recordings with Show in folder. Format and folder choices
+  belong to YapYap, which writes the files, and command shortcuts need a
+  host feature; both are follow-ups. Its marketplace entry comes with the
+  next beta.
+
 - Local E2E isolation on Wayland desktops (#394): Chromium chose Wayland
   from the desktop's `XDG_SESSION_TYPE` and reached the real compositor
   through its default socket, so local runs opened windows on the
