@@ -27,7 +27,7 @@ const LOOPBACK: ReadonlySet<string> = new Set(['localhost', '127.0.0.1', '[::1]'
  * port, without credentials. Only loopback counts: other machines on the
  * local network are not this computer.
  */
-function isLocalServer(url: string): boolean {
+export function isLocalServer(url: string): boolean {
   if (!URL.canParse(url)) {
     return false;
   }

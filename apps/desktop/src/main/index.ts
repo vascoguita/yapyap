@@ -64,6 +64,7 @@ import { reviewCrashWithDialog } from './crash-review-prompt.ts';
 import electronUpdater from 'electron-updater';
 import trayIcon from '../../build/icons/32x32.png?asset';
 import { PRODUCT_NAME } from './identity.ts';
+import { rewriteClientHints } from './identity/user-agent.ts';
 import { askRecordingConsent, callWindowAmong } from './recording/electron.ts';
 import { recordingsFolder } from './recording/library.ts';
 import { createLogger } from './logging/logger.ts';
@@ -305,6 +306,7 @@ const chrome = createChromeFeature({
       fetchArchive: cappedFetcher(marketplaceRequest, ARCHIVE_LIMITS.archiveBytes),
     },
     sessionOf: (partition) => session.fromPartition(partition),
+    presentHeaders: (headers) => rewriteClientHints(headers, process.versions.chrome),
     // An extension's code runs in a window never shown; its UI is YapYap's, or its panel (ADR 0004).
     createHost: (partition) => {
       const host = createSecureWindow(

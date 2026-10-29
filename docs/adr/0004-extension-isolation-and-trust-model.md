@@ -113,6 +113,13 @@ to `<userData>/extensions/<id>/<version>/` only after the signature verifies.
   `[::1]` reach the filter, which allows it, on any port, only to an extension
   holding `local-network` (#103), for a model server the user runs on
   this computer. Other machines on the local network are never reachable.
+  Local servers such as Ollama refuse a request whose `Origin` they do not
+  list, and an extension's never is (#430). So for an extension holding
+  `local-network`, its session sends loopback requests without an `Origin`
+  and answers CORS for them itself: it allows the extension's own origin,
+  any method and headers, and answers a preflight `204`. This lifts the
+  protection those servers keep against web pages only for an extension the
+  user already let talk to servers on this computer, and only on loopback.
 - Extension pages are a trust zone of their own (`extension`). The navigation
   guard confines them: they open no windows and no links in the browser or
   other apps, and cannot navigate away from `extension://<id>/`. The host page

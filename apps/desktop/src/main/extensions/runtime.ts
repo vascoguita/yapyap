@@ -12,6 +12,7 @@ import {
   type ExtensionSource,
 } from './extension-files.ts';
 import { grantedHosts, holds } from './grants.ts';
+import { loopbackCors } from './loopback-cors.ts';
 import { hostPolicy } from './network-policy.ts';
 import { formOf, valuesOf, type SettingField } from './settings-form.ts';
 import { loadRecords, saveRecords, type ExtensionRecord } from './records.ts';
@@ -46,6 +47,25 @@ export interface ExtensionSession {
       listener: (
         details: { readonly url: string },
         callback: (response: { cancel: boolean }) => void,
+      ) => void,
+    ): void;
+    onBeforeSendHeaders(
+      listener: (
+        details: { readonly url: string; readonly requestHeaders: Record<string, string> },
+        callback: (response: { requestHeaders: Record<string, string> }) => void,
+      ) => void,
+    ): void;
+    onHeadersReceived(
+      listener: (
+        details: {
+          readonly url: string;
+          readonly method: string;
+          readonly responseHeaders?: Record<string, string[]>;
+        },
+        callback: (response: {
+          responseHeaders?: Record<string, string[]>;
+          statusLine?: string;
+        }) => void,
       ) => void,
     ): void;
   };
@@ -98,6 +118,8 @@ export interface ExtensionRuntimeDependencies {
   readonly activeAccount: () => string | undefined;
   /** Asks the user whether `extension` may connect to `host` (#95). */
   readonly askHost: (extension: string, host: string) => Promise<boolean>;
+  /** What every session does to request headers, kept by the extension's own listener. */
+  readonly presentHeaders: (headers: Readonly<Record<string, string>>) => Record<string, string>;
 }
 
 export interface ExtensionRuntime {
@@ -268,11 +290,12 @@ function serve(
     EXTENSION_SCHEME,
     serveExtensionFiles(id, () => state.sources.get(id), deps.readFile),
   );
+  const local = () => holds(known.record, LOCAL_NETWORK, undefined);
   const decide = hostPolicy({
     id,
+    local,
     name: () => known.name,
     approved: () => grantedHosts(known.record),
-    local: () => holds(known.record, LOCAL_NETWORK, undefined),
     ask: deps.askHost,
     approve: async (host) => {
       known.record = { ...known.record, hosts: [...known.record.hosts, host] };
@@ -280,6 +303,13 @@ function serve(
     },
   });
   session.webRequest.onBeforeRequest(confineExtensionRequests(decide));
+  const cors = loopbackCors({ id, local, present: deps.presentHeaders });
+  session.webRequest.onBeforeSendHeaders((details, callback) => {
+    callback({ requestHeaders: cors.beforeSendHeaders(details) });
+  });
+  session.webRequest.onHeadersReceived((details, callback) => {
+    callback(cors.headersReceived(details));
+  });
 }
 
 /** What YapYap keeps of an extension it started: its window, and what its manifest contributes. */

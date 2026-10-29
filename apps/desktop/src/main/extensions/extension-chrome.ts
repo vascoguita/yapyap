@@ -113,6 +113,7 @@ export interface ExtensionChromeDependencies {
   readonly limits: ExtensionRuntimeDependencies['limits'];
   /** Asks the user whether an extension may connect to a host it did not declare (#95). */
   readonly askHost: ExtensionRuntimeDependencies['askHost'];
+  readonly presentHeaders: ExtensionRuntimeDependencies['presentHeaders'];
   readonly confirmRemove: RemovalDependencies['confirmRemove'];
   readonly forgetData: RemovalDependencies['forgetData'];
   /** Where the marketplace lives and how to download from it (ADR 0014). */

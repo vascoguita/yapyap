@@ -1217,6 +1217,12 @@ not edit the same lines.
   more three days later. The idle-memory budgets are recalibrated 10% above
   today's medians (ADR 0009).
 
+- Local model servers (#430): an extension holding `local-network` reaches
+  Ollama, including Alpaca's, out of the box. Its session sends loopback
+  requests without an `Origin` and answers CORS for them itself (ADR 0004,
+  C34 in ADR 0008). The E2E test's server now refuses any `Origin`, as
+  Ollama does.
+
 - Extension settings that stick (#431): text and number settings in
   Extensions… now save on Enter, on leaving the field, and when the window
   closes, and say "Saved" or why not; before, closing the window right after
