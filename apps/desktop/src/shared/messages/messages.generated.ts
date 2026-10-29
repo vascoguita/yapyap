@@ -256,6 +256,7 @@ export interface Messages {
   readonly welcome: {
     readonly title: string;
     readonly intro: string;
+    readonly guide: string;
     readonly language: string;
     readonly languageNote: string;
     readonly look: string;

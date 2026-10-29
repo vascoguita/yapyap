@@ -265,7 +265,7 @@ const faqs: readonly { readonly question: string; readonly answer: string }[] = 
       <h2>Supercharge your WhatsApp.</h2>
       <DownloadButton />
       <p class="links">
-        <a href="/guide/">Get started</a> ·
+        <a href="/guide/get-started">Get started</a> ·
         <a href="https://github.com/vascoguita/yapyap">Star it on GitHub</a> ·
         <a href="https://github.com/sponsors/vascoguita">Sponsor</a>
       </p>

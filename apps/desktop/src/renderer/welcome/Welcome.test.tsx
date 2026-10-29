@@ -38,6 +38,11 @@ describe('Welcome', () => {
     setup();
     await screen.findByRole('heading', { name: 'Welcome to YapYap' });
     expect(screen.getByText(/YapYap is in English for now/)).toBeTruthy();
+    expect(
+      screen
+        .getByRole('link', { name: 'New to YapYap? Read the six-step guide' })
+        .getAttribute('href'),
+    ).toBe('https://yapyap.guita.org/guide/get-started');
     expect(screen.getByRole('group', { name: 'Theme' })).toBeTruthy();
     expect(screen.getByLabelText('Start at login')).toBeTruthy();
     // Close to the tray is not in the snapshot, as on macOS.

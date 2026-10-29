@@ -912,10 +912,32 @@ main.extensions .marketplace p {
 }
 
 main.extensions .marketplace .grants {
+  display: block;
   flex-basis: 100%;
   margin: 0;
   padding-inline-start: 18px;
   font-size: 0.9rem;
+  list-style: disc;
+}
+
+/* A plain bulleted list, not rows like the extensions it belongs to. */
+main.extensions .marketplace .grants li {
+  display: list-item;
+  padding: 0;
+  border: 0;
+}
+
+main.extensions .marketplace .hint span + span::before {
+  content: '· ';
+}
+
+main.extensions input[type='search'] {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
 }
 
 main.accounts .permissions {
