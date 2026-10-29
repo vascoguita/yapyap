@@ -143,6 +143,13 @@ section > .actions {
   justify-content: flex-start;
 }
 
+/* Whether YapYap kept an extension setting the user typed (#431). */
+.field .saved {
+  grid-column: 2;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
 .field .hint {
   grid-column: 2;
   margin: 0;

@@ -334,7 +334,9 @@ describe('Extensions', () => {
     fireEvent.change(model, { target: { value: '' } });
     expect(extensions.setSetting).toHaveBeenLastCalledWith('org.example.hello', 'model', null);
     expect(screen.getByText('Where requests go.')).toBeTruthy();
-    fireEvent.blur(screen.getByLabelText('endpoint'), { target: { value: 'https://x.example' } });
+    const endpoint = screen.getByLabelText('endpoint');
+    fireEvent.input(endpoint, { target: { value: 'https://x.example' } });
+    fireEvent.change(endpoint);
     expect(extensions.setSetting).toHaveBeenLastCalledWith(
       'org.example.hello',
       'endpoint',
@@ -342,7 +344,8 @@ describe('Extensions', () => {
     );
     const replies = screen.getByLabelText<HTMLInputElement>('Replies');
     expect(replies.value).toBe('2');
-    fireEvent.blur(replies, { target: { value: '3' } });
+    fireEvent.input(replies, { target: { value: '3' } });
+    fireEvent.change(replies);
     expect(extensions.setSetting).toHaveBeenLastCalledWith('org.example.hello', 'replies', 3);
     expect(screen.getByLabelText<HTMLSelectElement>('Tone').value).toBe('');
     // A save that fails leaves the form as it was.
@@ -352,5 +355,48 @@ describe('Extensions', () => {
     await waitFor(() => {
       expect(screen.getByLabelText('Model')).toBeTruthy();
     });
+  });
+
+  it('saves typed text when the window closes, and says whether it was kept', async () => {
+    const extensions = setup(() =>
+      Promise.resolve({
+        extensions: [
+          {
+            id: 'org.example.hello',
+            version: '1.0.0',
+            trust: 'third-party',
+            pulled: null,
+            grants: [],
+            settings: [
+              { key: 'endpoint', type: 'string', title: 'Server', value: 'https://a.example' },
+            ],
+          },
+        ],
+        developerMode: false,
+        activity: [],
+      }),
+    );
+    fireEvent.click(await screen.findByText('Settings'));
+    const field = screen.getByLabelText<HTMLInputElement>('Server');
+    fireEvent.input(field, { target: { value: 'https://b.example' } });
+    // Preact attaches the listener after the next frame, so keep closing until it hears.
+    await waitFor(() => {
+      globalThis.dispatchEvent(new Event('pagehide'));
+      expect(extensions.setSetting).toHaveBeenCalledExactlyOnceWith(
+        'org.example.hello',
+        'endpoint',
+        'https://b.example',
+      );
+    });
+    expect(await screen.findByText('Saved')).toBeTruthy();
+    // What YapYap already has is not saved again.
+    fireEvent.input(field, { target: { value: 'https://a.example' } });
+    globalThis.dispatchEvent(new Event('pagehide'));
+    expect(extensions.setSetting).toHaveBeenCalledOnce();
+    extensions.setSetting.mockRejectedValueOnce(new Error('refused'));
+    fireEvent.input(field, { target: { value: 'not a server' } });
+    expect(screen.queryByText('Saved')).toBeNull();
+    fireEvent.change(field);
+    expect(await screen.findByText('Not saved: YapYap could not use this value')).toBeTruthy();
   });
 });
