@@ -81,6 +81,7 @@ export function marketplaceEntries(
         version: version.version,
         capabilities: version.capabilities,
         hosts: version.hosts,
+        notes: version.notes ?? null,
         installed: current ?? null,
         action: actionOf(version.version, offered.runs, current),
       },

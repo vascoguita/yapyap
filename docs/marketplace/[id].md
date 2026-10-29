@@ -38,12 +38,13 @@ installs nothing until you agree.
 ## Versions
 
 <table>
-  <thead><tr><th>Version</th><th>Published</th><th>Needs YapYap</th></tr></thead>
+  <thead><tr><th>Version</th><th>Published</th><th>Needs YapYap</th><th>What changed</th></tr></thead>
   <tbody>
     <tr v-for="release in $params.versions" :key="release.version">
       <td>{{ release.version }}</td>
       <td>{{ release.published }}</td>
       <td>{{ release.minYapYap }} or newer</td>
+      <td>{{ release.notes ?? '' }}</td>
     </tr>
   </tbody>
 </table>

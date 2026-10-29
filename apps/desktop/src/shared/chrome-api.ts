@@ -137,6 +137,8 @@ export interface MarketplaceEntry {
   readonly version: string;
   readonly capabilities: readonly string[];
   readonly hosts: readonly string[];
+  /** What changed in `version`, as the marketplace lists it; null when it says nothing. */
+  readonly notes: string | null;
   /** The installed version, if the extension is installed. */
   readonly installed: string | null;
   readonly action: 'install' | 'update' | 'installed' | 'incompatible';

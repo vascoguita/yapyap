@@ -92,6 +92,18 @@ function setup(
 }
 
 describe('buildIndex', () => {
+  it('carries what changed in a version into the index, and nothing when an entry says nothing', () => {
+    const { entry, sources } = setup();
+    const noted = {
+      ...entry,
+      versions: entry.versions.map((listed) => ({ ...listed, notes: 'First release.' })),
+    };
+    expect(buildIndex({ ...sources, entries: [noted] }).extensions[0]?.versions[0]?.notes).toBe(
+      'First release.',
+    );
+    expect(buildIndex(sources).extensions[0]?.versions[0]).not.toHaveProperty('notes');
+  });
+
   it('lists each extension as its archive’s manifest describes it, with its hash and size', () => {
     const { built, sources } = setup();
     const revoked = [

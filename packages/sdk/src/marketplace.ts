@@ -40,6 +40,8 @@ const MarketplaceVersion = Type.Object(
     hosts: Type.Array(Grant, { maxItems: 32 }),
     minYapYap: Version,
     published: Time,
+    /** What changed in this version, as plain text for people (#434). */
+    notes: Type.Optional(Type.String({ minLength: 1, maxLength: 2000 })),
   },
   { additionalProperties: false },
 );

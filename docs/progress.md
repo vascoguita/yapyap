@@ -1215,6 +1215,11 @@ not edit the same lines.
   (settings version 15). Folder fields name their own default now, and each
   **Choose…** button is named after its field.
 
+- Release notes in the marketplace (#434, first part): a listed version may
+  carry `notes`, plain text that the signed index keeps, the website shows
+  beside each version, and the Marketplace tab shows under **What's new**
+  when it offers an update. Screenshots come next.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).

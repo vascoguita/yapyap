@@ -13,6 +13,7 @@ const {
   sha256: Sha256,
   minYapYap,
   published,
+  notes,
 } = Extension.properties.versions.items.properties;
 
 /** Release assets of this repository: the only place a listed archive is downloaded from (ADR 0014). */
@@ -44,6 +45,7 @@ const EntrySchema = Type.Object(
           sha256: Sha256,
           minYapYap,
           published,
+          notes,
         },
         { additionalProperties: false },
       ),
