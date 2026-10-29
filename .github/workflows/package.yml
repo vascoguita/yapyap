@@ -187,9 +187,15 @@ jobs:
       - name: Build the bundle
         run: |
           flatpak --user remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          # Mirrors the metainfo's screenshots as Flathub's own builds do, so the
+          # linter sees what Flathub would publish.
           flatpak-builder --user --force-clean --disable-rofiles-fuse --install-deps-from=flathub \
+            --mirror-screenshots-url=https://dl.flathub.org/media/ \
             --state-dir="$RUNNER_TEMP/flatpak-state" --repo="$RUNNER_TEMP/repo" "$RUNNER_TEMP/build" \
             packaging/flatpak/org.guita.YapYap.yml
+          mkdir -p "$RUNNER_TEMP/build/files/share/app-info/media"
+          ostree commit --repo="$RUNNER_TEMP/repo" --canonical-permissions \
+            --branch="screenshots/$ARCH" "$RUNNER_TEMP/build/files/share/app-info/media"
           flatpak build-bundle "$RUNNER_TEMP/repo" "yapyap-$ARCH.flatpak" org.guita.YapYap \
             --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo
         env:
