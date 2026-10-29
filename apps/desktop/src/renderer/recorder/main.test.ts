@@ -6,9 +6,11 @@ describe('recorder entry', () => {
   it('captures with the browser’s media devices, mixes with Web Audio and encodes Opus in WebM', async () => {
     let command: (command: RecorderCommand) => void = () => undefined;
     const call = { getVideoTracks: () => [], getTracks: () => [] };
-    const destination = { stream: { id: 'mixed' } };
+    const destination = { stream: { id: 'mixed', getAudioTracks: () => ['mixed track'] } };
     const connect = vi.fn();
     const created: unknown[] = [];
+    const chunk = vi.fn<(bytes: Uint8Array) => Promise<void>>(() => Promise.resolve());
+    const ended = vi.fn(() => Promise.resolve());
     Object.defineProperty(window, 'yapyap', {
       value: {
         recorder: {
@@ -16,8 +18,8 @@ describe('recorder entry', () => {
             command = listener;
           },
           failed: vi.fn(),
-          chunk: vi.fn(() => Promise.resolve()),
-          ended: vi.fn(() => Promise.resolve()),
+          chunk,
+          ended,
         },
       },
     });
@@ -70,5 +72,32 @@ describe('recorder entry', () => {
     expect(recorder.stop).toHaveBeenCalledOnce();
     expect(connect).toHaveBeenCalledWith(destination);
     expect(connect).toHaveBeenCalledTimes(2);
+    // WAV: the page reads the mixed track's frames itself, after a header.
+    vi.stubGlobal(
+      'MediaStreamTrackProcessor',
+      class {
+        readable = new ReadableStream({
+          start(controller) {
+            controller.enqueue({
+              sampleRate: 48_000,
+              numberOfChannels: 1,
+              numberOfFrames: 2,
+              copyTo: vi.fn(),
+              close: vi.fn(),
+            });
+          },
+        });
+      },
+    );
+    chunk.mockClear();
+    command('start-wav');
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    command('stop');
+    await vi.waitFor(() => {
+      expect(ended).toHaveBeenCalledTimes(2);
+    });
+    const [bytes] = chunk.mock.calls[0] ?? [];
+    expect(bytes?.length).toBe(44 + 2 * 4);
+    expect(new TextDecoder().decode(bytes?.subarray(0, 4))).toBe('RIFF');
   });
 });

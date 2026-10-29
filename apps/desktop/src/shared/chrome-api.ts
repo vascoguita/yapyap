@@ -161,7 +161,10 @@ export interface RecordPromptState {
 }
 
 /** What the main process tells the hidden recorder page to do. */
-export type RecorderCommand = 'start' | 'stop';
+export type RecorderCommand = 'start' | 'start-wav' | 'stop';
+
+/** How a call is recorded: Opus in WebM, or WAV (#442). */
+export type RecordingFormat = 'webm' | 'wav';
 
 /** An installed extension, as the Extensions window lists it. */
 export interface InstalledExtension {

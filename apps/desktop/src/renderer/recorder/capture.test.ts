@@ -76,7 +76,15 @@ describe('serveRecorder', () => {
     expect(t.env.getUserMedia).toHaveBeenCalledWith({ audio: true });
     expect(t.call.video[0]?.stop).toHaveBeenCalledOnce();
     expect(t.env.mix).toHaveBeenCalledWith([t.call, t.mic]);
-    expect(t.env.encoder).toHaveBeenCalledWith(t.mixed);
+    expect(t.env.encoder).toHaveBeenCalledWith(t.mixed, 'webm');
+  });
+
+  it('encodes WAV when the main process asks for it', async () => {
+    const t = setup();
+    t.send('start-wav');
+    await vi.waitFor(() => {
+      expect(t.env.encoder).toHaveBeenCalledWith(t.mixed, 'wav');
+    });
   });
 
   it('hands the sound over in order, then everything else, and says it ended', async () => {

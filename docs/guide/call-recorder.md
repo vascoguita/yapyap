@@ -30,7 +30,9 @@ account, when YapYap quits, or after four hours.
 
 Recordings are saved in the `YapYap` folder of your Music folder, named by
 date and time only, such as `YapYap call 2026-10-29 14.05.webm`: sound only,
-in Opus, which browsers and players such as VLC open. **Show in folder** in the panel
+in Opus, which browsers and players such as VLC open. Choose **WAV** under
+Settings → Call recordings → **Record as** for files every program opens,
+many times larger; **Save recordings to** picks another folder. **Show in folder** in the panel
 opens the folder at a recording. Nothing is uploaded, and the extension
 never receives the sound, the file or its name.
 

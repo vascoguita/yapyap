@@ -1,9 +1,10 @@
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { WebFrameMain } from 'electron';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createRecording, type RecordingDependencies, type RecordingWindow } from './chrome.ts';
+import type { RecordingFormat } from '../../shared/chrome-api.ts';
 import type { CallTarget } from './recorder.ts';
 
 let root: string;
@@ -52,6 +53,7 @@ function setup(options: { consent?: boolean; deferred?: boolean } = {}) {
   const pages: ReturnType<typeof fakeWindow>[] = [];
   const deps = {
     supported: true,
+    format: vi.fn((): RecordingFormat => 'webm'),
     paths: { folder: join(root, 'Calls'), index: join(root, 'recordings.json') },
     callOf: vi.fn((): CallTarget | undefined => call),
     openRecorder: vi.fn(() => {
@@ -159,6 +161,38 @@ describe('createRecording', () => {
       expect.objectContaining({ phase: 'ended' }),
     );
     expect(await t.recording.service.recordings()).toHaveLength(1);
+  });
+
+  it('records as WAV when Settings says so, and completes the header at the end', async () => {
+    const t = setup();
+    t.deps.format.mockReturnValue('wav');
+    const asked = t.recording.service.record('Recorder');
+    await vi.waitFor(() => {
+      expect(t.prompts).toHaveLength(1);
+    });
+    const prompt = at(t.prompts, 0);
+    t.handler('record-prompt:answer').handle(t.from(prompt.webContents), true);
+    await asked;
+    const page = at(t.pages, 0);
+    await vi.waitFor(() => {
+      expect(page.webContents.send).toHaveBeenCalledWith('recorder:command', 'start-wav');
+    });
+    // A header with zero sizes and four bytes of sound, as the page streams it.
+    const header = new Uint8Array(44);
+    header.set(new TextEncoder().encode('RIFF'), 0);
+    t.handler('recorder:chunk').handle(t.from(page.webContents), header);
+    t.handler('recorder:chunk').handle(t.from(page.webContents), new Uint8Array([1, 2, 3, 4]));
+    const stopped = t.handler('record-prompt:stop').handle(t.from(prompt.webContents));
+    await vi.waitFor(() => {
+      expect(page.webContents.send).toHaveBeenCalledWith('recorder:command', 'stop');
+    });
+    t.handler('recorder:ended').handle(t.from(page.webContents));
+    await stopped;
+    const [file] = readdirSync(t.deps.paths.folder);
+    expect(file).toMatch(/^YapYap call .+\.wav$/);
+    const bytes = readFileSync(join(t.deps.paths.folder, file ?? ''));
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.length);
+    expect([view.getUint32(4, true), view.getUint32(40, true)]).toEqual([40, 4]);
   });
 
   it('takes sound only in bounded chunks, and reuses the recorder page until it closes', async () => {

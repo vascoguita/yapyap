@@ -1,3 +1,4 @@
+import type { RecordingFormat } from '../../shared/chrome-api.ts';
 import type { ChromeWindowDependencies } from '../chrome/window-opener.ts';
 import type { ViewRegistry } from '../views.ts';
 import type { WindowOptions } from '../windows.ts';
@@ -13,6 +14,8 @@ export interface RecordingSources {
   /** Whether this system can capture a call's sound (ADR 0015). */
   readonly supported: boolean;
   readonly paths: LibraryPaths;
+  /** How the next recording is encoded, as Settings says (#442). */
+  readonly format: () => RecordingFormat;
   /** Where the user's confirmation of the consent warning is kept. */
   readonly consentFile: string;
   /** Shows the consent warning; true only once the user confirms it. */
@@ -37,6 +40,7 @@ export function callRecording(
   return createRecording({
     supported: sources.supported,
     paths: sources.paths,
+    format: sources.format,
     callOf: () => {
       const main = accounts.current?.activeContents();
       return main === undefined ? undefined : sources.callWindowOf(main, windows.views);

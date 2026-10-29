@@ -255,6 +255,11 @@ export interface Messages {
         readonly openWhenDone: { readonly label: string; readonly description: string };
       };
       readonly recording: {
+        readonly format: {
+          readonly label: string;
+          readonly description: string;
+          readonly options: { readonly webm: string; readonly wav: string };
+        };
         readonly folder: { readonly label: string; readonly description: string };
       };
     };

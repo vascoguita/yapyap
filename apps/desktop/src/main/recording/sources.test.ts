@@ -18,6 +18,7 @@ afterEach(() => {
 function sources(): RecordingSources & { callWindowOf: ReturnType<typeof vi.fn> } {
   return {
     supported: true,
+    format: () => 'webm' as const,
     paths: { folder: '/recordings', index: '/user-data/recordings.json' },
     consentFile: '/user-data/recording-consent.json',
     askConsent: vi.fn(() => Promise.resolve(false)),

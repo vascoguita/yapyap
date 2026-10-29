@@ -51,6 +51,25 @@ describe('migrate', () => {
   });
 });
 
+describe('version 16 to 17', () => {
+  const toVersion17 = MIGRATIONS[15];
+
+  it('records as Opus in WebM, as before, keeping the folder', () => {
+    expect(toVersion17?.({ schemaVersion: 16, recording: { folder: '/calls' } })).toEqual({
+      schemaVersion: 16,
+      recording: { format: 'webm', folder: '/calls' },
+    });
+  });
+
+  it('keeps a choice that is there, and leaves a missing section to validation', () => {
+    expect(toVersion17?.({ recording: { format: 'wav' } })).toEqual({
+      recording: { format: 'wav' },
+    });
+    const settings = { schemaVersion: 16 };
+    expect(toVersion17?.(settings)).toBe(settings);
+  });
+});
+
 describe('version 15 to 16', () => {
   const toVersion16 = MIGRATIONS[14];
 

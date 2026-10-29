@@ -266,6 +266,7 @@ const chrome = createChromeFeature({
   recording: {
     // Capturing a call window's sound is unverified on macOS (#392), so it is not offered there.
     supported: process.platform !== 'darwin',
+    format: () => settings.current().recording.format,
     paths: {
       // Read each time, so a new choice in Settings, or a moved Music folder, applies at once.
       get folder() {

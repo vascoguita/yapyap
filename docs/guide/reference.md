@@ -43,6 +43,7 @@ the [profile folder](#files).
 | Ask where to save each file             | `downloads.askWhere`                | Off                         | Off saves to the Downloads folder; on starts the dialog in the last folder chosen             |
 | Save files to                           | `downloads.folder`                  | Your Downloads folder       | Set with Choose… in Settings; a folder that is gone means Downloads again                     |
 | Open files when they finish downloading | `downloads.openWhenDone`            | Off                         | PDFs, pictures, sound, video and text only; nothing that could run                            |
+| Record as                               | `recording.format`                  | Opus in WebM                | `webm` or `wav`; WAV files are many times larger, but every program opens them                |
 | Save recordings to                      | `recording.folder`                  | YapYap in your Music folder | Set with Choose… in Settings → Call recordings; a folder that is gone means the default again |
 
 The file also has entries for features that are not built yet. YapYap

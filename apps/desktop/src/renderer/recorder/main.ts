@@ -1,7 +1,5 @@
 import { serveRecorder } from './capture.ts';
-
-/** Opus in WebM: small files that every platform's players open. */
-const FORMAT = 'audio/webm;codecs=opus';
+import { opusEncoder, wavEncoder } from './encoders.ts';
 
 serveRecorder(globalThis.yapyap.recorder, {
   getDisplayMedia: (constraints) => navigator.mediaDevices.getDisplayMedia(constraints),
@@ -14,21 +12,5 @@ serveRecorder(globalThis.yapyap.recorder, {
     }
     return out.stream;
   },
-  encoder: (stream) => {
-    const recorder = new MediaRecorder(stream, { mimeType: FORMAT });
-    return {
-      start: (timeslice, onData, onStop) => {
-        recorder.ondataavailable = ({ data }) => {
-          onData(data);
-        };
-        recorder.onstop = () => {
-          onStop();
-        };
-        recorder.start(timeslice);
-      },
-      stop: () => {
-        recorder.stop();
-      },
-    };
-  },
+  encoder: (stream, format) => (format === 'wav' ? wavEncoder(stream) : opusEncoder(stream)),
 });

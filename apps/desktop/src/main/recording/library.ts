@@ -1,11 +1,12 @@
 import { statSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
-import { appendFile, mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { appendFile, mkdir, open, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { CallRecording } from '@yapyap/extension-sdk';
 import { Type, type Static } from 'typebox';
 import { Value } from 'typebox/value';
 import { writeTextAtomically } from '../atomic-write.ts';
+import type { RecordingFormat } from '../../shared/chrome-api.ts';
 import type { RecordingSink } from './recorder.ts';
 
 /** Recordings and their index hold other people's voices: readable by the user alone. */
@@ -53,6 +54,32 @@ export function recordingsFolder(chosen: string, fallback: () => string): string
   }
 }
 
+/** Where a WAV header keeps the file's size less 8, and the sound's size. */
+const RIFF_SIZE_AT = 4;
+const DATA_SIZE_AT = 40;
+const WAV_HEADER = 44;
+
+/**
+ * Writes the sizes into a WAV recording's header, which the recorder page
+ * leaves at zero because it streams the sound before its length is known.
+ */
+async function completeWav(path: string): Promise<void> {
+  const file = await open(path, 'r+');
+  try {
+    // The size of the file as opened, so nothing can change between looking and writing.
+    const { size } = await file.stat();
+    const field = (value: number): Uint8Array => {
+      const bytes = new Uint8Array(4);
+      new DataView(bytes.buffer).setUint32(0, Math.max(0, value), true);
+      return bytes;
+    };
+    await file.write(field(size - 8), 0, 4, RIFF_SIZE_AT);
+    await file.write(field(size - WAV_HEADER), 0, 4, DATA_SIZE_AT);
+  } finally {
+    await file.close();
+  }
+}
+
 export function recordingName(started: Date): string {
   const day = `${String(started.getFullYear())}-${two(started.getMonth() + 1)}-${two(started.getDate())}`;
   return `YapYap call ${day} ${two(started.getHours())}.${two(started.getMinutes())}`;
@@ -65,9 +92,9 @@ const exists = (path: string): Promise<boolean> =>
   );
 
 /** A name in `folder` no file has yet: the plain one, or with ` (2)`, ` (3)` and so on. */
-async function freeName(folder: string, base: string): Promise<string> {
+async function freeName(folder: string, base: string, format: RecordingFormat): Promise<string> {
   for (let attempt = 1; ; attempt += 1) {
-    const name = attempt === 1 ? `${base}.webm` : `${base} (${String(attempt)}).webm`;
+    const name = attempt === 1 ? `${base}.${format}` : `${base} (${String(attempt)}).${format}`;
     if (!(await exists(join(folder, name)))) {
       return join(folder, name);
     }
@@ -88,7 +115,11 @@ async function readIndex(path: string): Promise<Entry[]> {
  * its date and time once the recording stops, or deleted if it fails, so a
  * half-written recording never passes for a finished one.
  */
-export async function recordingSink(paths: LibraryPaths, started: Date): Promise<RecordingSink> {
+export async function recordingSink(
+  paths: LibraryPaths,
+  started: Date,
+  format: RecordingFormat = 'webm',
+): Promise<RecordingSink> {
   await mkdir(paths.folder, { recursive: true });
   const part = join(paths.folder, `.${randomBytes(8).toString('hex')}.part`);
   // Created at once, so a recording stopped before any sound still has a file,
@@ -97,7 +128,10 @@ export async function recordingSink(paths: LibraryPaths, started: Date): Promise
   return {
     write: (chunk) => appendFile(part, chunk),
     finish: async (durationMs) => {
-      const file = await freeName(paths.folder, recordingName(started));
+      if (format === 'wav') {
+        await completeWav(part);
+      }
+      const file = await freeName(paths.folder, recordingName(started), format);
       await rename(part, file);
       const entry = {
         id: randomBytes(16).toString('hex'),
