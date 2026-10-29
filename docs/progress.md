@@ -1215,6 +1215,13 @@ not edit the same lines.
   beside each version, and the Marketplace tab shows under **What's new**
   when it offers an update. Screenshots come next.
 
+- Release notes in the marketplace (#434, first part): a listed version may
+  carry `notes`, plain text that the signed index keeps, the website shows
+  beside each version, and the Marketplace tab shows under **What's new**
+  when it offers an update. An entry may also list up to five screenshots,
+  committed in `marketplace/screenshots/<id>/`, checked as PNG or WebP of at
+  most 1 MiB, served beside the index and shown on the extension's page.
+
 - Recordings folder (#442): Settings → Call recordings → **Save recordings
   to** picks the folder with the system's dialog, like the downloads folder,
   and a folder that is gone means `YapYap` in the Music folder again
@@ -1229,18 +1236,6 @@ not edit the same lines.
 - Recorder keys: the call recorder suggests Ctrl+Alt+R to record and
   Ctrl+Alt+S to stop (⌘⌥ on macOS), which the menu gives it as nothing else
   has them (#443).
-- Release notes in the marketplace (#434, first part): a listed version may
-  carry `notes`, plain text that the signed index keeps, the website shows
-  beside each version, and the Marketplace tab shows under **What's new**
-  when it offers an update. An entry may also list up to five screenshots,
-  committed in `marketplace/screenshots/<id>/`, checked as PNG or WebP of at
-  most 1 MiB, served beside the index and shown on the extension's page.
-
-- Recordings folder (#442): Settings → Call recordings → **Save recordings
-  to** picks the folder with the system's dialog, like the downloads folder,
-  and a folder that is gone means `YapYap` in the Music folder again
-  (settings version 15). Folder fields name their own default now, and each
-  **Choose…** button is named after its field.
 
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,

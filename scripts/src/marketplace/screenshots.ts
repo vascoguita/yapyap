@@ -14,7 +14,8 @@ export interface ListedScreenshot {
 const screenshotUrl = (id: string, file: string): string =>
   `https://packages.guita.org/extensions/${id}/screenshots/${file}`;
 
-const PNG = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+/** The eight bytes every PNG file starts with. */
+const PNG = Array.from(Buffer.from('89504e470d0a1a0a', 'hex'));
 
 const startsWith = (bytes: Uint8Array, prefix: readonly number[], at = 0): boolean =>
   prefix.every((byte, index) => bytes[at + index] === byte);

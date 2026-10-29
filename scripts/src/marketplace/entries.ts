@@ -38,7 +38,7 @@ const EntrySchema = Type.Object(
       Type.Array(
         Type.Object(
           {
-            file: Type.String({ pattern: '^[a-z0-9-]{1,40}\\.(?:png|webp)$' }),
+            file: Type.String({ pattern: String.raw`^[a-z0-9-]{1,40}\.(?:png|webp)$` }),
             caption: Type.String({ minLength: 1, maxLength: 200 }),
           },
           { additionalProperties: false },

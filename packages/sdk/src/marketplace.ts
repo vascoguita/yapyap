@@ -63,7 +63,7 @@ const MarketplaceExtension = Type.Object(
         Type.Object(
           {
             url: Type.String({
-              pattern: '^https://packages\\.guita\\.org/extensions/',
+              pattern: String.raw`^https://packages\.guita\.org/extensions/`,
               maxLength: 300,
             }),
             caption: Type.String({ minLength: 1, maxLength: 200 }),
