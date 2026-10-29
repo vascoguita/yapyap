@@ -26,6 +26,24 @@
   <url type="help">https://yapyap.guita.org/guide/</url>
   <url type="vcs-browser">https://github.com/vascoguita/yapyap</url>
   <url type="contribute">https://yapyap.guita.org/contributing</url>
+  <screenshots>
+    <screenshot type="default">
+      <caption>WhatsApp with each of your accounts in a sidebar, with its unread count</caption>
+      <image type="source" width="1920" height="869">https://yapyap.guita.org/screenshots/main.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>The AI assistant suggesting replies with your own model</caption>
+      <image type="source" width="840" height="1280">https://yapyap.guita.org/screenshots/assistant.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Settings for notifications, privacy and more</caption>
+      <image type="source" width="1280" height="1360">https://yapyap.guita.org/screenshots/settings.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>The privacy screen blurs your chats when you step away</caption>
+      <image type="source" width="1920" height="869">https://yapyap.guita.org/screenshots/privacy.png</image>
+    </screenshot>
+  </screenshots>
   <branding>
     <color type="primary" scheme_preference="light">#C9C3FF</color>
     <color type="primary" scheme_preference="dark">#3F2FB8</color>

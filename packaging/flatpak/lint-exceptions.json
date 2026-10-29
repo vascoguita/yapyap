@@ -1,7 +1,7 @@
 {
   "org.guita.YapYap": {
-    "metainfo-missing-screenshots": "Screenshots of the app against the fake WhatsApp page are added before the Flathub submission (#117, #119).",
-    "appstream-screenshots-not-mirrored-in-ostree": "Follows from the missing screenshots (#117, #119).",
-    "appstream-failed-validation": "The only failure is releases-info-missing: pull request builds are not releases, and release builds stamp the release into the metainfo first."
+    "appstream-external-screenshot-url": "Flathub's own build mirrors the screenshots to dl.flathub.org when it publishes YapYap; a CI build cannot (#119).",
+    "appstream-failed-validation": "The only failure is releases-info-missing: pull request builds are not releases, and release builds stamp the release into the metainfo first.",
+    "appstream-screenshots-not-mirrored-in-ostree": "Follows from the same: Flathub's build commits the mirrored screenshots (#119)."
   }
 }

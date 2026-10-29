@@ -1025,6 +1025,10 @@ not edit the same lines.
   pages under one menu; the install page opens with the button and the
   apt, dnf and pacman commands as tabs.
 
+- Store screenshots (#384): the AppStream metainfo lists the website's
+  screenshots with captions, so software centers and Flathub show them. The
+  Marketplace shot waits for the marketplace to list the assistant again.
+
 - Get started (#385): a six-step guide at `/guide/get-started`, linked from
   the home page, the guide's sidebar and the welcome window, with new
   Accounts and Marketplace screenshots from the showcase page and a local
