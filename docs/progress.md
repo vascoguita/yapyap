@@ -853,6 +853,11 @@ not edit the same lines.
   a slow start on a runner can be told from a page that never loads. The
   wait itself is unchanged until that data says which it is.
 
+- Second account waits (#247): the specs that add an account wait for its
+  page through `whatsAppPage(app, first)`, with the same 30 s and startup
+  diagnostics as the first account's, instead of `expect.poll`'s 5 s, which
+  a slow Windows runner overran.
+
 - Electron is pinned to 44.9.3 (#262), which fixes GHSA-jr5w-w6x2-84p9
   (compromised eMudhra intermediate certificates) and lets the audit pass.
   Electron 45 is a new major version and comes in its own change.

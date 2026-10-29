@@ -1,5 +1,5 @@
 import type { ElectronApplication, Page } from '@playwright/test';
-import { expect, test } from './fixtures.ts';
+import { expect, test, whatsAppPage } from './fixtures.ts';
 
 test.skip(process.platform === 'darwin', 'macOS uses its own system picker');
 
@@ -11,12 +11,7 @@ async function secondAccount(app: ElectronApplication, first: Page): Promise<Pag
       .find((entry) => entry.label === 'Add Account')
       ?.click();
   });
-  const isSecond = (page: Page) => page !== first && page.url().startsWith('http');
-  await expect.poll(() => app.windows().some(isSecond)).toBe(true);
-  const page = app.windows().find(isSecond);
-  if (page === undefined) {
-    throw new Error('No second account.');
-  }
+  const page = await whatsAppPage(app, first);
   await page.waitForLoadState('load');
   return page;
 }
