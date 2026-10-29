@@ -7,6 +7,7 @@ import type { ExtensionCommand, ExtensionPanel } from './extensions/runtime.ts';
 import {
   acceleratorOf,
   extensionShortcuts,
+  type ChosenExtensionShortcuts,
   type CustomShortcuts,
   type ShortcutId,
 } from '../shared/shortcuts.ts';
@@ -15,6 +16,7 @@ import {
 interface Keys {
   readonly platform: string;
   readonly custom: CustomShortcuts;
+  readonly chosen?: ChosenExtensionShortcuts;
 }
 
 /** Positions with a shortcut: the digits 1 to 9. */
@@ -251,7 +253,12 @@ function commonItems(
  * submenu, each named after its extension.
  */
 function extensionCommandItems(actions: MenuActions, keys: Keys): MenuItemConstructorOptions[] {
-  const shortcuts = extensionShortcuts(actions.extensionCommands, keys.platform, keys.custom);
+  const shortcuts = extensionShortcuts(
+    actions.extensionCommands,
+    keys.platform,
+    keys.custom,
+    keys.chosen,
+  );
   const commands = actions.extensionCommands.map(({ extension, extensionName, id, title }) => ({
     label: en.menu.extensionCommand({ extension: extensionName, title }),
     accelerator: shortcuts.get(`${extension}/${id}`),
@@ -290,8 +297,9 @@ export function buildMenuTemplate(
   platform: string,
   actions: MenuActions,
   custom: CustomShortcuts = {},
+  chosen: ChosenExtensionShortcuts = {},
 ): MenuItemConstructorOptions[] {
-  const keys = { platform, custom };
+  const keys = { platform, custom, chosen };
   const { about, settings, help } = commonItems(actions, keys);
   const quit: MenuItemConstructorOptions = { role: 'quit', ...keyed('quit', keys) };
   const standard: MenuItemConstructorOptions[] = [

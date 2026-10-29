@@ -395,6 +395,20 @@ export interface ShortcutList {
   readonly platform: string;
   readonly shortcuts: readonly ActiveShortcut[];
   readonly global: readonly GlobalShortcutState[];
+  /** The running extensions' commands (#443). */
+  readonly extensions: readonly ExtensionShortcutState[];
+}
+
+/** An extension command's keys: those it has now, those it suggests, and whether the user chose. */
+export interface ExtensionShortcutState {
+  /** `extension/command`. */
+  readonly id: string;
+  readonly label: string;
+  /** Empty when it has no keys, because the user removed them or something else has them. */
+  readonly accelerator: string;
+  /** Empty when the extension suggests none. */
+  readonly suggested: string;
+  readonly custom: boolean;
 }
 
 /** A shortcut that works from any app, and whether the system granted its keys. */

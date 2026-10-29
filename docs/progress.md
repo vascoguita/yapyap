@@ -1230,6 +1230,12 @@ not edit the same lines.
   Ctrl+Alt+S to stop (⌘⌥ on macOS), which the menu gives it as nothing else
   has them (#443).
 
+- Changing extension command keys (#443): the Keyboard Shortcuts window lists
+  the running extensions' commands, and the user can give one other keys,
+  remove its keys, or reset to the suggestion. Choices live in
+  `shortcuts.extensions` (settings version 16), come before suggestions, and
+  rebuild the menu.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).

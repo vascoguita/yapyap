@@ -592,6 +592,8 @@
   "shortcuts": {
     "global": "From any app",
     "globalHint": "These work while you use other apps. They have no keys until you give them some.",
+    "extensions": "Extension commands",
+    "extensionsHint": "Keys the extensions suggest, as long as nothing else uses them. Change or remove them here; Reset goes back to the extension’s suggestion.",
     "none": "None",
     "remove": "Remove",
     "notRegistered": "Another app already uses those keys, or this system does not let apps use keys everywhere.",

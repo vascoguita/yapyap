@@ -96,4 +96,19 @@ describe('extensionShortcuts', () => {
       1,
     );
   });
+
+  it('puts the user’s choice first: other keys, or none, over the suggestion', () => {
+    const given = extensionShortcuts(
+      [
+        command('org.example.a', 'one', 'CmdOrCtrl+Alt+Q'),
+        command('org.example.b', 'two', 'CmdOrCtrl+Alt+W'),
+        command('org.example.b', 'three', 'CmdOrCtrl+Alt+E'),
+      ],
+      'linux',
+      {},
+      { 'org.example.b/two': 'CmdOrCtrl+Alt+Q', 'org.example.b/three': '' },
+    );
+    // b/two took the keys a/one suggested, so a/one has none; b/three's were removed.
+    expect([...given]).toEqual([['org.example.b/two', 'CmdOrCtrl+Alt+Q']]);
+  });
 });

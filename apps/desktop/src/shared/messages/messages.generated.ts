@@ -523,6 +523,8 @@ export interface Messages {
   readonly shortcuts: {
     readonly global: string;
     readonly globalHint: string;
+    readonly extensions: string;
+    readonly extensionsHint: string;
     readonly none: string;
     readonly remove: string;
     readonly notRegistered: string;
