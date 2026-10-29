@@ -169,11 +169,16 @@ async function startupState(app: ElectronApplication): Promise<string> {
 /**
  * The page of the active account's WhatsApp. It runs in a view inside the
  * main window, whose own page stays blank (#56), so it is found by its URL.
+ * Given `besides`, it waits for another account's page: a new account can
+ * take more than a few seconds to appear on a slow runner, and a failed wait
+ * then says what the main process had done (#247).
  */
-export async function whatsAppPage(app: ElectronApplication): Promise<Page> {
+export async function whatsAppPage(app: ElectronApplication, besides?: Page): Promise<Page> {
   const deadline = Date.now() + PAGE_TIMEOUT_MS;
   for (;;) {
-    const page = app.windows().find((candidate) => candidate.url().startsWith('http'));
+    const page = app
+      .windows()
+      .find((candidate) => candidate !== besides && candidate.url().startsWith('http'));
     if (page !== undefined) {
       return page;
     }
