@@ -1236,6 +1236,12 @@ not edit the same lines.
   committed in `marketplace/screenshots/<id>/`, checked as PNG or WebP of at
   most 1 MiB, served beside the index and shown on the extension's page.
 
+- Recordings folder (#442): Settings → Call recordings → **Save recordings
+  to** picks the folder with the system's dialog, like the downloads folder,
+  and a folder that is gone means `YapYap` in the Music folder again
+  (settings version 15). Folder fields name their own default now, and each
+  **Choose…** button is named after its field.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).
