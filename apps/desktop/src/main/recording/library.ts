@@ -64,9 +64,10 @@ const WAV_HEADER = 44;
  * leaves at zero because it streams the sound before its length is known.
  */
 async function completeWav(path: string): Promise<void> {
-  const { size } = await stat(path);
   const file = await open(path, 'r+');
   try {
+    // The size of the file as opened, so nothing can change between looking and writing.
+    const { size } = await file.stat();
     const field = (value: number): Uint8Array => {
       const bytes = new Uint8Array(4);
       new DataView(bytes.buffer).setUint32(0, Math.max(0, value), true);
