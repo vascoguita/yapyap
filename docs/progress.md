@@ -1198,10 +1198,6 @@ not edit the same lines.
   schema, so extension setting names, per-account revocations and custom
   code snippet names now check their keys with `propertyNames`.
 
-- Extension settings that stick (#431): text and number settings in
-  Extensions… now save on Enter, on leaving the field, and when the window
-  closes, and say "Saved" or why not; before, closing the window right after
-  typing lost the edit without a sign.
 - Idle memory by process (#428): the startup benchmark also reports each
   process's memory (main window, WhatsApp, YapYap's own pages, GPU, network
   and so on), so an overrun shows where it went. Windows went over its
@@ -1209,21 +1205,30 @@ not edit the same lines.
   more three days later. The idle-memory budgets are recalibrated 10% above
   today's medians (ADR 0009).
 
-- Recordings folder (#442): Settings → Call recordings → **Save recordings
-  to** picks the folder with the system's dialog, like the downloads folder,
-  and a folder that is gone means `YapYap` in the Music folder again
-  (settings version 15). Folder fields name their own default now, and each
-  **Choose…** button is named after its field.
+- Extension settings that stick (#431): text and number settings in
+  Extensions… now save on Enter, on leaving the field, and when the window
+  closes, and say "Saved" or why not; before, closing the window right after
+  typing lost the edit without a sign.
 
 - Release notes in the marketplace (#434, first part): a listed version may
   carry `notes`, plain text that the signed index keeps, the website shows
   beside each version, and the Marketplace tab shows under **What's new**
   when it offers an update. Screenshots come next.
 
+- Recordings folder (#442): Settings → Call recordings → **Save recordings
+  to** picks the folder with the system's dialog, like the downloads folder,
+  and a folder that is gone means `YapYap` in the Music folder again
+  (settings version 15). Folder fields name their own default now, and each
+  **Choose…** button is named after its field.
+
 - Extension command shortcuts (#443, first part): a command may suggest
   keys in its manifest (`shortcut`), which the menu gives it only when they
   clash with none of YapYap's shortcuts, as the user set them, nor an earlier
   extension's. Changing or removing them comes next.
+
+- Recorder keys: the call recorder suggests Ctrl+Alt+R to record and
+  Ctrl+Alt+S to stop (⌘⌥ on macOS), which the menu gives it as nothing else
+  has them (#443).
 
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,

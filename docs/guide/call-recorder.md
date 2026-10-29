@@ -15,11 +15,14 @@ recording, YapYap asks you to confirm that you know this.
 1. Start or answer a call in WhatsApp.
 2. Open **File → Extension Commands → Call recorder: Recordings**, and
    choose **Record**, or choose **Call recorder: Record this call** in the
-   same menu.
+   same menu, or press <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>R</kbd>
+   (<kbd>⌘</kbd>+<kbd>⌥</kbd>+<kbd>R</kbd> on macOS).
 3. YapYap opens a small window by the call, naming the extension that asks.
    Recording starts only when you choose **Record** there.
 
-While it records, that window shows the time and **Stop**. Recording stops
+While it records, that window shows the time and **Stop**;
+<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd> (<kbd>⌘</kbd>+<kbd>⌥</kbd>+<kbd>S</kbd>
+on macOS) stops it too. Recording stops
 when you choose **Stop**, when the call ends, when you switch to another
 account, when YapYap quits, or after four hours.
 
