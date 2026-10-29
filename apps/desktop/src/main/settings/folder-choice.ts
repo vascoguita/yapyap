@@ -8,7 +8,7 @@ import type { SettingsService } from './service.ts';
 
 /** Folder settings, which only the system's own folder dialog may set. */
 const FOLDER_FIELDS: ReadonlySet<string> = new Set(
-  SETTING_FIELDS.filter((field) => field.folder === true).map(({ id }) => id),
+  SETTING_FIELDS.filter((field) => field.folder !== undefined).map(({ id }) => id),
 );
 
 /**

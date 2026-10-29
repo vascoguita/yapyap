@@ -83,7 +83,7 @@ describe('settingsHandlers', () => {
       if (field.options !== undefined) {
         expect(field.options.map((option) => option.value)).toContain(value);
       } else {
-        const text = field.text !== undefined || field.folder === true;
+        const text = field.text !== undefined || field.folder !== undefined;
         expect(typeof value).toBe(text ? 'string' : 'boolean');
       }
     });
@@ -173,6 +173,7 @@ describe('settingsHandlers', () => {
         [ASK_WHERE]: false,
         [OPEN_DONE]: false,
         [FOLDER]: '',
+        'recording.folder': '',
         [SPELLING]: false,
         [AUTOSTART]: false,
         [START_MINIMIZED]: false,
@@ -278,6 +279,7 @@ describe('settingsHandlers', () => {
         [ASK_WHERE]: false,
         [OPEN_DONE]: false,
         [FOLDER]: '',
+        'recording.folder': '',
         [SPELLING]: false,
         [AUTOSTART]: false,
         [START_MINIMIZED]: false,

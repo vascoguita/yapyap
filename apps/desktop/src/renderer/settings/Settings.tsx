@@ -108,11 +108,14 @@ function FolderField(props: FieldProps) {
     <div class="field text">
       <span id={`${field.id}-label`}>{field.label}</span>
       <output aria-labelledby={`${field.id}-label`}>
-        {folder === '' ? text.defaultFolder : folder}
+        {folder === '' ? field.folder?.defaultName : folder}
       </output>
       <div class="actions">
+        {/* Named with the field too, so each folder's Choose… is told apart. */}
         <button
           type="button"
+          id={`${field.id}-choose`}
+          aria-labelledby={`${field.id}-choose ${field.id}-label`}
           disabled={snapshot.readOnly}
           onClick={() => {
             onChooseFolder?.(field.id);
@@ -128,7 +131,7 @@ function FolderField(props: FieldProps) {
               onChange(field.id, '');
             }}
           >
-            {text.useDefaultFolder}
+            {field.folder?.useDefault}
           </button>
         )}
       </div>
@@ -139,7 +142,7 @@ function FolderField(props: FieldProps) {
 
 export function Field(props: FieldProps): JSX.Element {
   const { field, snapshot, onChange } = props;
-  if (field.folder === true) {
+  if (field.folder !== undefined) {
     return <FolderField {...props} />;
   }
   if (field.options !== undefined) {

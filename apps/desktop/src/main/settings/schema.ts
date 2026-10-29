@@ -8,7 +8,7 @@ import { SHORTCUT_IDS, type ShortcutId } from '../../shared/shortcuts.ts';
  * it, so the schema is the only source of truth. Every value has a default,
  * which is what an invalid or missing value falls back to.
  */
-export const SETTINGS_VERSION = 14;
+export const SETTINGS_VERSION = 15;
 
 export const SettingsSchema = Type.Object(
   {
@@ -105,6 +105,13 @@ export const SettingsSchema = Type.Object(
         askWhere: Type.Boolean({ default: false }),
         openWhenDone: Type.Boolean({ default: false }),
         // Empty means the system's Downloads folder; set only through the folder picker.
+        folder: Type.String({ maxLength: 4096, default: '' }),
+      },
+      { default: {}, additionalProperties: false },
+    ),
+    recording: Type.Object(
+      {
+        // Empty means `YapYap` in the Music folder; set only through the folder picker.
         folder: Type.String({ maxLength: 4096, default: '' }),
       },
       { default: {}, additionalProperties: false },

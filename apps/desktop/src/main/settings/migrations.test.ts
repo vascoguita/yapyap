@@ -51,6 +51,15 @@ describe('migrate', () => {
   });
 });
 
+describe('version 14 to 15', () => {
+  const toVersion15 = MIGRATIONS[13];
+
+  it('changes nothing: validation gives the new recordings section its defaults', () => {
+    const settings = { schemaVersion: 14, downloads: { folder: '/home/someone/Files' } };
+    expect(toVersion15?.(settings)).toBe(settings);
+  });
+});
+
 describe('version 13 to 14', () => {
   const toVersion14 = MIGRATIONS[12];
 

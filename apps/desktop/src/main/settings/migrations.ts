@@ -117,6 +117,14 @@ function addChatMessages(settings: Raw): Raw {
 }
 
 /**
+ * Version 15 adds the call recordings section (#442). Older files have none,
+ * so validation gives it its defaults: recordings stay in the Music folder.
+ */
+function addRecording(settings: Raw): Raw {
+  return settings;
+}
+
+/**
  * `MIGRATIONS[n]` turns a version n+1 file into version n+2. They are pure,
  * forward-only, and each has its own test; a test also checks that there is
  * exactly one migration per version step.
@@ -135,6 +143,7 @@ export const MIGRATIONS: readonly ((settings: Raw) => Raw)[] = [
   addPinchZoom,
   addResourceLimits,
   addChatMessages,
+  addRecording,
 ];
 
 export type MigrationResult =

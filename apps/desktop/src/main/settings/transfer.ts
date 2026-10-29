@@ -29,6 +29,7 @@ export const EXPORTED_SECTIONS = [
   'appearance',
   'reliability',
   'downloads',
+  'recording',
   'privacy',
   'network',
   'shortcuts',
