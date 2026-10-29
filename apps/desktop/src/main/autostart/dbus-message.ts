@@ -18,17 +18,22 @@ export interface Message {
   readonly body: readonly DBusValue[];
 }
 
-/** Header field codes, and the type each one's value has. */
-const FIELDS = [
-  ['path', 1, 'o'],
-  ['interface', 2, 's'],
-  ['member', 3, 's'],
-  ['errorName', 4, 's'],
-  ['replySerial', 5, 'u'],
-  ['destination', 6, 's'],
-  ['sender', 7, 's'],
-  ['signature', 8, 'g'],
-] as const;
+/** Header fields in the order of their codes, which start at 1, and the type each one's value has. */
+const FIELDS = (
+  [
+    ['path', 'o'],
+    ['interface', 's'],
+    ['member', 's'],
+    ['errorName', 's'],
+    ['replySerial', 'u'],
+    ['destination', 's'],
+    ['sender', 's'],
+    ['signature', 'g'],
+  ] as const
+).map(([name, type], index) => [name, index + 1, type] as const);
+
+/** The first byte of a little-endian message: an ASCII `l`. */
+const LITTLE_ENDIAN = 0x6c;
 
 /** The fixed part of every header: endianness, type, flags, version, lengths, serial. */
 const FIXED = 12;
@@ -42,7 +47,7 @@ export function encode(message: Message): Uint8Array {
     return value === undefined ? [] : [[code, variant(type, value)] as [number, Variant]];
   });
   const head = new Writer();
-  head.raw([0x6c, message.type, 0, 1]);
+  head.raw([LITTLE_ENDIAN, message.type, 0, 1]);
   head.uint32(body.length);
   head.uint32(message.serial);
   head.write('a(yv)', fields);
@@ -66,7 +71,7 @@ export function messageLength(bytes: Uint8Array): number | undefined {
 
 /** Decodes one whole, little-endian message. */
 export function decode(bytes: Uint8Array): Message {
-  if (bytes[0] !== 0x6c) {
+  if (bytes[0] !== LITTLE_ENDIAN) {
     throw new Error('Only little-endian messages are understood.');
   }
   const reader = new Reader(bytes, 8);
