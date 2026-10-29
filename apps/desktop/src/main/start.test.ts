@@ -152,6 +152,10 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     attachAssistantBar: vi.fn((create: (renderer: object) => unknown) => {
       create({ preload: '/app/preload/chrome.cjs' });
     }),
+    recorder: {
+      gate: { recording: () => false, callFrame: () => undefined },
+      stop: vi.fn(() => Promise.resolve()),
+    },
   };
   const createSidebar = vi.fn(() => ({
     webContents: { loadURL: vi.fn(() => Promise.resolve()), send: vi.fn() },
@@ -1472,6 +1476,14 @@ describe('startApp', () => {
     ) => void;
     secondInstance({}, ['/opt/YapYap/yapyap', 'yapyap://extensions/install/org.example.other']);
     expect(f.runtime.installExtensionFromLink).toHaveBeenLastCalledWith('org.example.other');
+  });
+
+  it('keeps a call recording in progress when YapYap quits', async () => {
+    const f = fakes();
+    await startApp(f);
+    const beforeQuit = f.listeners.get('before-quit') as unknown as () => void;
+    beforeQuit();
+    expect(f.runtime.recorder.stop).toHaveBeenCalledOnce();
   });
 
   it('reopens the window where it was left and quits on termination signals', async () => {

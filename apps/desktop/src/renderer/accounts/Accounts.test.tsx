@@ -60,6 +60,8 @@ function api(list: () => Promise<AccountList> = () => Promise.resolve(LIST)) {
       onState: vi.fn(),
     },
     quickPanel: { open: vi.fn(), setDoNotDisturb: vi.fn() },
+    recordPrompt: { state: vi.fn(), answer: vi.fn(), stop: vi.fn(), onState: vi.fn() },
+    recorder: { onCommand: vi.fn(), chunk: vi.fn(), ended: vi.fn(), failed: vi.fn() },
     extensions: {
       list: vi.fn(),
       consent: vi.fn(),

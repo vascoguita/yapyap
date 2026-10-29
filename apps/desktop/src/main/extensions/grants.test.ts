@@ -32,6 +32,7 @@ describe('holds', () => {
         'composer:insert-draft',
         'composer:read-draft',
         'assistant:bar',
+        'calls:record',
       ] as ExtensionRecord['capabilities'],
     };
     for (const capability of all.capabilities) {

@@ -75,6 +75,14 @@ function setup() {
     },
     settingEffects: {},
     hiddenSettings: [],
+    recording: {
+      supported: true,
+      paths: { folder: '/recordings', index: '/user-data/recordings.json' },
+      consentFile: '/user-data/recording-consent.json',
+      askConsent: vi.fn(() => Promise.resolve(false)),
+      callWindowOf: vi.fn(() => undefined),
+      show: vi.fn(),
+    },
     extensions: {
       root: '/nonexistent/extensions',
       anchors: new Set<string>(),

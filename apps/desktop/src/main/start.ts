@@ -1,3 +1,4 @@
+import { lateRecordingGate } from './recording/sources.ts';
 import { unreadInTitle } from '../adapter/page-state.ts';
 import { accountAvatars, type AccountAvatars, type AvatarPage } from './accounts/avatars.ts';
 import type { AccountSummary } from '../shared/chrome-api.ts';
@@ -971,6 +972,20 @@ function browserIdentity<Window extends WindowPort>(
   };
 }
 
+/** Lets the session guard ask the recorder, and keeps a recording in progress when YapYap quits (ADR 0015). */
+function followRecorder(
+  app: Pick<AppPort, 'on'>,
+  recorder: Parameters<ReturnType<typeof lateRecordingGate>['bind']>[0] & {
+    readonly stop: () => Promise<void>;
+  },
+  gate: ReturnType<typeof lateRecordingGate>,
+): void {
+  gate.bind(recorder);
+  app.on('before-quit', () => {
+    void recorder.stop();
+  });
+}
+
 export async function startApp<Window extends WindowPort>(
   deps: StartDependencies<Window>,
 ): Promise<void> {
@@ -993,7 +1008,8 @@ export async function startApp<Window extends WindowPort>(
   const picker = latePicker();
   const display = applyDisplayBackend(deps);
   const capture = deps.capture(picker.pick, display.active === 'wayland');
-  const security = { ...deps, capture, views, identity };
+  const recording = lateRecordingGate();
+  const security = { ...deps, capture, views, identity, recording: recording.gate };
   const graphics = beforeReady(deps, security);
 
   await app.whenReady();
@@ -1003,6 +1019,7 @@ export async function startApp<Window extends WindowPort>(
   syncAutostartSetting(deps.autostart, deps.settings, warn);
   const rendering = `${describeGraphics(graphics)}, display ${describeDisplayBackend(display)}`;
   const chrome = deps.chrome.afterReady(views, warn, rendering, display.active === 'wayland');
+  followRecorder(app, chrome.recorder, recording);
   signInToProxies(deps, chrome);
   picker.bind(chrome.pickCaptureSource);
   announceStartup(deps, graphics);

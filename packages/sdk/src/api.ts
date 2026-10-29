@@ -151,6 +151,51 @@ export interface AssistantApi {
   readonly onRequest: (handler: (request: AssistantRequest) => void | Promise<void>) => void;
 }
 
+/** Where the call on screen stands, as an extension with `calls:record` sees it. */
+export interface CallState {
+  /**
+   * Whether YapYap can record calls on this system. It cannot yet on macOS,
+   * where capturing the call's sound is not verified.
+   */
+  readonly supported: boolean;
+  /** Whether a call is running for the account on screen. */
+  readonly call: boolean;
+  /** When the recording running now started, as an ISO date; null while nothing records. */
+  readonly recordingSince: string | null;
+}
+
+/** A finished recording, as an extension may know it: never its file or its sound. */
+export interface CallRecording {
+  /** An opaque ID, for {@link CallsApi.reveal}. */
+  readonly id: string;
+  /** When it started, as an ISO date. */
+  readonly started: string;
+  readonly durationMs: number;
+}
+
+/**
+ * Recording the call on screen (ADR 0015), with `calls:record`. YapYap
+ * records, never the extension: the extension asks, YapYap asks the user in a
+ * window of its own, and only the user's click starts a recording. The
+ * extension never receives the sound, the file or its path.
+ */
+export interface CallsApi {
+  /**
+   * Asks YapYap to offer recording the call on screen. Resolves with
+   * `recording` once the user chose **Record**, `declined` if they did not,
+   * `no-call` when no call is running, and `unsupported` where YapYap
+   * cannot record calls (see {@link CallState.supported}).
+   */
+  readonly record: () => Promise<'recording' | 'declined' | 'no-call' | 'unsupported'>;
+  /** Stops the recording running now, if any. */
+  readonly stop: () => Promise<void>;
+  readonly state: () => Promise<CallState>;
+  /** The recordings YapYap made, newest first. */
+  readonly recordings: () => Promise<readonly CallRecording[]>;
+  /** Shows a recording in the system's file manager. */
+  readonly reveal: (id: string) => Promise<void>;
+}
+
 /** Everything an extension can reach. HTTPS requests use the standard `fetch`, limited to `network.hosts`. */
 export interface ExtensionHost {
   /** Reading chats. */
@@ -159,6 +204,8 @@ export interface ExtensionHost {
   readonly composer: ComposerApi;
   /** Notifications. */
   readonly notifications: NotificationsApi;
+  /** Recording calls, which YapYap does on the user's click (ADR 0015). */
+  readonly calls: CallsApi;
   /** Private key-value storage. */
   readonly storage: StorageApi;
   /** Encrypted secrets. */

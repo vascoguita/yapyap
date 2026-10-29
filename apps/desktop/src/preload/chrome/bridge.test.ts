@@ -19,7 +19,16 @@ describe('createChromeBridge', () => {
     const listen = vi.fn();
     const listenToExtensions = vi.fn();
     const listenToBar = vi.fn();
-    const api = createChromeBridge(invoke, listen, listenToExtensions, listenToBar);
+    const listenToPrompt = vi.fn();
+    const listenToRecorder = vi.fn();
+    const api = createChromeBridge(
+      invoke,
+      listen,
+      listenToExtensions,
+      listenToBar,
+      listenToPrompt,
+      listenToRecorder,
+    );
     expect(await api.about.info()).toBe(info);
     await api.about.copyTechnicalDetails();
     expect(await api.recovery.problem()).toBe(problem);
@@ -64,6 +73,18 @@ describe('createChromeBridge', () => {
     expect(await api.extensions.remove('org.example.hello')).toBe('ignored');
     expect(await api.extensions.marketplace()).toBe('ignored');
     await api.extensions.installListed('org.example.hello');
+    expect(await api.recordPrompt.state()).toBe('ignored');
+    await api.recordPrompt.answer(true);
+    await api.recordPrompt.stop();
+    await api.recorder.chunk(new Uint8Array([1]));
+    await api.recorder.ended();
+    await api.recorder.failed();
+    const onPrompt = vi.fn();
+    api.recordPrompt.onState(onPrompt);
+    expect(listenToPrompt).toHaveBeenCalledExactlyOnceWith(onPrompt);
+    const onCommand = vi.fn();
+    api.recorder.onCommand(onCommand);
+    expect(listenToRecorder).toHaveBeenCalledExactlyOnceWith(onCommand);
     const changed = vi.fn();
     api.extensions.onChange(changed);
     expect(listenToExtensions).toHaveBeenCalledExactlyOnceWith(changed);
@@ -136,6 +157,12 @@ describe('createChromeBridge', () => {
       ['extensions:remove', 'org.example.hello'],
       ['extensions:marketplace'],
       ['extensions:install-listed', 'org.example.hello'],
+      ['record-prompt:state'],
+      ['record-prompt:answer', true],
+      ['record-prompt:stop'],
+      ['recorder:chunk', new Uint8Array([1])],
+      ['recorder:ended'],
+      ['recorder:failed'],
       ['shortcuts:list'],
       ['shortcuts:set', 'settings', 'CmdOrCtrl+K'],
       ['downloads:list'],
@@ -157,7 +184,7 @@ describe('createChromeBridge', () => {
   });
 
   it('exposes nothing but the listed operations', () => {
-    const api = createChromeBridge(vi.fn(), vi.fn(), vi.fn(), vi.fn());
+    const api = createChromeBridge(vi.fn(), vi.fn(), vi.fn(), vi.fn(), vi.fn(), vi.fn());
     expect(Object.keys(api)).toEqual([
       'about',
       'recovery',
@@ -168,6 +195,8 @@ describe('createChromeBridge', () => {
       'assistantBar',
       'quickPanel',
       'extensions',
+      'recordPrompt',
+      'recorder',
       'report',
       'spelling',
       'picker',
@@ -206,6 +235,8 @@ describe('createChromeBridge', () => {
       'onChange',
     ]);
     expect(Object.keys(api.quickPanel)).toEqual(['open', 'setDoNotDisturb']);
+    expect(Object.keys(api.recordPrompt)).toEqual(['state', 'answer', 'stop', 'onState']);
+    expect(Object.keys(api.recorder)).toEqual(['onCommand', 'chunk', 'ended', 'failed']);
     expect(Object.keys(api.chat)).toEqual(['openNumber']);
     expect(Object.keys(api.shortcuts)).toEqual(['list', 'set']);
     expect(Object.keys(api.downloads)).toEqual(['list', 'act', 'clear']);

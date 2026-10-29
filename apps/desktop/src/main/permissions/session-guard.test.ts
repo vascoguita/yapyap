@@ -1,3 +1,4 @@
+import type { WebFrameMain } from 'electron';
 import { describe, expect, it, vi } from 'vitest';
 import type { ViewInfo } from '../views.ts';
 import {
@@ -21,7 +22,13 @@ interface Handlers {
   display: Parameters<SessionPort['setDisplayMediaRequestHandler']>[0];
 }
 
-function setup(capture: Partial<DisplayCapturePort> = {}) {
+function setup(
+  capture: Partial<DisplayCapturePort> = {},
+  recording: SessionGuardDependencies['recording'] = {
+    recording: () => false,
+    callFrame: () => undefined,
+  },
+) {
   const whatsapp = {};
   const chrome = {};
   const frame = {};
@@ -34,6 +41,7 @@ function setup(capture: Partial<DisplayCapturePort> = {}) {
     askMedia: vi.fn(() => Promise.resolve(true)),
     openExternal: vi.fn(() => Promise.resolve()),
     warn: vi.fn(),
+    recording,
     capture: {
       contentsOfFrame: vi.fn(() => whatsapp),
       isVisibleAndFocused: vi.fn(() => true),
@@ -302,5 +310,49 @@ describe('screen sharing', () => {
     expect(t.deps.warn).toHaveBeenCalledExactlyOnceWith(
       'A screen-sharing request ended before its source could be shared.',
     );
+  });
+});
+
+describe('YapYap’s call recorder (ADR 0015)', () => {
+  /** A recorder page that records now, taking `frame`, or none when the call is gone. */
+  function recorderSetup(frame: object | undefined) {
+    const recorder = {};
+    const t = setup(
+      { contentsOfFrame: vi.fn(() => recorder) },
+      {
+        recording: (contents) => contents === recorder,
+        callFrame: (contents) => (contents === recorder ? (frame as WebFrameMain) : undefined),
+      },
+    );
+    return { ...t, recorder };
+  }
+
+  it('lets the recording page use only the microphone and take only the call’s frame', async () => {
+    const callFrame = {};
+    const t = recorderSetup(callFrame);
+    const from = { requestingUrl: 'app://chrome/recorder.html' };
+    expect(await t.ask(t.recorder, 'media', { ...from, mediaTypes: ['audio'] })).toBe(true);
+    expect(await t.ask(t.recorder, 'media', { ...from, mediaTypes: ['audio', 'video'] })).toBe(
+      false,
+    );
+    expect(await t.ask(t.recorder, 'media', { ...from, mediaTypes: ['video'] })).toBe(false);
+    expect(await t.ask(t.recorder, 'display-capture', from)).toBe(true);
+    expect(await t.ask(t.recorder, 'notifications', from)).toBe(false);
+    expect(t.check(t.recorder, 'media', 'app://chrome/', {})).toBe(true);
+    expect(t.check(t.recorder, 'display-capture', 'app://chrome/', {})).toBe(true);
+    expect(t.check(t.recorder, 'notifications', 'app://chrome/', {})).toBe(false);
+    expect(await t.share({ frame: t.frame, securityOrigin: 'app://chrome' })).toEqual({
+      video: callFrame,
+      audio: callFrame,
+    });
+    expect(t.deps.askMedia).not.toHaveBeenCalled();
+  });
+
+  it('gives the recording page no call it no longer has, and other chrome pages nothing', async () => {
+    const t = recorderSetup(undefined);
+    expect(await t.ask(t.recorder, 'display-capture')).toBe(false);
+    expect(await t.share({ frame: t.frame, securityOrigin: 'app://chrome' })).toBeNull();
+    expect(await t.ask(t.chrome, 'media', { mediaTypes: ['audio'] })).toBe(false);
+    expect(t.check(t.chrome, 'media', 'app://chrome/', {})).toBe(false);
   });
 });

@@ -70,3 +70,32 @@ WhatsApp's page, and ADR 0004 gives extensions no way to reach it.
   Chromium's fake microphone, so no real call is ever recorded.
 - Follow-up work: the capability and recorder (#392), and the official
   call recorder extension (#393).
+
+## Amendment (2026-10-28)
+
+Building the recorder (#392) changed three details; the decision stands.
+
+- **The prompt is a small window of YapYap's own, attached to the call
+  window**, not a bar inside it: WhatsApp's call window is WhatsApp's page,
+  and YapYap draws nothing into it (ADR 0001). The window names the extension,
+  offers **Record** and **Not now**, and, while recording, shows the
+  elapsed time and **Stop**.
+- **The recorder page runs on the chrome session**, hidden, under the
+  chrome CSP, which loads nothing from the network. The session guard
+  grants it the microphone and the call window's audio only while it is the
+  page of a recording the user started, recognized by its web contents,
+  not by its origin, so no other chrome page gains anything.
+- **Recordings go to `YapYap` in the system's music folder**, created when
+  needed, with an index readable by the user alone. Choosing another folder
+  waits for a setting.
+
+The recording mark on the account in the sidebar and in the tray, item 5,
+follows in its own change. Until then the attached window shows it, and
+the recording stops when the call window closes, another account is shown
+(including when the one on screen is removed), YapYap quits, or after four
+hours.
+
+Recording is not offered on macOS for now: on macOS CI the recorder page
+received no sound from the call window, and nobody has verified it on a
+Mac. There, `host.calls.record` resolves `unsupported` without asking, and
+`host.calls.state` reports `supported: false`, until it is checked on a Mac.

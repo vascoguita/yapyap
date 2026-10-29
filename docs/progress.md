@@ -1099,6 +1099,14 @@ not edit the same lines.
   recording** shows in the call window, sidebar and tray; recordings stop
   with the call, stay local, and are named by date only.
 
+- Call recording (#392): `calls:record` and `host.calls`, as ADR 0015 and its
+  amendment describe. A hidden recorder page on the chrome session mixes
+  the call window's frame audio with the microphone and streams WebM to the
+  main process, which writes `YapYap call <date> <time>.webm` to the Music
+  folder's `YapYap` folder. The Record prompt is a small window attached to
+  the call window. The sidebar and tray marks come next. E2E records the
+  fake call's tone with Chromium's fake microphone.
+
 - Local E2E isolation on Wayland desktops (#394): Chromium chose Wayland
   from the desktop's `XDG_SESSION_TYPE` and reached the real compositor
   through its default socket, so local runs opened windows on the

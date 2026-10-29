@@ -1,3 +1,4 @@
+import type { WebFrameMain } from 'electron';
 import { classifyLink, isSameOrigin } from '../navigation/link-policy.ts';
 import type { ViewInfo, ViewRegistry } from '../views.ts';
 import { decidePermission } from './permission-policy.ts';
@@ -30,6 +31,24 @@ export interface CaptureChoice {
   readonly audio?: 'loopback';
 }
 
+/** One frame's own picture and sound, which only YapYap's call recorder is given (ADR 0015). */
+interface FrameCapture {
+  readonly video: WebFrameMain;
+  readonly audio: WebFrameMain;
+}
+
+/**
+ * YapYap's call recorder (ADR 0015). Only its own page, and only while a
+ * recording the user started is running, may use the microphone or take
+ * the call window's sound; every other chrome page is refused both.
+ */
+export interface RecordingGate {
+  /** Whether `contents` is the recorder page, recording now. */
+  readonly recording: (contents: object) => boolean;
+  /** The call frame whose sound the recorder page records now, if any. */
+  readonly callFrame: (contents: object) => WebFrameMain | undefined;
+}
+
 export interface SessionPort {
   setPermissionRequestHandler(
     handler: (
@@ -51,7 +70,7 @@ export interface SessionPort {
   setDisplayMediaRequestHandler(
     handler: (
       request: DisplayMediaRequest,
-      callback: (streams: CaptureChoice | null) => void,
+      callback: (streams: CaptureChoice | FrameCapture | null) => void,
     ) => void,
     options: { useSystemPicker: boolean },
   ): void;
@@ -78,6 +97,7 @@ export interface SessionGuardDependencies {
   readonly openExternal: (url: string) => Promise<unknown>;
   readonly warn: (message: string) => void;
   readonly capture: DisplayCapturePort;
+  readonly recording: RecordingGate;
 }
 
 type Grants = Set<string>;
@@ -160,6 +180,25 @@ async function allowScreenCapture(
 const isScreenCapture = (permission: string, mediaTypes: readonly MediaType[]): boolean =>
   permission === 'display-capture' || (permission === 'media' && mediaTypes.length === 0);
 
+/**
+ * The recorder page, while it records, may use the microphone and take the
+ * call frame's sound, which the display-media handler then hands over; it
+ * may do nothing else.
+ */
+function recorderMay(
+  deps: SessionGuardDependencies,
+  contents: object,
+  permission: string,
+  mediaTypes: readonly MediaType[],
+): boolean {
+  if (isScreenCapture(permission, mediaTypes)) {
+    return deps.recording.callFrame(contents) !== undefined;
+  }
+  return (
+    permission === 'media' && mediaTypes.length > 0 && mediaTypes.every((type) => type === 'audio')
+  );
+}
+
 function answer(
   deps: SessionGuardDependencies,
   grants: Grants,
@@ -193,7 +232,11 @@ function requestHandler(deps: SessionGuardDependencies, grants: Grants, shares: 
       callback(false);
       return;
     }
-    answer(deps, grants, shares, contents, permission, details).then(callback, () => {
+    const decided =
+      contents !== null && deps.recording.recording(contents)
+        ? Promise.resolve(recorderMay(deps, contents, permission, details.mediaTypes ?? []))
+        : answer(deps, grants, shares, contents, permission, details);
+    decided.then(callback, () => {
       callback(false);
     });
   };
@@ -208,6 +251,9 @@ function requestHandler(deps: SessionGuardDependencies, grants: Grants, shares: 
  */
 function checkHandler(deps: SessionGuardDependencies) {
   return (contents: object | null, permission: string, requestingOrigin: string): boolean => {
+    if (contents !== null && deps.recording.recording(contents)) {
+      return permission === 'media' || permission === 'display-capture';
+    }
     const view = viewOf(deps, contents);
     // Electron passes the origin with a trailing slash, so it never equals the home as text.
     const fromHome = isSameOrigin(requestingOrigin, view?.home);
@@ -229,21 +275,33 @@ function takeShare(
   return allowed ? choice : undefined;
 }
 
+/** The call frame for the recorder page, or the source the user picked for a WhatsApp window. */
+function chosenSource(
+  deps: SessionGuardDependencies,
+  shares: Shares,
+  contents: object,
+  request: DisplayMediaRequest,
+): CaptureChoice | FrameCapture | undefined {
+  const frame = deps.recording.recording(contents) ? deps.recording.callFrame(contents) : undefined;
+  return frame === undefined
+    ? takeShare(deps, shares, contents, request.securityOrigin)
+    : { video: frame, audio: frame };
+}
+
 /**
  * Hands over the source the user just picked for this WhatsApp frame's
- * window, once. Nothing is ever chosen here.
+ * window, once, or the call frame to YapYap's recorder (ADR 0015). Nothing
+ * is ever chosen here.
  */
 function displayMediaHandler(deps: SessionGuardDependencies, shares: Shares) {
   return (
     request: DisplayMediaRequest,
-    callback: (streams: CaptureChoice | null) => void,
+    callback: (streams: CaptureChoice | FrameCapture | null) => void,
   ): void => {
     const contents =
       request.frame === null ? undefined : deps.capture.contentsOfFrame(request.frame);
     const choice =
-      contents === undefined
-        ? undefined
-        : takeShare(deps, shares, contents, request.securityOrigin);
+      contents === undefined ? undefined : chosenSource(deps, shares, contents, request);
     try {
       callback(choice ?? null);
     } catch {

@@ -28,9 +28,24 @@ export interface HostHandlers {
   assistant?: (request: AssistantRequest) => unknown;
 }
 
-/** The typed host API of `@yapyap/extension-sdk`, each method one call over the port. */
-export function hostApi(call: Call, handlers: HostHandlers): ExtensionHost {
+/** The parts of the host API that belong to the extension itself, not to an account. */
+type OwnApi = Pick<
+  ExtensionHost,
+  'notifications' | 'storage' | 'secrets' | 'commands' | 'settings'
+>;
+
+/**
+ * The typed host API of `@yapyap/extension-sdk` for what acts on an account,
+ * each method one call over the port, with `own`, which is {@link ownApi},
+ * for the rest. Both run as source text, so `own` comes in as a parameter.
+ */
+export function hostApi(
+  call: Call,
+  handlers: HostHandlers,
+  own: (call: Call, handlers: HostHandlers) => OwnApi,
+): ExtensionHost {
   return {
+    ...own(call, handlers),
     chat: {
       readActive: () => call<ActiveChat | null>('chat.readActive'),
       readUnreadSummary: () => call<readonly UnreadChat[]>('chat.readUnreadSummary'),
@@ -40,6 +55,28 @@ export function hostApi(call: Call, handlers: HostHandlers): ExtensionHost {
       replaceDraft: (text) => call('composer.replaceDraft', text),
       readDraft: () => call<string | null>('composer.readDraft'),
     },
+    calls: {
+      record: () => call('calls.record'),
+      stop: () => call('calls.stop'),
+      state: () => call('calls.state'),
+      recordings: () => call('calls.recordings'),
+      reveal: (id) => call('calls.reveal', id),
+    },
+    assistant: {
+      offer: (offer) => call('assistant.offer', offer),
+      onRequest: (handler) => {
+        handlers.assistant = handler;
+      },
+    },
+  };
+}
+
+/**
+ * The extension's own part of the host API: its storage, secrets, commands,
+ * settings and notifications. Like {@link hostApi}, it runs as source text.
+ */
+export function ownApi(call: Call, handlers: HostHandlers): OwnApi {
+  return {
     notifications: { show: (notification) => call('notifications.show', notification) },
     storage: {
       get: (key) => call('storage.get', key),
@@ -57,12 +94,6 @@ export function hostApi(call: Call, handlers: HostHandlers): ExtensionHost {
       },
     },
     settings: { get: () => call('settings.get') },
-    assistant: {
-      offer: (offer) => call('assistant.offer', offer),
-      onRequest: (handler) => {
-        handlers.assistant = handler;
-      },
-    },
   };
 }
 
@@ -143,6 +174,7 @@ export function bootExtension(
   channel: string,
   helpers: {
     readonly hostApi: typeof hostApi;
+    readonly ownApi: typeof ownApi;
     readonly rpcClient: typeof rpcClient;
     readonly settleReply: typeof settleReply;
   },
@@ -169,7 +201,8 @@ export function bootExtension(
     const extension = (Object(module) as { default?: unknown }).default;
     const { activate } = Object(extension) as { activate?: unknown };
     if (typeof activate === 'function') {
-      await (activate as (api: ExtensionHost) => unknown)(helpers.hostApi(client.call, handlers));
+      const api = helpers.hostApi(client.call, handlers, helpers.ownApi);
+      await (activate as (host: ExtensionHost) => unknown)(api);
     }
   });
 }
@@ -189,6 +222,6 @@ function literal(value: string): string {
 /** The bootstrap as the module YapYap serves for every extension page. */
 export function hostScript(entry: string): string {
   const path = literal(`/${encodeURI(entry)}`);
-  const helpers = `{ hostApi: ${hostApi.toString()}, rpcClient: ${rpcClient.toString()}, settleReply: ${settleReply.toString()} }`;
+  const helpers = `{ hostApi: ${hostApi.toString()}, ownApi: ${ownApi.toString()}, rpcClient: ${rpcClient.toString()}, settleReply: ${settleReply.toString()} }`;
   return `(${bootExtension.toString()})(globalThis, (path) => import(path), ${path}, ${literal(EXTENSION_PORT_CHANNEL)}, ${helpers});`;
 }

@@ -148,6 +148,19 @@ export interface MarketplaceView {
   readonly extensions: readonly MarketplaceEntry[];
 }
 
+/** What YapYap's call-recording window shows by the call (ADR 0015). */
+export interface RecordPromptState {
+  /** The extension that asked to record. */
+  readonly extension: string;
+  /** Asking whether to record, recording, or finished. */
+  readonly phase: 'asking' | 'recording' | 'ended';
+  /** When the recording started, as an ISO date; null until it does. */
+  readonly since: string | null;
+}
+
+/** What the main process tells the hidden recorder page to do. */
+export type RecorderCommand = 'start' | 'stop';
+
 /** An installed extension, as the Extensions window lists it. */
 export interface InstalledExtension {
   readonly id: string;
@@ -265,6 +278,24 @@ export interface ChromeApi {
     /** Switches to the account and brings YapYap's window back. */
     readonly open: (id: string) => Promise<void>;
     readonly setDoNotDisturb: (on: boolean) => Promise<void>;
+  };
+  /** YapYap's own window by a call, which asks to record it and shows the recording (ADR 0015). */
+  readonly recordPrompt: {
+    readonly state: () => Promise<RecordPromptState>;
+    /** The user's answer: record this call, or not. */
+    readonly answer: (record: boolean) => Promise<void>;
+    readonly stop: () => Promise<void>;
+    readonly onState: (listener: (state: RecordPromptState) => void) => void;
+  };
+  /** The hidden page that captures and encodes a call's sound (ADR 0015). */
+  readonly recorder: {
+    readonly onCommand: (listener: (command: RecorderCommand) => void) => void;
+    /** Hands over encoded sound, in order. */
+    readonly chunk: (bytes: Uint8Array) => Promise<void>;
+    /** Everything was handed over after a stop. */
+    readonly ended: () => Promise<void>;
+    /** Capturing failed, so the recording is thrown away. */
+    readonly failed: () => Promise<void>;
   };
   readonly extensions: {
     readonly list: () => Promise<ExtensionList>;
@@ -472,6 +503,12 @@ export const CHROME_CHANNELS = {
   assistantBarSend: 'assistant-bar:send',
   reportDiagnostics: 'report:diagnostics',
   reportOpen: 'report:open',
+  recordPromptState: 'record-prompt:state',
+  recordPromptAnswer: 'record-prompt:answer',
+  recordPromptStop: 'record-prompt:stop',
+  recorderChunk: 'recorder:chunk',
+  recorderEnded: 'recorder:ended',
+  recorderFailed: 'recorder:failed',
   extensionsList: 'extensions:list',
   extensionsConsent: 'extensions:consent',
   extensionsAnswer: 'extensions:answer',
@@ -504,3 +541,9 @@ export const ASSISTANT_BAR_STATE_EVENT = 'assistant-bar:state-changed';
 
 /** Tells an open Extensions window that the installed extensions changed (#342). */
 export const EXTENSIONS_CHANGED_EVENT = 'extensions:changed';
+
+/** Tells the call-recording window how the recording stands. */
+export const RECORD_PROMPT_STATE_EVENT = 'record-prompt:state-changed';
+
+/** Tells the recorder page to start or stop capturing. */
+export const RECORDER_COMMAND_EVENT = 'recorder:command';

@@ -1,4 +1,6 @@
 import type { MenuItemConstructorOptions } from 'electron';
+import type { CallRecorder } from '../recording/recorder.ts';
+import { callRecording, stopOnSwitch, type RecordingSources } from '../recording/sources.ts';
 import { describePageState } from '../../adapter/page-state.ts';
 import { CHROME_CHANNELS } from '../../shared/chrome-api.ts';
 import {
@@ -274,6 +276,8 @@ export interface ChromeFeatureDependencies {
   /** Asks before removing the account named `name`; true when the user agrees. */
   readonly confirmRemoveAccount: (name: string) => Promise<boolean>;
   readonly extensions: ExtensionChromeDependencies;
+  /** Call recording, which YapYap does on the user's click (ADR 0015). */
+  readonly recording: RecordingSources;
   readonly captureSources: (kind: SourceKind) => Promise<readonly DesktopSource[]>;
   /** The window showing `contents`, so the picker can sit on top of it. */
   readonly windowOf: (contents: object) => WindowOptions['parent'] | null;
@@ -318,6 +322,8 @@ interface ChromeRuntime {
   readonly runExtensionCommand: ExtensionChrome['runCommand'];
   /** Installs the extension an **Install in YapYap** link names (#389). */
   readonly installExtensionFromLink: ExtensionChrome['installFromLink'];
+  /** The call recorder, for the session guard's gate and to stop it on quit (ADR 0015). */
+  readonly recorder: Pick<CallRecorder, 'gate' | 'stop'>;
   /** Docks the account sidebar; returns how to show it the accounts. */
   readonly attachSidebar: (
     create: (renderer: RendererOptions) => SidebarPort,
@@ -761,7 +767,7 @@ function diagnosticsCopier(
  * The accounts as extensions see them: drafts go to the active account's open
  * chat, and before there are accounts, there is no account to act on.
  */
-export function extensionAccounts(accounts: AccountsSlot): ExtensionAccounts {
+export function extensionAccounts(accounts: AccountsSlot): Omit<ExtensionAccounts, 'calls'> {
   return {
     insertDraft: (text) =>
       accounts.current === undefined ? Promise.resolve(false) : accounts.current.insertDraft(text),
@@ -810,14 +816,19 @@ function standbyWindows(
   windows: ChromeWindowDependencies<PanelWindow>,
   wayland: boolean,
   accounts: AccountsSlot,
-): { extensions: ExtensionChrome; proxyLogin: ProxyLoginPrompt; quickPanel: QuickPanel } {
+): {
+  extensions: ExtensionChrome;
+  proxyLogin: ProxyLoginPrompt;
+  quickPanel: QuickPanel;
+  recording: ReturnType<typeof callRecording>;
+} {
+  const recording = callRecording(deps.recording, windows, deps.windowOf, accounts);
   return {
-    extensions: createExtensionChrome(
-      deps.extensions,
-      deps.settings,
-      windows,
-      extensionAccounts(accounts),
-    ),
+    recording,
+    extensions: createExtensionChrome(deps.extensions, deps.settings, windows, {
+      ...extensionAccounts(accounts),
+      calls: recording.service,
+    }),
     proxyLogin: createProxyLoginPrompt(() => openPromptWindow(windows, PROXY_LOGIN_PAGE)),
     quickPanel: createQuickPanel({
       wayland,
@@ -827,6 +838,30 @@ function standbyWindows(
       place: deps.quickPanelPlace,
     }),
   };
+}
+
+/** Sets the Account menu, stopping a recording when the account on screen changes (ADR 0015). */
+function menuSetter(
+  deps: Omit<ChromeFeatureDependencies, 'facts'> & FactsSource,
+  slots: Pick<ChromeSlots, 'recoveries' | 'pages' | 'accounts'>,
+  openers: ChromeOpeners,
+  standby: ReturnType<typeof standbyWindows>,
+  warn: (message: string) => void,
+): (menu: AccountMenu) => void {
+  return stopOnSwitch(
+    accountMenuSetter(deps, slots, openers, standby.extensions, warn),
+    standby.recording.recorder,
+  );
+}
+
+/** The operations of the windows that wait in the background until needed. */
+function standbyHandlers(standby: ReturnType<typeof standbyWindows>): ChromeHandler[] {
+  return [
+    ...standby.recording.handlers,
+    ...standby.extensions.handlers,
+    ...standby.proxyLogin.handlers,
+    ...standby.quickPanel.handlers,
+  ];
 }
 
 /** Wayland decides where windows go, so the panel's position cannot be chosen there. */
@@ -870,13 +905,12 @@ function startChrome(
   const withGraphics = { ...deps, facts: () => ({ ...deps.facts(), graphics }) };
   const windows = chromeWindows(deps, renderer, views, warn);
   const slots = chromeSlots(deps, windows);
-  const { recoveries, pages, picker, chats, accounts, sidebar } = slots;
-  const { extensions, proxyLogin, quickPanel } = standbyWindows(deps, windows, wayland, accounts);
+  const { recoveries, pages, picker, chats, sidebar } = slots;
+  const standby = standbyWindows(deps, windows, wayland, slots.accounts);
+  const { extensions, proxyLogin, quickPanel, recording } = standby;
   const handlers = [
     ...allHandlers({ ...withGraphics, unavailableSettings: unavailableOn(wayland) }, slots),
-    ...extensions.handlers,
-    ...proxyLogin.handlers,
-    ...quickPanel.handlers,
+    ...standbyHandlers(standby),
   ];
   registerChromeHandlers(deps.ipc, views, handlers, warn);
   const openers = chromeOpeners(windows, extensions);
@@ -887,7 +921,7 @@ function startChrome(
     openChatsWith: (open) => {
       chats.open = open;
     },
-    setAccountMenu: accountMenuSetter(withGraphics, slots, openers, extensions, warn),
+    setAccountMenu: menuSetter(withGraphics, slots, openers, standby, warn),
     openSettings: openers.openSettings,
     openWelcome: createChromeWindowOpener(windows, WELCOME_PAGE),
     openSpellingLanguages: createChromeWindowOpener(windows, SPELLING_LANGUAGES_PAGE),
@@ -896,6 +930,7 @@ function startChrome(
     attachSidebar: (create) => attachSidebar(create(renderer), views, sidebar, warn),
     ...assistantBarEntries(extensions, renderer, views, warn),
     ...extensionEntries(extensions),
+    recorder: recording.recorder,
   };
 }
 

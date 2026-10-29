@@ -21,6 +21,7 @@ import {
   screen,
   session,
   shell,
+  webContents,
   type WebContents,
 } from 'electron';
 import { spawnSync } from 'node:child_process';
@@ -61,6 +62,7 @@ import { reviewCrashWithDialog } from './crash-review-prompt.ts';
 import electronUpdater from 'electron-updater';
 import trayIcon from '../../build/icons/32x32.png?asset';
 import { PRODUCT_NAME } from './identity.ts';
+import { askRecordingConsent, callWindowAmong } from './recording/electron.ts';
 import { createLogger } from './logging/logger.ts';
 import { logProcessErrors } from './process-errors.ts';
 import { askToInstallUpdateWithDialog } from './update-prompt.ts';
@@ -260,6 +262,23 @@ const chrome = createChromeFeature({
     available: () => session.defaultSession.availableSpellCheckerLanguages,
     system: () => app.getPreferredSystemLanguages(),
   },
+  recording: {
+    // Capturing a call window's sound is unverified on macOS (#392), so it is not offered there.
+    supported: process.platform !== 'darwin',
+    paths: {
+      // Read each time, so the folder follows the system's music folder, and tests can move it.
+      get folder() {
+        return join(app.getPath('music'), PRODUCT_NAME);
+      },
+      index: join(app.getPath('userData'), 'recordings.json'),
+    },
+    consentFile: join(app.getPath('userData'), 'recording-consent.json'),
+    askConsent: () => askRecordingConsent((options) => dialog.showMessageBox(options)),
+    callWindowOf: (main, views) => callWindowAmong(webContents.getAllWebContents(), main, views),
+    show: (file) => {
+      shell.showItemInFolder(file);
+    },
+  },
   extensions: {
     ...electronExtensionDialogs,
     forgetData: async (id) => {
@@ -333,6 +352,7 @@ const chrome = createChromeFeature({
         quiet: () => settings.current().general.doNotDisturb,
         secrets: extensionSecrets,
         storage: keyValueStore(EXTENSION_STORAGE, extension.id),
+        calls: chats.calls,
       }),
     limits: {
       metrics: () => app.getAppMetrics(),

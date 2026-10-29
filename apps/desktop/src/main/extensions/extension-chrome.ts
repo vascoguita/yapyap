@@ -37,7 +37,7 @@ import { isSettingChange, saveSetting, settingsOf } from './extension-settings.t
 import { loadRecords, saveRecords } from './records.ts';
 import { removeExtension, type RemovalDependencies } from './removal.ts';
 import type { AuditLog } from './audit-log.ts';
-import type { CallingExtension, HostServices } from './host-methods.ts';
+import type { CallingExtension, CallRecorderService, HostServices } from './host-methods.ts';
 import type { ReadChat } from '../../adapter/active-chat.ts';
 import type { RpcOptions } from './rpc.ts';
 import {
@@ -102,7 +102,7 @@ export interface ExtensionChromeDependencies {
     extension: CallingExtension,
     chats: Pick<
       ExtensionAccounts,
-      'insertDraft' | 'readActiveChat' | 'replaceDraft' | 'readDraft'
+      'insertDraft' | 'readActiveChat' | 'replaceDraft' | 'readDraft' | 'calls'
     > &
       Pick<HostServices, 'offerAssistant'>,
   ) => ReturnType<ExtensionRuntimeDependencies['methodsFor']>;
@@ -249,6 +249,8 @@ export interface ExtensionAccounts {
   readonly active: () => string | undefined;
   /** Every account, for per-account grants in the Extensions window (#94). */
   readonly list: () => readonly { readonly id: string; readonly name: string }[];
+  /** Recording the call on screen, which YapYap asks the user about (ADR 0015). */
+  readonly calls: CallRecorderService;
 }
 
 export interface ExtensionChrome {

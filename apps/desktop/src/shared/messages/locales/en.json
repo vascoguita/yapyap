@@ -501,7 +501,8 @@
       "notifications:show": "Show notifications",
       "storage:local": "Keep its own data on this computer",
       "secrets:own": "Keep its own secrets, such as API keys, encrypted",
-      "assistant:bar": "Show suggestions beneath your chats, which only you can send, with a click"
+      "assistant:bar": "Show suggestions beneath your chats, which only you can send, with a click",
+      "calls:record": "Ask to record your calls; YapYap records only when you click Record, and the extension never gets the recording"
     },
     "activity": {
       "title": "Recent activity",
@@ -777,5 +778,22 @@
     "downloaded": "Downloaded {{name}} to your Downloads folder.",
     "downloadFailed": "Could not download {{name}}.",
     "saved": "Saved {{name}}."
+  },
+  "recording": {
+    "windowTitle": "Call recording",
+    "asks": "{{extension}} wants to record this call.",
+    "consentHint": "Ask everyone on the call before you record it.",
+    "record": "Record",
+    "notNow": "Not now",
+    "recording": "Recording",
+    "stop": "Stop recording",
+    "saved": "The recording is saved.",
+    "consent": {
+      "message": "Before you record calls",
+      "detail": "In many places it is against the law to record a call without the consent of everyone on it. Ask the people on the call before you record, and keep the recording to yourself. YapYap saves recordings only on this computer.",
+      "checkbox": "I know the law where I and the people I call are may require everyone's consent, and I will ask for it",
+      "record": "Record",
+      "cancel": "Cancel"
+    }
   }
 }

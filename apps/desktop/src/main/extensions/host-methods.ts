@@ -1,4 +1,11 @@
-import type { ActiveChat, AssistantOffer, SettingValue } from '@yapyap/extension-sdk';
+import type {
+  ActiveChat,
+  AssistantOffer,
+  CallRecording,
+  CallState,
+  SettingValue,
+} from '@yapyap/extension-sdk';
+import type { RecordOutcome } from '../recording/recorder.ts';
 import { Type } from 'typebox';
 import { en } from '../../shared/messages/en.ts';
 import type { SecretStore } from '../secrets/secret-store.ts';
@@ -24,6 +31,19 @@ export interface HostServices {
   readonly readDraft: () => Promise<string | null>;
   /** Shows the extension's offer in the assistant bar, if the bar serves this extension (ADR 0013). */
   readonly offerAssistant: (offer: AssistantOffer) => void;
+  /** Recording the call on screen, which YapYap asks the user about (ADR 0015). */
+  readonly calls: CallRecorderService;
+}
+
+/** What YapYap's call recorder offers extensions; YapYap records, never the extension (ADR 0015). */
+export interface CallRecorderService {
+  /** Asks the user, in YapYap's own window naming `extension`, whether to record the call on screen. */
+  readonly record: (extension: string) => Promise<RecordOutcome>;
+  readonly stop: () => Promise<void>;
+  readonly state: () => CallState;
+  readonly recordings: () => Promise<readonly CallRecording[]>;
+  /** Shows a recording in the file manager; false when there is no such recording. */
+  readonly reveal: (id: string) => Promise<boolean>;
 }
 
 /** The extension whose calls these are. */
@@ -206,6 +226,43 @@ function composer(services: HostServices): Record<string, RpcMethod> {
   };
 }
 
+const RECORD = 'calls:record';
+
+/** A recording's ID, as YapYap made it: nothing an extension could turn into a path. */
+const RecordingId = Type.String({ pattern: '^[0-9a-f]{32}$' });
+
+/** Asking for, stopping and listing call recordings (ADR 0015); the user decides each one. */
+function calls(extension: CallingExtension, services: HostServices): Record<string, RpcMethod> {
+  const none = Type.Tuple([]);
+  return {
+    'calls.record': {
+      capability: RECORD,
+      params: none,
+      run: () => services.calls.record(extension.name),
+    },
+    'calls.stop': { capability: RECORD, params: none, run: () => services.calls.stop() },
+    'calls.state': {
+      capability: RECORD,
+      params: none,
+      run: () => Promise.resolve(services.calls.state()),
+    },
+    'calls.recordings': {
+      capability: RECORD,
+      params: none,
+      run: () => services.calls.recordings(),
+    },
+    'calls.reveal': {
+      capability: RECORD,
+      params: Type.Tuple([RecordingId]),
+      run: async ([id]) => {
+        if (!(await services.calls.reveal(id as string))) {
+          throw new Error('No such recording.');
+        }
+      },
+    },
+  };
+}
+
 /**
  * The host operations an extension can call, each behind the capability its
  * SDK documentation names. Operations not listed here are not offered yet.
@@ -223,5 +280,6 @@ export function hostMethods(
     ...chat(services),
     ...composer(services),
     ...assistant(services),
+    ...calls(extension, services),
   };
 }
