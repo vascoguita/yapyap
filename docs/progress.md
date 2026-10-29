@@ -1188,6 +1188,11 @@ not edit the same lines.
   closes, and say "Saved" or why not; before, closing the window right after
   typing lost the edit without a sign.
 
+- Release notes in the marketplace (#434, first part): a listed version may
+  carry `notes`, plain text that the signed index keeps, the website shows
+  beside each version, and the Marketplace tab shows under **What's new**
+  when it offers an update. Screenshots come next.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).

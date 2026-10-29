@@ -14,6 +14,7 @@ const ENTRY: MarketplaceEntry = {
   version: '1.1.0',
   capabilities: ['composer:insert-draft', 'unknown:capability'],
   hosts: ['api.example.org'],
+  notes: null,
   installed: null,
   action: 'install',
 };
@@ -115,8 +116,15 @@ describe('Marketplace', () => {
     const extensions = setup(
       ready([
         ENTRY,
-        { ...ENTRY, id: 'org.example.old', name: 'Old', installed: '1.0.0', action: 'update' },
-        { ...ENTRY, id: 'org.example.new', name: 'New', action: 'incompatible' },
+        {
+          ...ENTRY,
+          id: 'org.example.old',
+          name: 'Old',
+          installed: '1.0.0',
+          action: 'update',
+          notes: 'Faster greetings.',
+        },
+        { ...ENTRY, id: 'org.example.new', name: 'New', action: 'incompatible', notes: 'Unseen.' },
       ]),
       () =>
         new Promise<void>((resolve) => {
@@ -128,6 +136,10 @@ describe('Marketplace', () => {
       'Update to 1.1.0',
     );
     expect(screen.getByText('Needs a newer YapYap')).toBeTruthy();
+    // Notes show for an update only: they say what the update brings.
+    expect(screen.getByText('What’s new in 1.1.0')).toBeTruthy();
+    expect(screen.getByText('Faster greetings.')).toBeTruthy();
+    expect(screen.queryByText('Unseen.')).toBeNull();
     fireEvent.click(install);
     expect(extensions.installListed).toHaveBeenCalledWith('org.example.hello');
     await waitFor(() => {

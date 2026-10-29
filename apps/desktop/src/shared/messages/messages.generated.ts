@@ -466,6 +466,7 @@ export interface Messages {
       }) => string;
       readonly installed: string;
       readonly incompatible: string;
+      readonly whatsNew: (params: { readonly version: string | number }) => string;
       readonly homepage: string;
       readonly privacy: string;
       readonly mismatch: string;

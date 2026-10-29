@@ -538,6 +538,7 @@
       "updateLabel": "Update {{extension}} to {{version}}",
       "installed": "Installed",
       "incompatible": "Needs a newer YapYap",
+      "whatsNew": "What’s new in {{version}}",
       "homepage": "Website",
       "privacy": "YapYap downloads the marketplace list only while this tab is open, without saying who you are.",
       "mismatch": "The download does not match what the marketplace lists, so it was not installed.",

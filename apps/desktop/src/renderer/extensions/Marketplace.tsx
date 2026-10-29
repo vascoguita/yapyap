@@ -68,6 +68,12 @@ function Listing(props: {
           ))}
         </ul>
       )}
+      {extension.action === 'update' && extension.notes !== null ? (
+        <details class="notes">
+          <summary>{text.whatsNew({ version: extension.version })}</summary>
+          <p>{extension.notes}</p>
+        </details>
+      ) : null}
       <Action extension={extension} busy={props.busy} onInstall={props.onInstall} />
     </li>
   );

@@ -25,6 +25,10 @@ interface Described {
   readonly version: ListedVersion;
 }
 
+/** A version's notes, when its entry has any; the index leaves the field out otherwise. */
+const notesOf = ({ notes }: Entry['versions'][number]): { notes?: string } =>
+  notes === undefined ? {} : { notes };
+
 /** Reads a version's manifest for the index, after its signature and identity check out. */
 function describe(entry: Entry, listed: Entry['versions'][number], bytes: Uint8Array): Described {
   const { manifest, files } = readExtensionArchive(bytes);
@@ -52,6 +56,7 @@ function describe(entry: Entry, listed: Entry['versions'][number], bytes: Uint8A
       hosts: [...(manifest.network?.hosts ?? [])],
       minYapYap: listed.minYapYap,
       published: listed.published,
+      ...notesOf(listed),
     },
   };
 }

@@ -29,7 +29,7 @@ const EXTENSION: MarketplaceIndex['extensions'][number] = {
   versions: [
     version('1.0.0'),
     version('1.1.0-beta.1'),
-    version('1.1.0', '2026-10-25T08:00:00.000Z'),
+    { ...version('1.1.0', '2026-10-25T08:00:00.000Z'), notes: 'Faster greetings.' },
   ],
 };
 
@@ -103,9 +103,14 @@ describe('siteExtensions', () => {
         asks: ['can composer:insert-draft', 'can local-network'],
         hosts: ['api.example.org'],
         versions: [
-          { version: '1.1.0', published: '2026-10-25', minYapYap: '0.1.2' },
-          { version: '1.1.0-beta.1', published: '2026-10-20', minYapYap: '0.1.2' },
-          { version: '1.0.0', published: '2026-10-20', minYapYap: '0.1.2' },
+          {
+            version: '1.1.0',
+            published: '2026-10-25',
+            minYapYap: '0.1.2',
+            notes: 'Faster greetings.',
+          },
+          { version: '1.1.0-beta.1', published: '2026-10-20', minYapYap: '0.1.2', notes: null },
+          { version: '1.0.0', published: '2026-10-20', minYapYap: '0.1.2', notes: null },
         ],
         installLink: 'yapyap://extensions/install/org.example.hello',
       },

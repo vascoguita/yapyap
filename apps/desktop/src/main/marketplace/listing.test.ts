@@ -24,7 +24,11 @@ const EXTENSION: MarketplaceIndex['extensions'][number] = {
   license: 'MIT',
   review: 'reviewed',
   signer: SIGNER,
-  versions: [version('1.0.0'), version('1.2.0', '0.2.0'), version('1.1.0')],
+  versions: [
+    version('1.0.0'),
+    version('1.2.0', '0.2.0'),
+    { ...version('1.1.0'), notes: 'Faster greetings.' },
+  ],
 };
 
 const index = (
@@ -42,7 +46,7 @@ const index = (
 describe('offeredVersion', () => {
   it('offers the newest version this YapYap runs', () => {
     expect(offeredVersion(index(), EXTENSION, '0.1.2')).toEqual({
-      version: version('1.1.0'),
+      version: { ...version('1.1.0'), notes: 'Faster greetings.' },
       runs: true,
     });
     expect(offeredVersion(index(), EXTENSION, '0.2.0')?.version.version).toBe('1.2.0');
@@ -101,6 +105,7 @@ describe('marketplaceEntries', () => {
         version: '1.1.0',
         capabilities: ['composer:insert-draft'],
         hosts: [],
+        notes: 'Faster greetings.',
         installed: '1.0.0',
         action: 'update',
       },

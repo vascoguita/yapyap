@@ -46,7 +46,8 @@ Each listed extension has an entry in the YapYap repository, in
       "source": "https://github.com/vascoguita/yapyap/releases/download/extensions/org.example.translate-1.0.0.yapyap-extension",
       "sha256": "sha256-…",
       "minYapYap": "0.1.2",
-      "published": "2026-10-27T08:00:00.000Z"
+      "published": "2026-10-27T08:00:00.000Z",
+      "notes": "First release."
     }
   ]
 }
@@ -55,6 +56,9 @@ Each listed extension has an entry in the YapYap repository, in
 - `signer` is the fingerprint of your signing key, as the consent window
   and `yapyap-extension-sign verify` show it. Every version must be signed by
   that key; a new key needs a new review.
+- `notes` is optional: what changed in that version, in plain text of up to
+  2,000 characters. YapYap shows it with an update, and the extension's page
+  on the website lists it beside each version.
 - `source` is always a release asset of the YapYap repository, named
   `<id>-<version>.yapyap-extension`. Users never download from your server.
 - The extension's name, author, capabilities and hosts come from each

@@ -23,6 +23,8 @@ export interface SiteExtension {
     readonly version: string;
     readonly published: string;
     readonly minYapYap: string;
+    /** What changed, or null when the entry says nothing. */
+    readonly notes: string | null;
   }[];
   /** The link that asks an installed YapYap to install it (#389). */
   readonly installLink: string;
@@ -80,10 +82,11 @@ function siteExtension(
     review: extension.review,
     asks: newest.capabilities.map(describe),
     hosts: newest.hosts,
-    versions: versions.map(({ version, published, minYapYap }) => ({
+    versions: versions.map(({ version, published, minYapYap, notes }) => ({
       version,
       published: published.slice(0, 10),
       minYapYap,
+      notes: notes ?? null,
     })),
     installLink: `yapyap://extensions/install/${extension.id}`,
   };
