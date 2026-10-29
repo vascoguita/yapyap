@@ -4,7 +4,12 @@ import { PRODUCT_NAME } from './identity.ts';
 import type { AccountSummary } from '../shared/chrome-api.ts';
 import { en } from '../shared/messages/en.ts';
 import type { ExtensionCommand, ExtensionPanel } from './extensions/runtime.ts';
-import { acceleratorOf, type CustomShortcuts, type ShortcutId } from '../shared/shortcuts.ts';
+import {
+  acceleratorOf,
+  extensionShortcuts,
+  type CustomShortcuts,
+  type ShortcutId,
+} from '../shared/shortcuts.ts';
 
 /** The platform the menu is for, and the keys the user chose instead of YapYap's. */
 interface Keys {
@@ -245,9 +250,11 @@ function commonItems(
  * An extension's commands never pass for YapYap's own: they sit in their own
  * submenu, each named after its extension.
  */
-function extensionCommandItems(actions: MenuActions): MenuItemConstructorOptions[] {
+function extensionCommandItems(actions: MenuActions, keys: Keys): MenuItemConstructorOptions[] {
+  const shortcuts = extensionShortcuts(actions.extensionCommands, keys.platform, keys.custom);
   const commands = actions.extensionCommands.map(({ extension, extensionName, id, title }) => ({
     label: en.menu.extensionCommand({ extension: extensionName, title }),
+    accelerator: shortcuts.get(`${extension}/${id}`),
     click: () => {
       actions.runExtensionCommand(extension, id);
     },
@@ -270,12 +277,12 @@ function extensionCommandItems(actions: MenuActions): MenuItemConstructorOptions
  * Extensions sit beside Settings, as Settings is where Developer Mode lives;
  * the user's own code is the other way to change WhatsApp.
  */
-function extensionItems(actions: MenuActions): MenuItemConstructorOptions[] {
+function extensionItems(actions: MenuActions, keys: Keys): MenuItemConstructorOptions[] {
   return [
     { label: en.menu.extensions, click: actions.openExtensions },
     { label: en.menu.installExtension, click: actions.installExtension },
     { label: en.menu.customCode, click: actions.openCustomCode },
-    ...extensionCommandItems(actions),
+    ...extensionCommandItems(actions, keys),
   ];
 }
 
@@ -295,7 +302,7 @@ export function buildMenuTemplate(
   if (platform !== 'darwin') {
     const file: MenuItemConstructorOptions = {
       label: en.menu.file,
-      submenu: [...settings, ...extensionItems(actions), { type: 'separator' }, quit],
+      submenu: [...settings, ...extensionItems(actions, keys), { type: 'separator' }, quit],
     };
     return [
       file,
@@ -305,7 +312,7 @@ export function buildMenuTemplate(
     ];
   }
   return [
-    macAppMenu([...about], [...settings, ...extensionItems(actions)], quit, keys),
+    macAppMenu([...about], [...settings, ...extensionItems(actions, keys)], quit, keys),
     { role: 'fileMenu' },
     accountMenu(actions, keys),
     ...standard,

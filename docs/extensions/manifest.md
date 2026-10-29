@@ -44,6 +44,13 @@ WhatsApp: composer actions on the message box, and context-menu items on a
 message (`"on": "message"`) or on a chat in the list (`"on": "chat"`). An
 item that names a command the extension does not declare is not shown.
 
+A command may suggest keys with `shortcut`, in Electron's accelerator syntax,
+such as `"shortcut": "CmdOrCtrl+Shift+E"` (`CmdOrCtrl` is ⌘ on macOS and Ctrl
+elsewhere). YapYap gives the command those keys only when they are valid and
+clash with none of YapYap's shortcuts, as the user set them, nor with a
+command of an extension that started earlier; otherwise the command has no
+keys.
+
 `contributes.panel` (`title` and `entry`) gives the extension a panel, which
 the user opens from **Extension Commands**. It opens in a window of its own,
 titled `<extension name>: <title>`, whose page loads the `entry` module. The

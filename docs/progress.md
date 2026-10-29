@@ -1188,6 +1188,11 @@ not edit the same lines.
   closes, and say "Saved" or why not; before, closing the window right after
   typing lost the edit without a sign.
 
+- Extension command shortcuts (#443, first part): a command may suggest
+  keys in its manifest (`shortcut`), which the menu gives it only when they
+  clash with none of YapYap's shortcuts, as the user set them, nor an earlier
+  extension's. Changing or removing them comes next.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).

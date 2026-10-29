@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { acceleratorOf, fitsShortcut, keysOf, SHORTCUTS, shortcutsFor } from './shortcuts.ts';
+import {
+  acceleratorOf,
+  extensionShortcuts,
+  fitsShortcut,
+  keysOf,
+  SHORTCUTS,
+  shortcutsFor,
+} from './shortcuts.ts';
 
 describe('shortcutsFor', () => {
   it('gives each platform its own shortcuts and keys', () => {
@@ -47,5 +54,46 @@ describe('custom shortcuts', () => {
     expect(fitsShortcut('switchAccount', 'Alt+2')).toBe(false);
     expect(fitsShortcut('settings', 'Alt+2')).toBe(true);
     expect(fitsShortcut('settings', '2')).toBe(false);
+  });
+});
+
+describe('extensionShortcuts', () => {
+  const command = (extension: string, id: string, shortcut?: string) => ({
+    extension,
+    id,
+    shortcut,
+  });
+
+  it('gives an extension command the keys it suggests, when nothing else has them', () => {
+    const given = extensionShortcuts(
+      [
+        command('org.example.rec', 'record', 'CmdOrCtrl+Shift+E'),
+        command('org.example.rec', 'stop'),
+        command('org.example.rec', 'odd', 'Hello'),
+      ],
+      'linux',
+    );
+    expect([...given]).toEqual([['org.example.rec/record', 'CmdOrCtrl+Shift+E']]);
+  });
+
+  it('never takes YapYap’s keys, as the user set them, nor an earlier extension’s', () => {
+    const given = extensionShortcuts(
+      [
+        command('org.example.a', 'reload', 'Ctrl+R'),
+        command('org.example.a', 'mine', 'CmdOrCtrl+Shift+E'),
+        command('org.example.b', 'same', 'Ctrl+Shift+E'),
+        command('org.example.b', 'freed', 'CmdOrCtrl+J'),
+      ],
+      'linux',
+      { downloads: 'CmdOrCtrl+Shift+D' },
+    );
+    expect([...given]).toEqual([
+      ['org.example.a/mine', 'CmdOrCtrl+Shift+E'],
+      ['org.example.b/freed', 'CmdOrCtrl+J'],
+    ]);
+    // On macOS, CmdOrCtrl is ⌘, so Ctrl+R is free there.
+    expect(extensionShortcuts([command('org.example.a', 'reload', 'Ctrl+R')], 'darwin').size).toBe(
+      1,
+    );
   });
 });

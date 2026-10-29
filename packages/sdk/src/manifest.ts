@@ -34,7 +34,19 @@ const Title = Type.String({ minLength: 1, maxLength: 64 });
 const CommandId = Type.String({ pattern: IDENTIFIER, maxLength: 64 });
 
 const Command = Type.Object(
-  { id: CommandId, title: Title },
+  {
+    id: CommandId,
+    title: Title,
+    shortcut: Type.Optional(
+      Type.String({
+        maxLength: 64,
+        pattern: "^[A-Za-z0-9+`=\\[\\];',./\\\\-]+$",
+        description:
+          "Suggested keys, in Electron's accelerator syntax, such as `CmdOrCtrl+Shift+R`. " +
+          "YapYap uses them only when they clash with none of its own shortcuts or an earlier extension's.",
+      }),
+    ),
+  },
   { additionalProperties: false, description: 'An action the user can run from YapYap.' },
 );
 
