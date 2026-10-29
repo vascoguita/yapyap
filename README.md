@@ -24,6 +24,8 @@
 A fast, private, extensible desktop client for WhatsApp Web, for Linux,
 Windows and macOS.
 
+<p align="center"><img src="docs/public/screenshots/main.webp" alt="YapYap's main window: the Personal and Work accounts in a sidebar, beside WhatsApp with an open chat" width="800"></p>
+
 > **YapYap is unofficial.** It is not affiliated with, endorsed by, or
 > sponsored by WhatsApp or Meta. "WhatsApp" is a trademark of its owner.
 > YapYap loads the official WhatsApp Web in a hardened desktop shell. It does
@@ -34,7 +36,8 @@ Windows and macOS.
 Download YapYap for Linux, Windows or macOS from the
 [releases page](https://github.com/vascoguita/yapyap/releases), or add the
 apt, dnf or pacman repository at `packages.guita.org`, as the
-[install guide](https://yapyap.guita.org/guide/install) explains. Each
+[install guide](https://yapyap.guita.org/guide/install) explains, then
+[get started](https://yapyap.guita.org/guide/get-started) in six steps. Each
 release's changes are in [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Status
@@ -48,9 +51,13 @@ YapYap is young: v0.1.0 is its first release. Follow what comes next on the
 - Multiple accounts with fully isolated sessions
 - Native notifications, tray or menu bar with unread counts, and do-not-disturb
 - Recovery tools that fix a stuck session without logging you out
-- A sandboxed, signed extension system with per-account permissions
-- An optional "bring your own model" AI writing assistant that only ever
-  inserts drafts
+- A sandboxed, signed extension system with per-account permissions, and a
+  marketplace of official and reviewed extensions
+- An optional "bring your own model" AI assistant that suggests replies
+  beneath the chat, with your own key or a model on your computer; nothing
+  is sent without your click
+- Call recording, which starts only when you click Record and confirm that
+  everyone on the call agrees
 - No telemetry
 
 ## Documentation
