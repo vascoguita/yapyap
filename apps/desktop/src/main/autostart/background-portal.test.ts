@@ -1,5 +1,5 @@
 import { mkdtempSync, rmSync } from 'node:fs';
-import { createServer, type Socket } from 'node:net';
+import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -106,9 +106,13 @@ describe('backgroundAsker', () => {
       process.platform === 'win32'
         ? `\\\\.\\pipe\\yapyap-bus-${String(process.pid)}`
         : join(folder, 'bus');
-    let connected: Socket | undefined;
+    let ended: Promise<void> | undefined;
     const server = createServer((socket) => {
-      connected = socket;
+      ended = new Promise((resolve) =>
+        socket.once('end', () => {
+          resolve();
+        }),
+      );
       const t = portal((call) => {
         const options = call.body[1] as ReadonlyMap<string, Variant>;
         const token = options.get('handle_token')?.value as string;
@@ -142,8 +146,8 @@ describe('backgroundAsker', () => {
         'At login.',
       );
       expect(await ask(true)).toBe(true);
-      await new Promise((resolve) => setTimeout(resolve, 50));
-      expect(connected?.readableEnded ?? connected?.destroyed).toBe(true);
+      // The asker ends its connection once the portal answered.
+      await expect(ended).resolves.toBeUndefined();
       const nobody = backgroundAsker({ env: {} }, 'At login.');
       await expect(nobody(true)).rejects.toThrow('No session bus to reach the Background portal.');
     } finally {
