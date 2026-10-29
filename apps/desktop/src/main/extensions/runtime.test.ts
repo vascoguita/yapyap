@@ -58,7 +58,11 @@ interface FakeSession {
       (scheme: string, handler: (request: { url: string }) => Promise<Response>) => void
     >;
   };
-  readonly webRequest: { readonly onBeforeRequest: Mock<(listener: unknown) => void> };
+  readonly webRequest: {
+    readonly onBeforeRequest: Mock<(listener: unknown) => void>;
+    readonly onBeforeSendHeaders: Mock<(listener: unknown) => void>;
+    readonly onHeadersReceived: Mock<(listener: unknown) => void>;
+  };
   readonly clearStorageData: Mock<() => Promise<void>>;
   readonly clearCache: Mock<() => Promise<void>>;
 }
@@ -139,7 +143,11 @@ function setup() {
     sessionOf: vi.fn((partition: string): FakeSession => {
       const session = sessions.get(partition) ?? {
         protocol: { handle: vi.fn() },
-        webRequest: { onBeforeRequest: vi.fn() },
+        webRequest: {
+          onBeforeRequest: vi.fn(),
+          onBeforeSendHeaders: vi.fn(),
+          onHeadersReceived: vi.fn(),
+        },
         clearStorageData: vi.fn(() => Promise.resolve()),
         clearCache: vi.fn(() => Promise.resolve()),
       };
@@ -180,7 +188,11 @@ function setup() {
     askHost: vi.fn<(extension: string, host: string) => Promise<boolean>>(() =>
       Promise.resolve(false),
     ),
+    askLocal: vi.fn<(extension: string, server: string) => Promise<boolean>>(() =>
+      Promise.resolve(false),
+    ),
     activeAccount: vi.fn((): string | undefined => undefined),
+    presentHeaders: (headers: Readonly<Record<string, string>>) => ({ ...headers, Presented: '1' }),
   };
   const only = <T>(items: readonly T[]): T => {
     const [item] = items;
@@ -379,13 +391,53 @@ describe('createExtensionRuntime', () => {
           resolve(!cancel);
         });
       });
+    t.deps.askLocal.mockResolvedValue(true);
     expect(await request('http://localhost:11434/v1')).toBe(true);
+    expect(t.deps.askLocal).toHaveBeenCalledExactlyOnceWith('Hello', 'localhost:11434');
+    expect((await loadRecords(root)).get('org.example.hello')?.localServers).toEqual([
+      'localhost:11434',
+    ]);
+    const send = session.webRequest.onBeforeSendHeaders.mock.calls[0]?.[0] as (
+      details: { url: string; requestHeaders: Record<string, string> },
+      callback: (response: { requestHeaders: Record<string, string> }) => void,
+    ) => void;
+    const receive = session.webRequest.onHeadersReceived.mock.calls[0]?.[0] as (
+      details: { url: string; method: string },
+      callback: (response: object) => void,
+    ) => void;
+    const sent = (url: string) =>
+      new Promise((resolve) => {
+        send(
+          { url, requestHeaders: { Origin: 'extension://org.example.hello' } },
+          ({ requestHeaders }) => {
+            resolve(requestHeaders);
+          },
+        );
+      });
+    const received = (url: string) =>
+      new Promise((resolve) => {
+        receive({ url, method: 'POST' }, resolve);
+      });
+    expect(await sent('http://localhost:11434/v1')).toEqual({ Presented: '1' });
+    expect(await received('http://localhost:11434/v1')).toMatchObject({
+      responseHeaders: { 'Access-Control-Allow-Origin': ['extension://org.example.hello'] },
+    });
     await saveRecords(
       root,
-      new Map([['org.example.hello', { ...local, revoked: ['local-network'] }]]),
+      new Map([
+        [
+          'org.example.hello',
+          { ...local, localServers: ['localhost:11434'], revoked: ['local-network'] },
+        ],
+      ]),
     );
     await t.runtime.regrant('org.example.hello');
     expect(await request('http://localhost:11434/v1')).toBe(false);
+    expect(await sent('http://localhost:11434/v1')).toEqual({
+      Origin: 'extension://org.example.hello',
+      Presented: '1',
+    });
+    expect(await received('http://localhost:11434/v1')).toEqual({});
     expect(t.deps.askHost).not.toHaveBeenCalled();
   });
 

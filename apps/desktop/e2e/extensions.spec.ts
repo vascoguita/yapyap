@@ -1,4 +1,6 @@
 import { readFile, writeFile } from 'node:fs/promises';
+import { createServer, type Server } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { join } from 'node:path';
 import { signedArchive, testKey, testManifest, zipArchive } from '../test/extensions.ts';
 import { closeApp, expect, launchApp, test } from './fixtures.ts';
@@ -527,14 +529,17 @@ test('reads the open chat for an extension allowed to, as plain data', async ({
   });
 });
 
-/** Asks a server on this computer for a page, and writes in its title whether it got through. */
+/** Asks a model server on this computer for a reply as an API client would, and writes it in its title. */
 const LOCAL = `
 export default {
   async activate() {
     try {
-      // No CORS headers here, so the answer is opaque; getting one at all is what counts.
-      await fetch('__LOCAL__', { mode: 'no-cors' });
-      document.title = 'reached';
+      const response = await fetch('__LOCAL__', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer local' },
+        body: '{}',
+      });
+      document.title = await response.text();
     } catch {
       document.title = 'blocked';
     }
@@ -542,28 +547,56 @@ export default {
 };
 `;
 
-test('lets an extension reach a server on this computer only with local-network', async ({
+/**
+ * A model server like Ollama (#430): it refuses any request with an Origin
+ * it does not list, which an extension's never is, and sends no CORS headers.
+ */
+async function localModelServer(): Promise<{ url: string; close: () => void }> {
+  const server: Server = createServer((request, response) => {
+    response.writeHead(request.headers.origin === undefined ? 200 : 403);
+    response.end(request.headers.origin === undefined ? 'reached' : '');
+  });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const { port } = server.address() as AddressInfo;
+  return {
+    url: `http://127.0.0.1:${String(port)}/v1/chat/completions`,
+    close: () => server.close(),
+  };
+}
+
+test('lets an extension use a server on this computer only with local-network and the user’s approval', async ({
   app,
-  fakeWhatsApp,
   profile,
 }) => {
-  const local = LOCAL.replace('__LOCAL__', `${fakeWhatsApp.origin}/`);
-  const network = { hosts: [] };
-  await installExtension(app, profile, testManifest({ capabilities: [], network }), local);
-  await expect
-    .poll(async () => (await extensionPage(app))?.title, { timeout: 20_000 })
-    .toBe('blocked');
-  const granted = testManifest({
-    id: 'org.example.local',
-    name: 'Local',
-    capabilities: ['local-network'],
-    network,
-  });
-  await installExtension(app, profile, granted, local);
-  await expect
-    .poll(async () => (await extensionPage(app, 'org.example.local'))?.title, { timeout: 20_000 })
-    .toBe('reached');
-  expect((await extensionPage(app))?.title).toBe('blocked');
+  const server = await localModelServer();
+  try {
+    const local = LOCAL.replace('__LOCAL__', server.url);
+    const network = { hosts: [] };
+    await installExtension(app, profile, testManifest({ capabilities: [], network }), local);
+    await expect
+      .poll(async () => (await extensionPage(app))?.title, { timeout: 20_000 })
+      .toBe('blocked');
+    const granted = testManifest({
+      id: 'org.example.local',
+      name: 'Local',
+      capabilities: ['local-network'],
+      network,
+    });
+    const host = new URL(server.url).host;
+    const prompt = `Let Local use the server at ${host} on this computer?`;
+    await installExtension(app, profile, granted, local, {}, prompt);
+    await expect
+      .poll(async () => (await extensionPage(app, 'org.example.local'))?.title, {
+        timeout: 20_000,
+      })
+      .toBe('reached');
+    expect(
+      await app.evaluate(() => (globalThis as { extensionPrompts?: string[] }).extensionPrompts),
+    ).toContain(prompt);
+    expect((await extensionPage(app))?.title).toBe('blocked');
+  } finally {
+    server.close();
+  }
 });
 
 /** Reads the draft, writes it in its title, and replaces it in shouting. */

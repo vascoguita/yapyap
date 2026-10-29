@@ -5,6 +5,7 @@ import { ManifestSchema } from '@yapyap/extension-sdk';
 import { compareCodeUnits } from '@yapyap/extension-sign';
 import { Type, type Static } from 'typebox';
 import { Value } from 'typebox/value';
+import { MAX_LOCAL_SERVERS } from './network-policy.ts';
 
 /**
  * Extension IDs start with a letter, so a leading dot keeps this file from ever
@@ -13,6 +14,8 @@ import { Value } from 'typebox/value';
 export const RECORDS_FILE = '.extensions.json';
 const RECORDS_VERSION = 1;
 const FINGERPRINT = '^[0-9a-f]{2}(?::[0-9a-f]{2}){31}$';
+
+const LOCAL_SERVER = String.raw`^(?:localhost|127\.0\.0\.1|\[::1\]):[0-9]{1,5}$`;
 
 const ACCOUNT_ID = '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$';
 
@@ -33,6 +36,13 @@ const ExtensionRecordSchema = Type.Object(
     developer: Type.Boolean(),
     capabilities: ManifestSchema.properties.capabilities,
     hosts: ManifestSchema.properties.network.properties.hosts,
+    /** Servers on this computer the user let it use with `local-network` (#430), as `host:port`. */
+    localServers: Type.Optional(
+      Type.Array(Type.String({ pattern: LOCAL_SERVER }), {
+        maxItems: MAX_LOCAL_SERVERS,
+        uniqueItems: true,
+      }),
+    ),
     /** Capabilities and `network:<host>` grants the user took back from the whole extension (#94). */
     revoked: Type.Optional(Revocations),
     /** What the user filled in the extension's settings form (#98). */

@@ -60,17 +60,17 @@ which shares its origin, with a `BroadcastChannel`.
 
 ## Capabilities
 
-| Capability                 | Lets the extension                                                         |
-| -------------------------- | -------------------------------------------------------------------------- |
-| `chat:read-active`         | Read the open chat's name and its most recent messages                     |
-| `chat:read-unread-summary` | Read unread counts and the latest unread messages per chat                 |
-| `composer:insert-draft`    | Put text in the composer, or replace it, for you to edit and send          |
-| `composer:read-draft`      | Read what you typed in the composer so far                                 |
-| `notifications:show`       | Show notifications with its name                                           |
-| `storage:local`            | Keep its own data between sessions                                         |
-| `secrets:own`              | Keep its own secrets, such as API keys, encrypted by your OS               |
-| `local-network`            | Reach servers on this computer only, such as a local AI model              |
-| `assistant:bar`            | Offer suggestions in the bar beneath the chat, which you send with a click |
+| Capability                 | Lets the extension                                                            |
+| -------------------------- | ----------------------------------------------------------------------------- |
+| `chat:read-active`         | Read the open chat's name and its most recent messages                        |
+| `chat:read-unread-summary` | Read unread counts and the latest unread messages per chat                    |
+| `composer:insert-draft`    | Put text in the composer, or replace it, for you to edit and send             |
+| `composer:read-draft`      | Read what you typed in the composer so far                                    |
+| `notifications:show`       | Show notifications with its name                                              |
+| `storage:local`            | Keep its own data between sessions                                            |
+| `secrets:own`              | Keep its own secrets, such as API keys, encrypted by your OS                  |
+| `local-network`            | Reach servers on this computer you allow one by one, such as a local AI model |
+| `assistant:bar`            | Offer suggestions in the bar beneath the chat, which you send with a click    |
 
 No capability lets an extension send a message, see WhatsApp's page, or run code
 in it. Extensions only ever get chat content as plain data, and only what you

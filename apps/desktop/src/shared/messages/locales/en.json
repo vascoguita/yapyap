@@ -745,6 +745,12 @@
       "allow": "Allow",
       "deny": "Deny"
     },
+    "extensionLocalServer": {
+      "message": "Let {{extension}} use the server at {{server}} on this computer?",
+      "detail": "The extension could then use everything that server offers, such as a local AI model, and read its answers. Only allow a server you set up for this extension.",
+      "allow": "Allow",
+      "deny": "Deny"
+    },
     "removeExtension": {
       "message": "Remove {{extension}}?",
       "detail": "This stops the extension and deletes it, with its settings, its stored data and its saved secrets, such as API keys. Its past activity stays listed.",

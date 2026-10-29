@@ -111,6 +111,15 @@ describe('readRecords and writeRecords', () => {
     expect(keeps({ revokedIn: { 'not-an-account': [] } })).toBe(false);
     expect(keeps({ revokedIn: accounts(32) })).toBe(true);
     expect(keeps({ revokedIn: accounts(33) })).toBe(false);
+    const servers = (count: number) =>
+      Array.from({ length: count }, (_, i) => `localhost:${String(1000 + i)}`);
+    expect(keeps({ localServers: ['localhost:11434', '127.0.0.1:80', '[::1]:65535'] })).toBe(true);
+    expect(keeps({ localServers: servers(8) })).toBe(true);
+    expect(keeps({ localServers: servers(9) })).toBe(false);
+    expect(keeps({ localServers: ['localhost:11434', 'localhost:11434'] })).toBe(false);
+    for (const server of ['192.168.1.10:11434', 'localhost', 'localhost:123456', 'xlocalhost:1']) {
+      expect(keeps({ localServers: [server] })).toBe(false);
+    }
   });
 });
 

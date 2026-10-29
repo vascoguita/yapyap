@@ -35,7 +35,11 @@ API key. Turn on **Local-only mode** to make sure of it: the assistant then
 refuses to ask anything but a server on this computer. YapYap lets the
 assistant reach servers on this computer only because you approved
 **Connect to servers running on this computer** when you installed it,
-and never other machines on your network.
+and never other machines on your network. The first time the assistant
+uses a server, YapYap asks you to allow that address, such as
+`localhost:11434`; allow only the model server you set up. Servers that only
+answer apps they know, such as Ollama or the one Alpaca runs, need no setup:
+YapYap handles that for the servers you allowed.
 
 ## Add your key
 
