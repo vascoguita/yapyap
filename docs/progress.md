@@ -1170,7 +1170,10 @@ not edit the same lines.
   typing lost the edit without a sign.
 - Idle memory by process (#428): the startup benchmark also reports each
   process's memory (main window, WhatsApp, YapYap's own pages, GPU, network
-  and so on), so an overrun shows where it went.
+  and so on), so an overrun shows where it went. Windows went over its
+  budget because the runners grew, not YapYap: the same code measured 13 MB
+  more three days later. The idle-memory budgets are recalibrated 10% above
+  today's medians (ADR 0009).
 
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
