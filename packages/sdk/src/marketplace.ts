@@ -57,6 +57,22 @@ const MarketplaceExtension = Type.Object(
     review: Type.Union([Type.Literal('official'), Type.Literal('reviewed')]),
     signer: Fingerprint,
     versions: Type.Array(MarketplaceVersion, { minItems: 1, maxItems: 50 }),
+    /** Pictures of the extension in use, served beside the index (#434). */
+    screenshots: Type.Optional(
+      Type.Array(
+        Type.Object(
+          {
+            url: Type.String({
+              pattern: String.raw`^https://packages\.guita\.org/extensions/`,
+              maxLength: 300,
+            }),
+            caption: Type.String({ minLength: 1, maxLength: 200 }),
+          },
+          { additionalProperties: false },
+        ),
+        { maxItems: 5 },
+      ),
+    ),
   },
   { additionalProperties: false },
 );

@@ -14,6 +14,7 @@ import {
   type MarketplaceIndex,
 } from '../../../packages/sdk/src/marketplace.ts';
 import type { Entry, Revocations } from './entries.ts';
+import { screenshotsOf } from './screenshots.ts';
 
 type Listed = MarketplaceIndex['extensions'][number];
 type ListedVersion = Listed['versions'][number];
@@ -112,6 +113,12 @@ function listExtension(
   };
 }
 
+/** The listed extension with its entry's screenshots, when it has any. */
+function withScreenshots(entry: Entry, listed: Listed, sources: IndexSources): Listed {
+  const shots = screenshotsOf(entry, sources.screenshots ?? (() => undefined));
+  return shots.length === 0 ? listed : { ...listed, screenshots: shots };
+}
+
 /** The index's inputs: the entries, the pulled versions and every source's downloaded bytes. */
 export interface IndexSources {
   readonly entries: readonly Entry[];
@@ -120,6 +127,8 @@ export interface IndexSources {
   /** Fingerprints of the first-party trust anchors. */
   readonly anchors: ReadonlySet<string>;
   readonly now: Date;
+  /** A screenshot's bytes, from `marketplace/screenshots/<id>/<file>`. */
+  readonly screenshots?: (id: string, file: string) => Uint8Array | undefined;
 }
 
 /**
@@ -137,7 +146,7 @@ export function buildIndex(sources: IndexSources): MarketplaceIndex {
     expires: new Date(now.getTime() + MARKETPLACE_MAX_VALIDITY_MS).toISOString(),
     extensions: [...entries]
       .sort((a, b) => a.id.localeCompare(b.id))
-      .map((entry) => listExtension(entry, archives, anchors)),
+      .map((entry) => withScreenshots(entry, listExtension(entry, archives, anchors), sources)),
     revoked: [...revoked],
   };
   if (!Value.Check(MarketplaceIndexSchema, index)) {
