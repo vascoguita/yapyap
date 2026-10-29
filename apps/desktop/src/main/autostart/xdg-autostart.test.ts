@@ -69,40 +69,40 @@ describe('xdgAutostart', () => {
     const { home, autostart } = setup();
     const entry = join(home, '.config', 'autostart', 'org.guita.YapYap.desktop');
     expect(autostart.enabled()).toBe(false);
-    autostart.enable();
+    void autostart.enable();
     expect(autostart.enabled()).toBe(true);
     expect(readFileSync(entry, 'utf8')).toContain('Exec="/opt/YapYap/yapyap"');
-    autostart.disable();
+    void autostart.disable();
     expect(existsSync(entry)).toBe(false);
   });
 
   it('turns off quietly when there is no entry', () => {
     const { autostart } = setup();
     expect(() => {
-      autostart.disable();
+      void autostart.disable();
     }).not.toThrow();
   });
 
   it('honours an absolute XDG_CONFIG_HOME and ignores a relative one', () => {
     const config = mkdtempSync(join(tmpdir(), 'yapyap-config-'));
     homes.push(config);
-    setup({ XDG_CONFIG_HOME: config }).autostart.enable();
+    void setup({ XDG_CONFIG_HOME: config }).autostart.enable();
     expect(existsSync(join(config, 'autostart', 'org.guita.YapYap.desktop'))).toBe(true);
     const relative = setup({ XDG_CONFIG_HOME: 'config' });
-    relative.autostart.enable();
+    void relative.autostart.enable();
     expect(existsSync(join(relative.home, '.config', 'autostart'))).toBe(true);
   });
 
   it('starts the AppImage itself rather than its temporary mount', () => {
     const { home, autostart } = setup({ APPIMAGE: '/home/u/Apps/YapYap.AppImage' });
-    autostart.enable();
+    void autostart.enable();
     const entry = join(home, '.config', 'autostart', 'org.guita.YapYap.desktop');
     expect(readFileSync(entry, 'utf8')).toContain('Exec="/home/u/Apps/YapYap.AppImage"');
   });
 
   it('ignores an empty APPIMAGE', () => {
     const { home, autostart } = setup({ APPIMAGE: '' });
-    autostart.enable();
+    void autostart.enable();
     const entry = join(home, '.config', 'autostart', 'org.guita.YapYap.desktop');
     expect(readFileSync(entry, 'utf8')).toContain('Exec="/opt/YapYap/yapyap"');
   });

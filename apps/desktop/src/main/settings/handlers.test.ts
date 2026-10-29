@@ -106,14 +106,14 @@ describe('settingsHandlers', () => {
     expect(set.accepts([PROXY_SERVER, 'proxy.example.org:8080'])).toBe(false);
   });
 
-  it('accepts each option of a choice and saves it without asking for a restart', () => {
+  it('accepts each option of a choice and saves it without asking for a restart', async () => {
     const t = setup();
     const set = t.handler('settings:set');
     for (const theme of ['light', 'dark', 'system']) {
       expect(set.accepts([THEME, theme])).toBe(true);
     }
     expect(set.accepts([THEME, 'sepia'])).toBe(false);
-    expect(set.handle(t.call, THEME, 'dark')).toEqual(
+    expect(await set.handle(t.call, THEME, 'dark')).toEqual(
       expect.objectContaining({ restartPending: false }),
     );
     expect(t.settings().appearance.theme).toBe('dark');
@@ -190,18 +190,18 @@ describe('settingsHandlers', () => {
     });
   });
 
-  it('saves a change only once its effect took hold, and says why when not', () => {
+  it('saves a change only once its effect took hold, and says why when not', async () => {
     const effect = vi.fn<SettingEffect>(() => 'The system refused.');
     const t = setup(false, { [AUTOSTART]: effect });
     const set = t.handler('settings:set');
-    expect(set.handle(t.call, AUTOSTART, true)).toMatchObject({
+    expect(await set.handle(t.call, AUTOSTART, true)).toMatchObject({
       values: { [AUTOSTART]: false },
       problems: { [AUTOSTART]: 'The system refused.' },
     });
     expect(effect).toHaveBeenCalledWith(true);
     expect(t.service.update).not.toHaveBeenCalled();
     effect.mockReturnValue(undefined);
-    expect(set.handle(t.call, AUTOSTART, true)).toMatchObject({
+    expect(await set.handle(t.call, AUTOSTART, true)).toMatchObject({
       values: { [AUTOSTART]: true },
       problems: {},
       unavailable: {},
@@ -250,10 +250,10 @@ describe('settingsHandlers', () => {
     expect(effect).not.toHaveBeenCalled();
   });
 
-  it('saves a change and asks for a restart until the launch value is back', () => {
+  it('saves a change and asks for a restart until the launch value is back', async () => {
     const t = setup();
     const set = t.handler('settings:set');
-    expect(set.handle(t.call, HARDWARE, false)).toEqual({
+    expect(await set.handle(t.call, HARDWARE, false)).toEqual({
       values: {
         [THEME]: 'system',
         [MENU_BAR]: false,
@@ -297,7 +297,7 @@ describe('settingsHandlers', () => {
     expect(t.settings().reliability.hardwareAcceleration).toBe(false);
     expect(t.settings().reliability.memoryWatchdogMb).toBe(2048);
     expect(t.settings().general).toEqual(defaultSettings().general);
-    expect(set.handle(t.call, HARDWARE, true)).toEqual(
+    expect(await set.handle(t.call, HARDWARE, true)).toEqual(
       expect.objectContaining({ restartPending: false }),
     );
   });
@@ -314,9 +314,9 @@ describe('settingsHandlers', () => {
     expect(set.accepts(['__proto__.polluted', true])).toBe(false);
   });
 
-  it('refuses to save an invalid value that reaches it directly', () => {
+  it('refuses to save an invalid value that reaches it directly', async () => {
     const t = setup();
-    expect(() => t.handler('settings:set').handle(t.call, HARDWARE, 'no')).toThrow(
+    await expect(t.handler('settings:set').handle(t.call, HARDWARE, 'no')).rejects.toThrow(
       'Invalid setting.',
     );
     expect(t.service.update).not.toHaveBeenCalled();

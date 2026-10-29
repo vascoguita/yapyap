@@ -300,8 +300,8 @@ Plasma.
 **Start at login** under Settings → General starts YapYap when you log in;
 together with **Start minimized** it waits in the tray. It uses your
 system's login items, so removing YapYap there turns the setting off too.
-The Flatpak package cannot do this yet; add YapYap to your desktop's
-startup applications instead.
+In the Flatpak package, your desktop asks first whether YapYap may start
+at login, and the setting changes only if you agree.
 
 ## Quick access panel
 

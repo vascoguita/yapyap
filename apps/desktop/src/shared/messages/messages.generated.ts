@@ -121,7 +121,8 @@ export interface Messages {
       readonly newer: string;
       readonly reset: string;
     };
-    readonly problems: { readonly autostartFailed: string; readonly autostartUnsupported: string };
+    readonly problems: { readonly autostartFailed: string };
+    readonly autostartReason: string;
     readonly fields: {
       readonly general: {
         readonly startMinimized: { readonly label: string; readonly description: string };

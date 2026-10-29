@@ -32,8 +32,9 @@ function fieldsFor(platform: string, hidden: readonly string[]): readonly Settin
 /**
  * Carries a change out in the system before it is saved, such as
  * registering a login item; returns what to tell the user when it fails.
+ * It may wait, as a portal does while it asks the user (#234).
  */
-export type SettingEffect = (value: unknown) => string | undefined;
+export type SettingEffect = (value: unknown) => string | undefined | Promise<string | undefined>;
 
 /** What the settings window shows, and whether a change awaits a restart. */
 function snapshotOf(
@@ -62,24 +63,30 @@ function snapshotOf(
 
 /**
  * Runs the field's effect, if it has one, and saves the change only when the
- * system took it; otherwise `problems` says why under the field.
+ * system took it; otherwise `problems` says why under the field. The change
+ * is made on the settings as they are once the effect is done, so a change
+ * saved while it waited is kept.
  */
-function saveUnlessRefused(
+async function saveUnlessRefused(
   service: SettingsService,
   effects: Readonly<Record<string, SettingEffect>>,
   problems: Map<string, string>,
   id: string,
   value: unknown,
-  next: Settings,
-): void {
+): Promise<void> {
   // A newer YapYap owns the file, so the system must not change either.
-  const problem = service.readOnly ? undefined : effects[id]?.(value);
-  if (problem === undefined) {
-    problems.delete(id);
-    service.update(() => next);
-  } else {
+  const problem = service.readOnly ? undefined : await effects[id]?.(value);
+  if (problem !== undefined) {
     problems.set(id, problem);
+    return;
   }
+  const next = withValue(service.current(), id, value);
+  // `accepts` checked the change; checking again narrows the type.
+  if (!Value.Check(SettingsSchema, next)) {
+    throw new Error('Invalid setting.');
+  }
+  problems.delete(id);
+  service.update(() => next);
 }
 
 /**
@@ -115,13 +122,8 @@ export function settingsHandlers(
           (field) => field.id === args[0] && (field.folder === undefined || args[1] === ''),
         ) &&
         Value.Check(SettingsSchema, change(args)),
-      handle: (_call, ...args) => {
-        const next = change(args);
-        // `accepts` already checked this; checking again narrows the type.
-        if (!Value.Check(SettingsSchema, next)) {
-          throw new Error('Invalid setting.');
-        }
-        saveUnlessRefused(service, effects, problems, String(args[0]), args[1], next);
+      handle: async (_call, ...args) => {
+        await saveUnlessRefused(service, effects, problems, String(args[0]), args[1]);
         return snapshot();
       },
     },

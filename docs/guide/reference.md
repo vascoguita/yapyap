@@ -11,7 +11,7 @@ the [profile folder](#files).
 
 | Setting                                 | In the file                         | Default                     | Notes                                                                                         |
 | --------------------------------------- | ----------------------------------- | --------------------------- | --------------------------------------------------------------------------------------------- |
-| Start at login                          | `general.autostart`                 | Off                         | Follows the system's login items; not yet in Flatpak (#234)                                   |
+| Start at login                          | `general.autostart`                 | Off                         | Follows the system's login items; in Flatpak, your desktop asks first                         |
 | Start minimized                         | `general.startMinimized`            | Off                         | Opens in the tray or the Dock                                                                 |
 | Get beta updates                        | `general.betaUpdates`               | Off                         | Only in builds that update or announce updates; see [betas](install.md#betas)                 |
 | Do not disturb                          | `general.doNotDisturb`              | Off                         | Also in the tray and the Account menu                                                         |

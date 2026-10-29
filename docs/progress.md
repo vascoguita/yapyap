@@ -829,6 +829,13 @@ not edit the same lines.
   Settings open, and fails on every OS if YapYap is still running 15 s
   later.
 
+- Start at login in Flatpak (#234): inside the sandbox, YapYap asks the
+  Background portal over the session bus (a small D-Bus client in
+  `src/main/autostart/`, tested against an in-memory fake bus), and the
+  setting changes only when the portal grants it. Setting effects may now
+  wait. Connecting to the bus is the one client use of `node:net` the
+  no-endpoint test allows (C33 in ADR 0008).
+
 - Proxy sign-in test on Windows (#247): the test gave the sign-in window
   Playwright's default 5 s, which has to cover the app's launch and the
   proxy's first refusal; slow Windows runners went past it twice. It now
