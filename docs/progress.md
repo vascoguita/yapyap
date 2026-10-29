@@ -1168,6 +1168,9 @@ not edit the same lines.
   Extensions… now save on Enter, on leaving the field, and when the window
   closes, and say "Saved" or why not; before, closing the window right after
   typing lost the edit without a sign.
+- Idle memory by process (#428): the startup benchmark also reports each
+  process's memory (main window, WhatsApp, YapYap's own pages, GPU, network
+  and so on), so an overrun shows where it went.
 
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
