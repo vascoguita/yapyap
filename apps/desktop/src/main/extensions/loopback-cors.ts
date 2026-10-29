@@ -1,5 +1,5 @@
 import { extensionOrigin } from './extension-files.ts';
-import { isLocalServer } from './network-policy.ts';
+import { reachesLocal, type HostPolicyDependencies } from './network-policy.ts';
 
 type RequestHeaders = Record<string, string>;
 type ResponseHeaders = Record<string, string[]>;
@@ -21,10 +21,11 @@ interface RewrittenResponse {
   readonly statusLine?: string;
 }
 
-export interface LoopbackCorsDependencies {
+export interface LoopbackCorsDependencies extends Pick<
+  HostPolicyDependencies,
+  'local' | 'approvedLocal'
+> {
   readonly id: string;
-  /** Whether the extension holds `local-network` now. */
-  readonly local: () => boolean;
   /** What every session does to request headers, which this listener replaces (one per session). */
   readonly present: (headers: Readonly<RequestHeaders>) => RequestHeaders;
 }
@@ -36,17 +37,17 @@ const without = <T>(headers: Readonly<Record<string, T>>, drop: (name: string) =
 /**
  * Local model servers such as Ollama refuse a request whose `Origin` they do
  * not list, and an extension's `extension://` origin is on no such list
- * (#430). For an extension holding `local-network`, loopback requests leave
- * without an `Origin`, and YapYap answers CORS for them itself, so the page
- * can read the reply. The grant already lets the extension talk to servers
- * on this computer; other requests and other extensions are left alone
- * (ADR 0004).
+ * (#430). So requests to a server on this computer the user approved for
+ * the extension, which must hold `local-network`, leave without an
+ * `Origin`, and YapYap answers CORS for them itself, so the page can read
+ * the reply. Other servers on this computer stay unreachable, and other
+ * requests and extensions are left alone (ADR 0004).
  */
 export function loopbackCors(deps: LoopbackCorsDependencies): {
   readonly beforeSendHeaders: (details: SentRequest) => RequestHeaders;
   readonly headersReceived: (details: ReceivedResponse) => RewrittenResponse;
 } {
-  const applies = (url: string): boolean => deps.local() && isLocalServer(url);
+  const applies = (url: string): boolean => reachesLocal(url, deps);
   return {
     beforeSendHeaders: (details: SentRequest): RequestHeaders => {
       const headers = deps.present(details.requestHeaders);

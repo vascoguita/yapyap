@@ -87,27 +87,36 @@ export const extensionPage = (
     };
   }, `extension://${id}/`);
 
-/** Installs a signed third-party extension with `main.js` and `files`, accepting its consent window. */
+/**
+ * Installs a signed third-party extension with `main.js` and `files`,
+ * accepting its consent window. Prompts it raises later are denied, but
+ * for the one whose message is `allow`.
+ */
 export async function installExtension(
   app: ElectronApplication,
   profile: string,
   manifest: Record<string, unknown>,
   main: string,
   files: Readonly<Record<string, string>> = {},
+  allow = '',
 ): Promise<void> {
   const archive = join(profile, `${String(manifest['id'])}.yapyap-extension`);
   const signed = signedArchive(testKey(), manifest, { 'main.js': main, ...files });
   await writeFile(archive, zipArchive(signed));
-  await app.evaluate(({ dialog }, path) => {
-    dialog.showOpenDialog = () => Promise.resolve({ canceled: false, filePaths: [path] });
-    const asked: string[] = [];
-    Object.assign(globalThis, { extensionPrompts: asked });
-    // The second button denies: an extension's request for a new host is refused, and only recorded.
-    dialog.showMessageBox = (options: unknown) => {
-      asked.push((options as { message: string }).message);
-      return Promise.resolve({ response: 1, checkboxChecked: false });
-    };
-  }, archive);
+  await app.evaluate(
+    ({ dialog }, { path, allowed }) => {
+      dialog.showOpenDialog = () => Promise.resolve({ canceled: false, filePaths: [path] });
+      const asked: string[] = [];
+      Object.assign(globalThis, { extensionPrompts: asked });
+      // The second button denies: an extension's request for a new host is refused, and only recorded.
+      dialog.showMessageBox = (options: unknown) => {
+        const { message } = options as { message: string };
+        asked.push(message);
+        return Promise.resolve({ response: message === allowed ? 0 : 1, checkboxChecked: false });
+      };
+    },
+    { path: archive, allowed: allow },
+  );
   await clickMenu(app, 'Install Extension…');
   const consent = await chromePage(app, '/extension-consent.html');
   await consent.getByLabel('I understand that I install this extension at my own risk').check();

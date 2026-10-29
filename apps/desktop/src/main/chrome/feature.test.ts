@@ -98,6 +98,7 @@ function setup() {
       audit: { record: vi.fn(), recent: vi.fn(() => []) },
       limits: { metrics: () => [], notify: vi.fn(), every: vi.fn(), now: () => 0, cores: 1 },
       askHost: vi.fn(() => Promise.resolve(false)),
+      askLocal: vi.fn(() => Promise.resolve(false)),
       presentHeaders: (headers: Readonly<Record<string, string>>) => ({ ...headers }),
       confirmRemove: vi.fn(),
       forgetData: vi.fn(),

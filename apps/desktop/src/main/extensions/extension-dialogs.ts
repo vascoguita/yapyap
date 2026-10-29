@@ -21,7 +21,7 @@ async function readArchive(path: string): Promise<Uint8Array> {
 
 export const electronExtensionDialogs: Pick<
   ExtensionChromeDependencies,
-  'chooseArchive' | 'readFile' | 'showMessage' | 'askHost' | 'confirmRemove'
+  'chooseArchive' | 'readFile' | 'showMessage' | 'askHost' | 'askLocal' | 'confirmRemove'
 > = {
   chooseArchive: async () => {
     const { canceled, filePaths } = await dialog.showOpenDialog({
@@ -41,6 +41,20 @@ export const electronExtensionDialogs: Pick<
       type: 'question',
       title: PRODUCT_NAME,
       message: text.message({ extension, host }),
+      detail: text.detail,
+      buttons: [text.allow, text.deny],
+      defaultId: 1,
+      cancelId: 1,
+    });
+    return response === 0;
+  },
+  // A server on this computer may offer much more than its model, so Deny is the default here too.
+  askLocal: async (extension, server) => {
+    const text = en.dialogs.extensionLocalServer;
+    const { response } = await dialog.showMessageBox({
+      type: 'question',
+      title: PRODUCT_NAME,
+      message: text.message({ extension, server }),
       detail: text.detail,
       buttons: [text.allow, text.deny],
       defaultId: 1,

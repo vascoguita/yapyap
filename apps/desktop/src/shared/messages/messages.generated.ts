@@ -676,6 +676,15 @@ export interface Messages {
       readonly allow: string;
       readonly deny: string;
     };
+    readonly extensionLocalServer: {
+      readonly message: (params: {
+        readonly extension: string | number;
+        readonly server: string | number;
+      }) => string;
+      readonly detail: string;
+      readonly allow: string;
+      readonly deny: string;
+    };
     readonly removeExtension: {
       readonly message: (params: { readonly extension: string | number }) => string;
       readonly detail: string;

@@ -7,6 +7,7 @@ function setup(local: boolean) {
   return loopbackCors({
     id: 'org.example.local',
     local: () => local,
+    approvedLocal: () => ['localhost:11435', '127.0.0.1:1', '[::1]:2'],
     present: (headers) => ({ ...headers, 'sec-ch-ua': 'presented' }),
   });
 }
@@ -50,7 +51,7 @@ describe('loopbackCors', () => {
     });
   });
 
-  it('leaves other hosts, and extensions without local-network, alone', () => {
+  it('leaves other hosts, unapproved local servers, and extensions without local-network, alone', () => {
     const headers = { Origin: ORIGIN };
     const granted = setup(true);
     expect(
@@ -64,5 +65,10 @@ describe('loopbackCors', () => {
       refused.beforeSendHeaders({ url: 'http://localhost:11435/', requestHeaders: headers }),
     ).toEqual({ Origin: ORIGIN, 'sec-ch-ua': 'presented' });
     expect(refused.headersReceived({ url: 'http://localhost:11435/', method: 'POST' })).toEqual({});
+    // A server on this computer the user did not approve, such as the printing service, stays as it is.
+    expect(granted.headersReceived({ url: 'http://localhost:631/', method: 'POST' })).toEqual({});
+    expect(
+      granted.beforeSendHeaders({ url: 'http://localhost:631/', requestHeaders: headers }),
+    ).toEqual({ Origin: ORIGIN, 'sec-ch-ua': 'presented' });
   });
 });

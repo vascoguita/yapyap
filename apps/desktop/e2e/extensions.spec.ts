@@ -564,7 +564,7 @@ async function localModelServer(): Promise<{ url: string; close: () => void }> {
   };
 }
 
-test('lets an extension reach a server on this computer only with local-network', async ({
+test('lets an extension use a server on this computer only with local-network and the user’s approval', async ({
   app,
   profile,
 }) => {
@@ -582,12 +582,17 @@ test('lets an extension reach a server on this computer only with local-network'
       capabilities: ['local-network'],
       network,
     });
-    await installExtension(app, profile, granted, local);
+    const host = new URL(server.url).host;
+    const prompt = `Let Local use the server at ${host} on this computer?`;
+    await installExtension(app, profile, granted, local, {}, prompt);
     await expect
       .poll(async () => (await extensionPage(app, 'org.example.local'))?.title, {
         timeout: 20_000,
       })
       .toBe('reached');
+    expect(
+      await app.evaluate(() => (globalThis as { extensionPrompts?: string[] }).extensionPrompts),
+    ).toContain(prompt);
     expect((await extensionPage(app))?.title).toBe('blocked');
   } finally {
     server.close();

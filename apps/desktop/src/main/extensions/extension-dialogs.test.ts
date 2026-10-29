@@ -76,6 +76,23 @@ describe('electronExtensionDialogs', () => {
     await expect(dialogs.askHost('Hello', 'api.example.org')).resolves.toBe(false);
   });
 
+  it('asks before an extension uses a server on this computer, and denies by default', async () => {
+    electron.showMessageBox.mockResolvedValueOnce({ response: 0 });
+    await expect(dialogs.askLocal('Hello', 'localhost:11435')).resolves.toBe(true);
+    expect(electron.showMessageBox).toHaveBeenLastCalledWith({
+      type: 'question',
+      title: 'YapYap',
+      message: 'Let Hello use the server at localhost:11435 on this computer?',
+      detail:
+        'The extension could then use everything that server offers, such as a local AI model, and read its answers. Only allow a server you set up for this extension.',
+      buttons: ['Allow', 'Deny'],
+      defaultId: 1,
+      cancelId: 1,
+    });
+    electron.showMessageBox.mockResolvedValueOnce({ response: 1 });
+    await expect(dialogs.askLocal('Hello', 'localhost:11435')).resolves.toBe(false);
+  });
+
   it('asks before removing an extension, and keeps it by default', async () => {
     electron.showMessageBox.mockResolvedValueOnce({ response: 0 });
     await expect(dialogs.confirmRemove('Hello')).resolves.toBe(true);

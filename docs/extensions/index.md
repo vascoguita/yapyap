@@ -114,9 +114,12 @@ kept as something the user can take away at any time.
 
 An extension may call `fetch` on the HTTPS hosts its manifest lists under
 `network.hosts`, and, with `local-network`, on servers running on the
-user's computer (`localhost`, `127.0.0.1` or `[::1]`, any port), and
-nothing else. When the user types an endpoint into a
-setting, a request to a host not in the manifest asks the user first. Keep
+user's computer (`localhost`, `127.0.0.1` or `[::1]`, any port) the user
+allows, and nothing else. When the user types an endpoint into a
+setting, a request to a host not in the manifest asks the user first, and
+so does the first request to each server on the user's computer. YapYap
+answers CORS for a local server the user allowed, so it needs no
+`Access-Control-Allow-Origin` setup of its own. Keep
 API keys in `host.secrets`, which the operating system encrypts, never in
 settings.
 

@@ -188,6 +188,9 @@ function setup() {
     askHost: vi.fn<(extension: string, host: string) => Promise<boolean>>(() =>
       Promise.resolve(false),
     ),
+    askLocal: vi.fn<(extension: string, server: string) => Promise<boolean>>(() =>
+      Promise.resolve(false),
+    ),
     activeAccount: vi.fn((): string | undefined => undefined),
     presentHeaders: (headers: Readonly<Record<string, string>>) => ({ ...headers, Presented: '1' }),
   };
@@ -388,7 +391,12 @@ describe('createExtensionRuntime', () => {
           resolve(!cancel);
         });
       });
+    t.deps.askLocal.mockResolvedValue(true);
     expect(await request('http://localhost:11434/v1')).toBe(true);
+    expect(t.deps.askLocal).toHaveBeenCalledExactlyOnceWith('Hello', 'localhost:11434');
+    expect((await loadRecords(root)).get('org.example.hello')?.localServers).toEqual([
+      'localhost:11434',
+    ]);
     const send = session.webRequest.onBeforeSendHeaders.mock.calls[0]?.[0] as (
       details: { url: string; requestHeaders: Record<string, string> },
       callback: (response: { requestHeaders: Record<string, string> }) => void,
@@ -416,7 +424,12 @@ describe('createExtensionRuntime', () => {
     });
     await saveRecords(
       root,
-      new Map([['org.example.hello', { ...local, revoked: ['local-network'] }]]),
+      new Map([
+        [
+          'org.example.hello',
+          { ...local, localServers: ['localhost:11434'], revoked: ['local-network'] },
+        ],
+      ]),
     );
     await t.runtime.regrant('org.example.hello');
     expect(await request('http://localhost:11434/v1')).toBe(false);

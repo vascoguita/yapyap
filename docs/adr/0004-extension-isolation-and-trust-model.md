@@ -113,13 +113,18 @@ to `<userData>/extensions/<id>/<version>/` only after the signature verifies.
   `[::1]` reach the filter, which allows it, on any port, only to an extension
   holding `local-network` (#103), for a model server the user runs on
   this computer. Other machines on the local network are never reachable.
-  Local servers such as Ollama refuse a request whose `Origin` they do not
-  list, and an extension's never is (#430). So for an extension holding
-  `local-network`, its session sends loopback requests without an `Origin`
-  and answers CORS for them itself: it allows the extension's own origin,
-  any method and headers, and answers a preflight `204`. This lifts the
-  protection those servers keep against web pages only for an extension the
-  user already let talk to servers on this computer, and only on loopback.
+  Even with the grant, each server on this computer (host and port) is
+  reachable only once the user approved it for the extension, through the
+  same one-at-a-time prompt as a new host, with Deny the default; approvals
+  are kept in the record (`localServers`, at most 8), and a refused server
+  is not asked about again until YapYap restarts (#430). Local servers such
+  as Ollama refuse a request whose `Origin` they do not list, and an
+  extension's never is. So requests to an approved server leave the
+  extension's session without an `Origin`, and the session answers CORS for
+  them itself: the extension's own origin, any method and headers, and
+  `204` for a preflight. That lifts the protection the server keeps against
+  web pages, so it happens only for the one server the user chose; every
+  other service on this computer stays unreachable.
 - Extension pages are a trust zone of their own (`extension`). The navigation
   guard confines them: they open no windows and no links in the browser or
   other apps, and cannot navigate away from `extension://<id>/`. The host page

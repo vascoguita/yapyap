@@ -1217,11 +1217,13 @@ not edit the same lines.
   more three days later. The idle-memory budgets are recalibrated 10% above
   today's medians (ADR 0009).
 
-- Local model servers (#430): an extension holding `local-network` reaches
-  Ollama, including Alpaca's, out of the box. Its session sends loopback
-  requests without an `Origin` and answers CORS for them itself (ADR 0004,
-  C34 in ADR 0008). The E2E test's server now refuses any `Origin`, as
-  Ollama does.
+- Local model servers (#430): an extension holding `local-network` now
+  needs the user's approval for each server on this computer (host and
+  port), asked like a new host and kept in its record (`localServers`).
+  Requests to an approved server leave without an `Origin`, and YapYap
+  answers CORS for them itself, so Ollama, including Alpaca's, works out of
+  the box (ADR 0004, C34 in ADR 0008). The E2E test's server refuses any
+  `Origin`, as Ollama does.
 
 - Extension settings that stick (#431): text and number settings in
   Extensions… now save on Enter, on leaving the field, and when the window
