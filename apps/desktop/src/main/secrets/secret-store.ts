@@ -127,7 +127,7 @@ export function openSecretStore(
     (await encryption.isAsyncEncryptionAvailable()) &&
     !WEAK_BACKENDS.has(backendOf(encryption, platform));
   const keep = async (name: string, value: string): Promise<void> => {
-    secrets.set(name, (await encryption.encryptStringAsync(value)).toString('base64'));
+    secrets.set(name, Buffer.from(await encryption.encryptStringAsync(value)).toString('base64'));
     save();
   };
   return {

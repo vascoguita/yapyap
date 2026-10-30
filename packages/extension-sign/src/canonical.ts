@@ -2,6 +2,8 @@
 export function compareCodeUnits(a: string, b: string): number {
   const shared = Math.min(a.length, b.length);
   for (let index = 0; index < shared; index += 1) {
+    // Code units, not code points: signatures depend on this order, and code
+    // points would order astral characters differently.
     const difference = a.charCodeAt(index) - b.charCodeAt(index);
     if (difference !== 0) {
       return difference;
@@ -24,7 +26,7 @@ function serialize(value: unknown): string {
   if (typeof value === 'object' && value !== null) {
     const members = Object.entries(value)
       .sort(([a], [b]) => compareCodeUnits(a, b))
-      .map(([key, item]) => JSON.stringify(key) + ':' + serialize(item));
+      .map(([key, item]) => `${JSON.stringify(key)}:${serialize(item)}`);
     return `{${members.join(',')}}`;
   }
   if (isJsonPrimitive(value)) {

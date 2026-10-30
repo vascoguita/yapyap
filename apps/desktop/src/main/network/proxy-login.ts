@@ -66,7 +66,7 @@ function asker(deps: ProxyLoginDependencies, declined: Map<string, number>) {
     pending.set(name, callbacks);
     void deps.secrets
       .canKeep()
-      .then((canRemember) => deps.ask({ failed, host: info.host, port: info.port, canRemember }))
+      .then((canRemember) => deps.ask({ failed, canRemember, host: info.host, port: info.port }))
       .then((credentials) => {
         pending.delete(name);
         if (credentials === undefined) {

@@ -88,8 +88,9 @@ jobs:
           WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
         run: |
           export_if_set() {
-            [ -n "$2" ] || return 1
-            { echo "$1<<YAPYAP_SECRET"; echo "$2"; echo "YAPYAP_SECRET"; } >> "$GITHUB_ENV"
+            local name="$1" value="$2"
+            [ -n "$value" ] || return 1
+            { echo "$name<<YAPYAP_SECRET"; echo "$value"; echo "YAPYAP_SECRET"; } >> "$GITHUB_ENV"
           }
           if [ "$RUNNER_OS" = macOS ]; then
             # electron-builder falls back to CSC_LINK on Windows, so the macOS

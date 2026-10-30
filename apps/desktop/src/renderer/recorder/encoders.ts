@@ -51,21 +51,19 @@ function audioTrackOf(stream: MediaStream): MediaStreamTrack {
   return track;
 }
 
-/** Reads frames until the reader is cancelled, as PCM, the header first. */
-async function readFrames(
-  reader: ReadableStreamDefaultReader<AudioData>,
-  pending: { parts: BlobPart[] },
-): Promise<void> {
+/** Takes each frame as PCM, the header first. */
+function framesInto(pending: { parts: BlobPart[] }): WritableStream<AudioData> {
   let header = false;
-  for (let next = await reader.read(); !next.done; next = await reader.read()) {
-    const frame = next.value;
-    if (!header) {
-      header = true;
-      pending.parts.push(wavHeader(frame.sampleRate, CHANNELS));
-    }
-    pending.parts.push(pcm16(samplesOf(frame)));
-    frame.close();
-  }
+  return new WritableStream({
+    write: (frame) => {
+      if (!header) {
+        header = true;
+        pending.parts.push(wavHeader(frame.sampleRate, CHANNELS));
+      }
+      pending.parts.push(pcm16(samplesOf(frame)));
+      frame.close();
+    },
+  });
 }
 
 /**
@@ -79,7 +77,8 @@ export function wavEncoder(stream: MediaStream): Encoder {
   let finish = (): void => undefined;
   return {
     start: (timeslice, onData, onStop) => {
-      const reader = new MediaStreamTrackProcessor({ track }).readable.getReader();
+      const { readable } = new MediaStreamTrackProcessor({ track });
+      const stopping = new AbortController();
       const flush = (): void => {
         if (pending.parts.length > 0) {
           onData(new Blob(pending.parts));
@@ -87,11 +86,14 @@ export function wavEncoder(stream: MediaStream): Encoder {
         }
       };
       const timer = setInterval(flush, timeslice);
-      const reading = readFrames(reader, pending);
+      // Stopping aborts the pipe, which cancels the track's stream; that rejection is the normal end.
+      const reading = readable
+        .pipeTo(framesInto(pending), { signal: stopping.signal })
+        .catch(() => undefined);
       finish = () => {
         clearInterval(timer);
-        void reader.cancel().then(async () => {
-          await reading;
+        stopping.abort();
+        void reading.then(() => {
           flush();
           onStop();
         });

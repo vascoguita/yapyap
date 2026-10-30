@@ -1274,6 +1274,13 @@ not edit the same lines.
   saved layout back only when the tray, the Dock or a second launch first
   shows it.
 
+- Vite advisory and SonarQube cleanup (#461): the docs site's Vite override
+  moves to 6.4.5 (GHSA-8g5g-mxqh-grgj), and the open SonarQube issues on
+  `master` are fixed. The WAV encoder pipes the track's frames into a sink
+  instead of awaiting reads in a loop. The two `charCodeAt` findings in
+  `canonical.ts` are false positives: signatures sort keys by UTF-16 code
+  unit, which a test now pins with an astral character.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).

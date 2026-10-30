@@ -36,9 +36,7 @@ function walk(root: string, relative: string, digests: FileDigest[]): void {
     }
     if (entry.isDirectory()) {
       walk(root, path, digests);
-      continue;
-    }
-    if (path !== MANIFEST) {
+    } else {
       digests.push([path, digest(join(root, path))]);
     }
   }
@@ -48,5 +46,5 @@ function walk(root: string, relative: string, digests: FileDigest[]): void {
 export function digestFiles(root: string): FileDigest[] {
   const digests: FileDigest[] = [];
   walk(root, '', digests);
-  return digests;
+  return digests.filter(([path]) => path !== MANIFEST);
 }

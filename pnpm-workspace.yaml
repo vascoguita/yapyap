@@ -16,8 +16,8 @@ allowBuilds:
 
 overrides:
   # VitePress 1.6.4 (latest stable) still pins Vite 5, which has unpatched
-  # advisories; Vite 6.4.4 is the patched line its Vue extension supports.
-  vitepress>vite: 6.4.4
+  # advisories; Vite 6.4.5 is the patched line its Vue extension supports.
+  vitepress>vite: 6.4.5
   # Stryker's REST client pulls in a qs release with denial-of-service advisories.
   qs@<6.16.0: 6.16.1
   # electron-builder's Electron downloader still uses global-agent 3, whose
