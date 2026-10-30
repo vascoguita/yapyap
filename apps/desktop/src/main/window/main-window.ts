@@ -15,6 +15,7 @@ export interface ManagedWindow {
   on(event: 'close', listener: (event: { preventDefault(): void }) => void): unknown;
   /** Windows ends sessions at shutdown without closing windows first. */
   on(event: 'session-end', listener: () => void): unknown;
+  once(event: 'show', listener: () => void): unknown;
 }
 
 export interface WindowStateStore {
@@ -74,6 +75,27 @@ function saveState(window: ManagedWindow, deps: MainWindowDependencies): void {
 }
 
 /**
+ * Maximizing or entering full screen also shows a hidden window, so a
+ * window started minimized gets its layout back only once something shows
+ * it, such as the tray.
+ */
+function restoreLayout(window: ManagedWindow, state: WindowState, hidden: boolean): void {
+  const apply = (): void => {
+    if (state.maximized) {
+      window.maximize();
+    }
+    if (state.fullScreen) {
+      window.setFullScreen(true);
+    }
+  };
+  if (hidden) {
+    window.once('show', apply);
+  } else {
+    apply();
+  }
+}
+
+/**
  * Restores the window's maximized and full-screen state, follows the menu
  * bar setting, and saves the window's state whenever it closes. On macOS,
  * and elsewhere with "Close to the tray" on, closing the window hides it
@@ -84,12 +106,7 @@ export function manageMainWindow(
   state: WindowState,
   deps: MainWindowDependencies,
 ): void {
-  if (state.maximized) {
-    window.maximize();
-  }
-  if (state.fullScreen) {
-    window.setFullScreen(true);
-  }
+  restoreLayout(window, state, deps.settings.current().general.startMinimized);
   applyMenuBar(window, deps.platform, deps.settings.current());
   deps.settings.onChange((settings) => {
     applyMenuBar(window, deps.platform, settings);

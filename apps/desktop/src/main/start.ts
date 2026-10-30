@@ -212,7 +212,7 @@ interface ClearableSession {
   clearCache(): Promise<void>;
 }
 
-export interface WindowPort extends LinkWindow, Omit<ManagedWindow, 'on'> {
+export interface WindowPort extends LinkWindow, Omit<ManagedWindow, 'on' | 'once'> {
   on: ManagedWindow['on'] &
     FocusableWindow['on'] &
     ((event: 'show', listener: () => void) => unknown) &
@@ -226,7 +226,7 @@ export interface WindowPort extends LinkWindow, Omit<ManagedWindow, 'on'> {
   isFocused(): boolean;
   /** The Windows taskbar overlay, an image from `badge.createImage`. */
   setOverlayIcon(overlay: object | null, description: string): void;
-  once(event: 'ready-to-show', listener: () => void): unknown;
+  once: ManagedWindow['once'] & ((event: 'ready-to-show', listener: () => void) => unknown);
   show(): void;
 }
 
