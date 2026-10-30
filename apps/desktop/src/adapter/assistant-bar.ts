@@ -84,7 +84,7 @@ interface BarParts {
 interface BarStore {
   readonly host: BarNode;
   readonly parts: BarParts;
-  key: string;
+  key: string | null;
 }
 
 type Scope = Record<string, unknown>;
@@ -154,7 +154,9 @@ export function buildAssistantBar(
     parent.append(node);
     return node;
   };
-  make('style', 'style', shadow).textContent = places.style;
+  const style = doc.createElement('style');
+  style.textContent = places.style;
+  shadow.append(style);
   const bar = make('section', 'bar', shadow);
   const row = make('div', 'row', bar);
   const parts: BarParts = {
@@ -171,7 +173,7 @@ export function buildAssistantBar(
   parts.input.setAttribute('type', 'text');
   parts.input.setAttribute('maxlength', String(places.maxPrompt));
   kit.wire(shadow, parts.input, scope, places.bridge);
-  return { host, parts, key: '' };
+  return { host, parts, key: null };
 }
 
 /**
@@ -190,8 +192,9 @@ export function wireAssistantBar(shadow: BarNode, input: BarNode, scope: Scope, 
   }
   shadow.addEventListener('click', (event) => {
     const button = event.isTrusted ? (event.target as BarNode).closest('[data-action]') : null;
-    const action = button?.dataset['action'] ?? '';
-    bridge()[action]?.(Number(button?.dataset['index']));
+    if (button !== null) {
+      bridge()[String(button.dataset['action'])]?.(Number(button.dataset['index']));
+    }
   });
   input.addEventListener('keydown', (event) => {
     const text = input.value;

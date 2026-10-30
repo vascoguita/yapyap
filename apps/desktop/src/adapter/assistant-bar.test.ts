@@ -97,6 +97,23 @@ describe('renderAssistantBar', () => {
     expect(t.stored().parts.input.getAttribute('maxlength')).toBe('2000');
     expect(t.stored().parts.input.placeholder).toBe('Say what you want to write');
     expect(t.stored().parts.confirm.hidden).toBe(true);
+    // The classes the bar's own styles hang on.
+    expect(shadow.querySelector('.bar > .row')).not.toBeNull();
+    expect(t.stored().parts.confirm.className).toBe('button');
+    expect(t.stored().parts.input.className).toBe('input');
+    expect(t.stored().parts.input.getAttribute('type')).toBe('text');
+  });
+
+  it('leaves a bar already right above the message box where it is', () => {
+    const t = setup();
+    t.render();
+    const box = footer();
+    if (box === null) {
+      throw new Error('No footer.');
+    }
+    const before = vi.spyOn(box, 'before');
+    t.render({ ...CONTENT, status: 'Thinking…' });
+    expect(before).not.toHaveBeenCalled();
   });
 
   it('writes the extension’s text as text, never as markup', () => {
@@ -207,7 +224,16 @@ describe('the bar’s buttons and field', () => {
     const t = setup();
     t.render();
     const heard = vi.fn();
-    for (const type of ['keydown', 'keyup', 'keypress', 'input', 'paste']) {
+    for (const type of [
+      'keydown',
+      'keyup',
+      'keypress',
+      'beforeinput',
+      'input',
+      'paste',
+      'cut',
+      'copy',
+    ]) {
       document.addEventListener(type, heard);
       t.stored().parts.input.dispatchEvent(new Event(type, { bubbles: true, composed: true }));
     }
@@ -220,11 +246,37 @@ describe('the bar’s buttons and field', () => {
     t.render();
     const use = t.shadow().querySelector('.use');
     use?.dispatchEvent(trusted(new MouseEvent('click', { bubbles: true })));
+    const { input } = t.stored().parts;
+    input.value = 'Say hi';
+    input.dispatchEvent(trusted(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })));
     expect(t.bridge.use).not.toHaveBeenCalled();
+    expect(t.bridge.prompt).not.toHaveBeenCalled();
+  });
+
+  it('labels its field, leaves an unasked question blank, and draws the send arrow', () => {
+    const t = setup();
+    t.render();
+    expect(t.stored().parts.input.getAttribute('aria-label')).toBe('Write a message');
+    expect(t.stored().parts.confirm.textContent).toBe('');
+    const icon = t.shadow().querySelector('.send svg');
+    expect(icon?.namespaceURI).toBe('http://www.w3.org/2000/svg');
+    expect(icon?.getAttribute('viewBox')).toBe('0 0 16 16');
+    expect(icon?.getAttribute('aria-hidden')).toBe('true');
+    expect(icon?.querySelector('path')?.getAttribute('d')).toBe('M2 8l12-6-4 12-2-5z');
   });
 });
 
 describe('assistantBarRender', () => {
+  it('sends the bar’s helpers, its place and its own styles along with the content', () => {
+    const code = assistantBarRender(CONTENT);
+    expect(code).toMatch(
+      /\{ build: [\s\S]+, wire: [\s\S]+, update: [\s\S]+, suggestion: [\s\S]+ \}\)$/,
+    );
+    expect(code).toContain('"store":"yapyapAssistantBarView"');
+    expect(code).toContain(':host { display: block; color-scheme: light dark; }');
+    expect(code).toContain(JSON.stringify(CONTENT));
+  });
+
   // Mutation runs instrument the functions with calls to a module-level
   // helper, so only uninstrumented source can run on its own.
   it.skipIf(assistantBarRender(CONTENT).includes('stryMutAct'))(

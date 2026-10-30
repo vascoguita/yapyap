@@ -26,6 +26,12 @@ type Call = <T>(method: string, ...params: unknown[]) => Promise<T>;
 export interface HostHandlers {
   readonly commands: Map<string, () => unknown>;
   assistant?: (request: AssistantRequest) => unknown;
+  /**
+   * Bar requests that came before the extension listened: the bar shows as
+   * soon as the extension runs, which can be a moment before its
+   * `activate` reaches `onRequest`, and a click then must not be lost.
+   */
+  readonly early: AssistantRequest[];
 }
 
 /** The parts of the host API that belong to the extension itself, not to an account. */
@@ -66,6 +72,11 @@ export function hostApi(
       offer: (offer) => call('assistant.offer', offer),
       onRequest: (handler) => {
         handlers.assistant = handler;
+        for (const request of handlers.early.splice(0)) {
+          Promise.resolve()
+            .then(() => handler(request))
+            .catch(() => undefined);
+        }
       },
     },
   };
@@ -179,13 +190,14 @@ export function bootExtension(
     readonly settleReply: typeof settleReply;
   },
 ): Promise<void> {
-  const handlers: HostHandlers = { commands: new Map() };
+  const handlers: HostHandlers = { commands: new Map(), early: [] };
   // A handler that throws or rejects affects only itself.
+  const keep = (request: AssistantRequest): number => handlers.early.push(request);
   const client = helpers.rpcClient(({ command, assistant }) => {
     Promise.resolve()
       .then(() =>
         command === undefined
-          ? handlers.assistant?.(assistant as AssistantRequest)
+          ? (handlers.assistant ?? keep)(assistant as AssistantRequest)
           : handlers.commands.get(command)?.(),
       )
       .catch(() => undefined);

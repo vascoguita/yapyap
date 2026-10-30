@@ -219,10 +219,14 @@ function connect(
   const granted = (capability: string): boolean =>
     holds(known.record, capability, deps.activeAccount());
   running.host.webContents.on('did-finish-load', () => {
-    running.port = running.host.openPort();
-    serveExtensionRpc(running.port, granted, methods, deps.rpc, (call) => {
+    const port = running.host.openPort();
+    running.port = port;
+    serveExtensionRpc(port, granted, methods, deps.rpc, (call) => {
       deps.audit.record({ ...call, extension: id });
     });
+    for (const request of running.waiting.splice(0)) {
+      port.postMessage({ assistant: request });
+    }
   });
 }
 
@@ -268,6 +272,11 @@ interface RunningExtension {
   readonly panel: string | undefined;
   port?: RpcPort;
   panelWindow?: ExtensionPanelWindow;
+  /**
+   * Bar requests made before the page had its port: the bar shows as soon
+   * as the extension runs, which can be a moment before its page loaded.
+   */
+  readonly waiting: AssistantRequest[];
 }
 
 interface RuntimeState {
@@ -347,6 +356,7 @@ function runningExtension(
     commands: manifest.contributes?.commands ?? [],
     actions: actionsOf(manifest),
     panel: manifest.contributes?.panel?.title,
+    waiting: [],
   };
 }
 
@@ -551,11 +561,15 @@ function askAssistant(
   extension: string,
   request: AssistantRequest,
 ): boolean {
-  const port = state.hosts.get(extension)?.port;
-  if (port === undefined || !assistantsOf(deps, state).some(({ id }) => id === extension)) {
+  const running = state.hosts.get(extension);
+  if (running === undefined || !assistantsOf(deps, state).some(({ id }) => id === extension)) {
     return false;
   }
-  port.postMessage({ assistant: request });
+  if (running.port === undefined) {
+    running.waiting.push(request);
+  } else {
+    running.port.postMessage({ assistant: request });
+  }
   return true;
 }
 

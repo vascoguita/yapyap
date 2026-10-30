@@ -1290,7 +1290,9 @@ not edit the same lines.
   them only from the active account's page, and puts the bar back about once
   a second while it shows, since WhatsApp drops it when it redraws a chat and
   the adapter adds no observers. Landmarks v6 add the message box's footer
-  (ADR 0013 amendment, C35 in ADR 0008).
+  (ADR 0013 amendment, C35 in ADR 0008). The bar shows as soon as its
+  extension runs, so a request made before the extension's page has its
+  port, or before the page listens, waits for it instead of being lost.
 
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
