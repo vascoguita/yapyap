@@ -1,7 +1,7 @@
 # AI assistant
 
 YapYap's AI assistant suggests replies and writes messages with the AI
-model you choose, right beneath the chat. You bring your own account with
+model you choose, right above the message box. You bring your own account with
 the provider, and you stay in charge of every message: nothing about a
 chat is sent to the provider until you allow the assistant in it, and
 nothing reaches the chat until you click **Send** or send the draft
@@ -51,8 +51,8 @@ never shows the key again; **Forget key** removes it.
 
 ## In the chat
 
-Once the assistant is installed and set up, YapYap shows a bar beneath the
-open chat, headed **AI suggestions**.
+Once the assistant is installed and set up, YapYap shows a bar in the open
+chat, right above the message box, under the assistant's name.
 
 1. Choose **Suggest replies**, or type what you want to say under **Write
    a message**, such as "I'll be ten minutes late", and press Enter.
@@ -66,7 +66,7 @@ open chat, headed **AI suggestions**.
 YapYap sends only on your click, and only to the chat the suggestion was
 made for: if you opened another chat meanwhile, it clears the suggestions
 and sends nothing. To hide the bar, take back the assistant's permission
-to show suggestions beneath your chats in **Extensions…**.
+to show suggestions in your chats in **Extensions…**.
 
 ## Suggest replies in the panel
 
@@ -113,7 +113,7 @@ just one:
 - read the open chat, but only when you ask it to look at it;
 - read your draft in the message box, but only when you ask it to rewrite it;
 - write drafts in the message box, or replace yours with a rewrite, which you send yourself;
-- show suggestions in the bar beneath the chat, which you put in the
+- show suggestions in the bar above the message box, which you put in the
   message box or send with a click;
 - keep its own encrypted secrets (your key) and storage (the chats you
   allowed);

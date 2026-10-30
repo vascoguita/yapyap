@@ -1,9 +1,5 @@
 import type { AssistantBar } from '../assistant/bar.ts';
-import {
-  assistantBarFor,
-  assistantBarHandlers,
-  type AssistantBarView,
-} from '../assistant/bar-chrome.ts';
+import { assistantBarFor, type AssistantBarView } from '../assistant/bar-sources.ts';
 import { compareCodeUnits } from '@yapyap/extension-sign';
 import {
   CHROME_CHANNELS,
@@ -257,8 +253,8 @@ export interface ExtensionAccounts {
 
 export interface ExtensionChrome {
   readonly handlers: readonly ChromeHandler[];
-  /** Gives the assistant bar its view in the main window (ADR 0013). */
-  readonly attachAssistantBar: (view: AssistantBarView) => void;
+  /** Gives the assistant bar its view in the active account's WhatsApp, made from the bar (ADR 0013). */
+  readonly attachAssistantBar: (create: (bar: AssistantBar) => AssistantBarView) => void;
   /** Looks again at which extension fills the bar, as the account on screen changes. */
   readonly refreshAssistantBar: () => void;
   /** File → Install Extension…: pick an archive, check it, ask, install. */
@@ -405,7 +401,6 @@ export function createExtensionChrome(
       ...extensionHandlers(deps, settings, accounts, runtime),
       ...consent.handlers,
       ...marketplaceHandlers(marketplace),
-      ...assistantBarHandlers(assistant.bar),
     ],
     attachAssistantBar: assistant.attach,
     refreshAssistantBar: assistant.bar.refresh,

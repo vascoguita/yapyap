@@ -518,7 +518,7 @@
       "notifications:show": "Show notifications",
       "storage:local": "Keep its own data on this computer",
       "secrets:own": "Keep its own secrets, such as API keys, encrypted",
-      "assistant:bar": "Show suggestions beneath your chats, which only you can send, with a click",
+      "assistant:bar": "Show suggestions above the message box, which only you can send, with a click",
       "calls:record": "Ask to record your calls; YapYap records only when you click Record, and the extension never gets the recording"
     },
     "activity": {

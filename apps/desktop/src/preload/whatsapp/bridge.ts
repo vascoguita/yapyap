@@ -1,3 +1,4 @@
+import { ASSISTANT_BAR_CHANNELS, type AssistantBarBridge } from '../../shared/assistant-bar-api.ts';
 import { NOTIFICATION_CHANNELS, type NotificationBridge } from '../../shared/notification-api.ts';
 import { SHARE_CHANNELS, type ShareBridge } from '../../shared/share-api.ts';
 
@@ -43,6 +44,30 @@ export function createShareBridge(ipc: PreloadIpc): ShareBridge {
           listener(id);
         }
       });
+    },
+  };
+}
+
+/**
+ * The assistant bar's side of its five user actions, on fixed channels
+ * (ADR 0013). Only the adapter's isolated world gets it, never WhatsApp's.
+ */
+export function createAssistantBarBridge(ipc: Pick<PreloadIpc, 'send'>): AssistantBarBridge {
+  return {
+    suggest: () => {
+      ipc.send(ASSISTANT_BAR_CHANNELS.suggest);
+    },
+    prompt: (text) => {
+      ipc.send(ASSISTANT_BAR_CHANNELS.prompt, text);
+    },
+    confirm: () => {
+      ipc.send(ASSISTANT_BAR_CHANNELS.confirm);
+    },
+    use: (index) => {
+      ipc.send(ASSISTANT_BAR_CHANNELS.use, index);
+    },
+    send: (index) => {
+      ipc.send(ASSISTANT_BAR_CHANNELS.send, index);
     },
   };
 }

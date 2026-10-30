@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { AssistantBarState } from '../../shared/chrome-api.ts';
+import type { AssistantBarState } from '../../shared/assistant-bar-api.ts';
 import { createAssistantBar, type AssistantBarDependencies } from './bar.ts';
 
 const TEXTS = {

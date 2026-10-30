@@ -796,23 +796,17 @@ describe('createChromeFeature', () => {
     expect(t.call('sidebar:state', port.webContents)).toBe(state);
   });
 
-  it('docks the assistant bar as a chrome page, empty while no extension fills it', () => {
+  it('gives the assistant bar its view, empty and hidden while no extension fills it', () => {
     const t = setup();
     const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated', false);
-    const port = {
-      webContents: { loadURL: vi.fn(() => Promise.resolve()), send: vi.fn() },
-      setHeight: vi.fn(),
-    };
-    const create = vi.fn(() => port);
-    runtime.attachAssistantBar(create);
-    expect(create).toHaveBeenCalledWith({
-      preload: '/app/preload/chrome.cjs',
-      partition: 'yapyap-chrome',
+    const view = { show: vi.fn(), publish: vi.fn() };
+    const create = vi.fn((bar: { state: () => { extension: string } }) => {
+      expect(bar.state()).toEqual(expect.objectContaining({ extension: '', suggestions: [] }));
+      return view;
     });
-    expect(port.setHeight).toHaveBeenLastCalledWith(0);
-    expect(t.call('assistant-bar:state', port.webContents)).toEqual(
-      expect.objectContaining({ extension: '', suggestions: [] }),
-    );
+    runtime.attachAssistantBar(create);
+    expect(create).toHaveBeenCalledOnce();
+    expect(view.show).toHaveBeenLastCalledWith(false);
   });
 
   it('opens the Accounts window from the Account menu, listing the current accounts', () => {
@@ -980,7 +974,7 @@ describe('createChromeFeature', () => {
     await new Promise((resolve) => setTimeout(resolve));
     expect(t.deps.writeClipboard).toHaveBeenLastCalledWith(
       expect.stringMatching(
-        /^YapYap 0\.1\.0 \(deb\)\n[\s\S]*\nGPU gpu_compositing=enabled, rasterization=unknown, video_decode=unknown, webgl=enabled_on\nUpdates system \(deb\)\nWhatsApp page unavailable \(landmarks v5\)\n\nRecent log:\n2026-10-21T12:00:00\.000Z warn Something happened$/,
+        /^YapYap 0\.1\.0 \(deb\)\n[\s\S]*\nGPU gpu_compositing=enabled, rasterization=unknown, video_decode=unknown, webgl=enabled_on\nUpdates system \(deb\)\nWhatsApp page unavailable \(landmarks v6\)\n\nRecent log:\n2026-10-21T12:00:00\.000Z warn Something happened$/,
       ),
     );
   });
@@ -1010,7 +1004,7 @@ describe('createChromeFeature', () => {
     await new Promise((resolve) => setTimeout(resolve));
     expect(t.deps.writeClipboard).toHaveBeenLastCalledWith(
       expect.stringContaining(
-        '\nWhatsApp view=chats, chat_open=true (landmarks v5)\n\nRecent log:',
+        '\nWhatsApp view=chats, chat_open=true (landmarks v6)\n\nRecent log:',
       ),
     );
   });

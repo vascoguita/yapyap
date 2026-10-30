@@ -125,8 +125,8 @@ settings.
 
 ### The assistant bar
 
-With `assistant:bar`, an extension fills the bar YapYap draws beneath the open
-chat ([ADR 0013](/adr/0013-in-chat-assistant-bar)). `host.assistant.onRequest`
+With `assistant:bar`, an extension fills the bar YapYap draws above the open
+chat's message box ([ADR 0013](/adr/0013-in-chat-assistant-bar)). `host.assistant.onRequest`
 runs a handler for each thing the user does in the bar: `suggest`,
 `prompt` with the text the user typed, or `confirm` when the user clicks
 the button the extension offered. `host.assistant.offer` replaces what the bar

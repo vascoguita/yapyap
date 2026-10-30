@@ -174,18 +174,18 @@ are read on every call and request, so a change applies to the next one.
 YapYap listens on no port or socket, and a test fails if its code ever
 starts to.
 
-| Capability                 | Grants                                                                                       |
-| -------------------------- | -------------------------------------------------------------------------------------------- |
-| `chat:read-active`         | The active chat's metadata and its last N messages (N capped by the user), as plain data     |
-| `chat:read-unread-summary` | Unread counts and the last N unread messages per chat                                        |
-| `composer:insert-draft`    | Insert text into the composer of the active chat, or replace what is there. Never sends.     |
-| `composer:read-draft`      | Read what the user typed so far in the active chat's composer, as plain text                 |
-| `notifications:show`       | Show a native notification attributed to the extension                                       |
-| `storage:local`            | A persistent private partition and a key-value store API                                     |
-| `secrets:own`              | Read and write the extension's own secrets namespace (Electron `safeStorage`)                |
-| `network:<host>`           | HTTPS requests to that host via the extension session                                        |
-| `local-network`            | HTTP or HTTPS requests to this computer (`localhost`, `127.0.0.1`, `[::1]`), any port        |
-| `assistant:bar`            | Plain-text suggestions in the bar beneath the chat; sent only on the user's click (ADR 0013) |
+| Capability                 | Grants                                                                                            |
+| -------------------------- | ------------------------------------------------------------------------------------------------- |
+| `chat:read-active`         | The active chat's metadata and its last N messages (N capped by the user), as plain data          |
+| `chat:read-unread-summary` | Unread counts and the last N unread messages per chat                                             |
+| `composer:insert-draft`    | Insert text into the composer of the active chat, or replace what is there. Never sends.          |
+| `composer:read-draft`      | Read what the user typed so far in the active chat's composer, as plain text                      |
+| `notifications:show`       | Show a native notification attributed to the extension                                            |
+| `storage:local`            | A persistent private partition and a key-value store API                                          |
+| `secrets:own`              | Read and write the extension's own secrets namespace (Electron `safeStorage`)                     |
+| `network:<host>`           | HTTPS requests to that host via the extension session                                             |
+| `local-network`            | HTTP or HTTPS requests to this computer (`localhost`, `127.0.0.1`, `[::1]`), any port             |
+| `assistant:bar`            | Plain-text suggestions in the bar above the message box; sent only on the user's click (ADR 0013) |
 
 The key-value store (#301) keeps each extension's values as JSON in
 `<userData>/extensions/.storage/<id>.json`, readable by the user alone, with

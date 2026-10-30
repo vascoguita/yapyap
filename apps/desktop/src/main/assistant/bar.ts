@@ -1,5 +1,5 @@
 import type { AssistantOffer, AssistantRequest } from '@yapyap/extension-sdk';
-import type { AssistantBarState } from '../../shared/chrome-api.ts';
+import type { AssistantBarState } from '../../shared/assistant-bar-api.ts';
 
 /** A running extension that may fill the bar for the account on screen. */
 interface BarExtension {
@@ -107,7 +107,7 @@ function refreshBar(bar: BarContext): void {
 }
 
 /**
- * The assistant bar beneath the open chat (ADR 0013). It shows what the
+ * The assistant bar above the open chat's message box (ADR 0013). It shows what the
  * first running extension holding `assistant:bar` offers, as plain text, and
  * acts only on the user's clicks: it asks the extension, puts a suggestion in
  * the message box, or sends one, after checking the chat it was made for is

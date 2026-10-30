@@ -69,8 +69,16 @@ and an ESLint restriction forbids constructing `BrowserWindow` or
   WhatsApp's own origin, on the account's session, reads at most 2 MB, and
   keeps only a 64-pixel copy in memory for the sidebar. Nothing stores or
   logs the photo or its address.
-- WhatsApp's views have one preload, for notifications only, whose design is
-  in ADR 0011.
+- WhatsApp's views have one preload, for notifications, whose design is in
+  ADR 0011, and screen shares. It also gives the assistant bar's five
+  actions to the adapter's isolated world only, never to WhatsApp's own,
+  and the main process hears them only from the active account's page
+  (ADR 0013).
+- The assistant bar is the one piece of YapYap's interface inside WhatsApp's
+  page (ADR 0013, C35 in ADR 0008). The adapter renders it from its isolated
+  world into a closed shadow root right above the message box, writes
+  extension text only as text, acts only on trusted events, and puts it back
+  on a timer while it shows, never with observers.
 
 ### Navigation, windows and permissions
 

@@ -140,7 +140,7 @@ export interface AssistantOffer {
 }
 
 /**
- * YapYap's assistant bar beneath the open chat (ADR 0013). Needs
+ * YapYap's assistant bar above the open chat's message box (ADR 0013). Needs
  * `assistant:bar`. The extension only offers text: YapYap puts a suggestion in
  * the message box, or sends it, only when the user clicks.
  */
@@ -214,7 +214,7 @@ export interface ExtensionHost {
   readonly commands: CommandsApi;
   /** The extension's own settings. */
   readonly settings: SettingsApi;
-  /** YapYap's assistant bar beneath the open chat. */
+  /** YapYap's assistant bar above the open chat's message box. */
   readonly assistant: AssistantApi;
 }
 

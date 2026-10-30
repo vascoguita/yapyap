@@ -4,7 +4,8 @@ import { accountAvatars, type AccountAvatars, type AvatarPage } from './accounts
 import type { AccountSummary } from '../shared/chrome-api.ts';
 import type { AccountMenu, ChromeFeature, WhatsAppContents } from './chrome/feature.ts';
 import type { SidebarPort } from './chrome/sidebar.ts';
-import type { AssistantBarPort } from './assistant/bar-chrome.ts';
+import { listenToAssistantBar, type BarIpc } from './assistant/bar-ipc.ts';
+import { inPageAssistantBar } from './assistant/bar-page.ts';
 import { watchConnectivity } from './connectivity/connectivity.ts';
 import { PRODUCT_NAME } from './identity.ts';
 import type {
@@ -235,8 +236,6 @@ export interface StartDependencies<Window extends WindowPort> {
   readonly createWindow: (options: WindowOptions) => Window;
   /** The account sidebar, docked in the main window. */
   readonly createSidebar: (window: Window, renderer: RendererOptions) => SidebarPort;
-  /** The assistant bar beneath the accounts' WhatsApp (ADR 0013). */
-  readonly createAssistantBar: (window: Window, renderer: RendererOptions) => AssistantBarPort;
   /** An account's views in the window, hidden until it is the active one. */
   readonly createAccountHost: (window: Window, renderer: RendererOptions) => AccountHostPort;
   /** Nothing loads in the default session, but it is guarded all the same. */
@@ -253,7 +252,7 @@ export interface StartDependencies<Window extends WindowPort> {
   /** The user's own CSS and JavaScript, applied to every account's WhatsApp (#72). */
   readonly customCode: Pick<CustomCodeController, 'attach'>;
   readonly notifications: Pick<NotifierDependencies, 'create' | 'isSupported'>;
-  readonly ipc: NotificationIpc & ShareIpc;
+  readonly ipc: NotificationIpc & ShareIpc & BarIpc;
   /** `process.versions.chrome`: the identity must match the bundled engine. */
   readonly chromeVersion: string;
   readonly platform: string;
@@ -731,7 +730,6 @@ function accountIndicators<Window extends WindowPort>(
   });
   const tray = accountsTray(wiring, running, visibility, { shares, privacy });
   const sidebar = chrome.attachSidebar((renderer) => deps.createSidebar(window, renderer));
-  chrome.attachAssistantBar((renderer) => deps.createAssistantBar(window, renderer));
   const panel = chrome.attachQuickPanel(panelOwner(window, visibility));
   const refresh = (): void => {
     tray.refresh();
@@ -828,6 +826,31 @@ function openAccounts<Window extends WindowPort>(
   deps.settings.onChange(changed);
   reconnectWhenOnline(deps, signals, running);
   return running;
+}
+
+type BarWiring<Window extends WindowPort> = Pick<
+  OpeningWiring<Window>,
+  'deps' | 'chrome' | 'window' | 'security' | 'origin'
+>;
+
+/** The assistant bar in the active account's WhatsApp, heard from there alone (ADR 0013). */
+function attachAssistantBar<Window extends WindowPort>(
+  { deps, chrome, window, security, origin }: BarWiring<Window>,
+  running: RunningAccounts<OpenedAccount>,
+): void {
+  const activePage = (): AccountContents => running.active().page.contents;
+  chrome.attachAssistantBar((bar) => {
+    listenToAssistantBar(deps.ipc, bar, {
+      views: security.views,
+      origin,
+      activePage,
+      warn: deps.warn,
+    });
+    return inPageAssistantBar(bar.state, {
+      activePage,
+      onScreen: () => window.isVisible() && window.isFocused(),
+    });
+  });
 }
 
 /** Marks the title while offline, and reloads every account when the network returns. */
@@ -933,6 +956,7 @@ async function openWindow<Window extends WindowPort>(
     notifiers: listenToNotifications(deps, origin),
     spelling: followSpellingSetting(deps.settings, deps.systemLanguages),
   });
+  attachAssistantBar({ deps, chrome, window, security, origin }, running);
   instances.attach(
     window,
     wireMainWindow(deps, chrome, window, running, origin),
