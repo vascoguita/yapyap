@@ -21,13 +21,9 @@ export function createSecureWindow(
   return new BrowserWindow({ ...options, webPreferences: rendererPreferences(renderer) });
 }
 
-/**
- * The strips the sidebar takes on the window's left edge and the assistant
- * bar along its bottom (ADR 0013), which the accounts' views leave free.
- */
+/** The strip the sidebar takes on the window's left edge, which every other view leaves free. */
 interface Layout {
   left: number;
-  bottom: number;
   readonly refits: Set<() => void>;
 }
 
@@ -38,7 +34,7 @@ function layoutOf(window: BrowserWindow): Layout {
   if (existing !== undefined) {
     return existing;
   }
-  const layout: Layout = { left: 0, bottom: 0, refits: new Set() };
+  const layout: Layout = { left: 0, refits: new Set() };
   layouts.set(window, layout);
   return layout;
 }
@@ -52,12 +48,7 @@ function fill(window: BrowserWindow, view: WebContentsView): () => void {
   const fit = (): void => {
     const [width = 0, height = 0] = window.getContentSize();
     const left = Math.min(layout.left, width);
-    view.setBounds({
-      x: left,
-      y: 0,
-      width: width - left,
-      height: Math.max(height - layout.bottom, 0),
-    });
+    view.setBounds({ x: left, y: 0, width: width - left, height });
   };
   window.contentView.addChildView(view);
   fit();
@@ -103,50 +94,6 @@ export function createSidebarView(window: BrowserWindow, renderer: RendererOptio
         }
       }
       fit();
-      for (const refit of layout.refits) {
-        refit();
-      }
-    },
-  };
-}
-
-/** The assistant bar: a chrome page docked beneath the accounts' WhatsApp (ADR 0013). */
-export interface AssistantBarView {
-  readonly webContents: WebContents;
-  /** Zero takes the bar away and gives the accounts the whole height. */
-  readonly setHeight: (height: number) => void;
-}
-
-export function createAssistantBarView(
-  window: BrowserWindow,
-  renderer: RendererOptions,
-): AssistantBarView {
-  const view = new WebContentsView({ webPreferences: rendererPreferences(renderer) });
-  const layout = layoutOf(window);
-  let docked = false;
-  const fit = (): void => {
-    const [width = 0, height = 0] = window.getContentSize();
-    const left = Math.min(layout.left, width);
-    const top = Math.max(height - layout.bottom, 0);
-    view.setBounds({ x: left, y: top, width: width - left, height: height - top });
-  };
-  window.on('resize', fit);
-  layout.refits.add(fit);
-  window.once('closed', () => {
-    view.webContents.close();
-  });
-  return {
-    webContents: view.webContents,
-    setHeight: (height) => {
-      layout.bottom = height;
-      if (docked !== height > 0) {
-        docked = height > 0;
-        if (docked) {
-          window.contentView.addChildView(view);
-        } else {
-          window.contentView.removeChildView(view);
-        }
-      }
       for (const refit of layout.refits) {
         refit();
       }

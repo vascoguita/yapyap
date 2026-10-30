@@ -480,10 +480,13 @@ describe('createExtensionRuntime', () => {
     expect(t.runtime.assistants()).toEqual([]);
     t.deps.activeAccount.mockReturnValue('acct-1');
     expect(t.runtime.assistants()).toEqual([{ id: 'org.example.hello', name: 'Hello' }]);
-    // Before its page has loaded, the extension has no port to take the request.
-    expect(t.runtime.askAssistant('org.example.hello', { type: 'suggest' })).toBe(false);
+    // Before its page has loaded, a request waits for its port, then goes through.
+    expect(t.runtime.askAssistant('org.example.hello', { type: 'confirm' })).toBe(true);
     const host = t.only(t.hosts);
     host.load();
+    expect(host.ports[0]?.postMessage).toHaveBeenCalledExactlyOnceWith({
+      assistant: { type: 'confirm' },
+    });
     expect(t.runtime.askAssistant('org.example.hello', { type: 'suggest' })).toBe(true);
     expect(host.ports[0]?.postMessage).toHaveBeenLastCalledWith({ assistant: { type: 'suggest' } });
     expect(t.runtime.askAssistant('org.example.other', { type: 'suggest' })).toBe(false);

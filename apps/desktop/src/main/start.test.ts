@@ -14,6 +14,8 @@ import type { ProxyLoginAnswer } from '../shared/chrome-api.ts';
 import { WHATSAPP_ORIGIN } from './whatsapp-origin.ts';
 import type { WindowOptions } from './windows.ts';
 import type { ExtensionAction } from './extensions/runtime.ts';
+import type { AssistantBar } from './assistant/bar.ts';
+import type { AssistantBarView } from './assistant/bar-sources.ts';
 
 type Listener = (...args: never[]) => void;
 
@@ -149,8 +151,25 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     extensionActions: vi.fn<() => readonly ExtensionAction[]>(() => []),
     runExtensionCommand: vi.fn(() => true),
     installExtensionFromLink: vi.fn(),
-    attachAssistantBar: vi.fn((create: (renderer: object) => unknown) => {
-      create({ preload: '/app/preload/chrome.cjs' });
+    assistantBar: {
+      state: vi.fn(() => ({
+        extension: 'Assistant',
+        status: '',
+        suggestions: ['On my way'],
+        confirm: undefined,
+        working: false,
+      })),
+      refresh: vi.fn(),
+      offer: vi.fn(),
+      suggest: vi.fn(() => Promise.resolve()),
+      prompt: vi.fn(() => Promise.resolve()),
+      confirm: vi.fn(),
+      use: vi.fn(() => Promise.resolve()),
+      send: vi.fn(() => Promise.resolve()),
+    } satisfies AssistantBar,
+    assistantBarView: undefined as AssistantBarView | undefined,
+    attachAssistantBar: vi.fn((create: (bar: AssistantBar) => AssistantBarView) => {
+      runtime.assistantBarView = create(runtime.assistantBar);
     }),
     recorder: {
       gate: { recording: () => false, callFrame: () => undefined },
@@ -160,10 +179,6 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
   const createSidebar = vi.fn(() => ({
     webContents: { loadURL: vi.fn(() => Promise.resolve()), send: vi.fn() },
     setWidth: vi.fn(),
-  }));
-  const createAssistantBar = vi.fn(() => ({
-    webContents: { loadURL: vi.fn(() => Promise.resolve()), send: vi.fn() },
-    setHeight: vi.fn(),
   }));
   // The first account's page is `web`, so single-account tests read it directly.
   const hosts: {
@@ -231,7 +246,6 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     createWindow,
     createAccountHost,
     createSidebar,
-    createAssistantBar,
     hosts,
     saveAccounts: vi.fn(),
     whatsAppPreload: '/out/preload/whatsapp.cjs',
@@ -865,6 +879,42 @@ describe('startApp', () => {
     f.web.fire('page-title-updated', { preventDefault: vi.fn() }, '(3) WhatsApp');
     expect(f.badge.setBadgeCount).toHaveBeenCalledWith(3);
     expect(f.window.setTitle).toHaveBeenLastCalledWith('(3) WhatsApp');
+  });
+
+  it('shows the assistant bar in the active account’s page, and hears it from there alone', async () => {
+    const f = fakes();
+    await startApp(f);
+    const view = f.runtime.assistantBarView;
+    f.web.contents.executeJavaScriptInIsolatedWorld.mockClear();
+    view?.show(true);
+    expect(f.web.contents.executeJavaScriptInIsolatedWorld).toHaveBeenCalledWith(1000, [
+      { code: expect.stringContaining('"visible":true') as unknown },
+    ]);
+    view?.show(false);
+    const fromPage = { sender: f.web.contents, senderFrame: { url: `${WHATSAPP_ORIGIN}/` } };
+    f.ipcListeners.get('whatsapp:assistant-bar-send')?.(fromPage, 1);
+    await vi.waitFor(() => {
+      expect(f.runtime.assistantBar.send).toHaveBeenCalledExactlyOnceWith(1);
+    });
+    f.ipcListeners.get('whatsapp:assistant-bar-send')?.({ ...fromPage, sender: {} }, 2);
+    expect(f.warn).toHaveBeenCalledWith('Ignored an assistant bar message from outside the bar.');
+    expect(f.runtime.assistantBar.send).toHaveBeenCalledOnce();
+  });
+
+  it('puts the assistant bar back only while the window is on screen', async () => {
+    vi.useFakeTimers();
+    const f = fakes();
+    await startApp(f);
+    f.runtime.assistantBarView?.show(true);
+    f.web.contents.executeJavaScriptInIsolatedWorld.mockClear();
+    f.window.isFocused.mockReturnValue(false);
+    vi.advanceTimersByTime(1000);
+    expect(f.web.contents.executeJavaScriptInIsolatedWorld).not.toHaveBeenCalled();
+    f.window.isFocused.mockReturnValue(true);
+    vi.advanceTimersByTime(1000);
+    expect(f.web.contents.executeJavaScriptInIsolatedWorld).toHaveBeenCalledOnce();
+    f.runtime.assistantBarView?.show(false);
+    vi.useRealTimers();
   });
 
   it('shows notifications without an account name when there is one account', async () => {

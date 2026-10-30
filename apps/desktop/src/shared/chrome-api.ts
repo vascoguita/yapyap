@@ -59,20 +59,6 @@ export interface PickerOffer {
   readonly offerAudio: boolean;
 }
 
-/** What the assistant bar beneath the open chat shows (ADR 0013). */
-export interface AssistantBarState {
-  /** The name of the extension whose suggestions these are. */
-  readonly extension: string;
-  /** A short line from YapYap or the extension, such as "Thinking…"; empty for none. */
-  readonly status: string;
-  /** Plain text, never markup. */
-  readonly suggestions: readonly string[];
-  /** The label of a button that answers the extension's question, if it asked one. */
-  readonly confirm: string | undefined;
-  /** Waiting for the extension. */
-  readonly working: boolean;
-}
-
 /** An account as the sidebar shows it. */
 export interface SidebarAccount {
   readonly id: string;
@@ -267,17 +253,6 @@ export interface ChromeApi {
     readonly stopSharing: (id: string) => Promise<void>;
     /** YapYap sends the new state whenever it changes; the page never asks what to listen to. */
     readonly onState: (listener: (state: SidebarState) => void) => void;
-  };
-  readonly assistantBar: {
-    readonly state: () => Promise<AssistantBarState>;
-    readonly suggest: () => Promise<void>;
-    readonly prompt: (text: string) => Promise<void>;
-    readonly confirm: () => Promise<void>;
-    /** Puts the suggestion in the message box. */
-    readonly use: (index: number) => Promise<void>;
-    /** Puts the suggestion in the message box and sends it, on this click only. */
-    readonly send: (index: number) => Promise<void>;
-    readonly onState: (listener: (state: AssistantBarState) => void) => void;
   };
   readonly quickPanel: {
     /** Switches to the account and brings YapYap's window back. */
@@ -514,12 +489,6 @@ export const CHROME_CHANNELS = {
   sidebarSwitch: 'sidebar:switch',
   sidebarSetCompact: 'sidebar:set-compact',
   sidebarStopSharing: 'sidebar:stop-sharing',
-  assistantBarState: 'assistant-bar:state',
-  assistantBarSuggest: 'assistant-bar:suggest',
-  assistantBarPrompt: 'assistant-bar:prompt',
-  assistantBarConfirm: 'assistant-bar:confirm',
-  assistantBarUse: 'assistant-bar:use',
-  assistantBarSend: 'assistant-bar:send',
   reportDiagnostics: 'report:diagnostics',
   reportOpen: 'report:open',
   recordPromptState: 'record-prompt:state',
@@ -554,9 +523,6 @@ export const CHROME_CHANNELS = {
 
 /** The one channel YapYap sends on, from the main process to the sidebar. */
 export const SIDEBAR_STATE_EVENT = 'sidebar:state-changed';
-
-/** YapYap sends the assistant bar its new state on this channel (ADR 0013). */
-export const ASSISTANT_BAR_STATE_EVENT = 'assistant-bar:state-changed';
 
 /** Tells an open Extensions window that the installed extensions changed (#342). */
 export const EXTENSIONS_CHANGED_EVENT = 'extensions:changed';

@@ -109,7 +109,7 @@ async function handle(
 }
 
 /**
- * Fills YapYap's assistant bar beneath the chat (ADR 0013): suggested
+ * Fills YapYap's assistant bar above the message box (ADR 0013): suggested
  * replies, or the message the user described, for the user to put in the
  * message box or send with a click. Requests run one at a time, in order.
  */

@@ -1281,6 +1281,19 @@ not edit the same lines.
   `canonical.ts` are false positives: signatures sort keys by UTF-16 code
   unit, which a test now pins with an astral character.
 
+- Assistant bar in the chat (#466): the AI assistant bar now sits inside
+  WhatsApp's page, right above the message box, instead of in a view beneath
+  WhatsApp, so the conversation moves up to make room. The adapter renders it
+  in its isolated world, in a closed shadow root, writing extension text only
+  as text; its buttons act only on trusted events, and the WhatsApp preload
+  gives the bar's five actions to that world alone. The main process hears
+  them only from the active account's page, and puts the bar back about once
+  a second while it shows, since WhatsApp drops it when it redraws a chat and
+  the adapter adds no observers. Landmarks v6 add the message box's footer
+  (ADR 0013 amendment, C35 in ADR 0008). The bar shows as soon as its
+  extension runs, so a request made before the extension's page has its
+  port, or before the page listens, waits for it instead of being lost.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).

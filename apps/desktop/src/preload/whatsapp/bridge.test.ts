@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createNotificationBridge, createShareBridge } from './bridge.ts';
+import { createAssistantBarBridge, createNotificationBridge, createShareBridge } from './bridge.ts';
 
 describe('createNotificationBridge', () => {
   it('sends each operation on its own fixed channel', () => {
@@ -53,5 +53,25 @@ describe('createShareBridge', () => {
     deliver?.({}, '1');
     deliver?.({}, 1);
     expect(listener.mock.calls).toEqual([['1']]);
+  });
+});
+
+describe('createAssistantBarBridge', () => {
+  it('sends each of the bar’s actions on its own fixed channel', () => {
+    const ipc = { send: vi.fn() };
+    const bridge = createAssistantBarBridge(ipc);
+    bridge.suggest();
+    bridge.prompt('Say hi');
+    bridge.confirm();
+    bridge.use(1);
+    bridge.send(2);
+    expect(ipc.send.mock.calls).toEqual([
+      ['whatsapp:assistant-bar-suggest'],
+      ['whatsapp:assistant-bar-prompt', 'Say hi'],
+      ['whatsapp:assistant-bar-confirm'],
+      ['whatsapp:assistant-bar-use', 1],
+      ['whatsapp:assistant-bar-send', 2],
+    ]);
+    expect(Object.keys(bridge)).toEqual(['suggest', 'prompt', 'confirm', 'use', 'send']);
   });
 });

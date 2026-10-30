@@ -145,6 +145,45 @@ describe('bootExtension', () => {
     });
   });
 
+  it('keeps the bar’s requests that come before the extension listens, and hands them over once it does', async () => {
+    const p = page();
+    const asked: unknown[] = [];
+    let listen = (): void => undefined;
+    const booted = bootExtension(
+      p.scope,
+      () =>
+        Promise.resolve({
+          default: {
+            activate: (api: ExtensionHost) =>
+              new Promise<void>((resolve) => {
+                listen = () => {
+                  api.assistant.onRequest((request) => {
+                    if (request.type === 'confirm') {
+                      throw new Error('bug');
+                    }
+                    asked.push(request);
+                  });
+                  resolve();
+                };
+              }),
+          },
+        }),
+      '/main.js',
+      'yapyap:extension-port',
+      helpers,
+    );
+    p.deliver('yapyap:extension-port');
+    p.reply({ assistant: { type: 'confirm' } });
+    p.reply({ assistant: { type: 'suggest' } });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(asked).toEqual([]);
+    listen();
+    await booted;
+    await vi.waitFor(() => {
+      expect(asked).toEqual([{ type: 'suggest' }]);
+    });
+  });
+
   it('ignores assistant requests when the extension listens for none', async () => {
     const p = page();
     await bootExtension(
@@ -173,7 +212,7 @@ describe('bootExtension', () => {
 describe('hostApi', () => {
   it('turns every SDK method into one call, and keeps command handlers by ID', async () => {
     const call = vi.fn(() => Promise.resolve(undefined as never));
-    const handlers: HostHandlers = { commands: new Map() };
+    const handlers: HostHandlers = { commands: new Map(), early: [] };
     const api = hostApi(call, handlers, ownApi);
     await api.chat.readActive();
     await api.chat.readUnreadSummary();

@@ -5,7 +5,9 @@ import { join } from 'node:path';
 import { signedArchive, testKey, testManifest, zipArchive } from '../test/extensions.ts';
 import { closeApp, expect, launchApp, test } from './fixtures.ts';
 import {
+  assistantBarControls,
   chromePage,
+  clickInBar,
   clickMenu,
   installExtension,
   extensionPage,
@@ -729,16 +731,20 @@ test('shows an extension installed while the Extensions window is open', async (
   await expect(extensions.getByRole('button', { name: 'Remove org.example.hello' })).toBeVisible();
 });
 
-/** Offers the same suggestion for every request the bar makes. */
+/** Offers a suggestion for every request the bar makes: what the user asked for, or a stock one. */
 const SUGGESTER = `
 export default {
   activate(host) {
-    host.assistant.onRequest(() => host.assistant.offer({ suggestions: ['On my way!'] }));
+    host.assistant.onRequest((request) =>
+      host.assistant.offer({
+        suggestions: [request.type === 'prompt' ? 'You asked: ' + request.text : 'On my way!'],
+      }),
+    );
   },
 };
 `;
 
-test('sends an extension’s suggestion from the bar beneath the chat only on the user’s click', async ({
+test('sends an extension’s suggestion from the bar above the message box only on the user’s click', async ({
   app,
   profile,
   window,
@@ -750,14 +756,30 @@ test('sends an extension’s suggestion from the bar beneath the chat only on th
     testManifest({ capabilities: ['assistant:bar'], network: { hosts: [] } }),
     SUGGESTER,
   );
-  const bar = await chromePage(app, '/assistant-bar.html');
-  await bar.getByRole('button', { name: 'Suggest replies' }).click();
-  const suggestion = bar.getByRole('button', { name: 'On my way!' });
-  await expect(suggestion).toBeVisible();
+  await clickInBar(app, window, 'Suggest replies');
+  await expect
+    .poll(async () => (await assistantBarControls(app))?.map(({ name }) => name))
+    .toEqual(['Suggest replies', 'On my way!', 'Send this suggestion now', 'Write a message']);
+  // The bar sits right above the message box, and WhatsApp cannot read what it shows.
+  const page = await window.evaluate(() => {
+    const host = document.querySelector('#main footer')?.previousElementSibling;
+    return { shadow: host?.shadowRoot, text: document.body.innerText };
+  });
+  expect(page.shadow).toBeNull();
+  expect(page.text).not.toContain('On my way!');
   await expect(window.getByTestId('sent')).toHaveCount(0);
-  await suggestion.click();
+  await clickInBar(app, window, 'On my way!');
   await expect(window.getByTestId('composer')).toHaveText('On my way!');
-  await bar.getByRole('button', { name: 'Send this suggestion now' }).click();
+  await clickInBar(app, window, 'Send this suggestion now');
   await expect(window.getByTestId('sent')).toHaveText('On my way!');
   await expect(window.getByTestId('composer')).toHaveText('');
+  // Typing in the bar's field stays there, and Enter asks the extension.
+  await clickInBar(app, window, 'Write a message');
+  await window.keyboard.type('say I am late');
+  await window.keyboard.press('Enter');
+  await expect
+    .poll(async () => (await assistantBarControls(app))?.map(({ name }) => name))
+    .toContain('You asked: say I am late');
+  await expect(window.getByTestId('composer')).toHaveText('');
+  await expect(window.getByTestId('sent')).toHaveCount(1);
 });

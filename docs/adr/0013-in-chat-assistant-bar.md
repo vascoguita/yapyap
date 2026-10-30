@@ -19,7 +19,8 @@ still should.
 
 ## Decision
 
-1. **YapYap draws the bar, not the extension.** The bar is a chrome view
+1. **YapYap draws the bar, not the extension.** (Moved into WhatsApp's
+   page on 2026-10-30; see the amendments.) The bar is a chrome view
    (`app://chrome/assistant-bar.html`, ADR 0001) that YapYap lays out in the
    main window directly beneath the active account's WhatsApp view, which
    it shortens by the bar's height. Nothing is injected into WhatsApp's
@@ -59,7 +60,8 @@ still should.
 - ADR 0004 gains the `assistant:bar` capability and the rule that only
   YapYap's own interface sends a message, after a click.
 - ADR 0001 gains the bar as a chrome view in the main window, with the
-  same CSP, preload and sender checks as the sidebar.
+  same CSP, preload and sender checks as the sidebar (since 2026-10-30,
+  the bar in WhatsApp's page and its bridge in the adapter's world).
 - The panel stays for setup (provider, key, model) and for longer work,
   such as summaries.
 - The bar is a second place where extension text appears in YapYap's own
@@ -76,3 +78,40 @@ still should.
   messages first leave. The **Show what is sent first** setting is not
   built: the bar asks once per chat, and the assistant's panel keeps the
   full preview.
+- 2026-10-30 (#466, the maintainer's decision): the bar moves into
+  WhatsApp's page, directly above the open chat's message box, so it reads
+  as part of the chat and the conversation moves up to make room instead of
+  WhatsApp's whole view getting shorter. This reverses decision 1's
+  "nothing is injected into WhatsApp's page" for the bar alone; the
+  maintainer chose it over a floating overlay, knowing WhatsApp's layout
+  changes can break it (C35 in ADR 0008). What the bar shows and does, its
+  state, and the main process's logic are unchanged:
+  - The adapter renders it, in its isolated world (`ADAPTER_WORLD_ID`), as
+    source text that gets the state and YapYap's labels as JSON. It keeps
+    one element right before the message box's footer (a new `LANDMARKS`
+    entry), puts it back when WhatsApp redraws the chat and drops it, and
+    removes it when the bar hides or no chat is open. It reports only
+    whether the bar is on the page.
+  - The bar lives in a closed shadow root with its own small stylesheet, so
+    WhatsApp's scripts cannot read the suggestions and its styles cannot
+    restyle them. WhatsApp can see that an element is there, and could
+    remove or cover it, but not read what it says. Extension text is
+    written only with `textContent`, never as markup.
+  - The bar's buttons and its **Write a message** field act only on events
+    whose `isTrusted` is true, so a page script cannot click them, and
+    keyboard, input and clipboard events stop at the shadow root, so
+    WhatsApp's own shortcuts do not take what the user types there.
+  - The WhatsApp preload exposes the bar's five actions (suggest, prompt,
+    confirm, use, send) only in the adapter's isolated world, with
+    `contextBridge.exposeInIsolatedWorld`, never in WhatsApp's own. Each
+    sends a fixed channel. The main process acts on it only when it comes
+    from the active account's WhatsApp view, on WhatsApp's origin, with an
+    index from 0 to 4 or a non-blank request of at most 2,000 characters.
+  - The adapter still adds no observers to WhatsApp's page. While the bar
+    shows and the main window is visible and focused, the main process
+    renders it again about once a second, and at once when its state or
+    the account on screen changes; a render that finds the bar in place
+    with the same content changes nothing. The page of an account no
+    longer on screen loses its bar.
+  - The chrome view, its page and the space the main window kept for it
+    are gone.

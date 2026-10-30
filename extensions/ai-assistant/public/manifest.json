@@ -2,7 +2,7 @@
   "id": "org.guita.yapyap.ai-assistant",
   "name": "AI assistant",
   "version": "0.1.0",
-  "description": "Suggests replies beneath the chat, writes the message you describe, and rewrites your drafts, with the AI model you choose and your own key. Nothing is sent without your click.",
+  "description": "Suggests replies right above the message box, writes the message you describe, and rewrites your drafts, with the AI model you choose and your own key. Nothing is sent without your click.",
   "author": {
     "name": "YapYap",
     "url": "https://yapyap.guita.org"

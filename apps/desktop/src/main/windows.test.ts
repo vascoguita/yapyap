@@ -22,8 +22,7 @@ vi.mock('electron', () => ({
   },
 }));
 
-const { createAccountHost, createAssistantBarView, createSecureWindow, createSidebarView } =
-  await import('./windows.ts');
+const { createAccountHost, createSecureWindow, createSidebarView } = await import('./windows.ts');
 
 describe('createSecureWindow', () => {
   beforeEach(() => {
@@ -115,33 +114,6 @@ describe('createAccountHost', () => {
     f.window.getContentSize.mockReturnValueOnce([]);
     sidebar.setWidth(10);
     expect(bar.setBounds).toHaveBeenLastCalledWith({ x: 0, y: 0, width: 10, height: 0 });
-    f.close();
-    expect(bar.webContents.close).toHaveBeenCalledOnce();
-  });
-
-  it('docks the assistant bar beneath the account, beside the sidebar, and takes it away', () => {
-    const f = fakeWindow();
-    const host = createAccountHost(f.window as never, {});
-    host.show();
-    const sidebar = createSidebarView(f.window as never, { preload: '/p.cjs' });
-    const assistant = createAssistantBarView(f.window as never, { preload: '/p.cjs' });
-    sidebar.setWidth(220);
-    assistant.setHeight(112);
-    assistant.setHeight(112);
-    const [page, side, bar] = f.children;
-    if (page === undefined || side === undefined || bar === undefined) {
-      throw new Error('All three views should be in the window.');
-    }
-    expect(bar.webContents).toBe(assistant.webContents);
-    expect(page.setBounds).toHaveBeenLastCalledWith({ x: 220, y: 0, width: 580, height: 488 });
-    expect(bar.setBounds).toHaveBeenLastCalledWith({ x: 220, y: 488, width: 580, height: 112 });
-    expect(side.setBounds).toHaveBeenLastCalledWith({ x: 0, y: 0, width: 220, height: 600 });
-    f.resize(100, 80);
-    expect(page.setBounds).toHaveBeenLastCalledWith({ x: 100, y: 0, width: 0, height: 0 });
-    expect(bar.setBounds).toHaveBeenLastCalledWith({ x: 100, y: 0, width: 0, height: 80 });
-    f.window.getContentSize.mockReturnValueOnce([]);
-    assistant.setHeight(0);
-    expect(f.children).toEqual([page, side]);
     f.close();
     expect(bar.webContents.close).toHaveBeenCalledOnce();
   });

@@ -37,7 +37,6 @@ export default defineConfig({
           welcome: resolve(import.meta.dirname, 'src/renderer/welcome.html'),
           report: resolve(import.meta.dirname, 'src/renderer/report.html'),
           sidebar: resolve(import.meta.dirname, 'src/renderer/sidebar.html'),
-          'assistant-bar': resolve(import.meta.dirname, 'src/renderer/assistant-bar.html'),
           extensions: resolve(import.meta.dirname, 'src/renderer/extensions.html'),
           'extension-consent': resolve(import.meta.dirname, 'src/renderer/extension-consent.html'),
           shortcuts: resolve(import.meta.dirname, 'src/renderer/shortcuts.html'),

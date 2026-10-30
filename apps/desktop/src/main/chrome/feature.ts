@@ -94,7 +94,6 @@ import {
   type ChromeWindowDependencies,
 } from './window-opener.ts';
 import { en } from '../../shared/messages/en.ts';
-import { attachAssistantBar, type AssistantBarPort } from '../assistant/bar-chrome.ts';
 import { PRODUCT_NAME } from '../identity.ts';
 
 /** In memory only: app chrome never shares storage with WhatsApp or keeps any. */
@@ -329,8 +328,8 @@ interface ChromeRuntime {
   readonly attachSidebar: (
     create: (renderer: RendererOptions) => SidebarPort,
   ) => (source: SidebarSource) => void;
-  /** Gives the assistant bar its view beneath the accounts (ADR 0013). */
-  readonly attachAssistantBar: (create: (renderer: RendererOptions) => AssistantBarPort) => void;
+  /** Gives the assistant bar its view in the active account's WhatsApp (ADR 0013). */
+  readonly attachAssistantBar: ExtensionChrome['attachAssistantBar'];
 }
 
 /** The accounts as the menu and the Accounts window need them. */
@@ -878,25 +877,18 @@ function standbyHandlers(
 const unavailableOn = (wayland: boolean): Readonly<Record<string, string>> =>
   wayland ? { 'general.quickPanelPlace': en.settings.waylandPlacement } : {};
 
-/** The assistant bar's view, which the extensions fill (ADR 0013). */
-function assistantBarEntries(
-  extensions: Pick<ExtensionChrome, 'attachAssistantBar'>,
-  renderer: RendererOptions,
-  views: ViewRegistry,
-  warn: (message: string) => void,
-): Pick<ChromeRuntime, 'attachAssistantBar'> {
-  return {
-    attachAssistantBar: (create) => {
-      extensions.attachAssistantBar(attachAssistantBar(create(renderer), views, warn));
-    },
-  };
-}
-
 /** What the menu and links need from the running extensions. */
 function extensionEntries(
-  extensions: Pick<ExtensionChrome, 'actions' | 'runCommand' | 'installFromLink'>,
-): Pick<ChromeRuntime, 'extensionActions' | 'runExtensionCommand' | 'installExtensionFromLink'> {
+  extensions: Pick<
+    ExtensionChrome,
+    'actions' | 'runCommand' | 'installFromLink' | 'attachAssistantBar'
+  >,
+): Pick<
+  ChromeRuntime,
+  'extensionActions' | 'runExtensionCommand' | 'installExtensionFromLink' | 'attachAssistantBar'
+> {
   return {
+    attachAssistantBar: extensions.attachAssistantBar,
     extensionActions: extensions.actions,
     runExtensionCommand: extensions.runCommand,
     installExtensionFromLink: extensions.installFromLink,
@@ -938,7 +930,6 @@ function startChrome(
     askProxyLogin: proxyLogin.ask,
     attachQuickPanel: quickPanel.attach,
     attachSidebar: (create) => attachSidebar(create(renderer), views, sidebar, warn),
-    ...assistantBarEntries(extensions, renderer, views, warn),
     ...extensionEntries(extensions),
     recorder: recording.recorder,
   };

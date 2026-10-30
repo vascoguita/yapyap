@@ -150,3 +150,71 @@ export async function builtExtension(folder: string, id: string): Promise<BuiltE
   const { 'main.js': main = '', ...others } = files;
   return { manifest: { ...manifest, id }, main, others };
 }
+
+/** A control of the assistant bar, and where on the page the user would click it. */
+interface BarControl {
+  readonly name: string;
+  readonly disabled: boolean;
+  readonly x: number;
+  readonly y: number;
+}
+
+interface KeptBar {
+  readonly host: HTMLElement;
+  readonly parts: { readonly input: HTMLElement };
+}
+
+/**
+ * Runs in the adapter's isolated world, where YapYap keeps the bar: its
+ * shadow root is closed, so nothing else, Playwright included, can look in.
+ */
+function readBarControls(): BarControl[] | null {
+  const kept = (globalThis as { yapyapAssistantBarView?: KeptBar }).yapyapAssistantBarView;
+  if (kept?.host.isConnected !== true) {
+    return null;
+  }
+  kept.host.scrollIntoView({ block: 'center' });
+  const root = kept.parts.input.getRootNode() as ShadowRoot;
+  return [...root.querySelectorAll<HTMLButtonElement | HTMLInputElement>('button, input')]
+    .filter((control) => !control.hidden)
+    .map((control) => {
+      const box = control.getBoundingClientRect();
+      return {
+        name: control.getAttribute('aria-label') ?? control.textContent,
+        disabled: control.disabled,
+        x: box.x + box.width / 2,
+        y: box.y + box.height / 2,
+      };
+    });
+}
+
+/** The assistant bar's controls in the active account's WhatsApp, or null while it is not there. */
+export const assistantBarControls = (app: ElectronApplication): Promise<BarControl[] | null> =>
+  app.evaluate(async ({ webContents }, code) => {
+    const page = webContents
+      .getAllWebContents()
+      .find((candidate) => candidate.getURL().startsWith('http://127.0.0.1'));
+    const controls: unknown = await page?.executeJavaScriptInIsolatedWorld(1000, [{ code }]);
+    return (controls ?? null) as BarControl[] | null;
+  }, `(${readBarControls.toString()})()`);
+
+/**
+ * Clicks a control of the assistant bar as the user would, with the mouse:
+ * the bar ignores clicks that page scripts make up.
+ */
+export async function clickInBar(
+  app: ElectronApplication,
+  page: Page,
+  name: string,
+): Promise<void> {
+  const find = async (): Promise<BarControl | undefined> =>
+    (await assistantBarControls(app))?.find(
+      (control) => control.name === name && !control.disabled,
+    );
+  await expect.poll(find, { message: `the bar’s ${name}` }).toBeDefined();
+  const control = await find();
+  if (control === undefined) {
+    throw new Error(`The bar has no ${name}.`);
+  }
+  await page.mouse.click(control.x, control.y);
+}

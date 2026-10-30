@@ -260,9 +260,13 @@ describe('createExtensionChrome', () => {
       { offerAssistant: (offer: { suggestions: string[] }) => void },
     ];
     services.offerAssistant({ suggestions: ['On my way'] });
-    expect(t.handler('assistant-bar:state').handle({ sender: {} })).toEqual(
-      expect.objectContaining({ extension: '', suggestions: [] }),
-    );
+    const view = { show: vi.fn(), publish: vi.fn() };
+    t.chrome.attachAssistantBar((bar) => {
+      expect(bar.state()).toEqual(expect.objectContaining({ extension: '', suggestions: [] }));
+      return view;
+    });
+    expect(view.show).toHaveBeenLastCalledWith(false);
+    expect(view.publish).not.toHaveBeenCalled();
   });
 
   it('lets the user take a grant back and give it again, for one account or the extension', async () => {

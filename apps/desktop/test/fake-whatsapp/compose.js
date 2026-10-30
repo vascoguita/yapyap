@@ -12,6 +12,8 @@ composer.addEventListener('keydown', (event) => {
   row.dataset.testid = 'sent';
   row.innerHTML = '<span data-testid="tail-out"></span><span data-testid="selectable-text"></span>';
   row.querySelector('[data-testid="selectable-text"]').textContent = text;
-  composer.closest('#main').querySelector('footer').before(row);
+  // After the last message, as WhatsApp keeps its messages apart from the
+  // message box, with the assistant bar between them (#466).
+  [...composer.closest('#main').querySelectorAll(':scope > [role="row"]')].at(-1).after(row);
   composer.textContent = '';
 });
