@@ -1274,6 +1274,10 @@ not edit the same lines.
   saved layout back only when the tray, the Dock or a second launch first
   shows it.
 
+- Faster default model (#463): the AI assistant uses `claude-haiku-5-5`
+  with Claude when no model is set, fast and inexpensive enough for
+  everyday chat replies. A model the user set is kept.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).

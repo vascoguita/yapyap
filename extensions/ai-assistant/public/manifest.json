@@ -38,7 +38,7 @@
         "model": {
           "type": "string",
           "title": "Model",
-          "description": "The model's name, as your provider writes it. Claude uses claude-opus-5-5 when empty.",
+          "description": "The model's name, as your provider writes it. Claude uses claude-haiku-5-5, fast and inexpensive, when empty.",
           "maxLength": 100
         },
         "endpoint": {
