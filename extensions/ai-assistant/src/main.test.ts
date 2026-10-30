@@ -16,6 +16,7 @@ describe('the AI assistant’s hidden page', () => {
     const host = {
       settings: { get: vi.fn(() => Promise.resolve({})) },
       secrets: { get: vi.fn(() => Promise.resolve(undefined)), set: vi.fn(), delete: vi.fn() },
+      storage: { get: vi.fn(() => Promise.resolve(undefined)), set: vi.fn(), delete: vi.fn() },
       assistant: { offer: vi.fn(), onRequest: vi.fn() },
     } as unknown as ExtensionHost;
     extension.activate(host);

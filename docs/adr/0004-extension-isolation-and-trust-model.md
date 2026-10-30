@@ -142,8 +142,9 @@ to `<userData>/extensions/<id>/<version>/` only after the signature verifies.
   Every call either returns a result or a typed error (`invalid`,
   `not-granted`, `rate-limited`, `timeout` or `failed`, with a short
   message that never carries the cause or the parameters). A message
-  without a usable ID gets no reply. The bucket holds 20 calls and refills
-  at 5 per second; a call times out after 10 seconds. Each page load gets a
+  without a usable ID gets no reply. The bucket holds 40 calls and refills
+  at 5 per second (it held 20 until the AI assistant's panel and in-chat
+  bar, which share it, needed more for one action; see C36 in ADR 0008); a call times out after 10 seconds. Each page load gets a
   fresh port.
 
 - **Bootstrap.** The host page loads YapYap's own script from

@@ -301,4 +301,43 @@ describe('assistant.offer', () => {
       expect(accepts('assistant.offer', [offer])).toBe(false);
     }
   });
+
+  it('takes a short choice of at most twenty short options, and nothing else in it', () => {
+    const option = { value: 'claude-haiku-5-5', label: 'Claude Haiku 5.5' };
+    const choice = { label: 'Model', current: 'auto', options: [option] };
+    expect(accepts('assistant.offer', [{ suggestions: [], choice }])).toBe(true);
+    const edges = {
+      ...choice,
+      label: 'x'.repeat(40),
+      current: 'x'.repeat(100),
+      options: Array.from({ length: 20 }, () => ({
+        value: 'v'.repeat(100),
+        label: 'l'.repeat(60),
+      })),
+    };
+    expect(accepts('assistant.offer', [{ suggestions: [], choice: edges }])).toBe(true);
+    for (const wrong of [
+      { ...choice, label: '' },
+      { ...choice, label: 'x'.repeat(41) },
+      { ...choice, current: 'x'.repeat(101) },
+      { ...choice, options: Array.from({ length: 21 }, () => option) },
+      { ...choice, options: [{ ...option, value: '' }] },
+      { ...choice, options: [{ ...option, value: 'v'.repeat(101) }] },
+      { ...choice, options: [{ ...option, label: '' }] },
+      { ...choice, options: [{ ...option, label: 'l'.repeat(61) }] },
+      { ...choice, options: [{ ...option, html: '<b>' }] },
+      { ...choice, setting: 'model' },
+    ]) {
+      expect(accepts('assistant.offer', [{ suggestions: [], choice: wrong }])).toBe(false);
+    }
+  });
+});
+
+describe('deleting', () => {
+  it('needs the name of the secret or stored value to forget', () => {
+    expect(accepts('secrets.delete', ['apiKey'])).toBe(true);
+    expect(accepts('secrets.delete', [])).toBe(false);
+    expect(accepts('storage.delete', ['model'])).toBe(true);
+    expect(accepts('storage.delete', [])).toBe(false);
+  });
 });

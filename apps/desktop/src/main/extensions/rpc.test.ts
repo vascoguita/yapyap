@@ -178,6 +178,6 @@ describe('tokenBucket', () => {
   });
 
   it('has defaults that allow a burst of calls and a steady rate', () => {
-    expect(RPC_OPTIONS).toEqual({ rate: { burst: 20, perSecond: 5 }, timeoutMs: 10_000 });
+    expect(RPC_OPTIONS).toEqual({ rate: { burst: 40, perSecond: 5 }, timeoutMs: 10_000 });
   });
 });

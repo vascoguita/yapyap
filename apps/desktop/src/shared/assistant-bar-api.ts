@@ -1,3 +1,10 @@
+/** A choice the bar shows, such as the model in use (#467): what the user sees of it. */
+interface BarChoice {
+  readonly label: string;
+  readonly current: string;
+  readonly options: readonly { readonly value: string; readonly label: string }[];
+}
+
 /** What the assistant bar above the message box shows (ADR 0013). */
 export interface AssistantBarState {
   /** The name of the extension whose suggestions these are. */
@@ -10,6 +17,8 @@ export interface AssistantBarState {
   readonly confirm: string | undefined;
   /** Waiting for the extension. */
   readonly working: boolean;
+  /** The extension's choice, such as its model, or undefined for none. */
+  readonly choice: BarChoice | undefined;
 }
 
 /**
@@ -25,6 +34,7 @@ export const ASSISTANT_BAR_CHANNELS = {
   confirm: 'whatsapp:assistant-bar-confirm',
   use: 'whatsapp:assistant-bar-use',
   send: 'whatsapp:assistant-bar-send',
+  choose: 'whatsapp:assistant-bar-choose',
 } as const;
 
 /**
@@ -39,4 +49,6 @@ export interface AssistantBarBridge {
   readonly use: (index: number) => void;
   /** Puts the suggestion in the message box and sends it, on this click only. */
   readonly send: (index: number) => void;
+  /** Picks an option of the extension's choice, such as another model. */
+  readonly choose: (value: string) => void;
 }

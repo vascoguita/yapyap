@@ -44,6 +44,51 @@ export const claudeAnswer = (text: string): string =>
     .map((event) => `event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`)
     .join('');
 
+/** Claude's models, newest first, as Anthropic lists them. */
+const CLAUDE_MODELS = JSON.stringify({
+  data: [
+    {
+      type: 'model',
+      id: 'claude-opus-5-5',
+      display_name: 'Claude Opus 5.5',
+      created_at: '2026-01-01T00:00:00Z',
+    },
+    {
+      type: 'model',
+      id: 'claude-haiku-5-5',
+      display_name: 'Claude Haiku 5.5',
+      created_at: '2026-01-01T00:00:00Z',
+    },
+  ],
+  has_more: false,
+  first_id: null,
+  last_id: null,
+});
+
+/**
+ * Plays Claude on the assistant's own session, so nothing reaches the real
+ * API: it lists two models, and answers every message with `answer`,
+ * keeping what was asked in `claudeRequests`.
+ */
+export async function playClaude(app: ElectronApplication, answer: string): Promise<void> {
+  await app.evaluate(
+    ({ session }, { body, models }) => {
+      const asked: string[] = [];
+      Object.assign(globalThis, { claudeRequests: asked });
+      session
+        .fromPartition('persist:extension:org.example.ai-assistant')
+        .protocol.handle('https', async (request) => {
+          if (new URL(request.url).pathname === '/v1/models') {
+            return new Response(models, { headers: { 'content-type': 'application/json' } });
+          }
+          asked.push(await request.text());
+          return new Response(body, { headers: { 'content-type': 'text/event-stream' } });
+        });
+    },
+    { body: answer, models: CLAUDE_MODELS },
+  );
+}
+
 /** Three suggested replies. */
 export const CLAUDE_ANSWER = claudeAnswer('Yes, 8 works!\nCan we do 9?\nSee you there');
 
@@ -70,17 +115,7 @@ export async function readyAssistant(
   });
   const { manifest, main, others } = await builtAssistant();
   await installExtension(app, profile, manifest, main, others);
-  // Claude is played by a handler on the extension's own session; nothing reaches the real API.
-  await app.evaluate(({ session }, body) => {
-    const asked: string[] = [];
-    Object.assign(globalThis, { claudeRequests: asked });
-    session
-      .fromPartition('persist:extension:org.example.ai-assistant')
-      .protocol.handle('https', async (request) => {
-        asked.push(await request.text());
-        return new Response(body, { headers: { 'content-type': 'text/event-stream' } });
-      });
-  }, answer);
+  await playClaude(app, answer);
   const open = () =>
     app.evaluate(({ Menu }) => {
       const panel = Menu.getApplicationMenu()
@@ -94,6 +129,7 @@ export async function readyAssistant(
   const panel = await chromePage(app, '/__yapyap/panel.html');
   await panel.getByLabel('API key').fill('sk-ant-e2e-key');
   await panel.getByRole('button', { name: 'Save key' }).click();
-  await expect(panel.getByRole('status')).toContainText('Ready.');
+  // Ready waits for the provider's list of models, which Auto picks from.
+  await expect(panel.getByRole('status')).toContainText('Ready.', { timeout: 20_000 });
   return panel;
 }

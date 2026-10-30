@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { anthropicProvider, DEFAULT_ANTHROPIC_MODEL } from './anthropic.ts';
+import { anthropicProvider } from './anthropic.ts';
 import { ProviderError } from './provider.ts';
 
 const sse = (events: readonly object[]): string =>
@@ -19,7 +19,7 @@ function reply(pieces: readonly string[], stopReason = 'end_turn'): string {
         type: 'message',
         role: 'assistant',
         content: [],
-        model: DEFAULT_ANTHROPIC_MODEL,
+        model: 'claude-haiku-5-5',
         stop_reason: null,
         stop_sequence: null,
         usage: { input_tokens: 1, output_tokens: 1 },
@@ -83,7 +83,7 @@ describe('anthropicProvider', () => {
     const fake = fakeFetch(streamed(reply(['Sure', ', see you at 8.'])));
     const provider = anthropicProvider({
       apiKey: 'sk-ant-test',
-      model: DEFAULT_ANTHROPIC_MODEL,
+      model: 'claude-opus-5-5',
       fetch: fake.fetch,
     });
     const pieces: string[] = [];

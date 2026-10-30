@@ -1,14 +1,14 @@
 import type { ExtensionHost } from '@yapyap/extension-sdk';
 import { panelRequest, type AssistantState, type PanelRequest, type Update } from './bus.ts';
 import { replyFlow, type FlowHost, type ReplyFlow } from './reply-flow.ts';
+import { currentSetup, pageModels, type modelsOf } from './models.ts';
 import { assistantSettings, keyName, missingSetting, providerFor } from './settings.ts';
 
-type Host = Pick<ExtensionHost, 'settings' | 'secrets'>;
+type Host = Pick<ExtensionHost, 'settings' | 'secrets' | 'storage'>;
 
 /** The setup as the panel shows it: never the key itself, only whether there is one. */
-export async function stateOf(host: Host): Promise<AssistantState> {
-  const settings = assistantSettings(await host.settings.get());
-  const key = await host.secrets.get(keyName(settings.provider));
+export async function stateOf(host: Host, list: typeof modelsOf): Promise<AssistantState> {
+  const { settings, key } = await currentSetup(host, list);
   return {
     type: 'state',
     provider: settings.provider,
@@ -76,11 +76,12 @@ export function servePanel(
   host: FlowHost,
   channel: Channel,
   make: typeof providerFor = providerFor,
+  list: typeof modelsOf = pageModels,
 ): void {
   const post = (update: Update): void => {
     channel.postMessage(update);
   };
-  const flow = replyFlow(host, post, make);
+  const flow = replyFlow(host, post, make, list);
   // Requests run one at a time, in the order the panel sent them; only Stop
   // goes ahead, since it must reach the request it stops.
   let queue: Promise<unknown> = Promise.resolve();
@@ -98,7 +99,7 @@ export function servePanel(
       .then(() => run(host, flow, request))
       .then(async () => {
         if (keyed) {
-          post(await stateOf(host));
+          post(await stateOf(host, list));
         }
       })
       .catch((error: unknown) => {
@@ -106,7 +107,7 @@ export function servePanel(
       });
   };
   // A panel opened before this page loaded asked into the void; it hears this.
-  stateOf(host).then(post, () => {
+  stateOf(host, list).then(post, () => {
     post(UNAVAILABLE);
   });
 }

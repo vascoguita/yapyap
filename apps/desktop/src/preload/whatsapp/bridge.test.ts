@@ -65,13 +65,15 @@ describe('createAssistantBarBridge', () => {
     bridge.confirm();
     bridge.use(1);
     bridge.send(2);
+    bridge.choose('claude-haiku-5-5');
     expect(ipc.send.mock.calls).toEqual([
       ['whatsapp:assistant-bar-suggest'],
       ['whatsapp:assistant-bar-prompt', 'Say hi'],
       ['whatsapp:assistant-bar-confirm'],
       ['whatsapp:assistant-bar-use', 1],
       ['whatsapp:assistant-bar-send', 2],
+      ['whatsapp:assistant-bar-choose', 'claude-haiku-5-5'],
     ]);
-    expect(Object.keys(bridge)).toEqual(['suggest', 'prompt', 'confirm', 'use', 'send']);
+    expect(Object.keys(bridge)).toEqual(['suggest', 'prompt', 'confirm', 'use', 'send', 'choose']);
   });
 });

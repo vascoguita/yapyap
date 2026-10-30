@@ -17,6 +17,7 @@ function setup() {
     confirm: vi.fn(),
     use: vi.fn(() => Promise.resolve()),
     send: vi.fn(() => Promise.resolve()),
+    choose: vi.fn(() => Promise.resolve()),
   };
   const active = {};
   const views: ViewRegistry = new WeakMap();
@@ -51,6 +52,8 @@ describe('listenToAssistantBar', () => {
     await t.hear('confirm', t.fromBar);
     await t.hear('use', t.fromBar, 0);
     await t.hear('send', t.fromBar, 4);
+    await t.hear('choose', t.fromBar, 'claude-haiku-5-5');
+    expect(t.bar.choose).toHaveBeenCalledExactlyOnceWith('claude-haiku-5-5');
     expect(t.bar.suggest).toHaveBeenCalledOnce();
     expect(t.bar.prompt).toHaveBeenCalledExactlyOnceWith('say I am late');
     expect(t.bar.confirm).toHaveBeenCalledOnce();
@@ -96,11 +99,15 @@ describe('listenToAssistantBar', () => {
     }
     await t.hear('suggest', t.fromBar, 1);
     await t.hear('confirm', t.fromBar, 'yes');
+    for (const args of [[], [''], ['m'.repeat(101)], [7], ['a', 'b']]) {
+      await t.hear('choose', t.fromBar, ...args);
+    }
+    expect(t.bar.choose).not.toHaveBeenCalled();
     expect(t.bar.use).not.toHaveBeenCalled();
     expect(t.bar.send).not.toHaveBeenCalled();
     expect(t.bar.suggest).not.toHaveBeenCalled();
     expect(t.bar.confirm).not.toHaveBeenCalled();
-    expect(t.warn).toHaveBeenCalledTimes(14);
+    expect(t.warn).toHaveBeenCalledTimes(19);
   });
 
   it('warns, without the error, when an action fails', async () => {

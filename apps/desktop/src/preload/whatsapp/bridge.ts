@@ -69,5 +69,8 @@ export function createAssistantBarBridge(ipc: Pick<PreloadIpc, 'send'>): Assista
     send: (index) => {
       ipc.send(ASSISTANT_BAR_CHANNELS.send, index);
     },
+    choose: (value) => {
+      ipc.send(ASSISTANT_BAR_CHANNELS.choose, value);
+    },
   };
 }

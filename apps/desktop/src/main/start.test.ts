@@ -158,6 +158,7 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
         suggestions: ['On my way'],
         confirm: undefined,
         working: false,
+        choice: undefined,
       })),
       refresh: vi.fn(),
       offer: vi.fn(),
@@ -166,6 +167,7 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
       confirm: vi.fn(),
       use: vi.fn(() => Promise.resolve()),
       send: vi.fn(() => Promise.resolve()),
+      choose: vi.fn(() => Promise.resolve()),
     } satisfies AssistantBar,
     assistantBarView: undefined as AssistantBarView | undefined,
     attachAssistantBar: vi.fn((create: (bar: AssistantBar) => AssistantBarView) => {

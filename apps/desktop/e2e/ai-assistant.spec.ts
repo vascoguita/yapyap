@@ -4,6 +4,7 @@ import {
   builtAssistant,
   CLAUDE_ANSWER,
   claudeAnswer,
+  playClaude,
   readyAssistant,
 } from './assistant-helpers.ts';
 import { expect, test } from './fixtures.ts';
@@ -27,6 +28,7 @@ test('keeps the key the user pastes in the assistant’s panel with YapYap’s s
   });
   const { manifest, main, others } = await builtAssistant();
   await installExtension(app, profile, manifest, main, others);
+  await playClaude(app, CLAUDE_ANSWER);
   const open = () =>
     app.evaluate(({ Menu }) => {
       const extensions = Menu.getApplicationMenu()
@@ -41,12 +43,13 @@ test('keeps the key the user pastes in the assistant’s panel with YapYap’s s
   await expect.poll(open, { timeout: 20_000 }).toBe(true);
   const panel = await chromePage(app, '/__yapyap/panel.html');
   const status = panel.getByRole('status');
-  await expect(status).toHaveText(
-    'Using Claude (Anthropic), model claude-opus-5-5. Paste your API key to start.',
-  );
+  await expect(status).toHaveText('Using Claude (Anthropic). Paste your API key to start.');
   await panel.getByLabel('API key').fill('sk-ant-e2e-key');
   await panel.getByRole('button', { name: 'Save key' }).click();
-  await expect(status).toHaveText('Using Claude (Anthropic), model claude-opus-5-5. Ready.');
+  // Auto picks the newest of Claude's quick models from what the provider lists.
+  await expect(status).toHaveText('Using Claude (Anthropic), model claude-haiku-5-5. Ready.', {
+    timeout: 20_000,
+  });
   await expect(panel.getByLabel('API key')).toHaveValue('');
   const kept = await readFile(join(profile, 'extensions', '.secrets.json'), 'utf8');
   expect(kept).not.toContain('sk-ant-e2e-key');

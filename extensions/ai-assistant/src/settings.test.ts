@@ -3,15 +3,16 @@ import {
   assistantSettings,
   keyName,
   missingSetting,
+  missingSetup,
   providerFor,
   usesLocalServer,
 } from './settings.ts';
 
 describe('assistantSettings', () => {
-  it('uses Claude’s default model until the user chooses a provider and model', () => {
+  it('uses Claude until the user chooses a provider, and leaves the model to the bar', () => {
     expect(assistantSettings({})).toEqual({
       provider: 'anthropic',
-      model: 'claude-opus-5-5',
+      model: '',
       endpoint: '',
       context: 10,
       localOnly: false,
@@ -20,7 +21,7 @@ describe('assistantSettings', () => {
       assistantSettings({ provider: 'openai', model: ' gpt-x ', endpoint: 7, context: 20 }),
     ).toEqual({
       provider: 'openai',
-      model: 'gpt-x',
+      model: '',
       endpoint: '',
       context: 20,
       localOnly: false,
@@ -38,7 +39,7 @@ describe('assistantSettings', () => {
     });
     expect(assistantSettings({ provider: 'other', model: 'claude-haiku-5-5' })).toMatchObject({
       provider: 'anthropic',
-      model: 'claude-haiku-5-5',
+      model: '',
     });
   });
 });
@@ -53,17 +54,20 @@ describe('keyName', () => {
 describe('missingSetting', () => {
   const claude = assistantSettings({});
 
-  it('names the first thing missing: the key, the model, or a secure server address', () => {
+  it('names the first thing missing: the key, a secure server address, or a model to use', () => {
+    expect(missingSetup(claude, undefined)).toBe('key');
+    expect(missingSetup(claude, '')).toBe('key');
+    expect(missingSetup(claude, 'sk')).toBe('');
+    // With everything set up, only a provider that lists no model is left wanting.
+    expect(missingSetting(claude, 'sk')).toBe('model');
+    expect(missingSetting({ ...claude, model: 'claude-haiku-5-5' }, 'sk')).toBe('');
     expect(missingSetting(claude, undefined)).toBe('key');
-    expect(missingSetting(claude, '')).toBe('key');
-    expect(missingSetting(claude, 'sk')).toBe('');
-    expect(missingSetting(assistantSettings({ provider: 'openai' }), 'sk')).toBe('model');
-    const local = { provider: 'compatible', model: 'llama' } as const;
-    expect(missingSetting(assistantSettings({ ...local, endpoint: 'http://x' }), 'sk')).toBe(
+    const local = { provider: 'compatible' } as const;
+    expect(missingSetup(assistantSettings({ ...local, endpoint: 'http://x' }), 'sk')).toBe(
       'endpoint',
     );
     expect(
-      missingSetting(assistantSettings({ ...local, endpoint: 'https://llm.example.org' }), 'sk'),
+      missingSetup(assistantSettings({ ...local, endpoint: 'https://llm.example.org' }), 'sk'),
     ).toBe('');
   });
 });
@@ -103,9 +107,9 @@ describe('local servers', () => {
   });
 
   it('needs no key for a server on this computer, and takes no other address over HTTP', () => {
-    expect(missingSetting(local('http://localhost:11434/v1'), undefined)).toBe('');
-    expect(missingSetting(local('http://llm.example.org/v1'), 'sk')).toBe('endpoint');
-    expect(missingSetting(local('http://llm.example.org/v1'), undefined)).toBe('key');
+    expect(missingSetup(local('http://localhost:11434/v1'), undefined)).toBe('');
+    expect(missingSetup(local('http://llm.example.org/v1'), 'sk')).toBe('endpoint');
+    expect(missingSetup(local('http://llm.example.org/v1'), undefined)).toBe('key');
     expect(providerFor(local('http://localhost:11434/v1'), undefined).complete).toBeTypeOf(
       'function',
     );
@@ -115,8 +119,8 @@ describe('local servers', () => {
     const only = { localOnly: true };
     expect(assistantSettings({ localOnly: true }).localOnly).toBe(true);
     expect(assistantSettings({ localOnly: 'yes' }).localOnly).toBe(false);
-    expect(missingSetting(local('http://localhost:11434/v1', only), undefined)).toBe('');
-    expect(missingSetting(local('https://llm.example.org/v1', only), 'sk')).toBe('local-only');
-    expect(missingSetting(assistantSettings(only), 'sk')).toBe('local-only');
+    expect(missingSetup(local('http://localhost:11434/v1', only), undefined)).toBe('');
+    expect(missingSetup(local('https://llm.example.org/v1', only), 'sk')).toBe('local-only');
+    expect(missingSetup(assistantSettings(only), 'sk')).toBe('local-only');
   });
 });
