@@ -1,0 +1,87 @@
+import { createHash } from 'node:crypto';
+import type { Entry } from './entries.ts';
+
+/** Where release assets of this repository are downloaded from (ADR 0014). */
+const RELEASES = 'https://github.com/vascoguita/yapyap/releases/download';
+
+/** The marketplace's own limits on a version's notes (#434) and an extension's versions. */
+const MAX_NOTES = 2000;
+const MAX_VERSIONS = 50;
+
+/** One released version of a first-party extension, as its release workflow knows it. */
+export interface Release {
+  readonly id: string;
+  readonly version: string;
+  /** The release's tag, such as `ai-assistant-v0.2.0`. */
+  readonly tag: string;
+  /** The signed archive's file name, attached to that release. */
+  readonly file: string;
+  readonly archive: Uint8Array;
+  /** The oldest YapYap the version runs on, from the extension's `package.json`. */
+  readonly minYapYap: string;
+  readonly published: string;
+  /** The changelog section release-please wrote for this version. */
+  readonly notes: string;
+}
+
+/** What a first-party entry starts with, the first time one of its versions is released. */
+export interface EntryDefaults {
+  readonly summary: string;
+  readonly homepage: string;
+  readonly license: string;
+  /** The fingerprint of the key that signs YapYap's own extensions. */
+  readonly signer: string;
+  readonly repository: string;
+}
+
+const sha256Of = (bytes: Uint8Array): string =>
+  `sha256-${createHash('sha256').update(bytes).digest('base64')}`;
+
+/** Release notes as plain text for the marketplace: no Markdown link noise, within its limit. */
+export function plainNotes(changelog: string): string | undefined {
+  const text = changelog
+    .split('\n')
+    .filter((line) => !line.startsWith('## ') && !line.startsWith('### '))
+    .map((line) =>
+      line
+        .replace(/\s*\(\[[^\]]*\]\([^)]*\)\)/g, '')
+        .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+        .replace(/\*\*([^*]*)\*\*/g, '$1')
+        .trimEnd(),
+    )
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  return text === '' ? undefined : text.slice(0, MAX_NOTES);
+}
+
+/**
+ * The entry with this release listed last, as the newest version (ADR 0014):
+ * a version released again replaces its old listing, and an extension
+ * released for the first time gets an official entry from the defaults.
+ */
+export function withRelease(
+  entry: Entry | undefined,
+  release: Release,
+  defaults: EntryDefaults,
+): Entry {
+  const notes = plainNotes(release.notes);
+  const listed: Entry['versions'][number] = {
+    version: release.version,
+    tag: release.tag,
+    source: `${RELEASES}/${release.tag}/${release.file}`,
+    sha256: sha256Of(release.archive),
+    minYapYap: release.minYapYap,
+    published: release.published,
+    ...(notes === undefined ? {} : { notes }),
+  };
+  const base: Entry = entry ?? {
+    id: release.id,
+    ...defaults,
+    review: 'official',
+    versions: [],
+  };
+  const others = base.versions.filter(({ version }) => version !== release.version);
+  // The index lists at most fifty versions; the oldest make way.
+  return { ...base, versions: [...others, listed].slice(-MAX_VERSIONS) };
+}

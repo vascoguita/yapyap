@@ -132,3 +132,15 @@ must not tell anyone more about the user than an ordinary download does.
 - Follow-up work: building and publishing the index (#387), the Marketplace
   tab (#388), install links (#389), the website pages (#390) and the
   submission and review process (#391).
+
+## Amendments
+
+- 2026-10-31 (#474, the maintainer's decision): first-party extensions stay
+  in the YapYap repository, but are released on their own, with their own
+  versions, changelogs and `<name>-vX.Y.Z` tags, instead of with each app
+  release. A released extension is built and signed alone, attached to its
+  own release, and listed by a PR the release workflow opens. The
+  maintainer's merge of that PR is the review that the index signature
+  records. Each version's `minYapYap` comes from `yapyap.minVersion` in the
+  extension's `package.json`. Third-party extensions keep their own
+  repositories.

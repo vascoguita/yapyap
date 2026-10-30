@@ -219,16 +219,21 @@ whenever `marketplace/` changes on `master`. The index expires 30 days after
 it is signed, so a stopped schedule takes the marketplace down within a
 month: re-run **Package repositories** by hand if it fails.
 
-To list a new version of an official extension:
+Official extensions are released on their own (#474), so listing a new
+version takes no hand edits:
 
-1. Release YapYap. The release carries the signed
-   `<id>-<version>.yapyap-extension` of each first-party extension.
-2. Add the version to the extension's entry, with the release asset's URL as
-   `source`, its `sha256-<base64>` hash (`openssl dgst -sha256 -binary
-<file> | base64`), the oldest YapYap version that runs it, and when the
-   release was published.
-3. Check it locally: `node scripts/src/bin/marketplace-index.ts marketplace`.
-   CI runs the same check on every pull request.
+1. Merge the extension's release PR, `chore(<name>): release X.Y.Z` (see
+   [Releases](#releases)). That tags `<name>-vX.Y.Z` and creates its release.
+2. The release workflow builds and signs that extension alone, attaches
+   `<id>-<version>.yapyap-extension` to the release, and opens a
+   `chore(marketplace): list <name>-vX.Y.Z` PR. The PR adds the version to
+   the entry, with the asset's URL, its SHA-256, the release notes, and the
+   oldest YapYap that runs it, from `yapyap.minVersion` in the extension's
+   `package.json`. Keep that field current when an extension starts to need
+   a newer YapYap.
+3. Review and merge that PR. Merging is the review: the index is signed and
+   deployed again with the version in it. CI checks the entry, as
+   `node scripts/src/bin/marketplace-index.ts marketplace` does locally.
 
 To list a reviewed third-party version from an extension submission issue:
 
@@ -297,6 +302,17 @@ stable release (`publish.yml` is shared), except that betas skip the AUR.
 PR open on `master` and updates it from Conventional Commits. Merging that PR
 tags `vX.Y.Z`, updates `CHANGELOG.md` and creates the GitHub Release, which
 starts the release build. Never tag by hand.
+
+The first-party extensions in `extensions/ai-assistant` and
+`extensions/call-recorder` stay in this repository, since they change with
+the SDK and the host, but they have releases of their own (#474).
+release-please keeps one release PR for each, `chore(<name>): release X.Y.Z`,
+from the commits that touch its folder. A `feat` raises the minor version,
+and each has its own `CHANGELOG.md` and `<name>-vX.Y.Z` tags. The app's
+release leaves their folders out and no longer carries them. Merging an
+extension's release PR publishes that extension alone (see
+[Extension marketplace](#extension-marketplace)). There is no extension
+beta: test it with a development build before merging.
 
 Until the first release is near, the release PR is paused: the
 release-please job runs only when the repository variable

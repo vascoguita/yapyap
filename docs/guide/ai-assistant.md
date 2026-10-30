@@ -7,9 +7,10 @@ chat is sent to the provider until you allow the assistant in it, and
 nothing reaches the chat until you click **Send** or send the draft
 yourself.
 
-The assistant is an extension made by YapYap, released with YapYap as a
-`.yapyap-extension` file. Install it with **Install Extension…** like any other
-extension.
+The assistant is an extension made by YapYap, with releases of its own, so
+it gets fixes and features without waiting for a YapYap release. Install
+it from **Extensions… → Marketplace**, or download the `.yapyap-extension`
+file from its release page and use **Install Extension…**.
 
 ## Choose a provider
 

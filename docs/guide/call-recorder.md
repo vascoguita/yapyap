@@ -1,8 +1,9 @@
 # Call recorder
 
 YapYap's call recorder records your WhatsApp calls on this computer. It is
-an extension made by YapYap, released with YapYap as a `.yapyap-extension`
-file; install it with **Install Extension…** like any other extension.
+an extension made by YapYap, with releases of its own: install it from
+**Extensions… → Marketplace**, or download the `.yapyap-extension` file from
+its release page and use **Install Extension…**.
 
 ::: warning Ask first
 In many places it is against the law to record a call without the consent
