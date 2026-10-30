@@ -38,8 +38,8 @@ export function newestIncoming(doc: IncomingDocument, places: IncomingPlaces): s
     return value.toString(16).padStart(8, '0');
   };
   const theirs = Array.from(doc.querySelectorAll(places.message)).filter((row) => {
-    const id = row.dataset['id'] ?? '';
-    return !id.startsWith('true_') && row.querySelector(places.outgoing) === null;
+    const own = row.dataset['id']?.startsWith('true_') === true;
+    return !own && row.querySelector(places.outgoing) === null;
   });
   const newest = theirs.at(-1);
   if (newest === undefined) {

@@ -56,12 +56,26 @@ describe('newestIncoming', () => {
   it('finds nothing when no one else wrote in the open chat', () => {
     chat('Ana', mine('3EB0A2'));
     expect(probe()).toBeNull();
-    // A row without an ID, should WhatsApp's markup ever match one, still counts.
+    // A row without an ID, should WhatsApp's markup ever match one, still
+    // counts; with no chat name either, both hash as empty text.
     document.body.innerHTML = '<div id="main"><p></p></div>';
-    expect(newestIncoming(document, { ...PLACES, message: '#main p' })).toMatch(/^[0-9a-f]{8}:/);
+    expect(newestIncoming(document, { ...PLACES, message: '#main p' })).toBe('811c9dc5:811c9dc5');
   });
 
-  it('runs as standalone source text', () => {
+  it('pads every hash to eight characters, so the answer always parses', () => {
+    // This ID hashes below 0x10000000.
+    chat('Ana', theirs('3EB011F'));
+    expect(probe()?.split(':')[1]).toBe('0056b8b5');
+    expect(parseIncoming(probe())).toBeDefined();
+  });
+
+  it('looks in the page with the landmarks the adapter keeps', () => {
+    expect(NEWEST_INCOMING.endsWith(`(document, ${JSON.stringify(PLACES)})`)).toBe(true);
+  });
+
+  // Mutation testing instruments the function with helpers from outside it,
+  // so only uninstrumented source can run on its own.
+  it.skipIf(NEWEST_INCOMING.includes('stryMutAct'))('runs as standalone source text', () => {
     chat('Ana', theirs('3EB0A1'));
     // As in the adapter's isolated world, which has the page's document and the browser's TextEncoder.
     expect(runInNewContext(NEWEST_INCOMING, { document, TextEncoder })).toBe(probe());
@@ -72,7 +86,17 @@ describe('parseIncoming', () => {
   it('takes two hashes, or nothing seen, and refuses anything else', () => {
     expect(parseIncoming('0123abcd:89abcdef')).toEqual({ chat: '0123abcd', message: '89abcdef' });
     expect(parseIncoming(null)).toEqual({ chat: null, message: null });
-    for (const value of [undefined, 7, 'x', '0123abcd:89abcdef0', 'ABCDEF01:00000000']) {
+    // An array would spell the right text, were it ever taken for one.
+    const refused = [
+      undefined,
+      7,
+      'x',
+      '0123abcd:89abcdef0',
+      'x0123abcd:89abcdef',
+      'ABCDEF01:00000000',
+      ['0123abcd:89abcdef'],
+    ];
+    for (const value of refused) {
       expect(parseIncoming(value)).toBeUndefined();
     }
   });

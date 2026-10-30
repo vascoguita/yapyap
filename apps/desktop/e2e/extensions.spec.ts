@@ -757,10 +757,15 @@ test('asks for suggestions on its own when a message arrives in the open chat', 
     SUGGESTER,
   );
   // A virtual display without a window manager focuses nothing on its own.
+  // The extension's hidden host is a window too, and window order differs by
+  // OS, so the main window is the one that holds WhatsApp.
   await expect
     .poll(() =>
-      app.evaluate(({ BrowserWindow }) => {
-        const [main] = BrowserWindow.getAllWindows();
+      app.evaluate(({ BrowserWindow, webContents }) => {
+        const whatsapp = webContents
+          .getAllWebContents()
+          .find((contents) => contents.getURL().startsWith('http'));
+        const main = whatsapp === undefined ? null : BrowserWindow.fromWebContents(whatsapp);
         main?.focus();
         return main?.isFocused();
       }),
