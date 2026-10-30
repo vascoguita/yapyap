@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { readEntry, type Entry } from './entries.ts';
-import { plainNotes, withRelease, type Release } from './release.ts';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { plainNotes, readOptional, withRelease, type Release } from './release.ts';
 
 const SIGNER = Array.from({ length: 32 }, () => 'ab').join(':');
 
@@ -78,5 +81,21 @@ describe('plainNotes', () => {
     );
     expect(plainNotes('## [0.2.0](https://x)\n\n')).toBeUndefined();
     expect(plainNotes(`* ${'x'.repeat(3000)}`)).toHaveLength(2000);
+  });
+});
+
+describe('readOptional', () => {
+  it('reads a JSON file, finds none before the first release, and lets other failures through', () => {
+    const folder = mkdtempSync(join(tmpdir(), 'yapyap-release-'));
+    try {
+      const file = join(folder, 'entry.json');
+      writeFileSync(file, '{"id":"x"}');
+      expect(readOptional(file)).toEqual({ id: 'x' });
+      expect(readOptional(join(folder, 'missing.json'))).toBeUndefined();
+      writeFileSync(file, 'not json');
+      expect(() => readOptional(file)).toThrow(SyntaxError);
+    } finally {
+      rmSync(folder, { recursive: true, force: true });
+    }
   });
 });

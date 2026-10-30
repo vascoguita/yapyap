@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import type { Entry } from './entries.ts';
 
 /** Where release assets of this repository are downloaded from (ADR 0014). */
@@ -44,8 +45,9 @@ export function plainNotes(changelog: string): string | undefined {
     .filter((line) => !line.startsWith('## ') && !line.startsWith('### '))
     .map((line) =>
       line
-        .replace(/\s*\(\[[^\]]*\]\([^)]*\)\)/g, '')
-        .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+        // Bounded, so a malformed changelog line cannot make the match backtrack for long.
+        .replace(/ \(\[[^\]]{0,200}\]\([^)]{0,500}\)\)/g, '')
+        .replace(/\[([^\]]{0,200})\]\([^)]{0,500}\)/g, '$1')
         .replace(/\*\*([^*]*)\*\*/g, '$1')
         .trimEnd(),
     )
@@ -84,4 +86,20 @@ export function withRelease(
   const others = base.versions.filter(({ version }) => version !== release.version);
   // The index lists at most fifty versions; the oldest make way.
   return { ...base, versions: [...others, listed].slice(-MAX_VERSIONS) };
+}
+
+/**
+ * A JSON file's contents, or undefined when there is none yet, as before an
+ * extension's first release. It is read once rather than checked first, so
+ * nothing can change it between the check and the read.
+ */
+export function readOptional(path: string): unknown {
+  try {
+    return JSON.parse(readFileSync(path, 'utf8')) as unknown;
+  } catch (error) {
+    if ((error as { code?: unknown }).code === 'ENOENT') {
+      return undefined;
+    }
+    throw error;
+  }
 }
