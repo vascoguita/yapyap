@@ -1315,6 +1315,7 @@ not edit the same lines.
   page from the message ID, and asks only when the message changes in the
   same chat. **Settings → Extensions → Suggest replies automatically** (on
   by default, settings version 18) turns it off. ADR 0013 is amended.
+
 - Extensions released on their own (#474): the AI assistant and the call
   recorder stay in this repository but get their own release-please
   components, changelogs and `<name>-vX.Y.Z` tags, with `feat` raising the
