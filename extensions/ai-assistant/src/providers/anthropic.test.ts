@@ -83,7 +83,7 @@ describe('anthropicProvider', () => {
     const fake = fakeFetch(streamed(reply(['Sure', ', see you at 8.'])));
     const provider = anthropicProvider({
       apiKey: 'sk-ant-test',
-      model: DEFAULT_ANTHROPIC_MODEL,
+      model: 'claude-opus-5-5',
       fetch: fake.fetch,
     });
     const pieces: string[] = [];

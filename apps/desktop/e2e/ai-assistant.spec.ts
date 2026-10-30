@@ -42,11 +42,11 @@ test('keeps the key the user pastes in the assistant’s panel with YapYap’s s
   const panel = await chromePage(app, '/__yapyap/panel.html');
   const status = panel.getByRole('status');
   await expect(status).toHaveText(
-    'Using Claude (Anthropic), model claude-opus-5-5. Paste your API key to start.',
+    'Using Claude (Anthropic), model claude-haiku-5-5. Paste your API key to start.',
   );
   await panel.getByLabel('API key').fill('sk-ant-e2e-key');
   await panel.getByRole('button', { name: 'Save key' }).click();
-  await expect(status).toHaveText('Using Claude (Anthropic), model claude-opus-5-5. Ready.');
+  await expect(status).toHaveText('Using Claude (Anthropic), model claude-haiku-5-5. Ready.');
   await expect(panel.getByLabel('API key')).toHaveValue('');
   const kept = await readFile(join(profile, 'extensions', '.secrets.json'), 'utf8');
   expect(kept).not.toContain('sk-ant-e2e-key');
