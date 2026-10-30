@@ -1323,7 +1323,7 @@ not edit the same lines.
   its release, and opens a marketplace PR adding the version
   (`scripts/src/bin/marketplace-release.ts`), with `minYapYap` from its
   `package.json`. App releases no longer carry the extensions. The
-  assistant's first release of its own will be 0.2.0, needing YapYap 0.3.0.
+  assistant's first release of its own will be 0.2.0, needing YapYap 0.2.1.
 
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
