@@ -5,6 +5,7 @@ import { chatKey, setAllowed } from './chats.ts';
 import { ProviderError, type CompletionRequest, type Provider } from './providers/provider.ts';
 import { COMPOSE_INSTRUCTIONS, INSTRUCTIONS } from './replies.ts';
 import { fakeHost } from './testing/fake-host.ts';
+import { listing } from './testing/models.ts';
 
 const CHAT = {
   name: 'Ana',
@@ -17,9 +18,16 @@ const CHAT = {
 
 const TRANSCRIPT = 'Chat: Ana\nThem: Dinner at 8?\nMe: Maybe';
 
-function setup(answer = '1. Sounds good!\n2. "Can we make it 9?"') {
-  const fake = fakeHost({ chat: CHAT });
-  fake.secrets.set('apiKey.anthropic', 'sk');
+function setup(
+  answer = '1. Sounds good!\n2. "Can we make it 9?"',
+  key: string | null = 'sk',
+  settings: Record<string, string> = {},
+) {
+  const fake = fakeHost({ chat: CHAT, settings });
+  if (key !== null) {
+    fake.secrets.set('apiKey.anthropic', key);
+  }
+  const list = listing();
   const requests: CompletionRequest[] = [];
   const provider: Provider = {
     complete: vi.fn((request: CompletionRequest, onText: (text: string) => void) => {
@@ -41,18 +49,53 @@ function setup(answer = '1. Sounds good!\n2. "Can we make it 9?"') {
     }),
   };
   const host = { ...fake.host, assistant };
-  serveBar(host, () => provider);
-  /** Makes a request in the bar and waits for the extension's answer to it. */
+  serveBar(host, () => provider, list);
+  /** The bar's first offer, which names the model before anyone asks. */
+  const started = async (): Promise<AssistantOffer | undefined> => {
+    await vi.waitFor(() => {
+      expect(offers.length).toBeGreaterThan(0);
+    });
+    return offers[0];
+  };
+  /**
+   * Makes a request in the bar and waits for the extension's answer to it,
+   * leaving out the model choice that comes with every offer.
+   */
   const ask = async (request: AssistantRequest): Promise<AssistantOffer | undefined> => {
+    await started();
     const before = offers.length;
     handler(request);
     await vi.waitFor(() => {
       expect(offers.length).toBeGreaterThan(before);
     });
-    return offers.at(-1);
+    const last = offers.at(-1) ?? { suggestions: [] };
+    return Object.fromEntries(
+      Object.entries(last).filter(([name]) => name !== 'choice'),
+    ) as unknown as AssistantOffer;
   };
   const allow = () => setAllowed(fake.host.storage, 'Ana', true);
-  return { ...fake, host, provider, requests, offers, assistant, ask, allow };
+  /** Passes the user's pick in the bar, which YapYap answers with no offer of its own. */
+  const choose = async (value: string): Promise<void> => {
+    await started();
+    handler({ type: 'choose', value });
+    await vi.waitFor(() => {
+      expect(fake.stored.get('model')).toBe(value);
+    });
+  };
+  return {
+    ...fake,
+    host,
+    provider,
+    requests,
+    offers,
+    assistant,
+    ask,
+    allow,
+    started,
+    list,
+    choose,
+    handler: (request: AssistantRequest) => handler(request),
+  };
 }
 
 describe('serveBar', () => {
@@ -148,5 +191,73 @@ describe('serveBar', () => {
     });
     await t.ask({ type: 'suggest' });
     expect((await t.ask({ type: 'suggest' }))?.suggestions).toHaveLength(2);
+  });
+
+  it('names the model in use from the start, with Auto first and the models the provider lists', async () => {
+    const t = setup();
+    expect(await t.started()).toEqual({
+      suggestions: [],
+      status: '',
+      choice: {
+        label: 'Model',
+        current: 'auto',
+        options: [
+          { value: 'auto', label: 'Auto (Claude Haiku 5.5)' },
+          { value: 'claude-opus-5-5', label: 'Claude Opus 5.5' },
+          { value: 'claude-haiku-5-5', label: 'Claude Haiku 5.5' },
+        ],
+      },
+    });
+  });
+
+  it('keeps the user’s pick, offering nothing for it, and names it in the next offer', async () => {
+    const t = setup();
+    await t.allow();
+    await t.choose('claude-opus-5-5');
+    const offered = t.offers.length;
+    await t.ask({ type: 'suggest' });
+    expect(t.offers).toHaveLength(offered + 1);
+    expect(t.offers.at(-1)?.choice?.current).toBe('claude-opus-5-5');
+    // A pick the provider no longer lists shows as Auto.
+    await t.choose('claude-gone');
+    await t.ask({ type: 'suggest' });
+    expect(t.offers.at(-1)?.choice?.current).toBe('auto');
+  });
+
+  it('offers nothing to pick, and asks no provider, before the assistant is set up', async () => {
+    const t = setup(undefined, null);
+    expect((await t.started())?.choice).toEqual({ label: 'Model', current: 'auto', options: [] });
+    expect(t.list).not.toHaveBeenCalled();
+  });
+
+  it('leaves out models the bar could not show, though Auto may still use them', async () => {
+    const t = setup();
+    t.list.mockResolvedValue([
+      { id: 'x'.repeat(101), label: 'Too long' },
+      { id: 'm', label: 'L'.repeat(70) },
+    ]);
+    expect((await t.started())?.choice?.options).toEqual([
+      { value: 'auto', label: 'Auto (Too long)' },
+      { value: 'm', label: 'L'.repeat(60) },
+    ]);
+  });
+
+  it('lists a local server’s models without a key, which such a server does not need', async () => {
+    const t = setup(undefined, null, {
+      provider: 'compatible',
+      endpoint: 'http://localhost:11435/v1',
+    });
+    await t.started();
+    expect(t.list).toHaveBeenCalledWith(expect.objectContaining({ provider: 'compatible' }), '');
+  });
+
+  it('keeps answering when its pick cannot be kept', async () => {
+    const t = setup();
+    await t.started();
+    t.host.storage.set.mockRejectedValueOnce(new Error('full'));
+    t.handler({ type: 'choose', value: 'claude-opus-5-5' });
+    expect(await t.ask({ type: 'suggest' })).toMatchObject({
+      suggestions: expect.any(Array) as unknown,
+    });
   });
 });

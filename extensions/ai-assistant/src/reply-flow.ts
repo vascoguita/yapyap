@@ -10,7 +10,8 @@ import {
   transcriptOf,
 } from './replies.ts';
 import { cleanRewrite, rewriteInstructions, type RewriteStyle } from './rewrites.ts';
-import { assistantSettings, keyName, missingSetting, providerFor } from './settings.ts';
+import { currentSetup, pageModels, type modelsOf } from './models.ts';
+import { assistantSettings, missingSetting, providerFor } from './settings.ts';
 
 export type FlowHost = Pick<
   ExtensionHost,
@@ -96,19 +97,25 @@ async function allow(host: FlowHost, session: Session, post: Post, allowed: bool
 }
 
 /** The provider the settings and key make, or undefined while the setup is unfinished. */
-export async function providerOf(
-  host: Pick<ExtensionHost, 'settings' | 'secrets'>,
+async function providerOf(
+  host: Pick<ExtensionHost, 'settings' | 'secrets' | 'storage'>,
   make: typeof providerFor,
+  list: typeof modelsOf,
 ): Promise<Provider | undefined> {
-  const settings = assistantSettings(await host.settings.get());
-  const key = await host.secrets.get(keyName(settings.provider));
+  const { settings, key } = await currentSetup(host, list);
   return missingSetting(settings, key) === '' ? make(settings, key) : undefined;
 }
 
-async function send(host: FlowHost, session: Session, post: Post, make: typeof providerFor) {
+async function send(
+  host: FlowHost,
+  session: Session,
+  post: Post,
+  make: typeof providerFor,
+  list: typeof modelsOf,
+) {
   // Only what the panel showed is ever sent: the text kept here, never the panel's copy.
   const { text, instructions = '' } = session;
-  const provider = await providerOf(host, make);
+  const provider = await providerOf(host, make, list);
   if (text === undefined || provider === undefined) {
     post(problem(text === undefined ? 'not-prepared' : 'setup'));
     return;
@@ -169,6 +176,7 @@ export function replyFlow(
   host: FlowHost,
   post: Post,
   make: typeof providerFor = providerFor,
+  list: typeof modelsOf = pageModels,
 ): ReplyFlow {
   const session: Session = { plan: { mode: 'replies' }, suggestions: [] };
   return {
@@ -177,7 +185,7 @@ export function replyFlow(
       return prepare(host, session, post);
     },
     allow: (allowed: boolean) => allow(host, session, post, allowed),
-    send: () => send(host, session, post, make),
+    send: () => send(host, session, post, make, list),
     cancel: () => {
       session.controller?.abort();
     },

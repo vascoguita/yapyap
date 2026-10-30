@@ -43,6 +43,7 @@ function contentOf(state: AssistantBarState, visible: boolean): BarContent {
     suggestions: state.suggestions,
     confirm: state.confirm ?? null,
     working: state.working,
+    choice: state.choice ?? null,
   };
 }
 

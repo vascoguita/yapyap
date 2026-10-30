@@ -86,7 +86,7 @@ user reads it, edits it and sends it. No API sends a message.
 Every host call returns a promise. A call that fails rejects with a
 [`ExtensionError`](/api/interfaces/ExtensionError) whose `kind` says why:
 `not-granted` (the user did not approve the capability, or took it back for
-the account on screen), `invalid`, `rate-limited` (more than 20 calls in a
+the account on screen), `invalid`, `rate-limited` (more than 40 calls in a
 burst, refilling at 5 a second), `timeout` (10 seconds) or `failed`.
 
 The [API reference](/api/) documents the whole host API. Of the chat
@@ -128,11 +128,17 @@ settings.
 With `assistant:bar`, an extension fills the bar YapYap draws above the open
 chat's message box ([ADR 0013](/adr/0013-in-chat-assistant-bar)). `host.assistant.onRequest`
 runs a handler for each thing the user does in the bar: `suggest`,
-`prompt` with the text the user typed, or `confirm` when the user clicks
-the button the extension offered. `host.assistant.offer` replaces what the bar
+`prompt` with the text the user typed, `confirm` when the user clicks
+the button the extension offered, or `choose` with the option the user
+picked in its choice. `host.assistant.offer` replaces what the bar
 shows: up to five suggestions of at most 1,000 characters, a status line
-of at most 200, and an optional `confirm` label of at most 40, such as
-"Allow here".
+of at most 200, an optional `confirm` label of at most 40, such as
+"Allow here", and an optional `choice`, such as the model in use: a
+label of at most 40 characters, the current value, and up to 20 options,
+each a value of at most 100 characters and a label of at most 60. The
+bar keeps the last choice until another comes, passes on only an option
+the extension offered, and asks for suggestions again after a pick if
+some were showing.
 
 ```ts
 host.assistant.onRequest(async (request) => {

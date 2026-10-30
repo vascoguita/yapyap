@@ -195,6 +195,25 @@ const Offer = Type.Object(
     suggestions: Type.Array(Type.String({ minLength: 1, maxLength: 1000 }), { maxItems: 5 }),
     status: Type.Optional(Type.String({ maxLength: 200 })),
     confirm: Type.Optional(Type.String({ minLength: 1, maxLength: 40 })),
+    choice: Type.Optional(
+      Type.Object(
+        {
+          label: Type.String({ minLength: 1, maxLength: 40 }),
+          current: Type.String({ maxLength: 100 }),
+          options: Type.Array(
+            Type.Object(
+              {
+                value: Type.String({ minLength: 1, maxLength: 100 }),
+                label: Type.String({ minLength: 1, maxLength: 60 }),
+              },
+              { additionalProperties: false },
+            ),
+            { maxItems: 20 },
+          ),
+        },
+        { additionalProperties: false },
+      ),
+    ),
   },
   { additionalProperties: false },
 );

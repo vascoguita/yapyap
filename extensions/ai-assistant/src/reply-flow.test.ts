@@ -8,6 +8,7 @@ import { replyFlow, type Plan } from './reply-flow.ts';
 
 const REPLIES: Plan = { mode: 'replies' };
 import { fakeHost } from './testing/fake-host.ts';
+import { listing } from './testing/models.ts';
 
 const CHAT = {
   name: 'Ana',
@@ -18,7 +19,7 @@ const CHAT = {
   ],
 };
 
-function setup(options: Parameters<typeof fakeHost>[0] = { chat: CHAT }) {
+function setup(options: Parameters<typeof fakeHost>[0] = { chat: CHAT }, models = listing()) {
   const fake = fakeHost(options);
   fake.secrets.set('apiKey.anthropic', 'sk');
   const sent: Update[] = [];
@@ -34,7 +35,7 @@ function setup(options: Parameters<typeof fakeHost>[0] = { chat: CHAT }) {
     }),
   };
   const make = vi.fn(() => provider);
-  const flow = replyFlow(fake.host, (update) => sent.push(update), make);
+  const flow = replyFlow(fake.host, (update) => sent.push(update), make, models);
   return { ...fake, sent, requests, provider, make, flow };
 }
 
@@ -122,7 +123,8 @@ describe('replyFlow', () => {
     await unset.flow.send();
     expect(unset.sent.at(-1)).toEqual({ type: 'problem', reason: 'setup' });
     expect(unset.make).not.toHaveBeenCalled();
-    const unnamed = setup({ chat: CHAT, settings: { provider: 'openai' } });
+    // A provider that lists no model leaves nothing to ask.
+    const unnamed = setup({ chat: CHAT, settings: { provider: 'openai' } }, listing([]));
     unnamed.secrets.set('apiKey.openai', 'sk');
     await unnamed.flow.prepare(REPLIES);
     await unnamed.flow.allow(true);

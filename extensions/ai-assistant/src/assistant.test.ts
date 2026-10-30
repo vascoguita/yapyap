@@ -3,6 +3,7 @@ import { servePanel, stateOf, type Channel } from './assistant.ts';
 import type { Update } from './bus.ts';
 import { ProviderError, type Provider } from './providers/provider.ts';
 import { fakeHost } from './testing/fake-host.ts';
+import { listing } from './testing/models.ts';
 
 function fakeChannel() {
   const sent: Update[] = [];
@@ -17,15 +18,18 @@ function fakeChannel() {
 describe('stateOf', () => {
   it('says what is missing, never the key', async () => {
     const { host, secrets } = fakeHost();
-    await expect(stateOf(host)).resolves.toEqual({
+    const list = listing();
+    await expect(stateOf(host, list)).resolves.toEqual({
       type: 'state',
       provider: 'anthropic',
-      model: 'claude-opus-5-5',
+      model: '',
       missing: 'key',
     });
+    expect(list).not.toHaveBeenCalled();
     secrets.set('apiKey.anthropic', 'sk-secret');
-    const state = await stateOf(host);
-    expect(state.missing).toBe('');
+    const state = await stateOf(host, list);
+    // Auto picks the newest of Claude's quick models.
+    expect(state).toMatchObject({ model: 'claude-haiku-5-5', missing: '' });
     expect(JSON.stringify(state)).not.toContain('sk-secret');
   });
 });
@@ -36,7 +40,7 @@ async function serve(
   { channel, sent }: ReturnType<typeof fakeChannel>,
   make?: () => Provider,
 ): Promise<void> {
-  servePanel(host, channel, make);
+  servePanel(host, channel, make, listing());
   await vi.waitFor(() => {
     expect(sent).toHaveLength(1);
   });
@@ -47,16 +51,14 @@ describe('servePanel', () => {
   it('announces its state as it starts, for a panel that asked before it listened', async () => {
     const { host } = fakeHost();
     const { channel, sent } = fakeChannel();
-    servePanel(host, channel);
+    servePanel(host, channel, undefined, listing());
     await vi.waitFor(() => {
-      expect(sent).toEqual([
-        { type: 'state', provider: 'anthropic', model: 'claude-opus-5-5', missing: 'key' },
-      ]);
+      expect(sent).toEqual([{ type: 'state', provider: 'anthropic', model: '', missing: 'key' }]);
     });
     const broken = fakeHost();
     broken.host.settings.get.mockRejectedValueOnce(new Error('gone'));
     const other = fakeChannel();
-    servePanel(broken.host, other.channel);
+    servePanel(broken.host, other.channel, undefined, listing());
     await vi.waitFor(() => {
       expect(other.sent).toEqual([
         { type: 'state', provider: '', model: '', missing: 'unavailable' },

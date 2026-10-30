@@ -123,7 +123,30 @@ export interface CommandsApi {
 export type AssistantRequest =
   | { readonly type: 'suggest' }
   | { readonly type: 'prompt'; readonly text: string }
-  | { readonly type: 'confirm' };
+  | { readonly type: 'confirm' }
+  | { readonly type: 'choose'; readonly value: string };
+
+/** One option of an {@link AssistantChoice}. */
+export interface AssistantOption {
+  /** What is saved when the user picks it, at most 100 characters. */
+  readonly value: string;
+  /** What the user sees, at most 60 characters. */
+  readonly label: string;
+}
+
+/**
+ * A choice the bar shows beside the suggestions, such as the model in use
+ * (#467). When the user picks an option, YapYap sends a `choose` request
+ * with its value, and asks for suggestions again if some were showing.
+ */
+export interface AssistantChoice {
+  /** A short name for the choice, at most 40 characters, such as "Model". */
+  readonly label: string;
+  /** The value in use now, at most 100 characters. */
+  readonly current: string;
+  /** Up to 20 options. */
+  readonly options: readonly AssistantOption[];
+}
 
 /** What an extension shows in the assistant bar, as plain text under its name. */
 export interface AssistantOffer {
@@ -137,6 +160,8 @@ export interface AssistantOffer {
    * permission first.
    */
   readonly confirm?: string;
+  /** A choice to show, such as the model in use; the bar keeps the last one until another comes. */
+  readonly choice?: AssistantChoice;
 }
 
 /**

@@ -33,7 +33,7 @@ export interface RpcOptions {
 }
 
 export const RPC_OPTIONS: Omit<RpcOptions, 'now' | 'after'> = {
-  rate: { burst: 20, perSecond: 5 },
+  rate: { burst: 40, perSecond: 5 },
   timeoutMs: 10_000,
 };
 

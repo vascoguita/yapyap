@@ -35,12 +35,6 @@
           "description": "Who answers: Claude (anthropic), OpenAI (openai), or your own OpenAI-compatible server (compatible).",
           "enum": ["anthropic", "openai", "compatible"]
         },
-        "model": {
-          "type": "string",
-          "title": "Model",
-          "description": "The model's name, as your provider writes it. Claude uses claude-opus-5-5 when empty.",
-          "maxLength": 100
-        },
         "endpoint": {
           "type": "string",
           "title": "Server address",

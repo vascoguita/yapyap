@@ -1,5 +1,5 @@
 import type { SettingValue } from '@yapyap/extension-sdk';
-import { anthropicProvider, DEFAULT_ANTHROPIC_MODEL } from './providers/anthropic.ts';
+import { anthropicProvider } from './providers/anthropic.ts';
 import { openAIProvider } from './providers/openai.ts';
 import type { Provider } from './providers/provider.ts';
 
@@ -46,10 +46,10 @@ export function assistantSettings(
   const provider = PROVIDERS.has(values['provider'])
     ? (values['provider'] as ProviderId)
     : 'anthropic';
-  const model = text(values['model']);
   return {
     provider,
-    model: model === '' && provider === 'anthropic' ? DEFAULT_ANTHROPIC_MODEL : model,
+    // Picked in the bar, or by Auto, from what the provider lists (#467); never typed in.
+    model: '',
     endpoint: text(values['endpoint']),
     context: CONTEXTS.has(values['context']) ? (values['context'] as number) : DEFAULT_CONTEXT,
     localOnly: values['localOnly'] === true,
@@ -66,11 +66,11 @@ const validEndpoint = (settings: AssistantSettings): boolean =>
   settings.endpoint.startsWith('https://') || usesLocalServer(settings);
 
 /**
- * Why the assistant cannot ask anyone yet, or '' when it can. In local-only
- * mode, nothing but a server on this computer will do; such a server needs
- * no key.
+ * What the assistant still needs before it can ask anyone, or '' when it
+ * has it all. In local-only mode, nothing but a server on this computer
+ * will do; such a server needs no key.
  */
-export function missingSetting(settings: AssistantSettings, apiKey: string | undefined): string {
+export function missingSetup(settings: AssistantSettings, apiKey: string | undefined): string {
   const local = usesLocalServer(settings);
   if (settings.localOnly && !local) {
     return 'local-only';
@@ -78,10 +78,13 @@ export function missingSetting(settings: AssistantSettings, apiKey: string | und
   if (!local && !hasKey(apiKey)) {
     return 'key';
   }
-  if (settings.model === '') {
-    return 'model';
-  }
   return settings.provider === 'compatible' && !validEndpoint(settings) ? 'endpoint' : '';
+}
+
+/** Why the assistant cannot ask anyone yet: the setup, or a provider that lists no model. */
+export function missingSetting(settings: AssistantSettings, apiKey: string | undefined): string {
+  const setup = missingSetup(settings, apiKey);
+  return setup === '' && settings.model === '' ? 'model' : setup;
 }
 
 /** The provider the settings describe, once nothing is missing. */

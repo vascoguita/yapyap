@@ -7,6 +7,7 @@ import {
   buildAssistantBar,
   renderAssistantBar,
   updateAssistantBar,
+  updateAssistantChoice,
   wireAssistantBar,
   type BarContent,
 } from './assistant-bar.ts';
@@ -29,6 +30,7 @@ const CONTENT: BarContent = {
   suggestions: ['On my way', '<b>Soon</b>'],
   confirm: null,
   working: false,
+  choice: null,
 };
 
 const PLACES = {
@@ -43,12 +45,18 @@ const KIT = {
   build: buildAssistantBar,
   wire: wireAssistantBar,
   update: updateAssistantBar,
+  choose: updateAssistantChoice,
   suggestion: assistantSuggestion,
 };
 
 interface Stored {
   host: HTMLElement;
-  parts: { input: HTMLInputElement; confirm: HTMLButtonElement; suggest: HTMLButtonElement };
+  parts: {
+    input: HTMLInputElement;
+    confirm: HTMLButtonElement;
+    suggest: HTMLButtonElement;
+    choice: HTMLSelectElement;
+  };
 }
 
 /** A chat with its message box, the scope the adapter world would be, and the bar's bridge. */
@@ -61,6 +69,7 @@ function setup() {
     confirm: vi.fn(),
     use: vi.fn(),
     send: vi.fn(),
+    choose: vi.fn(),
   };
   const scope: Record<string, unknown> = { bridge };
   const render = (content: BarContent = CONTENT): boolean =>
@@ -195,6 +204,33 @@ describe('the bar’s buttons and field', () => {
     expect(t.bridge.confirm).toHaveBeenCalledOnce();
     expect(t.bridge.use).toHaveBeenCalledExactlyOnceWith(0);
     expect(t.bridge.send).toHaveBeenCalledExactlyOnceWith(1);
+  });
+
+  it('shows the extension’s choice beside its name, and passes on only the user’s pick', () => {
+    const t = setup();
+    t.render();
+    const { choice } = t.stored().parts;
+    expect(choice.hidden).toBe(true);
+    const options = [
+      { value: 'fast', label: 'Fast <i>' },
+      { value: 'smart', label: 'Smart' },
+    ];
+    t.render({ ...CONTENT, choice: { label: 'Model', current: 'smart', options } });
+    expect(choice.hidden).toBe(false);
+    expect(choice.getAttribute('aria-label')).toBe('Model');
+    expect([...choice.options].map((option) => [option.value, option.textContent])).toEqual([
+      ['fast', 'Fast <i>'],
+      ['smart', 'Smart'],
+    ]);
+    expect(choice.value).toBe('smart');
+    expect(choice.previousElementSibling?.className).toBe('from');
+    choice.value = 'fast';
+    choice.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(t.bridge.choose).not.toHaveBeenCalled();
+    choice.dispatchEvent(trusted(new Event('change', { bubbles: true })));
+    expect(t.bridge.choose).toHaveBeenCalledExactlyOnceWith('fast');
+    t.render({ ...CONTENT, working: true, choice: { label: 'Model', current: 'fast', options } });
+    expect(choice.disabled).toBe(true);
   });
 
   it('asks with what the user typed on Enter, then clears the field', () => {

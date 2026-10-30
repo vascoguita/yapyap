@@ -43,6 +43,16 @@ const isPrompt = (args: readonly unknown[]): args is [string] => {
 
 const noArguments = (args: readonly unknown[]): args is [] => args.length === 0;
 
+/** The bar's choice offers at most this long a value; the bar then checks it was offered. */
+const MAX_CHOICE = 100;
+
+const isChoice = (args: readonly unknown[]): args is [string] => {
+  const [value, ...rest] = args;
+  return (
+    rest.length === 0 && typeof value === 'string' && value !== '' && value.length <= MAX_CHOICE
+  );
+};
+
 /**
  * Hears the bar's clicks from WhatsApp's page (ADR 0013). Only the active
  * account's WhatsApp view, on WhatsApp's own origin, is heard, and only with
@@ -51,7 +61,7 @@ const noArguments = (args: readonly unknown[]): args is [] => args.length === 0;
  */
 export function listenToAssistantBar(
   ipc: BarIpc,
-  bar: Pick<AssistantBar, 'suggest' | 'prompt' | 'confirm' | 'use' | 'send'>,
+  bar: Pick<AssistantBar, 'suggest' | 'prompt' | 'confirm' | 'use' | 'send' | 'choose'>,
   deps: BarIpcDependencies,
 ): void {
   const fromBar = ({ sender, senderFrame }: BarIpcEvent): boolean =>
@@ -80,4 +90,5 @@ export function listenToAssistantBar(
   on(ASSISTANT_BAR_CHANNELS.confirm, noArguments, bar.confirm);
   on(ASSISTANT_BAR_CHANNELS.use, isIndex, bar.use);
   on(ASSISTANT_BAR_CHANNELS.send, isIndex, bar.send);
+  on(ASSISTANT_BAR_CHANNELS.choose, isChoice, bar.choose);
 }
