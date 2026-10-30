@@ -87,8 +87,8 @@ function siteExtension(
     screenshots: extension.screenshots ?? [],
     versions: versions.map(({ version, published, minYapYap, notes }) => ({
       version,
-      published: published.slice(0, 10),
       minYapYap,
+      published: published.slice(0, 10),
       notes: notes ?? null,
     })),
     installLink: `yapyap://extensions/install/${extension.id}`,

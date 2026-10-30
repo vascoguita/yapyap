@@ -53,7 +53,7 @@ const EntrySchema = Type.Object(
         {
           version: Version,
           /** The source code's tag for this version. */
-          tag: Type.Optional(Type.String({ pattern: '^[\\w./-]{1,100}$' })),
+          tag: Type.Optional(Type.String({ pattern: String.raw`^[\w./-]{1,100}$` })),
           source: Type.String({ maxLength: 400 }),
           sha256: Sha256,
           minYapYap,

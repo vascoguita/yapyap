@@ -10,6 +10,8 @@ describe('compareCodeUnits', () => {
     expect(compareCodeUnits('b', 'a')).toBeGreaterThan(0);
     expect(compareCodeUnits('ab', 'a')).toBeGreaterThan(0);
     expect(compareCodeUnits('a', 'ab')).toBeLessThan(0);
+    // An astral character starts with a surrogate, below U+FFFD, though its code point is above.
+    expect(['\uFFFD', '\u{1F600}'].sort(compareCodeUnits)).toEqual(['\u{1F600}', '\uFFFD']);
   });
 });
 
