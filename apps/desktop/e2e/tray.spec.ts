@@ -38,7 +38,15 @@ test('keeps running hidden when the window closes, with Close to the tray on', a
   }
 });
 
-test('starts hidden when Start minimized is on', async ({ fakeWhatsApp, profile }) => {
+test('starts hidden when Start minimized is on, even when it was last maximized', async ({
+  fakeWhatsApp,
+  profile,
+}) => {
+  // Maximizing shows a hidden window, so a maximized window must stay hidden too.
+  await writeFile(
+    join(profile, 'window-state.json'),
+    JSON.stringify({ maximized: true, fullScreen: false }),
+  );
   const app = await launchWith(fakeWhatsApp.origin, profile, { startMinimized: true });
   try {
     const window = await whatsAppPage(app);

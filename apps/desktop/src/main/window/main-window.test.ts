@@ -6,7 +6,13 @@ import { manageMainWindow, restoreWindowState, type ManagedWindow } from './main
 const SCREEN = { x: 0, y: 0, width: 1920, height: 1040 };
 const BOUNDS = { x: 100, y: 80, width: 1000, height: 700 };
 
-function setup(platform = 'linux', autoHideMenuBar = false, closeToTray = false) {
+function setup(
+  platform = 'linux',
+  autoHideMenuBar = false,
+  closeToTray = false,
+  startMinimized = false,
+) {
+  const shown: (() => void)[] = [];
   const windowListeners = new Map<string, (event: { preventDefault(): void }) => void>();
   const appListeners = new Map<string, () => void>();
   const settingsListeners: ((settings: Settings) => void)[] = [];
@@ -23,6 +29,9 @@ function setup(platform = 'linux', autoHideMenuBar = false, closeToTray = false)
     on: vi.fn((event: string, listener: (event: { preventDefault(): void }) => void) => {
       windowListeners.set(event, listener);
     }),
+    once: vi.fn((_event: 'show', listener: () => void) => {
+      shown.push(listener);
+    }),
   } satisfies ManagedWindow;
   const settings = defaultSettings();
   const deps = {
@@ -32,7 +41,7 @@ function setup(platform = 'linux', autoHideMenuBar = false, closeToTray = false)
       current: () => ({
         ...settings,
         appearance: { ...settings.appearance, autoHideMenuBar },
-        general: { ...settings.general, closeToTray },
+        general: { ...settings.general, closeToTray, startMinimized },
       }),
       onChange: (listener: (settings: Settings) => void) => {
         settingsListeners.push(listener);
@@ -55,7 +64,12 @@ function setup(platform = 'linux', autoHideMenuBar = false, closeToTray = false)
       listener({ ...settings, appearance: { ...settings.appearance, autoHideMenuBar: hide } });
     }
   };
-  return { window, deps, close, appListeners, windowListeners, changeSettings };
+  const show = () => {
+    for (const listener of shown) {
+      listener();
+    }
+  };
+  return { window, deps, close, appListeners, windowListeners, changeSettings, show };
 }
 
 describe('restoreWindowState', () => {
@@ -91,6 +105,18 @@ describe('manageMainWindow', () => {
     manageMainWindow(plain.window, { maximized: false, fullScreen: false }, plain.deps);
     expect(plain.window.maximize).not.toHaveBeenCalled();
     expect(plain.window.setFullScreen).not.toHaveBeenCalled();
+    expect(t.window.once).not.toHaveBeenCalled();
+  });
+
+  it('keeps a window started minimized hidden, and restores its layout once it is shown', () => {
+    const t = setup('linux', false, false, true);
+    manageMainWindow(t.window, { maximized: true, fullScreen: true }, t.deps);
+    expect(t.window.maximize).not.toHaveBeenCalled();
+    expect(t.window.setFullScreen).not.toHaveBeenCalled();
+    expect(t.window.once).toHaveBeenCalledExactlyOnceWith('show', expect.any(Function));
+    t.show();
+    expect(t.window.maximize).toHaveBeenCalledOnce();
+    expect(t.window.setFullScreen).toHaveBeenCalledExactlyOnceWith(true);
   });
 
   it('saves the window state on close and lets the window close outside macOS', () => {

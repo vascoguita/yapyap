@@ -1269,6 +1269,11 @@ not edit the same lines.
   `shortcuts.extensions` (settings version 16), come before suggestions, and
   rebuild the menu.
 
+- Start minimized after a maximized session (#458): maximizing or entering
+  full screen shows a hidden window, so a window started minimized gets its
+  saved layout back only when the tray, the Dock or a second launch first
+  shows it.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).
