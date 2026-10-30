@@ -1,6 +1,6 @@
 {
   "name": "@yapyap/extension-ai-assistant",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "description": "Bring-your-own-model AI writing assistant for YapYap",
   "license": "MIT",
@@ -18,5 +18,8 @@
   "scripts": {
     "build": "vite build",
     "typecheck": "tsc -p tsconfig.json"
+  },
+  "yapyap": {
+    "minVersion": "0.2.1"
   }
 }

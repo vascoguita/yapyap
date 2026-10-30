@@ -1316,6 +1316,15 @@ not edit the same lines.
   same chat. **Settings → Extensions → Suggest replies automatically** (on
   by default, settings version 18) turns it off. ADR 0013 is amended.
 
+- Extensions released on their own (#474): the AI assistant and the call
+  recorder stay in this repository but get their own release-please
+  components, changelogs and `<name>-vX.Y.Z` tags, with `feat` raising the
+  minor version. Releasing one builds and signs it alone, attaches it to
+  its release, and opens a marketplace PR adding the version
+  (`scripts/src/bin/marketplace-release.ts`), with `minYapYap` from its
+  `package.json`. App releases no longer carry the extensions. The
+  assistant's first release of its own will be 0.2.0, needing YapYap 0.2.1.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).

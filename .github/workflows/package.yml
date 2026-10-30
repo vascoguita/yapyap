@@ -220,19 +220,3 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Build the extensions
         run: pnpm --filter "./extensions/**" build
-      # Only YapYap's key may sign extensions under its own ID (ADR 0004). The key
-      # reaches only a file readable by this job's user, which is removed as
-      # soon as the extensions are signed; it is never printed.
-      - name: Sign and pack the first-party extensions
-        if: inputs.release
-        env:
-          EXTENSION_SIGNING_KEY: ${{ secrets.EXTENSION_SIGNING_KEY }}
-        run: node scripts/src/bin/sign-extensions.ts
-      - name: Upload the signed extensions
-        if: inputs.release
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: packages-extensions
-          path: extensions-out/*.yapyap-extension
-          if-no-files-found: error
-          retention-days: 7
