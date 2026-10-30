@@ -249,6 +249,7 @@ export interface Messages {
             readonly '50': string;
           };
         };
+        readonly autoSuggest: { readonly label: string; readonly description: string };
       };
       readonly downloads: {
         readonly askWhere: { readonly label: string; readonly description: string };

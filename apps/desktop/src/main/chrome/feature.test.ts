@@ -473,6 +473,7 @@ describe('createChromeFeature', () => {
         'network.proxyServer': '',
         'extensions.developerMode': false,
         'extensions.chatMessages': '20',
+        'extensions.autoSuggest': true,
         'downloads.askWhere': false,
         'downloads.openWhenDone': false,
         'downloads.folder': '',

@@ -125,3 +125,17 @@ still should.
   provider lists, and Auto picks the newest of the provider's quick tier
   (Claude's Haiku, OpenAI's mini models) or a local server's smallest
   model, so no model name is ever written into it.
+- 2026-10-30 (#468, the maintainer's decision): decision 5 no longer holds
+  as written. When a message arrives in the open chat, the bar asks its
+  extension for suggestions as **Suggest replies** does. A YapYap setting,
+  **Suggest replies automatically**, is on by default and turns it off.
+  While the bar shows for an extension, is not already waiting, and
+  YapYap's window is visible and focused, the main process looks about
+  every second and a half. It asks the page, in the adapter's isolated
+  world, for a hash of the open chat and one of its newest message from
+  someone else. Both are taken from the message's ID and hashed in the
+  page, so no ID, phone number or text leaves it. It asks only when the
+  message hash changes in the same chat on the same page; opening another
+  chat or account, or coming back to YapYap, only notes what is there.
+  The adapter still adds no observers. Each chat still asks before its
+  messages first go to a provider.

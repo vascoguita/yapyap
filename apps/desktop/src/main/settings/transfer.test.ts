@@ -33,7 +33,7 @@ describe('exportSettings', () => {
     const settings = defaultSettings();
     const text = exportSettings(settings);
     const { extensions, ...exported } = settings;
-    expect(extensions).toEqual({ developerMode: false, chatMessages: '20' });
+    expect(extensions).toEqual({ developerMode: false, chatMessages: '20', autoSuggest: true });
     expect(JSON.parse(text)).toEqual({ format: 'yapyap-settings', settings: exported });
     expect(text).toMatch(/^\{\n {2}"format": "yapyap-settings",\n/);
     expect(text.endsWith('}\n')).toBe(true);
@@ -133,12 +133,12 @@ describe('readImport', () => {
 
 describe('keepLocal', () => {
   it('keeps the extension settings as they are, whatever the imported file says', () => {
-    const local = { developerMode: true, chatMessages: '5' } as const;
+    const local = { developerMode: true, chatMessages: '5', autoSuggest: false } as const;
     const current = { ...defaultSettings(), extensions: local };
     const imported = {
       ...defaultSettings(),
       general: { ...defaultSettings().general, autostart: true },
-      extensions: { developerMode: false, chatMessages: '50' } as const,
+      extensions: { developerMode: false, chatMessages: '50', autoSuggest: true } as const,
     };
     expect(keepLocal(imported, current)).toEqual({ ...imported, extensions: local });
     expect(keepLocal(current, imported).extensions).toEqual(imported.extensions);

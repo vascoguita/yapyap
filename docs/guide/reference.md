@@ -35,6 +35,7 @@ the [profile folder](#files).
 | Show who wrote in notifications         | `privacy.notificationSender`        | On                          | Off shows “WhatsApp” instead                                                                  |
 | Developer Mode                          | `extensions.developerMode`          | Off                         | Installs unsigned extensions; never exported or imported                                      |
 | Messages an extension may read          | `extensions.chatMessages`           | 20                          | How many of the open chat's latest messages an extension allowed to read chats receives       |
+| Suggest replies automatically           | `extensions.autoSuggest`            | On                          | Asks the assistant bar for suggestions when a message arrives in the open chat                |
 | Blur when not in front                  | `privacy.blurWhenUnfocused`         | Off                         | The privacy screen covers WhatsApp while another window is in front                           |
 | Blur when you are away                  | `privacy.blurWhenIdle`              | Off                         | After five minutes without using the computer                                                 |
 | Show message text in notifications      | `privacy.notificationText`          | On                          | Off shows “New message”; the text never reaches the system                                    |

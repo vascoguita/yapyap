@@ -5,6 +5,7 @@ import type { AccountSummary } from '../shared/chrome-api.ts';
 import type { AccountMenu, ChromeFeature, WhatsAppContents } from './chrome/feature.ts';
 import type { SidebarPort } from './chrome/sidebar.ts';
 import { listenToAssistantBar, type BarIpc } from './assistant/bar-ipc.ts';
+import { suggestAsMessagesArrive } from './assistant/auto-suggest.ts';
 import { inPageAssistantBar } from './assistant/bar-page.ts';
 import { watchConnectivity } from './connectivity/connectivity.ts';
 import { PRODUCT_NAME } from './identity.ts';
@@ -841,15 +842,23 @@ function attachAssistantBar<Window extends WindowPort>(
   const activePage = (): AccountContents => running.active().page.contents;
   chrome.attachAssistantBar((bar) => {
     listenToAssistantBar(deps.ipc, bar, {
-      views: security.views,
       origin,
       activePage,
+      views: security.views,
       warn: deps.warn,
     });
-    return inPageAssistantBar(bar.state, {
+    const onScreen = (): boolean => window.isVisible() && window.isFocused();
+    suggestAsMessagesArrive({
       activePage,
-      onScreen: () => window.isVisible() && window.isFocused(),
+      active: () =>
+        deps.settings.current().extensions.autoSuggest &&
+        bar.state().extension !== '' &&
+        !bar.state().working &&
+        onScreen(),
+      suggest: () => bar.suggest(),
+      every: setInterval,
     });
+    return inPageAssistantBar(bar.state, { activePage, onScreen });
   });
 }
 

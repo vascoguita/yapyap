@@ -140,6 +140,14 @@ function addRecordingFormat(settings: Raw): Raw {
     : settings;
 }
 
+/** Version 18 suggests replies automatically as messages arrive, on unless turned off (#468). */
+function addAutoSuggest(settings: Raw): Raw {
+  const extensions = settings['extensions'];
+  return isSection(extensions)
+    ? { ...settings, extensions: { autoSuggest: true, ...extensions } }
+    : settings;
+}
+
 /**
  * `MIGRATIONS[n]` turns a version n+1 file into version n+2. They are pure,
  * forward-only, and each has its own test; a test also checks that there is
@@ -162,6 +170,7 @@ export const MIGRATIONS: readonly ((settings: Raw) => Raw)[] = [
   addRecording,
   addExtensionShortcuts,
   addRecordingFormat,
+  addAutoSuggest,
 ];
 
 export type MigrationResult =
