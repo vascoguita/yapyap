@@ -317,6 +317,10 @@
             "20": "20",
             "50": "50"
           }
+        },
+        "autoSuggest": {
+          "label": "Suggest replies automatically",
+          "description": "When a message arrives in the chat you have open, the assistant bar asks for reply suggestions on its own. Each chat still asks before its messages first go to your AI provider."
         }
       },
       "downloads": {

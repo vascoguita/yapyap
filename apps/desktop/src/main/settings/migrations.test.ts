@@ -51,6 +51,31 @@ describe('migrate', () => {
   });
 });
 
+describe('version 17 to 18', () => {
+  const toVersion18 = MIGRATIONS[16];
+
+  it('suggests replies automatically, keeping the other extension settings', () => {
+    expect(toVersion18?.({ schemaVersion: 17, extensions: { developerMode: true } })).toEqual({
+      schemaVersion: 17,
+      extensions: { autoSuggest: true, developerMode: true },
+    });
+  });
+
+  it('keeps a choice that is already there', () => {
+    expect(toVersion18?.({ extensions: { autoSuggest: false } })).toEqual({
+      extensions: { autoSuggest: false },
+    });
+  });
+
+  it.each([undefined, null, 'on', [true]])(
+    'leaves an extensions section of %j for validation to reset',
+    (extensions) => {
+      const settings = { schemaVersion: 17, extensions };
+      expect(toVersion18?.(settings)).toBe(settings);
+    },
+  );
+});
+
 describe('version 16 to 17', () => {
   const toVersion17 = MIGRATIONS[15];
 

@@ -744,6 +744,51 @@ export default {
 };
 `;
 
+test('asks for suggestions on its own when a message arrives in the open chat', async ({
+  app,
+  profile,
+  window,
+}) => {
+  await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
+  await installExtension(
+    app,
+    profile,
+    testManifest({ capabilities: ['assistant:bar'], network: { hosts: [] } }),
+    SUGGESTER,
+  );
+  // A virtual display without a window manager focuses nothing on its own.
+  // The extension's hidden host is a window too, and window order differs by
+  // OS, so the main window is the one that holds WhatsApp.
+  await expect
+    .poll(() =>
+      app.evaluate(({ BrowserWindow, webContents }) => {
+        const whatsapp = webContents
+          .getAllWebContents()
+          .find((contents) => contents.getURL().startsWith('http'));
+        const main = whatsapp === undefined ? null : BrowserWindow.fromWebContents(whatsapp);
+        main?.focus();
+        return main?.isFocused();
+      }),
+    )
+    .toBe(true);
+  const names = async () => (await assistantBarControls(app))?.map(({ name }) => name);
+  await expect.poll(names).toEqual(['Suggest replies', 'Write a message']);
+  // What is already there when the bar first looks asks for nothing.
+  await window.waitForTimeout(2000);
+  expect(await names()).toEqual(['Suggest replies', 'Write a message']);
+  await window.evaluate(() => {
+    const row = document.createElement('div');
+    row.setAttribute('role', 'row');
+    row.innerHTML =
+      '<div data-id="3EB0F9"><span data-testid="selectable-text">Still on?</span></div>';
+    const rows = document.querySelectorAll('#main [role="row"]');
+    rows[rows.length - 1]?.after(row);
+  });
+  await expect
+    .poll(names, { timeout: 10_000 })
+    .toEqual(['Suggest replies', 'On my way!', 'Send this suggestion now', 'Write a message']);
+});
+
 test('sends an extension’s suggestion from the bar above the message box only on the user’s click', async ({
   app,
   profile,

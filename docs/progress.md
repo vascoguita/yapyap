@@ -1307,6 +1307,15 @@ not edit the same lines.
   40 calls, at the same 5 a second, since the assistant's panel and bar
   share it (C36 in ADR 0008).
 
+- Suggestions as messages arrive (#468): when a message arrives in the open
+  chat, the assistant bar asks for suggestions on its own, while YapYap's
+  window is in front and the bar is not already waiting. The main process
+  looks about every 1.5 seconds with an adapter probe that returns only
+  hashes of the chat and of its newest incoming message, computed in the
+  page from the message ID, and asks only when the message changes in the
+  same chat. **Settings → Extensions → Suggest replies automatically** (on
+  by default, settings version 18) turns it off. ADR 0013 is amended.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).

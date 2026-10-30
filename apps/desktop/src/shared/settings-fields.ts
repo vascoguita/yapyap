@@ -177,4 +177,5 @@ export const SETTING_FIELDS: readonly SettingField[] = [
     restart: false,
     options: choices(text.extensions.chatMessages.options),
   },
+  { ...described('extensions', 'autoSuggest'), restart: false },
 ];

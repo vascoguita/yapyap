@@ -906,6 +906,12 @@ describe('startApp', () => {
   it('puts the assistant bar back only while the window is on screen', async () => {
     vi.useFakeTimers();
     const f = fakes();
+    const settings = defaultSettings();
+    // Only the bar's own drawing counts here, not the look for new messages.
+    f.settings.current = () => ({
+      ...settings,
+      extensions: { ...settings.extensions, autoSuggest: false },
+    });
     await startApp(f);
     f.runtime.assistantBarView?.show(true);
     f.web.contents.executeJavaScriptInIsolatedWorld.mockClear();
@@ -915,6 +921,25 @@ describe('startApp', () => {
     f.window.isFocused.mockReturnValue(true);
     vi.advanceTimersByTime(1000);
     expect(f.web.contents.executeJavaScriptInIsolatedWorld).toHaveBeenCalledOnce();
+    f.runtime.assistantBarView?.show(false);
+    vi.useRealTimers();
+  });
+
+  it('suggests replies on its own when a message arrives, while the setting allows', async () => {
+    vi.useFakeTimers();
+    const f = fakes();
+    await startApp(f);
+    f.window.isFocused.mockReturnValue(true);
+    f.runtime.assistantBarView?.show(true);
+    f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValue('aaaaaaaa:00000001');
+    await vi.advanceTimersByTimeAsync(1500);
+    f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValue('aaaaaaaa:00000002');
+    await vi.advanceTimersByTimeAsync(1500);
+    expect(f.runtime.assistantBar.suggest).toHaveBeenCalledOnce();
+    f.window.isFocused.mockReturnValue(false);
+    f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValue('aaaaaaaa:00000003');
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(f.runtime.assistantBar.suggest).toHaveBeenCalledOnce();
     f.runtime.assistantBarView?.show(false);
     vi.useRealTimers();
   });

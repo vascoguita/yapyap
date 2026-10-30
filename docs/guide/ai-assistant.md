@@ -79,6 +79,13 @@ chat, right above the message box, under the assistant's name.
    box, where you can edit it, or click its **Send** button to send it as
    it is.
 
+When a message arrives in the chat you have open, the bar asks for
+suggestions on its own, so replies are ready by the time you look. It does
+this only while YapYap's window is in front, and each chat still asks
+before its messages first go to your provider. To ask only when you
+choose **Suggest replies**, turn off **Settings → Extensions → Suggest
+replies automatically**.
+
 YapYap sends only on your click, and only to the chat the suggestion was
 made for: if you opened another chat meanwhile, it clears the suggestions
 and sends nothing. To hide the bar, take back the assistant's permission
