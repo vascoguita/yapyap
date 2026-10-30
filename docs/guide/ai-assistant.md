@@ -18,7 +18,7 @@ Open **Extensions…**, find **AI assistant**, and open **Settings**:
 | Setting          | What it does                                                                                                                                                      |
 | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Provider         | **anthropic** for Claude, **openai** for OpenAI, or **compatible** for your own OpenAI-compatible server                                                          |
-| Model            | The model's name as your provider writes it. Claude uses `claude-opus-5-5` when this is empty                                                                     |
+| Model            | The model's name as your provider writes it. Claude uses `claude-haiku-5-5` when this is empty                                                                    |
 | Server address   | For **compatible** only: the server's `https://` address, such as `https://llm.example.org/v1`, or a server on this computer, such as `http://localhost:11434/v1` |
 | Messages to send | How many of the chat's latest messages the assistant sends: 5, 10 or 20                                                                                           |
 | Local-only mode  | Only ask an AI server running on this computer, so nothing about your chats leaves it                                                                             |

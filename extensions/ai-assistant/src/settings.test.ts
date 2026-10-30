@@ -11,7 +11,7 @@ describe('assistantSettings', () => {
   it('uses Claude’s default model until the user chooses a provider and model', () => {
     expect(assistantSettings({})).toEqual({
       provider: 'anthropic',
-      model: 'claude-opus-5-5',
+      model: 'claude-haiku-5-5',
       endpoint: '',
       context: 10,
       localOnly: false,

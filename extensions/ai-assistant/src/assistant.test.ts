@@ -20,7 +20,7 @@ describe('stateOf', () => {
     await expect(stateOf(host)).resolves.toEqual({
       type: 'state',
       provider: 'anthropic',
-      model: 'claude-opus-5-5',
+      model: 'claude-haiku-5-5',
       missing: 'key',
     });
     secrets.set('apiKey.anthropic', 'sk-secret');
@@ -50,7 +50,7 @@ describe('servePanel', () => {
     servePanel(host, channel);
     await vi.waitFor(() => {
       expect(sent).toEqual([
-        { type: 'state', provider: 'anthropic', model: 'claude-opus-5-5', missing: 'key' },
+        { type: 'state', provider: 'anthropic', model: 'claude-haiku-5-5', missing: 'key' },
       ]);
     });
     const broken = fakeHost();
