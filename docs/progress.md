@@ -1280,6 +1280,7 @@ not edit the same lines.
   instead of awaiting reads in a loop. The two `charCodeAt` findings in
   `canonical.ts` are false positives: signatures sort keys by UTF-16 code
   unit, which a test now pins with an astral character.
+
 - Faster default model (#463): the AI assistant uses `claude-haiku-5-5`
   with Claude when no model is set, fast and inexpensive enough for
   everyday chat replies. A model the user set is kept.
