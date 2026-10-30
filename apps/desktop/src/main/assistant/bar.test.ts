@@ -44,6 +44,7 @@ describe('createAssistantBar', () => {
       suggestions: [],
       confirm: undefined,
       working: false,
+      choice: undefined,
     });
     t.bar.refresh();
     expect(t.deps.publish).toHaveBeenCalledOnce();
@@ -148,5 +149,51 @@ describe('createAssistantBar', () => {
     t.bar.refresh();
     expect(t.bar.state().extension).toBe('');
     expect(t.deps.show).toHaveBeenLastCalledWith(false);
+  });
+
+  const MODELS = {
+    label: 'Model',
+    current: 'fast',
+    options: [
+      { value: 'fast', label: 'Fast' },
+      { value: 'smart', label: 'Smart' },
+    ],
+  };
+
+  it('shows the extension’s choice, and keeps it until the extension offers another', () => {
+    const t = setup();
+    t.bar.offer('org.example.ai', { suggestions: [], choice: MODELS });
+    const shown = { label: 'Model', current: 'fast', options: MODELS.options };
+    expect(t.bar.state().choice).toEqual(shown);
+    t.bar.offer('org.example.ai', { suggestions: ['Hi'] });
+    expect(t.bar.state().choice).toEqual(shown);
+  });
+
+  it('passes the option the user picks to the extension, and asks again if it had suggested', async () => {
+    const t = setup();
+    t.bar.offer('org.example.ai', { suggestions: [], choice: MODELS });
+    await t.bar.choose('smart');
+    expect(t.deps.ask).toHaveBeenCalledExactlyOnceWith('org.example.ai', {
+      type: 'choose',
+      value: 'smart',
+    });
+    expect(t.bar.state().choice?.current).toBe('smart');
+    t.bar.offer('org.example.ai', { suggestions: ['Hi'] });
+    await t.bar.choose('fast');
+    expect(t.deps.ask.mock.calls.slice(1)).toEqual([
+      ['org.example.ai', { type: 'choose', value: 'fast' }],
+      ['org.example.ai', { type: 'suggest' }],
+    ]);
+  });
+
+  it('passes on nothing the extension did not offer, nor without a choice or an extension', async () => {
+    const t = setup();
+    await t.bar.choose('fast');
+    t.bar.offer('org.example.ai', { suggestions: [], choice: MODELS });
+    await t.bar.choose('other');
+    const none = setup([]);
+    await none.bar.choose('fast');
+    expect(t.deps.ask).not.toHaveBeenCalled();
+    expect(none.deps.ask).not.toHaveBeenCalled();
   });
 });

@@ -21,6 +21,12 @@ export interface BarContent {
   /** The label of the extension's question's button, or null for none. */
   readonly confirm: string | null;
   readonly working: boolean;
+  /** The extension's choice, such as its model, or null for none. */
+  readonly choice: {
+    readonly label: string;
+    readonly current: string;
+    readonly options: readonly { readonly value: string; readonly label: string }[];
+  } | null;
 }
 
 /** Where the bar goes and what it keeps, fixed for every render. */
@@ -76,6 +82,7 @@ interface BarParts {
   readonly suggest: BarNode;
   readonly status: BarNode;
   readonly confirm: BarNode;
+  readonly choice: BarNode;
   readonly list: BarNode;
   readonly input: BarNode;
 }
@@ -92,8 +99,9 @@ type Scope = Record<string, unknown>;
 /** The bar's helpers, passed in because each runs as its own source text. */
 export interface BarKit {
   readonly build: (doc: BarDocument, scope: Scope, places: BarPlaces, kit: BarKit) => BarStore;
-  readonly wire: (shadow: BarNode, input: BarNode, scope: Scope, bridge: string) => void;
+  readonly wire: (shadow: BarNode, parts: BarParts, scope: Scope, bridge: string) => void;
   readonly update: (doc: BarDocument, parts: BarParts, content: BarContent, kit: BarKit) => void;
+  readonly choose: (doc: BarDocument, select: BarNode, content: BarContent) => void;
   readonly suggestion: (
     doc: BarDocument,
     text: string,
@@ -162,6 +170,8 @@ export function buildAssistantBar(
   const parts: BarParts = {
     bar,
     from: make('span', 'from', row),
+    // Right after the extension's name, so "AI assistant · model" reads as one phrase.
+    choice: make('select', 'choice', row),
     suggest: make('button', 'button primary', row),
     status: make('output', 'status', row),
     confirm: make('button', 'button', row),
@@ -172,7 +182,7 @@ export function buildAssistantBar(
   parts.confirm.dataset['action'] = 'confirm';
   parts.input.setAttribute('type', 'text');
   parts.input.setAttribute('maxlength', String(places.maxPrompt));
-  kit.wire(shadow, parts.input, scope, places.bridge);
+  kit.wire(shadow, parts, scope, places.bridge);
   return { host, parts, key: null };
 }
 
@@ -181,7 +191,13 @@ export function buildAssistantBar(
  * page script made up, and keeps typing in the bar from reaching WhatsApp's
  * own keyboard shortcuts.
  */
-export function wireAssistantBar(shadow: BarNode, input: BarNode, scope: Scope, key: string): void {
+export function wireAssistantBar(
+  shadow: BarNode,
+  parts: BarParts,
+  scope: Scope,
+  key: string,
+): void {
+  const { input, choice } = parts;
   type Actions = Record<string, ((value: unknown) => void) | undefined>;
   const bridge = (): Actions => (scope[key] ?? {}) as Actions;
   const typing = ['keydown', 'keypress', 'keyup', 'beforeinput', 'input', 'paste', 'cut', 'copy'];
@@ -194,6 +210,11 @@ export function wireAssistantBar(shadow: BarNode, input: BarNode, scope: Scope, 
     const button = event.isTrusted ? (event.target as BarNode).closest('[data-action]') : null;
     if (button !== null) {
       bridge()[String(button.dataset['action'])]?.(Number(button.dataset['index']));
+    }
+  });
+  choice.addEventListener('change', (event) => {
+    if (event.isTrusted) {
+      bridge()['choose']?.(choice.value);
     }
   });
   input.addEventListener('keydown', (event) => {
@@ -231,6 +252,28 @@ export function updateAssistantBar(
   parts.list.replaceChildren(
     ...content.suggestions.map((text, index) => kit.suggestion(doc, text, index, labels)),
   );
+  parts.choice.setAttribute(name, content.choice?.label ?? '');
+  kit.choose(doc, parts.choice, content);
+}
+
+/** The extension's choice, such as its model, shown as a list only when there is one to pick from. */
+export function updateAssistantChoice(
+  doc: BarDocument,
+  select: BarNode,
+  content: BarContent,
+): void {
+  const choice = content.choice ?? { label: '', current: '', options: [] };
+  select.hidden = choice.options.length === 0;
+  select.disabled = content.working;
+  select.replaceChildren(
+    ...choice.options.map((option) => {
+      const node = doc.createElement('option');
+      node.setAttribute('value', option.value);
+      node.textContent = option.label;
+      return node;
+    }),
+  );
+  select.value = choice.current;
 }
 
 /** One suggestion: its text puts it in the message box; the arrow sends it, on this click only. */
@@ -307,6 +350,11 @@ li { display: flex; flex: none; max-inline-size: 60%; }
   border-start-start-radius: 0; border-end-start-radius: 0; color: var(--accent);
 }
 svg { inline-size: 14px; block-size: 14px; fill: currentColor; }
+.choice {
+  max-inline-size: 40%; padding: 2px 8px; border: 1px solid var(--border); border-radius: 999px;
+  background: transparent; color: var(--muted); font: inherit;
+}
+.choice:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .input {
   box-sizing: border-box; inline-size: 100%; padding: 5px 12px; border: 1px solid var(--border);
   border-radius: 999px; background: transparent; color: var(--text); font: inherit;
@@ -330,6 +378,7 @@ export function assistantBarRender(content: BarContent): string {
     `build: ${buildAssistantBar.toString()}`,
     `wire: ${wireAssistantBar.toString()}`,
     `update: ${updateAssistantBar.toString()}`,
+    `choose: ${updateAssistantChoice.toString()}`,
     `suggestion: ${assistantSuggestion.toString()}`,
   ].join(', ');
   return `(${renderAssistantBar.toString()})(document, globalThis, ${JSON.stringify(content)}, ${JSON.stringify(PLACES)}, { ${kit} })`;

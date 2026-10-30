@@ -18,7 +18,6 @@ Open **Extensions…**, find **AI assistant**, and open **Settings**:
 | Setting          | What it does                                                                                                                                                      |
 | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Provider         | **anthropic** for Claude, **openai** for OpenAI, or **compatible** for your own OpenAI-compatible server                                                          |
-| Model            | The model's name as your provider writes it. Claude uses `claude-opus-5-5` when this is empty                                                                     |
 | Server address   | For **compatible** only: the server's `https://` address, such as `https://llm.example.org/v1`, or a server on this computer, such as `http://localhost:11434/v1` |
 | Messages to send | How many of the chat's latest messages the assistant sends: 5, 10 or 20                                                                                           |
 | Local-only mode  | Only ask an AI server running on this computer, so nothing about your chats leaves it                                                                             |
@@ -26,11 +25,28 @@ Open **Extensions…**, find **AI assistant**, and open **Settings**:
 YapYap's own **Settings → Extensions → Messages an extension may read** still caps
 what any extension can read, whatever the assistant asks for.
 
+## Choose the model
+
+There is no model name to type. The bar names the model that answers, and
+its list holds every model your provider offers, with **Auto** first, the
+default:
+
+- With Claude, Auto uses the newest of Claude's fast, inexpensive models
+  (Haiku).
+- With OpenAI, it uses the newest "mini" chat model.
+- With a server on your computer, it uses the smallest model you installed,
+  which answers fastest.
+
+When your provider releases a newer model, Auto moves to it by itself.
+Pick a model in the list to use that one instead; the assistant keeps your
+pick until you change it, or until your provider stops offering it, when
+it goes back to Auto.
+
 ## Run a model on your own computer
 
 With a model server running on your computer, such as Ollama, choose the
 **compatible** provider and its address on this computer, such as
-`http://localhost:11434/v1`, with the model's name. Such a server needs no
+`http://localhost:11434/v1`. The bar lists the models you installed. Such a server needs no
 API key. Turn on **Local-only mode** to make sure of it: the assistant then
 refuses to ask anything but a server on this computer. YapYap lets the
 assistant reach servers on this computer only because you approved

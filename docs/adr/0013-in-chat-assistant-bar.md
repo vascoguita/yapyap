@@ -115,3 +115,13 @@ still should.
     longer on screen loses its bar.
   - The chrome view, its page and the space the main window kept for it
     are gone.
+- 2026-10-30 (#467, the maintainer's decision): an offer may carry a
+  `choice`, such as the model in use, which the bar shows as a list beside
+  the extension's name. Picking an option sends the extension a `choose`
+  request with its value, only for an option the extension offered, and
+  asks for suggestions again if some were showing. The bar never saves
+  the pick; the extension keeps it in its own storage. The AI assistant
+  has no Model setting: its list holds **Auto** and every model the
+  provider lists, and Auto picks the newest of the provider's quick tier
+  (Claude's Haiku, OpenAI's mini models) or a local server's smallest
+  model, so no model name is ever written into it.

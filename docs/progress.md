@@ -1293,6 +1293,17 @@ not edit the same lines.
   (ADR 0013 amendment, C35 in ADR 0008). The bar shows as soon as its
   extension runs, so a request made before the extension's page has its
   port, or before the page listens, waits for it instead of being lost.
+  (ADR 0013 amendment, C35 in ADR 0008).
+
+- Model choice and Auto (#467, #463): the assistant bar shows the model
+  that answers and lists every model the provider offers, with **Auto**
+  first. Auto picks the newest of Claude's Haiku models, OpenAI's newest
+  mini chat model, or a local server's smallest installed model (sizes
+  from Ollama's `/api/tags`), so no model is hard-coded. The Model setting
+  is gone: a pick in the bar reaches the extension as a `choose` request,
+  only for an offered option, and the extension keeps it in its storage,
+  falling back to Auto once the provider stops listing it. Lists are kept
+  ten minutes per provider and key.
 
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,

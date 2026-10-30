@@ -8,6 +8,7 @@ const STATE: AssistantBarState = {
   suggestions: ['On my way'],
   confirm: undefined,
   working: true,
+  choice: undefined,
 };
 
 function fakePage() {
@@ -71,11 +72,13 @@ describe('inPageAssistantBar', () => {
       suggestions: ['On my way'],
       confirm: null,
       working: true,
+      choice: null,
     });
-    t.setState({ ...STATE, confirm: 'Send 3 messages', working: false });
+    const choice = { label: 'Model', current: 'm', options: [{ value: 'm', label: 'M' }] };
+    t.setState({ ...STATE, confirm: 'Send 3 messages', working: false, choice });
     t.view.publish(STATE);
     expect(contentOf(t.page())).toEqual(
-      expect.objectContaining({ confirm: 'Send 3 messages', working: false }),
+      expect.objectContaining({ confirm: 'Send 3 messages', working: false, choice }),
     );
     t.view.show(false);
     expect(contentOf(t.page())).toEqual(expect.objectContaining({ visible: false }));

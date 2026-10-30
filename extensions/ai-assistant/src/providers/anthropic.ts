@@ -9,9 +9,6 @@ import {
 } from './provider.ts';
 import { kindOf } from './errors.ts';
 
-/** The model the assistant uses until the user picks another. */
-export const DEFAULT_ANTHROPIC_MODEL = 'claude-opus-5-5';
-
 /**
  * Models that accept server-side refusal fallbacks, so a declined request is
  * retried on another model inside the same call instead of failing.

@@ -36,6 +36,7 @@ export interface AssistantBar {
   readonly confirm: () => void;
   readonly use: (index: number) => Promise<void>;
   readonly send: (index: number) => Promise<void>;
+  readonly choose: (value: string) => Promise<void>;
 }
 
 const EMPTY: AssistantBarState = {
@@ -44,6 +45,7 @@ const EMPTY: AssistantBarState = {
   suggestions: [],
   confirm: undefined,
   working: false,
+  choice: undefined,
 };
 
 /** Status lines YapYap itself shows, in the user's words. */
@@ -106,6 +108,35 @@ function refreshBar(bar: BarContext): void {
   bar.deps.show(bar.serving !== undefined);
 }
 
+/** Shows what the extension offers, keeping its last choice until it offers another. */
+function showOffer(bar: BarContext, offer: AssistantOffer): void {
+  const { status = '', suggestions, confirm, choice } = offer;
+  const shown =
+    choice === undefined
+      ? bar.state.choice
+      : { label: choice.label, current: choice.current, options: choice.options };
+  update(bar, { status, suggestions, confirm, working: false, choice: shown });
+}
+
+/**
+ * Passes the option the user picked, such as another model, to the
+ * extension, and asks again with it if suggestions were showing (#467).
+ * Only an option the extension offered is passed on.
+ */
+async function chooseOption(bar: BarContext, value: string): Promise<void> {
+  const { choice } = bar.state;
+  const offered = choice?.options.some((option) => option.value === value) === true;
+  if (bar.serving === undefined || choice === undefined || !offered) {
+    return;
+  }
+  bar.deps.ask(bar.serving.id, { type: 'choose', value });
+  const asked = bar.state.suggestions.length > 0;
+  update(bar, { choice: { ...choice, current: value } });
+  if (asked) {
+    await askExtension(bar, { type: 'suggest' });
+  }
+}
+
 /**
  * The assistant bar above the open chat's message box (ADR 0013). It shows what the
  * first running extension holding `assistant:bar` offers, as plain text, and
@@ -114,7 +145,13 @@ function refreshBar(bar: BarContext): void {
  * still the one open.
  */
 export function createAssistantBar(deps: AssistantBarDependencies, texts: BarTexts): AssistantBar {
-  const bar: BarContext = { deps, texts, state: EMPTY, serving: undefined, chat: null };
+  const bar: BarContext = {
+    deps,
+    texts,
+    state: EMPTY,
+    serving: undefined,
+    chat: null,
+  };
   return {
     state: () => bar.state,
     refresh: () => {
@@ -122,8 +159,7 @@ export function createAssistantBar(deps: AssistantBarDependencies, texts: BarTex
     },
     offer: (extension, offer) => {
       if (extension === bar.serving?.id) {
-        const { status = '', suggestions, confirm } = offer;
-        update(bar, { status, suggestions, confirm, working: false });
+        showOffer(bar, offer);
       }
     },
     suggest: () => askExtension(bar, { type: 'suggest' }),
@@ -143,5 +179,6 @@ export function createAssistantBar(deps: AssistantBarDependencies, texts: BarTex
         update(bar, { suggestions: [], status: '' });
       }
     },
+    choose: (value) => chooseOption(bar, value),
   };
 }
