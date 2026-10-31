@@ -1,5 +1,10 @@
 import { extname, resolve, sep } from 'node:path';
-import { HOST_SCRIPT_PATH, PANEL_PAGE_PATH, PANEL_STYLE_PATH } from '../../shared/extension-rpc.ts';
+import {
+  HOST_SCRIPT_PATH,
+  PANEL_PAGE_PATH,
+  PANEL_STYLE_PATH,
+  TEST_MODEL_PATH,
+} from '../../shared/extension-rpc.ts';
 import { hostScript } from './host-script.ts';
 import { PANEL_STYLE } from './panel-style.ts';
 
@@ -153,6 +158,15 @@ function yapyapFile(
   return undefined;
 }
 
+/**
+ * The test model of an unpackaged YapYap's E2E tests (#457), only to an
+ * extension holding `local-model`, the one that runs a model.
+ */
+const testModelFile = (model: string | undefined, policy: PolicyHeaders): Response =>
+  model !== undefined && policy === LOCAL_MODEL
+    ? respond(model, 'application/json', policy)
+    : notFound();
+
 /** Where a running extension's files are, and the module it starts from. */
 export interface ExtensionSource {
   readonly folder: string;
@@ -167,12 +181,14 @@ export interface ExtensionSource {
  * `localModel` says the extension holds that grant. `source` and
  * `localModel` are read per request, so an update takes effect without a new
  * handler, and taking the grant back applies from the page's next load.
+ * `testModel` is only ever given by an unpackaged YapYap under E2E tests.
  */
 export function serveExtensionFiles(
   id: string,
   source: () => ExtensionSource | undefined,
   readFile: (path: string) => Promise<Uint8Array>,
   localModel: () => boolean,
+  testModel?: string,
 ): (request: { readonly url: string }) => Promise<Response> {
   return async (request) => {
     const url = new URL(request.url);
@@ -181,6 +197,9 @@ export function serveExtensionFiles(
       return notFound();
     }
     const policy = localModel() ? LOCAL_MODEL : STRICT;
+    if (url.pathname === TEST_MODEL_PATH) {
+      return testModelFile(testModel, policy);
+    }
     const own = yapyapFile(url.pathname, current, policy);
     if (own !== undefined) {
       return own;

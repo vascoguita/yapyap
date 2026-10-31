@@ -2,7 +2,7 @@ import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ElectronApplication, Page } from '@playwright/test';
-import { signedArchive, testKey, zipArchive } from '../test/extensions.ts';
+import { signedArchive, testKey, zipArchive, type TestFiles } from '../test/extensions.ts';
 import { expect, whatsAppPage } from './fixtures.ts';
 
 /**
@@ -97,7 +97,7 @@ export async function installExtension(
   profile: string,
   manifest: Record<string, unknown>,
   main: string,
-  files: Readonly<Record<string, string>> = {},
+  files: TestFiles = {},
   allow: string | readonly string[] = [],
 ): Promise<void> {
   const archive = join(profile, `${String(manifest['id'])}.yapyap-extension`);
@@ -131,7 +131,7 @@ export async function installExtension(
 export interface BuiltExtension {
   readonly manifest: Record<string, unknown>;
   readonly main: string;
-  readonly others: Readonly<Record<string, string>>;
+  readonly others: TestFiles;
 }
 
 /**
@@ -144,14 +144,21 @@ export async function builtExtension(folder: string, id: string): Promise<BuiltE
     string,
     unknown
   >;
-  const names = (await readdir(dist)).filter((name) => name.endsWith('.js'));
+  // Scripts as text, and binaries such as the private model's engine (#457) as bytes.
+  const names = (await readdir(dist)).filter((name) => name !== 'manifest.json');
   const files = Object.fromEntries(
     await Promise.all(
-      names.map(async (name) => [name, await readFile(join(dist, name), 'utf8')] as const),
+      names.map(async (name) => {
+        const bytes = await readFile(join(dist, name));
+        return [
+          name,
+          name.endsWith('.js') ? bytes.toString('utf8') : new Uint8Array(bytes),
+        ] as const;
+      }),
     ),
   );
   const { 'main.js': main = '', ...others } = files;
-  return { manifest: { ...manifest, id }, main, others };
+  return { manifest: { ...manifest, id }, main: typeof main === 'string' ? main : '', others };
 }
 
 /** A control of the assistant bar, and where on the page the user would click it. */
@@ -190,6 +197,23 @@ function readBarControls(): BarControl[] | null {
       };
     });
 }
+
+/** Runs in the adapter's isolated world, as {@link readBarControls} does: the bar's status line. */
+function readBarStatus(): string | null {
+  const kept = (globalThis as { yapyapAssistantBarView?: { parts: { status: HTMLElement } } })
+    .yapyapAssistantBarView;
+  return kept?.parts.status.textContent ?? null;
+}
+
+/** The assistant bar's status line in the active account's WhatsApp, or null while it is not there. */
+export const assistantBarStatus = (app: ElectronApplication): Promise<string | null> =>
+  app.evaluate(async ({ webContents }, code) => {
+    const page = webContents
+      .getAllWebContents()
+      .find((candidate) => candidate.getURL().startsWith('http://127.0.0.1'));
+    const status: unknown = await page?.executeJavaScriptInIsolatedWorld(1000, [{ code }]);
+    return typeof status === 'string' ? status : null;
+  }, `(${readBarStatus.toString()})()`);
 
 /** The assistant bar's controls in the active account's WhatsApp, or null while it is not there. */
 export const assistantBarControls = (app: ElectronApplication): Promise<BarControl[] | null> =>

@@ -88,7 +88,12 @@ import { cappedFetcher } from './marketplace/fetch.ts';
 import { marketplaceSource } from './marketplace/source.ts';
 import { askModelSearch, electronExtensionDialogs } from './extensions/extension-dialogs.ts';
 import type { LocalModelsService } from './extensions/host-methods.ts';
-import { findLocalModels, loopbackRequest, modelServerPorts } from './extensions/local-models.ts';
+import {
+  findLocalModels,
+  loopbackRequest,
+  modelServerPorts,
+  testModelOf,
+} from './extensions/local-models.ts';
 import { trayImage } from './tray/tray-icon.ts';
 import { createAccountHost, createSecureWindow, createSidebarView } from './windows.ts';
 
@@ -315,6 +320,7 @@ const chrome = createChromeFeature({
     },
     sessionOf: (partition) => session.fromPartition(partition),
     presentHeaders: (headers) => rewriteClientHints(headers, process.versions.chrome),
+    testModel: testModelOf(process.env, app.isPackaged),
     // An extension's code runs in a window never shown; its UI is YapYap's, or its panel (ADR 0004).
     createHost: (partition) => {
       const host = createSecureWindow(
