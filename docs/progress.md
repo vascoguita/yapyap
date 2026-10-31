@@ -1464,3 +1464,8 @@ not edit the same lines.
 
 - Build-only advisories without an upstream fix are resolved with `overrides` in
   `pnpm-workspace.yaml`, each with a comment explaining why.
+
+- The hostile-extension E2E floods the host with three times the RPC burst
+  (`RPC_OPTIONS.rate.burst`), not a fixed 40: once the burst rose to 40
+  (C36), a flood of exactly 40 calls fitted within it on a slow Windows
+  runner, since the bucket refills while the calls arrive.
