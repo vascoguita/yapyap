@@ -4,11 +4,19 @@ import { Value } from 'typebox/value';
 import type { Fetcher } from '../marketplace/index-client.ts';
 import { cappedFetcher, type StreamedResponse } from '../marketplace/fetch.ts';
 
-/**
- * Where people's model servers usually listen (#456): Ollama, the Ollama
- * that Alpaca runs, LM Studio and llama.cpp's server.
- */
-export const MODEL_SERVER_PORTS: readonly number[] = [11434, 11435, 1234, 8080];
+const OLLAMA_PORT = 11_434;
+/** Alpaca runs an Ollama of its own, one port up, so both can run. */
+const ALPACA_PORT = 11_435;
+const LM_STUDIO_PORT = 1234;
+const LLAMA_CPP_PORT = 8080;
+
+/** Where people's model servers usually listen (#456). */
+export const MODEL_SERVER_PORTS: readonly number[] = [
+  OLLAMA_PORT,
+  ALPACA_PORT,
+  LM_STUDIO_PORT,
+  LLAMA_CPP_PORT,
+];
 
 /** How long each server has to answer; all are asked at once, so the user waits this long at most. */
 export const PROBE_TIMEOUT_MS = 1500;

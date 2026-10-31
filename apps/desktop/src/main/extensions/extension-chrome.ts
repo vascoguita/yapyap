@@ -30,7 +30,7 @@ import {
 import { commitInstall, prepareInstall } from './installer.ts';
 import { grantsOf, withGrant } from './grants.ts';
 import { isSettingChange, saveSetting, settingsOf } from './extension-settings.ts';
-import { loadRecords, saveRecords } from './records.ts';
+import { loadRecords, saveRecords, type ExtensionRecord } from './records.ts';
 import { removeExtension, type RemovalDependencies } from './removal.ts';
 import type { AuditLog } from './audit-log.ts';
 import type { CallingExtension, CallRecorderService, HostServices } from './host-methods.ts';
@@ -157,6 +157,13 @@ async function listExtensions(
 }
 
 /** Saves a changed grant, and lets the running extension feel it at its next call (#94). */
+/** The record without the user's answer about looking for models, so they are asked again. */
+function withoutModelSearch(record: ExtensionRecord): ExtensionRecord {
+  const copy = { ...record };
+  delete copy.modelSearch;
+  return copy;
+}
+
 async function setGrant(
   root: string,
   runtime: Pick<ExtensionRuntime, 'regrant'>,
@@ -166,12 +173,10 @@ async function setGrant(
   const record = records.get(String(id));
   if (record !== undefined) {
     const scope = typeof account === 'string' ? account : undefined;
-    const changed = { ...withGrant(record, String(capability), scope, granted === true) };
+    const changed = withGrant(record, String(capability), scope, granted === true);
     // Turning `local-network` off and on is how someone who refused takes it back (#456).
-    if (capability === 'local-network') {
-      delete changed.modelSearch;
-    }
-    await saveRecords(root, new Map(records).set(record.id, changed));
+    const saved = capability === 'local-network' ? withoutModelSearch(changed) : changed;
+    await saveRecords(root, new Map(records).set(record.id, saved));
     await runtime.regrant(record.id);
   }
 }

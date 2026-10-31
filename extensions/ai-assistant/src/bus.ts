@@ -110,12 +110,11 @@ export function panelRequest(data: unknown): PanelRequest | undefined {
 /** The hidden page's answer, or undefined for anything else. */
 export function assistantState(data: unknown): AssistantState | undefined {
   const { type, provider, model, missing, search } = Object(data) as Record<string, unknown>;
+  if (type !== 'state' || typeof search !== 'boolean') {
+    return undefined;
+  }
   const valid =
-    type === 'state' &&
-    typeof provider === 'string' &&
-    typeof model === 'string' &&
-    typeof missing === 'string' &&
-    typeof search === 'boolean';
+    typeof provider === 'string' && typeof model === 'string' && typeof missing === 'string';
   return valid ? { type, provider, model, missing, search } : undefined;
 }
 

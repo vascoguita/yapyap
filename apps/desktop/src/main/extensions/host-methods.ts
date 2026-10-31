@@ -316,9 +316,9 @@ function localModels(
 ): Record<string, RpcMethod> {
   let asking: Promise<boolean> | undefined;
   const ask = async (): Promise<boolean> => {
-    const allowed = await services.localModels.ask(extension.name);
-    await extension.modelSearch.keep(allowed);
-    return allowed;
+    const answer = await services.localModels.ask(extension.name);
+    await extension.modelSearch.keep(answer);
+    return answer;
   };
   const allowed = (): Promise<boolean> => {
     const answer = extension.modelSearch.answer();

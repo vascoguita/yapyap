@@ -29,7 +29,7 @@ export interface AssistantSettings {
 const LOCAL_ENDPOINT = /^https?:\/\/(?:localhost|127\.0\.0\.1|\[::1\])(?::\d{1,5})?(?:\/|$)/;
 
 /** Local servers mostly take any key or none; the SDK still needs one to send. */
-const NO_KEY = 'no-key';
+export const NO_KEY = 'no-key';
 
 /** Whether the settings point at a server on this computer. */
 export const usesLocalServer = (settings: AssistantSettings): boolean =>
@@ -73,7 +73,7 @@ function providerOf(
   const endpoint = foundEndpoint(found);
   return endpoint === undefined
     ? { provider: 'anthropic', endpoint: text(values['endpoint']), source: 'default' }
-    : { provider: 'compatible', endpoint, source: 'found' };
+    : { provider: 'compatible', source: 'found', endpoint };
 }
 
 /**

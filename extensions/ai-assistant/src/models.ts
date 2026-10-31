@@ -7,6 +7,7 @@ import {
   choseProvider,
   keyName,
   LOCAL_SERVER_KEY,
+  NO_KEY,
   missingSetup,
   type AssistantSettings,
 } from './settings.ts';
@@ -77,7 +78,8 @@ async function servedModels(
   overrides: Overrides,
 ): Promise<ModelOption[]> {
   const baseURL = settings.provider === 'compatible' ? { baseURL: settings.endpoint } : {};
-  const client = new OpenAI({ ...common(apiKey, overrides), ...baseURL });
+  // The SDK refuses an empty key, which a server on this computer never needs.
+  const client = new OpenAI({ ...common(apiKey || NO_KEY, overrides), ...baseURL });
   const page = await client.models.list();
   // Newest first, as Anthropic lists Claude's, so the first fitting model is the newest.
   const options = [...page.data]

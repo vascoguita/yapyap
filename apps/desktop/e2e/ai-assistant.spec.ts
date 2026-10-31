@@ -126,9 +126,11 @@ test('summarizes the chat in the panel, and leaves the message box alone', async
 
 const SEARCH_PROMPT = 'Let AI assistant look for AI models on this computer?';
 
-/** What YapYap asked the user since the assistant was installed. */
-const prompts = (app: ElectronApplication) =>
-  app.evaluate(() => (globalThis as { extensionPrompts?: string[] }).extensionPrompts ?? []);
+/** What YapYap asked the user since the assistant was installed, leaving out the install's own message. */
+const prompts = async (app: ElectronApplication): Promise<string[]> =>
+  (
+    await app.evaluate(() => (globalThis as { extensionPrompts?: string[] }).extensionPrompts ?? [])
+  ).filter((message) => message.endsWith('?'));
 
 /**
  * Starts YapYap looking for model servers only at `ports`, so a test never

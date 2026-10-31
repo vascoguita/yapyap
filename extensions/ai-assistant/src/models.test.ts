@@ -113,6 +113,13 @@ describe('modelsOf', () => {
     ]);
   });
 
+  it('lists a local server’s models without a key, which the SDK would otherwise refuse', async () => {
+    const local = serving((url) => (url.endsWith('/api/tags') ? json({})() : served(['x'])()));
+    await expect(modelsOf(LOCAL, '', { fetch: local.fetch })).resolves.toEqual([
+      { id: 'x', label: 'x' },
+    ]);
+  });
+
   it('lists none when the provider refuses, and at most as many as the bar shows', async () => {
     const refused = serving(json({ type: 'error', error: { type: 'auth', message: 'no' } }, 401));
     await expect(modelsOf(SETTINGS, 'bad', { fetch: refused.fetch })).resolves.toEqual([]);
