@@ -20,7 +20,14 @@ export interface AssistantState {
   readonly missing: string;
   /** Whether to offer finding a model on this computer, to someone who set nothing up (#456). */
   readonly search: boolean;
+  /** The key request this state answers, so the panel knows it arrived. */
+  readonly answers?: KeyRequest;
 }
+
+/** The panel's requests about the key, which it sends again until they are answered. */
+export type KeyRequest = 'save-key' | 'forget-key';
+
+const KEY_REQUESTS: ReadonlySet<unknown> = new Set<KeyRequest>(['save-key', 'forget-key']);
 
 /** Exactly what would be sent about the open chat, once the user allowed it (#107). */
 export interface Preview {
@@ -109,13 +116,17 @@ export function panelRequest(data: unknown): PanelRequest | undefined {
 
 /** The hidden page's answer, or undefined for anything else. */
 export function assistantState(data: unknown): AssistantState | undefined {
-  const { type, provider, model, missing, search } = Object(data) as Record<string, unknown>;
+  const { type, provider, model, missing, search, answers } = Object(data) as Record<
+    string,
+    unknown
+  >;
   if (type !== 'state' || typeof search !== 'boolean') {
     return undefined;
   }
   const valid =
     typeof provider === 'string' && typeof model === 'string' && typeof missing === 'string';
-  return valid ? { type, provider, model, missing, search } : undefined;
+  const answered = KEY_REQUESTS.has(answers) ? { answers: answers as KeyRequest } : {};
+  return valid ? { type, provider, model, missing, search, ...answered } : undefined;
 }
 
 const strings = (value: unknown): value is readonly string[] =>

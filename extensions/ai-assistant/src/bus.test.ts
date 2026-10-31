@@ -55,6 +55,12 @@ describe('assistantState', () => {
   it('takes only the hidden page’s state', () => {
     const state = { type: 'state', provider: 'openai', model: 'm', missing: '', search: true };
     expect(assistantState(state)).toEqual(state);
+    expect(assistantState({ ...state, answers: 'save-key' })).toEqual({
+      ...state,
+      answers: 'save-key',
+    });
+    // Anything else in `answers` is left out, not trusted.
+    expect(assistantState({ ...state, answers: 'send' })).toEqual(state);
     expect(assistantState({ ...state, type: 'other' })).toBeUndefined();
     expect(assistantState({ ...state, provider: 1 })).toBeUndefined();
     expect(assistantState({ ...state, model: null })).toBeUndefined();

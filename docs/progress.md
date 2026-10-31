@@ -1373,6 +1373,11 @@ not edit the same lines.
   takes the message box's `order` and stacking on every render, and the
   fake WhatsApp page has the same layout, so E2E tests catch it.
 
+- Saving the assistant's key reliably (#484): the panel sends **Save key**
+  or **Forget key** again until the hidden page's reply names that request,
+  since the channel keeps nothing for a page that is reloading. This was
+  the cause of the panel E2E tests that failed under load.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).
