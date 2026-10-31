@@ -9,8 +9,6 @@ import {
   PROBE_TIMEOUT_MS,
 } from './local-models.ts';
 
-const bytes = (value: unknown): Uint8Array => new TextEncoder().encode(JSON.stringify(value));
-
 const listing = (...ids: unknown[]) => ({ object: 'list', data: ids.map((id) => ({ id })) });
 
 const answer = (body: unknown, status = 200) =>
@@ -18,38 +16,36 @@ const answer = (body: unknown, status = 200) =>
 
 describe('modelIds', () => {
   it('reads the IDs of an OpenAI-style list of models, in its order', () => {
-    expect(modelIds(bytes(listing('llama3.2:1b', 'hf.co/org/model:Q4_K_M')))).toEqual([
+    expect(modelIds(listing('llama3.2:1b', 'hf.co/org/model:Q4_K_M'))).toEqual([
       'llama3.2:1b',
       'hf.co/org/model:Q4_K_M',
     ]);
-    expect(modelIds(bytes(listing()))).toEqual([]);
+    expect(modelIds(listing())).toEqual([]);
   });
 
   it('takes no list from anything else', () => {
-    expect(modelIds(new TextEncoder().encode('<html>'))).toBeUndefined();
-    expect(modelIds(bytes(null))).toBeUndefined();
-    expect(modelIds(bytes({ models: [{ name: 'llama3.2:1b' }] }))).toBeUndefined();
-    expect(modelIds(bytes({ data: { id: 'llama3.2:1b' } }))).toBeUndefined();
+    expect(modelIds(null)).toBeUndefined();
+    expect(modelIds('<html>')).toBeUndefined();
+    expect(modelIds({ models: [{ name: 'llama3.2:1b' }] })).toBeUndefined();
+    expect(modelIds({ data: { id: 'llama3.2:1b' } })).toBeUndefined();
   });
 
   it('keeps only short, plain IDs, and twenty at most', () => {
-    const ids = modelIds(
-      bytes({
-        data: [
-          { id: 'a'.repeat(200) },
-          { id: 'b'.repeat(201) },
-          { id: '' },
-          { id: 'line\nbreak' },
-          { id: 7 },
-          null,
-          'c',
-          { id: 'ok' },
-        ],
-      }),
-    );
+    const ids = modelIds({
+      data: [
+        { id: 'a'.repeat(200) },
+        { id: 'b'.repeat(201) },
+        { id: '' },
+        { id: 'line\nbreak' },
+        { id: 7 },
+        null,
+        'c',
+        { id: 'ok' },
+      ],
+    });
     expect(ids).toEqual(['a'.repeat(200), 'ok']);
     const many = Array.from({ length: 25 }, (_, index) => `m${String(index)}`);
-    expect(modelIds(bytes(listing(...many)))).toEqual(many.slice(0, 20));
+    expect(modelIds(listing(...many))).toEqual(many.slice(0, 20));
   });
 });
 
@@ -97,12 +93,14 @@ describe('findLocalModels', () => {
           return Promise.resolve(new Response('not json'));
         case '4':
           return Promise.resolve(new Response('x'.repeat(LIST_MAX_BYTES + 1)));
+        case '5':
+          return answer({ error: 'no such route' });
         default:
           return answer(listing());
       }
     });
-    await expect(findLocalModels({ ports: [1, 2, 3, 4, 5], request })).resolves.toEqual([
-      { server: 'localhost:5', endpoint: 'http://localhost:5/v1', models: [] },
+    await expect(findLocalModels({ ports: [1, 2, 3, 4, 5, 6], request })).resolves.toEqual([
+      { server: 'localhost:6', endpoint: 'http://localhost:6/v1', models: [] },
     ]);
   });
 
@@ -127,9 +125,12 @@ describe('findLocalModels', () => {
     ]);
   });
 
-  it('returns nothing it could not vouch for, such as a port no server can have', async () => {
-    const request = () => answer(listing('a'));
-    await expect(findLocalModels({ ports: [123_456], request })).resolves.toEqual([]);
+  it('asks no port that no server can have', async () => {
+    const request = vi.fn(() => answer(listing('a')));
+    await expect(findLocalModels({ ports: [123_456, 0, 1.5, 8080], request })).resolves.toEqual([
+      { server: 'localhost:8080', endpoint: 'http://localhost:8080/v1', models: ['a'] },
+    ]);
+    expect(request).toHaveBeenCalledTimes(1);
   });
 
   it('looks where Ollama, Alpaca, LM Studio and llama.cpp listen', () => {
@@ -174,7 +175,7 @@ describe('modelServerPorts', () => {
   });
 
   it('ignores a list that is not up to four real ports', () => {
-    for (const given of ['', 'x', '0', '65536', '1.5', '1,2,3,4,5', '80;81']) {
+    for (const given of ['', 'x', '0', '65536', '1.5', '1,2,3,4,5', '80;81', '80,x']) {
       expect(modelServerPorts({ YAPYAP_TEST_MODEL_PORTS: given }, false)).toBe(MODEL_SERVER_PORTS);
     }
     expect(modelServerPorts({ YAPYAP_TEST_MODEL_PORTS: '1,65535,3,4' }, false)).toEqual([

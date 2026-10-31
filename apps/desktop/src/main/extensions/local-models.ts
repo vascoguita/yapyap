@@ -30,19 +30,6 @@ const MAX_MODELS = 20;
 /** A model's ID as an extension may get it: short text, without control characters. */
 const ModelId = Type.String({ minLength: 1, maxLength: 200, pattern: String.raw`^\P{Cc}+$` });
 
-/** What an extension gets back, checked once more before it leaves the main process. */
-const FoundServers = Type.Array(
-  Type.Object(
-    {
-      server: Type.String({ pattern: '^localhost:[0-9]{1,5}$' }),
-      endpoint: Type.String({ pattern: '^http://localhost:[0-9]{1,5}/v1$' }),
-      models: Type.Array(ModelId, { maxItems: MAX_MODELS }),
-    },
-    { additionalProperties: false },
-  ),
-  { maxItems: MAX_SERVERS },
-);
-
 /** How YapYap looks for model servers on this computer. */
 export interface ModelServerProbe {
   /** The ports to ask, always on 127.0.0.1. */
@@ -68,13 +55,7 @@ export const loopbackRequest =
     });
 
 /** The IDs an OpenAI-style list of models names, the first 20 that fit; undefined when it is no such list. */
-export function modelIds(bytes: Uint8Array): string[] | undefined {
-  let body: unknown;
-  try {
-    body = JSON.parse(new TextDecoder().decode(bytes));
-  } catch {
-    return undefined;
-  }
+export function modelIds(body: unknown): string[] | undefined {
   const { data } = Object(body) as { data?: unknown };
   if (!Array.isArray(data)) {
     return undefined;
@@ -85,38 +66,47 @@ export function modelIds(bytes: Uint8Array): string[] | undefined {
     .slice(0, MAX_MODELS);
 }
 
-async function probeOne(port: number, list: Fetcher): Promise<LocalModelServer | undefined> {
+const isPort = (port: number): boolean => Number.isInteger(port) && port > 0 && port < 65_536;
+
+/**
+ * The server at `port`, if it lists its models. Nothing downloaded decodes
+ * as empty text, which is no JSON, so a server that is down, refuses or
+ * answers anything but JSON rejects here, and `findLocalModels` leaves it out.
+ */
+async function probeOne(port: number, list: Fetcher): Promise<LocalModelServer[]> {
   const bytes = await list(`http://127.0.0.1:${String(port)}/v1/models`);
-  const models = bytes === undefined ? undefined : modelIds(bytes);
+  const models = modelIds(JSON.parse(new TextDecoder().decode(bytes)));
   // Extensions reach the server as `localhost`, the name YapYap's prompts and docs use.
   return models === undefined
-    ? undefined
-    : {
-        server: `localhost:${String(port)}`,
-        endpoint: `http://localhost:${String(port)}/v1`,
-        models,
-      };
+    ? []
+    : [
+        {
+          server: `localhost:${String(port)}`,
+          endpoint: `http://localhost:${String(port)}/v1`,
+          models,
+        },
+      ];
 }
 
 /**
  * The model servers on this computer that answer at `probe.ports` (#456),
- * in that order: each is asked once, at the same time, for its list of
- * models (`GET /v1/models`, which Ollama, LM Studio and llama.cpp all
- * serve), and nothing else. Only loopback is asked. Nothing is logged:
- * which models someone runs is theirs.
+ * in that order, four at most: each is asked once, at the same time, for
+ * its list of models (`GET /v1/models`, which Ollama, LM Studio and
+ * llama.cpp all serve), and nothing else. Only real ports on loopback are
+ * asked, so every address an extension gets is a plain `localhost` one,
+ * built here rather than taken from the server. Nothing is logged: which
+ * models someone runs is theirs.
  */
 export async function findLocalModels(probe: ModelServerProbe): Promise<LocalModelServer[]> {
   const list = cappedFetcher(probe.request, LIST_MAX_BYTES);
-  const answered = await Promise.all(probe.ports.map((port) => probeOne(port, list)));
-  const servers = answered
-    .filter((server): server is LocalModelServer => server !== undefined)
+  const probes = probe.ports.filter(isPort).map((port) => probeOne(port, list));
+  const answered = await Promise.allSettled(probes);
+  return answered
+    .flatMap((result) => (result.status === 'fulfilled' ? result.value : []))
     .slice(0, MAX_SERVERS);
-  return Value.Check(FoundServers, servers) ? servers : [];
 }
 
 const TEST_PORTS = 'YAPYAP_TEST_MODEL_PORTS';
-
-const isPort = (port: number): boolean => Number.isInteger(port) && port > 0 && port < 65_536;
 
 /**
  * The ports to look at. E2E tests run an unpackaged build against fake

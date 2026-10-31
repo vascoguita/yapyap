@@ -136,9 +136,10 @@ to `<userData>/extensions/<id>/<version>/` only after the signature verifies.
   `local-network` off or on in the Extensions window forgets it, which is
   how someone who refused can be asked again. Taking `local-network` back
   refuses the call before anything is asked. The extension gets plain
-  data, checked against a schema: up to four servers, each as `host:port`,
-  its `http://localhost:<port>/v1` address and up to 20 model IDs of up to
-  200 characters without control characters. Finding a server approves
+  data that YapYap builds itself: up to four servers, each as `host:port`
+  for a real port, its `http://localhost:<port>/v1` address and up to 20
+  model IDs, each checked to be at most 200 characters without control
+  characters. Finding a server approves
   nothing: the extension's first request to it still raises the
   per-server prompt above.
 - Extension pages are a trust zone of their own (`extension`). The navigation

@@ -1277,7 +1277,8 @@ not edit the same lines.
   The main process then sends `GET /v1/models` to `127.0.0.1` on Ollama's,
   Alpaca's, LM Studio's and llama.cpp's usual ports at once, with Node's
   `fetch`: no redirects or cookies, a 1.5-second timeout, a 256 KiB cap,
-  and a schema check on the up to four servers and 20 model IDs it returns.
+  and a check on each of the up to 20 model IDs a server lists; YapYap
+  builds the up to four server addresses itself, from real ports only.
   Finding a server approves nothing; the extension's first request still
   asks under #430. That call waits up to two minutes for the answer, so
   RPC methods may now set their own timeout and refuse as `not-granted`.
