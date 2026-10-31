@@ -86,7 +86,9 @@ import { MARKETPLACE_INDEX_MAX_BYTES } from '@yapyap/extension-sdk';
 import { ARCHIVE_LIMITS, anchorFingerprints, TRUST_ANCHORS } from '@yapyap/extension-sign';
 import { cappedFetcher } from './marketplace/fetch.ts';
 import { marketplaceSource } from './marketplace/source.ts';
-import { electronExtensionDialogs } from './extensions/extension-dialogs.ts';
+import { askModelSearch, electronExtensionDialogs } from './extensions/extension-dialogs.ts';
+import type { LocalModelsService } from './extensions/host-methods.ts';
+import { findLocalModels, loopbackRequest, modelServerPorts } from './extensions/local-models.ts';
 import { trayImage } from './tray/tray-icon.ts';
 import { createAccountHost, createSecureWindow, createSidebarView } from './windows.ts';
 
@@ -195,6 +197,16 @@ const extensionSecrets = openSecretStore(
   safeStorage,
   process.platform,
 );
+
+/** Where YapYap looks for model servers when an extension asks it to (#456): loopback only. */
+const modelServers: LocalModelsService = {
+  ask: askModelSearch,
+  find: () =>
+    findLocalModels({
+      ports: modelServerPorts(process.env, app.isPackaged),
+      request: loopbackRequest(fetch),
+    }),
+};
 
 /**
  * A plain request for the marketplace (ADR 0014), on an in-memory session of
@@ -361,6 +373,7 @@ const chrome = createChromeFeature({
         secrets: extensionSecrets,
         storage: keyValueStore(EXTENSION_STORAGE, extension.id),
         calls: chats.calls,
+        localModels: modelServers,
       }),
     limits: {
       metrics: () => app.getAppMetrics(),

@@ -120,6 +120,9 @@ describe('readRecords and writeRecords', () => {
     for (const server of ['192.168.1.10:11434', 'localhost', 'localhost:123456', 'xlocalhost:1']) {
       expect(keeps({ localServers: [server] })).toBe(false);
     }
+    expect(keeps({ modelSearch: true })).toBe(true);
+    expect(keeps({ modelSearch: false })).toBe(true);
+    expect(keeps({ modelSearch: 'yes' })).toBe(false);
   });
 });
 

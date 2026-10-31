@@ -755,6 +755,12 @@
       "allow": "Allow",
       "deny": "Deny"
     },
+    "extensionModelSearch": {
+      "message": "Let {{extension}} look for AI models on this computer?",
+      "detail": "YapYap checks the usual addresses of Ollama, Alpaca, LM Studio and llama.cpp on this computer, and asks each only for its list of models. Nothing else is sent, and nothing leaves this computer. The extension learns which models you run; it asks you again before it uses one.",
+      "allow": "Allow",
+      "deny": "Deny"
+    },
     "removeExtension": {
       "message": "Remove {{extension}}?",
       "detail": "This stops the extension and deletes it, with its settings, its stored data and its saved secrets, such as API keys. Its past activity stays listed.",

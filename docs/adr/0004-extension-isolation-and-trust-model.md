@@ -125,6 +125,22 @@ to `<userData>/extensions/<id>/<version>/` only after the signature verifies.
   `204` for a preflight. That lifts the protection the server keeps against
   web pages, so it happens only for the one server the user chose; every
   other service on this computer stays unreachable.
+- **Finding models on this computer** (#456, C37). With `local-network`,
+  an extension may call `host.localModels.find()`, so that someone who
+  already runs a model gets the assistant working with one click. YapYap
+  looks, never the extension, and only at four fixed loopback addresses
+  (ADR 0001). The first call shows one native prompt naming the extension
+  and the servers it checks ("Let AI assistant look for AI models on this
+  computer?"), with Deny the default. The answer is kept in the record
+  (`modelSearch`), so YapYap asks once and a refusal holds; turning
+  `local-network` off or on in the Extensions window forgets it, which is
+  how someone who refused can be asked again. Taking `local-network` back
+  refuses the call before anything is asked. The extension gets plain
+  data, checked against a schema: up to four servers, each as `host:port`,
+  its `http://localhost:<port>/v1` address and up to 20 model IDs of up to
+  200 characters without control characters. Finding a server approves
+  nothing: the extension's first request to it still raises the
+  per-server prompt above.
 - Extension pages are a trust zone of their own (`extension`). The navigation
   guard confines them: they open no windows and no links in the browser or
   other apps, and cannot navigate away from `extension://<id>/`. The host page
@@ -144,8 +160,11 @@ to `<userData>/extensions/<id>/<version>/` only after the signature verifies.
   message that never carries the cause or the parameters). A message
   without a usable ID gets no reply. The bucket holds 40 calls and refills
   at 5 per second (it held 20 until the AI assistant's panel and in-chat
-  bar, which share it, needed more for one action; see C36 in ADR 0008); a call times out after 10 seconds. Each page load gets a
-  fresh port.
+  bar, which share it, needed more for one action; see C36 in ADR 0008); a call times out after 10 seconds, except
+  `localModels.find`, which waits up to two minutes for the user to
+  answer YapYap's question. A method may refuse with `not-granted` itself,
+  as `localModels.find` does once the user said no; any other failure
+  stays `failed`. Each page load gets a fresh port.
 
 - **Bootstrap.** The host page loads YapYap's own script from
   `/__yapyap/host.js`, a path no extension file can take. It takes the first
@@ -175,18 +194,18 @@ are read on every call and request, so a change applies to the next one.
 YapYap listens on no port or socket, and a test fails if its code ever
 starts to.
 
-| Capability                 | Grants                                                                                            |
-| -------------------------- | ------------------------------------------------------------------------------------------------- |
-| `chat:read-active`         | The active chat's metadata and its last N messages (N capped by the user), as plain data          |
-| `chat:read-unread-summary` | Unread counts and the last N unread messages per chat                                             |
-| `composer:insert-draft`    | Insert text into the composer of the active chat, or replace what is there. Never sends.          |
-| `composer:read-draft`      | Read what the user typed so far in the active chat's composer, as plain text                      |
-| `notifications:show`       | Show a native notification attributed to the extension                                            |
-| `storage:local`            | A persistent private partition and a key-value store API                                          |
-| `secrets:own`              | Read and write the extension's own secrets namespace (Electron `safeStorage`)                     |
-| `network:<host>`           | HTTPS requests to that host via the extension session                                             |
-| `local-network`            | HTTP or HTTPS requests to this computer (`localhost`, `127.0.0.1`, `[::1]`), any port             |
-| `assistant:bar`            | Plain-text suggestions in the bar above the message box; sent only on the user's click (ADR 0013) |
+| Capability                 | Grants                                                                                                                                                                                                                                   |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `chat:read-active`         | The active chat's metadata and its last N messages (N capped by the user), as plain data                                                                                                                                                 |
+| `chat:read-unread-summary` | Unread counts and the last N unread messages per chat                                                                                                                                                                                    |
+| `composer:insert-draft`    | Insert text into the composer of the active chat, or replace what is there. Never sends.                                                                                                                                                 |
+| `composer:read-draft`      | Read what the user typed so far in the active chat's composer, as plain text                                                                                                                                                             |
+| `notifications:show`       | Show a native notification attributed to the extension                                                                                                                                                                                   |
+| `storage:local`            | A persistent private partition and a key-value store API                                                                                                                                                                                 |
+| `secrets:own`              | Read and write the extension's own secrets namespace (Electron `safeStorage`)                                                                                                                                                            |
+| `network:<host>`           | HTTPS requests to that host via the extension session                                                                                                                                                                                    |
+| `local-network`            | HTTP or HTTPS requests to this computer (`localhost`, `127.0.0.1`, `[::1]`), any port, each server once the user approves it; and, once the user allows it, YapYap's search for model servers on this computer (`host.localModels.find`) |
+| `assistant:bar`            | Plain-text suggestions in the bar above the message box; sent only on the user's click (ADR 0013)                                                                                                                                        |
 
 The key-value store (#301) keeps each extension's values as JSON in
 `<userData>/extensions/.storage/<id>.json`, readable by the user alone, with

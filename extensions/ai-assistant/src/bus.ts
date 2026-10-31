@@ -14,10 +14,12 @@ export interface AssistantState {
   readonly provider: string;
   readonly model: string;
   /**
-   * What is missing before the assistant can ask: '', 'key', 'model' or
-   * 'endpoint', or 'unavailable' when its settings could not be read.
+   * What is missing before the assistant can ask, such as 'key', or ''
+   * once nothing is, or 'unavailable' when its settings could not be read.
    */
   readonly missing: string;
+  /** Whether to offer finding a model on this computer, to someone who set nothing up (#456). */
+  readonly search: boolean;
 }
 
 /** Exactly what would be sent about the open chat, once the user allowed it (#107). */
@@ -48,6 +50,7 @@ export type PanelRequest =
   | { readonly type: 'state?' }
   | { readonly type: 'save-key'; readonly key: string }
   | { readonly type: 'forget-key' }
+  | { readonly type: 'find-model' }
   | { readonly type: 'prepare' }
   | { readonly type: 'prepare-summary' }
   | { readonly type: 'prepare-rewrite'; readonly style: RewriteStyle; readonly language: string }
@@ -62,6 +65,7 @@ const MAX_KEY = 8192;
 const SIMPLE: ReadonlySet<unknown> = new Set([
   'state?',
   'forget-key',
+  'find-model',
   'prepare',
   'prepare-summary',
   'send',
@@ -105,13 +109,13 @@ export function panelRequest(data: unknown): PanelRequest | undefined {
 
 /** The hidden page's answer, or undefined for anything else. */
 export function assistantState(data: unknown): AssistantState | undefined {
-  const { type, provider, model, missing } = Object(data) as Record<string, unknown>;
+  const { type, provider, model, missing, search } = Object(data) as Record<string, unknown>;
+  if (type !== 'state' || typeof search !== 'boolean') {
+    return undefined;
+  }
   const valid =
-    type === 'state' &&
-    typeof provider === 'string' &&
-    typeof model === 'string' &&
-    typeof missing === 'string';
-  return valid ? { type, provider, model, missing } : undefined;
+    typeof provider === 'string' && typeof model === 'string' && typeof missing === 'string';
+  return valid ? { type, provider, model, missing, search } : undefined;
 }
 
 const strings = (value: unknown): value is readonly string[] =>

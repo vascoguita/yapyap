@@ -1,6 +1,6 @@
 import { Type } from 'typebox';
 import { describe, expect, it, vi } from 'vitest';
-import { RPC_OPTIONS, serveExtensionRpc, tokenBucket, type RpcMethod } from './rpc.ts';
+import { RPC_OPTIONS, RpcFailure, serveExtensionRpc, tokenBucket, type RpcMethod } from './rpc.ts';
 
 const settle = () => new Promise((resolve) => setTimeout(resolve));
 
@@ -27,7 +27,14 @@ function setup(granted: readonly string[] = ['notifications:show']) {
       params: Type.Tuple([Type.String()]),
       run: () => Promise.resolve(1),
     },
+    'models.find': {
+      capability: 'local-network',
+      params: Type.Tuple([]),
+      timeoutMs: 5000,
+      run: () => Promise.reject(new RpcFailure('not-granted', 'The user said no.')),
+    },
   };
+  const delays: number[] = [];
   const audit = vi.fn();
   serveExtensionRpc(
     port,
@@ -37,7 +44,8 @@ function setup(granted: readonly string[] = ['notifications:show']) {
       rate: { burst: 2, perSecond: 1 },
       timeoutMs: 1000,
       now: () => time,
-      after: (_ms, callback) => {
+      after: (ms, callback) => {
+        delays.push(ms);
         timers.push(callback);
       },
     },
@@ -47,6 +55,7 @@ function setup(granted: readonly string[] = ['notifications:show']) {
     port,
     audit,
     show,
+    delays,
     send: async (data: unknown) => {
       receive?.({ data });
       await settle();
@@ -152,6 +161,22 @@ describe('serveExtensionRpc', () => {
       { id: 1, error: { kind: 'timeout', message: 'The call took too long.' } },
       { id: 2, error: { kind: 'failed', message: 'The call failed.' } },
     ]);
+  });
+
+  it('waits as long as a method asks, and passes on a refusal of its own kind', async () => {
+    const t = setup(['notifications:show', 'local-network']);
+    await t.send({ id: 1, method: 'notifications.show', params: ['Hi'] });
+    await t.send({ id: 2, method: 'models.find', params: [] });
+    expect(t.delays).toEqual([1000, 5000]);
+    expect(t.replies().at(-1)).toEqual({
+      id: 2,
+      error: { kind: 'not-granted', message: 'The user said no.' },
+    });
+    expect(t.audit).toHaveBeenLastCalledWith({
+      method: 'models.find',
+      capability: 'local-network',
+      outcome: 'not-granted',
+    });
   });
 
   it('reports a method that throws instead of rejecting as a failure', async () => {

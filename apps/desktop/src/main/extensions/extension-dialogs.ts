@@ -77,3 +77,22 @@ export const electronExtensionDialogs: Pick<
     return response === 0;
   },
 };
+
+/**
+ * Asks whether `extension` may have YapYap look for AI models on this
+ * computer (#456). Deny is the default: the answer is kept, and which
+ * models someone runs is theirs to share.
+ */
+export async function askModelSearch(extension: string): Promise<boolean> {
+  const text = en.dialogs.extensionModelSearch;
+  const { response } = await dialog.showMessageBox({
+    type: 'question',
+    title: PRODUCT_NAME,
+    message: text.message({ extension }),
+    detail: text.detail,
+    buttons: [text.allow, text.deny],
+    defaultId: 1,
+    cancelId: 1,
+  });
+  return response === 0;
+}

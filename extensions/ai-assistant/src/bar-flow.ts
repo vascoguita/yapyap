@@ -8,7 +8,8 @@ import type {
 import { reasonOf } from './assistant.ts';
 import { isAllowed, setAllowed } from './chats.ts';
 import { AUTO, currentSetup, MODEL_KEY, pageModels, type modelsOf, type Setup } from './models.ts';
-import { problemText } from './panel.ts';
+import { findModel } from './find-model.ts';
+import { problemText, SEARCH, SEARCH_OFFER } from './panel.ts';
 import {
   COMPOSE_INSTRUCTIONS,
   INSTRUCTIONS,
@@ -17,11 +18,11 @@ import {
   transcriptOf,
 } from './replies.ts';
 import { cleanRewrite } from './rewrites.ts';
-import { missingSetting, providerFor } from './settings.ts';
+import { missingSetting, offersSearch, providerFor } from './settings.ts';
 
 export type BarHost = Pick<
   ExtensionHost,
-  'settings' | 'secrets' | 'chat' | 'storage' | 'assistant'
+  'settings' | 'secrets' | 'chat' | 'storage' | 'assistant' | 'localModels'
 >;
 
 /** A request the bar makes of the model: suggestions, or the message the user described. */
@@ -33,6 +34,7 @@ const ALLOW = 'Allow here';
 const SETUP = 'Set up the assistant in its panel first: Extensions → AI assistant.';
 const NOTHING = 'The model had nothing to suggest. Try again.';
 const MOVED = 'You opened another chat. Ask again here.';
+const FOUND = 'Found an AI model on this computer. Ask for suggestions: your messages stay on it.';
 
 /** The bar's own limit on each suggestion (ADR 0013). */
 const MAX_SUGGESTION = 1000;
@@ -68,6 +70,13 @@ const offering = (status: string, extra: Partial<AssistantOffer> = {}): Assistan
   ...extra,
 });
 
+/** The offer to find a model on this computer (#456), which the confirm button accepts. */
+const SEARCHING = offering(SEARCH_OFFER, { confirm: SEARCH });
+
+/** What the bar says is missing: a server on this computer that stopped answering, or the setup. */
+const setupText = (missing: string): string =>
+  missing === 'local-server' ? problemText(missing) : SETUP;
+
 /** What the model wrote, as the suggestions the bar shows. */
 function suggestionsFor(ask: Ask, reply: string): string[] {
   const found = ask.type === 'suggest' ? suggestionsIn(reply) : [cleanRewrite(reply)];
@@ -86,15 +95,20 @@ async function answer(
   setup: Setup,
   make: typeof providerFor,
 ): Promise<AssistantOffer> {
+  const { settings, key } = setup;
+  // Someone who set nothing up is offered the model on this computer before anything else.
+  if (offersSearch(settings, key)) {
+    return SEARCHING;
+  }
   if (chat === null) {
     return offering(problemText('no-chat'));
   }
   if (!(await isAllowed(host.storage, chat.name))) {
     return offering(CONSENT, { confirm: ALLOW });
   }
-  const { settings, key } = setup;
-  if (missingSetting(settings, key) !== '') {
-    return offering(SETUP);
+  const missing = missingSetting(settings, key);
+  if (missing !== '') {
+    return offering(setupText(missing));
   }
   const provider = make(settings, key);
   const transcript = transcriptOf(chat, settings.context);
@@ -107,10 +121,57 @@ async function answer(
   return suggestions.length === 0 ? offering(NOTHING) : { suggestions, status: '' };
 }
 
-/** The request waiting for the user's consent, and the chat it was made in. */
+/**
+ * The request waiting for the user's consent, and the chat it was made in;
+ * or, while `searching`, the offer to find a model on this computer.
+ */
 interface Pending {
   ask?: Ask;
   chat: string | undefined;
+  searching: boolean;
+}
+
+/** What the bar shows, and the setup whose models its choice names. */
+interface Shown {
+  readonly offer: AssistantOffer;
+  readonly setup: Setup;
+}
+
+type BarRequest = Exclude<AssistantRequest, { type: 'choose' }>;
+
+/**
+ * Answers a request, or makes the first offer. Each reads the setup once,
+ * for the answer and for the model choice it names, since every call to
+ * YapYap counts against the extension's rate.
+ */
+async function answered(
+  host: BarHost,
+  pending: Pending,
+  request: BarRequest | undefined,
+  { make, list }: { readonly make: typeof providerFor; readonly list: typeof modelsOf },
+): Promise<Shown> {
+  const setup = await currentSetup(host, list);
+  if (request === undefined) {
+    return { setup, offer: offersSearch(setup.settings, setup.key) ? SEARCHING : offering('') };
+  }
+  const offer = await handle(host, pending, request, setup, make).catch((error: unknown) =>
+    offering(problemText(reasonOf(error))),
+  );
+  return { setup, offer };
+}
+
+/**
+ * Finds a model on this computer, on the user's click (#456), and names
+ * what came of it, with the setup that now uses it.
+ */
+async function searched(host: BarHost, list: typeof modelsOf): Promise<Shown> {
+  const outcome = await findModel(host).catch(() => 'search-failed' as const);
+  const setup = await currentSetup(host, list);
+  if (outcome !== 'found') {
+    return { setup, offer: offering(problemText(outcome)) };
+  }
+  const missing = missingSetting(setup.settings, setup.key);
+  return { setup, offer: offering(missing === '' ? FOUND : setupText(missing)) };
 }
 
 /**
@@ -147,19 +208,16 @@ export function serveBar(
   make: typeof providerFor = providerFor,
   list: typeof modelsOf = pageModels,
 ): void {
-  const pending: Pending = { chat: undefined };
-  // Each offer reads the setup once, for the answer and for the model choice
-  // it names, since every call to YapYap counts against the extension's rate.
-  const offer = async (request?: Exclude<AssistantRequest, { type: 'choose' }>): Promise<void> => {
+  const pending: Pending = { chat: undefined, searching: false };
+  const offer = async (request?: BarRequest): Promise<void> => {
     try {
-      const setup = await currentSetup(host, list);
-      const made =
-        request === undefined
-          ? offering('')
-          : await handle(host, pending, request, setup, make).catch((error: unknown) =>
-              offering(problemText(reasonOf(error))),
-            );
-      await host.assistant.offer({ ...made, choice: modelChoice(setup) });
+      // The confirm button finds a model when that is what the last offer proposed.
+      const shown =
+        request?.type === 'confirm' && pending.searching
+          ? await searched(host, list)
+          : await answered(host, pending, request, { make, list });
+      pending.searching = shown.offer.confirm === SEARCH;
+      await host.assistant.offer({ ...shown.offer, choice: modelChoice(shown.setup) });
     } catch {
       // YapYap refuses an offer once the user takes the bar's grant back; nothing is left to tell.
     }
