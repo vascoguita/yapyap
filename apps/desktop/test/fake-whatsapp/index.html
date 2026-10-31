@@ -36,9 +36,22 @@
     <!-- The adapter's landmarks (src/adapter/page-state.ts), with synthetic chats. -->
     <div id="app" data-testid="fake-whatsapp">
       Fake WhatsApp for automated tests
+      <!-- As WhatsApp lays out the chat list (#100): only an unread chat has
+           a badge, whose text is the count alone. -->
       <div id="pane-side" aria-label="Chat list">
-        <div role="row" data-testid="chat">Test Chat One</div>
-        <div role="row">Test Chat Two</div>
+        <div role="row" data-testid="list-item-0">
+          <div data-testid="cell-frame-title"><span dir="auto">Test Chat One</span></div>
+          <span data-testid="chat-list-timestamp">20:01</span>
+          <div data-testid="cell-frame-secondary"><span dir="ltr">See you at 8</span></div>
+        </div>
+        <div role="row" data-testid="list-item-1">
+          <div data-testid="cell-frame-title"><span dir="auto">Test Chat Two</span></div>
+          <span data-testid="chat-list-timestamp">21:15</span>
+          <div data-testid="cell-frame-secondary">
+            <span dir="ltr">Are you coming tomorrow?</span>
+            <span data-testid="icon-unread-count">2</span>
+          </div>
+        </div>
       </div>
       <header data-testid="chatlist-header">
         <div data-testid="navbar-footer-section">

@@ -63,7 +63,7 @@ which shares its origin, with a `BroadcastChannel`.
 | Capability                 | Lets the extension                                                              |
 | -------------------------- | ------------------------------------------------------------------------------- |
 | `chat:read-active`         | Read the open chat's name and its most recent messages                          |
-| `chat:read-unread-summary` | Read unread counts and the latest unread messages per chat                      |
+| `chat:read-unread-summary` | Read which chats are unread, their counts and last-message previews             |
 | `composer:insert-draft`    | Put text in the composer, or replace it, for you to edit and send               |
 | `composer:read-draft`      | Read what you typed in the composer so far                                      |
 | `notifications:show`       | Show notifications with its name                                                |

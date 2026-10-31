@@ -490,7 +490,7 @@ test('adds an extension’s items to right clicks on the message box, a message 
   expect((await rightClick('message'))?.at(-1)).toBe('Hello: Explain');
   await clickLastItem(app);
   await expect.poll(async () => (await extensionPage(app))?.title).toBe('explain');
-  expect((await rightClick('chat'))?.at(-1)).toBe('Hello: Summarize');
+  expect((await rightClick('list-item-0'))?.at(-1)).toBe('Hello: Summarize');
   await clickLastItem(app);
   await expect.poll(async () => (await extensionPage(app))?.title).toBe('summarize');
 });
@@ -579,6 +579,55 @@ test('reads the open chat for an extension allowed to, as plain data', async ({
       { outgoing: true, text: 'See you at 8' },
     ],
   });
+});
+
+/** Reads the unread summary, and writes in its title its shape: counts and lengths, never text. */
+const UNREAD = `
+export default {
+  async activate(host) {
+    try {
+      const chats = await host.chat.readUnreadSummary();
+      document.title = JSON.stringify(
+        chats.map((chat) => ({
+          name: chat.name.length,
+          unread: chat.unread,
+          messages: chat.messages.map((message) => ({
+            outgoing: message.outgoing,
+            text: message.text.length,
+          })),
+        })),
+      );
+    } catch (error) {
+      document.title = error.kind;
+    }
+  },
+};
+`;
+
+test('reads the unread chats from the chat list for an extension allowed to, as plain data', async ({
+  app,
+  profile,
+  window,
+}) => {
+  await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
+  await installExtension(
+    app,
+    profile,
+    testManifest({ capabilities: ['chat:read-unread-summary'], network: { hosts: [] } }),
+    UNREAD,
+  );
+  const read = async () => {
+    try {
+      return JSON.parse((await extensionPage(app))?.title ?? 'null') as unknown;
+    } catch {
+      return undefined;
+    }
+  };
+  // Only the fake page's second chat has a badge: "Test Chat Two", 2 unread,
+  // "Are you coming tomorrow?" as its preview.
+  await expect
+    .poll(read, { timeout: 20_000 })
+    .toEqual([{ name: 13, unread: 2, messages: [{ outgoing: false, text: 24 }] }]);
 });
 
 /** Asks a model server on this computer for a reply as an API client would, and writes it in its title. */

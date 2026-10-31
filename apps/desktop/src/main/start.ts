@@ -80,7 +80,7 @@ import {
   type KeyContents,
   type ReplyContents,
 } from './notifications/reply.ts';
-import { readOpenChat } from './extensions/chat-reading.ts';
+import { readOpenChat, readUnreadChats } from './extensions/chat-reading.ts';
 import type { WindowOptions } from './windows.ts';
 import {
   bringToFront,
@@ -573,6 +573,7 @@ function accountMenu(
     activeContents: () => running.active().page.contents,
     insertDraft: (text) => insertDraft(running.active().page.contents, text),
     readActiveChat: (messages) => readOpenChat(running.active().page.contents, messages),
+    readUnreadSummary: () => readUnreadChats(running.active().page.contents),
     replaceDraft: (text) => replaceDraft(running.active().page.contents, text),
     readDraft: () => readDraft(running.active().page.contents),
     pressEnter: () => pressEnter(running.active().page.contents),
