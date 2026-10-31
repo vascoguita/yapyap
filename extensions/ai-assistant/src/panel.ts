@@ -1,6 +1,7 @@
 import {
   update,
   type AssistantState,
+  type KeyRequest,
   type PanelRequest,
   type Preview,
   type Update,
@@ -94,7 +95,42 @@ export function describe(state: AssistantState): string {
 /** What a problem means to the user. */
 export const problemText = (reason: string): string => PROBLEMS[reason] ?? SOMETHING_WRONG;
 
-/** The key form: paste, save, forget. The key is sent once and never shown again. */
+/**
+ * Sends a key request until the hidden page answers it. The channel keeps
+ * nothing for a page that is not listening, as while it reloads, so a key
+ * saved then would be lost; saving or forgetting it twice does no harm. A
+ * state that answers another request, such as the one a page sends as it
+ * starts, does not count.
+ */
+function keyDelivery(port: Port): {
+  send: (request: Extract<PanelRequest, { type: KeyRequest }>) => void;
+  answered: (state: AssistantState) => void;
+} {
+  let pending: { type: KeyRequest; timer: ReturnType<typeof setInterval> } | undefined;
+  const stop = (): void => {
+    clearInterval(pending?.timer);
+    pending = undefined;
+  };
+  return {
+    send: (request) => {
+      stop();
+      port.postMessage(request);
+      pending = {
+        type: request.type,
+        timer: setInterval(() => {
+          port.postMessage(request);
+        }, RETRY_MS),
+      };
+    },
+    answered: (state) => {
+      if (state.answers === pending?.type) {
+        stop();
+      }
+    },
+  };
+}
+
+/** The key form: paste, save, forget. The key is never shown again. */
 function keySection(
   doc: Document,
   port: Port,
@@ -111,13 +147,14 @@ function keySection(
   const forget = element(doc, 'button', { type: 'button', textContent: 'Forget key' });
   const form = element(doc, 'form');
   form.append(label, input, save, forget);
+  const key = keyDelivery(port);
   form.addEventListener('submit', (event) => {
     event.preventDefault();
-    port.postMessage({ type: 'save-key', key: input.value });
+    key.send({ type: 'save-key', key: input.value });
     input.value = '';
   });
   forget.addEventListener('click', () => {
-    port.postMessage({ type: 'forget-key' });
+    key.send({ type: 'forget-key' });
   });
   // Someone who set nothing up can use a model already running on this computer instead (#456).
   const search = element(doc, 'div', { id: 'find', hidden: true });
@@ -128,6 +165,7 @@ function keySection(
   const section = element(doc, 'section');
   section.append(status, search, form);
   const show = (state: AssistantState): void => {
+    key.answered(state);
     status.textContent = describe(state);
     forget.disabled = state.missing === 'key';
     search.hidden = !state.search;

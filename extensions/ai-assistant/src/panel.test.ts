@@ -167,6 +167,44 @@ describe('mountPanel', () => {
     expect(t.sent.at(-1)).toEqual({ type: 'forget-key' });
   });
 
+  it('sends the key again until the hidden page answers that request, as a reloading page misses it', () => {
+    vi.useFakeTimers();
+    try {
+      const t = setup();
+      const state = {
+        type: 'state',
+        provider: 'anthropic',
+        model: '',
+        missing: 'key',
+        search: false,
+      };
+      t.receive(state);
+      const input = document.querySelector<HTMLInputElement>('#key');
+      if (input === null) {
+        throw new Error('No key field.');
+      }
+      input.value = 'sk-secret';
+      document.querySelector('form')?.dispatchEvent(new Event('submit', { cancelable: true }));
+      const saves = () =>
+        t.sent.filter((sent) => (sent as { type?: unknown }).type === 'save-key').length;
+      expect(saves()).toBe(1);
+      vi.advanceTimersByTime(1000);
+      expect(saves()).toBe(2);
+      // A page that starts again says its state, which answers nothing.
+      t.receive(state);
+      vi.advanceTimersByTime(1000);
+      expect(saves()).toBe(3);
+      t.receive({ ...state, missing: '', answers: 'forget-key' });
+      vi.advanceTimersByTime(1000);
+      expect(saves()).toBe(4);
+      t.receive({ ...state, missing: '', answers: 'save-key' });
+      vi.advanceTimersByTime(5000);
+      expect(saves()).toBe(4);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('offers to find a model on this computer only while the hidden page says so', () => {
     const t = setup();
     const find = document.querySelector<HTMLElement>('#find');

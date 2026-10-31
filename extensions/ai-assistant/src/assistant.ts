@@ -134,7 +134,8 @@ export function servePanel(
       .then(() => run(host, flow, request, post))
       .then(async () => {
         if (keyed) {
-          post(await stateOf(host, list));
+          const answers = request.type === 'save-key' || request.type === 'forget-key';
+          post({ ...(await stateOf(host, list)), ...(answers ? { answers: request.type } : {}) });
         }
       })
       .catch((error: unknown) => {

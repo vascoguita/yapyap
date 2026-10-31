@@ -113,16 +113,19 @@ describe('servePanel', () => {
       expect(sent).toHaveLength(1);
     });
     expect(secrets.get('apiKey.openai')).toBe('sk-openai');
-    expect(sent[0]).toMatchObject({ provider: 'openai', missing: '' });
+    // The answer names the request, so the panel stops sending it again.
+    expect(sent[0]).toMatchObject({ provider: 'openai', missing: '', answers: 'save-key' });
     channel.send({ type: 'forget-key' });
     await vi.waitFor(() => {
       expect(sent).toHaveLength(2);
     });
     expect(secrets.has('apiKey.openai')).toBe(false);
+    expect(sent[1]).toMatchObject({ answers: 'forget-key' });
     channel.send({ type: 'state?' });
     await vi.waitFor(() => {
       expect(sent).toHaveLength(3);
     });
+    expect(sent[2]).not.toHaveProperty('answers');
     expect(host.secrets.set).toHaveBeenCalledOnce();
   });
 
