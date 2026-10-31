@@ -205,12 +205,13 @@ Update this table in the PR that adds a command.
   desktop's Wayland compositor through its default socket. `YAPYAP_E2E_WAYLAND_DISPLAY` passes a compositor socket through
   instead; CI runs `display.spec.ts` that way on a headless Weston. Under it no window manager focuses windows, so tests that need a
   focused window focus it and poll `isFocused()`.
-- WhatsApp runs in an account view inside the main window, whose own page
-  stays empty. In E2E tests, get its page with `whatsAppPage(app)` from
-  `e2e/fixtures.ts` and its web contents with
-  `webContents.getAllWebContents()` by URL; `BrowserWindow.fromWebContents`
-  gives its window. `BrowserWindow.getAllWindows()` has no stable order once
-  a chrome window is open, so never pick a window by index.
+- WhatsApp runs in an account view inside the main window, a `BaseWindow`
+  with no page of its own, so no renderer runs for it (ADR 0009). In E2E
+  tests, get its page with `whatsAppPage(app)` from `e2e/fixtures.ts` and
+  its web contents with `webContents.getAllWebContents()` by URL;
+  `BrowserWindow.fromWebContents` gives its window. `BrowserWindow.getAllWindows()`
+  leaves the main window out; `BaseWindow.getAllWindows()` has it, in no
+  stable order once a chrome window is open, so never pick a window by index.
 - WhatsApp never runs in the default session: each account has its own
   `persist:account-<uuid>` partition (`partitionOf`, ADR 0001), listed in
   `accounts.json`. Per-session guards such as downloads go on the account's
@@ -237,8 +238,8 @@ Update this table in the PR that adds a command.
 - Never let a rejected `loadURL` end startup. Load failures are reported by
   the recovery monitor (`src/main/recovery/`), which shows the recovery
   screen.
-- Create windows only with `createSecureWindow` in
-  `apps/desktop/src/main/windows.ts`. Lint rejects `new BrowserWindow`,
+- Create windows only with `createSecureWindow` (or `createMainWindow`, for
+  the page-less main window) in `apps/desktop/src/main/windows.ts`. Lint rejects `new BrowserWindow`,
   `BaseWindow`, `BrowserView` and `WebContentsView` anywhere else, and new
   per-web-contents guards go in `web-contents-guards.ts`.
 - Import wllama from `@wllama/wllama/esm/index.js`: the package's `main`

@@ -300,7 +300,7 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
       };
       return {
         instance,
-        updater: vi.fn(() => instance),
+        updater: vi.fn(() => Promise.resolve(instance)),
         askToInstall: vi.fn(() => Promise.resolve(false)),
       };
     })(),
@@ -787,6 +787,7 @@ describe('startApp', () => {
     const f = fakes();
     f.releases.policy = 'self-update';
     await startApp(f);
+    await vi.advanceTimersByTimeAsync(0);
     expect(f.selfUpdate.instance.checkForUpdates).toHaveBeenCalledOnce();
     expect(f.selfUpdate.instance.autoInstallOnAppQuit).toBe(false);
   });

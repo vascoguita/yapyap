@@ -12,8 +12,8 @@ async function requestShare(app: ElectronApplication, window: Page): Promise<Pag
   // without a window manager focuses nothing on its own.
   await expect
     .poll(() =>
-      app.evaluate(({ BrowserWindow }) => {
-        const [main] = BrowserWindow.getAllWindows();
+      app.evaluate(({ BaseWindow }) => {
+        const [main] = BaseWindow.getAllWindows();
         main?.focus();
         return main?.isFocused();
       }),

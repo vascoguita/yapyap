@@ -62,7 +62,6 @@ import { CHROME_PARTITION, createChromeFeature } from './chrome/feature.ts';
 import { profileCrashFiles, readPreviousLog } from './crash/crash-files.ts';
 import { recordTrace } from './crash/trace.ts';
 import { reviewCrashWithDialog } from './crash-review-prompt.ts';
-import electronUpdater from 'electron-updater';
 import trayIcon from '../../build/icons/32x32.png?asset';
 import { PRODUCT_NAME } from './identity.ts';
 import { rewriteClientHints } from './identity/user-agent.ts';
@@ -96,7 +95,12 @@ import {
   testModelOf,
 } from './extensions/local-models.ts';
 import { trayImage } from './tray/tray-icon.ts';
-import { createAccountHost, createSecureWindow, createSidebarView } from './windows.ts';
+import {
+  createAccountHost,
+  createMainWindow,
+  createSecureWindow,
+  createSidebarView,
+} from './windows.ts';
 
 const MEBIBYTE = 1024 * 1024;
 const PICKER_THUMBNAIL = { width: 320, height: 180 };
@@ -436,7 +440,7 @@ startApp({
   notify,
   warn,
   customCode,
-  createWindow: (options) => createSecureWindow(options),
+  createWindow: (options) => createMainWindow(options),
   createAccountHost: (window, renderer) => createAccountHost(window, renderer),
   createSidebar: (window, renderer) => createSidebarView(window, renderer),
   defaultSession: () => session.defaultSession,
@@ -526,7 +530,10 @@ startApp({
   sandboxDisabled: sandboxDisabled(app.commandLine, process.env),
   explainUnsafeStart: explainUnsafeStartWithDialog,
   selfUpdate: {
-    updater: () => electronUpdater.autoUpdater,
+    updater: async () => {
+      const { default: electronUpdater } = await import('electron-updater');
+      return electronUpdater.autoUpdater;
+    },
     askToInstall: askToInstallUpdateWithDialog,
   },
   badge: {

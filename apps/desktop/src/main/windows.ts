@@ -1,6 +1,8 @@
 import {
+  BaseWindow,
   BrowserWindow,
   WebContentsView,
+  type BaseWindowConstructorOptions,
   type BrowserWindowConstructorOptions,
   type WebContents,
 } from 'electron';
@@ -8,6 +10,7 @@ import type { Overlay } from './recovery/controller.ts';
 import { rendererPreferences, type RendererOptions } from './web-preferences.ts';
 
 export type WindowOptions = Omit<BrowserWindowConstructorOptions, 'webPreferences'>;
+export type MainWindowOptions = BaseWindowConstructorOptions;
 
 /**
  * The only place YapYap creates windows; lint forbids it anywhere else.
@@ -21,15 +24,24 @@ export function createSecureWindow(
   return new BrowserWindow({ ...options, webPreferences: rendererPreferences(renderer) });
 }
 
+/**
+ * The main window holds no page of its own, only views: a `BrowserWindow`
+ * would start a renderer for its empty page, which costs as much memory as
+ * a small page and does nothing.
+ */
+export function createMainWindow(options: MainWindowOptions): BaseWindow {
+  return new BaseWindow(options);
+}
+
 /** The strip the sidebar takes on the window's left edge, which every other view leaves free. */
 interface Layout {
   left: number;
   readonly refits: Set<() => void>;
 }
 
-const layouts = new WeakMap<BrowserWindow, Layout>();
+const layouts = new WeakMap<BaseWindow, Layout>();
 
-function layoutOf(window: BrowserWindow): Layout {
+function layoutOf(window: BaseWindow): Layout {
   const existing = layouts.get(window);
   if (existing !== undefined) {
     return existing;
@@ -43,7 +55,7 @@ function layoutOf(window: BrowserWindow): Layout {
  * Adds `view` on top of the others, filling `window` beside the sidebar and
  * kept in size as the window resizes. Returns how to take it away again.
  */
-function fill(window: BrowserWindow, view: WebContentsView): () => void {
+function fill(window: BaseWindow, view: WebContentsView): () => void {
   const layout = layoutOf(window);
   const fit = (): void => {
     const [width = 0, height = 0] = window.getContentSize();
@@ -68,7 +80,7 @@ export interface SidebarView {
   readonly setWidth: (width: number) => void;
 }
 
-export function createSidebarView(window: BrowserWindow, renderer: RendererOptions): SidebarView {
+export function createSidebarView(window: BaseWindow, renderer: RendererOptions): SidebarView {
   const view = new WebContentsView({ webPreferences: rendererPreferences(renderer) });
   const layout = layoutOf(window);
   let docked = false;
@@ -141,7 +153,7 @@ function overlayOf(view: WebContentsView, takeOut: () => void): Overlay {
   };
 }
 
-export function createAccountHost(window: BrowserWindow, renderer: RendererOptions): AccountHost {
+export function createAccountHost(window: BaseWindow, renderer: RendererOptions): AccountHost {
   const page = new WebContentsView({ webPreferences: rendererPreferences(renderer) });
   const overlays = new Set<WebContentsView>();
   const shown = new Map<WebContentsView, () => void>();

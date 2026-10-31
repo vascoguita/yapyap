@@ -8,7 +8,7 @@ test('opens a window that loads the fake WhatsApp page', async ({ app, window, f
   // ready-to-show can land after the page renders, especially under Xvfb.
   await expect
     .poll(() =>
-      app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().map((w) => w.isVisible())),
+      app.evaluate(({ BaseWindow }) => BaseWindow.getAllWindows().map((w) => w.isVisible())),
     )
     .toEqual([true]);
 });
@@ -69,8 +69,8 @@ test('hands keyboard focus to WhatsApp when its window is focused', async ({ app
   await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
   await expect
     .poll(() =>
-      app.evaluate(({ BrowserWindow, webContents }) => {
-        BrowserWindow.getAllWindows()[0]?.focus();
+      app.evaluate(({ BaseWindow, webContents }) => {
+        BaseWindow.getAllWindows()[0]?.focus();
         return webContents.getFocusedWebContents()?.getURL();
       }),
     )

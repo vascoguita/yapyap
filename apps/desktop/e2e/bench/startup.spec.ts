@@ -8,6 +8,7 @@ const RUNS = 7;
 interface Budget {
   readonly coldStartMs: number;
   readonly idleMemoryMb: number;
+  readonly idleRenderers: number;
 }
 
 /** Each process's median memory across the samples, largest first. */
@@ -39,6 +40,7 @@ test('stays within the cold-start and idle-memory budgets', async ({}, testInfo)
     platform: process.platform,
     coldStartMs: median(samples.map((sample) => sample.coldStartMs)),
     idleMemoryMb: median(samples.map((sample) => sample.idleMemoryMb)),
+    idleRenderers: Math.max(...samples.map((sample) => sample.renderers)),
     processesMb: medianByProcess(samples),
     budget,
     samples,
@@ -49,4 +51,8 @@ test('stays within the cold-start and idle-memory budgets', async ({}, testInfo)
   expect
     .soft(result.idleMemoryMb, 'median idle memory (MB)')
     .toBeLessThanOrEqual(budget.idleMemoryMb);
+  // A count, not a measure: any launch over it means a renderer with nothing to do.
+  expect
+    .soft(result.idleRenderers, 'most renderer processes at idle')
+    .toBeLessThanOrEqual(budget.idleRenderers);
 });

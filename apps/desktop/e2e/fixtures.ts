@@ -150,10 +150,10 @@ async function startupState(app: ElectronApplication): Promise<string> {
   const launched = LAUNCHED_AT.get(app);
   const elapsed = launched === undefined ? 'unknown' : `${String(Date.now() - launched)} ms`;
   const state = await app
-    .evaluate(({ app: electronApp, BrowserWindow, webContents }) =>
+    .evaluate(({ app: electronApp, BaseWindow, webContents }) =>
       [
         `ready=${String(electronApp.isReady())}`,
-        `windows=${String(BrowserWindow.getAllWindows().length)}`,
+        `windows=${String(BaseWindow.getAllWindows().length)}`,
         ...webContents
           .getAllWebContents()
           .map(

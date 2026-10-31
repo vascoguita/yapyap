@@ -6,7 +6,7 @@ import { startSelfUpdates } from './updates/self-update.ts';
 import { chooseDisplayBackend, type DisplayBackend } from './display/backend.ts';
 import { trackCrashes } from './crash/crash-reports.ts';
 import { installSecurity, type SecurityDependencies } from './security.ts';
-import type { WindowOptions } from './windows.ts';
+import type { MainWindowOptions } from './windows.ts';
 import { refuseUnsafeStart } from './sandbox-check.ts';
 import { manageMainWindow, restoreWindowState } from './window/main-window.ts';
 import { resolveWhatsAppOrigin } from './whatsapp-origin.ts';
@@ -26,7 +26,7 @@ const GRAPHICS_NOTICES: Readonly<Record<GraphicsReason, string | undefined>> = {
   settings: undefined,
 };
 
-const MAIN_WINDOW: WindowOptions = {
+const MAIN_WINDOW: MainWindowOptions = {
   title: PRODUCT_NAME,
   width: 1200,
   height: 800,

@@ -34,7 +34,7 @@ describe('startSelfUpdates', () => {
   it.each(['notify', 'system', 'manual'] as const)('does nothing under the %s policy', (policy) => {
     const updater = fakeUpdater();
     const d = deps(policy);
-    const create = vi.fn(() => updater);
+    const create = vi.fn(() => Promise.resolve(updater));
     startSelfUpdates(create, d);
     expect(create).not.toHaveBeenCalled();
     expect(updater.checkForUpdates).not.toHaveBeenCalled();
@@ -42,10 +42,11 @@ describe('startSelfUpdates', () => {
     expect(updater.autoInstallOnAppQuit).toBe(true);
   });
 
-  it('downloads only stable upgrades and never installs on its own', () => {
+  it('downloads only stable upgrades and never installs on its own', async () => {
     const updater = fakeUpdater();
     const d = deps('self-update');
-    startSelfUpdates(() => updater, d);
+    startSelfUpdates(() => Promise.resolve(updater), d);
+    await flush();
     expect(updater).toEqual(
       expect.objectContaining({
         autoDownload: true,
@@ -60,11 +61,12 @@ describe('startSelfUpdates', () => {
     expect(updater.checkForUpdates).toHaveBeenCalledTimes(2);
   });
 
-  it('offers betas only while the user asks for them, checked before each download', () => {
+  it('offers betas only while the user asks for them, checked before each download', async () => {
     const updater = fakeUpdater();
     const d = deps('self-update');
     d.betas.mockReturnValue(true);
-    startSelfUpdates(() => updater, d);
+    startSelfUpdates(() => Promise.resolve(updater), d);
+    await flush();
     expect(updater.allowPrerelease).toBe(true);
     d.betas.mockReturnValue(false);
     (d.every.mock.calls[0]?.[0] as () => void)();
@@ -75,7 +77,8 @@ describe('startSelfUpdates', () => {
   it('installs a downloaded update only after the user agrees to restart', async () => {
     const updater = fakeUpdater();
     const d = deps('self-update');
-    startSelfUpdates(() => updater, d);
+    startSelfUpdates(() => Promise.resolve(updater), d);
+    await flush();
     updater.emit('update-downloaded', { version: '0.2.0' });
     await flush();
     expect(d.askToInstall).toHaveBeenCalledExactlyOnceWith('0.2.0');
@@ -85,7 +88,8 @@ describe('startSelfUpdates', () => {
   it('keeps running the current version when the user says later', async () => {
     const updater = fakeUpdater();
     const d = deps('self-update', false);
-    startSelfUpdates(() => updater, d);
+    startSelfUpdates(() => Promise.resolve(updater), d);
+    await flush();
     updater.emit('update-downloaded', { version: '0.2.0' });
     await flush();
     expect(updater.quitAndInstall).not.toHaveBeenCalled();
@@ -95,7 +99,7 @@ describe('startSelfUpdates', () => {
     const updater = fakeUpdater(() => Promise.reject(new Error('offline')));
     const d = deps('self-update');
     d.askToInstall.mockRejectedValueOnce(new Error('no display'));
-    startSelfUpdates(() => updater, d);
+    startSelfUpdates(() => Promise.resolve(updater), d);
     await flush();
     updater.emit('error', new Error('bad signature'));
     updater.emit('update-downloaded', { version: '0.2.0' });
@@ -106,5 +110,13 @@ describe('startSelfUpdates', () => {
       ['Could not ask about installing a YapYap update.'],
     ]);
     expect(updater.quitAndInstall).not.toHaveBeenCalled();
+  });
+
+  it('logs an updater that could not load, and checks nothing', async () => {
+    const d = deps('self-update');
+    startSelfUpdates(() => Promise.reject(new Error('missing module')), d);
+    await flush();
+    expect(d.warn).toHaveBeenCalledExactlyOnceWith('Could not load the YapYap updater.');
+    expect(d.every).not.toHaveBeenCalled();
   });
 });

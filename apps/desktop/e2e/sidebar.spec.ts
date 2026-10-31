@@ -14,8 +14,8 @@ const sidebarPage = async (app: ElectronApplication): Promise<Page> => {
 
 /** Where each view sits in the main window: the sidebar first, then the accounts. */
 const layout = (app: ElectronApplication) =>
-  app.evaluate(({ BrowserWindow }) =>
-    BrowserWindow.getAllWindows().flatMap((window) =>
+  app.evaluate(({ BaseWindow }) =>
+    BaseWindow.getAllWindows().flatMap((window) =>
       window.contentView.children.map((view) => ({
         url: (view as Electron.WebContentsView).webContents.getURL(),
         x: view.getBounds().x,

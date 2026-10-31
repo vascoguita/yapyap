@@ -60,10 +60,10 @@ async function clickAccountMenu(app: Awaited<ReturnType<typeof launchApp>>, labe
 
 /** The WhatsApp pages, and which one the window shows. */
 const accountPages = (app: Awaited<ReturnType<typeof launchApp>>) =>
-  app.evaluate(({ BrowserWindow, webContents }) => {
+  app.evaluate(({ BaseWindow, webContents }) => {
     // A view's page keeps its window after the view is taken out, so ask the window.
     const shown = new Set(
-      BrowserWindow.getAllWindows().flatMap((window) =>
+      BaseWindow.getAllWindows().flatMap((window) =>
         window.contentView.children.map((view) => (view as Electron.WebContentsView).webContents),
       ),
     );
