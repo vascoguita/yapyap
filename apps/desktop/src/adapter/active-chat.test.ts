@@ -11,6 +11,8 @@ const PLACES = {
   messageText: LANDMARKS.messageText,
   messageBody: LANDMARKS.messageBody,
   outgoing: LANDMARKS.outgoing,
+  author: LANDMARKS.author,
+  quoted: LANDMARKS.quoted,
 };
 const LIMITS = { messages: 2, text: 10, name: 8 };
 
@@ -70,6 +72,18 @@ describe('readActiveChat', () => {
     });
   });
 
+  it('knows a group by the sender names WhatsApp shows only in groups, but not by a quote’s', () => {
+    // Today's IDs are bare (#410): a group shows who wrote each message from someone else.
+    const named = `<div data-id="3EB0B1"><span data-testid="author">Ana</span><div data-pre-plain-text="x"><span>Hey</span></div></div>`;
+    expect(readActiveChat(page(`<div id="main">${named}</div>`), PLACES, LIMITS)).toMatchObject({
+      group: true,
+    });
+    const quoting = `<div data-id="3EB0B2"><div data-testid="quoted-message"><span data-testid="author">Ana</span></div><div data-pre-plain-text="x"><span>Yes</span></div></div>`;
+    expect(readActiveChat(page(`<div id="main">${quoting}</div>`), PLACES, LIMITS)).toMatchObject({
+      group: false,
+    });
+  });
+
   it('reads nothing when no chat is open', () => {
     expect(readActiveChat(page('<div id="app"></div>'), PLACES, LIMITS)).toBeNull();
   });
@@ -83,7 +97,8 @@ describe('readActiveChat', () => {
     };
     const doc = {
       querySelector: (selector: string) => (selector === PLACES.chatName ? text : {}),
-      querySelectorAll: () => [message],
+      // No sender names on this page: it is no group.
+      querySelectorAll: (selector: string) => (selector.endsWith(PLACES.author) ? [] : [message]),
     };
     expect(readActiveChat(doc, PLACES, LIMITS)).toEqual({
       name: 'Plain',
@@ -95,7 +110,8 @@ describe('readActiveChat', () => {
       querySelector: (selector: string) => (selector === PLACES.chatName ? null : {}),
     };
     const blank = { textContent: null, querySelector: () => null };
-    expect(readActiveChat({ ...empty, querySelectorAll: () => [blank] }, PLACES, LIMITS)).toEqual({
+    const blanks = (selector: string) => (selector.endsWith(PLACES.author) ? [] : [blank]);
+    expect(readActiveChat({ ...empty, querySelectorAll: blanks }, PLACES, LIMITS)).toEqual({
       name: '',
       group: false,
       messages: [],

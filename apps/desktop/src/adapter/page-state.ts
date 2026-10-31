@@ -39,6 +39,12 @@ export const LANDMARKS = {
    * the delivery status, which only sent messages have (#410).
    */
   outgoing: '[data-testid="tail-out"], [data-testid="msg-meta"][role="button"]',
+  /**
+   * The sender's name above a message, which only group chats show for
+   * other people's messages; a quoted message carries one in any chat (#410).
+   */
+  author: '[data-testid="author"]',
+  quoted: '[data-testid="quoted-message"]',
   /** The account's own profile photo, on the profile button at the foot of the navigation bar (#87). */
   ownAvatar: '[data-testid="navbar-footer-section"] button[data-navbar-item] img',
   /**
