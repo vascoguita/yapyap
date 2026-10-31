@@ -347,7 +347,9 @@ describe('mountPanel', () => {
     t.receive({ type: 'problem', reason: 'no-unread' });
     expect(t.replies()).toBe('No chat in the chat list has unread messages.');
     t.receive({ type: 'problem', reason: 'unread-not-granted' });
-    expect(t.replies()).toContain('Turn on “See which chats have unread messages”');
+    expect(t.replies()).toContain(
+      'Turn on “See which chats have unread messages, and the latest message of each”',
+    );
   });
 
   it('shows the private model: its next step, the space it takes, and a way to remove it', () => {
