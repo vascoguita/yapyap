@@ -2,7 +2,7 @@
  * Bump whenever a landmark below changes, so diagnostics show which table a
  * report came from.
  */
-export const LANDMARKS_VERSION = 6;
+export const LANDMARKS_VERSION = 7;
 
 /**
  * Structural landmarks of WhatsApp Web: element ids and attributes that have
@@ -16,6 +16,11 @@ export const LANDMARKS = {
   loginCode: '[data-ref]',
   /** The chat list, present once the account is logged in. */
   chatList: '#pane-side',
+  /**
+   * The chat list's own box. Its parent is the column WhatsApp sizes as a
+   * flex item, which YapYap resizes to the account's width (#79).
+   */
+  chatColumn: '#side',
   /** The open conversation. */
   conversation: '#main',
   /** The open conversation's message box, where a reply from a notification goes (#60). */

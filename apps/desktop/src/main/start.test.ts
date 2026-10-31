@@ -356,6 +356,11 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     onResume: vi.fn(),
     env,
     argv,
+    chatListWidths: {
+      get: vi.fn<(account: string) => number | undefined>(() => undefined),
+      set: vi.fn(),
+      forget: vi.fn(),
+    },
     windowState: {
       read: vi.fn((): string => {
         throw new Error('ENOENT');
@@ -915,12 +920,20 @@ describe('startApp', () => {
     await startApp(f);
     f.runtime.assistantBarView?.show(true);
     f.web.contents.executeJavaScriptInIsolatedWorld.mockClear();
+    // The chat list is sized on its own timer, which this test leaves out.
+    const barRenders = (): number =>
+      (
+        f.web.contents.executeJavaScriptInIsolatedWorld.mock.calls as unknown as [
+          number,
+          { code: string }[],
+        ][]
+      ).filter(([, [script]]) => script?.code.includes('yapyapAssistantBarView')).length;
     f.window.isFocused.mockReturnValue(false);
     vi.advanceTimersByTime(1000);
-    expect(f.web.contents.executeJavaScriptInIsolatedWorld).not.toHaveBeenCalled();
+    expect(barRenders()).toBe(0);
     f.window.isFocused.mockReturnValue(true);
     vi.advanceTimersByTime(1000);
-    expect(f.web.contents.executeJavaScriptInIsolatedWorld).toHaveBeenCalledOnce();
+    expect(barRenders()).toBe(1);
     f.runtime.assistantBarView?.show(false);
     vi.useRealTimers();
   });
@@ -1343,6 +1356,58 @@ describe('startApp', () => {
       vi.runOnlyPendingTimers();
       expect(reconnects[0]).toHaveBeenCalled();
       expect(reconnects[1]).toHaveBeenCalled();
+    });
+
+    it('sizes the chat list of the account on screen, and keeps each account’s own width', async () => {
+      vi.useFakeTimers();
+      const f = twoAccounts();
+      f.chatListWidths.get.mockImplementation((id) => (id === ACCOUNT ? 320 : undefined));
+      await startApp(f);
+      const pageOf = (index: number) => {
+        const host = f.hosts[index];
+        if (host === undefined) {
+          throw new Error('No such account.');
+        }
+        return host.webContents;
+      };
+      const [personal, work] = [pageOf(0), pageOf(1)];
+      const sized = (width: string) => [
+        1000,
+        [{ code: expect.stringContaining(`globalThis, {"width":${width},`) as unknown }],
+      ];
+      expect(work.executeJavaScriptInIsolatedWorld).toHaveBeenCalledWith(...sized('null'));
+      menu(f).switchTo(ACCOUNT);
+      expect(personal.executeJavaScriptInIsolatedWorld).toHaveBeenCalledWith(...sized('320'));
+      personal.executeJavaScriptInIsolatedWorld.mockClear();
+      f.window.isVisible.mockReturnValue(false);
+      vi.advanceTimersByTime(1000);
+      expect(personal.executeJavaScriptInIsolatedWorld).not.toHaveBeenCalledWith(...sized('320'));
+      f.window.isVisible.mockReturnValue(true);
+      vi.advanceTimersByTime(1000);
+      expect(personal.executeJavaScriptInIsolatedWorld).toHaveBeenCalledWith(...sized('320'));
+    });
+
+    it('keeps a width for the account whose page sent it, and forgets a removed account’s', async () => {
+      const f = twoAccounts();
+      await startApp(f);
+      const send = (channel: string, event: object, ...args: unknown[]): void => {
+        f.ipcListeners.get(`whatsapp:chat-list-${channel}`)?.(event, ...args);
+      };
+      const fromWork = {
+        sender: f.hosts[1]?.webContents,
+        senderFrame: { url: `${WHATSAPP_ORIGIN}/` },
+      };
+      send('resize', fromWork, 400);
+      expect(f.chatListWidths.set).toHaveBeenLastCalledWith(SECOND, 400);
+      send('reset', fromWork);
+      expect(f.chatListWidths.set).toHaveBeenLastCalledWith(SECOND, undefined);
+      send('resize', { ...fromWork, sender: {} }, 400);
+      expect(f.warn).toHaveBeenCalledWith('Ignored a chat list message from outside WhatsApp.');
+      expect(f.chatListWidths.set).toHaveBeenCalledTimes(2);
+      void menu(f).remove(ACCOUNT);
+      await vi.waitFor(() => {
+        expect(f.chatListWidths.forget).toHaveBeenCalledExactlyOnceWith(ACCOUNT);
+      });
     });
 
     it('adds an account in its own session and shows it', async () => {

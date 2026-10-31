@@ -4,6 +4,20 @@
     <meta charset="utf-8" />
     <title>WhatsApp</title>
     <style>
+      /* As WhatsApp lays out its main screen: a flex row of the navigation
+         bar, the chat list's column, sized with \`flex: 0 0 30%\`, and the
+         conversation, which takes the rest (#79). */
+      [data-testid='wa-web-main-screen'] > div {
+        display: flex;
+        min-block-size: 240px;
+      }
+      [data-testid='list-column'] {
+        flex: 0 0 30%;
+      }
+      [data-testid='conversation-pane'] {
+        flex: 1 1 0;
+        min-inline-size: 0;
+      }
       /* As WhatsApp lays out the open chat: a flex column ordered with
          \`order\`, under a wallpaper that covers it, with the messages and the
          message box raised above it (#466). */
@@ -36,17 +50,65 @@
     <!-- The adapter's landmarks (src/adapter/page-state.ts), with synthetic chats. -->
     <div id="app" data-testid="fake-whatsapp">
       Fake WhatsApp for automated tests
-      <div id="pane-side" aria-label="Chat list">
-        <div role="row" data-testid="chat">Test Chat One</div>
-        <div role="row">Test Chat Two</div>
-      </div>
-      <header data-testid="chatlist-header">
-        <div data-testid="navbar-footer-section">
-          <button data-navbar-item="true" type="button" aria-label="Profile">
-            <img data-testid="own-avatar" src="/media/avatar.png" alt="" width="24" height="24" />
-          </button>
+      <div data-testid="wa-web-main-screen">
+        <div>
+          <header data-testid="chatlist-header">
+            <div data-testid="navbar-footer-section">
+              <button data-navbar-item="true" type="button" aria-label="Profile">
+                <img
+                  data-testid="own-avatar"
+                  src="/media/avatar.png"
+                  alt=""
+                  width="24"
+                  height="24"
+                />
+              </button>
+            </div>
+          </header>
+          <div data-testid="list-column">
+            <div id="side">
+              <div id="pane-side" aria-label="Chat list">
+                <div role="row" data-testid="chat">Test Chat One</div>
+                <div role="row">Test Chat Two</div>
+              </div>
+            </div>
+          </div>
+          <div data-testid="conversation-pane">
+            <div id="main">
+              <div data-testid="wallpaper"></div>
+              <header><span dir="auto">Test Chat One</span></header>
+              <!-- As WhatsApp marks messages today: a bare ID, and only the account's
+                 own messages with a tail and a clickable delivery status (#410). -->
+              <div role="row" data-testid="message">
+                <div data-testid="conv-msg-3EB0F1" data-id="3EB0F1">
+                  <div data-pre-plain-text="[19:58, 24/10/2026] Test Chat One: ">
+                    <span data-testid="selectable-text">Dinner tonight?</span>
+                    <span aria-hidden="true">19:58</span>
+                  </div>
+                  <div data-testid="msg-meta"><span>19:58</span></div>
+                </div>
+              </div>
+              <div role="row">
+                <div data-testid="conv-msg-3EB0F2" data-id="3EB0F2">
+                  <span data-testid="tail-out"></span>
+                  <div data-pre-plain-text="[20:01, 24/10/2026] You: ">
+                    <span data-testid="selectable-text">See you at 8</span>
+                    <span aria-hidden="true">20:01</span>
+                  </div>
+                  <div data-testid="msg-meta" role="button"><span>20:01</span></div>
+                </div>
+              </div>
+              <footer>
+                <div
+                  data-testid="composer"
+                  contenteditable="true"
+                  aria-label="Type a message"
+                ></div>
+              </footer>
+            </div>
+          </div>
         </div>
-      </header>
+      </div>
     </div>
     <nav>
       <a
@@ -69,34 +131,6 @@
     <button data-testid="share-keep" type="button">Share and keep sharing</button>
     <button data-testid="share-stop" type="button">Stop sharing</button>
     <output data-testid="share-status"></output>
-    <div id="main">
-      <div data-testid="wallpaper"></div>
-      <header><span dir="auto">Test Chat One</span></header>
-      <!-- As WhatsApp marks messages today: a bare ID, and only the account's
-           own messages with a tail and a clickable delivery status (#410). -->
-      <div role="row" data-testid="message">
-        <div data-testid="conv-msg-3EB0F1" data-id="3EB0F1">
-          <div data-pre-plain-text="[19:58, 24/10/2026] Test Chat One: ">
-            <span data-testid="selectable-text">Dinner tonight?</span>
-            <span aria-hidden="true">19:58</span>
-          </div>
-          <div data-testid="msg-meta"><span>19:58</span></div>
-        </div>
-      </div>
-      <div role="row">
-        <div data-testid="conv-msg-3EB0F2" data-id="3EB0F2">
-          <span data-testid="tail-out"></span>
-          <div data-pre-plain-text="[20:01, 24/10/2026] You: ">
-            <span data-testid="selectable-text">See you at 8</span>
-            <span aria-hidden="true">20:01</span>
-          </div>
-          <div data-testid="msg-meta" role="button"><span>20:01</span></div>
-        </div>
-      </div>
-      <footer>
-        <div data-testid="composer" contenteditable="true" aria-label="Type a message"></div>
-      </footer>
-    </div>
     <output data-testid="paste-result"></output>
     <button data-testid="notify" type="button">Notify</button>
     <button data-testid="notify-read" type="button">Read the chat</button>

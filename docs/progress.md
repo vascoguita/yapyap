@@ -330,6 +330,21 @@ not edit the same lines.
   E2E test with Chromium's fake devices checks that echo cancellation, noise
   suppression and gain control stay on.
 
+- Chat list width (#79): the adapter (`src/adapter/chat-list-width.ts`)
+  sets the inline `flex` of `#side`'s parent, WhatsApp's chat list column
+  (landmarks v7), to the account's width, between 240 pixels and 60% of
+  WhatsApp's width, and keeps a divider right after it in a closed shadow
+  root. The divider is a `role="separator"` with its value and bounds,
+  resized by a trusted mouse drag or the arrows, Home and End, and reset to
+  WhatsApp's own width by a double-click or Enter. Its bridge
+  (`yapyapChatList`, adapter world only) sends `resize` and `reset`; the
+  main process keeps the width for the sending view's account in
+  `chat-list.json`, state like `window-state.json` rather than a setting or
+  a field of `accounts.json`, and drops it when the account is removed. The
+  active account's page is sized when it comes on screen and about once a
+  second while the window shows. The fake page now has WhatsApp's main
+  screen: a flex row with the list in a `flex: 0 0 30%` column.
+
 - Account → New Chat with Number… (#80) opens a small chrome window; the
   number is parsed by `src/shared/phone-number.ts` in the window and again in
   main, then opened as WhatsApp's own chat link. Nothing is stored.

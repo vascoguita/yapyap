@@ -71,14 +71,27 @@ and an ESLint restriction forbids constructing `BrowserWindow` or
   logs the photo or its address.
 - WhatsApp's views have one preload, for notifications, whose design is in
   ADR 0011, and screen shares. It also gives the assistant bar's five
-  actions to the adapter's isolated world only, never to WhatsApp's own,
-  and the main process hears them only from the active account's page
-  (ADR 0013).
-- The assistant bar is the one piece of YapYap's interface inside WhatsApp's
-  page (ADR 0013, C35 in ADR 0008). The adapter renders it from its isolated
-  world into a closed shadow root right above the message box, writes
-  extension text only as text, acts only on trusted events, and puts it back
-  on a timer while it shows, never with observers.
+  actions and the chat list divider's two to the adapter's isolated world
+  only, never to WhatsApp's own. The main process hears the bar only from
+  the active account's page (ADR 0013), and the divider only from a
+  WhatsApp view of an account, for that account.
+- Two pieces of YapYap's interface live inside WhatsApp's page. The
+  assistant bar (ADR 0013, C35 in ADR 0008): the adapter renders it from
+  its isolated world into a closed shadow root right above the message
+  box, writes extension text only as text, acts only on trusted events,
+  and puts it back on a timer while it shows, never with observers.
+- The chat list divider (#79, C40 in ADR 0008), with the same safeguards.
+  The adapter keeps it right after the chat list's column, in a closed
+  shadow root, and sets that column's inline `flex` to the account's width,
+  kept between 240 pixels and 60% of WhatsApp's width. It is a keyboard
+  separator (`role="separator"`, arrows, Home, End, and Enter for
+  WhatsApp's own width) and a mouse drag, acting only on trusted events.
+  Its bridge sends only `resize`, with whole pixels from 240 to 4,800, and
+  `reset`; the main process keeps the width for the account of the view
+  that sent it, in `chat-list.json`, and drops anything else. The active
+  account's page gets the width when it comes on screen and about once a
+  second while the window shows, never through observers, and the render
+  reports only whether the divider is on the page.
 
 ### Navigation, windows and permissions
 

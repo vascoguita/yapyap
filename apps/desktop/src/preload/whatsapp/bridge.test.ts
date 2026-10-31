@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createAssistantBarBridge, createNotificationBridge, createShareBridge } from './bridge.ts';
+import {
+  createAssistantBarBridge,
+  createChatListBridge,
+  createNotificationBridge,
+  createShareBridge,
+} from './bridge.ts';
 
 describe('createNotificationBridge', () => {
   it('sends each operation on its own fixed channel', () => {
@@ -75,5 +80,19 @@ describe('createAssistantBarBridge', () => {
       ['whatsapp:assistant-bar-choose', 'claude-haiku-5-5'],
     ]);
     expect(Object.keys(bridge)).toEqual(['suggest', 'prompt', 'confirm', 'use', 'send', 'choose']);
+  });
+});
+
+describe('createChatListBridge', () => {
+  it('sends the divider’s two actions on their own fixed channels', () => {
+    const ipc = { send: vi.fn() };
+    const bridge = createChatListBridge(ipc);
+    bridge.resize(320);
+    bridge.reset();
+    expect(ipc.send.mock.calls).toEqual([
+      ['whatsapp:chat-list-resize', 320],
+      ['whatsapp:chat-list-reset'],
+    ]);
+    expect(Object.keys(bridge)).toEqual(['resize', 'reset']);
   });
 });

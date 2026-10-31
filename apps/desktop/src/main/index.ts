@@ -38,6 +38,7 @@ import {
 } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { writeTextAtomically } from './atomic-write.ts';
+import { chatListWidths } from './chat-list/widths.ts';
 import { createCustomCode } from './custom-code/custom-code.ts';
 import { EXTENSION_PORT_CHANNEL } from '../shared/extension-rpc.ts';
 import { hostMethods } from './extensions/host-methods.ts';
@@ -101,6 +102,7 @@ const DOWNLOADS_STATE = join(app.getPath('userData'), 'downloads.json');
 // Kept apart from settings, so importing a settings file can never bring code that runs in WhatsApp.
 const CUSTOM_CODE = join(app.getPath('userData'), 'custom-code.json');
 const QUICK_PANEL_STATE = join(app.getPath('userData'), 'quick-panel.json');
+const CHAT_LIST_STATE = join(app.getPath('userData'), 'chat-list.json');
 const EXTENSION_STORAGE = join(app.getPath('userData'), 'extensions', '.storage');
 
 // Holds the tray for the app's lifetime; a collected Tray disappears from the panel.
@@ -436,6 +438,15 @@ startApp({
     isSupported: () => Notification.isSupported(),
   },
   ipc: ipcMain,
+  chatListWidths: chatListWidths(
+    {
+      read: () => readFileSync(CHAT_LIST_STATE, 'utf8'),
+      write: (text) => {
+        writeTextAtomically(CHAT_LIST_STATE, text);
+      },
+    },
+    warn,
+  ),
   saveAccounts: (accounts) => {
     saveAccounts(app.getPath('userData'), accounts);
   },

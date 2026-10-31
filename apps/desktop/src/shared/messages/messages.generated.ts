@@ -372,6 +372,7 @@ export interface Messages {
     readonly chatChanged: string;
     readonly thinking: string;
   };
+  readonly chatList: { readonly label: string; readonly hint: string };
   readonly extensions: {
     readonly notificationTitle: (params: {
       readonly extension: string | number;

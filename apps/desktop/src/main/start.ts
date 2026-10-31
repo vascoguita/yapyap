@@ -7,6 +7,9 @@ import type { SidebarPort } from './chrome/sidebar.ts';
 import { listenToAssistantBar, type BarIpc } from './assistant/bar-ipc.ts';
 import { suggestAsMessagesArrive } from './assistant/auto-suggest.ts';
 import { inPageAssistantBar } from './assistant/bar-page.ts';
+import { listenToChatList, type ChatListIpc } from './chat-list/chat-list-ipc.ts';
+import { inPageChatList, type InPageChatList } from './chat-list/chat-list-page.ts';
+import type { ChatListWidths } from './chat-list/widths.ts';
 import { watchConnectivity } from './connectivity/connectivity.ts';
 import { PRODUCT_NAME } from './identity.ts';
 import type {
@@ -253,7 +256,9 @@ export interface StartDependencies<Window extends WindowPort> {
   /** The user's own CSS and JavaScript, applied to every account's WhatsApp (#72). */
   readonly customCode: Pick<CustomCodeController, 'attach'>;
   readonly notifications: Pick<NotifierDependencies, 'create' | 'isSupported'>;
-  readonly ipc: NotificationIpc & ShareIpc & BarIpc;
+  readonly ipc: NotificationIpc & ShareIpc & BarIpc & ChatListIpc;
+  /** Each account's chat list width, apart from settings and `accounts.json` (#79). */
+  readonly chatListWidths: ChatListWidths;
   /** `process.versions.chrome`: the identity must match the bundled engine. */
   readonly chromeVersion: string;
   readonly platform: string;
@@ -377,6 +382,8 @@ export interface AccountWiring<Window extends WindowPort> {
   readonly notifiers: Notifiers;
   readonly spelling: SpellingController;
   readonly proxy: ProxyController;
+  /** Sizes the chat list of the account on screen (#79). */
+  readonly chatList: Pick<InPageChatList, 'refresh'>;
 }
 
 /** The wiring while the accounts open, before what they build exists. */
@@ -537,6 +544,7 @@ async function forgetAccount<Window extends WindowPort>(
 ): Promise<void> {
   signals.forget(account.id);
   avatars.forget(account.id);
+  deps.chatListWidths.forget(account.id);
   const session = deps.sessionOf(partitionOf(account));
   await session.clearStorageData();
   await session.clearCache();
@@ -805,6 +813,7 @@ function openAccounts<Window extends WindowPort>(
   const avatars: AccountAvatars = avatarsFor(deps, wiring.origin, indicators);
   const changed = (): void => {
     signals.activate(running.active().account.id);
+    wiring.chatList.refresh();
     menuChanged();
     indicators.refresh();
     keepQuiet(deps, running, indicators.visibility);
@@ -823,10 +832,20 @@ function openAccounts<Window extends WindowPort>(
     onChange: changed,
   });
   changed();
+  followChanges(deps, signals, running, changed);
+  return running;
+}
+
+/** Shows the accounts anew when settings change, and reconnects them when the network returns. */
+function followChanges<Window extends WindowPort>(
+  deps: StartDependencies<Window>,
+  signals: AccountSignals,
+  running: RunningAccounts<OpenedAccount>,
+  changed: () => void,
+): void {
   // The menu and the tray show do not disturb, and it decides what is muted.
   deps.settings.onChange(changed);
   reconnectWhenOnline(deps, signals, running);
-  return running;
 }
 
 type BarWiring<Window extends WindowPort> = Pick<
@@ -859,6 +878,25 @@ function attachAssistantBar<Window extends WindowPort>(
       every: setInterval,
     });
     return inPageAssistantBar(bar.state, { activePage, onScreen });
+  });
+}
+
+/** Each account's chat list width, heard from its own WhatsApp view alone (#79). */
+function attachChatList<Window extends WindowPort>(
+  deps: StartDependencies<Window>,
+  window: Window,
+  security: Parameters<typeof secureSession>[1],
+  origin: string,
+): InPageChatList {
+  listenToChatList(deps.ipc, deps.chatListWidths, {
+    views: security.views,
+    origin,
+    warn: deps.warn,
+  });
+  return inPageChatList({
+    widths: deps.chatListWidths,
+    visible: () => window.isVisible(),
+    every: setInterval,
   });
 }
 
@@ -954,6 +992,7 @@ async function openWindow<Window extends WindowPort>(
 ): Promise<void> {
   const window = openMainWindow(deps);
   takeGlobalShortcuts(deps, window);
+  const chatList = attachChatList(deps, window, security, origin);
   const running = openAccounts({
     deps,
     chrome,
@@ -964,7 +1003,12 @@ async function openWindow<Window extends WindowPort>(
     firstUrl: chatLinkOnce(chatLinkInArguments(deps.argv, origin), deps.accounts.active, origin),
     notifiers: listenToNotifications(deps, origin),
     spelling: followSpellingSetting(deps.settings, deps.systemLanguages),
+    chatList,
   });
+  chatList.follow(() => ({
+    account: running.active().account.id,
+    page: running.active().page.contents,
+  }));
   attachAssistantBar({ deps, chrome, window, security, origin }, running);
   instances.attach(
     window,

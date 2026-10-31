@@ -1,4 +1,5 @@
 import { ASSISTANT_BAR_CHANNELS, type AssistantBarBridge } from '../../shared/assistant-bar-api.ts';
+import { CHAT_LIST_CHANNELS, type ChatListBridge } from '../../shared/chat-list-api.ts';
 import { NOTIFICATION_CHANNELS, type NotificationBridge } from '../../shared/notification-api.ts';
 import { SHARE_CHANNELS, type ShareBridge } from '../../shared/share-api.ts';
 
@@ -71,6 +72,21 @@ export function createAssistantBarBridge(ipc: Pick<PreloadIpc, 'send'>): Assista
     },
     choose: (value) => {
       ipc.send(ASSISTANT_BAR_CHANNELS.choose, value);
+    },
+  };
+}
+
+/**
+ * The chat list divider's side of its two actions, on fixed channels (#79).
+ * Only the adapter's isolated world gets it, never WhatsApp's.
+ */
+export function createChatListBridge(ipc: Pick<PreloadIpc, 'send'>): ChatListBridge {
+  return {
+    resize: (width) => {
+      ipc.send(CHAT_LIST_CHANNELS.resize, width);
+    },
+    reset: () => {
+      ipc.send(CHAT_LIST_CHANNELS.reset);
     },
   };
 }
