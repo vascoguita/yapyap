@@ -263,6 +263,25 @@ describe('servePanel', () => {
     expect(sent.at(-1)).toMatchObject({ type: 'preview', transcript: 'Chat: Team\nThem: Lunch?' });
   });
 
+  it('prepares a catch-up on the unread chats when the panel asks for one', async () => {
+    const { host } = fakeHost();
+    host.chat.readUnreadSummary.mockResolvedValue([
+      { name: 'Team', unread: 3, messages: [{ outgoing: false, text: 'Lunch?' }] },
+    ]);
+    const ends = fakeChannel();
+    const { channel, sent } = ends;
+    await serve(host, ends);
+    channel.send({ type: 'prepare-catch-up' });
+    await vi.waitFor(() => {
+      expect(sent).toHaveLength(1);
+    });
+    expect(sent.at(-1)).toMatchObject({
+      type: 'catch-up',
+      transcript: 'Chat: Team\nUnread: 3\nLatest message: Lunch?',
+    });
+    expect(host.chat.readActive).not.toHaveBeenCalled();
+  });
+
   it('offers the private model to someone who set nothing up, and runs its buttons', async () => {
     const { host } = fakeHost();
     const model = fakeLocal();

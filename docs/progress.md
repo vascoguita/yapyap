@@ -673,6 +673,18 @@ not edit the same lines.
   never in the message box. Summarizing exactly the unread messages waits
   for an unread reader (#100).
 
+- Unread catch-up (#106, last part): **Catch up on unread chats** in the
+  assistant's panel reads `chat.readUnreadSummary` (the manifest now asks for
+  `chat:read-unread-summary`), so no chat is opened or marked read, and
+  previews exactly what would be sent: each unread chat's name, count and
+  latest message, under instructions to summarize what is waiting. The panel
+  says that the chat list holds only each chat's latest message and that the
+  preview includes chats where the assistant is off; **Send** sends that text
+  once and allows no chat (ADR 0008, C41). The summary shows in the panel
+  only. No unread chat, a refused grant and provider errors each have their
+  own words. `e2e/ai-assistant.spec.ts` catches up on the fake page's unread
+  chat and checks that the open chat and its badge stay as they were.
+
 - Account budgets (#109, first part): `bench/accounts.spec.ts` measures the
   memory a second account adds and the CPU a hidden account uses while
   idle, from cumulative CPU time, and the nightly run holds them to budgets

@@ -136,6 +136,8 @@ function run(panel: Panel, request: Exclude<PanelRequest, { type: 'cancel' }>): 
       return flow.prepare({ mode: 'replies' });
     case 'prepare-summary':
       return flow.prepare({ mode: 'summary' });
+    case 'prepare-catch-up':
+      return flow.prepare({ mode: 'catch-up' });
     case 'prepare-rewrite':
       return flow.prepare({ mode: 'rewrite', style: request.style, language: request.language });
     case 'allow-chat':

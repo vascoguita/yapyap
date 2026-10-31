@@ -21,5 +21,11 @@ which talks to the hidden page over a `BroadcastChannel`), next to
   resumable, hash-checked download into the origin private file system, and
   wllama, whose `.wasm` Vite copies into `dist/` beside `main.js`.
 - `src/settings.ts`: the settings form's choices, and the provider they make.
+- `src/reply-flow.ts`: what the panel previews and sends: replies, rewrites,
+  a chat's summary, and catching up on unread chats.
+- `src/catch-up.ts`: the unread chats as the model reads them, from
+  `chat.readUnreadSummary` (`chat:read-unread-summary`), which reads the chat
+  list alone, so no chat is opened or marked read. It has only each chat's
+  latest message, and the panel says so.
 - `src/assistant.ts`: the hidden page's answers to the panel.
 - `src/panel.ts`: the panel, where you paste your key.
