@@ -889,8 +889,8 @@ function attachChatList<Window extends WindowPort>(
   origin: string,
 ): InPageChatList {
   listenToChatList(deps.ipc, deps.chatListWidths, {
-    views: security.views,
     origin,
+    views: security.views,
     warn: deps.warn,
   });
   return inPageChatList({
@@ -1000,10 +1000,10 @@ async function openWindow<Window extends WindowPort>(
     window,
     origin,
     proxy,
+    chatList,
     firstUrl: chatLinkOnce(chatLinkInArguments(deps.argv, origin), deps.accounts.active, origin),
     notifiers: listenToNotifications(deps, origin),
     spelling: followSpellingSetting(deps.settings, deps.systemLanguages),
-    chatList,
   });
   chatList.follow(() => ({
     account: running.active().account.id,

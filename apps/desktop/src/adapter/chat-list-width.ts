@@ -107,8 +107,8 @@ interface ListStore {
   column: ListNode;
   /** WhatsApp's own inline values, kept while YapYap overrides them, so a reset restores them. */
   saved: ListSizing | null;
-  /** What the user picked here that the main process has not sent back yet; null resets. */
-  pending: number | null | undefined;
+  /** What the user picked here that the main process has not sent back yet, a null width resetting. */
+  pending: { readonly width: number | null } | null;
   drag: ListDrag | null;
 }
 
@@ -198,11 +198,11 @@ export function applyChatListWidth(
   places: ListPlaces,
   kit: ListKit,
 ): void {
-  if (store.pending === width) {
-    store.pending = undefined;
+  if (store.pending?.width === width) {
+    store.pending = null;
   }
   if (store.drag === null) {
-    kit.size(store, store.pending === undefined ? width : store.pending, places, kit);
+    kit.size(store, (store.pending ?? { width }).width, places, kit);
   }
 }
 
@@ -250,7 +250,7 @@ export function buildChatListDivider(
   divider.setAttribute('aria-orientation', 'vertical');
   divider.setAttribute('tabindex', '0');
   shadow.append(style, divider);
-  const store: ListStore = { host, divider, column, saved: null, pending: undefined, drag: null };
+  const store: ListStore = { host, divider, column, saved: null, pending: null, drag: null };
   kit.drag(store, scope, places, kit);
   kit.keys(store, scope, places, kit);
   return store;
@@ -276,7 +276,7 @@ export function wireChatListDrag(
     const styles = scope['getComputedStyle'] as Styles;
     const from = kit.measure(store, places).now;
     const sign = styles.call(scope, store.column).direction === 'rtl' ? -1 : 1;
-    store.drag = { x: Number(event.clientX), from, sign, width: from };
+    store.drag = { from, sign, x: Number(event.clientX), width: from };
     divider.setPointerCapture(Number(event.pointerId));
     // Holding the pointer back from WhatsApp, so the drag selects no text, also keeps the focus where it was.
     divider.focus();
@@ -346,7 +346,7 @@ export function chooseChatListWidth(
 ): void {
   type Actions = Record<string, ((width?: number) => void) | undefined>;
   const bridge = (scope[places.bridge] ?? {}) as Actions;
-  store.pending = width;
+  store.pending = { width };
   kit.size(store, width, places, kit);
   if (width === null) {
     bridge['reset']?.();
@@ -369,17 +369,19 @@ export function sizeChatList(
 ): void {
   const { column, saved } = store;
   const { style } = column;
-  if (width !== null) {
+  if (width === null) {
+    if (saved !== null) {
+      style.flex = saved.flex;
+      style.maxInlineSize = saved.maxInlineSize;
+      style.minInlineSize = saved.minInlineSize;
+      store.saved = null;
+    }
+  } else {
     const { flex, maxInlineSize, minInlineSize } = style;
     store.saved = saved ?? { flex, maxInlineSize, minInlineSize };
     style.flex = `0 0 ${String(width)}px`;
     style.maxInlineSize = `${String(places.share * 100)}%`;
     style.minInlineSize = `${String(places.min)}px`;
-  } else if (saved !== null) {
-    style.flex = saved.flex;
-    style.maxInlineSize = saved.maxInlineSize;
-    style.minInlineSize = saved.minInlineSize;
-    store.saved = null;
   }
   const bounds = kit.measure(store, places);
   store.divider.setAttribute('aria-valuenow', String(bounds.now));
