@@ -3,6 +3,34 @@
   <head>
     <meta charset="utf-8" />
     <title>WhatsApp</title>
+    <style>
+      /* As WhatsApp lays out the open chat: a flex column ordered with
+         \`order\`, under a wallpaper that covers it, with the messages and the
+         message box raised above it (#466). */
+      #main {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+      }
+      #main > [data-testid='wallpaper'] {
+        position: absolute;
+        inset: 0;
+      }
+      #main > header {
+        position: relative;
+        z-index: 1000;
+      }
+      #main > [role='row'] {
+        order: 2;
+        position: relative;
+        z-index: 1;
+      }
+      #main > footer {
+        order: 3;
+        position: relative;
+        z-index: 2;
+      }
+    </style>
   </head>
   <body>
     <!-- The adapter's landmarks (src/adapter/page-state.ts), with synthetic chats. -->
@@ -42,6 +70,7 @@
     <button data-testid="share-stop" type="button">Stop sharing</button>
     <output data-testid="share-status"></output>
     <div id="main">
+      <div data-testid="wallpaper"></div>
       <header><span dir="auto">Test Chat One</span></header>
       <!-- As WhatsApp marks messages today: a bare ID, and only the account's
            own messages with a tail and a clickable delivery status (#410). -->

@@ -48,6 +48,7 @@ interface BarNode {
   disabled: boolean;
   value: string;
   readonly previousElementSibling: unknown;
+  readonly style: { order: string; position: string; zIndex: string };
   readonly dataset: Record<string, string | undefined>;
   setAttribute(name: string, value: string): void;
   getAttribute(name: string): string | null;
@@ -98,6 +99,7 @@ type Scope = Record<string, unknown>;
 
 /** The bar's helpers, passed in because each runs as its own source text. */
 export interface BarKit {
+  readonly align: (scope: Scope, host: BarNode, footer: BarNode) => void;
   readonly build: (doc: BarDocument, scope: Scope, places: BarPlaces, kit: BarKit) => BarStore;
   readonly wire: (shadow: BarNode, parts: BarParts, scope: Scope, bridge: string) => void;
   readonly update: (doc: BarDocument, parts: BarParts, content: BarContent, kit: BarKit) => void;
@@ -136,12 +138,32 @@ export function renderAssistantBar(
   if (footer.previousElementSibling !== store.host) {
     footer.before(store.host);
   }
+  kit.align(scope, store.host, footer);
   const key = JSON.stringify(content);
   if (store.key !== key) {
     store.key = key;
     kit.update(doc, store.parts, content, kit);
   }
   return true;
+}
+
+/**
+ * Puts the bar where the message box is in WhatsApp's layout. WhatsApp
+ * orders the open chat's parts with flexbox `order`, so a bar left at the
+ * default order would sit at the top, and lays a positioned wallpaper over
+ * the chat, so an unpositioned bar would sit under it and never get a
+ * click. The bar takes the message box's order and stacking, read anew on
+ * every render in case WhatsApp changes them (#466).
+ */
+export function alignAssistantBar(scope: Scope, host: BarNode, footer: BarNode): void {
+  const computed = scope['getComputedStyle'] as (node: BarNode) => {
+    readonly order: string;
+    readonly zIndex: string;
+  };
+  const { order, zIndex } = computed.call(scope, footer);
+  host.style.order = order;
+  host.style.position = 'relative';
+  host.style.zIndex = zIndex;
 }
 
 /**
@@ -375,6 +397,7 @@ const PLACES: BarPlaces = {
 /** The render as code for `executeJavaScriptInIsolatedWorld`, with the content as JSON. */
 export function assistantBarRender(content: BarContent): string {
   const kit = [
+    `align: ${alignAssistantBar.toString()}`,
     `build: ${buildAssistantBar.toString()}`,
     `wire: ${wireAssistantBar.toString()}`,
     `update: ${updateAssistantBar.toString()}`,

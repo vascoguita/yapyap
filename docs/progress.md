@@ -1353,6 +1353,12 @@ not edit the same lines.
   YapYap's and each extension's, with that track's own changelog. Lint and
   git ignore `.claude/`, where coding agents keep their worktrees.
 
+- Assistant bar on real WhatsApp (#482): WhatsApp orders the open chat with
+  flexbox `order` and covers it with a positioned wallpaper, so the bar sat
+  at the top and under the wallpaper, where no click reached it. The bar now
+  takes the message box's `order` and stacking on every render, and the
+  fake WhatsApp page has the same layout, so E2E tests catch it.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).

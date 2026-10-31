@@ -2,6 +2,7 @@
 import { runInNewContext } from 'node:vm';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  alignAssistantBar,
   assistantBarRender,
   assistantSuggestion,
   buildAssistantBar,
@@ -42,6 +43,7 @@ const PLACES = {
 };
 
 const KIT = {
+  align: alignAssistantBar,
   build: buildAssistantBar,
   wire: wireAssistantBar,
   update: updateAssistantBar,
@@ -61,8 +63,9 @@ interface Stored {
 
 /** A chat with its message box, the scope the adapter world would be, and the bar's bridge. */
 function setup() {
+  // WhatsApp orders the chat's parts with flexbox `order` and raises its message box (#466).
   document.body.innerHTML =
-    '<div id="main"><div role="row">Hi</div><footer><div contenteditable="true"></div></footer></div>';
+    '<div id="main"><div role="row">Hi</div><footer style="order: 3; z-index: 2"><div contenteditable="true"></div></footer></div>';
   const bridge = {
     suggest: vi.fn(),
     prompt: vi.fn(),
@@ -71,7 +74,7 @@ function setup() {
     send: vi.fn(),
     choose: vi.fn(),
   };
-  const scope: Record<string, unknown> = { bridge };
+  const scope: Record<string, unknown> = { bridge, getComputedStyle };
   const render = (content: BarContent = CONTENT): boolean =>
     renderAssistantBar(document, scope, content, PLACES, KIT);
   const stored = (): Stored => scope['bar'] as Stored;
@@ -111,6 +114,20 @@ describe('renderAssistantBar', () => {
     expect(t.stored().parts.confirm.className).toBe('button');
     expect(t.stored().parts.input.className).toBe('input');
     expect(t.stored().parts.input.getAttribute('type')).toBe('text');
+  });
+
+  it('takes the message box’s place in WhatsApp’s layout, above its wallpaper, render after render', () => {
+    const t = setup();
+    t.render();
+    const { host } = t.stored();
+    expect([host.style.order, host.style.position, host.style.zIndex]).toEqual([
+      '3',
+      'relative',
+      '2',
+    ]);
+    footer()?.setAttribute('style', 'order: 7; z-index: 5');
+    t.render();
+    expect([host.style.order, host.style.zIndex]).toEqual(['7', '5']);
   });
 
   it('leaves a bar already right above the message box where it is', () => {
@@ -306,7 +323,7 @@ describe('assistantBarRender', () => {
   it('sends the bar’s helpers, its place and its own styles along with the content', () => {
     const code = assistantBarRender(CONTENT);
     expect(code).toMatch(
-      /\{ build: [\s\S]+, wire: [\s\S]+, update: [\s\S]+, suggestion: [\s\S]+ \}\)$/,
+      /\{ align: [\s\S]+, build: [\s\S]+, wire: [\s\S]+, update: [\s\S]+, suggestion: [\s\S]+ \}\)$/,
     );
     expect(code).toContain('"store":"yapyapAssistantBarView"');
     expect(code).toContain(':host { display: block; color-scheme: light dark; }');
@@ -321,11 +338,15 @@ describe('assistantBarRender', () => {
       document.body.innerHTML = '<div id="main"><footer></footer></div>';
       const code = assistantBarRender(CONTENT);
       expect(code).toContain(JSON.stringify(LANDMARKS.composerFooter));
-      // Only `document` is in scope, as in the adapter's isolated world.
-      const world: Record<string, unknown> = { document };
+      // Only the page's document and the window's own functions are in scope, as in the adapter's isolated world.
+      const world: Record<string, unknown> = { document, getComputedStyle };
       expect(runInNewContext(code, world)).toBe(true);
       expect(footer()?.previousElementSibling?.tagName).toBe('DIV');
-      expect(Object.keys(world)).toEqual(['document', 'yapyapAssistantBarView']);
+      expect(Object.keys(world)).toEqual([
+        'document',
+        'getComputedStyle',
+        'yapyapAssistantBarView',
+      ]);
     },
   );
 });
