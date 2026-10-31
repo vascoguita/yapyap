@@ -12,6 +12,7 @@ describe('panelRequest', () => {
       'remove-model',
       'prepare',
       'prepare-summary',
+      'prepare-catch-up',
       'send',
       'cancel',
     ]) {
@@ -99,6 +100,7 @@ describe('update', () => {
       { replace: false, type: 'suggestions', items: ['a', 'b'] },
       { type: 'used' },
       { type: 'summary', text: '- Lunch at 1' },
+      { type: 'catch-up', instructions: 'Catch up', transcript: 'Chat: Ana' },
       { type: 'problem', reason: 'auth' },
     ];
     for (const item of news) {
@@ -115,6 +117,8 @@ describe('update', () => {
       { replace: true, type: 'suggestions', items: 'a' },
       { type: 'problem' },
       { type: 'summary', text: 7 },
+      { type: 'catch-up', instructions: 1, transcript: 'Chat: Ana' },
+      { type: 'catch-up', instructions: 'Catch up', transcript: null },
       { ...local, status: 1 },
       { ...local, label: null },
       { ...local, action: 'delete-everything' },

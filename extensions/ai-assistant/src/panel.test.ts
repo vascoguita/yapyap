@@ -327,6 +327,31 @@ describe('mountPanel', () => {
     expect(t.replies()).toContain('nothing of it goes to the chat');
   });
 
+  it('asks to catch up on unread chats, saying what it reads, and sends only on Send', () => {
+    const t = setup();
+    t.button('Catch up on unread chats').click();
+    expect(t.sent.at(-1)).toEqual({ type: 'prepare-catch-up' });
+    t.receive({
+      type: 'catch-up',
+      instructions: 'Catch up.',
+      transcript: 'Chat: Ana\nUnread: 2\nLatest message: Lunch?',
+    });
+    expect(t.replies()).toContain('not all its unread messages');
+    expect(t.replies()).toContain('No chat is opened or marked as read.');
+    expect(document.querySelector('#preview')?.textContent).toBe(
+      'Catch up.\n\nChat: Ana\nUnread: 2\nLatest message: Lunch?',
+    );
+    expect(() => t.button('Allow in this chat')).toThrow();
+    t.button('Send').click();
+    expect(t.sent.at(-1)).toEqual({ type: 'send' });
+    t.receive({ type: 'problem', reason: 'no-unread' });
+    expect(t.replies()).toBe('No chat in the chat list has unread messages.');
+    t.receive({ type: 'problem', reason: 'unread-not-granted' });
+    expect(t.replies()).toContain(
+      'Turn on “See which chats have unread messages, and the latest message of each”',
+    );
+  });
+
   it('shows the private model: its next step, the space it takes, and a way to remove it', () => {
     const t = setup();
     const section = document.querySelector<HTMLElement>('#private-model');

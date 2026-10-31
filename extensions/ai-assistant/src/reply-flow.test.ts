@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Update } from './bus.ts';
+import { CATCH_UP_INSTRUCTIONS } from './catch-up.ts';
 import { chatKey, setAllowed } from './chats.ts';
 import type { CompletionRequest, Provider } from './providers/provider.ts';
 import { INSTRUCTIONS, SUMMARY_INSTRUCTIONS } from './replies.ts';
@@ -217,5 +218,53 @@ describe('replyFlow', () => {
     await t.flow.use(0);
     expect(t.sent.at(-1)).toEqual({ type: 'problem', reason: 'invalid' });
     expect(t.drafts).toEqual([]);
+  });
+
+  it('catches up on the unread chats from the list, sending only what it previewed', async () => {
+    const t = setup();
+    t.host.chat.readUnreadSummary.mockResolvedValue([
+      { name: 'Bo', unread: 2, messages: [{ outgoing: false, text: 'Are you coming tomorrow?' }] },
+    ]);
+    vi.mocked(t.provider.complete).mockResolvedValueOnce({
+      text: '- Bo asks if you are coming tomorrow.\n',
+      truncated: false,
+    });
+    // A chat looked at before is no chat to allow from the catch-up.
+    await t.flow.prepare(REPLIES);
+    await t.flow.prepare({ mode: 'catch-up' });
+    const transcript = 'Chat: Bo\nUnread: 2\nLatest message: Are you coming tomorrow?';
+    expect(t.sent.at(-1)).toEqual({
+      type: 'catch-up',
+      instructions: CATCH_UP_INSTRUCTIONS,
+      transcript,
+    });
+    await t.flow.allow(true);
+    expect(t.sent.at(-1)).toEqual({ type: 'problem', reason: 'no-chat' });
+    expect(t.stored.get('allowedChats')).toBeUndefined();
+    await t.flow.send();
+    expect(t.provider.complete).toHaveBeenCalledOnce();
+    expect(vi.mocked(t.provider.complete).mock.lastCall?.[0]).toMatchObject({
+      instructions: CATCH_UP_INSTRUCTIONS,
+      turns: [{ role: 'user', text: transcript }],
+    });
+    expect(t.sent.at(-1)).toEqual({
+      type: 'summary',
+      text: '- Bo asks if you are coming tomorrow.',
+    });
+    await t.flow.use(0);
+    expect(t.drafts).toEqual([]);
+  });
+
+  it('sends nothing when no chat is unread or the list may not be read', async () => {
+    const t = setup();
+    t.host.chat.readUnreadSummary.mockResolvedValueOnce([]);
+    await t.flow.prepare({ mode: 'catch-up' });
+    expect(t.sent.at(-1)).toEqual({ type: 'problem', reason: 'no-unread' });
+    t.host.chat.readUnreadSummary.mockRejectedValueOnce({ kind: 'not-granted' });
+    await t.flow.prepare({ mode: 'catch-up' });
+    expect(t.sent.at(-1)).toEqual({ type: 'problem', reason: 'unread-not-granted' });
+    await t.flow.send();
+    expect(t.sent.at(-1)).toEqual({ type: 'problem', reason: 'not-prepared' });
+    expect(t.provider.complete).not.toHaveBeenCalled();
   });
 });
