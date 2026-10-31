@@ -92,6 +92,7 @@ spelling dictionary are kept with the account's data.
 | `secrets.json`                          | Proxy passwords you chose to remember, encrypted by your system's keychain                         | Delete it while YapYap is closed; YapYap asks again                 |
 | `custom-code.json`                      | Your custom CSS and JavaScript                                                                     | Clear the snippets in **Custom CSS and JavaScript…**                |
 | `window-state.json`, `quick-panel.json` | Where the main window and the quick panel were, so they reopen there                               | Delete them at any time                                             |
+| `chat-list.json`                        | How wide each account's chat list is, if you changed it                                            | Delete it at any time                                               |
 | `downloads.json`                        | The folder you last saved a download to                                                            | Delete it at any time                                               |
 | `gpu-crashes.json`                      | The times of recent graphics crashes, which turn on the safe graphics fallback                     | Delete it at any time                                               |
 | `running.json`                          | The version and start time of the running session, left behind only if YapYap did not quit cleanly | YapYap deletes it when it quits                                     |
