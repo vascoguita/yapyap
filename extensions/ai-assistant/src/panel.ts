@@ -44,7 +44,8 @@ const PROBLEMS: Readonly<Record<string, string>> = {
   'not-prepared': 'Look at the chat again first.',
   'no-unread': 'No chat in the chat list has unread messages.',
   'unread-not-granted':
-    'YapYap does not let the assistant see your unread chats in this account. Turn on “See which chats have unread messages, and the latest message of each” in Extensions → AI assistant.',
+    'YapYap does not let the assistant see your unread chats in this account. ' +
+    'Turn on “See which chats have unread messages, and the latest message of each” in Extensions → AI assistant.',
   'not-granted': 'YapYap does not allow the assistant this here. Check Extensions → AI assistant.',
   auth: 'The provider did not accept your key.',
   'rate-limited': 'The provider is busy or your quota is used up. Try again later.',
