@@ -232,6 +232,7 @@ describe('hostApi', () => {
     await api.secrets.set('s', 'v');
     await api.secrets.delete('s');
     await api.settings.get();
+    await api.localModels.find();
     await api.assistant.offer({ suggestions: ['Yes'] });
     const translate = vi.fn();
     api.commands.onRun('translate', translate);
@@ -258,6 +259,7 @@ describe('hostApi', () => {
       ['secrets.set', 's', 'v'],
       ['secrets.delete', 's'],
       ['settings.get'],
+      ['localModels.find'],
       ['assistant.offer', { suggestions: ['Yes'] }],
     ]);
   });

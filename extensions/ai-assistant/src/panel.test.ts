@@ -33,19 +33,52 @@ describe('describe', () => {
         provider: 'anthropic',
         model: 'claude-opus-5-5',
         missing: '',
+        search: false,
       }),
     ).toBe('Using Claude (Anthropic), model claude-opus-5-5. Ready.');
     expect(
-      describeState({ type: 'state', provider: 'compatible', model: '', missing: 'model' }),
+      describeState({
+        type: 'state',
+        provider: 'local',
+        model: 'llama3.2:1b',
+        missing: '',
+        search: false,
+      }),
+    ).toBe('Using a model server on this computer, model llama3.2:1b. Ready.');
+    expect(
+      describeState({
+        type: 'state',
+        provider: 'local',
+        model: '',
+        missing: 'local-server',
+        search: false,
+      }),
+    ).toBe(
+      'Using a model server on this computer. The model server on this computer does not answer. Start it, such as by opening Ollama or Alpaca. If you denied the assistant access, restart YapYap to be asked again.',
+    );
+    expect(
+      describeState({
+        type: 'state',
+        provider: 'compatible',
+        model: '',
+        missing: 'model',
+        search: false,
+      }),
     ).toBe(
       'Using an OpenAI-compatible server. Choose a model in Extensions → AI assistant → Settings.',
     );
-    expect(describeState({ type: 'state', provider: 'x', model: '', missing: '?' })).toBe(
-      'Using x.',
-    );
-    expect(describeState({ type: 'state', provider: '', model: '', missing: 'unavailable' })).toBe(
-      'The assistant could not read its settings. Try again in a moment.',
-    );
+    expect(
+      describeState({ type: 'state', provider: 'x', model: '', missing: '?', search: false }),
+    ).toBe('Using x.');
+    expect(
+      describeState({
+        type: 'state',
+        provider: '',
+        model: '',
+        missing: 'unavailable',
+        search: false,
+      }),
+    ).toBe('The assistant could not read its settings. Try again in a moment.');
   });
 });
 
@@ -54,6 +87,34 @@ describe('problemText', () => {
     expect(problemText('no-chat')).toBe('Open a chat first.');
     expect(problemText('auth')).toBe('The provider did not accept your key.');
     expect(problemText('mystery')).toBe('Something went wrong. Try again.');
+  });
+
+  it('says plainly why no model on this computer could be used, short enough for the bar', () => {
+    expect(problemText('no-server')).toBe(
+      'No AI model runs on this computer. Install Ollama from ollama.com and download a model, or choose a provider in Extensions → AI assistant → Settings.',
+    );
+    expect(problemText('no-models')).toBe(
+      'A model server runs on this computer, but it has no model yet. Download one in it, then try again.',
+    );
+    expect(problemText('search-refused')).toBe(
+      'You did not let the assistant look on this computer. To be asked again, turn its “Connect to servers running on this computer” off and on in Extensions.',
+    );
+    expect(problemText('search-unsupported')).toBe(
+      'Update YapYap to find a model on this computer.',
+    );
+    expect(problemText('search-failed')).toBe(
+      'Looking for a model on this computer failed. Try again.',
+    );
+    for (const reason of [
+      'local-server',
+      'no-server',
+      'no-models',
+      'search-refused',
+      'search-unsupported',
+      'search-failed',
+    ]) {
+      expect(problemText(reason).length).toBeLessThanOrEqual(200);
+    }
   });
 });
 
@@ -67,7 +128,7 @@ describe('mountPanel', () => {
       t.receive({ type: 'progress', text: 'x' });
       vi.advanceTimersByTime(1000);
       expect(t.sent).toHaveLength(4);
-      t.receive({ type: 'state', provider: 'openai', model: 'm', missing: '' });
+      t.receive({ type: 'state', provider: 'openai', model: 'm', missing: '', search: false });
       vi.advanceTimersByTime(5000);
       expect(t.sent).toHaveLength(4);
     } finally {
@@ -81,7 +142,7 @@ describe('mountPanel', () => {
     expect(document.querySelector('h1')?.textContent).toBe('AI assistant');
     const status = document.querySelector('[role="status"]');
     expect(status?.textContent).toBe('Loading…');
-    t.receive({ type: 'state', provider: 'openai', model: 'gpt-x', missing: 'key' });
+    t.receive({ type: 'state', provider: 'openai', model: 'gpt-x', missing: 'key', search: false });
     expect(status?.textContent).toBe('Using OpenAI, model gpt-x. Paste your API key to start.');
     expect(t.button('Forget key').disabled).toBe(true);
     t.receive({ type: 'other' });
@@ -100,10 +161,25 @@ describe('mountPanel', () => {
     document.querySelector('form')?.dispatchEvent(new Event('submit', { cancelable: true }));
     expect(t.sent.at(-1)).toEqual({ type: 'save-key', key: 'sk-secret' });
     expect(input.value).toBe('');
-    t.receive({ type: 'state', provider: 'openai', model: 'gpt-x', missing: '' });
+    t.receive({ type: 'state', provider: 'openai', model: 'gpt-x', missing: '', search: false });
     expect(t.button('Forget key').disabled).toBe(false);
     t.button('Forget key').click();
     expect(t.sent.at(-1)).toEqual({ type: 'forget-key' });
+  });
+
+  it('offers to find a model on this computer only while the hidden page says so', () => {
+    const t = setup();
+    const find = document.querySelector<HTMLElement>('#find');
+    expect(find?.hidden).toBe(true);
+    t.receive({ type: 'state', provider: 'anthropic', model: '', missing: 'key', search: true });
+    expect(find?.hidden).toBe(false);
+    expect(find?.textContent).toContain(
+      'Use an AI model on this computer? It stays private: your messages never leave it.',
+    );
+    t.button('Find a model').click();
+    expect(t.sent.at(-1)).toEqual({ type: 'find-model' });
+    t.receive({ type: 'state', provider: 'local', model: 'm', missing: '', search: false });
+    expect(find?.hidden).toBe(true);
   });
 
   it('offers to allow the assistant in a chat before showing anything of it', () => {
@@ -120,7 +196,12 @@ describe('mountPanel', () => {
     const t = setup();
     const primary = () =>
       [...document.querySelectorAll('button.yapyap-primary')].map((b) => b.textContent);
-    expect(primary()).toEqual(['Save key', 'Look at this chat', 'Rewrite my draft']);
+    expect(primary()).toEqual([
+      'Find a model',
+      'Save key',
+      'Look at this chat',
+      'Rewrite my draft',
+    ]);
     expect(t.button('Forget key').className).toBe('');
     t.receive({ type: 'preview', chat: 'Ana', allowed: true, instructions: 'I', transcript: 'T' });
     expect(primary()).toContain('Send');

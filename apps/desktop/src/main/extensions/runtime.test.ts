@@ -243,6 +243,23 @@ describe('createExtensionRuntime', () => {
     expect(await script.text()).toBe('export default {};');
   });
 
+  it('keeps the user’s answer about looking for models in the extension’s record (#456)', async () => {
+    const hello = record({ capabilities: ['local-network'] });
+    await install(hello);
+    await saveRecords(root, new Map([['org.example.hello', hello]]));
+    const t = setup();
+    await t.runtime.startAll();
+    const [calling] = t.deps.methodsFor.mock.calls[0] ?? [];
+    if (calling === undefined) {
+      throw new Error('The extension got no methods.');
+    }
+    expect(calling.modelSearch.answer()).toBeUndefined();
+    await calling.modelSearch.keep(false);
+    expect(calling.modelSearch.answer()).toBe(false);
+    const kept = (await loadRecords(root)).get('org.example.hello');
+    expect(kept).toEqual({ ...hello, modelSearch: false });
+  });
+
   it('gives each page the extension loads a port of its own, served with the extension’s name', async () => {
     await install(record({ capabilities: ['notifications:show'] }));
     await saveRecords(

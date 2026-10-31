@@ -2,7 +2,14 @@ import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 import { REQUEST_TIMEOUT_MS } from './providers/provider.ts';
 import type { ExtensionHost } from '@yapyap/extension-sdk';
-import { assistantSettings, keyName, missingSetup, type AssistantSettings } from './settings.ts';
+import {
+  assistantSettings,
+  choseProvider,
+  keyName,
+  LOCAL_SERVER_KEY,
+  missingSetup,
+  type AssistantSettings,
+} from './settings.ts';
 
 /** A model the user can switch to from the bar, under a name people can read. */
 export interface ModelOption {
@@ -147,7 +154,11 @@ export function keptModels(
       return known.models;
     }
     const models = await list(settings, apiKey);
-    kept.set(signature, { at: now(), models });
+    // An empty list is a provider that did not answer, such as a server on
+    // this computer while the user still decides whether to allow it.
+    if (models.length > 0) {
+      kept.set(signature, { at: now(), models });
+    }
     return models;
   };
 }
@@ -176,13 +187,24 @@ export interface Setup {
 type SetupHost = Pick<ExtensionHost, 'settings' | 'secrets' | 'storage'>;
 
 /**
+ * The user's settings, with the model server found on this computer (#456).
+ * A provider the user chose wins, so that server is read only without one,
+ * which spares a call to YapYap.
+ */
+async function settingsIn(host: SetupHost): Promise<AssistantSettings> {
+  const values = await host.settings.get();
+  const found = choseProvider(values) ? undefined : await host.storage.get(LOCAL_SERVER_KEY);
+  return assistantSettings(values, found);
+}
+
+/**
  * The user's settings and key, and the model to use: the one the user
  * picked while the provider still lists it, or Auto's. The provider is
  * asked for its list only once everything else is in place, so nothing is
  * sent anywhere before the assistant is set up.
  */
 export async function currentSetup(host: SetupHost, list: typeof modelsOf): Promise<Setup> {
-  const settings = assistantSettings(await host.settings.get());
+  const settings = await settingsIn(host);
   const key = await host.secrets.get(keyName(settings.provider));
   const models = missingSetup(settings, key) === '' ? await list(settings, key ?? '') : [];
   // The pick matters only once there is something to pick from.

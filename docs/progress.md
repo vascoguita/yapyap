@@ -1269,6 +1269,27 @@ not edit the same lines.
   `shortcuts.extensions` (settings version 16), come before suggestions, and
   rebuild the menu.
 
+- Finding a model on this computer (#456): a new host API,
+  `host.localModels.find()` behind `local-network`, lets YapYap look for
+  model servers on the user's computer for an extension. The first call
+  asks the user once (Deny the default), and the answer is kept in the
+  record as `modelSearch`; turning `local-network` off or on forgets it.
+  The main process then sends `GET /v1/models` to `127.0.0.1` on Ollama's,
+  Alpaca's, LM Studio's and llama.cpp's usual ports at once, with Node's
+  `fetch`: no redirects or cookies, a 1.5-second timeout, a 256 KiB cap,
+  and a schema check on the up to four servers and 20 model IDs it returns.
+  Finding a server approves nothing; the extension's first request still
+  asks under #430. That call waits up to two minutes for the answer, so
+  RPC methods may now set their own timeout and refuse as `not-granted`.
+  The AI assistant offers **Find a model** in the bar and the panel until
+  the user chooses a provider, keeps the first server with models in its
+  storage, and uses it as a compatible provider; a provider chosen in
+  Settings always wins. It explains plainly when nothing is found, when
+  the server has no model or stopped answering, and when the user said
+  no. E2E tests point the probe at a fake server through
+  `YAPYAP_TEST_MODEL_PORTS`, which a packaged build ignores (ADR 0001,
+  ADR 0004, C37 in ADR 0008).
+
 - Start minimized after a maximized session (#458): maximizing or entering
   full screen shows a hidden window, so a window started minimized gets its
   saved layout back only when the tray, the Dock or a second launch first

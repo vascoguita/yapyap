@@ -3,6 +3,7 @@ import type {
   AssistantOffer,
   CallRecording,
   CallState,
+  LocalModelServer,
   SettingValue,
 } from '@yapyap/extension-sdk';
 import type { RecordOutcome } from '../recording/recorder.ts';
@@ -10,7 +11,7 @@ import { Type } from 'typebox';
 import { en } from '../../shared/messages/en.ts';
 import type { SecretStore } from '../secrets/secret-store.ts';
 import type { KeyValueStore } from './key-value-store.ts';
-import type { RpcMethod } from './rpc.ts';
+import { RpcFailure, type RpcMethod } from './rpc.ts';
 
 export interface HostServices {
   /** Shows a native notification. */
@@ -33,6 +34,16 @@ export interface HostServices {
   readonly offerAssistant: (offer: AssistantOffer) => void;
   /** Recording the call on screen, which YapYap asks the user about (ADR 0015). */
   readonly calls: CallRecorderService;
+  /** Looking for AI models on this computer, which YapYap does for extensions (#456). */
+  readonly localModels: LocalModelsService;
+}
+
+/** What YapYap offers extensions to find the models the user runs on this computer (#456). */
+export interface LocalModelsService {
+  /** Asks the user whether `extension` may look for AI models on this computer. */
+  readonly ask: (extension: string) => Promise<boolean>;
+  /** The model servers that answer at the usual addresses on this computer. */
+  readonly find: () => Promise<readonly LocalModelServer[]>;
 }
 
 /** What YapYap's call recorder offers extensions; YapYap records, never the extension (ADR 0015). */
@@ -52,6 +63,13 @@ export interface CallingExtension {
   readonly name: string;
   /** The values the user saved in the extension's settings form, as they stand now (#98). */
   readonly settings: () => Readonly<Record<string, SettingValue>>;
+  /** Whether the user let it look for AI models on this computer (#456), as its record keeps it. */
+  readonly modelSearch: {
+    /** The user's answer, or undefined while they were never asked. */
+    readonly answer: () => boolean | undefined;
+    /** Keeps the user's answer in the extension's record, for good. */
+    readonly keep: (allowed: boolean) => Promise<void>;
+  };
 }
 
 const Notification = Type.Object(
@@ -282,6 +300,51 @@ function calls(extension: CallingExtension, services: HostServices): Record<stri
   };
 }
 
+/** Long enough for someone to read YapYap's question and answer it. */
+const MODEL_SEARCH_TIMEOUT_MS = 120_000;
+
+/**
+ * Finding AI models on this computer (#456): YapYap looks, at a few fixed
+ * addresses, only once the user let the extension have it look. The answer
+ * is kept, so the user is asked once and a refusal holds; a second call
+ * while YapYap asks waits for the same answer. Finding a server approves
+ * nothing: the extension's own first request to it still asks (#430).
+ */
+function localModels(
+  extension: CallingExtension,
+  services: HostServices,
+): Record<string, RpcMethod> {
+  let asking: Promise<boolean> | undefined;
+  const ask = async (): Promise<boolean> => {
+    const allowed = await services.localModels.ask(extension.name);
+    await extension.modelSearch.keep(allowed);
+    return allowed;
+  };
+  const allowed = (): Promise<boolean> => {
+    const answer = extension.modelSearch.answer();
+    if (answer !== undefined) {
+      return Promise.resolve(answer);
+    }
+    asking ??= ask().finally(() => {
+      asking = undefined;
+    });
+    return asking;
+  };
+  return {
+    'localModels.find': {
+      capability: 'local-network',
+      params: Type.Tuple([]),
+      timeoutMs: MODEL_SEARCH_TIMEOUT_MS,
+      run: async () => {
+        if (!(await allowed())) {
+          throw new RpcFailure('not-granted', 'The user did not let the extension look.');
+        }
+        return services.localModels.find();
+      },
+    },
+  };
+}
+
 /**
  * The host operations an extension can call, each behind the capability its
  * SDK documentation names. Operations not listed here are not offered yet.
@@ -300,5 +363,6 @@ export function hostMethods(
     ...composer(services),
     ...assistant(services),
     ...calls(extension, services),
+    ...localModels(extension, services),
   };
 }

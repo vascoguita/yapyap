@@ -123,6 +123,28 @@ answers CORS for a local server the user allowed, so it needs no
 API keys in `host.secrets`, which the operating system encrypts, never in
 settings.
 
+### Finding models on the user's computer
+
+With `local-network`, `host.localModels.find()` returns the AI model
+servers running on the user's computer, so the user need not type an
+address. YapYap looks, not the extension: it asks the usual addresses of
+Ollama (port 11434), Alpaca (11435), LM Studio (1234) and llama.cpp (8080)
+for their lists of models, and returns up to four servers, each with its
+`server` (such as `localhost:11434`), its OpenAI-compatible `endpoint`
+(such as `http://localhost:11434/v1`) and up to 20 model IDs:
+
+```ts
+const [server] = (await host.localModels.find()).filter(({ models }) => models.length > 0);
+```
+
+The first call asks the user whether the extension may look, and the call
+waits up to two minutes for the answer. YapYap remembers it: after a
+refusal, every call rejects with `not-granted` until the user turns
+`local-network` off and on again. Call it only when the user asks, such as
+from a **Find a model** button. A YapYap older than this API rejects the
+call with `invalid`. Finding a server does not let the extension use it:
+its first request there still asks the user, as above.
+
 ### The assistant bar
 
 With `assistant:bar`, an extension fills the bar YapYap draws above the open

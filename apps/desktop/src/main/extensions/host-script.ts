@@ -37,7 +37,7 @@ export interface HostHandlers {
 /** The parts of the host API that belong to the extension itself, not to an account. */
 type OwnApi = Pick<
   ExtensionHost,
-  'notifications' | 'storage' | 'secrets' | 'commands' | 'settings'
+  'notifications' | 'storage' | 'secrets' | 'commands' | 'settings' | 'localModels'
 >;
 
 /**
@@ -84,6 +84,7 @@ export function hostApi(
 
 /**
  * The extension's own part of the host API: its storage, secrets, commands,
+ * finding models on this computer,
  * settings and notifications. Like {@link hostApi}, it runs as source text.
  */
 export function ownApi(call: Call, handlers: HostHandlers): OwnApi {
@@ -105,6 +106,7 @@ export function ownApi(call: Call, handlers: HostHandlers): OwnApi {
       },
     },
     settings: { get: () => call('settings.get') },
+    localModels: { find: () => call('localModels.find') },
   };
 }
 

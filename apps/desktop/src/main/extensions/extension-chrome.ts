@@ -166,7 +166,11 @@ async function setGrant(
   const record = records.get(String(id));
   if (record !== undefined) {
     const scope = typeof account === 'string' ? account : undefined;
-    const changed = withGrant(record, String(capability), scope, granted === true);
+    const changed = { ...withGrant(record, String(capability), scope, granted === true) };
+    // Turning `local-network` off and on is how someone who refused takes it back (#456).
+    if (capability === 'local-network') {
+      delete changed.modelSearch;
+    }
     await saveRecords(root, new Map(records).set(record.id, changed));
     await runtime.regrant(record.id);
   }

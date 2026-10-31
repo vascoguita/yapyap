@@ -43,6 +43,12 @@ const ExtensionRecordSchema = Type.Object(
         uniqueItems: true,
       }),
     ),
+    /**
+     * Whether the user let it look for AI models on this computer (#456);
+     * missing until they were asked, and again once they take
+     * `local-network` back or grant it again.
+     */
+    modelSearch: Type.Optional(Type.Boolean()),
     /** Capabilities and `network:<host>` grants the user took back from the whole extension (#94). */
     revoked: Type.Optional(Revocations),
     /** What the user filled in the extension's settings form (#98). */

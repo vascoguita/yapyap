@@ -1,14 +1,19 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import type { ElectronApplication } from '@playwright/test';
 import {
   builtAssistant,
   CLAUDE_ANSWER,
   claudeAnswer,
+  fakeModelServer,
+  openAssistantPanel,
   playClaude,
+  quietPort,
   readyAssistant,
+  standInKeyring,
 } from './assistant-helpers.ts';
-import { expect, test } from './fixtures.ts';
-import { chromePage, installExtension } from './extension-helpers.ts';
+import { closeApp, expect, launchApp, test, whatsAppPage } from './fixtures.ts';
+import { chromePage, clickInBar, installExtension } from './extension-helpers.ts';
 
 test('keeps the key the user pastes in the assistant’s panel with YapYap’s secrets', async ({
   app,
@@ -117,4 +122,95 @@ test('summarizes the chat in the panel, and leaves the message box alone', async
   await panel.getByRole('button', { name: 'Send', exact: true }).click();
   await expect(panel.locator('#summary')).toHaveText('- Dinner tonight at 8.');
   await expect(window.getByTestId('composer')).toHaveText('');
+});
+
+const SEARCH_PROMPT = 'Let AI assistant look for AI models on this computer?';
+
+/** What YapYap asked the user since the assistant was installed. */
+const prompts = (app: ElectronApplication) =>
+  app.evaluate(() => (globalThis as { extensionPrompts?: string[] }).extensionPrompts ?? []);
+
+/**
+ * Starts YapYap looking for model servers only at `ports`, so a test never
+ * reaches a model the developer runs, and installs the built assistant,
+ * allowing the prompts in `allow`.
+ */
+async function assistantLooking(
+  { origin, profile }: { readonly origin: string; readonly profile: string },
+  ports: readonly number[],
+  allow: readonly string[],
+): Promise<ElectronApplication> {
+  const app = await launchApp(origin, profile, [], {
+    env: { YAPYAP_TEST_MODEL_PORTS: ports.join(',') },
+  });
+  await standInKeyring(app);
+  const { manifest, main, others } = await builtAssistant();
+  await installExtension(app, profile, manifest, main, others, allow);
+  return app;
+}
+
+test('finds the model running on this computer with one click, and suggests replies with it', async ({
+  fakeWhatsApp,
+  profile,
+}) => {
+  const server = await fakeModelServer('Yes, 8 works!\nCan we do 9?\nSee you there');
+  const allowServer = `Let AI assistant use the server at localhost:${String(server.port)} on this computer?`;
+  const ports = [await quietPort(), server.port];
+  const app = await assistantLooking({ origin: fakeWhatsApp.origin, profile }, ports, [
+    SEARCH_PROMPT,
+    allowServer,
+  ]);
+  try {
+    const window = await whatsAppPage(app);
+    await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
+    // Someone who set nothing up is offered the model on this computer in the bar.
+    await clickInBar(app, window, 'Find a model');
+    await expect
+      .poll(() => prompts(app), { timeout: 20_000 })
+      .toEqual([SEARCH_PROMPT, allowServer]);
+    const records = await readFile(join(profile, 'extensions', '.extensions.json'), 'utf8');
+    expect(records).toContain('"modelSearch": true');
+    const panel = await openAssistantPanel(app);
+    await expect(panel.getByRole('status')).toHaveText(
+      'Using a model server on this computer, model tiny-e2e. Ready.',
+      { timeout: 20_000 },
+    );
+    await expect(panel.locator('#find')).toBeHidden();
+    await panel.getByRole('button', { name: 'Look at this chat' }).click();
+    await panel.getByRole('button', { name: 'Allow in this chat' }).click();
+    await panel.getByRole('button', { name: 'Send', exact: true }).click();
+    await panel.getByRole('button', { name: 'Can we do 9?' }).click();
+    await expect(window.getByTestId('composer')).toHaveText('Can we do 9?');
+    expect(server.chats).toHaveLength(1);
+    expect(server.chats[0]).toContain('Them: Dinner tonight?');
+    expect(server.chats[0]).toContain('"model":"tiny-e2e"');
+    // YapYap asked each question once.
+    expect(await prompts(app)).toEqual([SEARCH_PROMPT, allowServer]);
+  } finally {
+    await closeApp(app);
+    server.close();
+  }
+});
+
+test('says plainly when no model runs on this computer', async ({ fakeWhatsApp, profile }) => {
+  const app = await assistantLooking(
+    { origin: fakeWhatsApp.origin, profile },
+    [await quietPort()],
+    [SEARCH_PROMPT],
+  );
+  try {
+    await whatsAppPage(app);
+    const panel = await openAssistantPanel(app);
+    const status = panel.getByRole('status');
+    await expect(status).toHaveText('Using Claude (Anthropic). Paste your API key to start.');
+    await panel.getByRole('button', { name: 'Find a model' }).click();
+    await expect(panel.locator('#replies')).toHaveText(
+      'No AI model runs on this computer. Install Ollama from ollama.com and download a model, or choose a provider in Extensions → AI assistant → Settings.',
+      { timeout: 20_000 },
+    );
+    await expect(status).toHaveText('Using Claude (Anthropic). Paste your API key to start.');
+    expect(await prompts(app)).toEqual([SEARCH_PROMPT]);
+  } finally {
+    await closeApp(app);
+  }
 });

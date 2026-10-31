@@ -8,7 +8,7 @@ import {
   MODEL_KEY,
   modelsOf,
 } from './models.ts';
-import type { AssistantSettings } from './settings.ts';
+import { LOCAL_SERVER_KEY, type AssistantSettings } from './settings.ts';
 import { fakeHost } from './testing/fake-host.ts';
 import { LISTED, listing } from './testing/models.ts';
 
@@ -18,6 +18,7 @@ const SETTINGS: AssistantSettings = {
   endpoint: '',
   context: 10,
   localOnly: false,
+  source: 'chosen',
 };
 
 const LOCAL: AssistantSettings = {
@@ -169,6 +170,16 @@ describe('keptModels', () => {
     await kept(SETTINGS, 'sk');
     expect(list).toHaveBeenCalledTimes(4);
   });
+
+  it('asks again next time when the provider listed nothing', async () => {
+    const list = listing([]);
+    const kept = keptModels(list, () => 0);
+    await expect(kept(LOCAL, '')).resolves.toEqual([]);
+    list.mockResolvedValueOnce([...LISTED]);
+    await expect(kept(LOCAL, '')).resolves.toEqual(LISTED);
+    await expect(kept(LOCAL, '')).resolves.toEqual(LISTED);
+    expect(list).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe('currentSetup', () => {
@@ -194,6 +205,26 @@ describe('currentSetup', () => {
       settings: { model: 'claude-haiku-5-5' },
       picked: 'claude-gone',
     });
+  });
+
+  it('uses the model server found on this computer, but only while the user chose no provider', async () => {
+    const fake = fakeHost();
+    fake.stored.set(LOCAL_SERVER_KEY, { endpoint: 'http://localhost:11435/v1' });
+    const list = listing();
+    await expect(currentSetup(fake.host, list)).resolves.toMatchObject({
+      settings: { provider: 'compatible', endpoint: 'http://localhost:11435/v1', source: 'found' },
+      key: undefined,
+      models: LISTED,
+    });
+    expect(fake.host.secrets.get).toHaveBeenLastCalledWith('apiKey.compatible');
+    const chosen = fakeHost({ settings: { provider: 'openai' } });
+    chosen.stored.set(LOCAL_SERVER_KEY, { endpoint: 'http://localhost:11435/v1' });
+    chosen.secrets.set('apiKey.openai', 'sk');
+    await expect(currentSetup(chosen.host, list)).resolves.toMatchObject({
+      settings: { provider: 'openai', source: 'chosen' },
+    });
+    // The found server is not even read once the user chose, which spares a call to YapYap.
+    expect(chosen.host.storage.get).not.toHaveBeenCalledWith(LOCAL_SERVER_KEY);
   });
 
   it('asks no provider before the assistant is set up, and has no model then', async () => {

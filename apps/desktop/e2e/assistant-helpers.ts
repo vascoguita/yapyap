@@ -1,3 +1,5 @@
+import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import type { ElectronApplication, Page } from '@playwright/test';
 import { expect } from './fixtures.ts';
 import {
@@ -96,12 +98,8 @@ export const CLAUDE_ANSWER = claudeAnswer('Yes, 8 works!\nCan we do 9?\nSee you 
  * Installs the built assistant with a stand-in keyring and Claude answering
  * `answer`, opens its panel and saves a key; returns the panel.
  */
-export async function readyAssistant(
-  app: ElectronApplication,
-  profile: string,
-  answer: string,
-): Promise<Page> {
-  // The test system has no keyring, so encryption is stood in for, reversibly.
+/** The test system has no keyring, so encryption is stood in for, reversibly. */
+export async function standInKeyring(app: ElectronApplication): Promise<void> {
   await app.evaluate(({ safeStorage }) => {
     safeStorage.isAsyncEncryptionAvailable = () => Promise.resolve(true);
     safeStorage.getSelectedStorageBackend = () => 'gnome_libsecret';
@@ -113,9 +111,10 @@ export async function readyAssistant(
         shouldReEncrypt: false,
       });
   });
-  const { manifest, main, others } = await builtAssistant();
-  await installExtension(app, profile, manifest, main, others);
-  await playClaude(app, answer);
+}
+
+/** Opens the assistant's panel from the menu, once the assistant runs. */
+export async function openAssistantPanel(app: ElectronApplication): Promise<Page> {
   const open = () =>
     app.evaluate(({ Menu }) => {
       const panel = Menu.getApplicationMenu()
@@ -126,7 +125,84 @@ export async function readyAssistant(
       return panel !== undefined;
     });
   await expect.poll(open, { timeout: 20_000 }).toBe(true);
-  const panel = await chromePage(app, '/__yapyap/panel.html');
+  return chromePage(app, '/__yapyap/panel.html');
+}
+
+/** A model server on this computer, as the E2E tests run it. */
+export interface FakeModelServer {
+  readonly port: number;
+  /** The chat requests it answered, as their bodies. */
+  readonly chats: string[];
+  readonly close: () => void;
+}
+
+/**
+ * An OpenAI-compatible server on a free loopback port, as Ollama or LM Studio
+ * would run one: it lists one model and streams `answer` to every chat.
+ */
+export async function fakeModelServer(answer: string): Promise<FakeModelServer> {
+  const chats: string[] = [];
+  const server = createServer((request, response) => {
+    if (request.method === 'GET' && request.url === '/v1/models') {
+      response.setHeader('content-type', 'application/json');
+      response.end(
+        JSON.stringify({
+          object: 'list',
+          data: [{ id: 'tiny-e2e', object: 'model', created: 1, owned_by: 'e2e' }],
+        }),
+      );
+      return;
+    }
+    if (request.method === 'POST' && request.url === '/v1/chat/completions') {
+      let body = '';
+      request.on('data', (chunk: Buffer) => (body += chunk.toString()));
+      request.on('end', () => {
+        chats.push(body);
+        response.setHeader('content-type', 'text/event-stream');
+        response.end(openAIAnswer(answer));
+      });
+      return;
+    }
+    response.statusCode = 404;
+    response.end();
+  });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const { port } = server.address() as AddressInfo;
+  return { port, chats, close: () => server.close() };
+}
+
+/** `text` as an OpenAI-compatible server streams a chat answer. */
+const openAIAnswer = (text: string): string =>
+  [
+    { choices: [{ index: 0, delta: { role: 'assistant', content: text }, finish_reason: null }] },
+    { choices: [{ index: 0, delta: {}, finish_reason: 'stop' }] },
+  ]
+    .map(
+      (chunk) =>
+        `data: ${JSON.stringify({ id: 'e2e', object: 'chat.completion.chunk', created: 1, model: 'tiny-e2e', ...chunk })}\n\n`,
+    )
+    .join('')
+    .concat('data: [DONE]\n\n');
+
+/** A free loopback port where nothing listens, for a search that finds nothing. */
+export async function quietPort(): Promise<number> {
+  const server = createServer();
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const { port } = server.address() as AddressInfo;
+  await new Promise<void>((resolve) => server.close(() => resolve()));
+  return port;
+}
+
+export async function readyAssistant(
+  app: ElectronApplication,
+  profile: string,
+  answer: string,
+): Promise<Page> {
+  await standInKeyring(app);
+  const { manifest, main, others } = await builtAssistant();
+  await installExtension(app, profile, manifest, main, others);
+  await playClaude(app, answer);
+  const panel = await openAssistantPanel(app);
   await panel.getByLabel('API key').fill('sk-ant-e2e-key');
   await panel.getByRole('button', { name: 'Save key' }).click();
   // Ready waits for the provider's list of models, which Auto picks from.

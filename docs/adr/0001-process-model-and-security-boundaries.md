@@ -102,10 +102,17 @@ and an ESLint restriction forbids constructing `BrowserWindow` or
   Every other argument is ignored, and links are never logged (#45).
   The one other link YapYap accepts is `yapyap://extensions/install/<id>`,
   which only opens the extension marketplace on that extension (ADR 0014).
-- The main process makes one request of its own besides update checks: the
-  signed extension index from `packages.guita.org`, only when the user opens
-  the marketplace, follows an install link or checks for extension updates
-  (ADR 0014).
+- The main process makes two kinds of requests of its own besides update
+  checks. One is the signed extension index from `packages.guita.org`, only
+  when the user opens the marketplace, follows an install link or checks
+  for extension updates (ADR 0014). The other looks for AI models on this
+  computer (#456, C37). It runs only when an extension holding
+  `local-network` calls `host.localModels.find()` and the user allowed that
+  extension to look. It is a `GET /v1/models` to `127.0.0.1` on four fixed
+  ports (Ollama's 11434, Alpaca's 11435, LM Studio's 1234 and llama.cpp's
+  8080), all at once, each with a 1.5-second timeout and a 256 KiB cap on
+  the answer. It uses Node's `fetch`, which keeps no cookies, follows no
+  redirect and sends no credentials. Nothing about the answers is logged.
 - The exceptions are popups WhatsApp opens for itself: an empty
   `about:blank` popup, which it opens before setting its location, and a
   window on its own origin, such as a call (#67). Either is created hidden

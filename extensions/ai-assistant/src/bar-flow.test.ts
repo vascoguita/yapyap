@@ -163,7 +163,7 @@ describe('serveBar', () => {
   });
 
   it('says what is missing: an open chat, or the setup', async () => {
-    const t = setup();
+    const t = setup(undefined, 'sk', { provider: 'anthropic' });
     t.host.chat.readActive.mockResolvedValue(null);
     expect(await t.ask({ type: 'suggest' })).toEqual({
       suggestions: [],
@@ -249,6 +249,87 @@ describe('serveBar', () => {
     });
     await t.started();
     expect(t.list).toHaveBeenCalledWith(expect.objectContaining({ provider: 'compatible' }), '');
+  });
+
+  const SEARCH_OFFER = {
+    suggestions: [],
+    status: 'Use an AI model on this computer? It stays private: your messages never leave it.',
+    confirm: 'Find a model',
+  };
+
+  const OLLAMA = { server: 'localhost:11434', endpoint: 'http://localhost:11434/v1' };
+
+  it('offers to find a model on this computer to someone who set nothing up, before anything else', async () => {
+    const t = setup(undefined, null);
+    expect(await t.started()).toMatchObject(SEARCH_OFFER);
+    expect(await t.ask({ type: 'suggest' })).toEqual(SEARCH_OFFER);
+    t.host.chat.readActive.mockResolvedValue(null);
+    expect(await t.ask({ type: 'prompt', text: 'hi' })).toEqual(SEARCH_OFFER);
+    expect(t.host.localModels.find).not.toHaveBeenCalled();
+    expect(t.list).not.toHaveBeenCalled();
+  });
+
+  it('finds a model on the user’s click, uses the first server with models, and names them', async () => {
+    const t = setup(undefined, null);
+    t.host.localModels.find.mockResolvedValueOnce([
+      { ...OLLAMA, models: [] },
+      { server: 'localhost:11435', endpoint: 'http://localhost:11435/v1', models: ['tiny'] },
+    ]);
+    await t.started();
+    expect(await t.ask({ type: 'confirm' })).toEqual({
+      suggestions: [],
+      status: 'Found an AI model on this computer. Ask for suggestions: your messages stay on it.',
+    });
+    expect(t.stored.get('localServer')).toEqual({ endpoint: 'http://localhost:11435/v1' });
+    expect(t.list).toHaveBeenCalledWith(
+      expect.objectContaining({ provider: 'compatible', endpoint: 'http://localhost:11435/v1' }),
+      '',
+    );
+    expect(t.offers.at(-1)?.choice?.options).toHaveLength(3);
+    // The next confirm is the chat's consent again, not another search.
+    await t.ask({ type: 'suggest' });
+    expect(await t.ask({ type: 'confirm' })).toMatchObject({ status: '' });
+    expect(t.host.localModels.find).toHaveBeenCalledOnce();
+  });
+
+  it('says plainly why no model on this computer could be used', async () => {
+    const t = setup(undefined, null);
+    await t.started();
+    expect((await t.ask({ type: 'confirm' }))?.status).toBe(
+      'No AI model runs on this computer. Install Ollama from ollama.com and download a model, or choose a provider in Extensions → AI assistant → Settings.',
+    );
+    expect(t.stored.has('localServer')).toBe(false);
+    await t.ask({ type: 'suggest' });
+    t.host.localModels.find.mockResolvedValueOnce([{ ...OLLAMA, models: [] }]);
+    expect((await t.ask({ type: 'confirm' }))?.status).toBe(
+      'A model server runs on this computer, but it has no model yet. Download one in it, then try again.',
+    );
+    await t.ask({ type: 'suggest' });
+    t.host.localModels.find.mockRejectedValueOnce({ kind: 'not-granted', message: 'no' });
+    expect((await t.ask({ type: 'confirm' }))?.status).toContain('did not let the assistant look');
+    await t.ask({ type: 'suggest' });
+    t.host.localModels.find.mockRejectedValueOnce({ kind: 'invalid', message: 'unknown' });
+    expect((await t.ask({ type: 'confirm' }))?.status).toBe(
+      'Update YapYap to find a model on this computer.',
+    );
+  });
+
+  it('says so when the server it found does not answer, or keeping it failed', async () => {
+    const t = setup(undefined, null);
+    t.host.localModels.find.mockResolvedValue([{ ...OLLAMA, models: ['tiny'] }]);
+    t.list.mockResolvedValue([]);
+    await t.started();
+    expect((await t.ask({ type: 'confirm' }))?.status).toContain(
+      'The model server on this computer does not answer.',
+    );
+    await t.allow();
+    expect((await t.ask({ type: 'suggest' }))?.status).toContain('does not answer');
+    t.stored.clear();
+    await t.ask({ type: 'suggest' });
+    t.host.storage.set.mockRejectedValueOnce(new Error('full'));
+    expect((await t.ask({ type: 'confirm' }))?.status).toBe(
+      'Looking for a model on this computer failed. Try again.',
+    );
   });
 
   it('keeps answering when its pick cannot be kept', async () => {

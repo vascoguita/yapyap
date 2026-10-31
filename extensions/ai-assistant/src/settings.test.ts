@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
   assistantSettings,
+  choseProvider,
   keyName,
+  LOCAL_SERVER_KEY,
   missingSetting,
   missingSetup,
+  offersSearch,
   providerFor,
   usesLocalServer,
 } from './settings.ts';
@@ -16,6 +19,7 @@ describe('assistantSettings', () => {
       endpoint: '',
       context: 10,
       localOnly: false,
+      source: 'default',
     });
     expect(
       assistantSettings({ provider: 'openai', model: ' gpt-x ', endpoint: 7, context: 20 }),
@@ -25,6 +29,7 @@ describe('assistantSettings', () => {
       endpoint: '',
       context: 20,
       localOnly: false,
+      source: 'chosen',
     });
     expect(assistantSettings({ context: 7 }).context).toBe(10);
     expect(assistantSettings({ context: 5 }).context).toBe(5);
@@ -36,11 +41,70 @@ describe('assistantSettings', () => {
       endpoint: 'https://llm.example.org/v1',
       context: 10,
       localOnly: false,
+      source: 'chosen',
     });
     expect(assistantSettings({ provider: 'other', model: 'claude-haiku-5-5' })).toMatchObject({
       provider: 'anthropic',
       model: '',
+      source: 'default',
     });
+    expect(assistantSettings({ endpoint: ' https://llm.example.org/v1 ' }).endpoint).toBe(
+      'https://llm.example.org/v1',
+    );
+  });
+
+  const found = { endpoint: 'http://localhost:11435/v1' };
+
+  it('uses the model server found on this computer until the user chooses a provider', () => {
+    expect(assistantSettings({ localOnly: true, context: 5 }, found)).toEqual({
+      provider: 'compatible',
+      model: '',
+      endpoint: 'http://localhost:11435/v1',
+      context: 5,
+      localOnly: true,
+      source: 'found',
+    });
+    for (const provider of ['anthropic', 'openai', 'compatible']) {
+      const chosen = assistantSettings({ provider, endpoint: 'https://llm.example.org/v1' }, found);
+      expect(chosen).toMatchObject({
+        provider,
+        endpoint: 'https://llm.example.org/v1',
+        source: 'chosen',
+      });
+    }
+    expect(choseProvider({ provider: 'openai' })).toBe(true);
+    expect(choseProvider({ provider: 'other' })).toBe(false);
+    expect(choseProvider({})).toBe(false);
+  });
+
+  it('takes only a server on this computer as found', () => {
+    for (const kept of [
+      undefined,
+      null,
+      'http://localhost:11434/v1',
+      { endpoint: 7 },
+      { endpoint: 'https://llm.example.org/v1' },
+      { endpoint: 'http://192.168.1.2:11434/v1' },
+    ]) {
+      expect(assistantSettings({}, kept)).toMatchObject({
+        provider: 'anthropic',
+        source: 'default',
+      });
+    }
+    expect(LOCAL_SERVER_KEY).toBe('localServer');
+  });
+});
+
+describe('offersSearch', () => {
+  it('offers to find a model only to someone who set nothing up and has no key', () => {
+    expect(offersSearch(assistantSettings({}), undefined)).toBe(true);
+    expect(offersSearch(assistantSettings({}), '')).toBe(true);
+    expect(offersSearch(assistantSettings({ localOnly: true }), 'sk')).toBe(true);
+    expect(offersSearch(assistantSettings({}), 'sk')).toBe(false);
+    expect(offersSearch(assistantSettings({ provider: 'anthropic' }), undefined)).toBe(false);
+    expect(offersSearch(assistantSettings({ provider: 'openai' }), undefined)).toBe(false);
+    const found = assistantSettings({}, { endpoint: 'http://localhost:11434/v1' });
+    expect(offersSearch(found, undefined)).toBe(false);
   });
 });
 
@@ -62,6 +126,10 @@ describe('missingSetting', () => {
     expect(missingSetting(claude, 'sk')).toBe('model');
     expect(missingSetting({ ...claude, model: 'claude-haiku-5-5' }, 'sk')).toBe('');
     expect(missingSetting(claude, undefined)).toBe('key');
+    // The server found on this computer lists no model when it stopped answering.
+    const found = assistantSettings({}, { endpoint: 'http://localhost:11434/v1' });
+    expect(missingSetting(found, undefined)).toBe('local-server');
+    expect(missingSetting({ ...found, model: 'llama' }, undefined)).toBe('');
     const local = { provider: 'compatible' } as const;
     expect(missingSetup(assistantSettings({ ...local, endpoint: 'http://x' }), 'sk')).toBe(
       'endpoint',
