@@ -1,5 +1,42 @@
 # Changelog
 
+## [0.2.1](https://github.com/vascoguita/yapyap/compare/v0.2.0...v0.2.1) (2026-10-31)
+
+
+### Features
+
+* **adapter:** resize the chat list with the mouse and keyboard, per account ([bc35eb5](https://github.com/vascoguita/yapyap/commit/bc35eb5f1eaaed6aeaeee6cef1e9f8b2526b2f77))
+* **adapter:** resize the chat list with the mouse and keyboard, per account ([#490](https://github.com/vascoguita/yapyap/issues/490)) ([9682344](https://github.com/vascoguita/yapyap/commit/96823441b952f8843638116da9416e2d199d3c63))
+* **ai-assistant:** show and switch the model in the bar, with Auto picking it ([6dd2b3e](https://github.com/vascoguita/yapyap/commit/6dd2b3ed8b453ace5651a1479f84d2807ca4b985))
+* **ai-assistant:** show and switch the model in the bar, with Auto picking it ([#472](https://github.com/vascoguita/yapyap/issues/472)) ([b68a690](https://github.com/vascoguita/yapyap/commit/b68a6909a9fdd6a0eb9ed69c7b8b711534f98ecd))
+* **assistant:** find the AI model running on this computer with one click ([1f2c593](https://github.com/vascoguita/yapyap/commit/1f2c593d0e2d99a3168f14defc862f7a181c2f41))
+* **assistant:** find the AI model running on this computer with one click ([#480](https://github.com/vascoguita/yapyap/issues/480)) ([d6d5a53](https://github.com/vascoguita/yapyap/commit/d6d5a534f665d975aee357f22137ee4dd3e91494))
+* **assistant:** run a private model on this computer with wllama ([4243e7a](https://github.com/vascoguita/yapyap/commit/4243e7ad72ee0dee9aa1e99555fd7a9e10dd93bd))
+* **assistant:** run a private model on this computer with wllama ([#488](https://github.com/vascoguita/yapyap/issues/488)) ([2f6ad8c](https://github.com/vascoguita/yapyap/commit/2f6ad8c426b901ebe000f0dbcc9841b15dea5804))
+* **assistant:** show the bar inside the chat, right above the message box ([4215e2d](https://github.com/vascoguita/yapyap/commit/4215e2d79a07cfc98c4e760cfb7c0da02eb1e00a))
+* **assistant:** show the bar inside the chat, right above the message box ([#469](https://github.com/vascoguita/yapyap/issues/469)) ([2427e74](https://github.com/vascoguita/yapyap/commit/2427e74bee434cc04bebd6aeffdd0f42767257ec))
+* **assistant:** suggest replies automatically when a message arrives in the open chat ([20856a8](https://github.com/vascoguita/yapyap/commit/20856a8504d034693891dac41c9c7f18c4bbd567))
+* **assistant:** suggest replies automatically when a message arrives in the open chat ([#473](https://github.com/vascoguita/yapyap/issues/473)) ([390e005](https://github.com/vascoguita/yapyap/commit/390e0053ed2bf2d48a2148ed8a6c38765e49e65a))
+* **extensions:** let extensions holding local-model run a model in their page ([9a7a564](https://github.com/vascoguita/yapyap/commit/9a7a564418001fca110482e521390eee5cb1b18f))
+* **extensions:** local-model capability for running a model in the extension page ([#481](https://github.com/vascoguita/yapyap/issues/481)) ([f26a127](https://github.com/vascoguita/yapyap/commit/f26a12778e67effbbd1b096aeef3daeabeecfb1e))
+* **extensions:** read unread chats from the chat list for chat:read-unread-summary ([056b917](https://github.com/vascoguita/yapyap/commit/056b917562be5d0fd82174ce7e12356d41441a06))
+* **extensions:** unread summary from the chat list, without opening a chat ([#487](https://github.com/vascoguita/yapyap/issues/487)) ([8a6fa06](https://github.com/vascoguita/yapyap/commit/8a6fa0638040d61e42263af6ee9bdbda71821a2f))
+
+
+### Bug Fixes
+
+* **adapter:** tell group chats apart by the sender names only groups show ([2557c8d](https://github.com/vascoguita/yapyap/commit/2557c8dc342a02087e3dc12e47caa866e9dba75d))
+* **adapter:** tell group chats apart by the sender names only groups show ([#486](https://github.com/vascoguita/yapyap/issues/486)) ([eede835](https://github.com/vascoguita/yapyap/commit/eede8353bd85dbfb4228a52969ce52ee849fb258))
+* **ai-assistant:** send the key again until the hidden page answers, so it is never lost ([e65a2fd](https://github.com/vascoguita/yapyap/commit/e65a2fd426f9c9d543fe7c8003b4252f3502c0ef))
+* **ai-assistant:** send the key again until the hidden page answers, so it is never lost ([#485](https://github.com/vascoguita/yapyap/issues/485)) ([eeed081](https://github.com/vascoguita/yapyap/commit/eeed08144598861b9b2f11a32da15b90cafdcb2e))
+* **assistant:** keep bar requests until the extension listens, and test the bar's drawing ([6e41c38](https://github.com/vascoguita/yapyap/commit/6e41c383288b3b7a1d43e3a50cd9afbe054d7ba7))
+* **assistant:** put the bar above the message box and over the wallpaper on real WhatsApp ([0cfb971](https://github.com/vascoguita/yapyap/commit/0cfb9719c6b02cdd6541299e486131f64c6f22a0))
+* **assistant:** put the bar above the message box and over the wallpaper on real WhatsApp ([#483](https://github.com/vascoguita/yapyap/issues/483)) ([1b70670](https://github.com/vascoguita/yapyap/commit/1b706709078d1db806a0b54a4b19f960f6b49fd3))
+* **release:** let extension release PRs pass lint and list each change once ([6536c6a](https://github.com/vascoguita/yapyap/commit/6536c6ac3f16d21bb5a1b88195a9507bdbe81a52))
+* **release:** let extension release PRs pass lint and list each change once ([#479](https://github.com/vascoguita/yapyap/issues/479)) ([0412e77](https://github.com/vascoguita/yapyap/commit/0412e77272c765c9e2ed8ac646730910ab9e2537))
+* **release:** read the marketplace entry once, and bound the notes cleanup ([2e3a70f](https://github.com/vascoguita/yapyap/commit/2e3a70f5a1e152acf9eec982301d82bda4886b30))
+* **release:** the assistant needs YapYap 0.2.1, the release that brings its bar ([55ce0cb](https://github.com/vascoguita/yapyap/commit/55ce0cbf9586a62876cbead0841614592d9c059b))
+
 ## [0.2.0](https://github.com/vascoguita/yapyap/compare/v0.1.1...v0.2.0) (2026-10-29)
 
 
