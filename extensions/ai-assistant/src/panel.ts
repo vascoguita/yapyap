@@ -11,7 +11,12 @@ const PROVIDER_NAMES: Readonly<Record<string, string>> = {
   anthropic: 'Claude (Anthropic)',
   openai: 'OpenAI',
   compatible: 'an OpenAI-compatible server',
+  local: 'a model server on this computer',
 };
+
+/** What the panel and the bar say when a server on this computer the assistant uses does not answer. */
+const LOCAL_SERVER =
+  'The model server on this computer does not answer. Start it, such as by opening Ollama or Alpaca. If you denied the assistant access, restart YapYap to be asked again.';
 
 const MISSING: Readonly<Record<string, string>> = {
   key: 'Paste your API key to start.',
@@ -19,6 +24,7 @@ const MISSING: Readonly<Record<string, string>> = {
   endpoint: 'Enter your server’s https:// address in Extensions → AI assistant → Settings.',
   'local-only':
     'Local-only mode is on: choose the compatible provider with a server on this computer, such as http://localhost:11434/v1.',
+  'local-server': LOCAL_SERVER,
   '': 'Ready.',
 };
 
@@ -38,9 +44,23 @@ const PROBLEMS: Readonly<Record<string, string>> = {
   refused: 'The model declined to answer.',
   'bad-request': 'The provider did not accept the request. Check the model’s name.',
   cancelled: 'Stopped.',
+  'local-server': LOCAL_SERVER,
+  'no-server':
+    'No AI model runs on this computer. Install Ollama from ollama.com and download a model, or choose a provider in Extensions → AI assistant → Settings.',
+  'no-models':
+    'A model server runs on this computer, but it has no model yet. Download one in it, then try again.',
+  'search-refused':
+    'You did not let the assistant look on this computer. To be asked again, turn its “Connect to servers running on this computer” off and on in Extensions.',
+  'search-unsupported': 'Update YapYap to find a model on this computer.',
+  'search-failed': 'Looking for a model on this computer failed. Try again.',
 };
 
 const SOMETHING_WRONG = 'Something went wrong. Try again.';
+
+/** The offer to find a model on this computer, in the panel and the bar (#456). */
+export const SEARCH_OFFER =
+  'Use an AI model on this computer? It stays private: your messages never leave it.';
+export const SEARCH = 'Find a model';
 
 /** YapYap's panel style (#396) marks the action a section is about. */
 const PRIMARY = 'yapyap-primary';
@@ -99,11 +119,18 @@ function keySection(
   forget.addEventListener('click', () => {
     port.postMessage({ type: 'forget-key' });
   });
+  // Someone who set nothing up can use a model already running on this computer instead (#456).
+  const search = element(doc, 'div', { id: 'find', hidden: true });
+  search.append(
+    element(doc, 'p', { textContent: SEARCH_OFFER }),
+    asking(doc, port, SEARCH, { type: 'find-model' }, true),
+  );
   const section = element(doc, 'section');
-  section.append(status, form);
+  section.append(status, search, form);
   const show = (state: AssistantState): void => {
     status.textContent = describe(state);
     forget.disabled = state.missing === 'key';
+    search.hidden = !state.search;
   };
   return { section, show };
 }

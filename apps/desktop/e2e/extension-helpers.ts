@@ -90,7 +90,7 @@ export const extensionPage = (
 /**
  * Installs a signed third-party extension with `main.js` and `files`,
  * accepting its consent window. Prompts it raises later are denied, but
- * for the one whose message is `allow`.
+ * for those whose message is in `allow`.
  */
 export async function installExtension(
   app: ElectronApplication,
@@ -98,7 +98,7 @@ export async function installExtension(
   manifest: Record<string, unknown>,
   main: string,
   files: Readonly<Record<string, string>> = {},
-  allow = '',
+  allow: string | readonly string[] = [],
 ): Promise<void> {
   const archive = join(profile, `${String(manifest['id'])}.yapyap-extension`);
   const signed = signedArchive(testKey(), manifest, { 'main.js': main, ...files });
@@ -112,10 +112,13 @@ export async function installExtension(
       dialog.showMessageBox = (options: unknown) => {
         const { message } = options as { message: string };
         asked.push(message);
-        return Promise.resolve({ response: message === allowed ? 0 : 1, checkboxChecked: false });
+        return Promise.resolve({
+          response: allowed.includes(message) ? 0 : 1,
+          checkboxChecked: false,
+        });
       };
     },
-    { path: archive, allowed: allow },
+    { path: archive, allowed: typeof allow === 'string' ? [allow] : [...allow] },
   );
   await clickMenu(app, 'Install Extension…');
   const consent = await chromePage(app, '/extension-consent.html');

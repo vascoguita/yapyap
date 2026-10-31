@@ -45,9 +45,31 @@ it goes back to Auto.
 
 ## Run a model on your own computer
 
-With a model server running on your computer, such as Ollama, choose the
-**compatible** provider and its address on this computer, such as
-`http://localhost:11434/v1`. The bar lists the models you installed. Such a server needs no
+If you already run a model on your computer with Ollama, Alpaca, LM Studio
+or llama.cpp, the assistant can find it for you. Until you choose a
+provider, the bar above the message box and the assistant's panel offer
+**Find a model**:
+
+1. Choose **Find a model**.
+2. YapYap asks **Let AI assistant look for AI models on this computer?**
+   Choose **Allow**. YapYap then checks the usual addresses of those
+   servers on this computer (ports 11434, 11435, 1234 and 8080) and asks
+   each only for its list of models. Nothing leaves your computer, and
+   YapYap remembers your answer.
+3. YapYap asks once more whether the assistant may use the server it found,
+   such as `localhost:11434`. Choose **Allow**.
+
+The assistant then uses that server, and Auto picks its smallest model.
+Your messages never leave your computer. If nothing is found, the
+assistant says so: install [Ollama](https://ollama.com) and download a
+model, or choose a provider. If you denied the first question and want to
+be asked again, turn **Connect to servers running on this computer** off
+and on again for the assistant in **Extensions…**. A provider you choose in
+**Settings** always wins over the server the assistant found.
+
+You can also set a server up yourself: choose the **compatible** provider
+and its address on this computer, such as `http://localhost:11434/v1`.
+The bar lists the models you installed. Such a server needs no
 API key. Turn on **Local-only mode** to make sure of it: the assistant then
 refuses to ask anything but a server on this computer. YapYap lets the
 assistant reach servers on this computer only because you approved
@@ -143,7 +165,8 @@ just one:
   allowed);
 - reach `api.anthropic.com` and `api.openai.com`, and, if you set one, your
   compatible server, which YapYap asks you about before the first request;
-- reach servers running on this computer, for a model you run yourself.
+- reach servers running on this computer, for a model you run yourself,
+  and ask YapYap to look for one, once you allow it.
 
 It cannot send messages, read chats you did not open, or see WhatsApp's
 page. Your provider's own privacy terms apply to what you send them.

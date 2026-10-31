@@ -214,6 +214,7 @@ function connect(
     id,
     name: known.name,
     settings: () => valuesOf(known.form, known.record.settings),
+    modelSearch: modelSearchOf(deps.root, known),
   });
   // Grants are read on every call, so taking one back stops the next call (#94).
   const granted = (capability: string): boolean =>
@@ -247,6 +248,18 @@ const withHost =
 const withLocalServer =
   (server: string): Approval =>
   (record) => ({ ...record, localServers: [...(record.localServers ?? []), server] });
+
+/** The user's answer about looking for AI models on this computer (#456), kept in the extension's record. */
+function modelSearchOf(root: string, known: KnownExtension): CallingExtension['modelSearch'] {
+  return {
+    answer: () => known.record.modelSearch,
+    keep: async (allowed) => {
+      const approval: Approval = (record) => ({ ...record, modelSearch: allowed });
+      known.record = approval(known.record);
+      await remember(root, known.record.id, approval);
+    },
+  };
+}
 
 /** Writes an approval into the extension's record, so it outlives a restart. */
 async function remember(root: string, id: string, approval: Approval): Promise<void> {

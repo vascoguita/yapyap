@@ -24,6 +24,7 @@ describe('stateOf', () => {
       provider: 'anthropic',
       model: '',
       missing: 'key',
+      search: true,
     });
     expect(list).not.toHaveBeenCalled();
     secrets.set('apiKey.anthropic', 'sk-secret');
@@ -48,12 +49,48 @@ async function serve(
 }
 
 describe('servePanel', () => {
+  it('finds a model on this computer when the panel asks, and uses it', async () => {
+    const { host, stored } = fakeHost();
+    host.localModels.find.mockResolvedValueOnce([
+      { server: 'localhost:11435', endpoint: 'http://localhost:11435/v1', models: ['tiny'] },
+    ]);
+    const ends = fakeChannel();
+    await serve(host, ends);
+    ends.channel.send({ type: 'find-model' });
+    await vi.waitFor(() => {
+      expect(ends.sent).toHaveLength(1);
+    });
+    expect(stored.get('localServer')).toEqual({ endpoint: 'http://localhost:11435/v1' });
+    expect(ends.sent[0]).toEqual({
+      type: 'state',
+      provider: 'local',
+      model: 'claude-opus-5-5',
+      missing: '',
+      search: false,
+    });
+  });
+
+  it('says why when no model on this computer could be used, then the unchanged state', async () => {
+    const { host, stored } = fakeHost();
+    const ends = fakeChannel();
+    await serve(host, ends);
+    ends.channel.send({ type: 'find-model' });
+    await vi.waitFor(() => {
+      expect(ends.sent).toHaveLength(2);
+    });
+    expect(ends.sent[0]).toEqual({ type: 'problem', reason: 'no-server' });
+    expect(ends.sent[1]).toMatchObject({ provider: 'anthropic', missing: 'key', search: true });
+    expect(stored.has('localServer')).toBe(false);
+  });
+
   it('announces its state as it starts, for a panel that asked before it listened', async () => {
     const { host } = fakeHost();
     const { channel, sent } = fakeChannel();
     servePanel(host, channel, undefined, listing());
     await vi.waitFor(() => {
-      expect(sent).toEqual([{ type: 'state', provider: 'anthropic', model: '', missing: 'key' }]);
+      expect(sent).toEqual([
+        { type: 'state', provider: 'anthropic', model: '', missing: 'key', search: true },
+      ]);
     });
     const broken = fakeHost();
     broken.host.settings.get.mockRejectedValueOnce(new Error('gone'));
@@ -61,7 +98,7 @@ describe('servePanel', () => {
     servePanel(broken.host, other.channel, undefined, listing());
     await vi.waitFor(() => {
       expect(other.sent).toEqual([
-        { type: 'state', provider: '', model: '', missing: 'unavailable' },
+        { type: 'state', provider: '', model: '', missing: 'unavailable', search: false },
       ]);
     });
   });

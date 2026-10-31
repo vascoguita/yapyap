@@ -3,7 +3,15 @@ import { assistantState, panelRequest, update } from './bus.ts';
 
 describe('panelRequest', () => {
   it('takes the panel’s requests, with a trimmed key, and nothing else', () => {
-    for (const type of ['state?', 'forget-key', 'prepare', 'prepare-summary', 'send', 'cancel']) {
+    for (const type of [
+      'state?',
+      'forget-key',
+      'find-model',
+      'prepare',
+      'prepare-summary',
+      'send',
+      'cancel',
+    ]) {
       expect(panelRequest({ type, extra: 1 })).toEqual({ type });
     }
     expect(panelRequest({ type: 'save-key', key: ' sk-1 ' })).toEqual({
@@ -45,12 +53,13 @@ describe('panelRequest', () => {
 
 describe('assistantState', () => {
   it('takes only the hidden page’s state', () => {
-    const state = { type: 'state', provider: 'openai', model: 'm', missing: '' };
+    const state = { type: 'state', provider: 'openai', model: 'm', missing: '', search: true };
     expect(assistantState(state)).toEqual(state);
     expect(assistantState({ ...state, type: 'other' })).toBeUndefined();
     expect(assistantState({ ...state, provider: 1 })).toBeUndefined();
     expect(assistantState({ ...state, model: null })).toBeUndefined();
     expect(assistantState({ ...state, missing: false })).toBeUndefined();
+    expect(assistantState({ ...state, search: 'yes' })).toBeUndefined();
   });
 });
 
@@ -64,7 +73,7 @@ describe('update', () => {
       transcript: 't',
     };
     const news = [
-      { type: 'state', provider: 'openai', model: 'm', missing: '' },
+      { type: 'state', provider: 'openai', model: 'm', missing: '', search: false },
       preview,
       { type: 'progress', text: 'Hi' },
       { replace: false, type: 'suggestions', items: ['a', 'b'] },

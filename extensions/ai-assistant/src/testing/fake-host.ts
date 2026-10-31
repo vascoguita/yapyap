@@ -1,4 +1,9 @@
-import type { ActiveChat, ExtensionHost, SettingValue } from '@yapyap/extension-sdk';
+import type {
+  ActiveChat,
+  ExtensionHost,
+  LocalModelServer,
+  SettingValue,
+} from '@yapyap/extension-sdk';
 import { vi, type Mock } from 'vitest';
 
 interface Store<T> {
@@ -38,6 +43,7 @@ export interface FakeHost {
       readonly readDraft: Mock<() => Promise<string | null>>;
     };
     readonly storage: Store<unknown>;
+    readonly localModels: { readonly find: Mock<ExtensionHost['localModels']['find']> };
   };
   readonly secrets: Map<string, string>;
   readonly stored: Map<string, unknown>;
@@ -70,6 +76,8 @@ export function fakeHost(
       readDraft: vi.fn(),
     },
     storage: memory(stored),
+    // Nothing runs on this computer unless a test says so.
+    localModels: { find: vi.fn(() => Promise.resolve<readonly LocalModelServer[]>([])) },
   };
   return { host, secrets, stored, drafts };
 }

@@ -6,7 +6,10 @@ const HELLO: CallingExtension = {
   id: 'org.example.hello',
   name: 'Hello',
   settings: () => ({ model: 'small' }),
+  modelSearch: { answer: () => undefined, keep: () => Promise.resolve() },
 };
+
+const OLLAMA = { server: 'localhost:11434', endpoint: 'http://localhost:11434/v1', models: ['a'] };
 
 function services() {
   const stored = new Map<string, string>();
@@ -27,6 +30,10 @@ function services() {
         return kept.size <= 2;
       }),
       delete: vi.fn((key: string) => kept.delete(key)),
+    },
+    localModels: {
+      ask: vi.fn((extension: string) => Promise.resolve(extension === 'Hello')),
+      find: vi.fn(() => Promise.resolve([OLLAMA])),
     },
     notify: vi.fn(),
     quiet: vi.fn(() => false),
@@ -89,7 +96,7 @@ describe('notifications.show', () => {
 describe('secrets', () => {
   it('keeps each extension’s secrets under its own ID, behind secrets:own', async () => {
     const given = services();
-    const other = { id: 'org.example.other', name: 'Other', settings: () => ({}) };
+    const other = { ...HELLO, id: 'org.example.other', name: 'Other', settings: () => ({}) };
     for (const name of ['secrets.get', 'secrets.set', 'secrets.delete']) {
       expect(method(name).capability).toBe('secrets:own');
     }
@@ -177,6 +184,7 @@ describe('hostMethods', () => {
       'calls.state',
       'calls.recordings',
       'calls.reveal',
+      'localModels.find',
     ]);
   });
 });
@@ -339,5 +347,91 @@ describe('deleting', () => {
     expect(accepts('secrets.delete', [])).toBe(false);
     expect(accepts('storage.delete', ['model'])).toBe(true);
     expect(accepts('storage.delete', [])).toBe(false);
+  });
+});
+
+/** An extension whose answer about looking for models is kept in memory, as its record would. */
+function searching(answer?: boolean) {
+  const kept: { answer: boolean | undefined } = { answer };
+  const extension: CallingExtension = {
+    ...HELLO,
+    modelSearch: {
+      answer: () => kept.answer,
+      keep: vi.fn((allowed: boolean) => {
+        kept.answer = allowed;
+        return Promise.resolve();
+      }),
+    },
+  };
+  return { kept, extension };
+}
+
+describe('localModels.find', () => {
+  it('needs local-network, takes nothing, and waits two minutes for the user’s answer', () => {
+    const find = method('localModels.find');
+    expect(find.capability).toBe('local-network');
+    expect(find.timeoutMs).toBe(120_000);
+    expect(accepts('localModels.find', [])).toBe(true);
+    expect(accepts('localModels.find', ['http://localhost:9999'])).toBe(false);
+  });
+
+  it('asks the user once, naming the extension, keeps the answer, and then finds without asking', async () => {
+    const given = services();
+    const { kept, extension } = searching();
+    const find = method('localModels.find', extension, given);
+    await expect(find.run([])).resolves.toEqual([OLLAMA]);
+    expect(given.localModels.ask).toHaveBeenCalledExactlyOnceWith('Hello');
+    expect(kept.answer).toBe(true);
+    await expect(find.run([])).resolves.toEqual([OLLAMA]);
+    expect(given.localModels.ask).toHaveBeenCalledOnce();
+    expect(given.localModels.find).toHaveBeenCalledTimes(2);
+  });
+
+  it('asks once for calls made while the question is open', async () => {
+    const given = services();
+    let answer: (allowed: boolean) => void = () => undefined;
+    given.localModels.ask.mockReturnValueOnce(
+      new Promise<boolean>((resolve) => {
+        answer = resolve;
+      }),
+    );
+    const { extension } = searching();
+    const find = method('localModels.find', extension, given);
+    const first = find.run([]);
+    const second = find.run([]);
+    answer(true);
+    await expect(Promise.all([first, second])).resolves.toEqual([[OLLAMA], [OLLAMA]]);
+    expect(given.localModels.ask).toHaveBeenCalledOnce();
+  });
+
+  it('refuses as not granted, without looking, once the user said no, and never asks again', async () => {
+    const given = services();
+    const { kept, extension } = searching();
+    const other = { ...extension, name: 'Other' };
+    const find = method('localModels.find', other, given);
+    const refusal = { kind: 'not-granted', message: 'The user did not let the extension look.' };
+    await expect(find.run([])).rejects.toMatchObject(refusal);
+    expect(kept.answer).toBe(false);
+    await expect(find.run([])).rejects.toMatchObject(refusal);
+    expect(given.localModels.ask).toHaveBeenCalledOnce();
+    expect(given.localModels.find).not.toHaveBeenCalled();
+  });
+
+  it('asks again after a question that failed, since no answer was kept', async () => {
+    const given = services();
+    given.localModels.ask.mockRejectedValueOnce(new Error('No window.'));
+    const { kept, extension } = searching();
+    const find = method('localModels.find', extension, given);
+    await expect(find.run([])).rejects.toThrow('No window.');
+    expect(kept.answer).toBeUndefined();
+    await expect(find.run([])).resolves.toEqual([OLLAMA]);
+    expect(given.localModels.ask).toHaveBeenCalledTimes(2);
+  });
+
+  it('finds at once for an extension the user already let look', async () => {
+    const given = services();
+    const { extension } = searching(true);
+    await expect(method('localModels.find', extension, given).run([])).resolves.toEqual([OLLAMA]);
+    expect(given.localModels.ask).not.toHaveBeenCalled();
   });
 });

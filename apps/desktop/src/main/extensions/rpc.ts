@@ -9,6 +9,8 @@ export interface RpcMethod {
   /** The call's parameters, as a tuple. */
   readonly params: TSchema;
   readonly run: (params: readonly unknown[]) => Promise<unknown>;
+  /** How long the call may take, for one that waits on the user's answer; the usual timeout otherwise. */
+  readonly timeoutMs?: number;
 }
 
 /** The main process's end of an extension's port. */
@@ -46,7 +48,8 @@ const Envelope = Type.Object(
   { additionalProperties: false },
 );
 
-class RpcFailure extends Error {
+/** A failure of a kind the extension is told; any other error reaches it as `failed`. */
+export class RpcFailure extends Error {
   readonly kind: ExtensionErrorKind;
 
   constructor(kind: ExtensionErrorKind, message: string) {
@@ -71,13 +74,14 @@ export function tokenBucket({ burst, perSecond }: RateLimit, now: () => number):
   };
 }
 
-function withTimeout<T>(work: Promise<T>, options: RpcOptions): Promise<T> {
+function withTimeout<T>(work: Promise<T>, timeoutMs: number, options: RpcOptions): Promise<T> {
   return new Promise((resolve, reject) => {
-    options.after(options.timeoutMs, () => {
+    options.after(timeoutMs, () => {
       reject(new RpcFailure('timeout', 'The call took too long.'));
     });
-    work.then(resolve, () => {
-      reject(new RpcFailure('failed', 'The call failed.'));
+    // A method may refuse with a kind of its own; any other cause stays hidden behind `failed`.
+    work.then(resolve, (error: unknown) => {
+      reject(error instanceof RpcFailure ? error : new RpcFailure('failed', 'The call failed.'));
     });
   });
 }
@@ -100,7 +104,7 @@ async function dispatch(
   if (!take()) {
     throw new RpcFailure('rate-limited', 'The extension is calling too often.');
   }
-  return withTimeout(method.run(message.params), options);
+  return withTimeout(method.run(message.params), method.timeoutMs ?? options.timeoutMs, options);
 }
 
 /** What the extension learns of a failure: its kind, and never the cause behind an unexpected one. */

@@ -18,6 +18,8 @@ export {
   type ExtensionError,
   type ExtensionErrorKind,
   type ExtensionHost,
+  type LocalModelServer,
+  type LocalModelsApi,
   type SecretsApi,
   type SettingsApi,
   type SettingValue,

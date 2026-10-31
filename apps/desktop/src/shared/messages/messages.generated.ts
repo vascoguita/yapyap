@@ -686,6 +686,12 @@ export interface Messages {
       readonly allow: string;
       readonly deny: string;
     };
+    readonly extensionModelSearch: {
+      readonly message: (params: { readonly extension: string | number }) => string;
+      readonly detail: string;
+      readonly allow: string;
+      readonly deny: string;
+    };
     readonly removeExtension: {
       readonly message: (params: { readonly extension: string | number }) => string;
       readonly detail: string;

@@ -314,6 +314,26 @@ describe('createExtensionChrome', () => {
     expect([...(await loadRecords(root)).keys()]).toEqual(['org.example.hello']);
   });
 
+  it('forgets the user’s answer about looking for models once local-network is turned off or on', async () => {
+    const hello = record('org.example.hello', {
+      developer: true,
+      capabilities: ['local-network', 'notifications:show'],
+      modelSearch: false,
+    });
+    await saveRecords(root, new Map([['org.example.hello', hello]]));
+    const t = setup(root);
+    const set = t.handler('extensions:set-grant');
+    const call = { sender: {} };
+    const kept = async () => (await loadRecords(root)).get('org.example.hello')?.modelSearch;
+    await set.handle(call, 'org.example.hello', 'notifications:show', null, false);
+    expect(await kept()).toBe(false);
+    await set.handle(call, 'org.example.hello', 'local-network', null, false);
+    expect(await kept()).toBeUndefined();
+    await saveRecords(root, new Map([['org.example.hello', { ...hello, modelSearch: true }]]));
+    await set.handle(call, 'org.example.hello', 'local-network', null, true);
+    expect(await kept()).toBeUndefined();
+  });
+
   it('removes an extension through IPC once the user confirms, and answers with the list', async () => {
     const hello = record('org.example.hello', { developer: true });
     await saveRecords(root, new Map([['org.example.hello', hello]]));
