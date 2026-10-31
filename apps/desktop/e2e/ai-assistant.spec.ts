@@ -124,6 +124,38 @@ test('summarizes the chat in the panel, and leaves the message box alone', async
   await expect(window.getByTestId('composer')).toHaveText('');
 });
 
+test('catches up on the unread chats from the chat list, sending only after the preview', async ({
+  app,
+  profile,
+  window,
+}) => {
+  await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
+  const panel = await readyAssistant(
+    app,
+    profile,
+    claudeAnswer('- Test Chat Two asks if you are coming tomorrow.'),
+  );
+  await panel.getByRole('button', { name: 'Catch up on unread chats' }).click();
+  // Only the fake page's second chat is unread: 2 messages, the latest previewed in the list.
+  const entry = 'Chat: Test Chat Two\nUnread: 2\nLatest message: Are you coming tomorrow?';
+  await expect(panel.locator('#preview')).toContainText(entry);
+  await expect(panel.locator('#replies')).toContainText('No chat is opened or marked as read.');
+  const asked = () =>
+    app.evaluate(() => (globalThis as { claudeRequests?: string[] }).claudeRequests ?? []);
+  expect(await asked()).toEqual([]);
+  await panel.getByRole('button', { name: 'Send', exact: true }).click();
+  await expect(panel.locator('#summary')).toHaveText(
+    '- Test Chat Two asks if you are coming tomorrow.',
+  );
+  const requests = await asked();
+  expect(requests).toHaveLength(1);
+  expect(requests[0]).toContain(JSON.stringify(entry).slice(1, -1));
+  // Nothing was opened or read: the open chat and the badge are as they were.
+  await expect(window.locator('#main > header')).toHaveText('Test Chat One');
+  await expect(window.getByTestId('icon-unread-count')).toHaveText('2');
+  await expect(window.getByTestId('composer')).toHaveText('');
+});
+
 const SEARCH_PROMPT = 'Let AI assistant look for AI models on this computer?';
 
 /** What YapYap asked the user since the assistant was installed, leaving out the install's own message. */

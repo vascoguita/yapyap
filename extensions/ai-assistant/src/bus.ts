@@ -40,6 +40,16 @@ export interface Preview {
 }
 
 /**
+ * Exactly what would be sent to catch up on the unread chats (#106): the
+ * chat list's name, count and latest message of each, which Send alone sends.
+ */
+export interface CatchUp {
+  readonly type: 'catch-up';
+  readonly instructions: string;
+  readonly transcript: string;
+}
+
+/**
  * What the panel shows about the private model on this computer (#457):
  * how it stands, the button for what to do next, and the space it takes.
  */
@@ -60,6 +70,7 @@ export type Update =
   | AssistantState
   | LocalView
   | Preview
+  | CatchUp
   | { readonly type: 'progress'; readonly text: string }
   | {
       readonly type: 'suggestions';
@@ -81,6 +92,7 @@ export type PanelRequest =
   | { readonly type: 'remove-model' }
   | { readonly type: 'prepare' }
   | { readonly type: 'prepare-summary' }
+  | { readonly type: 'prepare-catch-up' }
   | { readonly type: 'prepare-rewrite'; readonly style: RewriteStyle; readonly language: string }
   | { readonly type: 'allow-chat'; readonly allowed: boolean }
   | { readonly type: 'send' }
@@ -99,6 +111,7 @@ const SIMPLE: ReadonlySet<unknown> = new Set([
   'remove-model',
   'prepare',
   'prepare-summary',
+  'prepare-catch-up',
   'send',
   'cancel',
 ]);
@@ -188,6 +201,10 @@ function localView(fields: Record<string, unknown>): LocalView | undefined {
 /** How each kind of news is checked; a kind not listed is not news. */
 const NEWS: Readonly<Record<string, (fields: Record<string, unknown>) => Update | undefined>> = {
   preview,
+  'catch-up': ({ instructions, transcript }) =>
+    typeof instructions === 'string' && typeof transcript === 'string'
+      ? { type: 'catch-up', instructions, transcript }
+      : undefined,
   local: localView,
   state: assistantState,
   progress: ({ text }) => (typeof text === 'string' ? { type: 'progress', text } : undefined),

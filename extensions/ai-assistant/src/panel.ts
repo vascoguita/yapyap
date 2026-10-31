@@ -2,6 +2,7 @@ import { aboutSize } from './built-in/catalog.ts';
 import {
   update,
   type AssistantState,
+  type CatchUp,
   type KeyRequest,
   type LocalView,
   type PanelRequest,
@@ -41,6 +42,9 @@ const PROBLEMS: Readonly<Record<string, string>> = {
   'empty-draft': 'Type a draft in the message box first.',
   setup: 'Finish the setup above first.',
   'not-prepared': 'Look at the chat again first.',
+  'no-unread': 'No chat in the chat list has unread messages.',
+  'unread-not-granted':
+    'YapYap does not let the assistant see your unread chats in this account. Turn on “See which chats have unread messages” in Extensions → AI assistant.',
   'not-granted': 'YapYap does not allow the assistant this here. Check Extensions → AI assistant.',
   auth: 'The provider did not accept your key.',
   'rate-limited': 'The provider is busy or your quota is used up. Try again later.',
@@ -212,6 +216,29 @@ function previewOf(doc: Document, port: Port, preview: Preview): HTMLElement[] {
   ];
 }
 
+/**
+ * What catching up reads, said plainly (#106): the chat list holds only
+ * each chat's latest message, and the user should know that the summary
+ * cannot cover the rest.
+ */
+const CATCH_UP_NOTE = [
+  'From the chat list only: the latest message of each unread chat, not all its unread messages.',
+  'No chat is opened or marked as read. This includes chats where the assistant is off.',
+].join(' ');
+
+/** The unread chats' preview: what it covers, then exactly what would be sent. */
+function catchUpOf(doc: Document, port: Port, news: CatchUp): HTMLElement[] {
+  return [
+    element(doc, 'p', { textContent: CATCH_UP_NOTE }),
+    element(doc, 'p', { textContent: 'This is exactly what will be sent:' }),
+    element(doc, 'pre', {
+      id: 'preview',
+      textContent: `${news.instructions}\n\n${news.transcript}`,
+    }),
+    asking(doc, port, 'Send', { type: 'send' }, true),
+  ];
+}
+
 /** The suggested replies, each one a button that puts it in the message box. */
 function suggestionsOf(
   doc: Document,
@@ -278,6 +305,7 @@ function repliesSection(doc: Document, port: Port) {
     element(doc, 'h2', { textContent: 'Suggest replies' }),
     asking(doc, port, 'Look at this chat', { type: 'prepare' }, true),
     asking(doc, port, 'Summarize this chat', { type: 'prepare-summary' }),
+    asking(doc, port, 'Catch up on unread chats', { type: 'prepare-catch-up' }),
     ...rewriteForm(doc, port),
     output,
   );
@@ -348,6 +376,9 @@ function handlersFor(doc: Document, port: Port, { key, local, replies }: Section
     local: local.show,
     preview: (news) => {
       replies.show(...previewOf(doc, port, news));
+    },
+    'catch-up': (news) => {
+      replies.show(...catchUpOf(doc, port, news));
     },
     progress: (news) => {
       if (!replies.output.contains(progress)) {

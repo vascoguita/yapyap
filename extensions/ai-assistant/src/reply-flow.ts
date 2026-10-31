@@ -1,5 +1,6 @@
 import type { ActiveChat, ExtensionHost } from '@yapyap/extension-sdk';
 import type { Update } from './bus.ts';
+import { CATCH_UP_INSTRUCTIONS, unreadDigest } from './catch-up.ts';
 import { isAllowed, setAllowed } from './chats.ts';
 import type { Provider } from './providers/provider.ts';
 import {
@@ -25,10 +26,11 @@ export type FlowHost = Pick<
 
 type Post = (update: Update) => void;
 
-/** What the panel asked the assistant to do with the open chat. */
+/** What the panel asked the assistant to do: with the open chat, or with the unread chats (#106). */
 export type Plan =
   | { readonly mode: 'replies' }
   | { readonly mode: 'summary' }
+  | { readonly mode: 'catch-up' }
   | { readonly mode: 'rewrite'; readonly style: RewriteStyle; readonly language: string };
 
 /** One panel's work in progress: the plan, the chat it previewed, what it showed, what came back. */
@@ -68,9 +70,31 @@ const preview = (chat: string, allowed: boolean, instructions = '', text = ''): 
   instructions,
 });
 
+/**
+ * Previews the unread chats from the chat list. The text shown, every
+ * chat's name in it, is what the user agrees to send with Send; no chat is
+ * allowed for later by it.
+ */
+async function prepareCatchUp(host: FlowHost, session: Session, post: Post): Promise<void> {
+  // No one chat is in view, so none can be allowed or taken back from here.
+  delete session.chat;
+  const found = await unreadDigest(host.chat);
+  if ('reason' in found) {
+    post(problem(found.reason));
+    return;
+  }
+  session.text = found.text;
+  session.instructions = CATCH_UP_INSTRUCTIONS;
+  post({ type: 'catch-up', instructions: CATCH_UP_INSTRUCTIONS, transcript: found.text });
+}
+
 async function prepare(host: FlowHost, session: Session, post: Post): Promise<void> {
   delete session.text;
   session.suggestions = [];
+  if (session.plan.mode === 'catch-up') {
+    await prepareCatchUp(host, session, post);
+    return;
+  }
   const chat = await host.chat.readActive();
   if (chat === null) {
     post(problem('no-chat'));
@@ -117,6 +141,9 @@ async function providerOf(
   return missingSetting(settings, key) === '' ? make(settings, key, local) : undefined;
 }
 
+/** The plans whose answer is for reading in the panel, never for a chat. */
+const READ_ONLY: ReadonlySet<Plan['mode']> = new Set<Plan['mode']>(['summary', 'catch-up']);
+
 async function send(host: FlowHost, session: Session, post: Post, sources: FlowSources) {
   // Only what the panel showed is ever sent: the text kept here, never the panel's copy.
   const { text, instructions = '' } = session;
@@ -134,7 +161,7 @@ async function send(host: FlowHost, session: Session, post: Post, sources: FlowS
       post({ type: 'progress', text: piece });
     },
   );
-  if (session.plan.mode === 'summary') {
+  if (READ_ONLY.has(session.plan.mode)) {
     // A summary is for reading in the panel; nothing of it goes to the chat.
     session.suggestions = [];
     post({ type: 'summary', text: completion.text.trim() });
@@ -175,7 +202,8 @@ export interface ReplyFlow {
  * the panel previews exactly what would be sent for the open chat, the user
  * allows the assistant chat by chat, and only then sends. A chosen reply
  * becomes a draft and a rewrite replaces the draft; nothing is ever sent
- * to the chat.
+ * to the chat. Catching up on unread chats (#106) previews them all at once
+ * and sends only on that preview's Send.
  */
 export function replyFlow(host: FlowHost, post: Post, sources: FlowSources): ReplyFlow {
   const session: Session = { plan: { mode: 'replies' }, suggestions: [] };

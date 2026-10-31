@@ -3,8 +3,9 @@
 YapYap's AI assistant suggests replies and writes messages right above the
 message box, with a private model that runs on your computer or with the
 AI provider you choose. You stay in charge of every message: the assistant
-reads a chat only once you allow it there, and nothing reaches the chat
-until you click **Send** or send the draft yourself.
+reads a chat only once you allow it there, sends nothing until you have
+seen it and clicked **Send**, and nothing reaches the chat until you send
+the draft yourself.
 
 The assistant is an extension made by YapYap, with releases of its own, so
 it gets fixes and features without waiting for a YapYap release. Install
@@ -193,6 +194,33 @@ will be sent: the chat's latest messages, as many as **Messages to send**
 allows. After **Send**, the summary appears in the panel for you alone;
 nothing of it goes to the chat or the message box.
 
+## Catch up on unread chats
+
+Choose **Catch up on unread chats** for a short summary of what is waiting
+for you, without opening a chat.
+
+1. The assistant reads WhatsApp's chat list, never a chat itself: opening a
+   chat would mark it read and tell the people who wrote that you saw their
+   messages. It takes up to 20 unread chats from the top of the list.
+2. The panel shows exactly what will be sent: each unread chat's name, how
+   many messages are unread, and its latest message, as the chat list
+   previews it. A photo or voice message shows as "(no text)".
+3. **Send** sends it to your provider, or to the private model on your
+   computer, and the summary appears in the panel for you alone.
+
+The summary covers only what the chat list shows: the **latest** message of
+each chat, not every unread message. Open a chat and choose **Summarize this
+chat** for more of it.
+
+The preview lists every unread chat, including chats where the assistant is
+off, and **Send** sends all of it, this once; it allows the assistant in no
+chat. If a chat in the list should not go to your provider, don't send, or
+use the private model or a server on your computer.
+
+The panel says so when no chat is unread. If it says YapYap does not let
+the assistant see your unread chats, turn on **See which chats have unread
+messages** for the assistant in **Extensions…**, for that account.
+
 ## Rewrite your draft
 
 1. Type a message in WhatsApp's message box, without sending it.
@@ -212,6 +240,9 @@ you can take any of it back later in **Extensions…**, for every account or
 just one:
 
 - read the open chat, but only when you ask it to look at it;
+- see which chats have unread messages, with each one's count and latest
+  message as the chat list shows it, but only when you ask it to catch you
+  up; it never opens a chat;
 - read your draft in the message box, but only when you ask it to rewrite it;
 - write drafts in the message box, or replace yours with a rewrite, which you send yourself;
 - show suggestions in the bar above the message box, which you put in the
@@ -227,5 +258,8 @@ just one:
 - run an AI model on this computer, which can use a lot of its processor
   and memory while it answers.
 
-It cannot send messages, read chats you did not open, or see WhatsApp's
-page. Your provider's own privacy terms apply to what you send them.
+It cannot send messages, read the messages of chats you did not open
+(beyond the chat list's preview of the latest one, when you ask it to catch
+you up), or see WhatsApp's page. When an update of the assistant asks for
+something new, such as seeing your unread chats, YapYap keeps the update
+waiting until you approve it in **Extensions…**. Your provider's own privacy terms apply to what you send them.
