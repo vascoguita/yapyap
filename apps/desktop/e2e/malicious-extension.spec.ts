@@ -1,4 +1,5 @@
 import type { ElectronApplication } from '@playwright/test';
+import { RPC_OPTIONS } from '../src/main/extensions/rpc.ts';
 import { testManifest } from '../test/extensions.ts';
 import { expect, test } from './fixtures.ts';
 import { installExtension, extensionPage } from './extension-helpers.ts';
@@ -7,6 +8,12 @@ import { installExtension, extensionPage } from './extension-helpers.ts';
  * An extension that tries everything ADR 0004 says an extension cannot do, and
  * writes what happened as JSON in its title for the test to read.
  */
+/**
+ * Well past the burst, since the bucket refills while the calls arrive: a
+ * flood of exactly the burst passed on a slow runner.
+ */
+const FLOOD = RPC_OPTIONS.rate.burst * 3;
+
 const HOSTILE = `
 let stolen;
 // It listens for YapYap's port as the bootstrap does, hoping to use it directly.
@@ -58,7 +65,7 @@ export default {
       popup: window.open('extension://org.example.hostile/') === null ? 'blocked' : 'opened',
       flood: (
         await Promise.all(
-          Array.from({ length: 40 }, () =>
+          Array.from({ length: ${String(FLOOD)} }, () =>
             attempt(() => host.notifications.show({ title: 'Spam', body: '' })),
           ),
         )
