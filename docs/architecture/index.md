@@ -91,7 +91,9 @@ checked channels.
 - **Extensions** each run in a hidden, sandboxed page on a partition of their
   own, served only from `extension://<id>/` under a CSP that allows no eval
   and no inline or remote code. A request leaves the page only to a host
-  the user approved, or to this computer with `local-network`. An extension's
+  the user approved, or to this computer with `local-network`. Only an
+  extension holding `local-model` may compile WebAssembly and run threads,
+  to run an AI model in its own page. An extension's
   panel is a separate window with no preload; it reaches its extension's page
   over a `BroadcastChannel`, never the main process
   ([ADR 0004](/adr/0004-extension-isolation-and-trust-model)).

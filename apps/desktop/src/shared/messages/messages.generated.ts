@@ -441,6 +441,7 @@ export interface Messages {
       readonly 'secrets:own': string;
       readonly 'assistant:bar': string;
       readonly 'calls:record': string;
+      readonly 'local-model': string;
     };
     readonly activity: {
       readonly title: string;

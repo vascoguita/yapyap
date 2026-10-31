@@ -71,6 +71,7 @@ which shares its origin, with a `BroadcastChannel`.
 | `secrets:own`              | Keep its own secrets, such as API keys, encrypted by your OS                    |
 | `local-network`            | Reach servers on this computer you allow one by one, such as a local AI model   |
 | `assistant:bar`            | Offer suggestions in the bar above the message box, which you send with a click |
+| `local-model`              | Run an AI model on your computer, using a lot of its processor and memory       |
 
 No capability lets an extension send a message, see WhatsApp's page, or run code
 in it. Extensions only ever get chat content as plain data, and only what you

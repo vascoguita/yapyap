@@ -1290,6 +1290,19 @@ not edit the same lines.
   no. E2E tests point the probe at a fake server through
   `YAPYAP_TEST_MODEL_PORTS`, which a packaged build ignores (ADR 0001,
   ADR 0004, C37 in ADR 0008).
+- Running a model on the computer (#457, first part): a new capability,
+  `local-model`, shown at install as running an AI model on this computer,
+  gives an extension what an engine compiled to WebAssembly needs, such as
+  wllama for the AI assistant's private model. Only its holders get
+  `'wasm-unsafe-eval'`, `worker-src blob:` and `connect-src 'self'` in their
+  CSP, cross-origin isolation (COOP and COEP on every response, for
+  `SharedArrayBuffer` and threads), no CPU limit, and a memory limit of
+  4 GiB or half the computer's memory. The `extension` scheme supports
+  `fetch`, and `.wasm` is served as `application/wasm`. Every other
+  extension's headers are unchanged, which a test pins. The grant is read
+  on every response and sample, so taking it back applies from the next
+  load (ADR 0004 amendment, C38 in ADR 0008). The assistant's engine comes
+  in the second part.
 
 - Start minimized after a maximized session (#458): maximizing or entering
   full screen shows a hidden window, so a window started minimized gets its

@@ -97,6 +97,8 @@ to `<userData>/extensions/<id>/<version>/` only after the signature verifies.
   the install directory and sets
   `Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:`.
   `eval`, inline scripts and remote scripts are therefore impossible.
+  Only an extension holding `local-model` gets a wider policy, described
+  in the amendments.
 - `webRequest.onBeforeRequest` on the extension session cancels every request
   except `extension://<id>/*` and `https://` hosts that are both declared and
   approved. Hosts the user enters at runtime (for example a custom AI
@@ -179,7 +181,9 @@ to `<userData>/extensions/<id>/<version>/` only after the signature verifies.
   YapYap samples every 5 seconds; more than 50% CPU or 256 MB of working
   set in 3 samples in a row restarts the extension, and a third restart within
   10 minutes stops it until YapYap restarts or the extension is installed
-  again.
+  again. An extension holding `local-model` has no CPU limit and a
+  memory limit of 4 GiB, or half the computer's memory if that is less
+  (see the amendments).
 
 ### Capabilities
 
@@ -207,6 +211,8 @@ starts to.
 | `network:<host>`           | HTTPS requests to that host via the extension session                                                                                                                                                                                    |
 | `local-network`            | HTTP or HTTPS requests to this computer (`localhost`, `127.0.0.1`, `[::1]`), any port, each server once the user approves it; and, once the user allows it, YapYap's search for model servers on this computer (`host.localModels.find`) |
 | `assistant:bar`            | Plain-text suggestions in the bar above the message box; sent only on the user's click (ADR 0013)                                                                                                                                        |
+| `calls:record`             | Ask YapYap to record the call on screen, which only the user starts (ADR 0015)                                                                                                                                                           |
+| `local-model`              | Run an AI model in its own page: WebAssembly, `blob:` workers, threads and higher limits (#457)                                                                                                                                          |
 
 The key-value store (#301) keeps each extension's values as JSON in
 `<userData>/extensions/.storage/<id>.json`, readable by the user alone, with
@@ -276,6 +282,47 @@ YapYap offers (names an extension makes up are never written, since they could
 carry text), moved aside to `audit.log.1` past 256 KiB. The Extensions window
 shows the latest 50 calls. `accountId` joins once grants are per account
 (#94).
+
+## Amendments
+
+- 2026-10-31 (#457, the maintainer's decision): `local-model`, a whole-extension
+  capability shown at install as running an AI model on this computer, which
+  can use a lot of its processor and memory. It exists so the AI assistant
+  can run a private model with wllama, llama.cpp compiled to WebAssembly,
+  shipped in the signed extension; the weights it downloads are data, and
+  no code is fetched at run time. Only a holder's responses change, and
+  YapYap reads the grant on every response and every sample, so taking it
+  back applies from the page's next load:
+  - The CSP adds `'wasm-unsafe-eval'` to `script-src`, `worker-src blob:`
+    and `'self'` to `connect-src`. WebAssembly can be compiled, but
+    JavaScript still cannot be evaluated, and scripts still come only from
+    the extension's own files. Blob workers inherit the page's policy, so
+    they load nothing the page could not. `'self'` lets the engine fetch its
+    `.wasm`, which YapYap serves as `application/wasm` for streaming
+    compilation; the `extension` scheme has `supportFetchAPI` for this, and
+    other extensions still cannot fetch their own files, since their
+    `connect-src` lacks `'self'`.
+  - Every response carries `Cross-Origin-Opener-Policy: same-origin` and
+    `Cross-Origin-Embedder-Policy: require-corp`, so the pages are
+    cross-origin isolated and get `SharedArrayBuffer`, which the engine
+    needs for several CPU threads; WebGPU gives no adapter on common
+    integrated graphics. Workers started from the extension's scripts take
+    their policy from those scripts, which is why it is on every response
+    and not only the pages. Isolation refuses cross-origin replies that do
+    not opt in with CORS or `Cross-Origin-Resource-Policy`. Extension pages
+    reach other servers only with `fetch`, which sends CORS requests; the
+    providers answer them, and YapYap answers CORS for approved servers on
+    this computer, so both keep working.
+  - The resource guard does not limit a holder's CPU: inference keeps
+    every thread busy for as long as it answers, and the extension runs in
+    a renderer of its own, so YapYap's windows keep their processes. Memory
+    is limited to 4 GiB, which holds a model of 1 to 2 GB with its context
+    and the engine's buffers, or half the computer's memory if that is
+    less, so a smaller computer keeps enough for everything else. Over it
+    for three samples in a row restarts the extension, and a third restart
+    within ten minutes stops it, as for any extension.
+
+  The tradeoff is C38 in ADR 0008.
 
 ## Consequences
 

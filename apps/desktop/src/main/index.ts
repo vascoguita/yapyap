@@ -44,7 +44,7 @@ import { hostMethods } from './extensions/host-methods.ts';
 import { keyValueStore, removeStore } from './extensions/key-value-store.ts';
 import { RPC_OPTIONS } from './extensions/rpc.ts';
 import { auditFileAt, createAuditLog } from './extensions/audit-log.ts';
-import { availableParallelism, homedir, release } from 'node:os';
+import { availableParallelism, homedir, release, totalmem } from 'node:os';
 import { join } from 'node:path';
 import { createDownloadList } from './downloads/download-list.ts';
 import { downloadsFolder } from './downloads/downloads.ts';
@@ -92,6 +92,7 @@ import { findLocalModels, loopbackRequest, modelServerPorts } from './extensions
 import { trayImage } from './tray/tray-icon.ts';
 import { createAccountHost, createSecureWindow, createSidebarView } from './windows.ts';
 
+const MEBIBYTE = 1024 * 1024;
 const PICKER_THUMBNAIL = { width: 320, height: 180 };
 
 const GPU_CRASH_LOG = join(app.getPath('userData'), 'gpu-crashes.json');
@@ -383,6 +384,7 @@ const chrome = createChromeFeature({
       every: (callback, ms) => setInterval(callback, ms),
       now: Date.now,
       cores: availableParallelism(),
+      memoryMb: totalmem() / MEBIBYTE,
     },
     audit: createAuditLog(
       auditFileAt(join(app.getPath('userData'), 'extensions', 'audit.log')),

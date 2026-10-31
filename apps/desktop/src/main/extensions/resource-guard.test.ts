@@ -2,14 +2,16 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   CPU_LIMIT_PERCENT,
   guardExtensionResources,
+  LOCAL_MODEL_MEMORY_LIMIT_MB,
   MEMORY_LIMIT_MB,
   EXTENSION_SAMPLE_MS,
   RESTART_WINDOW_MS,
   type ProcessMetrics,
 } from './resource-guard.ts';
 
-const HELLO = { id: 'org.example.hello', name: 'Hello', pid: 41 };
-const OTHER = { id: 'org.example.other', name: 'Other', pid: 42 };
+const HELLO = { id: 'org.example.hello', name: 'Hello', pid: 41, localModel: false };
+const OTHER = { id: 'org.example.other', name: 'Other', pid: 42, localModel: false };
+const MODEL = { id: 'org.example.model', name: 'Model', pid: 43, localModel: true };
 
 /** `cpu` is the share of one core, as the limit counts it; Electron reports it spread over four. */
 const sample = (pid: number, cpu: number, memoryMb: number): ProcessMetrics => ({
@@ -18,13 +20,13 @@ const sample = (pid: number, cpu: number, memoryMb: number): ProcessMetrics => (
   memory: { workingSetSize: memoryMb * 1024 },
 });
 
-function setup() {
+function setup(memoryMb = 16_384) {
   let tick: (() => void) | undefined;
   let metrics: ProcessMetrics[] = [];
   let time = 0;
   const deps = {
     metrics: () => metrics,
-    running: vi.fn(() => [HELLO, OTHER]),
+    running: vi.fn(() => [HELLO, OTHER, MODEL]),
     restart: vi.fn(),
     stop: vi.fn(),
     notify: vi.fn(),
@@ -33,6 +35,7 @@ function setup() {
     }),
     now: () => time,
     cores: 4,
+    memoryMb,
     warn: vi.fn(),
   };
   guardExtensionResources(deps);
@@ -99,6 +102,25 @@ describe('guardExtensionResources', () => {
     }
     expect(t.deps.stop).toHaveBeenCalledOnce();
     expect(t.deps.restart).toHaveBeenCalledTimes(5);
+  });
+
+  it('lets an extension running a model use every core, and up to 4 GiB of memory', () => {
+    const t = setup();
+    t.measure([sample(43, 400, LOCAL_MODEL_MEMORY_LIMIT_MB)], 6);
+    expect(t.deps.restart).not.toHaveBeenCalled();
+    t.measure([sample(43, 400, LOCAL_MODEL_MEMORY_LIMIT_MB + 1)], 3);
+    expect(t.deps.restart).toHaveBeenCalledExactlyOnceWith('org.example.model');
+    expect(t.deps.warn).toHaveBeenLastCalledWith(
+      'Extension org.example.model went over its memory limit and was restarted.',
+    );
+  });
+
+  it('never lets a model take more than half of a smaller computer’s memory', () => {
+    const t = setup(6_144);
+    t.measure([sample(43, 1, 3_072)], 6);
+    expect(t.deps.restart).not.toHaveBeenCalled();
+    t.measure([sample(43, 1, 3_073)], 3);
+    expect(t.deps.restart).toHaveBeenCalledExactlyOnceWith('org.example.model');
   });
 
   it('leaves alone an extension whose process it cannot find', () => {

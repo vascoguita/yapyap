@@ -32,6 +32,8 @@ import { serveExtensionRpc, type RpcMethod, type RpcOptions, type RpcPort } from
  */
 /** Lets an extension reach servers on this computer, such as a local AI model. */
 const LOCAL_NETWORK = 'local-network';
+/** Lets an extension run an AI model in its own page (#457). */
+const LOCAL_MODEL = 'local-model';
 
 export function extensionPartition(record: Pick<ExtensionRecord, 'id' | 'capabilities'>): string {
   const partition = `extension:${record.id}`;
@@ -112,7 +114,7 @@ export interface ExtensionRuntimeDependencies {
   /** What the CPU and memory limits need besides the extensions themselves (#97). */
   readonly limits: Pick<
     ResourceGuardDependencies,
-    'metrics' | 'notify' | 'every' | 'now' | 'cores'
+    'metrics' | 'notify' | 'every' | 'now' | 'cores' | 'memoryMb'
   >;
   /** The account on screen, which account capabilities are checked against (#94). */
   readonly activeAccount: () => string | undefined;
@@ -274,6 +276,8 @@ async function remember(root: string, id: string, approval: Approval): Promise<v
 interface RunningExtension {
   readonly host: ExtensionHost;
   readonly name: string;
+  /** What YapYap knows of it, whose grants are read again whenever they change. */
+  readonly known: KnownExtension;
   readonly commands: readonly {
     readonly id: string;
     readonly title: string;
@@ -304,6 +308,23 @@ interface RuntimeState {
   readonly listeners: Set<() => void>;
 }
 
+/** Whether the extension may run a model now, which its pages and limits follow (#457). */
+const runsModels = (known: KnownExtension): boolean => holds(known.record, LOCAL_MODEL, undefined);
+
+/** The extension's files, served under the policy its grants call for at each request. */
+const filesOf = (
+  deps: ExtensionRuntimeDependencies,
+  state: RuntimeState,
+  id: string,
+  known: KnownExtension,
+) =>
+  serveExtensionFiles(
+    id,
+    () => state.sources.get(id),
+    deps.readFile,
+    () => runsModels(known),
+  );
+
 /** Serves the extension's files on its own session, and nothing from anywhere else. */
 function serve(
   deps: ExtensionRuntimeDependencies,
@@ -317,10 +338,7 @@ function serve(
   }
   state.served.add(partition);
   const session = deps.sessionOf(partition);
-  session.protocol.handle(
-    EXTENSION_SCHEME,
-    serveExtensionFiles(id, () => state.sources.get(id), deps.readFile),
-  );
+  session.protocol.handle(EXTENSION_SCHEME, filesOf(deps, state, id, known));
   const approve = async (approval: Approval): Promise<void> => {
     known.record = approval(known.record);
     await remember(deps.root, id, approval);
@@ -361,10 +379,12 @@ function runningExtension(
   host: ExtensionHost,
   partition: string,
   manifest: Manifest,
+  known: KnownExtension,
 ): RunningExtension {
   return {
     host,
     partition,
+    known,
     name: manifest.name,
     commands: manifest.contributes?.commands ?? [],
     actions: actionsOf(manifest),
@@ -404,7 +424,7 @@ async function start(
   const host = deps.createHost(partition);
   const home = extensionOrigin(record.id);
   deps.views.set(host.webContents, { home, zone: 'extension', label: record.id });
-  const running = runningExtension(host, partition, manifest);
+  const running = runningExtension(host, partition, manifest, known);
   state.hosts.set(record.id, running);
   changed(state);
   connect(deps, running, known);
@@ -597,10 +617,11 @@ function runCommand(state: RuntimeState, extension: string, command: string): bo
 }
 
 function processesOf(state: RuntimeState): ExtensionProcess[] {
-  return [...state.hosts].map(([id, { host, name }]) => ({
+  return [...state.hosts].map(([id, { host, name, known }]) => ({
     id,
     name,
     pid: host.webContents.getOSProcessId(),
+    localModel: runsModels(known),
   }));
 }
 
