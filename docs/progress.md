@@ -1325,6 +1325,12 @@ not edit the same lines.
   `package.json`. App releases no longer carry the extensions. The
   assistant's first release of its own will be 0.2.0, needing YapYap 0.2.1.
 
+- Extension release PRs (#478): release-please writes extension manifests in
+  its own format, so Prettier leaves `extensions/*/public/manifest.json`
+  alone, and the changelog cleanup (#358) now runs on every release PR,
+  YapYap's and each extension's, with that track's own changelog. Lint and
+  git ignore `.claude/`, where coding agents keep their worktrees.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).
