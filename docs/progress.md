@@ -1290,6 +1290,7 @@ not edit the same lines.
   no. E2E tests point the probe at a fake server through
   `YAPYAP_TEST_MODEL_PORTS`, which a packaged build ignores (ADR 0001,
   ADR 0004, C37 in ADR 0008).
+
 - Running a model on the computer (#457, first part): a new capability,
   `local-model`, shown at install as running an AI model on this computer,
   gives an extension what an engine compiled to WebAssembly needs, such as
