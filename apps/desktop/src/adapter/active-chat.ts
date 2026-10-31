@@ -12,6 +12,7 @@ interface ReadElement {
   readonly innerText?: string;
   readonly dataset?: { readonly id?: string };
   querySelector(selectors: string): unknown;
+  closest(selectors: string): unknown;
 }
 
 interface ReadDocument {
@@ -26,6 +27,8 @@ interface ChatPlaces {
   readonly messageText: string;
   readonly messageBody: string;
   readonly outgoing: string;
+  readonly author: string;
+  readonly quoted: string;
 }
 
 interface Limits {
@@ -63,7 +66,13 @@ export function readActiveChat(doc: ReadDocument, places: ChatPlaces, limits: Li
   });
   return {
     name: textOf(doc.querySelector(places.chatName)).slice(0, limits.name),
-    group: rows.some((row) => idOf(row).includes('@g.us')),
+    // IDs named a group's chat until WhatsApp made them bare; now only groups
+    // show a sender's name outside a quoted message (#410).
+    group:
+      rows.some((row) => idOf(row).includes('@g.us')) ||
+      (
+        Array.from(doc.querySelectorAll(`${places.message} ${places.author}`)) as ReadElement[]
+      ).some((name) => name.closest(places.quoted) === null),
     messages: messages.slice(-limits.messages),
   };
 }
@@ -77,6 +86,8 @@ export function activeChatReader(messages: number): string {
     messageText: LANDMARKS.messageText,
     messageBody: LANDMARKS.messageBody,
     outgoing: LANDMARKS.outgoing,
+    author: LANDMARKS.author,
+    quoted: LANDMARKS.quoted,
   };
   const limits: Limits = { messages, text: MAX_TEXT, name: MAX_NAME };
   return `(${readActiveChat.toString()})(document, ${JSON.stringify(places)}, ${JSON.stringify(limits)})`;

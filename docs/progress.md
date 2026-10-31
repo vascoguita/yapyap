@@ -332,7 +332,7 @@ not edit the same lines.
 
 - Chat list width (#79): the adapter (`src/adapter/chat-list-width.ts`)
   sets the inline `flex` of `#side`'s parent, WhatsApp's chat list column
-  (landmarks v7), to the account's width, between 240 pixels and 60% of
+  (landmarks v9), to the account's width, between 240 pixels and 60% of
   WhatsApp's width, and keeps a divider right after it in a closed shadow
   root. The divider is a `role="separator"` with its value and bounds,
   resized by a trusted mouse drag or the arrows, Home and End, and reset to
@@ -1215,6 +1215,12 @@ not edit the same lines.
   body without the time beside it, and finds the chat's name by its test
   ID (landmarks v5). The fake page follows today's structure. Groups still
   need a new marker.
+
+- Group chats again (#410, last part): today's message IDs no longer name a
+  group, so the chat reader knows a group by the sender names WhatsApp shows
+  only in groups (`[data-testid="author"]` outside a quoted message), mapped
+  in the maintainer's own session (structure only). Landmarks v7 add both,
+  and the fake page's one-to-one chat quotes a named message.
 
 - Extensions, not plugins (#426, ADR 0016): YapYap's add-ons are called
   extensions everywhere, with no backward compatibility: new package,
