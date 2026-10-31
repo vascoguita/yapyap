@@ -523,7 +523,8 @@
       "storage:local": "Keep its own data on this computer",
       "secrets:own": "Keep its own secrets, such as API keys, encrypted",
       "assistant:bar": "Show suggestions above the message box, which only you can send, with a click",
-      "calls:record": "Ask to record your calls; YapYap records only when you click Record, and the extension never gets the recording"
+      "calls:record": "Ask to record your calls; YapYap records only when you click Record, and the extension never gets the recording",
+      "local-model": "Run an AI model on this computer, which can use a lot of its processor and memory"
     },
     "activity": {
       "title": "Recent activity",

@@ -9,6 +9,7 @@ import type { ProcessMetrics } from './resource-guard.ts';
 import type { CallingExtension } from './host-methods.ts';
 import { RPC_OPTIONS, type RpcMethod } from './rpc.ts';
 import { createExtensionRuntime, extensionPartition } from './runtime.ts';
+import { EXTENSION_CSP, LOCAL_MODEL_CSP } from './extension-files.ts';
 
 const MANIFEST = {
   id: 'org.example.hello',
@@ -184,6 +185,7 @@ function setup() {
       }),
       now: () => 0,
       cores: 1,
+      memoryMb: 8192,
     },
     askHost: vi.fn<(extension: string, host: string) => Promise<boolean>>(() =>
       Promise.resolve(false),
@@ -311,7 +313,9 @@ describe('createExtensionRuntime', () => {
     await saveRecords(root, new Map([['org.example.hello', record()]]));
     const t = setup();
     await t.runtime.startAll();
-    expect(t.runtime.processes()).toEqual([{ id: 'org.example.hello', name: 'Hello', pid: 4242 }]);
+    expect(t.runtime.processes()).toEqual([
+      { id: 'org.example.hello', name: 'Hello', pid: 4242, localModel: false },
+    ]);
     t.deps.limits.metrics.mockReturnValue([
       { pid: 4242, cpu: { percentCPUUsage: 100 }, memory: { workingSetSize: 0 } },
     ]);
@@ -456,6 +460,28 @@ describe('createExtensionRuntime', () => {
     });
     expect(await received('http://localhost:11434/v1')).toEqual({});
     expect(t.deps.askHost).not.toHaveBeenCalled();
+  });
+
+  it('serves the local-model policy and limits only while the extension holds local-model', async () => {
+    const model = record({ capabilities: ['local-model'] });
+    await install(model);
+    await saveRecords(root, new Map([['org.example.hello', model]]));
+    const t = setup();
+    await t.runtime.startAll();
+    const [, serve] = t.only(t.only([...t.sessions.values()]).protocol.handle.mock.calls);
+    const page = () => serve({ url: 'extension://org.example.hello/' });
+    expect((await page()).headers.get('content-security-policy')).toBe(LOCAL_MODEL_CSP);
+    expect((await page()).headers.get('cross-origin-embedder-policy')).toBe('require-corp');
+    expect(t.only(t.runtime.processes()).localModel).toBe(true);
+    // Taking it back applies from the page's next load, and to the next sample.
+    await saveRecords(
+      root,
+      new Map([['org.example.hello', { ...model, revoked: ['local-model'] }]]),
+    );
+    await t.runtime.regrant('org.example.hello');
+    expect((await page()).headers.get('content-security-policy')).toBe(EXTENSION_CSP);
+    expect((await page()).headers.has('cross-origin-embedder-policy')).toBe(false);
+    expect(t.only(t.runtime.processes()).localModel).toBe(false);
   });
 
   it('lists the running extensions’ commands, runs one over the port, and says when they change', async () => {

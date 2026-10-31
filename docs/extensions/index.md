@@ -145,6 +145,22 @@ from a **Find a model** button. A YapYap older than this API rejects the
 call with `invalid`. Finding a server does not let the extension use it:
 its first request there still asks the user, as above.
 
+### Running a model
+
+With `local-model`, an extension can run an AI model in its own page, with
+an engine compiled to WebAssembly that it ships in its package. Its pages
+may then compile WebAssembly (`'wasm-unsafe-eval'`), `fetch` the
+extension's own files, such as the engine's `.wasm`, which YapYap serves as
+`application/wasm`, and start workers from `blob:` URLs. Its pages are also
+cross-origin isolated (`self.crossOriginIsolated` is true), so the engine
+can use `SharedArrayBuffer` and several threads. Isolation refuses
+cross-origin replies that do not opt in, so reach other servers with
+CORS requests, as `fetch` makes by default. Its CPU is not limited, and it
+may use up to 4 GiB of memory, or half the computer's memory if that is
+less; past that, YapYap restarts it. Leave a core free for the rest of the
+computer. Without the grant, or once the user takes it back, all of this
+is refused from the page's next load.
+
 ### The assistant bar
 
 With `assistant:bar`, an extension fills the bar YapYap draws above the open

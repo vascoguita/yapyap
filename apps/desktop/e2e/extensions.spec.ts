@@ -91,6 +91,56 @@ test('runs an installed extension hidden, on its own session, with no eval and n
   ).toContain('Let Hello connect to example.com?');
 });
 
+/**
+ * What an engine running a model needs (#457), each tried and written in the
+ * title: fetching and compiling its own `.wasm`, compiling WebAssembly at
+ * all, a module worker from a `blob:` URL, and cross-origin isolation.
+ */
+const MODEL_PROBE = `
+const tried = [];
+try { await WebAssembly.compileStreaming(fetch('/tiny.wasm')); tried.push('wasm'); } catch { tried.push('no-wasm'); }
+try { await WebAssembly.compile(new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0])); tried.push('compile'); } catch { tried.push('no-compile'); }
+tried.push(await new Promise((resolve) => {
+  setTimeout(() => resolve('no-answer'), 5000);
+  try {
+    const source = URL.createObjectURL(new Blob(['postMessage(1);'], { type: 'text/javascript' }));
+    const worker = new Worker(source, { type: 'module' });
+    worker.onmessage = () => resolve('worker');
+    worker.onerror = () => resolve('no-worker');
+  } catch { resolve('no-worker'); }
+}));
+tried.push(self.crossOriginIsolated ? 'isolated' : 'not-isolated');
+document.title = tried.join(' ');
+export {};
+`;
+
+/** The smallest WebAssembly module: its magic number and version. */
+const TINY_WASM = '\0asm\x01\0\0\0';
+
+test('lets only an extension holding local-model run WebAssembly, blob workers and threads', async ({
+  app,
+  profile,
+}) => {
+  const network = { hosts: [] };
+  await installExtension(
+    app,
+    profile,
+    testManifest({ capabilities: ['local-model'], network }),
+    MODEL_PROBE,
+    { 'tiny.wasm': TINY_WASM },
+  );
+  await expect
+    .poll(async () => (await extensionPage(app))?.title, { timeout: 20_000 })
+    .toBe('wasm compile worker isolated');
+  const plain = testManifest({ id: 'org.example.plain', name: 'Plain', capabilities: [], network });
+  await installExtension(app, profile, plain, MODEL_PROBE, { 'tiny.wasm': TINY_WASM });
+  await expect
+    .poll(async () => (await extensionPage(app, 'org.example.plain'))?.title, { timeout: 20_000 })
+    .toBe('no-wasm no-compile no-worker not-isolated');
+  // Each policy belongs to its own extension's session: the holder's is untouched.
+  expect((await extensionPage(app))?.title).toBe('wasm compile worker isolated');
+});
+
 /** Shows a notification, then writes in its title how that went. */
 const NOTIFIER = `
 export default {
@@ -596,6 +646,21 @@ test('lets an extension use a server on this computer only with local-network an
       await app.evaluate(() => (globalThis as { extensionPrompts?: string[] }).extensionPrompts),
     ).toContain(prompt);
     expect((await extensionPage(app))?.title).toBe('blocked');
+    // A cross-origin isolated page (local-model, #457) still reads the server's
+    // reply: YapYap answers CORS for it, which isolation accepts.
+    const model = testManifest({
+      id: 'org.example.model',
+      name: 'Model',
+      capabilities: ['local-network', 'local-model'],
+      network,
+    });
+    const asked = `Let Model use the server at ${host} on this computer?`;
+    await installExtension(app, profile, model, local, {}, asked);
+    await expect
+      .poll(async () => (await extensionPage(app, 'org.example.model'))?.title, {
+        timeout: 20_000,
+      })
+      .toBe('reached');
   } finally {
     server.close();
   }

@@ -224,7 +224,11 @@ const SETTINGS_PAGE: ChromePage = {
 
 interface PrivilegedScheme {
   readonly scheme: string;
-  readonly privileges: { readonly standard: boolean; readonly secure: boolean };
+  readonly privileges: {
+    readonly standard: boolean;
+    readonly secure: boolean;
+    readonly supportFetchAPI?: boolean;
+  };
 }
 
 export interface ChromeFeatureDependencies {
@@ -941,8 +945,15 @@ export function createChromeFeature(deps: ChromeFeatureDependencies): ChromeFeat
     beforeReady: () => {
       deps.registerSchemesAsPrivileged([
         { scheme: CHROME_SCHEME, privileges: { standard: true, secure: true } },
-        // Served only on each extension's own session (ADR 0004).
-        { scheme: EXTENSION_SCHEME, privileges: { standard: true, secure: true } },
+        // Served only on each extension's own session (ADR 0004). Without fetch
+        // support, a page cannot fetch its own files, and a model's engine must
+        // fetch its `.wasm` to compile it (#457). The CSP still decides: only
+        // `local-model` adds `'self'` to `connect-src`, so other extensions stay
+        // unable to fetch their own files.
+        {
+          scheme: EXTENSION_SCHEME,
+          privileges: { standard: true, secure: true, supportFetchAPI: true },
+        },
       ]);
     },
     afterReady: (views, warn, graphics, wayland) => {

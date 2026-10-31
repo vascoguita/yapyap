@@ -10,6 +10,13 @@ const SAMPLES_OVER_LIMIT = 3;
  */
 export const CPU_LIMIT_PERCENT = 50;
 export const MEMORY_LIMIT_MB = 256;
+/**
+ * The memory an extension holding `local-model` may use (#457): a model of
+ * one or two gigabytes, with its context and the engine's buffers, fits in
+ * four. It never takes more than half the computer's memory, so a smaller
+ * computer keeps enough for everything else.
+ */
+export const LOCAL_MODEL_MEMORY_LIMIT_MB = 4096;
 /** Restarts within the window that stop the extension instead. */
 const RESTARTS_BEFORE_STOP = 3;
 /** Restarts further apart than ten minutes are unrelated, so they never add up to a stop. */
@@ -30,6 +37,8 @@ export interface ExtensionProcess {
   readonly id: string;
   readonly name: string;
   readonly pid: number;
+  /** Whether it holds `local-model`, which its limits follow. */
+  readonly localModel: boolean;
 }
 
 export interface ResourceGuardDependencies {
@@ -44,19 +53,45 @@ export interface ResourceGuardDependencies {
   readonly now: () => number;
   /** The computer's logical cores, such as `os.availableParallelism()`. */
   readonly cores: number;
+  /** The computer's memory, in megabytes, such as `os.totalmem()` gives. */
+  readonly memoryMb: number;
   readonly warn: (message: string) => void;
 }
 
+/** The share of one core and the megabytes an extension may keep using. */
+interface Limits {
+  readonly cpuPercent: number;
+  readonly memoryMb: number;
+}
+
+/**
+ * What `extension` may use: a model works every core it can for as long as
+ * it answers, so `local-model` lifts the CPU limit and keeps only a memory
+ * ceiling, which still restarts a runaway model before the computer swaps.
+ */
+function limitsOf(extension: ExtensionProcess, memoryMb: number): Limits {
+  return extension.localModel
+    ? {
+        cpuPercent: Number.POSITIVE_INFINITY,
+        memoryMb: Math.min(LOCAL_MODEL_MEMORY_LIMIT_MB, memoryMb / 2),
+      }
+    : { cpuPercent: CPU_LIMIT_PERCENT, memoryMb: MEMORY_LIMIT_MB };
+}
+
 /** Which limit a sample breaks, if any. */
-function excess(metric: ProcessMetrics | undefined, cores: number): 'CPU' | 'memory' | undefined {
+function excess(
+  metric: ProcessMetrics | undefined,
+  cores: number,
+  limits: Limits,
+): 'CPU' | 'memory' | undefined {
   if (metric === undefined) {
     return undefined;
   }
   // Electron spreads the usage over every core, so one busy core reads as 1/cores of 100%.
-  if (metric.cpu.percentCPUUsage * cores > CPU_LIMIT_PERCENT) {
+  if (metric.cpu.percentCPUUsage * cores > limits.cpuPercent) {
     return 'CPU';
   }
-  return metric.memory.workingSetSize / KB_PER_MB > MEMORY_LIMIT_MB ? 'memory' : undefined;
+  return metric.memory.workingSetSize / KB_PER_MB > limits.memoryMb ? 'memory' : undefined;
 }
 
 /** Restarts an extension that broke a limit, or stops one that keeps breaking them. */
@@ -96,6 +131,7 @@ export function guardExtensionResources(deps: ResourceGuardDependencies): void {
       const limit = excess(
         metrics.find((metric) => metric.pid === extension.pid),
         deps.cores,
+        limitsOf(extension, deps.memoryMb),
       );
       const count = limit === undefined ? 0 : (over.get(extension.id) ?? 0) + 1;
       over.set(extension.id, count >= SAMPLES_OVER_LIMIT ? 0 : count);

@@ -6,6 +6,7 @@ import {
   HOST_PAGE,
   panelPage,
   EXTENSION_CSP,
+  LOCAL_MODEL_CSP,
   serveExtensionFiles,
   type ExtensionSource,
 } from './extension-files.ts';
@@ -25,12 +26,21 @@ function setup(
       : Promise.resolve(new TextEncoder().encode(files[name]));
   });
   let source: ExtensionSource | undefined = { folder: FOLDER, entry: 'main.js', panel };
-  const serve = serveExtensionFiles(ID, () => source, readFile);
+  let localModel = false;
+  const serve = serveExtensionFiles(
+    ID,
+    () => source,
+    readFile,
+    () => localModel,
+  );
   return {
     readFile,
     get: (url: string) => serve({ url }),
     stop: () => {
       source = undefined;
+    },
+    hold: (held: boolean) => {
+      localModel = held;
     },
   };
 }
@@ -102,6 +112,7 @@ describe('serveExtensionFiles', () => {
       'a.webp': 'image/webp',
       'a.woff2': 'font/woff2',
       'a.txt': 'text/plain; charset=utf-8',
+      'a.wasm': 'application/wasm',
     };
     const t = setup(Object.fromEntries(Object.keys(types).map((name) => [name, 'x'])));
     for (const [name, type] of Object.entries(types)) {
@@ -129,6 +140,73 @@ describe('serveExtensionFiles', () => {
     const t = setup();
     t.stop();
     expect((await t.get(`extension://${ID}/`)).status).toBe(404);
+  });
+});
+
+/** Every response YapYap serves an extension: its pages, its bootstrap and style, its files, and a miss. */
+const EVERY_KIND = [
+  '/',
+  '/__yapyap/host.js',
+  '/__yapyap/panel.html',
+  '/__yapyap/panel.css',
+  '/main.js',
+  '/engine.wasm',
+];
+
+const headersOf = (response: Response): [string, string][] => [...response.headers.entries()];
+
+describe('serveExtensionFiles, for local-model (#457)', () => {
+  const files = { 'main.js': 'export default {};', 'engine.wasm': '\0asm\x01\0\0\0' };
+
+  it('keeps every other extension’s headers exactly as they were', async () => {
+    const t = setup(files, 'main.js');
+    for (const path of EVERY_KIND) {
+      const response = await t.get(`extension://${ID}${path}`);
+      expect(headersOf(response).filter(([name]) => name !== 'content-type')).toEqual([
+        ['cache-control', 'no-store'],
+        [
+          'content-security-policy',
+          "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; " +
+            'connect-src https: http://localhost:* http://127.0.0.1:* http://[::1]:*; ' +
+            "base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+        ],
+        ['x-content-type-options', 'nosniff'],
+      ]);
+    }
+  });
+
+  it('lets a holder compile WebAssembly, fetch its own files and start blob workers, cross-origin isolated', async () => {
+    const t = setup(files, 'main.js');
+    t.hold(true);
+    for (const path of EVERY_KIND) {
+      const response = await t.get(`extension://${ID}${path}`);
+      expect(response.status).toBe(200);
+      expect(response.headers.get('content-security-policy')).toBe(LOCAL_MODEL_CSP);
+      expect(response.headers.get('cross-origin-opener-policy')).toBe('same-origin');
+      expect(response.headers.get('cross-origin-embedder-policy')).toBe('require-corp');
+      expect(response.headers.get('x-content-type-options')).toBe('nosniff');
+    }
+    expect(LOCAL_MODEL_CSP).toBe(
+      "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; worker-src blob:; " +
+        "style-src 'self'; img-src 'self' data:; " +
+        "connect-src 'self' https: http://localhost:* http://127.0.0.1:* http://[::1]:*; " +
+        "base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+    );
+    // Still no eval of JavaScript, no inline or remote scripts.
+    expect(LOCAL_MODEL_CSP).not.toMatch(/'unsafe-eval'|'unsafe-inline'|script-src[^;]*https/);
+  });
+
+  it('reads the grant on every response, so taking it back applies from the next load', async () => {
+    const t = setup(files);
+    t.hold(true);
+    expect((await t.get(`extension://${ID}/`)).headers.get('content-security-policy')).toBe(
+      LOCAL_MODEL_CSP,
+    );
+    t.hold(false);
+    const page = await t.get(`extension://${ID}/`);
+    expect(page.headers.get('content-security-policy')).toBe(EXTENSION_CSP);
+    expect(page.headers.has('cross-origin-opener-policy')).toBe(false);
+    expect(page.headers.has('cross-origin-embedder-policy')).toBe(false);
   });
 });
 
