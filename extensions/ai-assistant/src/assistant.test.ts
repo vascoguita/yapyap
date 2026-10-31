@@ -1,25 +1,35 @@
 import { describe, expect, it, vi } from 'vitest';
 import { servePanel, stateOf, type Channel } from './assistant.ts';
-import type { Update } from './bus.ts';
+import type { LocalView, Update } from './bus.ts';
+import { currentSetup } from './models.ts';
 import { ProviderError, type Provider } from './providers/provider.ts';
 import { fakeHost } from './testing/fake-host.ts';
+import { fakeLocal, type FakeLocal } from './testing/local.ts';
 import { listing } from './testing/models.ts';
 
+/** The panel's end: what it was told about the private model apart from everything else. */
 function fakeChannel() {
   const sent: Update[] = [];
+  const locals: LocalView[] = [];
   const channel: Channel & { send: (data: unknown) => void } = {
     onmessage: null,
-    postMessage: (message) => sent.push(message),
+    postMessage: (message) => {
+      if (message.type === 'local') {
+        locals.push(message);
+      } else {
+        sent.push(message);
+      }
+    },
     send: (data) => channel.onmessage?.({ data } as MessageEvent),
   };
-  return { channel, sent };
+  return { channel, sent, locals };
 }
 
 describe('stateOf', () => {
   it('says what is missing, never the key', async () => {
     const { host, secrets } = fakeHost();
     const list = listing();
-    await expect(stateOf(host, list)).resolves.toEqual({
+    expect(stateOf(await currentSetup(host, list))).toEqual({
       type: 'state',
       provider: 'anthropic',
       model: '',
@@ -28,7 +38,7 @@ describe('stateOf', () => {
     });
     expect(list).not.toHaveBeenCalled();
     secrets.set('apiKey.anthropic', 'sk-secret');
-    const state = await stateOf(host, list);
+    const state = stateOf(await currentSetup(host, list));
     // Auto picks the newest of Claude's quick models.
     expect(state).toMatchObject({ model: 'claude-haiku-5-5', missing: '' });
     expect(JSON.stringify(state)).not.toContain('sk-secret');
@@ -38,10 +48,15 @@ describe('stateOf', () => {
 /** Serves the panel, then forgets the state this page announces as it starts. */
 async function serve(
   host: Parameters<typeof servePanel>[0],
-  { channel, sent }: ReturnType<typeof fakeChannel>,
-  make?: () => Provider,
+  { channel, sent, locals }: ReturnType<typeof fakeChannel>,
+  make: () => Provider = () => ({ complete: vi.fn() }),
+  local: FakeLocal = fakeLocal(),
 ): Promise<void> {
-  servePanel(host, channel, make, listing());
+  servePanel(host, channel, local.local, { make, list: listing() });
+  await vi.waitFor(() => {
+    expect(locals).toHaveLength(1);
+  });
+  locals.length = 0;
   await vi.waitFor(() => {
     expect(sent).toHaveLength(1);
   });
@@ -86,7 +101,7 @@ describe('servePanel', () => {
   it('announces its state as it starts, for a panel that asked before it listened', async () => {
     const { host } = fakeHost();
     const { channel, sent } = fakeChannel();
-    servePanel(host, channel, undefined, listing());
+    servePanel(host, channel, fakeLocal().local, { list: listing() });
     await vi.waitFor(() => {
       expect(sent).toEqual([
         { type: 'state', provider: 'anthropic', model: '', missing: 'key', search: true },
@@ -95,7 +110,7 @@ describe('servePanel', () => {
     const broken = fakeHost();
     broken.host.settings.get.mockRejectedValueOnce(new Error('gone'));
     const other = fakeChannel();
-    servePanel(broken.host, other.channel, undefined, listing());
+    servePanel(broken.host, other.channel, fakeLocal().local);
     await vi.waitFor(() => {
       expect(other.sent).toEqual([
         { type: 'state', provider: '', model: '', missing: 'unavailable', search: false },
@@ -229,5 +244,86 @@ describe('servePanel', () => {
       expect(sent).toHaveLength(2);
     });
     expect(sent.at(-1)).toMatchObject({ type: 'preview', transcript: 'Chat: Team\nThem: Lunch?' });
+  });
+
+  it('offers the private model to someone who set nothing up, and runs its buttons', async () => {
+    const { host } = fakeHost();
+    const model = fakeLocal();
+    const ends = fakeChannel();
+    servePanel(host, ends.channel, model.local, { list: listing() });
+    await vi.waitFor(() => {
+      expect(ends.locals).toHaveLength(1);
+    });
+    expect(ends.locals[0]).toEqual({
+      type: 'local',
+      status:
+        'Use a private model on this computer (about 1.1 GB, downloaded once)? Your messages never leave it.',
+      label: 'Use a private model',
+      action: 'download',
+      used: 0,
+      model: 'Qwen2.5 1.5B',
+    });
+    for (const [type, method] of [
+      ['download-model', 'download'],
+      ['smaller-model', 'smaller'],
+      ['remove-model', 'remove'],
+    ] as const) {
+      ends.channel.send({ type });
+      await vi.waitFor(() => {
+        expect(model.local[method]).toHaveBeenCalledOnce();
+      });
+    }
+    await vi.waitFor(() => {
+      expect(ends.locals).toHaveLength(4);
+    });
+    // Someone with a key is not offered it.
+    const other = fakeHost();
+    other.secrets.set('apiKey.anthropic', 'sk');
+    const otherEnds = fakeChannel();
+    servePanel(other.host, otherEnds.channel, fakeLocal().local, { list: listing() });
+    await vi.waitFor(() => {
+      expect(otherEnds.locals).toEqual([
+        { type: 'local', status: '', label: '', action: '', used: 0, model: 'Qwen2.5 1.5B' },
+      ]);
+    });
+  });
+
+  it('passes the download’s progress on as it comes, with the space the model takes', async () => {
+    const { host } = fakeHost({ settings: { provider: 'built-in' } });
+    const model = fakeLocal();
+    const ends = fakeChannel();
+    await serve(host, ends, undefined, model);
+    model.used.bytes = 450_000_000;
+    model.tell({ kind: 'downloading', done: 450_000_000 });
+    await vi.waitFor(() => {
+      expect(ends.locals).toEqual([
+        expect.objectContaining({
+          status: 'Downloading the private model: 40% (450 of 1,117 MB)',
+          used: 450_000_000,
+        }),
+      ]);
+    });
+    // A store that cannot be read leaves the panel as it was.
+    model.local.used.mockRejectedValueOnce(new Error('gone'));
+    model.tell({ kind: 'warming' });
+    model.tell({ kind: 'ready' });
+    await vi.waitFor(() => {
+      expect(ends.locals).toHaveLength(2);
+    });
+    expect(ends.locals[1]?.status).toBe(
+      'The private model is ready. Your messages stay on this computer.',
+    );
+  });
+
+  it('names the private model plainly in its state, without its name', async () => {
+    const { host, stored } = fakeHost();
+    stored.set('builtIn', { model: 'qwen', name: 'Qwen2.5 1.5B', ready: true });
+    expect(stateOf(await currentSetup(host, listing([{ id: 'qwen', label: 'Private' }])))).toEqual({
+      type: 'state',
+      provider: 'built-in',
+      model: '',
+      missing: '',
+      search: false,
+    });
   });
 });

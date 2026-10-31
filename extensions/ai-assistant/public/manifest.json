@@ -2,7 +2,7 @@
   "id": "org.guita.yapyap.ai-assistant",
   "name": "AI assistant",
   "version": "0.1.0",
-  "description": "Suggests replies right above the message box, writes the message you describe, and rewrites your drafts, with the AI model you choose and your own key. Nothing is sent without your click.",
+  "description": "Suggests replies right above the message box, writes the message you describe, and rewrites your drafts, with a private model on this computer or the AI service you choose. Nothing is sent without your click.",
   "author": {
     "name": "YapYap",
     "url": "https://yapyap.guita.org"
@@ -16,10 +16,16 @@
     "secrets:own",
     "storage:local",
     "local-network",
-    "assistant:bar"
+    "assistant:bar",
+    "local-model"
   ],
   "network": {
-    "hosts": ["api.anthropic.com", "api.openai.com"]
+    "hosts": [
+      "api.anthropic.com",
+      "api.openai.com",
+      "huggingface.co",
+      "us.aws.cdn.hf.co"
+    ]
   },
   "contributes": {
     "panel": {
@@ -32,8 +38,13 @@
         "provider": {
           "type": "string",
           "title": "Provider",
-          "description": "Who answers: Claude (anthropic), OpenAI (openai), or your own OpenAI-compatible server (compatible).",
-          "enum": ["anthropic", "openai", "compatible"]
+          "description": "Who answers: Claude (anthropic), OpenAI (openai), your own OpenAI-compatible server (compatible), or the private model on this computer (built-in).",
+          "enum": [
+            "anthropic",
+            "openai",
+            "compatible",
+            "built-in"
+          ]
         },
         "endpoint": {
           "type": "string",
@@ -45,7 +56,11 @@
           "type": "integer",
           "title": "Messages to send",
           "description": "How many of the chat's latest messages the assistant sends, at most. YapYap's own limit in Settings → Extensions still applies.",
-          "enum": [5, 10, 20]
+          "enum": [
+            5,
+            10,
+            20
+          ]
         },
         "localOnly": {
           "type": "boolean",

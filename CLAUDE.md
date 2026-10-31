@@ -241,6 +241,11 @@ Update this table in the PR that adds a command.
   `apps/desktop/src/main/windows.ts`. Lint rejects `new BrowserWindow`,
   `BaseWindow`, `BrowserView` and `WebContentsView` anywhere else, and new
   per-web-contents guards go in `web-contents-guards.ts`.
+- Import wllama from `@wllama/wllama/esm/index.js`: the package's `main`
+  names a file it does not ship, and its TypeScript sources do not pass our
+  checks. Keep `setCompat(null)`, or wllama fetches a build from a CDN.
+  E2E tests give the AI assistant a tiny model through
+  `YAPYAP_TEST_BUILT_IN_MODEL`, which a packaged build ignores.
 - Packaged builds disable the Node inspector fuse, so Playwright's Electron
   launcher cannot drive them. The smoke test connects over CDP through the
   `DevToolsActivePort` file in the profile directory instead.

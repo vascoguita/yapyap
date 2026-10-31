@@ -8,6 +8,7 @@ import { replyFlow, type Plan } from './reply-flow.ts';
 
 const REPLIES: Plan = { mode: 'replies' };
 import { fakeHost } from './testing/fake-host.ts';
+import { fakeLocal } from './testing/local.ts';
 import { listing } from './testing/models.ts';
 
 const CHAT = {
@@ -35,7 +36,8 @@ function setup(options: Parameters<typeof fakeHost>[0] = { chat: CHAT }, models 
     }),
   };
   const make = vi.fn(() => provider);
-  const flow = replyFlow(fake.host, (update) => sent.push(update), make, models);
+  const local = fakeLocal(provider).local;
+  const flow = replyFlow(fake.host, (update) => sent.push(update), { make, list: models, local });
   return { ...fake, sent, requests, provider, make, flow };
 }
 

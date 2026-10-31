@@ -1,7 +1,9 @@
+import { aboutSize } from './built-in/catalog.ts';
 import {
   update,
   type AssistantState,
   type KeyRequest,
+  type LocalView,
   type PanelRequest,
   type Preview,
   type Update,
@@ -13,6 +15,7 @@ const PROVIDER_NAMES: Readonly<Record<string, string>> = {
   openai: 'OpenAI',
   compatible: 'an OpenAI-compatible server',
   local: 'a model server on this computer',
+  'built-in': 'the private model on this computer',
 };
 
 /** What the panel and the bar say when a server on this computer the assistant uses does not answer. */
@@ -26,6 +29,7 @@ const MISSING: Readonly<Record<string, string>> = {
   'local-only':
     'Local-only mode is on: choose the compatible provider with a server on this computer, such as http://localhost:11434/v1.',
   'local-server': LOCAL_SERVER,
+  download: 'Download it below to start.',
   '': 'Ready.',
 };
 
@@ -45,6 +49,8 @@ const PROBLEMS: Readonly<Record<string, string>> = {
   refused: 'The model declined to answer.',
   'bad-request': 'The provider did not accept the request. Check the model’s name.',
   cancelled: 'Stopped.',
+  'out-of-memory':
+    'This computer doesn’t have enough memory for this model. Try the smaller one below?',
   'local-server': LOCAL_SERVER,
   'no-server':
     'No AI model runs on this computer. Install Ollama from ollama.com and download a model, or choose a provider in Extensions → AI assistant → Settings.',
@@ -281,19 +287,65 @@ function repliesSection(doc: Document, port: Port) {
   return { section, output, show };
 }
 
+/** What each button of the private model's section asks the hidden page. */
+const LOCAL_REQUESTS: Readonly<Record<string, PanelRequest>> = {
+  download: { type: 'download-model' },
+  smaller: { type: 'smaller-model' },
+};
+
+/**
+ * The private model on this computer (#457): how it stands, the button
+ * for the next step, the space it takes with a button to remove it, and
+ * its name under Advanced, for those who want to know.
+ */
+function localSection(doc: Document, port: Port) {
+  const section = element(doc, 'section', { id: 'private-model', hidden: true });
+  const status = element(doc, 'p', { id: 'private-status' });
+  status.setAttribute('aria-live', 'polite');
+  const next = element(doc, 'div');
+  const used = element(doc, 'p');
+  const remove = asking(doc, port, 'Remove model', { type: 'remove-model' });
+  const name = element(doc, 'p');
+  const advanced = element(doc, 'details');
+  advanced.append(element(doc, 'summary', { textContent: 'Advanced' }), name);
+  section.append(
+    element(doc, 'h2', { textContent: 'Private model on this computer' }),
+    status,
+    next,
+    used,
+    remove,
+    advanced,
+  );
+  const show = (view: LocalView): void => {
+    section.hidden = view.status === '' && view.used === 0;
+    status.textContent = view.status;
+    const request = LOCAL_REQUESTS[view.action];
+    const button = request === undefined ? [] : [asking(doc, port, view.label, request, true)];
+    next.replaceChildren(...button);
+    used.textContent = `It uses ${aboutSize(view.used)} on this computer.`;
+    used.hidden = view.used === 0;
+    remove.hidden = view.used === 0;
+    name.textContent = `Model: ${view.model}.`;
+  };
+  return { section, show };
+}
+
 type Handlers = { readonly [T in Update['type']]: (news: Extract<Update, { type: T }>) => void };
 
+/** The panel's sections that show the hidden page's news. */
+interface Sections {
+  readonly key: ReturnType<typeof keySection>;
+  readonly local: ReturnType<typeof localSection>;
+  readonly replies: ReturnType<typeof repliesSection>;
+}
+
 /** What the panel does with each kind of news from the hidden page. */
-function handlersFor(
-  doc: Document,
-  port: Port,
-  key: ReturnType<typeof keySection>,
-  replies: ReturnType<typeof repliesSection>,
-): Handlers {
+function handlersFor(doc: Document, port: Port, { key, local, replies }: Sections): Handlers {
   const say = (text: string) => element(doc, 'p', { textContent: text });
   const progress = say('');
   return {
     state: key.show,
+    local: local.show,
     preview: (news) => {
       replies.show(...previewOf(doc, port, news));
     },
@@ -329,8 +381,9 @@ function handlersFor(
  */
 export function mountPanel(doc: Document, port: Port): void {
   const key = keySection(doc, port);
+  const local = localSection(doc, port);
   const replies = repliesSection(doc, port);
-  const handlers = handlersFor(doc, port, key, replies);
+  const handlers = handlersFor(doc, port, { key, local, replies });
   // The hidden page may still be loading, and the channel keeps no message
   // for a page not yet listening, so the panel asks until it hears back.
   const ask = (): void => {
@@ -349,6 +402,7 @@ export function mountPanel(doc: Document, port: Port): void {
   doc.body.append(
     element(doc, 'h1', { textContent: 'AI assistant' }),
     key.section,
+    local.section,
     replies.section,
   );
   ask();

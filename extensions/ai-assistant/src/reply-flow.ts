@@ -10,8 +10,13 @@ import {
   transcriptOf,
 } from './replies.ts';
 import { cleanRewrite, rewriteInstructions, type RewriteStyle } from './rewrites.ts';
-import { currentSetup, pageModels, type modelsOf } from './models.ts';
-import { assistantSettings, missingSetting, providerFor } from './settings.ts';
+import { currentSetup, type modelsOf } from './models.ts';
+import {
+  assistantSettings,
+  missingSetting,
+  type BuiltInRunner,
+  type providerFor,
+} from './settings.ts';
 
 export type FlowHost = Pick<
   ExtensionHost,
@@ -96,26 +101,26 @@ async function allow(host: FlowHost, session: Session, post: Post, allowed: bool
   await prepare(host, session, post);
 }
 
+/** Where the flow's answers come from: the providers, their lists, and the private model (#457). */
+export interface FlowSources {
+  readonly make: typeof providerFor;
+  readonly list: typeof modelsOf;
+  readonly local: BuiltInRunner;
+}
+
 /** The provider the settings and key make, or undefined while the setup is unfinished. */
 async function providerOf(
   host: Pick<ExtensionHost, 'settings' | 'secrets' | 'storage'>,
-  make: typeof providerFor,
-  list: typeof modelsOf,
+  { make, list, local }: FlowSources,
 ): Promise<Provider | undefined> {
   const { settings, key } = await currentSetup(host, list);
-  return missingSetting(settings, key) === '' ? make(settings, key) : undefined;
+  return missingSetting(settings, key) === '' ? make(settings, key, local) : undefined;
 }
 
-async function send(
-  host: FlowHost,
-  session: Session,
-  post: Post,
-  make: typeof providerFor,
-  list: typeof modelsOf,
-) {
+async function send(host: FlowHost, session: Session, post: Post, sources: FlowSources) {
   // Only what the panel showed is ever sent: the text kept here, never the panel's copy.
   const { text, instructions = '' } = session;
-  const provider = await providerOf(host, make, list);
+  const provider = await providerOf(host, sources);
   if (text === undefined || provider === undefined) {
     post(problem(text === undefined ? 'not-prepared' : 'setup'));
     return;
@@ -172,12 +177,7 @@ export interface ReplyFlow {
  * becomes a draft and a rewrite replaces the draft; nothing is ever sent
  * to the chat.
  */
-export function replyFlow(
-  host: FlowHost,
-  post: Post,
-  make: typeof providerFor = providerFor,
-  list: typeof modelsOf = pageModels,
-): ReplyFlow {
+export function replyFlow(host: FlowHost, post: Post, sources: FlowSources): ReplyFlow {
   const session: Session = { plan: { mode: 'replies' }, suggestions: [] };
   return {
     prepare: (plan: Plan) => {
@@ -185,7 +185,7 @@ export function replyFlow(
       return prepare(host, session, post);
     },
     allow: (allowed: boolean) => allow(host, session, post, allowed),
-    send: () => send(host, session, post, make, list),
+    send: () => send(host, session, post, sources),
     cancel: () => {
       session.controller?.abort();
     },

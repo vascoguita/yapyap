@@ -139,3 +139,12 @@ still should.
   chat or account, or coming back to YapYap, only notes what is there.
   The adapter still adds no observers. Each chat still asks before its
   messages first go to a provider.
+- 2026-10-31 (#457): the AI assistant's private model, which runs on the
+  user's computer, joins its providers, and its list names it **Private
+  model (…)**. While the model downloads or warms up, the assistant offers
+  the bar its progress as a status line without being asked, as any
+  extension may, so the bar shows how far the download is, then **Warming
+  up the model…**; a stopped download or a model that does not fit in
+  memory comes with a confirm button (**Resume**, **Try the smaller
+  one**). Its consent asks to read the chat's messages, which stay on the
+  computer, rather than to send them to a provider.

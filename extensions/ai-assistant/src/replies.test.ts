@@ -37,6 +37,10 @@ describe('suggestionsIn', () => {
       'Maybe',
     ]);
     expect(suggestionsIn("'Ok'  ")).toEqual(['Ok']);
+    expect(suggestionsIn('Me: Ready at 8.\n- me: “On my way”')).toEqual([
+      'Ready at 8.',
+      'On my way',
+    ]);
     expect(suggestionsIn('\n  \n')).toEqual([]);
   });
 });

@@ -53,11 +53,16 @@ export function requestFor(
 
 /** Numbering or a bullet a model may put before a reply despite being asked not to. */
 const MARKER = /^(?:\d{1,2}[.)]|[-*•])\s*/;
+/**
+ * The transcript's own label, which small models such as the private one
+ * (#457) repeat before a reply as if it were part of it.
+ */
+const SPEAKER = /^Me:\s*/i;
 /** Quotes around a reply. */
 const QUOTES = /^["“”']|["“”']$/g;
 
 const clean = (line: string): string =>
-  line.trim().replace(MARKER, '').replaceAll(QUOTES, '').trim();
+  line.trim().replace(MARKER, '').replace(SPEAKER, '').replaceAll(QUOTES, '').trim();
 
 /** The replies in the model's answer, at most {@link SUGGESTIONS}. */
 export function suggestionsIn(answer: string): string[] {
