@@ -35,6 +35,7 @@ import { removeExtension, type RemovalDependencies } from './removal.ts';
 import type { AuditLog } from './audit-log.ts';
 import type { CallingExtension, CallRecorderService, HostServices } from './host-methods.ts';
 import type { ReadChat } from '../../adapter/active-chat.ts';
+import type { UnreadSummaryChat } from '../../adapter/unread-summary.ts';
 import type { RpcOptions } from './rpc.ts';
 import {
   createExtensionRuntime,
@@ -98,7 +99,12 @@ export interface ExtensionChromeDependencies {
     extension: CallingExtension,
     chats: Pick<
       ExtensionAccounts,
-      'insertDraft' | 'readActiveChat' | 'replaceDraft' | 'readDraft' | 'calls'
+      | 'insertDraft'
+      | 'readActiveChat'
+      | 'readUnreadSummary'
+      | 'replaceDraft'
+      | 'readDraft'
+      | 'calls'
     > &
       Pick<HostServices, 'offerAssistant'>,
   ) => ReturnType<ExtensionRuntimeDependencies['methodsFor']>;
@@ -246,6 +252,8 @@ export interface ExtensionAccounts {
   readonly insertDraft: (text: string) => Promise<boolean>;
   /** The active account's open chat and its last `messages` messages; null when none is open. */
   readonly readActiveChat: (messages: number) => Promise<ReadChat | null>;
+  /** The active account's chats with unread messages, read from its chat list alone (#100). */
+  readonly readUnreadSummary: () => Promise<readonly UnreadSummaryChat[]>;
   /** Replaces the active account's draft; false when no chat is open. */
   readonly replaceDraft: (text: string) => Promise<boolean>;
   /** The active account's draft; null when no chat is open. */

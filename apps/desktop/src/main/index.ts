@@ -367,6 +367,7 @@ const chrome = createChromeFeature({
         offerAssistant: chats.offerAssistant,
         readActiveChat: () =>
           chats.readActiveChat(Number(settings.current().extensions.chatMessages)),
+        readUnreadSummary: chats.readUnreadSummary,
         notify: (heading, text) => {
           new Notification({ title: heading, body: text, icon: trayIcon }).show();
         },

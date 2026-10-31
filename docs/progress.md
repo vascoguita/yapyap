@@ -552,6 +552,19 @@ not edit the same lines.
   result before the plugin sees it. Nothing logs it (ADR 0008, C26). The
   unread summary is still to come.
 
+- Extension unread summary (#100, last part): `chat.readUnreadSummary`,
+  behind `chat:read-unread-summary` for the account on screen, runs the
+  adapter's `readUnreadSummary` reader (landmarks v8: `chatRow`,
+  `unreadCount`, `chatTitle`, `chatPreview`, `chatTimestamp`). It reads the
+  chat list alone, never opening a chat, which would mark it read and send
+  read receipts. For each row with a badge of digits it returns the name,
+  the count and the last message's preview as one message, top of the list
+  first by position on screen, since the virtualized list reorders its
+  rows. At most 20 chats, names of 256 characters and previews of 1,024;
+  the main process checks the result against a schema, and nothing logs it
+  (ADR 0008, C39). The fake page's chat list now has WhatsApp's row markup
+  and one unread chat.
+
 - Example plugin and author guide (#101): `plugins/example` is Greeter, a
   third-party plugin that drafts a greeting the user sets in its settings
   form when they run its command. `tsc` builds it into `dist/` with its

@@ -55,11 +55,14 @@ and an ESLint restriction forbids constructing `BrowserWindow` or
 - The WhatsApp adapter sends only plain data objects (unread count,
   notification fields, active-chat metadata). It never sends DOM nodes or HTML.
   Its probes return flags, never page text. The readers that return text,
-  the open chat's latest messages (#100) and the draft in its composer
-  (#105), run only when an extension holding `chat:read-active` or
-  `composer:read-draft` for the account on screen asks. It returns as
-  many messages as the user allows, checked against a schema, and nothing
-  logs it (C26 in ADR 0008).
+  the open chat's latest messages (#100), the unread chats in the chat list
+  (#100) and the draft in its composer (#105), run only when an extension
+  holding `chat:read-active`, `chat:read-unread-summary` or
+  `composer:read-draft` for the account on screen asks. They return as
+  many messages as the user allows, or at most 20 unread chats with one
+  preview each, checked against a schema, and nothing logs them (C26 and
+  C39 in ADR 0008). The unread reader never opens a chat, which would mark
+  it read.
   One probe reads the address of the account's own profile photo (#87),
   when the page title changes and at most every 30 minutes once found.
   Until found, it also reads once a minute on its own, at most ten times

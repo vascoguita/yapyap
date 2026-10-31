@@ -110,6 +110,7 @@ function setup(root: string, developerMode = false, overrides: object = {}) {
         reveal: vi.fn(),
       },
       readActiveChat: vi.fn(),
+      readUnreadSummary: vi.fn(),
       replaceDraft: vi.fn(),
       readDraft: vi.fn(),
       pressEnter: vi.fn(() => Promise.resolve(true)),

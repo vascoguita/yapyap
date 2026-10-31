@@ -36,13 +36,20 @@ export interface ActiveChat {
   readonly messages: readonly ChatMessage[];
 }
 
-/** A chat with unread messages. */
+/**
+ * A chat with unread messages, as the chat list shows it. YapYap never opens
+ * a chat to read it, since that would mark it read and send read receipts.
+ */
 export interface UnreadChat {
   /** The chat's display name. */
   readonly name: string;
-  /** How many messages are unread. */
+  /** How many messages are unread, as the chat's badge counts them; at least 1. */
   readonly unread: number;
-  /** The most recent unread messages, oldest first, capped by the user's setting. */
+  /**
+   * The chat list's preview of the last message, as the only entry with
+   * `outgoing: false`, or none when the preview has no text. That is all the
+   * list shows of a chat's messages.
+   */
   readonly messages: readonly ChatMessage[];
 }
 
@@ -50,7 +57,10 @@ export interface UnreadChat {
 export interface ChatApi {
   /** The open chat, or null when none is open. Needs `chat:read-active`. */
   readonly readActive: () => Promise<ActiveChat | null>;
-  /** Every chat with unread messages. Needs `chat:read-unread-summary`. */
+  /**
+   * The chats with unread messages that the chat list has on hand, top first,
+   * at most 20. Needs `chat:read-unread-summary`.
+   */
   readonly readUnreadSummary: () => Promise<readonly UnreadChat[]>;
 }
 
