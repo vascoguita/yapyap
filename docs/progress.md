@@ -1319,8 +1319,9 @@ not edit the same lines.
   interface, and the bar lists it as **Private model (…)**. The bar and the
   panel show progress, warming up, and plain errors with one-click ways
   out (resume, download again, try the smaller one); the panel shows the
-  space it takes and **Remove model**. The bar retries an offer once when
-  YapYap's rate refused it. E2E tests load a 1 MB MIT test model, served
+  space it takes and **Remove model**. The bar tries a request up to three
+  times, a second apart, while YapYap's own rate refuses it, and drops a
+  leading "Me:" a small model copies from the transcript. E2E tests load a 1 MB MIT test model, served
   from a local fake through `YAPYAP_TEST_BUILT_IN_MODEL`, which a packaged
   build ignores, and run it in the real isolated page.
 
