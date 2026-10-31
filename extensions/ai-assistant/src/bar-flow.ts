@@ -244,7 +244,8 @@ async function searched(host: BarHost, { list, local }: Sources): Promise<Shown>
   const outcome = await findModel(host).catch(() => 'search-failed' as const);
   const setup = await currentSetup(host, list);
   if (outcome !== 'found') {
-    const offer = offerOf((await local.state()).model);
+    const { model } = await local.state();
+    const offer = offerOf(model);
     return { setup, ...localOffer({ ...offer, status: `${NOT_FOUND[outcome]} ${offer.status}` }) };
   }
   const missing = missingSetting(setup.settings, setup.key);
@@ -315,7 +316,9 @@ function followLocal(
     // A model ready or gone changes what the bar lists to pick from.
     if (removed || finished) {
       again(finished ? wordsFor(state, false) : undefined);
-    } else if (shows) {
+      return;
+    }
+    if (shows) {
       const { offer, action } = localOffer(wordsFor(state, false));
       pending.action = action;
       host.assistant.offer(offer).catch(() => undefined);

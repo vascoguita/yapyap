@@ -125,7 +125,7 @@ export interface ExtensionRuntimeDependencies {
   /** What every session does to request headers, kept by the extension's own listener. */
   readonly presentHeaders: (headers: Readonly<Record<string, string>>) => Record<string, string>;
   /** The model E2E tests serve to `local-model` holders in an unpackaged YapYap (#457), as JSON. */
-  readonly testModel?: string | undefined;
+  readonly testModel?: string;
 }
 
 export interface ExtensionRuntime {

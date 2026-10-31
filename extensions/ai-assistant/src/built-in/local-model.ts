@@ -63,8 +63,8 @@ const PROGRESS_EVERY_MS = 1000;
 
 /** What a download that did not finish leaves the model at. */
 const AFTER: Readonly<Record<Exclude<DownloadOutcome, 'done'>, (done: number) => Phase>> = {
-  'download-failed': (done) => ({ kind: 'paused', done, problem: 'download-failed' }),
-  'disk-full': (done) => ({ kind: 'paused', done, problem: 'disk-full' }),
+  'download-failed': (done) => ({ kind: 'paused', problem: 'download-failed', done }),
+  'disk-full': (done) => ({ kind: 'paused', problem: 'disk-full', done }),
   damaged: () => ({ kind: 'damaged' }),
 };
 
@@ -122,7 +122,7 @@ async function settled(model: BuiltInModel, ready: boolean, store: ModelStore): 
     return { kind: 'ready' };
   }
   const done = await savedBytes(model, store);
-  return done > 0 ? { kind: 'paused', done, problem: '' } : { kind: 'none' };
+  return done > 0 ? { kind: 'paused', problem: '', done } : { kind: 'none' };
 }
 
 async function stateOf(context: Context): Promise<LocalState> {

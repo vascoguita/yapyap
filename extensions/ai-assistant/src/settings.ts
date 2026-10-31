@@ -87,14 +87,14 @@ function providerOf(
 ): Pick<AssistantSettings, 'provider' | 'endpoint' | 'source'> {
   const endpoint = text(values['endpoint']);
   if (choseProvider(values)) {
-    return { provider: values['provider'] as ProviderId, endpoint, source: 'chosen' };
+    return { provider: values['provider'] as ProviderId, source: 'chosen', endpoint };
   }
   if (builtInRecord(kept.builtIn) !== undefined) {
-    return { provider: 'built-in', endpoint, source: 'picked' };
+    return { provider: 'built-in', source: 'picked', endpoint };
   }
   const found = foundEndpoint(kept.found);
   return found === undefined
-    ? { provider: 'anthropic', endpoint, source: 'default' }
+    ? { provider: 'anthropic', source: 'default', endpoint }
     : { provider: 'compatible', source: 'found', endpoint: found };
 }
 

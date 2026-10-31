@@ -24,7 +24,8 @@ export interface FakeLocal {
   readonly used: { bytes: number };
 }
 
-export function fakeLocal(provider: Provider = { complete: vi.fn() }): FakeLocal {
+export function fakeLocal(provider?: Provider): FakeLocal {
+  const answering = provider ?? { complete: vi.fn() };
   let state: LocalState = { model: QWEN, phase: { kind: 'none' }, smaller: true };
   const listeners: ((state: LocalState) => void)[] = [];
   const used = { bytes: 0 };
@@ -43,7 +44,7 @@ export function fakeLocal(provider: Provider = { complete: vi.fn() }): FakeLocal
       return Promise.resolve();
     }),
     remove: vi.fn(() => Promise.resolve()),
-    provider: vi.fn(() => provider),
+    provider: vi.fn(() => answering),
     onChange: vi.fn((listener: (state: LocalState) => void) => {
       listeners.push(listener);
     }),

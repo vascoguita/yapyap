@@ -63,8 +63,8 @@ function child<T extends Folder | Bytes>(
 function folderHandle(folder: Folder, quota: Quota): FileSystemDirectoryHandle {
   const handle = (entry: Folder | Bytes) =>
     entry.kind === 'file' ? fileHandle(entry, quota) : folderHandle(entry, quota);
-  const newFolder = (name: string): Folder => ({ kind: 'directory', name, entries: new Map() });
-  const newFile = (name: string): Bytes => ({ kind: 'file', name, data: new Blob([]) });
+  const newFolder = (name: string): Folder => ({ kind: 'directory', entries: new Map(), name });
+  const newFile = (name: string): Bytes => ({ kind: 'file', data: new Blob([]), name });
   return {
     kind: 'directory',
     name: folder.name,
@@ -74,10 +74,20 @@ function folderHandle(folder: Folder, quota: Quota): FileSystemDirectoryHandle {
       fileHandle(await child(folder, name, options.create, () => newFile(name)), quota),
     removeEntry: (name: string) =>
       folder.entries.delete(name) ? Promise.resolve() : Promise.reject(missing(name)),
-    values: async function* () {
-      for (const entry of folder.entries.values()) {
-        yield await Promise.resolve(handle(entry));
-      }
+    // An async iterator, as the browser's is, over what the folder holds now.
+    values() {
+      const entries = [...folder.entries.values()].map(handle);
+      return {
+        [Symbol.asyncIterator]() {
+          return this;
+        },
+        next: () => {
+          const value = entries.shift();
+          return Promise.resolve(
+            value === undefined ? { done: true, value } : { done: false, value },
+          );
+        },
+      };
     },
   } as unknown as FileSystemDirectoryHandle;
 }

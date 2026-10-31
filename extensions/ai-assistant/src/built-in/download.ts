@@ -25,6 +25,9 @@ export interface DownloadDependencies {
  */
 const PIECE_BYTES = 32 * 1024 * 1024;
 
+/** A download that stopped, which resuming carries on. */
+const FAILED: DownloadOutcome = 'download-failed';
+
 const PARTIAL = 206;
 const OK = 200;
 
@@ -48,12 +51,11 @@ interface Progress {
  */
 async function resumed(pieces: readonly Blob[]): Promise<Progress> {
   const hash = sha256.create();
-  let done = 0;
-  for (const piece of pieces) {
-    hash.update(new Uint8Array(await piece.arrayBuffer()));
-    done += piece.size;
+  const saved = new Blob([...pieces]);
+  for await (const chunk of saved.stream()) {
+    hash.update(chunk);
   }
-  return { hash, done, index: pieces.length, parts: [], filled: 0 };
+  return { hash, done: saved.size, index: pieces.length, parts: [], filled: 0 };
 }
 
 async function flush(store: ModelStore, model: BuiltInModel, progress: Progress): Promise<void> {
@@ -165,7 +167,7 @@ async function fetched(
   if (saved.done < model.size) {
     const answer = await request(model, saved, deps);
     if (answer === undefined) {
-      return 'download-failed';
+      return FAILED;
     }
     if (!(await receive(answer.body, model, answer.progress, deps))) {
       await deps.store.clear(model.sha256);
@@ -173,7 +175,7 @@ async function fetched(
     }
     // A stream that ends early is a broken connection, which resuming mends.
     if (answer.progress.done < model.size) {
-      return 'download-failed';
+      return FAILED;
     }
     return (await verified(model, answer.progress, deps.store)) ? 'done' : 'damaged';
   }
@@ -199,7 +201,7 @@ export async function download(
     }
     return await fetched(model, saved, { ...deps, onProgress });
   } catch (error) {
-    return isDiskFull(error) ? 'disk-full' : 'download-failed';
+    return isDiskFull(error) ? 'disk-full' : FAILED;
   }
 }
 

@@ -32,11 +32,11 @@ export function stateOf({ settings, key }: Setup): AssistantState {
   const provider = usesLocalServer(settings) ? 'local' : settings.provider;
   return {
     type: 'state',
-    provider,
     // The private model goes without its name, which says nothing to most people (#457).
     model: provider === 'built-in' ? '' : settings.model,
     missing: missingSetting(settings, key),
     search: offersSearch(settings, key),
+    provider,
   };
 }
 

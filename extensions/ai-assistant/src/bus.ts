@@ -171,15 +171,18 @@ const ACTIONS: ReadonlySet<unknown> = new Set(['download', 'smaller', '']);
 /** The private model's view, or undefined for anything else. */
 function localView(fields: Record<string, unknown>): LocalView | undefined {
   const { status, label, action, used, model } = fields;
-  const valid =
-    typeof status === 'string' &&
-    typeof label === 'string' &&
-    ACTIONS.has(action) &&
-    typeof used === 'number' &&
-    typeof model === 'string';
-  return valid
-    ? { type: 'local', status, label, action: action as LocalView['action'], used, model }
-    : undefined;
+  const texts = [status, label, model].every((value) => typeof value === 'string');
+  if (!texts || !ACTIONS.has(action) || typeof used !== 'number') {
+    return undefined;
+  }
+  return {
+    type: 'local',
+    status: status as string,
+    label: label as string,
+    action: action as LocalView['action'],
+    model: model as string,
+    used,
+  };
 }
 
 /** How each kind of news is checked; a kind not listed is not news. */

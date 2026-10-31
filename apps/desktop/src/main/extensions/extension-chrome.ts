@@ -112,7 +112,7 @@ export interface ExtensionChromeDependencies {
   readonly askLocal: ExtensionRuntimeDependencies['askLocal'];
   readonly presentHeaders: ExtensionRuntimeDependencies['presentHeaders'];
   /** The model E2E tests serve in an unpackaged YapYap (#457). */
-  readonly testModel?: string | undefined;
+  readonly testModel?: string;
   readonly confirmRemove: RemovalDependencies['confirmRemove'];
   readonly forgetData: RemovalDependencies['forgetData'];
   /** Where the marketplace lives and how to download from it (ADR 0014). */

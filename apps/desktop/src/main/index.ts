@@ -197,6 +197,9 @@ const customCode = createCustomCode(
   warn,
 );
 
+/** The model E2E tests give the AI assistant (#457); never in a packaged build. */
+const TEST_MODEL = testModelOf(process.env, app.isPackaged);
+
 // Extensions' secrets live apart from YapYap's own, so no mistake in an extension's namespace reaches them (#96).
 const extensionSecrets = openSecretStore(
   secretFileAt(join(app.getPath('userData'), 'extensions', '.secrets.json')),
@@ -320,7 +323,7 @@ const chrome = createChromeFeature({
     },
     sessionOf: (partition) => session.fromPartition(partition),
     presentHeaders: (headers) => rewriteClientHints(headers, process.versions.chrome),
-    testModel: testModelOf(process.env, app.isPackaged),
+    ...(TEST_MODEL === undefined ? {} : { testModel: TEST_MODEL }),
     // An extension's code runs in a window never shown; its UI is YapYap's, or its panel (ADR 0004).
     createHost: (partition) => {
       const host = createSecureWindow(

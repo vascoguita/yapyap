@@ -66,6 +66,11 @@ export const modelById = (id: unknown, catalog: Catalog = CATALOG): BuiltInModel
 
 const SHA256 = /^[0-9a-f]{64}$/;
 
+const isAddress = (url: unknown): url is string => typeof url === 'string' && URL.canParse(url);
+const isSize = (size: unknown): size is number => Number.isSafeInteger(size) && Number(size) > 0;
+const isHash = (sha256: unknown): sha256 is string =>
+  typeof sha256 === 'string' && SHA256.test(sha256);
+
 /**
  * The test model YapYap serves an unpackaged build in E2E tests, in place
  * of both of the catalog's, or undefined for anything else. A packaged
@@ -74,17 +79,10 @@ const SHA256 = /^[0-9a-f]{64}$/;
  */
 export function testCatalog(body: unknown): Catalog | undefined {
   const { url, size, sha256 } = Object(body) as Record<string, unknown>;
-  const valid =
-    typeof url === 'string' &&
-    URL.canParse(url) &&
-    Number.isSafeInteger(size) &&
-    (size as number) > 0 &&
-    typeof sha256 === 'string' &&
-    SHA256.test(sha256);
-  if (!valid) {
+  if (!isAddress(url) || !isSize(size) || !isHash(sha256)) {
     return undefined;
   }
-  const model = { id: 'test', name: 'Test', url, size: size as number, sha256 };
+  const model = { id: 'test', name: 'Test', size, url, sha256 };
   return { standard: model, small: model };
 }
 
