@@ -167,3 +167,6 @@ docs/api/
 flatpak-build/
 *.flatpak
 extensions-out/
+
+# Local coding-agent state, such as its worktrees: copies of this repository.
+.claude/

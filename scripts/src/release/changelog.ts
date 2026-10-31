@@ -93,12 +93,28 @@ export function githubApi(
 /** The branch release-please keeps its release PR on (ADR 0007). */
 export const RELEASE_BRANCH = 'release-please--branches--master--components--yapyap';
 
+/** A release PR release-please keeps open: its branch, and the changelog it writes. */
+export interface ReleaseTrack {
+  readonly branch: string;
+  readonly changelog: string;
+}
+
+/** YapYap's own release PR, and one for each first-party extension, which release on their own (#474). */
+export const RELEASE_TRACKS: readonly ReleaseTrack[] = [
+  { branch: RELEASE_BRANCH, changelog: 'CHANGELOG.md' },
+  ...['ai-assistant', 'call-recorder'].map((name) => ({
+    branch: `release-please--branches--master--components--${name}`,
+    changelog: `extensions/${name}/CHANGELOG.md`,
+  })),
+];
+
 /** The open release PR, as the cleanup needs it. */
 interface ReleasePullRequest {
   readonly id: string;
   readonly body: string;
   readonly headRefOid: string;
   readonly changelog: string;
+  readonly track: ReleaseTrack;
 }
 
 const FIND = `query ($owner: String!, $name: String!, $branch: String!, $file: String!) {
@@ -117,13 +133,14 @@ const FIND = `query ($owner: String!, $name: String!, $branch: String!, $file: S
 export async function findReleasePullRequest(
   api: GitHubApi,
   repository: string,
+  track: ReleaseTrack = { branch: RELEASE_BRANCH, changelog: 'CHANGELOG.md' },
 ): Promise<ReleasePullRequest | undefined> {
   const [owner, name] = repository.split('/');
   const data = (await api.graphql(FIND, {
     owner,
     name,
-    branch: RELEASE_BRANCH,
-    file: `${RELEASE_BRANCH}:CHANGELOG.md`,
+    branch: track.branch,
+    file: `${track.branch}:${track.changelog}`,
   })) as {
     repository: {
       pullRequests: { nodes: { id: string; body: string; headRefOid: string }[] };
@@ -131,7 +148,9 @@ export async function findReleasePullRequest(
     };
   };
   const [pr] = data.repository.pullRequests.nodes;
-  return pr === undefined ? undefined : { ...pr, changelog: data.repository.object?.text ?? '' };
+  return pr === undefined
+    ? undefined
+    : { ...pr, track, changelog: data.repository.object?.text ?? '' };
 }
 
 const COMMIT = `mutation ($input: CreateCommitOnBranchInput!) {
@@ -156,10 +175,10 @@ export async function mergeReleasePullRequest(
   const [changelog, body] = [mergeDuplicates(pr.changelog), mergeDuplicates(pr.body)];
   if (changelog !== pr.changelog) {
     const additions = [
-      { path: 'CHANGELOG.md', contents: Buffer.from(changelog).toString('base64') },
+      { path: pr.track.changelog, contents: Buffer.from(changelog).toString('base64') },
     ];
     const input = {
-      branch: { repositoryNameWithOwner: repository, branchName: RELEASE_BRANCH },
+      branch: { repositoryNameWithOwner: repository, branchName: pr.track.branch },
       message: { headline: 'docs(changelog): list each change once' },
       expectedHeadOid: pr.headRefOid,
       fileChanges: { additions },
