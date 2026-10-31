@@ -326,6 +326,20 @@ it can also come on by itself: whenever another window is in front of
 YapYap, until you click YapYap again, or after five minutes away from your
 computer, until you are back.
 
+## Chat list width
+
+Drag the edge between the chat list and the open chat to make the list
+wider or narrower. With the keyboard, Tab to that edge and use the left and
+right arrows; <kbd>Home</kbd> and <kbd>End</kbd> go to the narrowest and the
+widest. Double-click the edge, or press <kbd>Enter</kbd> on it, to go back to
+WhatsApp's own width.
+
+- Each account keeps its own width, and YapYap remembers it for next time.
+- The list stays at least 240 pixels wide and takes at most 60% of the
+  window, so the open chat always has room, however small the window.
+- The edge is drawn by YapYap inside WhatsApp's page. If a WhatsApp update
+  moves its chat list, the width may stop applying until YapYap is updated.
+
 ## Zoom
 
 Make WhatsApp bigger or smaller with **View → Zoom In** and **Zoom Out**

@@ -464,6 +464,10 @@
     "chatChanged": "You opened another chat, so these suggestions are gone. Ask again here.",
     "thinking": "Thinking…"
   },
+  "chatList": {
+    "label": "Chat list width",
+    "hint": "Drag, or use the arrow keys, to resize the chat list. Double-click or press Enter to go back to WhatsApp’s own width."
+  },
   "extensions": {
     "notificationTitle": "{{extension}}: {{title}}",
     "stopped": "{{extension}} kept using too much of your computer, so YapYap stopped it. Install it again to start it.",
