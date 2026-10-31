@@ -5,6 +5,7 @@ import type {
   CallState,
   LocalModelServer,
   SettingValue,
+  UnreadChat,
 } from '@yapyap/extension-sdk';
 import type { RecordOutcome } from '../recording/recorder.ts';
 import { Type } from 'typebox';
@@ -26,6 +27,8 @@ export interface HostServices {
   readonly insertDraft: (text: string) => Promise<boolean>;
   /** The active account's open chat, as many messages as the user allows; null when none is open. */
   readonly readActiveChat: () => Promise<ActiveChat | null>;
+  /** The active account's chats with unread messages, from its chat list alone. */
+  readonly readUnreadSummary: () => Promise<readonly UnreadChat[]>;
   /** Replaces the draft in the active account's open chat; false when none is open. */
   readonly replaceDraft: (text: string) => Promise<boolean>;
   /** The draft in the active account's open chat; null when none is open. */
@@ -177,8 +180,9 @@ function storage(services: HostServices): Record<string, RpcMethod> {
 }
 
 /**
- * Reading the open chat (#100): only through the adapter, as plain data,
- * for the account on screen, and as many messages as the user allows.
+ * Reading chats (#100): only through the adapter, as plain data, for the
+ * account on screen. The open chat comes with as many messages as the user
+ * allows; the unread summary reads only the chat list, never opening a chat.
  */
 function chat(services: HostServices): Record<string, RpcMethod> {
   return {
@@ -186,6 +190,11 @@ function chat(services: HostServices): Record<string, RpcMethod> {
       capability: 'chat:read-active',
       params: Type.Tuple([]),
       run: () => services.readActiveChat(),
+    },
+    'chat.readUnreadSummary': {
+      capability: 'chat:read-unread-summary',
+      params: Type.Tuple([]),
+      run: () => services.readUnreadSummary(),
     },
   };
 }

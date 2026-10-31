@@ -344,6 +344,8 @@ export interface AccountMenu extends AccountManager {
   readonly insertDraft: (text: string) => Promise<boolean>;
   /** The active account's open chat, for an extension that may read it (#100). */
   readonly readActiveChat: ExtensionAccounts['readActiveChat'];
+  /** The active account's unread chats, from its chat list, for an extension that may read them (#100). */
+  readonly readUnreadSummary: ExtensionAccounts['readUnreadSummary'];
   /** The active account's draft, for an extension that may rewrite it (#105). */
   readonly replaceDraft: ExtensionAccounts['replaceDraft'];
   readonly readDraft: ExtensionAccounts['readDraft'];
@@ -779,6 +781,8 @@ export function extensionAccounts(accounts: AccountsSlot): Omit<ExtensionAccount
       accounts.current === undefined
         ? Promise.resolve(null)
         : accounts.current.readActiveChat(messages),
+    readUnreadSummary: () =>
+      accounts.current === undefined ? Promise.resolve([]) : accounts.current.readUnreadSummary(),
     replaceDraft: (text) =>
       accounts.current === undefined ? Promise.resolve(false) : accounts.current.replaceDraft(text),
     readDraft: () =>

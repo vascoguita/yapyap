@@ -859,6 +859,8 @@ describe('startApp', () => {
     const [menu] = f.runtime.setAccountMenu.mock.calls.at(-1) ?? [];
     f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValueOnce(null);
     await expect(menu?.readActiveChat(5)).resolves.toBeNull();
+    f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValueOnce([]);
+    await expect(menu?.readUnreadSummary()).resolves.toEqual([]);
     f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValueOnce('Draft');
     await expect(menu?.readDraft()).resolves.toBe('Draft');
     f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValueOnce(true);

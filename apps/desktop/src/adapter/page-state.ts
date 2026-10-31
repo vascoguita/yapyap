@@ -52,6 +52,19 @@ export const LANDMARKS = {
   quoted: '[data-testid="quoted-message"]',
   /** The account's own profile photo, on the profile button at the foot of the navigation bar (#87). */
   ownAvatar: '[data-testid="navbar-footer-section"] button[data-navbar-item] img',
+  /**
+   * A chat in the chat list (#100). The list is virtualized, so only rows near
+   * the screen exist, and their order in the page may differ from the order shown.
+   */
+  chatRow: '#pane-side [data-testid^="list-item-"]',
+  /** A chat row's unread badge, whose text is only the count, in digits whatever the language. */
+  unreadCount: '[data-testid="icon-unread-count"]',
+  /** A chat row's name. */
+  chatTitle: '[data-testid="cell-frame-title"]',
+  /** A chat row's preview of its last message. */
+  chatPreview: '[data-testid="cell-frame-secondary"]',
+  /** A chat row's time of its last message. */
+  chatTimestamp: '[data-testid="chat-list-timestamp"]',
 } as const;
 
 type Landmarks = Readonly<Record<keyof typeof LANDMARKS, string>>;

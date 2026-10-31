@@ -642,6 +642,7 @@ describe('createChromeFeature', () => {
       activeContents: () => contents,
       insertDraft: vi.fn(() => Promise.resolve(true)),
       readActiveChat: vi.fn(() => Promise.resolve(null)),
+      readUnreadSummary: vi.fn(() => Promise.resolve([])),
       replaceDraft: vi.fn(() => Promise.resolve(true)),
       readDraft: vi.fn(() => Promise.resolve(null)),
       pressEnter: vi.fn(() => Promise.resolve(false)),
@@ -704,6 +705,7 @@ describe('createChromeFeature', () => {
       activeContents: () => ({}),
       insertDraft: vi.fn(() => Promise.resolve(true)),
       readActiveChat: vi.fn(() => Promise.resolve(null)),
+      readUnreadSummary: vi.fn(() => Promise.resolve([])),
       replaceDraft: vi.fn(() => Promise.resolve(true)),
       readDraft: vi.fn(() => Promise.resolve(null)),
       pressEnter: vi.fn(() => Promise.resolve(false)),
@@ -841,6 +843,7 @@ describe('createChromeFeature', () => {
       activeContents: () => ({}),
       insertDraft: vi.fn(() => Promise.resolve(true)),
       readActiveChat: vi.fn(() => Promise.resolve(null)),
+      readUnreadSummary: vi.fn(() => Promise.resolve([])),
       replaceDraft: vi.fn(() => Promise.resolve(true)),
       readDraft: vi.fn(() => Promise.resolve(null)),
       pressEnter: vi.fn(() => Promise.resolve(false)),
@@ -884,6 +887,7 @@ describe('createChromeFeature', () => {
       activeContents: () => ({}),
       insertDraft: vi.fn(() => Promise.resolve(true)),
       readActiveChat: vi.fn(() => Promise.resolve(null)),
+      readUnreadSummary: vi.fn(() => Promise.resolve([])),
       replaceDraft: vi.fn(() => Promise.resolve(true)),
       readDraft: vi.fn(() => Promise.resolve(null)),
       pressEnter: vi.fn(() => Promise.resolve(false)),
@@ -912,6 +916,7 @@ describe('createChromeFeature', () => {
       activeContents: () => ({}),
       insertDraft: vi.fn(() => Promise.resolve(true)),
       readActiveChat: vi.fn(() => Promise.resolve(null)),
+      readUnreadSummary: vi.fn(() => Promise.resolve([])),
       replaceDraft: vi.fn(() => Promise.resolve(true)),
       readDraft: vi.fn(() => Promise.resolve(null)),
       pressEnter: vi.fn(() => Promise.resolve(false)),
@@ -1094,6 +1099,7 @@ describe('createChromeFeature', () => {
     const accounts = extensionAccounts(slot);
     await expect(accounts.insertDraft('Hi')).resolves.toBe(false);
     await expect(accounts.readActiveChat(5)).resolves.toBeNull();
+    await expect(accounts.readUnreadSummary()).resolves.toEqual([]);
     await expect(accounts.replaceDraft('Hi')).resolves.toBe(false);
     await expect(accounts.readDraft()).resolves.toBeNull();
     await expect(accounts.pressEnter()).resolves.toBe(false);
@@ -1102,12 +1108,15 @@ describe('createChromeFeature', () => {
     const insertDraft = vi.fn(() => Promise.resolve(true));
     const chat = { name: 'Team', group: false, messages: [] };
     const readActiveChat = vi.fn(() => Promise.resolve(chat));
+    const unread = [{ name: 'Team', unread: 2, messages: [] }];
+    const readUnreadSummary = vi.fn(() => Promise.resolve(unread));
     const replaceDraft = vi.fn(() => Promise.resolve(true));
     const readDraft = vi.fn(() => Promise.resolve('Draft'));
     const pressEnter = vi.fn(() => Promise.resolve(true));
     slot.current = {
       insertDraft,
       readActiveChat,
+      readUnreadSummary,
       replaceDraft,
       readDraft,
       pressEnter,
@@ -1120,6 +1129,7 @@ describe('createChromeFeature', () => {
     expect(insertDraft).toHaveBeenCalledExactlyOnceWith('Hi');
     await expect(accounts.readActiveChat(5)).resolves.toBe(chat);
     expect(readActiveChat).toHaveBeenCalledExactlyOnceWith(5);
+    await expect(accounts.readUnreadSummary()).resolves.toBe(unread);
     await expect(accounts.replaceDraft('New')).resolves.toBe(true);
     expect(replaceDraft).toHaveBeenCalledExactlyOnceWith('New');
     await expect(accounts.readDraft()).resolves.toBe('Draft');

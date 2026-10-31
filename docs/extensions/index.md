@@ -89,13 +89,29 @@ Every host call returns a promise. A call that fails rejects with a
 the account on screen), `invalid`, `rate-limited` (more than 40 calls in a
 burst, refilling at 5 a second), `timeout` (10 seconds) or `failed`.
 
-The [API reference](/api/) documents the whole host API. Of the chat
-reading API, `host.chat.readActive()` is served: with `chat:read-active`,
-it returns the open chat's name, whether it is a group, and the text of its
-latest messages (as many as the user allows in Settings), or `null` when no
-chat is open. `readUnreadSummary` is not served yet
-([#100](https://github.com/vascoguita/yapyap/issues/100)), and its calls fail
-with `invalid`.
+The [API reference](/api/) documents the whole host API. Both chat
+readers act on the account on screen, and only when the extension calls
+them.
+
+- `host.chat.readActive()`, with `chat:read-active`, returns the open
+  chat's name, whether it is a group, and the text of its latest messages
+  (as many as the user allows in Settings), or `null` when no chat is open.
+- `host.chat.readUnreadSummary()`, with `chat:read-unread-summary`, returns
+  the chats with unread messages, top of the chat list first. Each comes
+  with its name, its unread count, and its last message's preview as the
+  one entry in `messages`, with `outgoing: false`.
+
+The unread summary reads the chat list and nothing else. Opening a chat to
+read its messages would mark them read and tell the people who wrote that
+you read them, so YapYap never opens one. That limits what it can return:
+
+- Only the chat list's preview of each chat's last message, cut to 1,024
+  characters. A chat whose preview is empty, such as a photo with no
+  caption, comes with no messages.
+- At most 20 chats. WhatsApp builds only the rows near the screen, so chats
+  further down the list are left out until you scroll to them.
+- Names cut to 256 characters. A row whose badge shows no count, as a chat
+  you marked unread may, is not counted.
 
 ### Keeping data
 

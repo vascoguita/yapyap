@@ -44,6 +44,9 @@ function services() {
     readActiveChat: vi.fn(() =>
       Promise.resolve({ name: 'Team', group: true, messages: [{ outgoing: false, text: 'Hi' }] }),
     ),
+    readUnreadSummary: vi.fn(() =>
+      Promise.resolve([{ name: 'Team', unread: 3, messages: [{ outgoing: false, text: 'Hi' }] }]),
+    ),
     stored,
     secrets: {
       get: vi.fn((name: string) => Promise.resolve(stored.get(name))),
@@ -174,6 +177,7 @@ describe('hostMethods', () => {
       'storage.set',
       'storage.delete',
       'chat.readActive',
+      'chat.readUnreadSummary',
       'composer.insertDraft',
       'composer.replaceDraft',
       'composer.readDraft',
@@ -256,6 +260,20 @@ describe('chat.readActive', () => {
     });
     expect(accepts('chat.readActive', [])).toBe(true);
     expect(accepts('chat.readActive', [50])).toBe(false);
+  });
+});
+
+describe('chat.readUnreadSummary', () => {
+  it('reads the unread chats for an extension holding chat:read-unread-summary, and takes no parameters', async () => {
+    const given = services();
+    const read = method('chat.readUnreadSummary', HELLO, given);
+    expect(read.capability).toBe('chat:read-unread-summary');
+    await expect(read.run([])).resolves.toEqual([
+      { name: 'Team', unread: 3, messages: [{ outgoing: false, text: 'Hi' }] },
+    ]);
+    expect(given.readUnreadSummary).toHaveBeenCalledOnce();
+    expect(accepts('chat.readUnreadSummary', [])).toBe(true);
+    expect(accepts('chat.readUnreadSummary', [20])).toBe(false);
   });
 });
 

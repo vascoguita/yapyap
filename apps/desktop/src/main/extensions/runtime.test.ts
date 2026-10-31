@@ -537,6 +537,53 @@ describe('createExtensionRuntime', () => {
     expect(t.runtime.askAssistant('org.example.hello', { type: 'suggest' })).toBe(false);
   });
 
+  it('reads the unread summary only for an account it was granted for, and audits the call, not the chats', async () => {
+    const [home, work] = [
+      '00000000-0000-4000-8000-000000000001',
+      '00000000-0000-4000-8000-000000000002',
+    ];
+    const reader = record({
+      capabilities: ['chat:read-unread-summary'],
+      revokedIn: { [work]: ['chat:read-unread-summary'] },
+    });
+    await install(reader);
+    await saveRecords(root, new Map([['org.example.hello', reader]]));
+    const t = setup();
+    const summary = vi.fn(() =>
+      Promise.resolve([{ name: 'Team', unread: 2, messages: [{ outgoing: false, text: 'Hi' }] }]),
+    );
+    t.deps.methodsFor.mockReturnValue({
+      'chat.readUnreadSummary': {
+        capability: 'chat:read-unread-summary',
+        params: Type.Tuple([]),
+        run: summary,
+      },
+    });
+    await t.runtime.startAll();
+    const host = t.only(t.hosts);
+    host.load();
+    const receive = host.ports[0]?.on.mock.calls[0]?.[1];
+    const call = async (id: number, outcome: string) => {
+      receive?.({ data: { id, method: 'chat.readUnreadSummary', params: [] } });
+      await vi.waitFor(() => {
+        expect(t.deps.audit.record).toHaveBeenLastCalledWith({
+          extension: 'org.example.hello',
+          method: 'chat.readUnreadSummary',
+          capability: 'chat:read-unread-summary',
+          outcome,
+        });
+      });
+    };
+    t.deps.activeAccount.mockReturnValue(home);
+    await call(1, 'ok');
+    expect(summary).toHaveBeenCalledOnce();
+    t.deps.activeAccount.mockReturnValue(work);
+    await call(2, 'not-granted');
+    t.deps.activeAccount.mockReturnValue(undefined);
+    await call(3, 'not-granted');
+    expect(summary).toHaveBeenCalledOnce();
+  });
+
   it('lists the running extensions’ right-click items, only for commands they declare', async () => {
     const contributes = {
       commands: [{ id: 'translate', title: 'Translate draft' }],
