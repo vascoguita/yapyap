@@ -110,6 +110,8 @@ export default defineConfig(
       '**/coverage/',
       'reports/',
       '.stryker-tmp/',
+      // Agent worktrees: whole copies of this repository, linted in their own right.
+      '.claude/',
       'docs/.vitepress/cache/',
       'docs/.vitepress/dist/',
       'docs/api/',

@@ -5,8 +5,11 @@ import {
   mergeReleasePullRequest,
   findReleasePullRequest,
   RELEASE_BRANCH,
+  RELEASE_TRACKS,
   type GitHubApi,
 } from './changelog.ts';
+
+const APP = { branch: RELEASE_BRANCH, changelog: 'CHANGELOG.md' };
 
 const ISSUES = 'https://github.com/vascoguita/yapyap/issues';
 const COMMITS = 'https://github.com/vascoguita/yapyap/commit';
@@ -115,6 +118,7 @@ describe('findReleasePullRequest', () => {
       body: 'b',
       headRefOid: 'head1',
       changelog: 'c',
+      track: APP,
     });
     expect(graphql.mock.calls[0]?.[1]).toEqual({
       owner: 'o',
@@ -132,6 +136,27 @@ describe('findReleasePullRequest', () => {
     });
     expect((await findReleasePullRequest({ graphql }, 'o/r'))?.changelog).toBe('');
   });
+
+  it('reads an extension’s release PR and its own changelog', async () => {
+    const graphql = vi.fn<GitHubApi['graphql']>(() =>
+      Promise.resolve({ repository: { pullRequests: { nodes: [] }, object: null } }),
+    );
+    const assistant = RELEASE_TRACKS.find(({ branch }) => branch.endsWith('--ai-assistant'));
+    expect(assistant).toEqual({
+      branch: 'release-please--branches--master--components--ai-assistant',
+      changelog: 'extensions/ai-assistant/CHANGELOG.md',
+    });
+    expect(RELEASE_TRACKS.map(({ changelog }) => changelog)).toEqual([
+      'CHANGELOG.md',
+      'extensions/ai-assistant/CHANGELOG.md',
+      'extensions/call-recorder/CHANGELOG.md',
+    ]);
+    await findReleasePullRequest({ graphql }, 'o/r', assistant);
+    expect(graphql.mock.calls[0]?.[1]).toMatchObject({
+      branch: 'release-please--branches--master--components--ai-assistant',
+      file: 'release-please--branches--master--components--ai-assistant:extensions/ai-assistant/CHANGELOG.md',
+    });
+  });
 });
 
 describe('mergeReleasePullRequest', () => {
@@ -148,15 +173,21 @@ describe('mergeReleasePullRequest', () => {
       body: `Notes\n${duplicated}`,
       headRefOid: 'head1',
       changelog: duplicated,
+      track: { branch: 'release-please--x', changelog: 'extensions/x/CHANGELOG.md' },
     };
     expect(await mergeReleasePullRequest({ graphql }, 'o/r', release)).toBe(true);
     expect(graphql.mock.calls[0]?.[1]).toEqual({
       input: {
-        branch: { repositoryNameWithOwner: 'o/r', branchName: RELEASE_BRANCH },
+        branch: { repositoryNameWithOwner: 'o/r', branchName: 'release-please--x' },
         message: { headline: 'docs(changelog): list each change once' },
         expectedHeadOid: 'head1',
         fileChanges: {
-          additions: [{ path: 'CHANGELOG.md', contents: Buffer.from(once).toString('base64') }],
+          additions: [
+            {
+              path: 'extensions/x/CHANGELOG.md',
+              contents: Buffer.from(once).toString('base64'),
+            },
+          ],
         },
       },
     });
@@ -165,7 +196,7 @@ describe('mergeReleasePullRequest', () => {
 
   it('changes nothing that already lists each change once', async () => {
     const graphql = vi.fn<GitHubApi['graphql']>(() => Promise.resolve({}));
-    const release = { id: 'PR_1', body: once, headRefOid: 'h', changelog: once };
+    const release = { id: 'PR_1', body: once, headRefOid: 'h', changelog: once, track: APP };
     expect(await mergeReleasePullRequest({ graphql }, 'o/r', release)).toBe(false);
     expect(graphql).not.toHaveBeenCalled();
   });
