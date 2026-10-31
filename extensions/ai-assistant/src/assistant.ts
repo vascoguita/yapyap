@@ -91,6 +91,36 @@ export function reasonOf(error: unknown): string {
   return typeof kind === 'string' ? kind : 'failed';
 }
 
+/**
+ * How long to wait first after YapYap said the extension calls too often,
+ * and how often to try in all: its rate refills five calls a second.
+ */
+const RATE_RETRY_MS = 1000;
+export const RATE_TRIES = 3;
+
+/**
+ * Runs `attempt`, and again while YapYap says the extension calls too
+ * often, up to `tries` times: a burst of clicks can run past its rate, and
+ * the bar or panel would otherwise wait on its answer for good. Each wait
+ * doubles, since the bar and the panel retry at once and share the rate:
+ * equal waits would have them run out of it together every time.
+ */
+export async function patiently(
+  attempt: () => Promise<void>,
+  tries: number,
+  wait = RATE_RETRY_MS,
+): Promise<void> {
+  try {
+    await attempt();
+  } catch (error) {
+    if (tries <= 1 || reasonOf(error) !== 'rate-limited') {
+      throw error;
+    }
+    await new Promise((resolve) => setTimeout(resolve, wait));
+    await patiently(attempt, tries - 1, wait * 2);
+  }
+}
+
 /** What the panel's side of the page works with. */
 interface Panel {
   readonly host: PanelHost;
@@ -211,9 +241,11 @@ export function servePanel(
   };
   const panel: Panel = { host, local, post, flow: replyFlow(host, post, { make, list, local }) };
   let offered = false;
-  const refresh = async (answers?: KeyRequest): Promise<void> => {
-    offered = await postState(panel, list, answers);
-  };
+  // A state that YapYap's rate kept from coming would leave the panel showing the old setup.
+  const refresh = (answers?: KeyRequest): Promise<void> =>
+    patiently(async () => {
+      offered = await postState(panel, list, answers);
+    }, RATE_TRIES);
   // Requests run one at a time, in the order the panel sent them; only Stop
   // goes ahead, since it must reach the request it stops.
   let queue: Promise<unknown> = Promise.resolve();

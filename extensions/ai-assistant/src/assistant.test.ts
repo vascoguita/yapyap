@@ -162,6 +162,23 @@ describe('servePanel', () => {
     });
   });
 
+  it('tells the new state once YapYap’s own rate lets it, so the panel never shows the old one', async () => {
+    const { host } = fakeHost();
+    const ends = fakeChannel();
+    const { channel, sent } = ends;
+    await serve(host, ends);
+    host.settings.get.mockRejectedValueOnce({ kind: 'rate-limited', message: 'too often' });
+    channel.send({ type: 'state?' });
+    await vi.waitFor(
+      () => {
+        expect(sent).toEqual([
+          { type: 'state', provider: 'anthropic', model: '', missing: 'key', search: true },
+        ]);
+      },
+      { timeout: 3000 },
+    );
+  });
+
   it('runs the reply flow: preview, allow, send, stop, use', async () => {
     const chat = { name: 'Team', group: true, messages: [{ outgoing: false, text: 'Lunch?' }] };
     const { host, secrets, drafts } = fakeHost({ chat });

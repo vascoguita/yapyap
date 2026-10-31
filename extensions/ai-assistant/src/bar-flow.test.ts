@@ -489,7 +489,8 @@ describe('serveBar', () => {
         const busy = Object.assign(new Error('too often'), { kind: 'rate-limited' });
         t.host.chat.readActive.mockRejectedValueOnce(busy).mockRejectedValueOnce(busy);
         t.handler({ type: 'suggest' });
-        await vi.advanceTimersByTimeAsync(2000);
+        // A second, then two more: each wait doubles.
+        await vi.advanceTimersByTimeAsync(3000);
         await vi.waitFor(() => {
           expect(t.offers.at(-1)?.suggestions).toHaveLength(2);
         });

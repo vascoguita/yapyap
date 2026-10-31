@@ -5,7 +5,7 @@ import type {
   AssistantRequest,
   ExtensionHost,
 } from '@yapyap/extension-sdk';
-import { reasonOf } from './assistant.ts';
+import { patiently, RATE_TRIES, reasonOf } from './assistant.ts';
 import type { LocalModel, LocalState } from './built-in/local-model.ts';
 import { offerOf, wordsFor, type LocalAction, type LocalWords } from './built-in/words.ts';
 import { isAllowed, setAllowed } from './chats.ts';
@@ -41,13 +41,6 @@ const SETUP = 'Set up the assistant in its panel first: Extensions → AI assist
 const NOTHING = 'The model had nothing to suggest. Try again.';
 const MOVED = 'You opened another chat. Ask again here.';
 const FOUND = 'Found an AI model on this computer. Ask for suggestions: your messages stay on it.';
-
-/**
- * How long to wait after YapYap said the extension calls too often, and how
- * often to try in all: its rate refills five calls a second.
- */
-const RATE_RETRY_MS = 1000;
-const RATE_TRIES = 3;
 
 /** The bar's own limit on each suggestion (ADR 0013). */
 const MAX_SUGGESTION = 1000;
@@ -324,23 +317,6 @@ function followLocal(
       host.assistant.offer(offer).catch(() => undefined);
     }
   });
-}
-
-/**
- * Runs `attempt`, and again a second later while YapYap says the extension
- * calls too often, up to `tries` times: a burst of clicks can run past its
- * rate, and the bar would otherwise wait on its answer for good.
- */
-async function patiently(attempt: () => Promise<void>, tries: number): Promise<void> {
-  try {
-    await attempt();
-  } catch (error) {
-    if (tries <= 1 || reasonOf(error) !== 'rate-limited') {
-      throw error;
-    }
-    await new Promise((resolve) => setTimeout(resolve, RATE_RETRY_MS));
-    await patiently(attempt, tries - 1);
-  }
 }
 
 /** Answers `request`, or tells news of the private model, in the bar. */
