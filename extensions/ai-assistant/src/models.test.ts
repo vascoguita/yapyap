@@ -8,6 +8,7 @@ import {
   MODEL_KEY,
   modelsOf,
 } from './models.ts';
+import { BUILT_IN_KEY } from './built-in/record.ts';
 import { LOCAL_SERVER_KEY, type AssistantSettings } from './settings.ts';
 import { fakeHost } from './testing/fake-host.ts';
 import { LISTED, listing } from './testing/models.ts';
@@ -19,6 +20,7 @@ const SETTINGS: AssistantSettings = {
   context: 10,
   localOnly: false,
   source: 'chosen',
+  builtIn: undefined,
 };
 
 const LOCAL: AssistantSettings = {
@@ -142,6 +144,52 @@ describe('modelsOf', () => {
     } finally {
       vi.unstubAllGlobals();
     }
+  });
+});
+
+describe('the private model', () => {
+  const builtIn = { model: 'qwen-1.5b', name: 'Qwen2.5 1.5B', ready: true };
+  const settings: AssistantSettings = { ...SETTINGS, provider: 'built-in', builtIn };
+
+  it('lists the downloaded private model by a plain name, and Auto picks it', async () => {
+    const fetch = vi.fn<typeof globalThis.fetch>();
+    const listed = await modelsOf(settings, '', { fetch });
+    expect(listed).toEqual([{ id: 'qwen-1.5b', label: 'Private model (Qwen2.5 1.5B)' }]);
+    expect(autoModel('built-in', listed)).toEqual(listed[0]);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('lists nothing while it is not all downloaded', async () => {
+    await expect(
+      modelsOf({ ...settings, builtIn: { ...builtIn, ready: false } }, ''),
+    ).resolves.toEqual([]);
+    await expect(modelsOf({ ...settings, builtIn: undefined }, '')).resolves.toEqual([]);
+  });
+
+  it('keeps no list past a change to the private model', async () => {
+    const list = listing();
+    const kept = keptModels(list, () => 0);
+    await kept(settings, '');
+    await kept({ ...settings, builtIn: { ...builtIn, model: 'qwen-0.5b' } }, '');
+    expect(list).toHaveBeenCalledTimes(2);
+  });
+
+  it('answers once picked, reading the found server only when nothing else decides', async () => {
+    const fake = fakeHost();
+    fake.stored.set(BUILT_IN_KEY, builtIn);
+    fake.stored.set(LOCAL_SERVER_KEY, { endpoint: 'http://localhost:11435/v1' });
+    await expect(currentSetup(fake.host, listing())).resolves.toMatchObject({
+      settings: { provider: 'built-in', source: 'picked', builtIn },
+    });
+    expect(fake.host.storage.get).not.toHaveBeenCalledWith(LOCAL_SERVER_KEY);
+    const chosen = fakeHost({ settings: { provider: 'built-in' } });
+    chosen.stored.set(BUILT_IN_KEY, builtIn);
+    await expect(currentSetup(chosen.host, listing())).resolves.toMatchObject({
+      settings: { provider: 'built-in', source: 'chosen', builtIn },
+    });
+    const other = fakeHost({ settings: { provider: 'openai' } });
+    await currentSetup(other.host, listing());
+    expect(other.host.storage.get).not.toHaveBeenCalledWith(BUILT_IN_KEY);
   });
 });
 

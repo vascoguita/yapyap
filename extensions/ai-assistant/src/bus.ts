@@ -1,3 +1,4 @@
+import type { LocalAction } from './built-in/words.ts';
 import { languageName, rewriteStyle, type RewriteStyle } from './rewrites.ts';
 
 /**
@@ -38,9 +39,26 @@ export interface Preview {
   readonly transcript: string;
 }
 
+/**
+ * What the panel shows about the private model on this computer (#457):
+ * how it stands, the button for what to do next, and the space it takes.
+ */
+export interface LocalView {
+  readonly type: 'local';
+  readonly status: string;
+  /** The button's label, '' for none. */
+  readonly label: string;
+  readonly action: LocalAction | '';
+  /** Bytes the model takes on this computer. */
+  readonly used: number;
+  /** The model's name, shown under Advanced. */
+  readonly model: string;
+}
+
 /** The hidden page's other news for the panel. */
 export type Update =
   | AssistantState
+  | LocalView
   | Preview
   | { readonly type: 'progress'; readonly text: string }
   | {
@@ -58,6 +76,9 @@ export type PanelRequest =
   | { readonly type: 'save-key'; readonly key: string }
   | { readonly type: 'forget-key' }
   | { readonly type: 'find-model' }
+  | { readonly type: 'download-model' }
+  | { readonly type: 'smaller-model' }
+  | { readonly type: 'remove-model' }
   | { readonly type: 'prepare' }
   | { readonly type: 'prepare-summary' }
   | { readonly type: 'prepare-rewrite'; readonly style: RewriteStyle; readonly language: string }
@@ -73,6 +94,9 @@ const SIMPLE: ReadonlySet<unknown> = new Set([
   'state?',
   'forget-key',
   'find-model',
+  'download-model',
+  'smaller-model',
+  'remove-model',
   'prepare',
   'prepare-summary',
   'send',
@@ -142,9 +166,29 @@ function preview(fields: Record<string, unknown>): Preview | undefined {
   return valid ? { type: 'preview', chat, allowed, instructions, transcript } : undefined;
 }
 
+const ACTIONS: ReadonlySet<unknown> = new Set(['download', 'smaller', '']);
+
+/** The private model's view, or undefined for anything else. */
+function localView(fields: Record<string, unknown>): LocalView | undefined {
+  const { status, label, action, used, model } = fields;
+  const texts = [status, label, model].every((value) => typeof value === 'string');
+  if (!texts || !ACTIONS.has(action) || typeof used !== 'number') {
+    return undefined;
+  }
+  return {
+    type: 'local',
+    status: status as string,
+    label: label as string,
+    action: action as LocalView['action'],
+    model: model as string,
+    used,
+  };
+}
+
 /** How each kind of news is checked; a kind not listed is not news. */
 const NEWS: Readonly<Record<string, (fields: Record<string, unknown>) => Update | undefined>> = {
   preview,
+  local: localView,
   state: assistantState,
   progress: ({ text }) => (typeof text === 'string' ? { type: 'progress', text } : undefined),
   suggestions: ({ items, replace }) =>

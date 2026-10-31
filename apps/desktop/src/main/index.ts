@@ -88,7 +88,12 @@ import { cappedFetcher } from './marketplace/fetch.ts';
 import { marketplaceSource } from './marketplace/source.ts';
 import { askModelSearch, electronExtensionDialogs } from './extensions/extension-dialogs.ts';
 import type { LocalModelsService } from './extensions/host-methods.ts';
-import { findLocalModels, loopbackRequest, modelServerPorts } from './extensions/local-models.ts';
+import {
+  findLocalModels,
+  loopbackRequest,
+  modelServerPorts,
+  testModelOf,
+} from './extensions/local-models.ts';
 import { trayImage } from './tray/tray-icon.ts';
 import { createAccountHost, createSecureWindow, createSidebarView } from './windows.ts';
 
@@ -191,6 +196,9 @@ const customCode = createCustomCode(
   },
   warn,
 );
+
+/** The model E2E tests give the AI assistant (#457); never in a packaged build. */
+const TEST_MODEL = testModelOf(process.env, app.isPackaged);
 
 // Extensions' secrets live apart from YapYap's own, so no mistake in an extension's namespace reaches them (#96).
 const extensionSecrets = openSecretStore(
@@ -315,6 +323,7 @@ const chrome = createChromeFeature({
     },
     sessionOf: (partition) => session.fromPartition(partition),
     presentHeaders: (headers) => rewriteClientHints(headers, process.versions.chrome),
+    ...(TEST_MODEL === undefined ? {} : { testModel: TEST_MODEL }),
     // An extension's code runs in a window never shown; its UI is YapYap's, or its panel (ADR 0004).
     createHost: (partition) => {
       const host = createSecureWindow(

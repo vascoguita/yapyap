@@ -1,12 +1,18 @@
 import type { SettingValue } from '@yapyap/extension-sdk';
+import { builtInRecord, type BuiltInRecord } from './built-in/record.ts';
 import { anthropicProvider } from './providers/anthropic.ts';
 import { openAIProvider } from './providers/openai.ts';
 import type { Provider } from './providers/provider.ts';
 
-/** Which service the assistant asks, as the settings form names it. */
-export type ProviderId = 'anthropic' | 'openai' | 'compatible';
+/** Which service the assistant asks, as the settings form names it; `built-in` runs on this computer (#457). */
+export type ProviderId = 'anthropic' | 'openai' | 'compatible' | 'built-in';
 
-const PROVIDERS: ReadonlySet<unknown> = new Set<ProviderId>(['anthropic', 'openai', 'compatible']);
+const PROVIDERS: ReadonlySet<unknown> = new Set<ProviderId>([
+  'anthropic',
+  'openai',
+  'compatible',
+  'built-in',
+]);
 
 /** What the user chose in the extension's settings form. */
 export interface AssistantSettings {
@@ -20,9 +26,12 @@ export interface AssistantSettings {
   readonly localOnly: boolean;
   /**
    * Where the provider comes from: the user's choice in the settings form,
-   * the model server found on this computer (#456), or the default.
+   * the private model the user picked (#457), the model server found on
+   * this computer (#456), or the default.
    */
-  readonly source: 'chosen' | 'found' | 'default';
+  readonly source: 'chosen' | 'picked' | 'found' | 'default';
+  /** The private model the user picked, if any, and whether it is all downloaded. */
+  readonly builtIn: BuiltInRecord | undefined;
 }
 
 /** A server on this computer, which the extension reaches with `local-network`. */
@@ -57,35 +66,50 @@ function foundEndpoint(found: unknown): string | undefined {
   return typeof endpoint === 'string' && LOCAL_ENDPOINT.test(endpoint) ? endpoint : undefined;
 }
 
-/**
- * Who answers, in this order (#456): the provider the user chose in the
- * Extensions window, then the model server the assistant found on this
- * computer, then Claude, which waits for a key.
- */
-function providerOf(
-  values: Readonly<Record<string, SettingValue>>,
-  found: unknown,
-): Pick<AssistantSettings, 'provider' | 'endpoint' | 'source'> {
-  if (choseProvider(values)) {
-    const provider = values['provider'] as ProviderId;
-    return { provider, endpoint: text(values['endpoint']), source: 'chosen' };
-  }
-  const endpoint = foundEndpoint(found);
-  return endpoint === undefined
-    ? { provider: 'anthropic', endpoint: text(values['endpoint']), source: 'default' }
-    : { provider: 'compatible', source: 'found', endpoint };
+/** What the assistant keeps besides its settings: the private model picked, and the server found. */
+export interface Kept {
+  /** The record under `BUILT_IN_KEY` (#457). */
+  readonly builtIn?: unknown;
+  /** The record under {@link LOCAL_SERVER_KEY} (#456). */
+  readonly found?: unknown;
 }
 
 /**
- * The saved settings, with `found`, the model server the assistant found
- * on this computer, if any, as the provider until the user picks one.
+ * Who answers, in this order (#456, #457): the provider the user chose in
+ * the Extensions window, then the private model the user picked, then the
+ * model server the assistant found on this computer, then Claude, which
+ * waits for a key. The private model is offered only when no server was
+ * found, so the user picks it after any search.
+ */
+function providerOf(
+  values: Readonly<Record<string, SettingValue>>,
+  kept: Kept,
+): Pick<AssistantSettings, 'provider' | 'endpoint' | 'source'> {
+  const endpoint = text(values['endpoint']);
+  if (choseProvider(values)) {
+    return { provider: values['provider'] as ProviderId, source: 'chosen', endpoint };
+  }
+  if (builtInRecord(kept.builtIn) !== undefined) {
+    return { provider: 'built-in', source: 'picked', endpoint };
+  }
+  const found = foundEndpoint(kept.found);
+  return found === undefined
+    ? { provider: 'anthropic', source: 'default', endpoint }
+    : { provider: 'compatible', source: 'found', endpoint: found };
+}
+
+/**
+ * The saved settings, with what the assistant keeps besides them: the
+ * private model the user picked and the model server it found on this
+ * computer, either of which answers until the user chooses a provider.
  */
 export function assistantSettings(
   values: Readonly<Record<string, SettingValue>>,
-  found?: unknown,
+  kept: Kept = {},
 ): AssistantSettings {
   return {
-    ...providerOf(values, found),
+    ...providerOf(values, kept),
+    builtIn: builtInRecord(kept.builtIn),
     // Picked in the bar, or by Auto, from what the provider lists (#467); never typed in.
     model: '',
     context: CONTEXTS.has(values['context']) ? (values['context'] as number) : DEFAULT_CONTEXT,
@@ -108,6 +132,21 @@ const validEndpoint = (settings: AssistantSettings): boolean =>
  * will do; such a server needs no key.
  */
 export function missingSetup(settings: AssistantSettings, apiKey: string | undefined): string {
+  return settings.provider === 'built-in'
+    ? missingDownload(settings)
+    : missingService(settings, apiKey);
+}
+
+/**
+ * The private model needs only to be all downloaded: nothing leaves this
+ * computer, so local-only mode has nothing to stop.
+ */
+function missingDownload({ builtIn }: AssistantSettings): string {
+  return builtIn?.ready === true ? '' : 'download';
+}
+
+/** What a provider over the network, or a server on this computer, still needs. */
+function missingService(settings: AssistantSettings, apiKey: string | undefined): string {
   const local = usesLocalServer(settings);
   if (settings.localOnly && !local) {
     return 'local-only';
@@ -141,8 +180,17 @@ export function offersSearch(settings: AssistantSettings, apiKey: string | undef
   return settings.source === 'default' && (missing === 'key' || missing === 'local-only');
 }
 
+/** What runs the private model in this page, for {@link providerFor}. */
+export interface BuiltInRunner {
+  readonly provider: () => Provider;
+}
+
 /** The provider the settings describe, once nothing is missing. */
-export function providerFor(settings: AssistantSettings, apiKey: string | undefined): Provider {
+export function providerFor(
+  settings: AssistantSettings,
+  apiKey: string | undefined,
+  builtIn: BuiltInRunner,
+): Provider {
   const { model } = settings;
   const key = apiKey ?? NO_KEY;
   switch (settings.provider) {
@@ -150,6 +198,8 @@ export function providerFor(settings: AssistantSettings, apiKey: string | undefi
       return anthropicProvider({ apiKey: key, model });
     case 'openai':
       return openAIProvider({ apiKey: key, model });
+    case 'built-in':
+      return builtIn.provider();
     default:
       return openAIProvider({ model, apiKey: key, baseURL: settings.endpoint });
   }

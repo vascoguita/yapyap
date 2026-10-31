@@ -7,6 +7,7 @@ import {
   modelIds,
   modelServerPorts,
   PROBE_TIMEOUT_MS,
+  testModelOf,
 } from './local-models.ts';
 
 const listing = (...ids: unknown[]) => ({ object: 'list', data: ids.map((id) => ({ id })) });
@@ -181,5 +182,29 @@ describe('modelServerPorts', () => {
     expect(modelServerPorts({ YAPYAP_TEST_MODEL_PORTS: '1,65535,3,4' }, false)).toEqual([
       1, 65_535, 3, 4,
     ]);
+  });
+});
+
+describe('testModelOf', () => {
+  const model = { url: 'http://127.0.0.1:9/tiny.gguf', size: 9, sha256: 'a'.repeat(64) };
+  const env = { YAPYAP_TEST_BUILT_IN_MODEL: JSON.stringify(model) };
+
+  it('gives the test model only to an unpackaged build that is given one', () => {
+    expect(testModelOf(env, false)).toBe(JSON.stringify(model));
+    expect(testModelOf(env, true)).toBeUndefined();
+    expect(testModelOf({}, false)).toBeUndefined();
+  });
+
+  it('ignores anything but a pinned model', () => {
+    for (const given of [
+      'x',
+      '[]',
+      JSON.stringify({ ...model, url: 'file:///etc/passwd' }),
+      JSON.stringify({ ...model, size: 0 }),
+      JSON.stringify({ ...model, sha256: 'xyz' }),
+      JSON.stringify({ ...model, extra: true }),
+    ]) {
+      expect(testModelOf({ YAPYAP_TEST_BUILT_IN_MODEL: given }, false)).toBeUndefined();
+    }
   });
 });

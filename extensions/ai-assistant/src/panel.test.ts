@@ -73,6 +73,16 @@ describe('describe', () => {
     expect(
       describeState({
         type: 'state',
+        provider: 'built-in',
+        model: '',
+        missing: 'download',
+        search: false,
+      }),
+    ).toBe('Using the private model on this computer. Download it below to start.');
+    expect(problemText('out-of-memory')).toContain('Try the smaller one below?');
+    expect(
+      describeState({
+        type: 'state',
         provider: '',
         model: '',
         missing: 'unavailable',
@@ -315,5 +325,45 @@ describe('mountPanel', () => {
     t.receive({ type: 'summary', text: '- Lunch moved to 1pm' });
     expect(document.querySelector('#summary')?.textContent).toBe('- Lunch moved to 1pm');
     expect(t.replies()).toContain('nothing of it goes to the chat');
+  });
+
+  it('shows the private model: its next step, the space it takes, and a way to remove it', () => {
+    const t = setup();
+    const section = document.querySelector<HTMLElement>('#private-model');
+    const status = () => document.querySelector('#private-status')?.textContent;
+    expect(section?.hidden).toBe(true);
+    const view = { type: 'local', label: '', action: '', used: 0, model: 'Qwen2.5 1.5B' };
+    t.receive({ ...view, status: '' });
+    expect(section?.hidden).toBe(true);
+    t.receive({
+      ...view,
+      status: 'Use a private model?',
+      label: 'Use a private model',
+      action: 'download',
+    });
+    expect(section?.hidden).toBe(false);
+    expect(status()).toBe('Use a private model?');
+    expect(() => t.button('Remove model')).not.toThrow();
+    expect(t.button('Remove model').hidden).toBe(true);
+    t.button('Use a private model').click();
+    expect(t.sent.at(-1)).toEqual({ type: 'download-model' });
+    t.receive({
+      ...view,
+      status: 'Not enough memory. Try the smaller one?',
+      label: 'Try the smaller one',
+      action: 'smaller',
+      used: 1_117_320_736,
+    });
+    t.button('Try the smaller one').click();
+    expect(t.sent.at(-1)).toEqual({ type: 'smaller-model' });
+    expect(section?.textContent).toContain('It uses about 1.1 GB on this computer.');
+    expect(section?.textContent).toContain('Model: Qwen2.5 1.5B.');
+    expect(() => t.button('Use a private model')).toThrow();
+    t.button('Remove model').click();
+    expect(t.sent.at(-1)).toEqual({ type: 'remove-model' });
+    // Ready, with nothing to do but use it or remove it.
+    t.receive({ ...view, status: 'Ready.', used: 1 });
+    expect(section?.hidden).toBe(false);
+    expect(document.querySelector('#private-model div')?.children).toHaveLength(0);
   });
 });

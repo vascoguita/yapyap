@@ -18,6 +18,7 @@ const FOLDER = resolve('/extensions', ID, '1.0.0');
 function setup(
   files: Readonly<Record<string, string>> = { 'main.js': 'export default {};' },
   panel?: string,
+  testModel?: string,
 ) {
   const readFile = vi.fn((path: string) => {
     const name = Object.keys(files).find((file) => join(FOLDER, file) === path);
@@ -32,6 +33,7 @@ function setup(
     () => source,
     readFile,
     () => localModel,
+    testModel,
   );
   return {
     readFile,
@@ -233,5 +235,31 @@ describe('confineExtensionRequests', () => {
     expect(EXTENSION_CSP).toBe(
       "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src https: http://localhost:* http://127.0.0.1:* http://[::1]:*; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
     );
+  });
+});
+
+describe('serveExtensionFiles, with a test model (#457)', () => {
+  const MODEL = '{"url":"http://127.0.0.1:9/tiny.gguf","size":9,"sha256":"aa"}';
+  const URL_ = `extension://${ID}/__yapyap/test-model.json`;
+
+  it('serves an unpackaged build’s test model to an extension holding local-model alone', async () => {
+    const t = setup(undefined, undefined, MODEL);
+    expect((await t.get(URL_)).status).toBe(404);
+    t.hold(true);
+    const served = await t.get(URL_);
+    expect(served.status).toBe(200);
+    expect(served.headers.get('content-type')).toBe('application/json');
+    expect(served.headers.get('content-security-policy')).toBe(LOCAL_MODEL_CSP);
+    expect(await served.text()).toBe(MODEL);
+  });
+
+  it('serves none without one, whatever the extension ships at that path', async () => {
+    const t = setup({
+      'main.js': 'x',
+      '__yapyap/test-model.json': '{"url":"https://evil.example"}',
+    });
+    t.hold(true);
+    expect((await t.get(URL_)).status).toBe(404);
+    expect(t.readFile).not.toHaveBeenCalled();
   });
 });

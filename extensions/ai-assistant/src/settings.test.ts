@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   assistantSettings,
   choseProvider,
@@ -20,6 +20,7 @@ describe('assistantSettings', () => {
       context: 10,
       localOnly: false,
       source: 'default',
+      builtIn: undefined,
     });
     expect(
       assistantSettings({ provider: 'openai', model: ' gpt-x ', endpoint: 7, context: 20 }),
@@ -30,6 +31,7 @@ describe('assistantSettings', () => {
       context: 20,
       localOnly: false,
       source: 'chosen',
+      builtIn: undefined,
     });
     expect(assistantSettings({ context: 7 }).context).toBe(10);
     expect(assistantSettings({ context: 5 }).context).toBe(5);
@@ -42,6 +44,7 @@ describe('assistantSettings', () => {
       context: 10,
       localOnly: false,
       source: 'chosen',
+      builtIn: undefined,
     });
     expect(assistantSettings({ provider: 'other', model: 'claude-haiku-5-5' })).toMatchObject({
       provider: 'anthropic',
@@ -56,16 +59,20 @@ describe('assistantSettings', () => {
   const found = { endpoint: 'http://localhost:11435/v1' };
 
   it('uses the model server found on this computer until the user chooses a provider', () => {
-    expect(assistantSettings({ localOnly: true, context: 5 }, found)).toEqual({
+    expect(assistantSettings({ localOnly: true, context: 5 }, { found })).toEqual({
       provider: 'compatible',
       model: '',
       endpoint: 'http://localhost:11435/v1',
       context: 5,
       localOnly: true,
       source: 'found',
+      builtIn: undefined,
     });
     for (const provider of ['anthropic', 'openai', 'compatible']) {
-      const chosen = assistantSettings({ provider, endpoint: 'https://llm.example.org/v1' }, found);
+      const chosen = assistantSettings(
+        { provider, endpoint: 'https://llm.example.org/v1' },
+        { found },
+      );
       expect(chosen).toMatchObject({
         provider,
         endpoint: 'https://llm.example.org/v1',
@@ -86,7 +93,7 @@ describe('assistantSettings', () => {
       { endpoint: 'https://llm.example.org/v1' },
       { endpoint: 'http://192.168.1.2:11434/v1' },
     ]) {
-      expect(assistantSettings({}, kept)).toMatchObject({
+      expect(assistantSettings({}, { found: kept })).toMatchObject({
         provider: 'anthropic',
         source: 'default',
       });
@@ -103,8 +110,9 @@ describe('offersSearch', () => {
     expect(offersSearch(assistantSettings({}), 'sk')).toBe(false);
     expect(offersSearch(assistantSettings({ provider: 'anthropic' }), undefined)).toBe(false);
     expect(offersSearch(assistantSettings({ provider: 'openai' }), undefined)).toBe(false);
-    const found = assistantSettings({}, { endpoint: 'http://localhost:11434/v1' });
+    const found = assistantSettings({}, { found: { endpoint: 'http://localhost:11434/v1' } });
     expect(offersSearch(found, undefined)).toBe(false);
+    expect(offersSearch(assistantSettings({}, { builtIn: PICKED }), undefined)).toBe(false);
   });
 });
 
@@ -127,7 +135,7 @@ describe('missingSetting', () => {
     expect(missingSetting({ ...claude, model: 'claude-haiku-5-5' }, 'sk')).toBe('');
     expect(missingSetting(claude, undefined)).toBe('key');
     // The server found on this computer lists no model when it stopped answering.
-    const found = assistantSettings({}, { endpoint: 'http://localhost:11434/v1' });
+    const found = assistantSettings({}, { found: { endpoint: 'http://localhost:11434/v1' } });
     expect(missingSetting(found, undefined)).toBe('local-server');
     expect(missingSetting({ ...found, model: 'llama' }, undefined)).toBe('');
     const local = { provider: 'compatible' } as const;
@@ -141,11 +149,52 @@ describe('missingSetting', () => {
 });
 
 describe('providerFor', () => {
-  it('makes a provider for each choice', () => {
+  it('makes a provider for each choice, the private model from the page’s own', () => {
+    const own = { complete: vi.fn() };
+    const builtIn = { provider: () => own };
     for (const provider of ['anthropic', 'openai', 'compatible']) {
       const settings = assistantSettings({ provider, model: 'm', endpoint: 'https://x.example' });
-      expect(providerFor(settings, 'sk').complete).toBeTypeOf('function');
+      expect(providerFor(settings, 'sk', builtIn).complete).toBeTypeOf('function');
     }
+    const settings = assistantSettings({ provider: 'built-in' }, { builtIn: READY });
+    expect(providerFor(settings, undefined, builtIn)).toBe(own);
+  });
+});
+
+/** The private model the user picked (#457), being downloaded, and downloaded. */
+const PICKED = { model: 'qwen', name: 'Qwen', ready: false };
+const READY = { ...PICKED, ready: true };
+
+describe('the private model', () => {
+  const found = { endpoint: 'http://localhost:11434/v1' };
+
+  it('answers once the user picked it, unless the user chose a provider in the settings', () => {
+    expect(assistantSettings({}, { builtIn: PICKED, found })).toMatchObject({
+      provider: 'built-in',
+      source: 'picked',
+      builtIn: PICKED,
+    });
+    expect(assistantSettings({ provider: 'openai' }, { builtIn: READY })).toMatchObject({
+      provider: 'openai',
+      source: 'chosen',
+    });
+    expect(assistantSettings({ provider: 'built-in' }, { builtIn: READY })).toMatchObject({
+      provider: 'built-in',
+      source: 'chosen',
+      builtIn: READY,
+    });
+    for (const builtIn of [null, 'qwen', { model: 'qwen', ready: true }, { ...PICKED, name: 1 }]) {
+      expect(assistantSettings({}, { builtIn }).provider).toBe('anthropic');
+    }
+  });
+
+  it('needs only to be all downloaded: no key, and nothing for local-only mode to stop', () => {
+    const picked = assistantSettings({ localOnly: true }, { builtIn: PICKED });
+    expect(missingSetup(picked, undefined)).toBe('download');
+    expect(missingSetup(assistantSettings({ provider: 'built-in' }), undefined)).toBe('download');
+    const ready = assistantSettings({ localOnly: true }, { builtIn: READY });
+    expect(missingSetup(ready, undefined)).toBe('');
+    expect(missingSetting({ ...ready, model: 'qwen' }, undefined)).toBe('');
   });
 });
 
@@ -178,7 +227,8 @@ describe('local servers', () => {
     expect(missingSetup(local('http://localhost:11434/v1'), undefined)).toBe('');
     expect(missingSetup(local('http://llm.example.org/v1'), 'sk')).toBe('endpoint');
     expect(missingSetup(local('http://llm.example.org/v1'), undefined)).toBe('key');
-    expect(providerFor(local('http://localhost:11434/v1'), undefined).complete).toBeTypeOf(
+    const builtIn = { provider: vi.fn() };
+    expect(providerFor(local('http://localhost:11434/v1'), undefined, builtIn).complete).toBeTypeOf(
       'function',
     );
   });

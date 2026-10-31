@@ -1,11 +1,10 @@
 # AI assistant
 
-YapYap's AI assistant suggests replies and writes messages with the AI
-model you choose, right above the message box. You bring your own account with
-the provider, and you stay in charge of every message: nothing about a
-chat is sent to the provider until you allow the assistant in it, and
-nothing reaches the chat until you click **Send** or send the draft
-yourself.
+YapYap's AI assistant suggests replies and writes messages right above the
+message box, with a private model that runs on your computer or with the
+AI provider you choose. You stay in charge of every message: the assistant
+reads a chat only once you allow it there, and nothing reaches the chat
+until you click **Send** or send the draft yourself.
 
 The assistant is an extension made by YapYap, with releases of its own, so
 it gets fixes and features without waiting for a YapYap release. Install
@@ -18,7 +17,7 @@ Open **Extensions…**, find **AI assistant**, and open **Settings**:
 
 | Setting          | What it does                                                                                                                                                      |
 | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Provider         | **anthropic** for Claude, **openai** for OpenAI, or **compatible** for your own OpenAI-compatible server                                                          |
+| Provider         | **anthropic** for Claude, **openai** for OpenAI, **compatible** for your own OpenAI-compatible server, or **built-in** for the private model on this computer     |
 | Server address   | For **compatible** only: the server's `https://` address, such as `https://llm.example.org/v1`, or a server on this computer, such as `http://localhost:11434/v1` |
 | Messages to send | How many of the chat's latest messages the assistant sends: 5, 10 or 20                                                                                           |
 | Local-only mode  | Only ask an AI server running on this computer, so nothing about your chats leaves it                                                                             |
@@ -37,6 +36,7 @@ default:
 - With OpenAI, it uses the newest "mini" chat model.
 - With a server on your computer, it uses the smallest model you installed,
   which answers fastest.
+- With the private model, it uses that model, listed as **Private model**.
 
 When your provider releases a newer model, Auto moves to it by itself.
 Pick a model in the list to use that one instead; the assistant keeps your
@@ -80,6 +80,60 @@ uses a server, YapYap asks you to allow that address, such as
 answer apps they know, such as Ollama or the one Alpaca runs, need no setup:
 YapYap handles that for the servers you allowed.
 
+## Private model on this computer
+
+The assistant can run an AI model by itself, inside YapYap, with nothing
+else to install and no account or key. Your messages never leave your
+computer.
+
+When you have not chosen a provider and no model runs on your computer
+(the bar's **Find a model** found none), the bar and the panel offer **Use
+a private model on this computer (about 1.1 GB, downloaded once)**. Nothing
+is downloaded until you choose **Use a private model**. Then:
+
+1. The bar shows how far the download is, such as **Downloading the private
+   model: 40% (450 of 1,117 MB)**. You can keep using WhatsApp meanwhile.
+   If the connection drops or you quit YapYap, choose **Resume** later: the
+   download carries on from where it stopped.
+2. Once it is all there, the assistant checks the file against the exact
+   fingerprint (SHA-256) it was built with. A file that does not match is
+   deleted, never used.
+3. The first time you ask for suggestions, the bar says **Warming up the
+   model…** while the model loads into memory, then answers.
+
+**Which model.** The assistant picks it for you: Qwen2.5 1.5B Instruct, about
+1.1 GB, or, on a computer with less than 8 GB of memory or fewer than 4
+processor cores, the smaller Qwen2.5 0.5B Instruct, about 490 MB. If the
+model does not fit in memory, the assistant says so and offers **Try the
+smaller one**. The panel names the model under **Advanced**.
+
+**Speed.** Most laptops run the model on the processor, which is slower than
+a provider over the internet, and keeps the processor busy while it
+answers. On a 2018 laptop with an Intel Core i5 and no usable graphics
+chip, the smaller model gave its first suggestions about 15 seconds after
+the click, warming up included, and later ones in about 3 seconds; the
+usual model is larger and takes longer. A computer whose graphics chip
+YapYap can use through WebGPU runs it faster.
+Small models are good at short replies and rewording, and less good at long
+or tricky messages; for those, a provider such as Claude does better.
+
+**Space and removal.** The panel shows the space the model takes. **Remove
+model** deletes it and forgets your choice, and the assistant goes back to
+offering a provider or a model on your computer. Choosing a provider in
+**Settings** also takes over from the private model.
+
+**Privacy.** The model runs in the assistant's own sandboxed page. The
+download comes from Hugging Face (`huggingface.co` and its download
+server, `us.aws.cdn.hf.co`), which sees your IP address as for any
+download, but never your messages. The model is data: the engine that runs
+it, [wllama](https://github.com/ngxson/wllama) (MIT), ships inside the
+signed assistant, and nothing that runs is ever downloaded.
+
+The models are [Qwen2.5 1.5B Instruct](https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF)
+and [Qwen2.5 0.5B Instruct](https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF)
+by the Qwen team at Alibaba Cloud, under the
+[Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0).
+
 ## Add your key
 
 Choose **Extension Commands → AI assistant: Assistant** to open its panel,
@@ -96,8 +150,9 @@ chat, right above the message box, under the assistant's name.
 1. Choose **Suggest replies**, or type what you want to say under **Write
    a message**, such as "I'll be ten minutes late", and press Enter.
 2. The first time in a chat, the bar asks whether the assistant may send
-   the chat's latest messages to your provider. **Allow here** allows it
-   in that chat only; nothing is sent before.
+   the chat's latest messages to your provider, or, with the private model,
+   read them on your computer. **Allow here** allows it in that chat only;
+   nothing is read before.
 3. The suggestions appear in the bar. Click one to put it in the message
    box, where you can edit it, or click its **Send** button to send it as
    it is.
@@ -165,8 +220,12 @@ just one:
   allowed);
 - reach `api.anthropic.com` and `api.openai.com`, and, if you set one, your
   compatible server, which YapYap asks you about before the first request;
+- reach `huggingface.co` and `us.aws.cdn.hf.co` to download the private
+  model, only when you choose to;
 - reach servers running on this computer, for a model you run yourself,
-  and ask YapYap to look for one, once you allow it.
+  and ask YapYap to look for one, once you allow it;
+- run an AI model on this computer, which can use a lot of its processor
+  and memory while it answers.
 
 It cannot send messages, read chats you did not open, or see WhatsApp's
 page. Your provider's own privacy terms apply to what you send them.

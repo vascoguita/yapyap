@@ -1324,6 +1324,26 @@ not edit the same lines.
   load (ADR 0004 amendment, C38 in ADR 0008). The assistant's engine comes
   in the second part.
 
+- Private model in the AI assistant (#457, second part): the assistant runs
+  Qwen2.5 1.5B Instruct, or 0.5B under 8 GB of memory or 4 cores, with
+  wllama 3.8.1, whose one `.wasm` ships in the signed extension with
+  compatibility mode and its CDN turned off. When nothing is set up and
+  **Find a model** finds no server, the bar and the panel offer it; the
+  download starts only on that click, from Hugging Face, pinned by commit,
+  size and SHA-256 and hashed as it streams with `@noble/hashes`. It is
+  kept in the extension's origin private file system in 32 MB pieces, so a
+  broken or quit download resumes with a `Range` request, and a file that
+  does not match is deleted. A new provider, `built-in`, answers when the
+  user picks it and chose no other in Settings, through the same `Provider`
+  interface, and the bar lists it as **Private model (…)**. The bar and the
+  panel show progress, warming up, and plain errors with one-click ways
+  out (resume, download again, try the smaller one); the panel shows the
+  space it takes and **Remove model**. The bar tries a request up to three
+  times, a second apart, while YapYap's own rate refuses it, and drops a
+  leading "Me:" a small model copies from the transcript. E2E tests load a 1 MB MIT test model, served
+  from a local fake through `YAPYAP_TEST_BUILT_IN_MODEL`, which a packaged
+  build ignores, and run it in the real isolated page.
+
 - Start minimized after a maximized session (#458): maximizing or entering
   full screen shows a hidden window, so a window started minimized gets its
   saved layout back only when the tray, the Dock or a second launch first

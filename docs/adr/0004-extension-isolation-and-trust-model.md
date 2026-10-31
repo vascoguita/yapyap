@@ -324,6 +324,22 @@ shows the latest 50 calls. `accountId` joins once grants are per account
 
   The tradeoff is C38 in ADR 0008.
 
+- 2026-10-31 (#457, second part): the AI assistant holds `local-model` and
+  runs its private model with wllama 3.8.1. Its one `.wasm` is a file of
+  the signed extension, and the assistant turns wllama's compatibility
+  mode off, which would otherwise fetch another build from a CDN, so every
+  byte that runs is signed. The weights are data: each model is pinned in
+  the extension by a commit-pinned Hugging Face address, its size and its
+  SHA-256, checked as it streams in, and a file that does not match is
+  deleted. They are downloaded only on the user's click, from the hosts
+  the manifest declares (`huggingface.co`, and `us.aws.cdn.hf.co`, where it
+  redirects), and kept in the extension's origin private file system on
+  its persistent partition. For E2E tests, an unpackaged YapYap given
+  `YAPYAP_TEST_BUILT_IN_MODEL` serves that model's address, size and hash
+  at `/__yapyap/test-model.json`, to `local-model` holders only, in place
+  of the pinned ones; a packaged YapYap ignores the variable and answers
+  404, and no extension can ship a file at that path.
+
 ## Consequences
 
 - Extensions cannot do anything outside these capabilities, by design. New needs

@@ -124,6 +124,8 @@ export interface ExtensionRuntimeDependencies {
   readonly askLocal: (extension: string, server: string) => Promise<boolean>;
   /** What every session does to request headers, kept by the extension's own listener. */
   readonly presentHeaders: (headers: Readonly<Record<string, string>>) => Record<string, string>;
+  /** The model E2E tests serve to `local-model` holders in an unpackaged YapYap (#457), as JSON. */
+  readonly testModel?: string;
 }
 
 export interface ExtensionRuntime {
@@ -323,6 +325,7 @@ const filesOf = (
     () => state.sources.get(id),
     deps.readFile,
     () => runsModels(known),
+    deps.testModel,
   );
 
 /** Serves the extension's files on its own session, and nothing from anywhere else. */

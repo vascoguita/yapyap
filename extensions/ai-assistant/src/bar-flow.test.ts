@@ -5,6 +5,7 @@ import { chatKey, setAllowed } from './chats.ts';
 import { ProviderError, type CompletionRequest, type Provider } from './providers/provider.ts';
 import { COMPOSE_INSTRUCTIONS, INSTRUCTIONS } from './replies.ts';
 import { fakeHost } from './testing/fake-host.ts';
+import { fakeLocal } from './testing/local.ts';
 import { listing } from './testing/models.ts';
 
 const CHAT = {
@@ -49,7 +50,8 @@ function setup(
     }),
   };
   const host = { ...fake.host, assistant };
-  serveBar(host, () => provider, list);
+  const model = fakeLocal(provider);
+  serveBar(host, model.local, { make: () => provider, list });
   /** The bar's first offer, which names the model before anyone asks. */
   const started = async (): Promise<AssistantOffer | undefined> => {
     await vi.waitFor(() => {
@@ -94,6 +96,7 @@ function setup(
     started,
     list,
     choose,
+    model,
     handler: (request: AssistantRequest) => handler(request),
   };
 }
@@ -292,17 +295,22 @@ describe('serveBar', () => {
     expect(t.host.localModels.find).toHaveBeenCalledOnce();
   });
 
-  it('says plainly why no model on this computer could be used', async () => {
+  const PRIVATE =
+    'Use a private model on this computer (about 1.1 GB, downloaded once)? Your messages never leave it.';
+
+  it('says briefly why no model on this computer could be used, and offers the private model', async () => {
     const t = setup(undefined, null);
     await t.started();
-    expect((await t.ask({ type: 'confirm' }))?.status).toBe(
-      'No AI model runs on this computer. Install Ollama from ollama.com and download a model, or choose a provider in Extensions → AI assistant → Settings.',
-    );
+    expect(await t.ask({ type: 'confirm' })).toEqual({
+      suggestions: [],
+      status: `No AI model runs on this computer. ${PRIVATE}`,
+      confirm: 'Use a private model',
+    });
     expect(t.stored.has('localServer')).toBe(false);
     await t.ask({ type: 'suggest' });
     t.host.localModels.find.mockResolvedValueOnce([{ ...OLLAMA, models: [] }]);
     expect((await t.ask({ type: 'confirm' }))?.status).toBe(
-      'A model server runs on this computer, but it has no model yet. Download one in it, then try again.',
+      `The model server on this computer has no model yet. ${PRIVATE}`,
     );
     await t.ask({ type: 'suggest' });
     t.host.localModels.find.mockRejectedValueOnce({ kind: 'not-granted', message: 'no' });
@@ -310,8 +318,13 @@ describe('serveBar', () => {
     await t.ask({ type: 'suggest' });
     t.host.localModels.find.mockRejectedValueOnce({ kind: 'invalid', message: 'unknown' });
     expect((await t.ask({ type: 'confirm' }))?.status).toBe(
-      'Update YapYap to find a model on this computer.',
+      `This YapYap cannot look for a model on this computer. ${PRIVATE}`,
     );
+    // Every offer stays within what the bar shows.
+    for (const offer of t.offers) {
+      expect(offer.status?.length ?? 0).toBeLessThanOrEqual(200);
+    }
+    expect(t.model.local.download).not.toHaveBeenCalled();
   });
 
   it('says so when the server it found does not answer, or keeping it failed', async () => {
@@ -328,7 +341,7 @@ describe('serveBar', () => {
     await t.ask({ type: 'suggest' });
     t.host.storage.set.mockRejectedValueOnce(new Error('full'));
     expect((await t.ask({ type: 'confirm' }))?.status).toBe(
-      'Looking for a model on this computer failed. Try again.',
+      `Looking for a model on this computer failed. ${PRIVATE}`,
     );
   });
 
@@ -339,6 +352,184 @@ describe('serveBar', () => {
     t.handler({ type: 'choose', value: 'claude-opus-5-5' });
     expect(await t.ask({ type: 'suggest' })).toMatchObject({
       suggestions: expect.any(Array) as unknown,
+    });
+  });
+
+  describe('the private model', () => {
+    const PICKED = { model: 'qwen', name: 'Qwen2.5 1.5B', ready: false };
+
+    /** Someone who picked the private model, which the bar lists once it is all there. */
+    function picked(ready: boolean) {
+      const t = setup(undefined, null);
+      t.stored.set('builtIn', { ...PICKED, ready });
+      t.list.mockResolvedValue([{ id: 'qwen', label: 'Private model (Qwen2.5 1.5B)' }]);
+      return t;
+    }
+
+    it('downloads only on the user’s click after the search found nothing, and says how far it is', async () => {
+      const t = setup(undefined, null);
+      await t.started();
+      await t.ask({ type: 'confirm' });
+      expect(t.model.local.download).not.toHaveBeenCalled();
+      const offered = t.offers.length;
+      expect(await t.ask({ type: 'confirm' })).toEqual({
+        suggestions: [],
+        status: 'Downloading the private model: 0% (0 of 1,117 MB)',
+      });
+      expect(t.model.local.download).toHaveBeenCalledOnce();
+      // The models to pick from change only once the model is ready.
+      expect(t.offers[offered]).not.toHaveProperty('choice');
+    });
+
+    it('follows the download in the bar as it goes, and offers to resume it when it stops', async () => {
+      const t = picked(false);
+      await t.started();
+      t.model.tell({ kind: 'downloading', done: 450_000_000 });
+      expect(t.offers.at(-1)).toEqual({
+        suggestions: [],
+        status: 'Downloading the private model: 40% (450 of 1,117 MB)',
+      });
+      t.model.tell({ kind: 'paused', done: 450_000_000, problem: 'download-failed' });
+      expect(t.offers.at(-1)).toEqual({
+        suggestions: [],
+        status: 'The download stopped. Check your connection, then resume: 40% (450 of 1,117 MB).',
+        confirm: 'Resume',
+      });
+      await t.ask({ type: 'confirm' });
+      expect(t.model.local.download).toHaveBeenCalledOnce();
+      t.model.tell({ kind: 'damaged' });
+      expect(t.offers.at(-1)?.confirm).toBe('Download again');
+      t.model.tell({ kind: 'warming' });
+      expect(t.offers.at(-1)?.status).toBe('Warming up the model…');
+      // A refused offer leaves the next one to tell.
+      t.assistant.offer.mockRejectedValueOnce(new Error('not granted'));
+      t.model.tell({ kind: 'downloading', done: 1 });
+    });
+
+    it('says how the download stands when asked for suggestions before the model is all there', async () => {
+      const t = picked(false);
+      t.model.set({ kind: 'paused', done: 450_000_000, problem: '' });
+      expect(await t.ask({ type: 'suggest' })).toEqual({
+        suggestions: [],
+        status: 'The private model’s download is paused: 40% (450 of 1,117 MB).',
+        confirm: 'Resume',
+      });
+      t.model.set({ kind: 'none' });
+      expect((await t.ask({ type: 'suggest' }))?.confirm).toBe('Use a private model');
+      await t.ask({ type: 'confirm' });
+      expect(t.model.local.download).toHaveBeenCalledOnce();
+    });
+
+    it('names the model once it is ready, and goes back to the start once it is removed', async () => {
+      const t = picked(false);
+      await t.started();
+      t.model.tell({ kind: 'downloading', done: 1 });
+      t.stored.set('builtIn', { ...PICKED, ready: true });
+      const before = t.offers.length;
+      t.model.tell({ kind: 'ready' });
+      await vi.waitFor(() => {
+        expect(t.offers.length).toBeGreaterThan(before);
+      });
+      expect(t.offers.at(-1)).toMatchObject({
+        status: 'The private model is ready. Your messages stay on this computer.',
+        choice: {
+          current: 'auto',
+          options: [{ label: 'Auto (Private model (Qwen2.5 1.5B))' }, {}],
+        },
+      });
+      // Warming up and running out of memory come with a request's own answer.
+      const shown = t.offers.length;
+      t.model.tell({ kind: 'ready' });
+      t.model.tell({ kind: 'out-of-memory' });
+      expect(t.offers).toHaveLength(shown);
+      t.stored.delete('builtIn');
+      t.model.tell({ kind: 'none' });
+      await vi.waitFor(() => {
+        expect(t.offers.length).toBeGreaterThan(shown);
+      });
+      expect(t.offers.at(-1)?.confirm).toBe('Find a model');
+    });
+
+    it('asks before reading a chat, saying its messages stay here, then answers with the model', async () => {
+      const t = picked(true);
+      expect(await t.ask({ type: 'suggest' })).toEqual({
+        suggestions: [],
+        status:
+          'To help here, the assistant reads this chat’s latest messages, which stay on this computer. Allow it in this chat?',
+        confirm: 'Allow here',
+      });
+      expect((await t.ask({ type: 'confirm' }))?.suggestions).toEqual([
+        'Sounds good!',
+        'Can we make it 9?',
+      ]);
+      // The model's provider is the page's private model.
+      expect(t.model.local.provider()).toBe(t.provider);
+    });
+
+    it('offers the smaller model when this one does not fit in memory', async () => {
+      const t = picked(true);
+      await t.allow();
+      vi.mocked(t.provider.complete).mockRejectedValueOnce(new ProviderError('out-of-memory'));
+      t.model.set({ kind: 'out-of-memory' });
+      expect(await t.ask({ type: 'suggest' })).toEqual({
+        suggestions: [],
+        status: 'This computer doesn’t have enough memory for this model. Try the smaller one?',
+        confirm: 'Try the smaller one',
+      });
+      await t.ask({ type: 'confirm' });
+      expect(t.model.local.smaller).toHaveBeenCalledOnce();
+    });
+
+    it('tries again while YapYap’s rate refuses, but explains a provider’s own limit', async () => {
+      vi.useFakeTimers({ toFake: ['setTimeout'] });
+      try {
+        const t = setup();
+        await t.allow();
+        await t.started();
+        const busy = Object.assign(new Error('too often'), { kind: 'rate-limited' });
+        t.host.chat.readActive.mockRejectedValueOnce(busy).mockRejectedValueOnce(busy);
+        t.handler({ type: 'suggest' });
+        // A second, then two more: each wait doubles.
+        await vi.advanceTimersByTimeAsync(3000);
+        await vi.waitFor(() => {
+          expect(t.offers.at(-1)?.suggestions).toHaveLength(2);
+        });
+        vi.mocked(t.provider.complete).mockRejectedValueOnce(new ProviderError('rate-limited'));
+        expect((await t.ask({ type: 'suggest' }))?.status).toBe(
+          'The provider is busy or your quota is used up. Try again later.',
+        );
+        // Three refusals in a row leave the bar as it was.
+        t.host.chat.readActive.mockRejectedValue(busy);
+        const before = t.offers.length;
+        t.handler({ type: 'suggest' });
+        await vi.advanceTimersByTimeAsync(3000);
+        expect(t.offers).toHaveLength(before);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('tries once more when a burst of clicks ran past YapYap’s rate', async () => {
+      vi.useFakeTimers({ toFake: ['setTimeout'] });
+      try {
+        const t = setup();
+        await t.allow();
+        await t.started();
+        const before = t.offers.length;
+        t.assistant.offer.mockImplementationOnce(() =>
+          Promise.reject(Object.assign(new Error('too often'), { kind: 'rate-limited' })),
+        );
+        t.handler({ type: 'suggest' });
+        await vi.waitFor(() => {
+          expect(t.assistant.offer.mock.calls.length).toBeGreaterThan(before);
+        });
+        await vi.advanceTimersByTimeAsync(1000);
+        await vi.waitFor(() => {
+          expect(t.offers.at(-1)?.suggestions).toHaveLength(2);
+        });
+      } finally {
+        vi.useRealTimers();
+      }
     });
   });
 });

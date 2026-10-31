@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 import { REQUEST_TIMEOUT_MS } from './providers/provider.ts';
 import type { ExtensionHost } from '@yapyap/extension-sdk';
+import { BUILT_IN_KEY, labelOf } from './built-in/record.ts';
 import {
   assistantSettings,
   choseProvider,
@@ -102,6 +103,7 @@ const QUICK: Readonly<Record<AssistantSettings['provider'], RegExp | undefined>>
   anthropic: /haiku/i,
   openai: /mini/i,
   compatible: undefined,
+  'built-in': undefined,
 };
 
 /**
@@ -126,6 +128,11 @@ export async function modelsOf(
   apiKey: string,
   overrides: Overrides = {},
 ): Promise<ModelOption[]> {
+  const { builtIn } = settings;
+  if (settings.provider === 'built-in') {
+    // The private model is the one the user downloaded (#457), named so people can tell it apart.
+    return builtIn?.ready === true ? [{ id: builtIn.model, label: labelOf(builtIn.name) }] : [];
+  }
   try {
     const listed =
       settings.provider === 'anthropic'
@@ -150,7 +157,12 @@ export function keptModels(
 ): typeof modelsOf {
   const kept = new Map<string, { readonly at: number; readonly models: ModelOption[] }>();
   return async (settings, apiKey) => {
-    const signature = JSON.stringify([settings.provider, settings.endpoint, apiKey]);
+    const signature = JSON.stringify([
+      settings.provider,
+      settings.endpoint,
+      apiKey,
+      settings.builtIn,
+    ]);
     const known = kept.get(signature);
     if (known !== undefined && now() - known.at <= MODELS_FOR_MS) {
       return known.models;
@@ -188,15 +200,21 @@ export interface Setup {
 
 type SetupHost = Pick<ExtensionHost, 'settings' | 'secrets' | 'storage'>;
 
+/** What is kept under `key`, or undefined without asking YapYap when it cannot matter. */
+const keptIf = (host: SetupHost, matters: boolean, key: string): Promise<unknown> =>
+  matters ? host.storage.get(key) : Promise.resolve(undefined);
+
 /**
- * The user's settings, with the model server found on this computer (#456).
- * A provider the user chose wins, so that server is read only without one,
- * which spares a call to YapYap.
+ * The user's settings, with the private model the user picked (#457) and
+ * the model server found on this computer (#456). Each is read only when
+ * nothing before it decides who answers, which spares calls to YapYap.
  */
 async function settingsIn(host: SetupHost): Promise<AssistantSettings> {
   const values = await host.settings.get();
-  const found = choseProvider(values) ? undefined : await host.storage.get(LOCAL_SERVER_KEY);
-  return assistantSettings(values, found);
+  const chose = choseProvider(values);
+  const builtIn = await keptIf(host, !chose || values['provider'] === 'built-in', BUILT_IN_KEY);
+  const found = await keptIf(host, !chose && builtIn === undefined, LOCAL_SERVER_KEY);
+  return assistantSettings(values, { builtIn, found });
 }
 
 /**

@@ -7,6 +7,9 @@ describe('panelRequest', () => {
       'state?',
       'forget-key',
       'find-model',
+      'download-model',
+      'smaller-model',
+      'remove-model',
       'prepare',
       'prepare-summary',
       'send',
@@ -78,8 +81,19 @@ describe('update', () => {
       instructions: 'i',
       transcript: 't',
     };
+    const local = {
+      type: 'local',
+      status: 'Downloading',
+      label: '',
+      action: '',
+      used: 5,
+      model: 'Qwen',
+    };
     const news = [
       { type: 'state', provider: 'openai', model: 'm', missing: '', search: false },
+      local,
+      { ...local, label: 'Resume', action: 'download' },
+      { ...local, label: 'Try the smaller one', action: 'smaller' },
       preview,
       { type: 'progress', text: 'Hi' },
       { replace: false, type: 'suggestions', items: ['a', 'b'] },
@@ -101,6 +115,11 @@ describe('update', () => {
       { replace: true, type: 'suggestions', items: 'a' },
       { type: 'problem' },
       { type: 'summary', text: 7 },
+      { ...local, status: 1 },
+      { ...local, label: null },
+      { ...local, action: 'delete-everything' },
+      { ...local, used: '5' },
+      { ...local, model: [] },
       { type: 'other' },
       null,
     ]) {

@@ -5,10 +5,12 @@ import type {
   AssistantRequest,
   ExtensionHost,
 } from '@yapyap/extension-sdk';
-import { reasonOf } from './assistant.ts';
+import { patiently, RATE_TRIES, reasonOf } from './assistant.ts';
+import type { LocalModel, LocalState } from './built-in/local-model.ts';
+import { offerOf, wordsFor, type LocalAction, type LocalWords } from './built-in/words.ts';
 import { isAllowed, setAllowed } from './chats.ts';
 import { AUTO, currentSetup, MODEL_KEY, pageModels, type modelsOf, type Setup } from './models.ts';
-import { findModel } from './find-model.ts';
+import { findModel, type SearchOutcome } from './find-model.ts';
 import { problemText, SEARCH, SEARCH_OFFER } from './panel.ts';
 import {
   COMPOSE_INSTRUCTIONS,
@@ -17,6 +19,7 @@ import {
   suggestionsIn,
   transcriptOf,
 } from './replies.ts';
+import { ProviderError } from './providers/provider.ts';
 import { cleanRewrite } from './rewrites.ts';
 import { missingSetting, offersSearch, providerFor } from './settings.ts';
 
@@ -30,6 +33,9 @@ type Ask = Extract<AssistantRequest, { type: 'suggest' | 'prompt' }>;
 
 const CONSENT =
   'To help here, the assistant sends this chat’s latest messages to your AI provider. Allow it in this chat?';
+/** The private model reads the chat in this page (#457), so nothing is sent anywhere. */
+const CONSENT_HERE =
+  'To help here, the assistant reads this chat’s latest messages, which stay on this computer. Allow it in this chat?';
 const ALLOW = 'Allow here';
 const SETUP = 'Set up the assistant in its panel first: Extensions → AI assistant.';
 const NOTHING = 'The model had nothing to suggest. Try again.';
@@ -70,8 +76,38 @@ const offering = (status: string, extra: Partial<AssistantOffer> = {}): Assistan
   ...extra,
 });
 
+/** What the bar's confirm button does: find a model, or download or swap the private one. */
+type BarAction = 'search' | LocalAction;
+
+/** What the bar shows, and what its confirm button does when not asking for consent. */
+interface Offer {
+  readonly offer: AssistantOffer;
+  readonly action?: BarAction;
+}
+
+/** An offer, with the setup whose models its choice names; without one, the bar keeps its choice. */
+interface Shown extends Offer {
+  readonly setup?: Setup;
+}
+
 /** The offer to find a model on this computer (#456), which the confirm button accepts. */
-const SEARCHING = offering(SEARCH_OFFER, { confirm: SEARCH });
+const SEARCHING: Offer = { offer: offering(SEARCH_OFFER, { confirm: SEARCH }), action: 'search' };
+
+/** What the bar says about the private model (#457), with its button if there is one. */
+function localOffer({ status, label, action }: LocalWords): Offer {
+  return action === ''
+    ? { offer: offering(status) }
+    : { offer: offering(status, { confirm: label }), action };
+}
+
+/** Why the search found nothing, briefly: the bar offers the private model right after. */
+const NOT_FOUND: Readonly<Record<Exclude<SearchOutcome, 'found'>, string>> = {
+  'no-server': 'No AI model runs on this computer.',
+  'no-models': 'The model server on this computer has no model yet.',
+  'search-refused': 'You did not let the assistant look on this computer.',
+  'search-unsupported': 'This YapYap cannot look for a model on this computer.',
+  'search-failed': 'Looking for a model on this computer failed.',
+};
 
 /** What the bar says is missing: a server on this computer that stopped answering, or the setup. */
 const setupText = (missing: string): string =>
@@ -83,6 +119,27 @@ function suggestionsFor(ask: Ask, reply: string): string[] {
   return found.filter((text) => text !== '').map((text) => text.slice(0, MAX_SUGGESTION));
 }
 
+/** What answering needs: the setup, the provider maker, and the private model. */
+interface Context {
+  readonly setup: Setup;
+  readonly make: typeof providerFor;
+  readonly local: LocalModel;
+}
+
+/** What the model answers to `ask` about `chat`, as the bar shows it. */
+async function asked(ask: Ask, chat: ActiveChat, { setup, make, local }: Context): Promise<Offer> {
+  const { settings, key } = setup;
+  const provider = make(settings, key, local);
+  const transcript = transcriptOf(chat, settings.context);
+  const request =
+    ask.type === 'suggest'
+      ? requestFor(INSTRUCTIONS, transcript)
+      : requestFor(COMPOSE_INSTRUCTIONS, `${transcript}\n\nWhat I want to say: ${ask.text}`);
+  const completion = await provider.complete(request, () => undefined);
+  const suggestions = suggestionsFor(ask, completion.text);
+  return { offer: suggestions.length === 0 ? offering(NOTHING) : { suggestions, status: '' } };
+}
+
 /**
  * Answers one request about the open chat. Nothing about a chat leaves
  * YapYap until the user allows the assistant there (#107), which the bar
@@ -92,52 +149,58 @@ async function answer(
   host: BarHost,
   ask: Ask,
   chat: ActiveChat | null,
-  setup: Setup,
-  make: typeof providerFor,
-): Promise<AssistantOffer> {
-  const { settings, key } = setup;
+  context: Context,
+): Promise<Offer> {
+  const { settings, key } = context.setup;
   // Someone who set nothing up is offered the model on this computer before anything else.
   if (offersSearch(settings, key)) {
     return SEARCHING;
   }
+  const missing = missingSetting(settings, key);
+  // The private model says how its download stands, and offers what to do next.
+  if (missing === 'download') {
+    return localOffer(wordsFor(await context.local.state(), true));
+  }
   if (chat === null) {
-    return offering(problemText('no-chat'));
+    return { offer: offering(problemText('no-chat')) };
   }
   if (!(await isAllowed(host.storage, chat.name))) {
-    return offering(CONSENT, { confirm: ALLOW });
+    const consent = settings.provider === 'built-in' ? CONSENT_HERE : CONSENT;
+    return { offer: offering(consent, { confirm: ALLOW }) };
   }
-  const missing = missingSetting(settings, key);
-  if (missing !== '') {
-    return offering(setupText(missing));
-  }
-  const provider = make(settings, key);
-  const transcript = transcriptOf(chat, settings.context);
-  const request =
-    ask.type === 'suggest'
-      ? requestFor(INSTRUCTIONS, transcript)
-      : requestFor(COMPOSE_INSTRUCTIONS, `${transcript}\n\nWhat I want to say: ${ask.text}`);
-  const completion = await provider.complete(request, () => undefined);
-  const suggestions = suggestionsFor(ask, completion.text);
-  return suggestions.length === 0 ? offering(NOTHING) : { suggestions, status: '' };
+  return missing === '' ? asked(ask, chat, context) : { offer: offering(setupText(missing)) };
 }
 
 /**
  * The request waiting for the user's consent, and the chat it was made in;
- * or, while `searching`, the offer to find a model on this computer.
+ * or, with an `action`, what the confirm button offers instead.
  */
 interface Pending {
   ask?: Ask;
   chat: string | undefined;
-  searching: boolean;
-}
-
-/** What the bar shows, and the setup whose models its choice names. */
-interface Shown {
-  readonly offer: AssistantOffer;
-  readonly setup: Setup;
+  action: BarAction | undefined;
 }
 
 type BarRequest = Exclude<AssistantRequest, { type: 'choose' }>;
+
+/** How the bar reaches providers and the private model. */
+interface Sources {
+  readonly make: typeof providerFor;
+  readonly list: typeof modelsOf;
+  readonly local: LocalModel;
+}
+
+/** A failed request explained; a private model short of memory offers the smaller one. */
+async function failureOffer(error: unknown, local: LocalModel): Promise<Offer> {
+  const reason = reasonOf(error);
+  // YapYap's own rate, unlike a provider's, passes once the bar waits a moment, so it is tried again.
+  if (reason === 'rate-limited' && !(error instanceof ProviderError)) {
+    throw error;
+  }
+  return reason === 'out-of-memory'
+    ? localOffer(wordsFor(await local.state(), false))
+    : { offer: offering(problemText(reason)) };
+}
 
 /**
  * Answers a request, or makes the first offer. Each reads the setup once,
@@ -147,31 +210,49 @@ type BarRequest = Exclude<AssistantRequest, { type: 'choose' }>;
 async function answered(
   host: BarHost,
   pending: Pending,
-  request: BarRequest | undefined,
-  { make, list }: { readonly make: typeof providerFor; readonly list: typeof modelsOf },
+  request: BarRequest | LocalWords | undefined,
+  { make, list, local }: Sources,
 ): Promise<Shown> {
   const setup = await currentSetup(host, list);
   if (request === undefined) {
-    return { setup, offer: offersSearch(setup.settings, setup.key) ? SEARCHING : offering('') };
+    const first = offersSearch(setup.settings, setup.key) ? SEARCHING : { offer: offering('') };
+    return { setup, ...first };
   }
-  const offer = await handle(host, pending, request, setup, make).catch((error: unknown) =>
-    offering(problemText(reasonOf(error))),
+  // News of the private model, with the models the setup now lists.
+  if ('status' in request) {
+    return { setup, ...localOffer(request) };
+  }
+  const shown = await handle(host, pending, request, { setup, make, local }).catch(
+    (error: unknown) => failureOffer(error, local),
   );
-  return { setup, offer };
+  return { setup, ...shown };
 }
 
 /**
  * Finds a model on this computer, on the user's click (#456), and names
- * what came of it, with the setup that now uses it.
+ * what came of it, with the setup that now uses it. When none can be used,
+ * the bar offers the private model instead (#457).
  */
-async function searched(host: BarHost, list: typeof modelsOf): Promise<Shown> {
+async function searched(host: BarHost, { list, local }: Sources): Promise<Shown> {
   const outcome = await findModel(host).catch(() => 'search-failed' as const);
   const setup = await currentSetup(host, list);
   if (outcome !== 'found') {
-    return { setup, offer: offering(problemText(outcome)) };
+    const { model } = await local.state();
+    const offer = offerOf(model);
+    return { setup, ...localOffer({ ...offer, status: `${NOT_FOUND[outcome]} ${offer.status}` }) };
   }
   const missing = missingSetting(setup.settings, setup.key);
   return { setup, offer: offering(missing === '' ? FOUND : setupText(missing)) };
+}
+
+/**
+ * Downloads the private model, or the smaller one, on the user's click,
+ * and says how it stands. The models to pick from change only once it is
+ * ready, so the setup is not read meanwhile.
+ */
+async function fetching(action: LocalAction, local: LocalModel): Promise<Shown> {
+  await (action === 'download' ? local.download() : local.smaller());
+  return localOffer(wordsFor(await local.state(), true));
 }
 
 /**
@@ -181,21 +262,79 @@ async function searched(host: BarHost, list: typeof modelsOf): Promise<Shown> {
 async function handle(
   host: BarHost,
   pending: Pending,
-  request: Exclude<AssistantRequest, { type: 'choose' }>,
-  setup: Setup,
-  make: typeof providerFor,
-): Promise<AssistantOffer> {
+  request: BarRequest,
+  context: Context,
+): Promise<Offer> {
   const chat = await host.chat.readActive();
   if (request.type !== 'confirm') {
     pending.ask = request;
     pending.chat = chat?.name;
-    return answer(host, request, chat, setup, make);
+    return answer(host, request, chat, context);
   }
   if (pending.ask === undefined || chat === null || chat.name !== pending.chat) {
-    return offering(MOVED);
+    return { offer: offering(MOVED) };
   }
   await setAllowed(host.storage, chat.name, true);
-  return answer(host, pending.ask, chat, setup, make);
+  return answer(host, pending.ask, chat, context);
+}
+
+/** What the user's click on the confirm button does, given what the bar last offered. */
+function confirmed(host: BarHost, pending: Pending, sources: Sources): Promise<Shown> | undefined {
+  const { action } = pending;
+  if (action === undefined) {
+    return undefined;
+  }
+  return action === 'search' ? searched(host, sources) : fetching(action, sources.local);
+}
+
+/**
+ * Keeps the bar up to date with the private model (#457): the download's
+ * progress, which outlives the request that started it, warming up, and the
+ * model becoming ready or going. These show at once, not after the request
+ * the user waits on; running out of memory comes with that request's answer.
+ */
+function followLocal(
+  host: BarHost,
+  local: LocalModel,
+  pending: Pending,
+  again: (news?: LocalWords) => void,
+): void {
+  let last: LocalState['phase']['kind'] = 'none';
+  local.onChange((state) => {
+    const { kind } = state.phase;
+    const shows = !['ready', 'none', 'out-of-memory'].includes(kind);
+    const finished = kind === 'ready' && last === 'downloading';
+    const removed = kind === 'none' && last !== 'none';
+    last = kind;
+    // A model ready or gone changes what the bar lists to pick from.
+    if (removed || finished) {
+      again(finished ? wordsFor(state, false) : undefined);
+      return;
+    }
+    if (shows) {
+      const { offer, action } = localOffer(wordsFor(state, false));
+      pending.action = action;
+      host.assistant.offer(offer).catch(() => undefined);
+    }
+  });
+}
+
+/** Answers `request`, or tells news of the private model, in the bar. */
+async function offerOnce(
+  host: BarHost,
+  pending: Pending,
+  sources: Sources,
+  request: BarRequest | LocalWords | undefined,
+): Promise<void> {
+  // The confirm button does what the last offer proposed, if it proposed anything.
+  const confirm = request !== undefined && 'type' in request && request.type === 'confirm';
+  const shown =
+    (confirm ? confirmed(host, pending, sources) : undefined) ??
+    answered(host, pending, request, sources);
+  const { offer, setup, action } = await shown;
+  pending.action = action;
+  const choice = setup === undefined ? {} : { choice: modelChoice(setup) };
+  await host.assistant.offer({ ...offer, ...choice });
 }
 
 /**
@@ -205,19 +344,17 @@ async function handle(
  */
 export function serveBar(
   host: BarHost,
-  make: typeof providerFor = providerFor,
-  list: typeof modelsOf = pageModels,
+  local: LocalModel,
+  {
+    make = providerFor,
+    list = pageModels,
+  }: { make?: typeof providerFor; list?: typeof modelsOf } = {},
 ): void {
-  const pending: Pending = { chat: undefined, searching: false };
-  const offer = async (request?: BarRequest): Promise<void> => {
+  const sources: Sources = { make, list, local };
+  const pending: Pending = { chat: undefined, action: undefined };
+  const offer = async (request?: BarRequest | LocalWords): Promise<void> => {
     try {
-      // The confirm button finds a model when that is what the last offer proposed.
-      const shown =
-        request?.type === 'confirm' && pending.searching
-          ? await searched(host, list)
-          : await answered(host, pending, request, { make, list });
-      pending.searching = shown.offer.confirm === SEARCH;
-      await host.assistant.offer({ ...shown.offer, choice: modelChoice(shown.setup) });
+      await patiently(() => offerOnce(host, pending, sources, request), RATE_TRIES);
     } catch {
       // YapYap refuses an offer once the user takes the bar's grant back; nothing is left to tell.
     }
@@ -234,5 +371,8 @@ export function serveBar(
   let queue = offer();
   host.assistant.onRequest((request) => {
     queue = queue.then(() => (request.type === 'choose' ? keep(request.value) : offer(request)));
+  });
+  followLocal(host, local, pending, (news) => {
+    queue = queue.then(() => offer(news));
   });
 }

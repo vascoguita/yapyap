@@ -42,15 +42,23 @@ export function testManifest(overrides: TestManifest = {}): TestManifest {
   };
 }
 
-const MAIN_FILES: Readonly<Record<string, string>> = { 'main.js': 'export {};' };
+/** An archive's files: text, or bytes for binaries such as a model engine's `.wasm`. */
+export type TestFiles = Readonly<Record<string, string | Uint8Array>>;
 
-function toFiles(files: Readonly<Record<string, string>>): Map<string, Uint8Array> {
-  return new Map(Object.entries(files).map(([path, text]) => [path, strToU8(text)]));
+const MAIN_FILES: TestFiles = { 'main.js': 'export {};' };
+
+function toFiles(files: TestFiles): Map<string, Uint8Array> {
+  return new Map(
+    Object.entries(files).map(([path, data]) => [
+      path,
+      typeof data === 'string' ? strToU8(data) : data,
+    ]),
+  );
 }
 
 export function unsignedArchive(
   manifest: TestManifest = testManifest(),
-  files: Readonly<Record<string, string>> = MAIN_FILES,
+  files: TestFiles = MAIN_FILES,
 ): ExtensionArchive {
   return { manifest, files: toFiles(files) };
 }
@@ -58,7 +66,7 @@ export function unsignedArchive(
 export function signedArchive(
   key: TestKey,
   manifest: TestManifest = testManifest(),
-  files: Readonly<Record<string, string>> = MAIN_FILES,
+  files: TestFiles = MAIN_FILES,
 ): ExtensionArchive {
   const bytes = toFiles(files);
   const digests = [...bytes].map(

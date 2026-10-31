@@ -124,3 +124,37 @@ export function modelServerPorts(
   const ports = given.split(',').map(Number);
   return ports.length <= MAX_SERVERS && ports.every(isPort) ? ports : MODEL_SERVER_PORTS;
 }
+
+const TEST_MODEL = 'YAPYAP_TEST_BUILT_IN_MODEL';
+
+/** A model as the AI assistant pins it: its address, size and SHA-256. */
+const TestModel = Type.Object(
+  {
+    url: Type.String({ pattern: '^https?://', maxLength: 500 }),
+    size: Type.Integer({ minimum: 1 }),
+    sha256: Type.String({ pattern: '^[0-9a-f]{64}$' }),
+  },
+  { additionalProperties: false },
+);
+
+/**
+ * The model E2E tests have the AI assistant download in place of its
+ * pinned ones (#457), as JSON, from `YAPYAP_TEST_BUILT_IN_MODEL`. A
+ * packaged build ignores it, so no installed YapYap can be pointed at
+ * another file; nor can an extension, since only YapYap serves it.
+ */
+export function testModelOf(
+  env: Readonly<Record<string, string | undefined>>,
+  packaged: boolean,
+): string | undefined {
+  const given = env[TEST_MODEL];
+  if (packaged || given === undefined) {
+    return undefined;
+  }
+  try {
+    const model: unknown = JSON.parse(given);
+    return Value.Check(TestModel, model) ? JSON.stringify(model) : undefined;
+  } catch {
+    return undefined;
+  }
+}
