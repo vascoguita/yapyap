@@ -19,7 +19,8 @@ their reasons belong in the ADRs (`docs/adr/`), and released changes in
   credentials), #402 (renew the macOS certificate before 2027-11-25), #419
   (where reviewed third-party extension archives are hosted).
 - **Open outside milestones:** #345 and #346 (winget, Scoop and Homebrew),
-  #477 (the SDK and signing CLI on npm), #495 (start extensions on demand).
+  #477 (the SDK and signing CLI on npm), #507 (a slow welcome window in
+  Windows E2E).
   See `gh issue list` for the live list.
 
 | Milestone                                            | Status                           |
@@ -141,6 +142,12 @@ their reasons belong in the ADRs (`docs/adr/`), and released changes in
   provenance.
 - Repository hygiene (#478, #499): one setup action for CI, one Vitest
   project list shared with mutation, one copy of the app icon.
+- Extensions on demand (#495, ADR 0004 amendment, C44): the manifest's
+  `activation` is `startup` (the default) or `on-demand`, which starts the
+  hidden page only for a command or the panel and stops it after five idle
+  minutes. Menus list contributions from the manifest. The example and the
+  call recorder are on demand; the startup benchmark checks that installed
+  extensions add no renderer.
 - Audit fixes (#501): `compareVersions` in the SDK, the last account
   cannot be removed, **Record** waits for consent, and Escape asks before
   discarding unsaved text.

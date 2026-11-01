@@ -6,6 +6,7 @@
   "author": { "name": "YapYap", "url": "https://yapyap.guita.org" },
   "apiVersion": "^1.0.0",
   "entry": "main.js",
+  "activation": "on-demand",
   "capabilities": ["calls:record"],
   "network": { "hosts": [] },
   "contributes": {

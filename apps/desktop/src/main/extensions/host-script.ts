@@ -168,11 +168,12 @@ export function bootExtension(
   },
 ): Promise<void> {
   const handlers: HostHandlers = { commands: new Map() };
+  // An on-demand extension starts for the command it then receives (#495), so
+  // a command waits until `activate` has registered its handler.
+  let activated: Promise<void> = Promise.resolve();
   // A handler that throws or rejects affects only itself.
   const client = helpers.rpcClient(({ command }) => {
-    Promise.resolve()
-      .then(() => handlers.commands.get(command)?.())
-      .catch(() => undefined);
+    activated.then(() => handlers.commands.get(command)?.()).catch(() => undefined);
   }, helpers.settleReply);
   let connected = false;
   scope.addEventListener('message', ({ data, ports: [given] }) => {
@@ -181,7 +182,7 @@ export function bootExtension(
       client.attach(given);
     }
   });
-  return load(entry).then(async (module) => {
+  activated = load(entry).then(async (module) => {
     const extension = (Object(module) as { default?: unknown }).default;
     const { activate } = Object(extension) as { activate?: unknown };
     if (typeof activate === 'function') {
@@ -189,6 +190,7 @@ export function bootExtension(
       await (activate as (host: ExtensionHost) => unknown)(api);
     }
   });
+  return activated;
 }
 
 /**

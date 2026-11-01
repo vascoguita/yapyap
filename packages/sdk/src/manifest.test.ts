@@ -10,6 +10,7 @@ const VALID: Manifest = {
   author: { name: 'Example', url: 'https://example.org' },
   apiVersion: '^1.0.0',
   entry: 'dist/main.js',
+  activation: 'on-demand',
   capabilities: ['chat:read-active', 'composer:insert-draft'],
   network: { hosts: ['api.example.org'] },
   contributes: {
@@ -67,6 +68,7 @@ describe('ManifestSchema', () => {
     ['an entry outside the extension', { entry: '../main.js' }],
     ['an absolute entry', { entry: '/main.js' }],
     ['an entry that is not a script', { entry: 'main.html' }],
+    ['an activation it does not know', { activation: 'on-call' }],
     ['an unknown capability', { capabilities: ['chat:send'] }],
     ['a repeated capability', { capabilities: ['storage:local', 'storage:local'] }],
     ['an author page over plain HTTP', { author: { name: 'Example', url: 'http://example.org' } }],

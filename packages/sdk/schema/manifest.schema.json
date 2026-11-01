@@ -59,6 +59,19 @@
       "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9._/-]+\\.m?js$",
       "maxLength": 200
     },
+    "activation": {
+      "anyOf": [
+        {
+          "type": "string",
+          "const": "startup"
+        },
+        {
+          "type": "string",
+          "const": "on-demand"
+        }
+      ],
+      "description": "When the extension runs. `startup`, the default, runs it from launch to quit. `on-demand` starts it when one of its commands runs or its panel opens, and may stop it once it made no host call, ran no command and showed no panel for five minutes."
+    },
     "capabilities": {
       "type": "array",
       "items": {

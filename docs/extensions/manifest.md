@@ -29,6 +29,7 @@ install it. [Writing an extension](./) walks through a complete example.
 | `version`      | Semantic version of the extension                                                                |
 | `apiVersion`   | The SDK versions it works with: an exact version, or one starting with `^` or `~`                |
 | `entry`        | The ES module YapYap starts, a path inside the extension                                         |
+| `activation`   | When it runs: `startup` (the default) from launch to quit, or `on-demand` only while needed      |
 | `capabilities` | What it may do; see below. YapYap asks you for each one, per account                             |
 | `network`      | The only HTTPS hosts it may reach: names, without a scheme or port                               |
 | `contributes`  | Commands, composer actions, context-menu items, a settings form and an optional panel            |
@@ -48,7 +49,7 @@ A command may suggest keys with `shortcut`, in Electron's accelerator syntax,
 such as `"shortcut": "CmdOrCtrl+Shift+E"` (`CmdOrCtrl` is ⌘ on macOS and Ctrl
 elsewhere). YapYap gives the command those keys only when they are valid and
 clash with none of YapYap's shortcuts, as the user set them, nor with a
-command of an extension that started earlier; otherwise the command has no
+command of an extension listed earlier; otherwise the command has no
 keys. Users can change or remove the keys in **Keyboard Shortcuts**, and
 their choice comes before any suggestion.
 
@@ -57,6 +58,30 @@ the user opens from **Extension Commands**. It opens in a window of its own,
 titled `<extension name>: <title>`, whose page loads the `entry` module. The
 panel has no host API of its own: it talks to the extension's main module,
 which shares its origin, with a `BroadcastChannel`.
+
+## When it runs
+
+Each running extension costs a hidden page of its own, about 100 MB of
+memory. An extension that acts only when the user asks it to can run only
+while it is needed.
+
+- `"activation": "startup"`, the default, starts the extension when YapYap
+  starts and keeps it running until YapYap quits. Use it when the extension
+  works on its own, without the user picking a command or opening its panel.
+- `"activation": "on-demand"` starts it the first time it is needed: when
+  the user runs one of its commands, from the menu, a shortcut or a right
+  click, or opens its panel. A command picked while it starts waits until
+  `activate` has finished, so register its handlers there. YapYap may stop
+  it once it has made no host call, run no command and had no panel open for
+  five minutes, and starts it again the next time it is needed.
+
+YapYap lists the commands, menu items and panel from the manifest, so they
+show whether the extension runs or not. An on-demand extension keeps
+nothing in memory from one start to the next: keep what must last in
+`host.storage`.
+
+YapYap 0.2.0 and earlier do not know `activation` and refuse a manifest
+that has it, so an extension that sets it needs a later YapYap.
 
 ## Capabilities
 

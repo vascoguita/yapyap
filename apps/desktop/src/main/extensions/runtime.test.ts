@@ -8,7 +8,7 @@ import { Type } from 'typebox';
 import type { ProcessMetrics } from './resource-guard.ts';
 import type { CallingExtension } from './host-methods.ts';
 import { RPC_OPTIONS, type RpcMethod } from './rpc.ts';
-import { createExtensionRuntime, extensionPartition } from './runtime.ts';
+import { createExtensionRuntime, EXTENSION_IDLE_MS, extensionPartition } from './runtime.ts';
 
 const MANIFEST = {
   id: 'org.example.hello',
@@ -134,6 +134,7 @@ function fakePanel() {
 
 function setup() {
   const sampled: (() => void)[] = [];
+  const clock = { now: 0 };
   const panels: ReturnType<typeof fakePanel>[] = [];
   const sessions = new Map<string, FakeSession>();
   const hosts: FakeHost[] = [];
@@ -182,7 +183,7 @@ function setup() {
       every: vi.fn((callback: () => void) => {
         sampled.push(callback);
       }),
-      now: () => 0,
+      now: () => clock.now,
       cores: 1,
     },
     askHost: vi.fn<(extension: string, host: string) => Promise<boolean>>(() =>
@@ -207,7 +208,12 @@ function setup() {
     }
   };
   const runtime = createExtensionRuntime(deps);
-  return { deps, sessions, hosts, panels, views, only, sample, runtime };
+  /** Lets `ms` pass, then runs every periodic check, the idle one included. */
+  const wait = (ms: number): void => {
+    clock.now += ms;
+    sample();
+  };
+  return { deps, sessions, hosts, panels, views, only, sample, wait, runtime };
 }
 
 describe('extensionPartition', () => {
@@ -441,7 +447,7 @@ describe('createExtensionRuntime', () => {
     expect(t.deps.askHost).not.toHaveBeenCalled();
   });
 
-  it('lists the running extensions’ commands, runs one over the port, and says when they change', async () => {
+  it('lists the extensions’ commands, runs one over the port, and says when they change', async () => {
     const commands = [{ id: 'translate', title: 'Translate draft' }];
     await install(record(), { ...MANIFEST, contributes: { commands } });
     await saveRecords(root, new Map([['org.example.hello', record()]]));
@@ -458,12 +464,16 @@ describe('createExtensionRuntime', () => {
         title: 'Translate draft',
       },
     ]);
-    // Before its page has loaded, the extension has no port to take the command.
-    expect(t.runtime.runCommand('org.example.hello', 'translate')).toBe(false);
+    // Before its page has loaded, the command waits for the port.
+    expect(t.runtime.runCommand('org.example.hello', 'translate')).toBe(true);
     const host = t.only(t.hosts);
     host.load();
-    expect(t.runtime.runCommand('org.example.hello', 'translate')).toBe(true);
     expect(host.ports[0]?.postMessage).toHaveBeenCalledExactlyOnceWith({ command: 'translate' });
+    expect(t.runtime.runCommand('org.example.hello', 'translate')).toBe(true);
+    expect(host.ports[0]?.postMessage).toHaveBeenCalledTimes(2);
+    // A page loaded again has nothing left to send.
+    host.load();
+    expect(host.ports[1]?.postMessage).not.toHaveBeenCalled();
     expect(t.runtime.runCommand('org.example.hello', 'unknown')).toBe(false);
     expect(t.runtime.runCommand('org.example.other', 'translate')).toBe(false);
     t.runtime.stop('org.example.hello');
@@ -518,7 +528,7 @@ describe('createExtensionRuntime', () => {
     expect(summary).toHaveBeenCalledOnce();
   });
 
-  it('lists the running extensions’ right-click items, only for commands they declare', async () => {
+  it('lists the extensions’ right-click items, only for commands they declare', async () => {
     const contributes = {
       commands: [{ id: 'translate', title: 'Translate draft' }],
       composerActions: [
@@ -586,7 +596,7 @@ describe('createExtensionRuntime', () => {
     expect(t.runtime.panels()).toEqual([]);
   });
 
-  it('opens no panel for an extension without one, or one that does not run', async () => {
+  it('opens no panel for an extension without one, or one that is not installed', async () => {
     await install(record());
     await saveRecords(root, new Map([['org.example.hello', record()]]));
     const t = setup();
@@ -698,6 +708,80 @@ describe('createExtensionRuntime', () => {
     expect(t.deps.warn).toHaveBeenCalledExactlyOnceWith(
       'Extension org.example.hello could not be loaded.',
     );
+  });
+
+  it('lists an on-demand extension without starting it, and starts it for a command', async () => {
+    const commands = [{ id: 'translate', title: 'Translate draft' }];
+    await install(record(), { ...MANIFEST, activation: 'on-demand', contributes: { commands } });
+    await saveRecords(root, new Map([['org.example.hello', record()]]));
+    const t = setup();
+    await t.runtime.startAll();
+    expect(t.hosts).toEqual([]);
+    expect(t.runtime.running()).toEqual([]);
+    expect(t.runtime.processes()).toEqual([]);
+    expect(t.runtime.commands()).toHaveLength(1);
+    expect(t.runtime.runCommand('org.example.hello', 'translate')).toBe(true);
+    expect(t.runtime.runCommand('org.example.hello', 'translate')).toBe(true);
+    const host = t.only(t.hosts);
+    expect(host.loadURL).toHaveBeenCalledExactlyOnceWith('extension://org.example.hello/');
+    expect(t.runtime.running()).toEqual(['org.example.hello']);
+    host.load();
+    expect(host.ports[0]?.postMessage.mock.calls).toEqual([
+      [{ command: 'translate' }],
+      [{ command: 'translate' }],
+    ]);
+  });
+
+  it('stops an idle on-demand extension, keeps its commands, and starts it again when needed', async () => {
+    const commands = [{ id: 'translate', title: 'Translate draft' }];
+    await install(record(), { ...MANIFEST, activation: 'on-demand', contributes: { commands } });
+    await saveRecords(root, new Map([['org.example.hello', record()]]));
+    const t = setup();
+    await t.runtime.startAll();
+    t.runtime.runCommand('org.example.hello', 'translate');
+    const first = t.only(t.hosts);
+    first.load();
+    t.wait(EXTENSION_IDLE_MS - 1);
+    // A call is use, so the clock starts again from it.
+    const receive = first.ports[0]?.on.mock.calls[1]?.[1];
+    receive?.({ data: { id: 1, method: 'notifications.show', params: [] } });
+    t.wait(EXTENSION_IDLE_MS - 1);
+    expect(first.destroy).not.toHaveBeenCalled();
+    t.wait(1);
+    expect(first.destroy).toHaveBeenCalledOnce();
+    expect(t.runtime.running()).toEqual([]);
+    expect(t.runtime.commands()).toHaveLength(1);
+    t.wait(EXTENSION_IDLE_MS);
+    expect(first.destroy).toHaveBeenCalledOnce();
+    t.runtime.runCommand('org.example.hello', 'translate');
+    expect(t.hosts).toHaveLength(2);
+  });
+
+  it('keeps an on-demand extension running while its panel is open', async () => {
+    const panel = { title: 'Notes', entry: 'panel.js' };
+    await install(record(), { ...MANIFEST, activation: 'on-demand', contributes: { panel } });
+    await saveRecords(root, new Map([['org.example.hello', record()]]));
+    const t = setup();
+    await t.runtime.startAll();
+    expect(t.hosts).toEqual([]);
+    t.runtime.openPanel('org.example.hello');
+    const host = t.only(t.hosts);
+    t.wait(EXTENSION_IDLE_MS * 2);
+    expect(host.destroy).not.toHaveBeenCalled();
+    t.only(t.panels).close();
+    t.wait(EXTENSION_IDLE_MS - 1);
+    expect(host.destroy).not.toHaveBeenCalled();
+    t.wait(1);
+    expect(host.destroy).toHaveBeenCalledOnce();
+  });
+
+  it('never stops an extension that runs from launch, however idle', async () => {
+    await install(record(), { ...MANIFEST, activation: 'startup' });
+    await saveRecords(root, new Map([['org.example.hello', record()]]));
+    const t = setup();
+    await t.runtime.startAll();
+    t.wait(EXTENSION_IDLE_MS * 2);
+    expect(t.only(t.hosts).destroy).not.toHaveBeenCalled();
   });
 
   it('starts nothing when nothing is installed', async () => {

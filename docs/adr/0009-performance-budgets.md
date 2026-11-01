@@ -157,6 +157,15 @@ timings in PRs would flap.
     timers stop when their page is destroyed, and the 15 rounds of
     `activity.spec.ts` level off as before.
 
+- **Extensions on demand (#495, 2026-11-01).** The startup benchmark has a
+  second test. It installs the example and call-recorder extensions, which
+  declare `"activation": "on-demand"` (ADR 0004), launches three times on
+  copies of that profile, and holds the renderer count to the same budget
+  of one. On the fake page under Xvfb on Linux, the median idle memory with
+  both installed went from 786 MB with three renderers (each extension's
+  page held 102 MB of working set) to 560 MB with one, the same as with no
+  extensions (559 MB). Extensions that keep the default `startup` still
+  cost a renderer each, as before.
 - **Warm-up.** The first launch on a fresh runner takes 3–7 s while the disk
   cache fills. The benchmark makes one warm-up launch and leaves it out, then
   takes the median of seven.
