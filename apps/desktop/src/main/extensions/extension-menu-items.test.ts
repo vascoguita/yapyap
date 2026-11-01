@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ADAPTER_WORLD_ID } from '../../adapter/page-health.ts';
+import { ADAPTER_WORLD_ID } from '../../adapter/world.ts';
 import { extensionMenuItems, type ClickedPage } from './extension-menu-items.ts';
 import type { ExtensionAction } from './runtime.ts';
 

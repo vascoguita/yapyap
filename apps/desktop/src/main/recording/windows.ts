@@ -1,12 +1,12 @@
 import { en } from '../../shared/messages/en.ts';
-import { CHROME_ORIGIN } from '../chrome/assets.ts';
 import {
+  asPromptWindow,
+  loadChromePage,
   openChromeWindow,
   type ChromePage,
   type ChromeWindowDependencies,
   type ChromeWindowPort,
 } from '../chrome/window-opener.ts';
-import { PRODUCT_NAME } from '../identity.ts';
 import type { WindowOptions } from '../windows.ts';
 import type { RecordingWindow } from './chrome.ts';
 import type { CallTarget } from './recorder.ts';
@@ -28,18 +28,7 @@ const RECORD_PROMPT_PAGE: ChromePage = {
 const CONSENT_HEIGHT = 480;
 
 function asRecordingWindow(window: ChromeWindowPort, loaded: Promise<void>): RecordingWindow {
-  return {
-    loaded,
-    webContents: window.webContents,
-    close: () => {
-      if (!window.isDestroyed()) {
-        window.close();
-      }
-    },
-    onClosed: (listener) => {
-      window.once('closed', listener);
-    },
-  };
+  return { ...asPromptWindow(window), webContents: window.webContents, loaded };
 }
 
 /**
@@ -62,18 +51,7 @@ export function recordingWindows(
         width: 1,
         height: 1,
       });
-      deps.views.set(window.webContents, {
-        zone: 'chrome',
-        home: CHROME_ORIGIN,
-        label: PRODUCT_NAME,
-      });
-      const loaded = window.loadURL(`${CHROME_ORIGIN}/recorder.html`).then(
-        () => undefined,
-        () => {
-          deps.warn('Could not load the call recorder.');
-        },
-      );
-      return asRecordingWindow(window, loaded);
+      return asRecordingWindow(window, loadChromePage(deps, window, 'recorder.html'));
     },
     openPrompt: (call, consent) => {
       const parent = windowOf(call.contents);

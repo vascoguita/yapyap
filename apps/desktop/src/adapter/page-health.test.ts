@@ -1,12 +1,7 @@
 /** @vitest-environment happy-dom */
 import { runInNewContext } from 'node:vm';
 import { describe, expect, it } from 'vitest';
-import {
-  PAGE_HEALTH_PROBE,
-  PAGE_HEALTH_VERSION,
-  parsePageHealth,
-  probePageHealth,
-} from './page-health.ts';
+import { PAGE_HEALTH_PROBE, parsePageHealth, probePageHealth } from './page-health.ts';
 
 function page(html: string): Document {
   document.body.innerHTML = html;
@@ -53,7 +48,6 @@ describe('probePageHealth', () => {
       // Only `document` is in scope, as in the isolated world the probe runs in.
       const result: unknown = runInNewContext(PAGE_HEALTH_PROBE, { document });
       expect(result).toEqual({ unsupported: true, blank: false });
-      expect(PAGE_HEALTH_VERSION).toBe(1);
     },
   );
 });

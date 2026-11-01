@@ -1,8 +1,12 @@
 import { extname, join, normalize, sep } from 'node:path';
+import { PRODUCT_NAME } from '../identity.ts';
 import { isSameOrigin } from '../navigation/link-policy.ts';
 
 export const CHROME_SCHEME = 'app';
 export const CHROME_ORIGIN = 'app://chrome';
+
+/** How YapYap knows a web contents showing one of its own pages (ADR 0001). */
+export const CHROME_VIEW = { zone: 'chrome', home: CHROME_ORIGIN, label: PRODUCT_NAME } as const;
 
 /** The app chrome CSP from ADR 0001: only its own scripts, styles, fonts and images. */
 export const CHROME_CSP = [

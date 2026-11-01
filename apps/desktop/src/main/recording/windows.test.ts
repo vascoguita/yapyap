@@ -75,7 +75,7 @@ describe('recordingWindows', () => {
   it('warns, without failing, when the recorder page does not load', async () => {
     const t = setup(() => Promise.reject(new Error('gone')));
     await t.opened.openRecorder().loaded;
-    expect(t.warn).toHaveBeenCalledExactlyOnceWith('Could not load the call recorder.');
+    expect(t.warn).toHaveBeenCalledExactlyOnceWith('Could not load recorder.html.');
   });
 
   it('opens the prompt attached to the call window, loaded once it shows', async () => {

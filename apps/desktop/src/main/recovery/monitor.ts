@@ -1,4 +1,5 @@
-import { ADAPTER_WORLD_ID, PAGE_HEALTH_PROBE, parsePageHealth } from '../../adapter/page-health.ts';
+import { PAGE_HEALTH_PROBE, parsePageHealth } from '../../adapter/page-health.ts';
+import { runInAdapterWorld, type AdapterPage } from '../../adapter/world.ts';
 import { healthFailure, loadFailure, type Failure } from './failure.ts';
 
 /**
@@ -7,7 +8,7 @@ import { healthFailure, loadFailure, type Failure } from './failure.ts';
  */
 export const HEALTH_CHECK_MS = 8000;
 
-export interface MonitoredContents {
+export interface MonitoredContents extends AdapterPage {
   on(
     event: 'did-fail-load',
     listener: (
@@ -19,10 +20,6 @@ export interface MonitoredContents {
     ) => void,
   ): unknown;
   on(event: 'did-finish-load', listener: () => void): unknown;
-  executeJavaScriptInIsolatedWorld(
-    worldId: number,
-    scripts: { readonly code: string }[],
-  ): Promise<unknown>;
 }
 
 export interface MonitorDependencies {
@@ -43,16 +40,14 @@ export function monitorPage(contents: MonitoredContents, deps: MonitorDependenci
   });
   contents.on('did-finish-load', () => {
     deps.schedule(() => {
-      contents
-        .executeJavaScriptInIsolatedWorld(ADAPTER_WORLD_ID, [{ code: PAGE_HEALTH_PROBE }])
-        .then(
-          (value) => {
-            report(healthFailure(parsePageHealth(value)));
-          },
-          () => {
-            deps.warn('Could not check the WhatsApp page.');
-          },
-        );
+      runInAdapterWorld(contents, PAGE_HEALTH_PROBE).then(
+        (value) => {
+          report(healthFailure(parsePageHealth(value)));
+        },
+        () => {
+          deps.warn('Could not check the WhatsApp page.');
+        },
+      );
     }, HEALTH_CHECK_MS);
   });
 }

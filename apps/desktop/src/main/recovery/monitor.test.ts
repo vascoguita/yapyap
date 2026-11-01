@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ADAPTER_WORLD_ID, PAGE_HEALTH_PROBE } from '../../adapter/page-health.ts';
+import { PAGE_HEALTH_PROBE } from '../../adapter/page-health.ts';
+import { ADAPTER_WORLD_ID } from '../../adapter/world.ts';
 import { HEALTH_CHECK_MS, monitorPage, type MonitoredContents } from './monitor.ts';
 
 type Listener = (...args: never[]) => void;
