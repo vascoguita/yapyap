@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
+import type { ViewInfo } from '../views.ts';
 import { trackShares } from './shares.ts';
 
 const ORIGIN = 'https://web.whatsapp.com';
+const WORK: ViewInfo = { zone: 'whatsapp', home: ORIGIN, label: 'Work', account: 'work' };
 
 function setup() {
   const listeners = new Map<string, (event: unknown, ...args: unknown[]) => void>();
@@ -23,12 +25,12 @@ function setup() {
   const work = page();
   const call = page();
   const stranger = page();
-  const accounts = new Map<object, string>([
-    [work, 'work'],
-    [call, 'work'],
+  const views = new WeakMap<object, ViewInfo>([
+    [work, WORK],
+    [call, WORK],
   ]);
   const deps = {
-    accountOf: (sender: object) => accounts.get(sender),
+    views,
     origin: ORIGIN,
     onChange: vi.fn(),
     warn: vi.fn(),

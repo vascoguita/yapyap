@@ -6,7 +6,8 @@ import {
 import type { Settings } from '../settings/schema.ts';
 import type { SettingsService } from '../settings/service.ts';
 import { spellingLanguagesOf } from '../spelling/spelling.ts';
-import { noArguments, type ChromeHandler } from './ipc.ts';
+import { argumentsOf, noArguments } from '../ipc/arguments.ts';
+import type { ChromeHandler } from '../ipc/chrome.ts';
 
 /** Where the window's languages come from. */
 export interface SpellingSources {
@@ -47,8 +48,7 @@ export function spellingHandlers(
     { channel: CHROME_CHANNELS.spellingLanguages, accepts: noArguments, handle: snapshot },
     {
       channel: CHROME_CHANNELS.spellingChoose,
-      accepts: ([languages, ...rest]) =>
-        rest.length === 0 && acceptsLanguages(languages, sources.available()),
+      accepts: argumentsOf((languages) => acceptsLanguages(languages, sources.available())),
       handle: (_call, languages) => {
         settings.update((current) => ({
           ...current,

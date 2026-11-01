@@ -6,7 +6,8 @@ import {
   type RecorderCommand,
   type RecordingFormat,
 } from '../../shared/chrome-api.ts';
-import { noArguments, type ChromeCall, type ChromeHandler } from '../chrome/ipc.ts';
+import { argumentsOf, isBoolean, noArguments } from '../ipc/arguments.ts';
+import type { ChromeCall, ChromeHandler } from '../ipc/chrome.ts';
 import type { CallRecorderService } from '../extensions/host-methods.ts';
 import type { RecordingConsent } from './consent.ts';
 import { recordings, recordingSink, revealRecording, type LibraryPaths } from './library.ts';
@@ -138,11 +139,11 @@ function recorderOf(deps: RecordingDependencies, slots: Slots): CallRecorder {
   });
 }
 
-const isChunk = ([bytes, ...rest]: readonly unknown[]): boolean =>
-  rest.length === 0 && bytes instanceof Uint8Array && bytes.length <= MAX_CHUNK_BYTES;
+const isChunk = argumentsOf(
+  (bytes) => bytes instanceof Uint8Array && bytes.length <= MAX_CHUNK_BYTES,
+);
 
-const isAnswer = ([record, consented, ...rest]: readonly unknown[]): boolean =>
-  rest.length === 0 && typeof record === 'boolean' && typeof consented === 'boolean';
+const isAnswer = argumentsOf(isBoolean, isBoolean);
 
 /**
  * Takes the user's answer. The window offers **Record** only once the

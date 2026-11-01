@@ -18,16 +18,7 @@ describe('createChromeBridge', () => {
       Promise.resolve(answers[channel] ?? 'ignored'),
     );
     const listen = vi.fn();
-    const listenToExtensions = vi.fn();
-    const listenToPrompt = vi.fn();
-    const listenToRecorder = vi.fn();
-    const api = createChromeBridge(
-      invoke,
-      listen,
-      listenToExtensions,
-      listenToPrompt,
-      listenToRecorder,
-    );
+    const api = createChromeBridge(invoke, listen);
     expect(await api.about.info()).toBe(info);
     await api.about.copyTechnicalDetails();
     expect(await api.recovery.problem()).toBe(problem);
@@ -81,13 +72,16 @@ describe('createChromeBridge', () => {
     await api.recorder.failed();
     const onPrompt = vi.fn();
     api.recordPrompt.onState(onPrompt);
-    expect(listenToPrompt).toHaveBeenCalledExactlyOnceWith(onPrompt);
+    expect(listen).toHaveBeenLastCalledWith('record-prompt:state-changed', onPrompt);
     const onCommand = vi.fn();
     api.recorder.onCommand(onCommand);
-    expect(listenToRecorder).toHaveBeenCalledExactlyOnceWith(onCommand);
+    expect(listen).toHaveBeenLastCalledWith('recorder:command', onCommand);
     const changed = vi.fn();
     api.extensions.onChange(changed);
-    expect(listenToExtensions).toHaveBeenCalledExactlyOnceWith(changed);
+    const [event, heard] = listen.mock.calls.at(-1) as [string, (payload: unknown) => void];
+    expect(event).toBe('extensions:changed');
+    heard(undefined);
+    expect(changed).toHaveBeenCalledExactlyOnceWith();
     expect(await api.shortcuts.list()).toBe('ignored');
     expect(await api.shortcuts.set('settings', 'CmdOrCtrl+K')).toBe('ignored');
     expect(await api.downloads.list()).toBe('ignored');
@@ -108,7 +102,7 @@ describe('createChromeBridge', () => {
     await api.proxyLogin.answer(null);
     const listener = vi.fn();
     api.sidebar.onState(listener);
-    expect(listen).toHaveBeenCalledWith(listener);
+    expect(listen).toHaveBeenLastCalledWith('sidebar:state-changed', listener);
     expect(invoke.mock.calls).toEqual([
       ['about:info'],
       ['about:copy-technical-details'],
@@ -183,7 +177,7 @@ describe('createChromeBridge', () => {
   });
 
   it('exposes nothing but the listed operations', () => {
-    const api = createChromeBridge(vi.fn(), vi.fn(), vi.fn(), vi.fn(), vi.fn());
+    const api = createChromeBridge(vi.fn(), vi.fn());
     expect(Object.keys(api)).toEqual([
       'about',
       'recovery',

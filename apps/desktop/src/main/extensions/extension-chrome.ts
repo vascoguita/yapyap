@@ -5,7 +5,8 @@ import {
   type ExtensionList,
 } from '../../shared/chrome-api.ts';
 import { en } from '../../shared/messages/en.ts';
-import { noArguments, type ChromeHandler } from '../chrome/ipc.ts';
+import { argumentsOf, isBoolean, isString, noArguments } from '../ipc/arguments.ts';
+import type { ChromeHandler } from '../ipc/chrome.ts';
 import {
   createChromeWindowSlot,
   openPromptWindow,
@@ -175,20 +176,20 @@ async function setGrant(
 /** Longer than any capability or `network:<host>` grant. */
 const MAX_CAPABILITY = 300;
 
+const isShort = (value: unknown): boolean =>
+  typeof value === 'string' && value.length <= MAX_CAPABILITY;
+
 /** An extension to remove, named by its ID alone. */
-const isRemoval = ([id, ...rest]: readonly unknown[]): boolean =>
-  rest.length === 0 && typeof id === 'string' && id.length <= MAX_CAPABILITY;
+const isRemoval = argumentsOf(isShort);
 
 /** A grant change: an installed extension, a short capability, a listed account or none, on or off. */
-function isGrantChange(
-  [id, capability, account, granted, ...rest]: readonly unknown[],
-  accounts: ExtensionAccounts['list'],
-): boolean {
-  const known = account === null || accounts().some((entry) => entry.id === account);
-  const shaped =
-    typeof id === 'string' && typeof capability === 'string' && capability.length <= MAX_CAPABILITY;
-  return rest.length === 0 && shaped && known && typeof granted === 'boolean';
-}
+const isGrantChange = (accounts: ExtensionAccounts['list']) =>
+  argumentsOf(
+    isString,
+    isShort,
+    (account) => account === null || accounts().some((entry) => entry.id === account),
+    isBoolean,
+  );
 
 function extensionHandlers(
   deps: ExtensionChromeDependencies,
@@ -220,7 +221,7 @@ function extensionHandlers(
     },
     {
       channel: CHROME_CHANNELS.extensionsSetGrant,
-      accepts: (args) => isGrantChange(args, accounts.list),
+      accepts: isGrantChange(accounts.list),
       handle: thenList((args) => setGrant(deps.root, runtime, args)),
     },
     {

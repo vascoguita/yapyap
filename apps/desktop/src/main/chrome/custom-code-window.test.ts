@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { NO_CUSTOM_CODE, type CustomCode } from '../../shared/custom-code.ts';
 import { customCodeHandlers } from './custom-code-window.ts';
-import type { ChromeHandler } from './ipc.ts';
+import type { ChromeHandler } from '../ipc/chrome.ts';
 
 const WORK = '6f1c2a5e-0b1d-4c8e-9a3f-2d4b6c8e0a1b';
 const GONE = '0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d';

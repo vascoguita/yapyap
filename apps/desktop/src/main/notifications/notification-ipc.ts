@@ -1,39 +1,36 @@
 import { NOTIFICATION_CHANNELS } from '../../shared/notification-api.ts';
-import { isSameOrigin } from '../navigation/link-policy.ts';
+import { argumentsOf, isString } from '../ipc/arguments.ts';
+import {
+  registerWhatsAppListeners,
+  type WhatsAppIpc,
+  type WhatsAppSenders,
+} from '../ipc/whatsapp.ts';
 import type { AccountNotifier } from './notifier.ts';
 
-export interface NotificationEvent {
-  readonly sender: object;
-  readonly senderFrame: { readonly url: string } | null;
-}
-
-export interface NotificationIpc {
-  on(channel: string, listener: (event: NotificationEvent, ...args: unknown[]) => void): unknown;
-}
-
 /**
- * Routes WhatsApp's notification messages to its account. Only a WhatsApp
- * view's page on WhatsApp's own origin is heard; anything else is dropped,
- * and logged without its content.
+ * Routes WhatsApp's notification messages to its account. The notifier
+ * checks the request itself, since it keeps only the fields it shows; a
+ * message from a page with no notifier, such as a call window, is dropped.
  */
 export function listenForNotifications(
-  ipc: NotificationIpc,
+  ipc: WhatsAppIpc,
   notifierOf: (sender: object) => AccountNotifier | undefined,
-  origin: string,
-  warn: (message: string) => void,
+  senders: WhatsAppSenders,
 ): void {
-  const route = (event: NotificationEvent): AccountNotifier | undefined => {
-    const notifier = notifierOf(event.sender);
-    if (notifier === undefined || !isSameOrigin(event.senderFrame?.url ?? '', origin)) {
-      warn('Ignored a notification message from outside WhatsApp.');
-      return undefined;
-    }
-    return notifier;
-  };
-  ipc.on(NOTIFICATION_CHANNELS.show, (event, request) => {
-    route(event)?.show(request);
-  });
-  ipc.on(NOTIFICATION_CHANNELS.close, (event, id) => {
-    route(event)?.close(id);
-  });
+  registerWhatsAppListeners(ipc, senders, [
+    {
+      channel: NOTIFICATION_CHANNELS.show,
+      accepts: (args) => args.length === 1,
+      handle: ({ sender }, request) => {
+        notifierOf(sender)?.show(request);
+      },
+    },
+    {
+      channel: NOTIFICATION_CHANNELS.close,
+      accepts: argumentsOf(isString),
+      handle: ({ sender }, id) => {
+        notifierOf(sender)?.close(id);
+      },
+    },
+  ]);
 }

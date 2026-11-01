@@ -2,7 +2,8 @@ import { CHROME_CHANNELS, type CustomCodeView } from '../../shared/chrome-api.ts
 import { ALL_ACCOUNTS, isSnippetText, type CustomCode } from '../../shared/custom-code.ts';
 import { en } from '../../shared/messages/en.ts';
 import { isCustomCode, type CustomCodeController } from '../custom-code/custom-code.ts';
-import { noArguments, type ChromeHandler } from './ipc.ts';
+import { argumentsOf, isString, noArguments } from '../ipc/arguments.ts';
+import type { ChromeHandler } from '../ipc/chrome.ts';
 
 type AccountList = () => readonly { readonly id: string; readonly name: string }[];
 
@@ -39,7 +40,7 @@ export function customCodeHandlers(
     { channel: CHROME_CHANNELS.customCodeGet, accepts: noArguments, handle: view },
     {
       channel: CHROME_CHANNELS.customCodeSave,
-      accepts: ([value, ...rest]) => rest.length === 0 && isCustomCode(value),
+      accepts: argumentsOf(isCustomCode),
       handle: (_call, value) => {
         code.save(tidy(value as CustomCode, known()));
         return view();
@@ -47,8 +48,7 @@ export function customCodeHandlers(
     },
     {
       channel: CHROME_CHANNELS.customCodePreview,
-      accepts: ([scope, css, ...rest]) =>
-        rest.length === 0 && typeof scope === 'string' && (css === null || isSnippetText(css)),
+      accepts: argumentsOf(isString, (css) => css === null || isSnippetText(css)),
       handle: (_call, scope, css) => {
         if (known().has(scope as string)) {
           code.preview(scope as string, (css as string | null) ?? undefined);

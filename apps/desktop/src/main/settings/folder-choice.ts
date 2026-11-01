@@ -1,7 +1,8 @@
 import { Value } from 'typebox/value';
+import { argumentsOf } from '../ipc/arguments.ts';
 import { CHROME_CHANNELS } from '../../shared/chrome-api.ts';
 import { SETTING_FIELDS } from '../../shared/settings-fields.ts';
-import type { ChromeHandler } from '../chrome/ipc.ts';
+import type { ChromeHandler } from '../ipc/chrome.ts';
 import { withValue } from './handlers.ts';
 import { SettingsSchema } from './schema.ts';
 import type { SettingsService } from './service.ts';
@@ -23,7 +24,7 @@ export function folderChoiceHandlers(
   return [
     {
       channel: CHROME_CHANNELS.settingsChooseFolder,
-      accepts: ([id, ...rest]) => rest.length === 0 && FOLDER_FIELDS.has(String(id)),
+      accepts: argumentsOf((id) => FOLDER_FIELDS.has(String(id))),
       handle: async ({ sender }, id) => {
         const folder = await choose(sender);
         const next = withValue(service.current(), String(id), folder);

@@ -44,7 +44,7 @@ describe('listenToChatList', () => {
     t.send('reset', t.fromPage, 320);
     expect(t.widths.set).not.toHaveBeenCalled();
     expect(t.warn).toHaveBeenCalledTimes(7);
-    expect(t.warn).toHaveBeenCalledWith('Ignored a chat list message from outside WhatsApp.');
+    expect(t.warn).toHaveBeenCalledWith('Ignored a message on whatsapp:chat-list-resize.');
   });
 
   it('hears only WhatsApp views of an account, on WhatsApp’s own origin', () => {

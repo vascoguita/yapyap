@@ -4,10 +4,10 @@ import { accountAvatars, type AccountAvatars, type AvatarPage } from './accounts
 import type { AccountSummary } from '../shared/chrome-api.ts';
 import type { AccountMenu, ChromeFeature, WhatsAppContents } from './chrome/feature.ts';
 import type { SidebarPort } from './chrome/sidebar.ts';
-import { listenToAssistantBar, type BarIpc } from './assistant/bar-ipc.ts';
+import { listenToAssistantBar } from './assistant/bar-ipc.ts';
 import { suggestAsMessagesArrive } from './assistant/auto-suggest.ts';
 import { inPageAssistantBar } from './assistant/bar-page.ts';
-import { listenToChatList, type ChatListIpc } from './chat-list/chat-list-ipc.ts';
+import { listenToChatList } from './chat-list/chat-list-ipc.ts';
 import { inPageChatList, type InPageChatList } from './chat-list/chat-list-page.ts';
 import type { ChatListWidths } from './chat-list/widths.ts';
 import { watchConnectivity } from './connectivity/connectivity.ts';
@@ -30,7 +30,7 @@ import {
   type ProxyController,
   type WebRtcPage,
 } from './network/proxy.ts';
-import { trackShares, type ScreenShares, type ShareIpc } from './capture/shares.ts';
+import { trackShares, type ScreenShares, type ShareSender } from './capture/shares.ts';
 import {
   createPrivacyScreen,
   type CoverablePage,
@@ -66,7 +66,8 @@ import {
 } from './account-session.ts';
 import { runAccounts, type AccountPage, type RunningAccounts } from './accounts/running.ts';
 import { NOTIFICATION_CHANNELS } from '../shared/notification-api.ts';
-import { listenForNotifications, type NotificationIpc } from './notifications/notification-ipc.ts';
+import { listenForNotifications } from './notifications/notification-ipc.ts';
+import type { WhatsAppIpc } from './ipc/whatsapp.ts';
 import {
   accountNotifier,
   type AccountNotifier,
@@ -256,7 +257,7 @@ export interface StartDependencies<Window extends WindowPort> {
   /** The user's own CSS and JavaScript, applied to every account's WhatsApp (#72). */
   readonly customCode: Pick<CustomCodeController, 'attach'>;
   readonly notifications: Pick<NotifierDependencies, 'create' | 'isSupported'>;
-  readonly ipc: NotificationIpc & ShareIpc & BarIpc & ChatListIpc;
+  readonly ipc: WhatsAppIpc<ShareSender>;
   /** Each account's chat list width, apart from settings and `accounts.json` (#79). */
   readonly chatListWidths: ChatListWidths;
   /** `process.versions.chrome`: the identity must match the bundled engine. */
@@ -726,7 +727,7 @@ function accountIndicators<Window extends WindowPort>(
     menuChanged();
   });
   const shares = trackShares(deps.ipc, {
-    accountOf: (sender) => wiring.security.views.get(sender)?.account,
+    views: wiring.security.views,
     origin: wiring.origin,
     onChange: () => {
       refresh();
@@ -970,10 +971,15 @@ function chatLinkOnce(
 /** Hears every account's notifications, and withdraws them all when YapYap quits. */
 function listenToNotifications<Window extends WindowPort>(
   deps: StartDependencies<Window>,
+  views: ViewRegistry,
   origin: string,
 ): Notifiers {
   const notifiers: Notifiers = { byPage: new WeakMap(), all: new Set() };
-  listenForNotifications(deps.ipc, (sender) => notifiers.byPage.get(sender), origin, deps.warn);
+  listenForNotifications(deps.ipc, (sender) => notifiers.byPage.get(sender), {
+    views,
+    origin,
+    warn: deps.warn,
+  });
   deps.app.on('will-quit', () => {
     for (const notifier of notifiers.all) {
       notifier.closeAll();
@@ -1003,7 +1009,7 @@ async function openWindow<Window extends WindowPort>(
     proxy,
     chatList,
     firstUrl: chatLinkOnce(chatLinkInArguments(deps.argv, origin), deps.accounts.active, origin),
-    notifiers: listenToNotifications(deps, origin),
+    notifiers: listenToNotifications(deps, security.views, origin),
     spelling: followSpellingSetting(deps.settings, deps.systemLanguages),
   });
   chatList.follow(() => ({

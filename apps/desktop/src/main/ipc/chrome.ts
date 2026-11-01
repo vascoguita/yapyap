@@ -1,6 +1,7 @@
+import type { PayloadCheck } from './arguments.ts';
 import { isSameOrigin } from '../navigation/link-policy.ts';
 import type { ViewRegistry } from '../views.ts';
-import { CHROME_ORIGIN } from './assets.ts';
+import { CHROME_ORIGIN } from '../chrome/assets.ts';
 
 export interface IpcInvokeEvent {
   readonly sender: object;
@@ -19,12 +20,9 @@ export interface ChromeCall {
 export interface ChromeHandler {
   readonly channel: string;
   /** Rejects any payload the operation does not expect. */
-  readonly accepts: (args: readonly unknown[]) => boolean;
+  readonly accepts: PayloadCheck;
   readonly handle: (call: ChromeCall, ...args: unknown[]) => unknown;
 }
-
-/** For operations that take no arguments. */
-export const noArguments = (args: readonly unknown[]): boolean => args.length === 0;
 
 function fromChrome(event: IpcInvokeEvent, views: ViewRegistry): boolean {
   const frameUrl = event.senderFrame?.url ?? '';

@@ -1,5 +1,6 @@
 import { CHROME_CHANNELS, type PickerOffer } from '../../shared/chrome-api.ts';
-import { noArguments, type ChromeCall, type ChromeHandler } from '../chrome/ipc.ts';
+import { noArguments } from '../ipc/arguments.ts';
+import type { ChromeCall, ChromeHandler } from '../ipc/chrome.ts';
 import type { CaptureChoice, CaptureSource } from '../permissions/session-guard.ts';
 
 /** A capture source as `desktopCapturer` describes it. */

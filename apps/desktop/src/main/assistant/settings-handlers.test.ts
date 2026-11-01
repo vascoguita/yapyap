@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { ChromeHandler } from '../chrome/ipc.ts';
+import type { ChromeHandler } from '../ipc/chrome.ts';
 import { chatId } from './chats.ts';
 import type { PrivateModelStatus } from './private/private-model.ts';
 import { assistantHandlers, type AssistantSettingsDependencies } from './settings-handlers.ts';

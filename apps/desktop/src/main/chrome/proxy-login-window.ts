@@ -4,7 +4,8 @@ import {
   type ProxyLoginRequest,
 } from '../../shared/chrome-api.ts';
 import { en } from '../../shared/messages/en.ts';
-import { noArguments, type ChromeCall, type ChromeHandler } from './ipc.ts';
+import { noArguments } from '../ipc/arguments.ts';
+import type { ChromeCall, ChromeHandler } from '../ipc/chrome.ts';
 import type { ChromePage, PromptWindow } from './window-opener.ts';
 
 export const PROXY_LOGIN_PAGE: ChromePage = {

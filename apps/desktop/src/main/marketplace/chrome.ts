@@ -4,7 +4,8 @@ import { ManifestSchema } from '@yapyap/extension-sdk';
 import { Value } from 'typebox/value';
 import { CHROME_CHANNELS, type MarketplaceView } from '../../shared/chrome-api.ts';
 import { writeTextAtomically } from '../atomic-write.ts';
-import { noArguments, type ChromeHandler } from '../chrome/ipc.ts';
+import { argumentsOf, noArguments } from '../ipc/arguments.ts';
+import type { ChromeHandler } from '../ipc/chrome.ts';
 import type { InstallFlowDependencies } from '../extensions/install-flow.ts';
 import { loadMarketplace, type Fetcher, type MarketplaceState } from './index-client.ts';
 import { installListed } from './install.ts';
@@ -63,8 +64,7 @@ function loader(deps: MarketplaceDependencies): () => Promise<MarketplaceState> 
     });
 }
 
-const isExtensionId = ([id, ...rest]: readonly unknown[]): boolean =>
-  rest.length === 0 && Value.Check(ManifestSchema.properties.id, id);
+const isExtensionId = argumentsOf((id) => Value.Check(ManifestSchema.properties.id, id));
 
 /**
  * The Extensions window's marketplace (ADR 0014): the list, downloaded only

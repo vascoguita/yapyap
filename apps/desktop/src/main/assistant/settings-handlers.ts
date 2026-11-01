@@ -5,7 +5,8 @@ import {
   type PrivateModelAction,
 } from '../../shared/chrome-api.ts';
 import { en } from '../../shared/messages/en.ts';
-import { noArguments, type ChromeHandler } from '../chrome/ipc.ts';
+import { argumentsOf, isString, noArguments } from '../ipc/arguments.ts';
+import type { ChromeHandler } from '../ipc/chrome.ts';
 import { problemWords, privateWords, setupWords } from './bar-words.ts';
 import { isChatId, type AllowedChats } from './chats.ts';
 import type { AssistantCore } from './core.ts';
@@ -139,19 +140,18 @@ function setupHandlers(deps: AssistantSettingsDependencies): ChromeHandler[] {
   return [
     {
       channel: CHROME_CHANNELS.assistantSaveKey,
-      accepts: ([provider, key, ...rest]) =>
-        rest.length === 0 && isProvider(provider) && pastedKey(key) !== undefined,
+      accepts: argumentsOf(isProvider, (key) => pastedKey(key) !== undefined),
       handle: (_call, provider, key) =>
         changing(() => deps.keys.save(provider as KeyedProvider, String(pastedKey(key)))),
     },
     {
       channel: CHROME_CHANNELS.assistantForgetKey,
-      accepts: ([provider, ...rest]) => rest.length === 0 && isProvider(provider),
+      accepts: argumentsOf(isProvider),
       handle: (_call, provider) => changing(() => deps.keys.forget(provider as KeyedProvider)),
     },
     {
       channel: CHROME_CHANNELS.assistantPrivateModel,
-      accepts: ([action, ...rest]) => rest.length === 0 && ACTIONS.has(action),
+      accepts: argumentsOf((action) => ACTIONS.has(action)),
       handle: (_call, action) =>
         changing(() => runAction(deps.privateModels, action as PrivateModelAction)),
     },
@@ -169,7 +169,7 @@ export function assistantHandlers(deps: AssistantSettingsDependencies): ChromeHa
     ...setupHandlers(deps),
     {
       channel: CHROME_CHANNELS.assistantTestKey,
-      accepts: ([provider, ...rest]) => rest.length === 0 && isProvider(provider),
+      accepts: argumentsOf(isProvider),
       handle: (_call, provider) => testKey(deps, provider as KeyedProvider),
     },
     {
@@ -179,8 +179,7 @@ export function assistantHandlers(deps: AssistantSettingsDependencies): ChromeHa
     },
     {
       channel: CHROME_CHANNELS.assistantForgetChat,
-      accepts: ([account, id, ...rest]) =>
-        rest.length === 0 && typeof account === 'string' && isChatId(id),
+      accepts: argumentsOf(isString, isChatId),
       handle: (_call, account, id) => {
         deps.chats.forget(account as string, id as string);
       },

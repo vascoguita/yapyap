@@ -17,7 +17,8 @@ import {
 } from '../../shared/shortcuts.ts';
 import type { ExtensionCommand } from '../extensions/runtime.ts';
 import type { SettingsService } from '../settings/service.ts';
-import { noArguments, type ChromeHandler } from './ipc.ts';
+import { argumentsOf, noArguments } from '../ipc/arguments.ts';
+import type { ChromeHandler } from '../ipc/chrome.ts';
 
 const text = en.shortcuts;
 
@@ -172,8 +173,7 @@ export function shortcutHandlers(
     { channel: CHROME_CHANNELS.shortcutsList, accepts: noArguments, handle: list },
     {
       channel: CHROME_CHANNELS.shortcutsSet,
-      accepts: ([id, accelerator, ...rest]) =>
-        rest.length === 0 && knows(String(id)) && isKeysOrReset(accelerator),
+      accepts: argumentsOf((id) => knows(String(id)), isKeysOrReset),
       handle: (_call, id, accelerator): ShortcutChange => {
         const keys = accelerator as string | null;
         const problem = problemFor(String(id), keys);

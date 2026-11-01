@@ -86,13 +86,13 @@ import type { ViewRegistry } from '../views.ts';
 import type { RendererOptions } from '../web-preferences.ts';
 import type { WindowOptions } from '../windows.ts';
 import { CHROME_SCHEME, createChromeHandler } from './assets.ts';
+import { noArguments } from '../ipc/arguments.ts';
 import {
-  noArguments,
   registerChromeHandlers,
   type ChromeCall,
   type ChromeHandler,
   type IpcMainPort,
-} from './ipc.ts';
+} from '../ipc/chrome.ts';
 import {
   createChromeWindowOpener,
   openChromeWindow,

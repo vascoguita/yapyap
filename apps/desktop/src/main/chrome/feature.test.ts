@@ -13,7 +13,7 @@ import {
   type AccountMenu,
   type ChromeFeatureDependencies,
 } from './feature.ts';
-import type { IpcInvokeEvent } from './ipc.ts';
+import type { IpcInvokeEvent } from '../ipc/chrome.ts';
 
 type Listener = (event: IpcInvokeEvent, ...args: unknown[]) => unknown;
 

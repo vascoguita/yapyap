@@ -1,5 +1,10 @@
 import {
   CHROME_CHANNELS,
+  EXTENSIONS_CHANGED_EVENT,
+  RECORD_PROMPT_STATE_EVENT,
+  RECORDER_COMMAND_EVENT,
+  SIDEBAR_STATE_EVENT,
+  type ChromeEvents,
   type AboutInfo,
   type AccountList,
   type AssistantView,
@@ -11,7 +16,6 @@ import {
   type ExtensionConsent,
   type ExtensionList,
   type RecordPromptState,
-  type RecorderCommand,
   type ShortcutChange,
   type ShortcutList,
   type CustomCodeView,
@@ -24,13 +28,13 @@ import {
 } from '../../shared/chrome-api.ts';
 
 type Invoke = (channel: string, ...args: unknown[]) => Promise<unknown>;
-/** Hears the sidebar's state whenever the main process pushes a new one. */
-type Listen = (listener: (state: SidebarState) => void) => void;
-type ListenToExtensions = (listener: () => void) => void;
-type ListenToPrompt = (listener: (state: RecordPromptState) => void) => void;
-type ListenToRecorder = (listener: (command: RecorderCommand) => void) => void;
+/** Hears one of the events the main process sends. */
+type Listen = <Event extends keyof ChromeEvents>(
+  event: Event,
+  listener: (payload: ChromeEvents[Event]) => void,
+) => void;
 
-function recordPromptBridge(invoke: Invoke, listen: ListenToPrompt): ChromeApi['recordPrompt'] {
+function recordPromptBridge(invoke: Invoke, listen: Listen): ChromeApi['recordPrompt'] {
   return {
     state: () => invoke(CHROME_CHANNELS.recordPromptState) as Promise<RecordPromptState>,
     answer: async (record, consented) => {
@@ -39,13 +43,17 @@ function recordPromptBridge(invoke: Invoke, listen: ListenToPrompt): ChromeApi['
     stop: async () => {
       await invoke(CHROME_CHANNELS.recordPromptStop);
     },
-    onState: listen,
+    onState: (listener) => {
+      listen(RECORD_PROMPT_STATE_EVENT, listener);
+    },
   };
 }
 
-function recorderBridge(invoke: Invoke, listen: ListenToRecorder): ChromeApi['recorder'] {
+function recorderBridge(invoke: Invoke, listen: Listen): ChromeApi['recorder'] {
   return {
-    onCommand: listen,
+    onCommand: (listener) => {
+      listen(RECORDER_COMMAND_EVENT, listener);
+    },
     chunk: async (bytes) => {
       await invoke(CHROME_CHANNELS.recorderChunk, bytes);
     },
@@ -103,11 +111,13 @@ function sidebarBridge(invoke: Invoke, listen: Listen): ChromeApi['sidebar'] {
     stopSharing: async (id) => {
       await invoke(CHROME_CHANNELS.sidebarStopSharing, id);
     },
-    onState: listen,
+    onState: (listener) => {
+      listen(SIDEBAR_STATE_EVENT, listener);
+    },
   };
 }
 
-function extensionsBridge(invoke: Invoke, onChange: ListenToExtensions): ChromeApi['extensions'] {
+function extensionsBridge(invoke: Invoke, listen: Listen): ChromeApi['extensions'] {
   return {
     list: () => invoke(CHROME_CHANNELS.extensionsList) as Promise<ExtensionList>,
     consent: () => invoke(CHROME_CHANNELS.extensionsConsent) as Promise<ExtensionConsent>,
@@ -129,7 +139,11 @@ function extensionsBridge(invoke: Invoke, onChange: ListenToExtensions): ChromeA
     installListed: async (id) => {
       await invoke(CHROME_CHANNELS.extensionsInstallListed, id);
     },
-    onChange,
+    onChange: (listener) => {
+      listen(EXTENSIONS_CHANGED_EVENT, () => {
+        listener();
+      });
+    },
   };
 }
 
@@ -259,16 +273,11 @@ function recoveryBridge(invoke: Invoke): ChromeApi['recovery'] {
 }
 
 /**
- * Builds the chrome API from a single invoke function. Each operation has its
- * own fixed channel, so the page can never choose what it calls.
+ * Builds the chrome API from a single invoke function and a single listen
+ * function. Each operation and event has its own fixed channel, so the page
+ * can never choose what it calls or hears.
  */
-export function createChromeBridge(
-  invoke: Invoke,
-  listen: Listen,
-  listenToExtensions: ListenToExtensions,
-  listenToPrompt: ListenToPrompt,
-  listenToRecorder: ListenToRecorder,
-): ChromeApi {
+export function createChromeBridge(invoke: Invoke, listen: Listen): ChromeApi {
   return {
     about: aboutBridge(invoke),
     recovery: recoveryBridge(invoke),
@@ -280,9 +289,9 @@ export function createChromeBridge(
     accounts: accountsBridge(invoke),
     sidebar: sidebarBridge(invoke, listen),
     quickPanel: quickPanelBridge(invoke),
-    extensions: extensionsBridge(invoke, listenToExtensions),
-    recordPrompt: recordPromptBridge(invoke, listenToPrompt),
-    recorder: recorderBridge(invoke, listenToRecorder),
+    extensions: extensionsBridge(invoke, listen),
+    recordPrompt: recordPromptBridge(invoke, listen),
+    recorder: recorderBridge(invoke, listen),
     report: reportBridge(invoke),
     spelling: spellingBridge(invoke),
     picker: pickerBridge(invoke),
