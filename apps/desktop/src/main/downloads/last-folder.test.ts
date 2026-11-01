@@ -12,7 +12,11 @@ describe('lastFolderIn', () => {
   });
 
   it('knows no folder from a missing, broken or odd file', () => {
-    for (const text of [undefined, '{', '{"lastFolder":7}']) {
+    const missing = () => {
+      throw Object.assign(new Error('missing'), { code: 'ENOENT' });
+    };
+    expect(lastFolderIn({ read: missing, write: vi.fn() }).get()).toBeUndefined();
+    for (const text of ['{', '{"lastFolder":7}']) {
       expect(lastFolderIn({ read: () => text, write: vi.fn() }).get()).toBeUndefined();
     }
   });

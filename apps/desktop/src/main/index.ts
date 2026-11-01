@@ -34,10 +34,9 @@ import {
   realpathSync,
   rmSync,
   statSync,
-  writeFileSync,
 } from 'node:fs';
 import { readFile } from 'node:fs/promises';
-import { writeTextAtomically } from './atomic-write.ts';
+import { textFileAt, writeTextAtomically } from './atomic-write.ts';
 import { chatListWidths } from './chat-list/widths.ts';
 import { createCustomCode } from './custom-code/custom-code.ts';
 import { EXTENSION_PORT_CHANNEL } from '../shared/extension-rpc.ts';
@@ -188,7 +187,7 @@ const autostart = chooseAutostart({
           mkdirSync(path, { recursive: true });
         },
         write: (path, text) => {
-          writeFileSync(path, text);
+          writeTextAtomically(path, text);
         },
         remove: (path) => {
           rmSync(path);
@@ -202,15 +201,7 @@ const downloadList = createDownloadList((path) => {
   shell.showItemInFolder(path);
 });
 
-const customCode = createCustomCode(
-  {
-    read: () => readFileSync(CUSTOM_CODE, 'utf8'),
-    write: (text) => {
-      writeTextAtomically(CUSTOM_CODE, text);
-    },
-  },
-  warn,
-);
+const customCode = createCustomCode(textFileAt(CUSTOM_CODE), warn);
 
 // Extensions' secrets live apart from YapYap's own, so no mistake in an extension's namespace reaches them (#96).
 const extensionSecrets = openSecretStore(
@@ -232,15 +223,8 @@ const testModel = catalog.standard.id === 'test' ? catalog.standard.url : undefi
 /** Read and write for the user alone: the assistant's state names chats by fingerprint. */
 const OWNER_ONLY = 0o600;
 
-const stateFile = (path: string) => ({
-  read: () => readFileSync(path, 'utf8'),
-  write: (text: string) => {
-    writeTextAtomically(path, text, OWNER_ONLY);
-  },
-});
-
-const assistantStore = assistantState(stateFile(ASSISTANT_STATE), warn);
-const assistantChats = allowedChats(stateFile(ASSISTANT_CHATS), secrets, warn);
+const assistantStore = assistantState(textFileAt(ASSISTANT_STATE, OWNER_ONLY), warn);
+const assistantChats = allowedChats(textFileAt(ASSISTANT_CHATS, OWNER_ONLY), secrets, warn);
 const keys = assistantKeys(secrets);
 
 /**
@@ -276,12 +260,7 @@ const chrome = createChromeFeature({
   installEvidence,
   screens: () =>
     [screen.getPrimaryDisplay(), ...screen.getAllDisplays()].map((display) => display.workArea),
-  quickPanelPlace: panelPlaceIn({
-    read: () => readFileSync(QUICK_PANEL_STATE, 'utf8'),
-    write: (text) => {
-      writeFileSync(QUICK_PANEL_STATE, text);
-    },
-  }),
+  quickPanelPlace: panelPlaceIn(textFileAt(QUICK_PANEL_STATE)),
   settingEffects: { 'general.autostart': applyAutostart(autostart, warn) },
   hiddenSettings: settingsIgnoredBy(updatePolicy),
   registerSchemesAsPrivileged: (schemes) => {
@@ -537,15 +516,7 @@ startApp({
     isSupported: () => Notification.isSupported(),
   },
   ipc: ipcMain,
-  chatListWidths: chatListWidths(
-    {
-      read: () => readFileSync(CHAT_LIST_STATE, 'utf8'),
-      write: (text) => {
-        writeTextAtomically(CHAT_LIST_STATE, text);
-      },
-    },
-    warn,
-  ),
+  chatListWidths: chatListWidths(textFileAt(CHAT_LIST_STATE), warn),
   saveAccounts: (accounts) => {
     saveAccounts(app.getPath('userData'), accounts);
   },
@@ -560,12 +531,7 @@ startApp({
   openExternal: (url) => shell.openExternal(url),
   isOnline: () => net.isOnline(),
   avatarImage: (bytes) => shrinkAvatar(nativeImage.createFromBuffer(Buffer.from(bytes))),
-  gpuCrashLog: {
-    read: () => readFileSync(GPU_CRASH_LOG, 'utf8'),
-    write: (text) => {
-      writeFileSync(GPU_CRASH_LOG, text);
-    },
-  },
+  gpuCrashLog: textFileAt(GPU_CRASH_LOG),
   appMetrics: () => app.getAppMetrics(),
   idleSeconds: () => powerMonitor.getSystemIdleTime(),
   globalShortcuts: globalShortcut,
@@ -576,12 +542,7 @@ startApp({
   onResume: (listener) => {
     powerMonitor.on('resume', listener);
   },
-  windowState: {
-    read: () => readFileSync(WINDOW_STATE, 'utf8'),
-    write: (text) => {
-      writeFileSync(WINDOW_STATE, text);
-    },
-  },
+  windowState: textFileAt(WINDOW_STATE),
   workAreas: () => screen.getAllDisplays().map((display) => display.workArea),
   downloads: {
     folder: () =>
@@ -590,12 +551,7 @@ startApp({
         isFolder: (path) => statSync(path).isDirectory(),
       }),
     taken: (path) => lstatSync(path, { throwIfNoEntry: false }) !== undefined,
-    lastFolder: lastFolderIn({
-      read: () => readFileSync(DOWNLOADS_STATE, 'utf8'),
-      write: (text) => {
-        writeFileSync(DOWNLOADS_STATE, text);
-      },
-    }),
+    lastFolder: lastFolderIn(textFileAt(DOWNLOADS_STATE)),
     openPath: (path) => shell.openPath(path),
     track: downloadList.add,
   },

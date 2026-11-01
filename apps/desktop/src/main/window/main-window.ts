@@ -1,6 +1,7 @@
 import type { Settings } from '../settings/schema.ts';
 import type { SettingsService } from '../settings/service.ts';
 import { boundsOnScreen, parseWindowState, type Rect, type WindowState } from './window-state.ts';
+import type { TextFile } from '../atomic-write.ts';
 
 export interface ManagedWindow {
   getNormalBounds(): Rect;
@@ -18,18 +19,12 @@ export interface ManagedWindow {
   once(event: 'show', listener: () => void): unknown;
 }
 
-export interface WindowStateStore {
-  /** May throw, for example when nothing was saved yet. */
-  readonly read: () => string;
-  readonly write: (text: string) => void;
-}
-
 interface QuittingApp {
   on(event: 'before-quit' | 'activate', listener: () => void): unknown;
 }
 
 export interface MainWindowDependencies {
-  readonly store: WindowStateStore;
+  readonly store: TextFile;
   readonly platform: string;
   readonly settings: Pick<SettingsService, 'current' | 'onChange'>;
   readonly app: QuittingApp;
@@ -38,7 +33,7 @@ export interface MainWindowDependencies {
 
 /** The saved state, with bounds kept only while they land on a connected display. */
 export function restoreWindowState(
-  store: WindowStateStore,
+  store: TextFile,
   workAreas: readonly Rect[],
 ): { readonly state: WindowState; readonly bounds: Rect | undefined } {
   let text: string | undefined;

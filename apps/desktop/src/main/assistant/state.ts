@@ -1,5 +1,6 @@
 import { Type, type Static } from 'typebox';
 import { Value } from 'typebox/value';
+import type { TextFile } from '../atomic-write.ts';
 
 const FORMAT_VERSION = 1;
 
@@ -34,12 +35,6 @@ const StateSchema = Type.Object(
 
 type Saved = Static<typeof StateSchema>;
 
-export interface StateFile {
-  /** May throw, for example when nothing was saved yet. */
-  readonly read: () => string;
-  readonly write: (text: string) => void;
-}
-
 /** What the assistant keeps that is no preference, in `assistant.json`. */
 export interface AssistantState {
   readonly privateModel: () => PrivateModelRecord | undefined;
@@ -50,7 +45,7 @@ export interface AssistantState {
 
 const EMPTY: Saved = { version: FORMAT_VERSION, privateModel: null, notice: null };
 
-function readState(file: StateFile): Saved {
+function readState(file: TextFile): Saved {
   try {
     const value: unknown = JSON.parse(file.read());
     return Value.Check(StateSchema, value) ? value : EMPTY;
@@ -64,7 +59,7 @@ function readState(file: StateFile): Saved {
  * the window's size, it is state, not a preference, so it stays out of
  * settings and their export. A write that fails keeps it for this run.
  */
-export function assistantState(file: StateFile, warn: (message: string) => void): AssistantState {
+export function assistantState(file: TextFile, warn: (message: string) => void): AssistantState {
   let state = readState(file);
   const change = (next: Partial<Saved>): void => {
     state = { ...state, ...next };

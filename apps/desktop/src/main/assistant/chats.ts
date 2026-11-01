@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { Type } from 'typebox';
 import { Value } from 'typebox/value';
 import type { SecretStore } from '../secrets/secret-store.ts';
+import type { TextFile } from '../atomic-write.ts';
 
 const UUID = '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$';
 const FORMAT_VERSION = 1;
@@ -34,12 +35,6 @@ export const isChatId = (value: unknown): value is string => Value.Check(ChatId,
  */
 export const chatId = (name: string): string => createHash('sha256').update(name).digest('hex');
 
-export interface ChatsFile {
-  /** May throw, for example when nothing was saved yet. */
-  readonly read: () => string;
-  readonly write: (text: string) => void;
-}
-
 /** One account's allowed chats, with their names where the system could keep them safely. */
 interface AllowedInAccount {
   readonly account: string;
@@ -59,7 +54,7 @@ export interface AllowedChats {
   readonly adopt: (ids: readonly string[], accounts: readonly string[]) => void;
 }
 
-function readChats(file: ChatsFile): Map<string, string[]> {
+function readChats(file: TextFile): Map<string, string[]> {
   try {
     const value: unknown = JSON.parse(file.read());
     return Value.Check(ChatsSchema, value)
@@ -81,7 +76,7 @@ interface Kept {
   readonly names: Pick<SecretStore, 'get' | 'set' | 'forgetAll'>;
 }
 
-function keptIn(file: ChatsFile, warn: (message: string) => void): Omit<Kept, 'names'> {
+function keptIn(file: TextFile, warn: (message: string) => void): Omit<Kept, 'names'> {
   const chats = readChats(file);
   return {
     chats,
@@ -122,7 +117,7 @@ const listOf = ({ chats, names }: Kept): Promise<AllowedInAccount[]> =>
  * keychain, through YapYap's secrets (C42 in ADR 0008).
  */
 export function allowedChats(
-  file: ChatsFile,
+  file: TextFile,
   names: Pick<SecretStore, 'get' | 'set' | 'forgetAll'>,
   warn: (message: string) => void,
 ): AllowedChats {
