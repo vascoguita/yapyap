@@ -39,6 +39,8 @@ const PACKAGING = [
   '.github/workflows/package.yml',
   '.github/workflows/smoke.yml',
   '.github/workflows/release.yml',
+  // The setup every packaging and smoke job runs.
+  '.github/actions/**',
 ];
 
 function matchesAny(file: string, globs: readonly string[]): boolean {

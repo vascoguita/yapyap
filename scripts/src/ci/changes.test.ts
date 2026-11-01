@@ -34,6 +34,7 @@ describe('changeScope', () => {
     'scripts/src/release/aur.ts',
     'scripts/src/bin/verify-fuses.ts',
     '.github/workflows/smoke.yml',
+    '.github/actions/setup/action.yml',
   ])('runs the full packaging matrix when %s changed', (file) => {
     expect(changeScope(['apps/desktop/src/main/start.ts', file])).toEqual({
       code: true,

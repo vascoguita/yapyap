@@ -1,3 +1,5 @@
+import { RELEASE_DOWNLOADS } from './releases.ts';
+
 /** A release asset and how often GitHub served it. */
 interface CountedAsset {
   readonly name: string;
@@ -153,9 +155,7 @@ const isLinkedRelease = (value: unknown): value is LinkedRelease => {
  * API answers.
  */
 const releaseUrl = (tag: string, name: string): string | undefined =>
-  /^[\w.-]{1,200}$/.test(name)
-    ? `https://github.com/vascoguita/yapyap/releases/download/${tag}/${name}`
-    : undefined;
+  /^[\w.-]{1,200}$/.test(name) ? `${RELEASE_DOWNLOADS}/${tag}/${name}` : undefined;
 
 /**
  * The newest stable release in GitHub's answer, which lists the newest

@@ -1,6 +1,6 @@
 import type { ElectronApplication } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { SETTINGS_VERSION } from '../../src/main/settings/schema.ts';
 import { claudeAnswer, readyAssistant } from '../assistant-helpers.ts';
@@ -81,8 +81,19 @@ async function capturePage(app: ElectronApplication, url: string, file: string):
   await writeFile(file, Buffer.from(png, 'base64'));
 }
 
+/**
+ * AppStream metainfo needs PNG, and the website shows the much smaller WebP,
+ * so each picture is kept only in the formats something uses.
+ */
+type Format = 'png' | 'webp';
+
 /** A chrome window, such as Settings, as it renders. */
-async function captureWindow(app: ElectronApplication, path: string, name: string): Promise<void> {
+async function captureWindow(
+  app: ElectronApplication,
+  path: string,
+  name: string,
+  formats: readonly Format[],
+): Promise<void> {
   const page = await chromePage(app, path);
   // Waits for the fonts and two painted frames, so the shot is what a person would see.
   await page.evaluate(async () => {
@@ -94,7 +105,12 @@ async function captureWindow(app: ElectronApplication, path: string, name: strin
   await mkdir(OUT, { recursive: true });
   const png = join(OUT, `${name}.png`);
   await capturePage(app, page.url(), png);
-  webp(png, name);
+  if (formats.includes('webp')) {
+    webp(png, name);
+  }
+  if (!formats.includes('png')) {
+    await rm(png);
+  }
 }
 
 /**
@@ -137,7 +153,7 @@ test('Settings window', async ({ profile }) => {
   ]);
   try {
     await clickMenu(app, 'Settings…');
-    await captureWindow(app, '/settings.html', 'settings');
+    await captureWindow(app, '/settings.html', 'settings', ['png']);
   } finally {
     await closeApp(app);
     await showcase.close();
@@ -179,12 +195,12 @@ test('Accounts and Extensions windows, for the get-started guide (#385)', async 
   );
   try {
     await clickMenu(app, 'Manage Accounts…');
-    await captureWindow(app, '/accounts.html', 'accounts');
+    await captureWindow(app, '/accounts.html', 'accounts', ['webp']);
     await clickMenu(app, 'Extensions…');
     const extensions = await chromePage(app, '/extensions.html');
     await extensions.getByRole('tab', { name: 'Marketplace' }).click();
     await expect(extensions.getByText('Translate', { exact: true })).toBeVisible();
-    await captureWindow(app, '/extensions.html', 'extensions');
+    await captureWindow(app, '/extensions.html', 'extensions', ['webp']);
   } finally {
     await closeApp(app);
     await showcase.close();
@@ -207,7 +223,7 @@ test('AI assistant suggesting replies', async ({ profile }) => {
     await panel.getByRole('button', { name: 'Allow in this chat' }).click();
     await panel.getByRole('button', { name: 'Send', exact: true }).click();
     await expect(panel.getByRole('button', { name: 'Saturday at 10 works for me' })).toBeVisible();
-    await captureWindow(app, '/__yapyap/panel.html', 'assistant');
+    await captureWindow(app, '/__yapyap/panel.html', 'assistant', ['png', 'webp']);
   } finally {
     await closeApp(app);
     await showcase.close();

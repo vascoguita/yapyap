@@ -1,3 +1,5 @@
+import { RELEASE_DOWNLOADS } from './releases.ts';
+
 /** A GitHub release, as the repository indexes need it. */
 export interface RepositoryRelease {
   readonly tag: string;
@@ -13,7 +15,6 @@ export const CHANNELS: readonly Channel[] = ['stable', 'beta'];
 
 /** Where the repositories are served, and where their packages really live. */
 const REPOSITORY_URL = 'https://packages.guita.org';
-const DOWNLOADS = 'https://github.com/vascoguita/yapyap/releases/download';
 
 /** How many versions each channel lists, so users can still pin or roll back. */
 const KEPT_VERSIONS = 5;
@@ -69,12 +70,12 @@ export function poolFiles(
  * share a folder with the database and signatures, get a rule each (#350).
  */
 export function redirects(listed: Readonly<Record<Channel, readonly RepositoryRelease[]>>): string {
-  const target = `${DOWNLOADS}/:tag/:file 302`;
+  const target = `${RELEASE_DOWNLOADS}/:tag/:file 302`;
   const pacman = CHANNELS.flatMap((channel) =>
     listed[channel].flatMap(({ tag, assets }) =>
       assets
         .filter((file) => file.endsWith(PACMAN))
-        .map((file) => `/arch/${channel}/x86_64/${file} ${DOWNLOADS}/${tag}/${file} 302`),
+        .map((file) => `/arch/${channel}/x86_64/${file} ${RELEASE_DOWNLOADS}/${tag}/${file} 302`),
     ),
   );
   return [

@@ -1,15 +1,12 @@
 import { defineConfig } from 'vitest/config';
+import { TEST_INCLUDE } from './vitest.projects.ts';
 
-// Stryker's Vitest runner cannot place mutants into multi-project runs, so
-// mutation testing uses this single flat project over the same test files.
+// Stryker's command runner runs this single flat project over the same test
+// files as the per-package projects, so that every suite gets one worker and
+// the setup file below.
 export default defineConfig({
   test: {
-    include: [
-      'apps/*/src/**/*.test.ts',
-      'packages/*/src/**/*.test.ts',
-      'extensions/*/src/**/*.test.ts',
-      'scripts/src/**/*.test.ts',
-    ],
+    include: TEST_INCLUDE,
     environment: 'node',
     setupFiles: ['vitest.mutation.setup.ts'],
     // Stryker already runs one suite per CPU; a worker pool inside each suite
