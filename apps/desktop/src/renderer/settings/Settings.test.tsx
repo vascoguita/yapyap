@@ -1,6 +1,7 @@
 /** @vitest-environment happy-dom */
 import { cleanup, fireEvent, render, screen } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { fakeChromeApi } from '../../../test/chrome-api.ts';
 import type { ChromeApi, SettingsSnapshot } from '../../shared/chrome-api.ts';
 import type { SettingValue } from '../../shared/settings-fields.ts';
 import { Field } from './Field.tsx';
@@ -19,9 +20,7 @@ const snapshot = (overrides: Partial<SettingsSnapshot> = {}): SettingsSnapshot =
 });
 
 function api(overrides: Partial<ChromeApi['settings']> = {}) {
-  return {
-    about: { info: vi.fn(), copyTechnicalDetails: vi.fn() },
-    recovery: { problem: vi.fn(), retry: vi.fn(), clearCache: vi.fn(), copyDiagnostics: vi.fn() },
+  return fakeChromeApi({
     settings: {
       get: vi.fn(() => Promise.resolve(snapshot())),
       set: vi.fn((id: string, value: SettingValue) =>
@@ -42,52 +41,7 @@ function api(overrides: Partial<ChromeApi['settings']> = {}) {
       chooseFolder: vi.fn(() => Promise.resolve()),
       ...overrides,
     },
-    assistant: {
-      view: vi.fn(),
-      saveKey: vi.fn(),
-      forgetKey: vi.fn(),
-      testKey: vi.fn(),
-      findServers: vi.fn(),
-      privateModel: vi.fn(),
-      forgetChat: vi.fn(),
-    },
-    chat: { openNumber: vi.fn() },
-    accounts: {
-      list: vi.fn(),
-      save: vi.fn(),
-      remove: vi.fn(),
-      permissions: vi.fn(),
-      forgetPermissions: vi.fn(),
-    },
-    sidebar: {
-      state: vi.fn(),
-      switchTo: vi.fn(),
-      setCompact: vi.fn(),
-      stopSharing: vi.fn(),
-      onState: vi.fn(),
-    },
-    quickPanel: { open: vi.fn(), setDoNotDisturb: vi.fn() },
-    recordPrompt: { state: vi.fn(), answer: vi.fn(), stop: vi.fn(), onState: vi.fn() },
-    recorder: { onCommand: vi.fn(), chunk: vi.fn(), ended: vi.fn(), failed: vi.fn() },
-    extensions: {
-      list: vi.fn(),
-      consent: vi.fn(),
-      answer: vi.fn(),
-      setGrant: vi.fn(),
-      setSetting: vi.fn(),
-      remove: vi.fn(),
-      marketplace: vi.fn(),
-      installListed: vi.fn(),
-      onChange: vi.fn(),
-    },
-    report: { diagnostics: vi.fn(), open: vi.fn() },
-    picker: { offer: vi.fn(), choose: vi.fn(), cancel: vi.fn() },
-    shortcuts: { list: vi.fn(), set: vi.fn() },
-    downloads: { list: vi.fn(), act: vi.fn(), clear: vi.fn() },
-    spelling: { languages: vi.fn(), choose: vi.fn() },
-    customCode: { get: vi.fn(), save: vi.fn(), preview: vi.fn() },
-    proxyLogin: { request: vi.fn(), answer: vi.fn() },
-  } satisfies ChromeApi;
+  });
 }
 
 const toggle = () =>
@@ -122,7 +76,7 @@ describe('Settings', () => {
       [HARDWARE]: true,
     };
     const settings = api({ get: vi.fn(() => Promise.resolve(snapshot({ values }))) });
-    settings.assistant.view = vi.fn(() => new Promise<never>(() => undefined));
+    vi.mocked(settings.assistant.view).mockReturnValue(new Promise<never>(() => undefined));
     render(<Settings api={settings} />);
     const section = await screen.findByRole('region', { name: 'Assistant' });
     expect(document.querySelector('main section')).toBe(section);

@@ -1,7 +1,8 @@
 /** @vitest-environment happy-dom */
 import { cleanup, fireEvent, render, screen } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { ChromeApi, ExtensionConsent as Consent } from '../../shared/chrome-api.ts';
+import { fakeChromeApi } from '../../../test/chrome-api.ts';
+import type { ExtensionConsent as Consent } from '../../shared/chrome-api.ts';
 import { ExtensionConsent } from './ExtensionConsent.tsx';
 
 const CONSENT: Consent = {
@@ -23,7 +24,7 @@ function setup(consent: () => Promise<Consent> = () => Promise.resolve(CONSENT))
     consent: vi.fn(consent),
     answer: vi.fn(() => Promise.resolve()),
   };
-  render(<ExtensionConsent api={{ extensions } as unknown as ChromeApi} />);
+  render(<ExtensionConsent api={fakeChromeApi({ extensions })} />);
   return { extensions };
 }
 

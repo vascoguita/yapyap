@@ -1,7 +1,8 @@
 /** @vitest-environment happy-dom */
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { ChromeApi, ExtensionList } from '../../shared/chrome-api.ts';
+import { fakeChromeApi } from '../../../test/chrome-api.ts';
+import type { ExtensionList } from '../../shared/chrome-api.ts';
 import { Extensions } from './Extensions.tsx';
 
 function setup(list: () => Promise<ExtensionList>) {
@@ -14,7 +15,7 @@ function setup(list: () => Promise<ExtensionList>) {
     remove: vi.fn(list),
     onChange: vi.fn(),
   };
-  render(<Extensions api={{ extensions } as unknown as ChromeApi} />);
+  render(<Extensions api={fakeChromeApi({ extensions })} />);
   return extensions;
 }
 

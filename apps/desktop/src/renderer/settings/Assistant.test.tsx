@@ -1,7 +1,8 @@
 /** @vitest-environment happy-dom */
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { AssistantView, ChromeApi, SettingsSnapshot } from '../../shared/chrome-api.ts';
+import { fakeChromeApi } from '../../../test/chrome-api.ts';
+import type { AssistantView, SettingsSnapshot } from '../../shared/chrome-api.ts';
 import { AssistantSection } from './Assistant.tsx';
 
 const VIEW: AssistantView = {
@@ -58,7 +59,7 @@ function setup(view: AssistantView = VIEW, snapshot: SettingsSnapshot = SNAPSHOT
     forgetChat: vi.fn(() => Promise.resolve()),
   };
   const onChange = vi.fn();
-  const api = { assistant } as unknown as ChromeApi;
+  const api = fakeChromeApi({ assistant });
   render(<AssistantSection api={api} snapshot={snapshot} onChange={onChange} />);
   return {
     assistant,
@@ -235,7 +236,7 @@ describe('AssistantSection', () => {
     cleanup();
     render(
       <AssistantSection
-        api={{ assistant: t.assistant } as unknown as ChromeApi}
+        api={fakeChromeApi({ assistant: t.assistant })}
         snapshot={SNAPSHOT}
         onChange={vi.fn()}
       />,
