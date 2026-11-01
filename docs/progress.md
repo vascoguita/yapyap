@@ -216,6 +216,13 @@ their reasons belong in the ADRs (`docs/adr/`), and released changes in
   section, the FAQ says what the assistant reads, and the install guide
   says macOS builds are signed and notarized.
 
+- Chrome page entries (#522): every page starts through `mount(Page, {
+title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
+  window from `en.windows`; dialog-like windows close on Escape.
+- Faster unit tests (#531): the SDK, signing CLI, scripts and example
+  extension tests share workers across files (`isolate: false` in
+  `vitest.projects.ts`). The desktop app and the call recorder keep one
+  worker per file. Provider retry tests use fake timers.
 - IPC registrars (#523): messages from WhatsApp's preload go through
   `registerWhatsAppListeners` in `main/ipc/`, next to
   `registerChromeHandlers`; payload checks use `argumentsOf`, and the chrome
