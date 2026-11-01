@@ -86,6 +86,14 @@ export const ManifestSchema = Type.Object(
       description: 'The SDK versions the extension works with: exact, ^ or ~.',
     }),
     entry: Type.String({ pattern: EXTENSION_FILE, maxLength: 200 }),
+    activation: Type.Optional(
+      Type.Union([Type.Literal('startup'), Type.Literal('on-demand')], {
+        description:
+          'When the extension runs. `startup`, the default, runs it from launch to quit. ' +
+          '`on-demand` starts it when one of its commands runs or its panel opens, and may ' +
+          'stop it once it made no host call, ran no command and showed no panel for five minutes.',
+      }),
+    ),
     capabilities: Type.Array(
       Type.Union([
         Type.Literal('chat:read-active'),

@@ -125,10 +125,14 @@ export interface ExtensionRuntimeDependencies {
 }
 
 export interface ExtensionRuntime {
-  /** Starts every installed extension; resolves once each has been asked to load. */
+  /**
+   * Reads every installed extension, so the menus list what it contributes,
+   * and starts those that run from launch; resolves once each has been asked to load.
+   */
   readonly startAll: () => Promise<void>;
   /** Starts an extension again, as after an update. */
   readonly restart: (id: string) => Promise<void>;
+  /** The extensions whose renderer runs now. */
   readonly running: () => readonly string[];
   /** Each running extension's renderer process, for the resource guard (#97). */
   readonly processes: () => readonly ExtensionProcess[];
@@ -138,24 +142,24 @@ export interface ExtensionRuntime {
   readonly regrant: (id: string) => Promise<void>;
   /** Stops an extension being removed for good, and deletes what its sessions kept (#332). */
   readonly forget: (id: string) => Promise<void>;
-  /** The running extensions' commands, for the menu (#98). */
+  /** The installed extensions' commands, for the menu (#98), whether or not they run. */
   readonly commands: () => readonly ExtensionCommand[];
-  /** The running extensions' composer actions and context-menu items, for right clicks (#98). */
+  /** The installed extensions' composer actions and context-menu items, for right clicks (#98). */
   readonly actions: () => readonly ExtensionAction[];
-  /** Runs a command the user picked; false when its extension is not ready for it. */
+  /** Runs a command the user picked, starting its extension if needed; false when it has no such command. */
   readonly runCommand: (extension: string, command: string) => boolean;
-  /** The running extensions' panels, for the menu (#98). */
+  /** The installed extensions' panels, for the menu (#98). */
   readonly panels: () => readonly ExtensionPanel[];
-  /** Opens an extension's panel, or brings it forward; false when it has none. */
+  /** Opens an extension's panel, starting the extension if needed, or brings it forward; false when it has none. */
   readonly openPanel: (extension: string) => boolean;
-  /** Calls `listener` whenever extensions start or stop. */
+  /** Calls `listener` whenever extensions are read or stopped, so their contributions change. */
   readonly onChange: (listener: () => void) => void;
 }
 
 /** Where an extension's menu item shows: the message box, a message, or a chat in the list. */
 type ExtensionActionPlace = 'composer' | 'message' | 'chat';
 
-/** A menu item a running extension adds to right clicks, running one of its commands. */
+/** A menu item an installed extension adds to right clicks, running one of its commands. */
 export interface ExtensionAction {
   readonly extension: string;
   readonly extensionName: string;
@@ -164,14 +168,14 @@ export interface ExtensionAction {
   readonly on: ExtensionActionPlace;
 }
 
-/** A panel a running extension offers. */
+/** A panel an installed extension offers. */
 export interface ExtensionPanel {
   readonly extension: string;
   readonly extensionName: string;
   readonly title: string;
 }
 
-/** A command a running extension offers. */
+/** A command an installed extension offers. */
 export interface ExtensionCommand {
   readonly extension: string;
   readonly extensionName: string;
@@ -198,13 +202,15 @@ export async function manifestIn(
 
 /**
  * Hands each page the extension loads a port of its own, and serves its calls
- * there with the grants the extension holds (ADR 0004).
+ * there with the grants the extension holds (ADR 0004). Commands picked while
+ * the page loaded go out once it has its port.
  */
 function connect(
   deps: ExtensionRuntimeDependencies,
-  running: RunningExtension,
-  known: KnownExtension,
+  loaded: LoadedExtension,
+  renderer: Renderer,
 ): void {
+  const { known } = loaded;
   const { id } = known.record;
   const methods = deps.methodsFor({
     id,
@@ -214,12 +220,19 @@ function connect(
   // Grants are read on every call, so taking one back stops the next call (#94).
   const granted = (capability: string): boolean =>
     holds(known.record, capability, deps.activeAccount());
-  running.host.webContents.on('did-finish-load', () => {
-    const port = running.host.openPort();
-    running.port = port;
+  renderer.host.webContents.on('did-finish-load', () => {
+    const port = renderer.host.openPort();
+    renderer.port = port;
     serveExtensionRpc(port, granted, methods, deps.rpc, (call) => {
       deps.audit.record({ ...call, extension: id });
     });
+    // Every call counts as use, so an extension at work is never stopped as idle.
+    port.on('message', () => {
+      loaded.active = deps.limits.now();
+    });
+    for (const command of renderer.queued.splice(0)) {
+      port.postMessage({ command });
+    }
   });
 }
 
@@ -250,9 +263,19 @@ async function remember(root: string, id: string, approval: Approval): Promise<v
   }
 }
 
-/** A running extension: its window, its name and commands, and the port its page holds now. */
-interface RunningExtension {
+/** An extension's hidden window while it runs, and the port its page holds now. */
+interface Renderer {
   readonly host: ExtensionHost;
+  port?: RpcPort;
+  /** Commands the user picked before the page had its port. */
+  readonly queued: string[];
+}
+
+/**
+ * An installed extension YapYap has read: what its manifest contributes,
+ * which the menus list whether or not it runs, and its renderer while it does.
+ */
+interface LoadedExtension {
   readonly name: string;
   /** What YapYap knows of it, whose grants are read again whenever they change. */
   readonly known: KnownExtension;
@@ -265,13 +288,17 @@ interface RunningExtension {
   readonly partition: string;
   /** The panel's title, if the extension has one. */
   readonly panel: string | undefined;
-  port?: RpcPort;
+  /** Whether it runs from launch to quit, as it asked, rather than only while needed (#495). */
+  readonly always: boolean;
+  renderer?: Renderer;
   panelWindow?: ExtensionPanelWindow;
+  /** When it was last started, used or had its panel closed, for stopping it once idle. */
+  active: number;
 }
 
 interface RuntimeState {
-  /** Each running extension's window, and its name from its manifest. */
-  readonly hosts: Map<string, RunningExtension>;
+  /** Each extension read from its manifest, in the order they were read, running or not. */
+  readonly loaded: Map<string, LoadedExtension>;
   readonly sources: Map<string, ExtensionSource>;
   /** Each extension's name and current record, which its calls and requests are checked against. */
   readonly known: Map<string, KnownExtension>;
@@ -334,30 +361,59 @@ function answerLocalServers(
   });
 }
 
-/** What YapYap keeps of an extension it started: its window, and what its manifest contributes. */
-function runningExtension(
-  host: ExtensionHost,
+/** What YapYap keeps of an extension it read: what its manifest contributes, before it runs. */
+function loadedExtension(
   partition: string,
   manifest: Manifest,
   known: KnownExtension,
-): RunningExtension {
+  now: number,
+): LoadedExtension {
   return {
-    host,
     partition,
     known,
     name: manifest.name,
     commands: manifest.contributes?.commands ?? [],
     actions: actionsOf(manifest),
     panel: manifest.contributes?.panel?.title,
+    always: manifest.activation !== 'on-demand',
+    active: now,
   };
 }
 
+/**
+ * Starts an extension's hidden window, unless it runs already, and resolves
+ * once the window was asked to load its page.
+ */
+function wake(deps: ExtensionRuntimeDependencies, loaded: LoadedExtension): Promise<void> {
+  loaded.active = deps.limits.now();
+  if (loaded.renderer !== undefined) {
+    return Promise.resolve();
+  }
+  const { id } = loaded.known.record;
+  const host = deps.createHost(loaded.partition);
+  const home = extensionOrigin(id);
+  deps.views.set(host.webContents, { home, zone: 'extension', label: id });
+  const renderer: Renderer = { host, queued: [] };
+  loaded.renderer = renderer;
+  connect(deps, loaded, renderer);
+  return host.loadURL(`${home}/`).then(
+    () => undefined,
+    () => {
+      deps.warn(`Extension ${id} could not be loaded.`);
+    },
+  );
+}
+
+/**
+ * Reads an installed extension's manifest, so the menus list what it
+ * contributes, and starts it only if it asked to run from launch (#495).
+ */
 async function start(
   deps: ExtensionRuntimeDependencies,
   state: RuntimeState,
   record: ExtensionRecord,
 ): Promise<void> {
-  closeRunning(state, record.id);
+  unload(state, record.id);
   if (record.pulled !== undefined) {
     return;
   }
@@ -380,21 +436,17 @@ async function start(
   state.known.set(record.id, known);
   const partition = extensionPartition(record);
   serve(deps, state, record.id, partition, known);
-  const host = deps.createHost(partition);
-  const home = extensionOrigin(record.id);
-  deps.views.set(host.webContents, { home, zone: 'extension', label: record.id });
-  const running = runningExtension(host, partition, manifest, known);
-  state.hosts.set(record.id, running);
+  const loaded = loadedExtension(partition, manifest, known, deps.limits.now());
+  state.loaded.set(record.id, loaded);
   changed(state);
-  connect(deps, running, known);
-  await host.loadURL(`${home}/`).catch(() => {
-    deps.warn(`Extension ${record.id} could not be loaded.`);
-  });
+  if (loaded.always) {
+    await wake(deps, loaded);
+  }
 }
 
 function newState(): RuntimeState {
   return {
-    hosts: new Map(),
+    loaded: new Map(),
     sources: new Map(),
     known: new Map(),
     served: new Set(),
@@ -418,17 +470,38 @@ const changed = (state: RuntimeState): void => {
   }
 };
 
-/** Closes a running extension's window and its panel, if open. */
-function closeRunning(state: RuntimeState, id: string): void {
-  const running = state.hosts.get(id);
-  running?.host.destroy();
-  running?.panelWindow?.destroy();
-  state.hosts.delete(id);
+/** Closes an extension's window and its panel, if open, and forgets what its manifest contributes. */
+function unload(state: RuntimeState, id: string): void {
+  const loaded = state.loaded.get(id);
+  loaded?.renderer?.host.destroy();
+  loaded?.panelWindow?.destroy();
+  state.loaded.delete(id);
 }
 
 function stopExtension(state: RuntimeState, id: string): void {
-  closeRunning(state, id);
+  unload(state, id);
   changed(state);
+}
+
+/** How long an on-demand extension may sit unused before its renderer stops (#495). */
+export const EXTENSION_IDLE_MS = 300_000;
+/** How often idle extensions are looked for: a stop may come up to this much after the idle time. */
+const IDLE_CHECK_MS = 60_000;
+
+/**
+ * Stops the renderer of each on-demand extension that made no call, ran no
+ * command and showed no panel for {@link EXTENSION_IDLE_MS}. Its commands,
+ * menu items and panel stay listed, and the next one it is needed for starts it again.
+ */
+function sleepIdle(deps: ExtensionRuntimeDependencies, state: RuntimeState): void {
+  const now = deps.limits.now();
+  for (const loaded of state.loaded.values()) {
+    const idle = now - loaded.active >= EXTENSION_IDLE_MS;
+    if (!loaded.always && loaded.panelWindow === undefined && idle) {
+      loaded.renderer?.host.destroy();
+      delete loaded.renderer;
+    }
+  }
 }
 
 /**
@@ -452,9 +525,9 @@ async function forget(
   );
 }
 
-/** The panels of the extensions that run, in the order they started. */
+/** The panels of the installed extensions, in the order they were read. */
 function panelsOf(state: RuntimeState): ExtensionPanel[] {
-  return [...state.hosts].flatMap(([extension, { name, panel }]) =>
+  return [...state.loaded].flatMap(([extension, { name, panel }]) =>
     panel === undefined ? [] : [{ extension, extensionName: name, title: panel }],
   );
 }
@@ -462,31 +535,34 @@ function panelsOf(state: RuntimeState): ExtensionPanel[] {
 /**
  * Opens an extension's panel in a window of its own, on the extension's session
  * and under its CSP, titled with the extension's name, so it never passes for
- * WhatsApp or YapYap (ADR 0004). A panel already open comes forward.
+ * WhatsApp or YapYap (ADR 0004). A panel already open comes forward. The panel
+ * reaches the host API only through the hidden page, so that starts too.
  */
 function openPanel(
   deps: ExtensionRuntimeDependencies,
   state: RuntimeState,
   extension: string,
 ): boolean {
-  const running = state.hosts.get(extension);
-  if (running?.panel === undefined) {
+  const loaded = state.loaded.get(extension);
+  if (loaded?.panel === undefined) {
     return false;
   }
-  if (running.panelWindow !== undefined) {
-    running.panelWindow.focus();
+  if (loaded.panelWindow !== undefined) {
+    loaded.panelWindow.focus();
     return true;
   }
+  void wake(deps, loaded);
   const window = deps.createPanel(
-    running.partition,
-    en.menu.extensionCommand({ extension: running.name, title: running.panel }),
+    loaded.partition,
+    en.menu.extensionCommand({ extension: loaded.name, title: loaded.panel }),
   );
   const home = extensionOrigin(extension);
   deps.views.set(window.webContents, { home, zone: 'extension', label: extension });
-  running.panelWindow = window;
+  loaded.panelWindow = window;
   // A new window is made only once this one is gone, so this one is still the panel.
   window.onClosed(() => {
-    delete running.panelWindow;
+    delete loaded.panelWindow;
+    loaded.active = deps.limits.now();
   });
   window.loadURL(`${home}${PANEL_PAGE_PATH}`).catch(() => {
     deps.warn(`The panel of extension ${extension} could not be loaded.`);
@@ -494,9 +570,9 @@ function openPanel(
   return true;
 }
 
-/** The commands of the extensions that run, in the order they started. */
+/** The commands of the installed extensions, in the order they were read. */
 function commandsOf(state: RuntimeState): ExtensionCommand[] {
-  return [...state.hosts].flatMap(([extension, { name, commands }]) =>
+  return [...state.loaded].flatMap(([extension, { name, commands }]) =>
     commands.map(({ id, title, shortcut }) => ({
       extensionName: name,
       extension,
@@ -511,7 +587,7 @@ function commandsOf(state: RuntimeState): ExtensionCommand[] {
  * An extension's composer actions and context-menu items, keeping only those
  * that name a command it declares, since only those can run.
  */
-function actionsOf(manifest: Manifest): RunningExtension['actions'] {
+function actionsOf(manifest: Manifest): LoadedExtension['actions'] {
   const contributes = manifest.contributes;
   const declared = new Set((contributes?.commands ?? []).map(({ id }) => id));
   const items = [
@@ -524,40 +600,53 @@ function actionsOf(manifest: Manifest): RunningExtension['actions'] {
   return items.filter(({ command }) => declared.has(command));
 }
 
-/** The menu items of the extensions that run, in the order they started. */
+/** The menu items of the installed extensions, in the order they were read. */
 function extensionActionsOf(state: RuntimeState): ExtensionAction[] {
-  return [...state.hosts].flatMap(([extension, { name, actions }]) =>
+  return [...state.loaded].flatMap(([extension, { name, actions }]) =>
     actions.map((action) => ({ ...action, extension, extensionName: name })),
   );
 }
 
-/** Asks a running extension to run one of the commands it declared; false when it cannot. */
-function runCommand(state: RuntimeState, extension: string, command: string): boolean {
-  const running = state.hosts.get(extension);
-  if (running?.port === undefined || !running.commands.some(({ id }) => id === command)) {
+/**
+ * Asks an extension to run one of the commands it declared, starting it
+ * first if it is not running; false when it declared no such command.
+ */
+function runCommand(
+  deps: ExtensionRuntimeDependencies,
+  state: RuntimeState,
+  extension: string,
+  command: string,
+): boolean {
+  const loaded = state.loaded.get(extension);
+  if (loaded?.commands.some(({ id }) => id === command) !== true) {
     return false;
   }
-  running.port.postMessage({ command });
+  void wake(deps, loaded);
+  const renderer = loaded.renderer;
+  if (renderer?.port === undefined) {
+    renderer?.queued.push(command);
+  } else {
+    renderer.port.postMessage({ command });
+  }
   return true;
 }
 
 function processesOf(state: RuntimeState): ExtensionProcess[] {
-  return [...state.hosts].map(([id, { host, name }]) => ({
-    id,
-    name,
-    pid: host.webContents.getOSProcessId(),
-  }));
+  return [...state.loaded].flatMap(([id, { renderer, name }]) =>
+    renderer === undefined ? [] : [{ id, name, pid: renderer.host.webContents.getOSProcessId() }],
+  );
 }
 
-/** What YapYap's menus show of the running extensions, and how they run a command. */
+/** What YapYap's menus show of the installed extensions, and how they run a command. */
 function contributionsOf(
+  deps: ExtensionRuntimeDependencies,
   state: RuntimeState,
 ): Pick<ExtensionRuntime, 'commands' | 'actions' | 'runCommand' | 'panels' | 'onChange'> {
   return {
     panels: () => panelsOf(state),
     commands: () => commandsOf(state),
     actions: () => extensionActionsOf(state),
-    runCommand: (extension, command) => runCommand(state, extension, command),
+    runCommand: (extension, command) => runCommand(deps, state, extension, command),
     onChange: (listener) => {
       state.listeners.add(listener);
     },
@@ -585,26 +674,38 @@ export function createExtensionRuntime(deps: ExtensionRuntimeDependencies): Exte
       const records = await loadRecords(deps.root);
       await Promise.all([...records.values()].map((record) => start(deps, state, record)));
     },
-    running: () => [...state.hosts.keys()],
+    running: () => [...state.loaded].flatMap(([id, { renderer }]) => (renderer ? [id] : [])),
     processes: () => processesOf(state),
     stop: (id) => {
       stopExtension(state, id);
     },
-    ...contributionsOf(state),
+    ...contributionsOf(deps, state),
     openPanel: (extension) => openPanel(deps, state, extension),
     regrant: (id) => regrant(deps.root, state, id),
     forget: (id) => forget(deps, state, id),
   };
+  watch(deps, state, runtime);
+  return runtime;
+}
+
+/** Restarts or stops extensions over their limits (#97), and stops idle on-demand ones (#495). */
+function watch(
+  deps: ExtensionRuntimeDependencies,
+  state: RuntimeState,
+  runtime: ExtensionRuntime,
+): void {
   guardExtensionResources({
     ...deps.limits,
     running: runtime.processes,
     restart: (id) => {
-      restart(id).catch(() => {
+      runtime.restart(id).catch(() => {
         deps.warn(`Extension ${id} could not be restarted.`);
       });
     },
     stop: runtime.stop,
     warn: deps.warn,
   });
-  return runtime;
+  deps.limits.every(() => {
+    sleepIdle(deps, state);
+  }, IDLE_CHECK_MS);
 }

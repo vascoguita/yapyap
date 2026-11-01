@@ -20,7 +20,7 @@ point, and static assets. The manifest is validated against
 `packages/sdk/schema/manifest.schema.json` (published with the SDK and on the
 docs site). Fields: `id` (reverse-DNS), `name`, `version` (semver), `author`
 (`name`, optional `url`), `apiVersion` (semver range against the SDK),
-`entry`, `capabilities[]`, `network.hosts[]`, `contributes` (commands,
+`entry`, `activation` (see the amendments), `capabilities[]`, `network.hosts[]`, `contributes` (commands,
 composer actions, context-menu items, settings JSON Schema, optional panel),
 and `signature` (`publicKey`, `algorithm: "ed25519"`, `value`).
 
@@ -347,10 +347,37 @@ shows the latest 50 calls. `accountId` joins once grants are per account
   with them. Every extension is again under the one policy and the same
   limits described above. Records that kept the old `modelSearch` answer
   still load, and nothing reads it.
+- 2026-11-01 (#495): extensions run only while needed, when they say they
+  can. The manifest gains `activation`, which the schema checks:
+  - `startup`, the default, runs the extension from launch to quit, as
+    before, so an extension that works on its own keeps working.
+  - `on-demand` starts the extension's hidden window only when the user
+    runs one of its commands (from the menu, a shortcut or a right click)
+    or opens its panel, which reaches the host API through the hidden page.
+    A command picked while the page loads is sent once the page has its
+    port, and the bootstrap holds it until `activate` has finished, so its
+    handler is registered. YapYap stops the window once the extension made
+    no call, ran no command and had no panel open for five minutes, checked
+    every minute; every call it makes counts as use, and no host call takes
+    longer than ten seconds, so an extension at work is never stopped.
+  - Commands, composer actions, context-menu items and panels are read from
+    the manifest when YapYap starts, so they are listed whether the
+    extension runs or not. The menus list those of the installed, enabled
+    extensions, not only the running ones.
+
+  Nothing else changes: each start is the same sandboxed window on the
+  same partition, with a fresh port, served with the same schema,
+  capability and rate checks, and the resource guard watches it while it
+  runs. A fresh port means a fresh token bucket, as on any page load, but
+  an extension cannot start or stop itself: only the user's command or
+  panel starts it, and only five idle minutes stop it. YapYap's own
+  extensions declare `on-demand`. Keeping the old lifetime as the default
+  is C44 in ADR 0008.
 
 ## Consequences
 
 - Extensions cannot do anything outside these capabilities, by design. New needs
   require a new capability, an ADR, and a malicious-extension test.
-- Each enabled extension costs one renderer process, and process count is part
-  of the performance budget.
+- Each enabled extension costs one renderer process while it runs, and
+  process count is part of the performance budget. An `on-demand` extension
+  costs none until it is needed (#495).

@@ -5,6 +5,7 @@ import { expect, test } from './fixtures.ts';
 import {
   chromePage,
   clickMenu,
+  extensionPage,
   installExtension,
   runExtensionCommand,
 } from './extension-helpers.ts';
@@ -32,8 +33,11 @@ test('the example extension drafts the greeting the user chose in the open chat'
   // The command reads the settings when it runs, so it waits until they are saved.
   const records = () => readFile(join(profile, 'extensions', '.extensions.json'), 'utf8');
   await expect.poll(records).toContain('Good morning! Coffee at 10?');
+  // It runs on demand (#495): listed in the menu, but with no page until its command runs.
+  expect(await extensionPage(app, 'org.example.greeter')).toBeNull();
   await expect
     .poll(() => runExtensionCommand(app, 'Greeter: Draft a greeting'), { timeout: 20_000 })
     .toBe(true);
   await expect(window.getByTestId('composer')).toHaveText('Good morning! Coffee at 10?');
+  expect(await extensionPage(app, 'org.example.greeter')).toMatchObject({ shown: false });
 });

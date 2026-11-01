@@ -6,6 +6,7 @@
   "author": { "name": "YapYap contributors", "url": "https://github.com/vascoguita/yapyap" },
   "apiVersion": "^1.0.0",
   "entry": "main.js",
+  "activation": "on-demand",
   "capabilities": ["composer:insert-draft"],
   "network": { "hosts": [] },
   "contributes": {

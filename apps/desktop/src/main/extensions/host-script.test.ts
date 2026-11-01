@@ -111,6 +111,53 @@ describe('bootExtension', () => {
     });
   });
 
+  it('holds a command that comes before activation until its handler is registered', async () => {
+    const p = page();
+    const ran: string[] = [];
+    let loaded: (module: unknown) => void = () => undefined;
+    const booted = bootExtension(
+      p.scope,
+      () =>
+        new Promise((resolve) => {
+          loaded = resolve;
+        }),
+      '/main.js',
+      'yapyap:extension-port',
+      helpers,
+    );
+    p.deliver('yapyap:extension-port');
+    p.reply({ command: 'record' });
+    await Promise.resolve();
+    expect(ran).toEqual([]);
+    loaded({
+      default: {
+        activate: (api: ExtensionHost) => {
+          api.commands.onRun('record', () => {
+            ran.push('record');
+          });
+        },
+      },
+    });
+    await booted;
+    await vi.waitFor(() => {
+      expect(ran).toEqual(['record']);
+    });
+  });
+
+  it('runs no command once activation failed', async () => {
+    const p = page();
+    const booted = bootExtension(
+      p.scope,
+      () => Promise.reject(new Error('no such module')),
+      '/main.js',
+      'yapyap:extension-port',
+      helpers,
+    );
+    p.deliver('yapyap:extension-port');
+    p.reply({ command: 'record' });
+    await expect(booted).rejects.toThrow('no such module');
+  });
+
   it('loads an entry without an activate function, and does nothing with it', async () => {
     const p = page();
     for (const module of [{}, null, { default: { activate: 'no' } }]) {

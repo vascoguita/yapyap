@@ -31,6 +31,7 @@ inside the extension.
   "author": { "name": "YapYap contributors", "url": "https://github.com/vascoguita/yapyap" },
   "apiVersion": "^1.0.0",
   "entry": "main.js",
+  "activation": "on-demand",
   "capabilities": ["composer:insert-draft"],
   "network": { "hosts": [] },
   "contributes": {
@@ -77,7 +78,10 @@ export default {
 ```
 
 YapYap imports the `entry` module and calls the `activate` of its default
-export with the host API. `host.commands.onRun` runs a handler when the
+export with the host API. With `"activation": "on-demand"`, it does so only
+when the user first runs one of the extension's commands or opens its
+panel, and may stop it again once idle ([when it runs](./manifest#when-it-runs)).
+`host.commands.onRun` runs a handler when the
 user picks the command from **Extension Commands** in the menu, and
 `host.settings.get` returns what the user saved in the extension's form.
 `host.composer.insertDraft` puts text in the open chat's message box: the
