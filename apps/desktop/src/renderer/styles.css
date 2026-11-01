@@ -171,6 +171,13 @@ section {
   gap: 4px 12px;
 }
 
+/* Rows of links stay far enough apart for WCAG 2.2's 24 px target size. */
+.section-links a {
+  display: inline-block;
+  min-block-size: 24px;
+  line-height: 24px;
+}
+
 /* A jump lands with the heading clear of the window's top edge. */
 main.settings h2 {
   scroll-margin-block-start: 12px;
