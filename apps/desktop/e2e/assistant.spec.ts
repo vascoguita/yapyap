@@ -220,7 +220,7 @@ test('offers the model server it finds in the Welcome, and uses it on one click'
     const welcome = await chromePage(app, '/welcome.html');
     await expect(welcome.getByRole('heading', { name: 'Your AI assistant' })).toBeVisible();
     await expect(
-      welcome.getByRole('button', { name: /^Download a private model \(\d/ }),
+      welcome.getByRole('button', { name: /^Download a Private Model \(\d/ }),
     ).toBeVisible();
     await welcome
       .getByRole('button', {
