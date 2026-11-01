@@ -1,8 +1,4 @@
-/** A small state file; window-state.json and the like keep state out of the settings too. */
-export interface StateFile {
-  readonly read: () => string | undefined;
-  readonly write: (text: string) => void;
-}
+import type { TextFile } from '../atomic-write.ts';
 
 export interface LastFolder {
   readonly get: () => string | undefined;
@@ -10,10 +6,10 @@ export interface LastFolder {
 }
 
 /** Where the user last saved a download they were asked about (#74). */
-export function lastFolderIn(file: StateFile): LastFolder {
+export function lastFolderIn(file: TextFile): LastFolder {
   let folder: string | undefined;
   try {
-    const parsed = JSON.parse(file.read() ?? '{}') as { lastFolder?: unknown };
+    const parsed = JSON.parse(file.read()) as { lastFolder?: unknown };
     folder = typeof parsed.lastFolder === 'string' ? parsed.lastFolder : undefined;
   } catch {
     folder = undefined;

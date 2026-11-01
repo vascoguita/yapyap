@@ -12,6 +12,7 @@ import type { SettingsService } from '../settings/service.ts';
 import type { ChromeHandler } from '../ipc/chrome.ts';
 import type { SidebarSource } from './sidebar.ts';
 import type { ChromePage, ChromeWindowPort } from './window-opener.ts';
+import type { TextFile } from '../atomic-write.ts';
 
 export const QUICK_PANEL_PAGE: ChromePage = {
   path: 'quick-panel.html',
@@ -69,17 +70,11 @@ export interface QuickPanelDependencies {
   readonly place: PanelPlace;
 }
 
-/** A file holding where the user left the panel. */
-interface PlaceFile {
-  readonly read: () => string;
-  readonly write: (text: string) => void;
-}
-
 const isCoordinate = (value: unknown): value is number =>
   Number.isInteger(value) && Math.abs(value as number) <= 100_000;
 
 /** The panel's last place, from a small state file; anything unreadable counts as none. */
-export function panelPlaceIn(file: PlaceFile): PanelPlace {
+export function panelPlaceIn(file: TextFile): PanelPlace {
   let point: Point | undefined;
   try {
     const { x, y } = Object(JSON.parse(file.read())) as Record<string, unknown>;

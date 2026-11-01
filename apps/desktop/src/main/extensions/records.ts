@@ -1,10 +1,10 @@
-import { randomUUID } from 'node:crypto';
-import { open, readFile, rename, rm } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { ManifestSchema } from '@yapyap/extension-sdk';
 import { compareCodeUnits } from '@yapyap/extension-sign';
 import { Type, type Static } from 'typebox';
 import { Value } from 'typebox/value';
+import { isMissing, writeTextAtomicallyAsync } from '../atomic-write.ts';
 import { MAX_LOCAL_SERVERS } from './network-policy.ts';
 
 /**
@@ -110,10 +110,6 @@ export function writeRecords(records: ExtensionRecords): string {
   return `${JSON.stringify({ version: RECORDS_VERSION, extensions: sorted }, null, 2)}\n`;
 }
 
-function isMissing(error: unknown): boolean {
-  return (error as NodeJS.ErrnoException).code === 'ENOENT';
-}
-
 /** No file yet means nothing is installed; any other read error is not hidden. */
 export async function loadRecords(root: string): Promise<ExtensionRecords> {
   try {
@@ -128,19 +124,5 @@ export async function loadRecords(root: string): Promise<ExtensionRecords> {
 
 /** Writes a fresh file and renames it over the old one, so a crash never leaves half a file. */
 export async function saveRecords(root: string, records: ExtensionRecords): Promise<void> {
-  const path = join(root, RECORDS_FILE);
-  const temporary = `${path}.${randomUUID()}.tmp`;
-  try {
-    const file = await open(temporary, 'wx');
-    try {
-      await file.writeFile(writeRecords(records));
-      await file.sync();
-    } finally {
-      await file.close();
-    }
-    await rename(temporary, path);
-  } catch (error) {
-    await rm(temporary, { force: true });
-    throw error;
-  }
+  await writeTextAtomicallyAsync(join(root, RECORDS_FILE), writeRecords(records));
 }

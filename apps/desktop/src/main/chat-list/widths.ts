@@ -1,6 +1,7 @@
 import { Type } from 'typebox';
 import { Value } from 'typebox/value';
 import { MAX_CHAT_LIST_WIDTH, MIN_CHAT_LIST_WIDTH } from '../../shared/chat-list-api.ts';
+import type { TextFile } from '../atomic-write.ts';
 
 const UUID = '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$';
 const FORMAT_VERSION = 1;
@@ -24,12 +25,6 @@ const WidthsSchema = Type.Object(
 /** Whether a width is one the main process keeps: whole pixels, within bounds. */
 export const isChatListWidth = (value: unknown): value is number => Value.Check(WidthSchema, value);
 
-export interface WidthFile {
-  /** May throw, for example when nothing was saved yet. */
-  readonly read: () => string;
-  readonly write: (text: string) => void;
-}
-
 /** Each account's chat list width, kept in `chat-list.json` (#79). */
 export interface ChatListWidths {
   /** The account's width, or undefined for WhatsApp's own. */
@@ -41,7 +36,7 @@ export interface ChatListWidths {
 }
 
 /** The saved widths, or none when the file is missing, damaged or from elsewhere. */
-function readWidths(file: WidthFile): Map<string, number> {
+function readWidths(file: TextFile): Map<string, number> {
   try {
     const value: unknown = JSON.parse(file.read());
     return Value.Check(WidthsSchema, value)
@@ -59,7 +54,7 @@ function readWidths(file: WidthFile): Map<string, number> {
  * from `accounts.json`, which the Accounts window edits. A write that fails
  * keeps the width for this run.
  */
-export function chatListWidths(file: WidthFile, warn: (message: string) => void): ChatListWidths {
+export function chatListWidths(file: TextFile, warn: (message: string) => void): ChatListWidths {
   const widths = readWidths(file);
   const save = (): void => {
     const text = JSON.stringify({ version: FORMAT_VERSION, widths: Object.fromEntries(widths) });

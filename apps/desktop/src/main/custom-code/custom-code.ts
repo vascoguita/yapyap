@@ -6,7 +6,7 @@ import {
   NO_CUSTOM_CODE,
   type CustomCode,
 } from '../../shared/custom-code.ts';
-import type { StateFile } from '../downloads/last-folder.ts';
+import type { TextFile } from '../atomic-write.ts';
 
 /**
  * A world of its own: user scripts share the page's DOM but neither the
@@ -152,7 +152,7 @@ export interface CustomCodeController {
 }
 
 /** A file that cannot be read counts as missing. */
-function readSaved(file: StateFile): string | undefined {
+function readSaved(file: TextFile): string | undefined {
   try {
     return file.read();
   } catch {
@@ -162,7 +162,7 @@ function readSaved(file: StateFile): string | undefined {
 
 /** Keeps the user's stylesheets in their pages and runs their scripts on every load (#72). */
 export function createCustomCode(
-  file: StateFile,
+  file: TextFile,
   warn: (message: string) => void,
 ): CustomCodeController {
   const state: CodeState = {

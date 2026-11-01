@@ -113,7 +113,7 @@ import {
   type TrayIconDependencies,
 } from './tray/tray-icon.ts';
 import { syncAutostartSetting, type AutostartPort } from './autostart/autostart.ts';
-import { type ManagedWindow, type WindowStateStore } from './window/main-window.ts';
+import type { ManagedWindow } from './window/main-window.ts';
 import type { Rect } from './window/window-state.ts';
 import { type GlobalShortcutPort } from './shortcuts/global-shortcuts.ts';
 import type { ContextMenuItem, MenuPage } from './spelling/context-menu.ts';
@@ -135,6 +135,7 @@ import {
   openMainWindow,
   refuseWithoutSandbox,
 } from './startup.ts';
+import type { TextFile } from './atomic-write.ts';
 
 export interface AppPort {
   disableHardwareAcceleration(): void;
@@ -278,10 +279,10 @@ export interface StartDependencies<Window extends WindowPort> {
   readonly onResume: (listener: () => void) => void;
   /** A profile photo as a small square PNG data URL, or undefined when it is no image (#87). */
   readonly avatarImage: (bytes: Uint8Array) => string | undefined;
-  readonly gpuCrashLog: { readonly read: () => string; readonly write: (text: string) => void };
+  readonly gpuCrashLog: TextFile;
   readonly settings: SettingsService;
   readonly nativeTheme: ThemePort;
-  readonly windowState: WindowStateStore;
+  readonly windowState: TextFile;
   /** The usable area of each connected display, once the app is ready. */
   readonly workAreas: () => readonly Rect[];
   readonly shutdown: ShutdownSources;

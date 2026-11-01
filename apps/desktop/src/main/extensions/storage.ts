@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { lstat, mkdir, mkdtemp, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve, sep } from 'node:path';
+import { isMissing } from '../atomic-write.ts';
 
 /** The files to install, by `/`-separated path relative to the extension's folder. */
 export type ExtensionFiles = ReadonlyMap<string, Uint8Array>;
@@ -62,10 +63,6 @@ async function stage(root: string, files: ExtensionFiles): Promise<string> {
     throw failure.reason;
   }
   return staging;
-}
-
-function isMissing(error: unknown): boolean {
-  return (error as NodeJS.ErrnoException).code === 'ENOENT';
 }
 
 /** Moves `target` aside; true when there was something to move. */
