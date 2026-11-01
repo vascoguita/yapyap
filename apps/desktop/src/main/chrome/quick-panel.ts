@@ -1,3 +1,4 @@
+import { argumentsOf, isBoolean } from '../ipc/arguments.ts';
 import {
   CHROME_CHANNELS,
   SIDEBAR_STATE_EVENT,
@@ -8,7 +9,7 @@ import { bringToFront, type LinkWindow } from '../instances.ts';
 import type { Settings } from '../settings/schema.ts';
 import type { Visibility } from '../window/visibility.ts';
 import type { SettingsService } from '../settings/service.ts';
-import type { ChromeHandler } from './ipc.ts';
+import type { ChromeHandler } from '../ipc/chrome.ts';
 import type { SidebarSource } from './sidebar.ts';
 import type { ChromePage, ChromeWindowPort } from './window-opener.ts';
 
@@ -211,7 +212,7 @@ function quickPanelHandlers(deps: QuickPanelDependencies, slot: PanelSlot): Chro
   return [
     {
       channel: CHROME_CHANNELS.quickPanelOpen,
-      accepts: ([id, ...rest]) => rest.length === 0 && listed(id),
+      accepts: argumentsOf(listed),
       handle: (_call, id) => {
         slot.source?.switchTo(id as string);
         slot.owner?.bringToFront();
@@ -219,7 +220,7 @@ function quickPanelHandlers(deps: QuickPanelDependencies, slot: PanelSlot): Chro
     },
     {
       channel: CHROME_CHANNELS.quickPanelSetDoNotDisturb,
-      accepts: ([on, ...rest]) => rest.length === 0 && typeof on === 'boolean',
+      accepts: argumentsOf(isBoolean),
       handle: (_call, on) => {
         deps.settings.update((current) => ({
           ...current,

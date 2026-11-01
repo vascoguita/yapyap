@@ -5,7 +5,8 @@ import {
   type SettingField,
   type SettingValue,
 } from '../../shared/settings-fields.ts';
-import { noArguments, type ChromeHandler } from '../chrome/ipc.ts';
+import { noArguments } from '../ipc/arguments.ts';
+import type { ChromeHandler } from '../ipc/chrome.ts';
 import { SettingsSchema, type Settings } from './schema.ts';
 import type { SettingsService } from './service.ts';
 

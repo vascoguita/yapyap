@@ -1,7 +1,8 @@
 import { CHROME_CHANNELS } from '../../shared/chrome-api.ts';
 import { en } from '../../shared/messages/en.ts';
 import { bugReportUrl } from '../crash/crash-report.ts';
-import { noArguments, type ChromeHandler } from './ipc.ts';
+import { argumentsOf, noArguments } from '../ipc/arguments.ts';
+import type { ChromeHandler } from '../ipc/chrome.ts';
 
 /** Long enough for a careful description; the GitHub form takes the rest. */
 const MAX_DESCRIPTION = 4000;
@@ -43,7 +44,7 @@ export function problemReportHandlers(deps: ProblemReportDependencies): ChromeHa
     },
     {
       channel: CHROME_CHANNELS.reportOpen,
-      accepts: ([description, ...rest]) => rest.length === 0 && isDescription(description),
+      accepts: argumentsOf(isDescription),
       handle: async (_call, description) => {
         const text = (description as string).trim();
         const diagnostics = await deps.diagnostics();

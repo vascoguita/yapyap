@@ -912,7 +912,7 @@ describe('startApp', () => {
       expect(f.runtime.assistantBar.send).toHaveBeenCalledExactlyOnceWith(1);
     });
     f.ipcListeners.get('whatsapp:assistant-bar-send')?.({ ...fromPage, sender: {} }, 2);
-    expect(f.warn).toHaveBeenCalledWith('Ignored an assistant bar message from outside the bar.');
+    expect(f.warn).toHaveBeenCalledWith('Ignored a message on whatsapp:assistant-bar-send.');
     expect(f.runtime.assistantBar.send).toHaveBeenCalledOnce();
   });
 
@@ -1410,7 +1410,7 @@ describe('startApp', () => {
       send('reset', fromWork);
       expect(f.chatListWidths.set).toHaveBeenLastCalledWith(SECOND, undefined);
       send('resize', { ...fromWork, sender: {} }, 400);
-      expect(f.warn).toHaveBeenCalledWith('Ignored a chat list message from outside WhatsApp.');
+      expect(f.warn).toHaveBeenCalledWith('Ignored a message on whatsapp:chat-list-resize.');
       expect(f.chatListWidths.set).toHaveBeenCalledTimes(2);
       void menu(f).remove(ACCOUNT);
       await vi.waitFor(() => {

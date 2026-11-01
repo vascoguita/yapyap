@@ -2,7 +2,8 @@ import { CHROME_CHANNELS, type AccountList, type AccountSummary } from '../../sh
 import { ACCOUNT_COLORS, isAccountColor, MAX_ACCOUNT_NAME } from '../accounts/accounts.ts';
 import type { AccountChange } from '../accounts/running.ts';
 import { isProxyAddress } from '../../shared/proxy-address.ts';
-import { noArguments, type ChromeHandler } from './ipc.ts';
+import { argumentsOf, isString, noArguments } from '../ipc/arguments.ts';
+import type { ChromeHandler } from '../ipc/chrome.ts';
 
 /** The accounts as the Accounts window manages them. */
 export interface AccountManager {
@@ -35,20 +36,17 @@ function isLastRunning(entries: readonly AccountSummary[], entry: AccountSummary
   return entry.enabled && entries.every((other) => other === entry || !other.enabled);
 }
 
-const oneId = ([id, ...rest]: readonly unknown[]): boolean =>
-  rest.length === 0 && typeof id === 'string';
-
 /** What an account may use, and forgetting the camera and microphone answers (#77). */
 function permissionHandlers(current: () => AccountManager | undefined): ChromeHandler[] {
   return [
     {
       channel: CHROME_CHANNELS.accountsPermissions,
-      accepts: oneId,
+      accepts: argumentsOf(isString),
       handle: (_call, id) => current()?.permissions(id as string) ?? null,
     },
     {
       channel: CHROME_CHANNELS.accountsForgetPermissions,
-      accepts: oneId,
+      accepts: argumentsOf(isString),
       handle: (_call, id) => {
         const manager = current();
         manager?.forgetPermissions(id as string);
@@ -92,8 +90,7 @@ export function accountsHandlers(
     { channel: CHROME_CHANNELS.accountsList, accepts: noArguments, handle: list },
     {
       channel: CHROME_CHANNELS.accountsSave,
-      accepts: ([id, change, ...rest]) =>
-        rest.length === 0 && typeof id === 'string' && parseChange(change) !== undefined,
+      accepts: argumentsOf(isString, (change) => parseChange(change) !== undefined),
       handle: (_call, id, change) => {
         const manager = current();
         const parsed = parseChange(change);
@@ -103,7 +100,7 @@ export function accountsHandlers(
     },
     {
       channel: CHROME_CHANNELS.accountsRemove,
-      accepts: ([id, ...rest]) => rest.length === 0 && typeof id === 'string',
+      accepts: argumentsOf(isString),
       handle: async (_call, id) => {
         const manager = current();
         if (manager === undefined) {

@@ -1,38 +1,14 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import {
-  EXTENSIONS_CHANGED_EVENT,
-  RECORD_PROMPT_STATE_EVENT,
-  RECORDER_COMMAND_EVENT,
-  SIDEBAR_STATE_EVENT,
-  type RecordPromptState,
-  type RecorderCommand,
-  type SidebarState,
-} from '../../shared/chrome-api.ts';
 import { createChromeBridge } from './bridge.ts';
 
 contextBridge.exposeInMainWorld(
   'yapyap',
   createChromeBridge(
     (channel, ...args) => ipcRenderer.invoke(channel, ...args),
-    // The page gets the state alone, never the IPC event.
-    (listener) => {
-      ipcRenderer.on(SIDEBAR_STATE_EVENT, (_event, state: SidebarState) => {
-        listener(state);
-      });
-    },
-    (listener) => {
-      ipcRenderer.on(EXTENSIONS_CHANGED_EVENT, () => {
-        listener();
-      });
-    },
-    (listener) => {
-      ipcRenderer.on(RECORD_PROMPT_STATE_EVENT, (_event, state: RecordPromptState) => {
-        listener(state);
-      });
-    },
-    (listener) => {
-      ipcRenderer.on(RECORDER_COMMAND_EVENT, (_event, command: RecorderCommand) => {
-        listener(command);
+    // The page gets the payload alone, never the IPC event.
+    (event, listener) => {
+      ipcRenderer.on(event, (_event, payload: unknown) => {
+        listener(payload as Parameters<typeof listener>[0]);
       });
     },
   ),

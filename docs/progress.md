@@ -181,3 +181,7 @@ their reasons belong in the ADRs (`docs/adr/`), and released changes in
   extension tests share workers across files (`isolate: false` in
   `vitest.projects.ts`). The desktop app and the call recorder keep one
   worker per file. Provider retry tests use fake timers.
+- IPC registrars (#523): messages from WhatsApp's preload go through
+  `registerWhatsAppListeners` in `main/ipc/`, next to
+  `registerChromeHandlers`; payload checks use `argumentsOf`, and the chrome
+  preload hears its events through one typed `listen`.

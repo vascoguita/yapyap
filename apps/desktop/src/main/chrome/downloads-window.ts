@@ -1,7 +1,8 @@
 import { CHROME_CHANNELS, DOWNLOAD_ACTIONS, type DownloadAction } from '../../shared/chrome-api.ts';
 import { en } from '../../shared/messages/en.ts';
 import type { DownloadList } from '../downloads/download-list.ts';
-import { noArguments, type ChromeHandler } from './ipc.ts';
+import { argumentsOf, noArguments } from '../ipc/arguments.ts';
+import type { ChromeHandler } from '../ipc/chrome.ts';
 import type { ChromePage } from './window-opener.ts';
 
 export const DOWNLOADS_PAGE: ChromePage = {
@@ -25,8 +26,7 @@ export function downloadsHandlers(list: DownloadList): ChromeHandler[] {
     { channel: CHROME_CHANNELS.downloadsList, accepts: noArguments, handle: () => list.entries() },
     {
       channel: CHROME_CHANNELS.downloadsAct,
-      accepts: ([id, action, ...rest]) =>
-        rest.length === 0 && Number.isSafeInteger(id) && isAction(action),
+      accepts: argumentsOf(Number.isSafeInteger, isAction),
       handle: (_call, id, action) => {
         list.act(id as number, action as DownloadAction);
       },

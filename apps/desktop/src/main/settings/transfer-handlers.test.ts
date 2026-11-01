@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { ChromeHandler } from '../chrome/ipc.ts';
+import type { ChromeHandler } from '../ipc/chrome.ts';
 import { defaultSettings } from './decode.ts';
 import type { Settings } from './schema.ts';
 import type { SettingsService } from './service.ts';

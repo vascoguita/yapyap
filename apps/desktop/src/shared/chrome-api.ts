@@ -591,7 +591,7 @@ export const CHROME_CHANNELS = {
   assistantForgetChat: 'assistant:forget-chat',
 } as const;
 
-/** The one channel YapYap sends on, from the main process to the sidebar. */
+/** Tells the sidebar and the quick panel how the accounts stand. */
 export const SIDEBAR_STATE_EVENT = 'sidebar:state-changed';
 
 /** Tells an open Extensions window that the installed extensions changed (#342). */
@@ -602,3 +602,11 @@ export const RECORD_PROMPT_STATE_EVENT = 'record-prompt:state-changed';
 
 /** Tells the recorder page to start or stop capturing. */
 export const RECORDER_COMMAND_EVENT = 'recorder:command';
+
+/** What the main process sends on each event channel, the only ones a chrome page hears. */
+export interface ChromeEvents {
+  readonly [SIDEBAR_STATE_EVENT]: SidebarState;
+  readonly [EXTENSIONS_CHANGED_EVENT]: undefined;
+  readonly [RECORD_PROMPT_STATE_EVENT]: RecordPromptState;
+  readonly [RECORDER_COMMAND_EVENT]: RecorderCommand;
+}

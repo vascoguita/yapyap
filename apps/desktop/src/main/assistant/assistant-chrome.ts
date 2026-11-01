@@ -1,7 +1,7 @@
 import type { ReadChat } from '../../adapter/active-chat.ts';
 import type { UnreadSummaryChat } from '../../adapter/unread-summary.ts';
 import { en } from '../../shared/messages/en.ts';
-import type { ChromeHandler } from '../chrome/ipc.ts';
+import type { ChromeHandler } from '../ipc/chrome.ts';
 import type { SettingsService } from '../settings/service.ts';
 import type { AssistantBarView } from './bar-page.ts';
 import { createAssistantBar, type AssistantBar, type BarAccounts } from './bar.ts';

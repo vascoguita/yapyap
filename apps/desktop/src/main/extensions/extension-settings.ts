@@ -1,4 +1,5 @@
 import { join } from 'node:path';
+import { argumentsOf, isString } from '../ipc/arguments.ts';
 import type { ExtensionSetting } from '../../shared/chrome-api.ts';
 import { loadRecords, saveRecords, type ExtensionRecord } from './records.ts';
 import { manifestIn, type ExtensionRuntime } from './runtime.ts';
@@ -31,10 +32,11 @@ export async function settingsOf(
 }
 
 /** A setting change: an extension, a short key, and a plain value or null. */
-export function isSettingChange([id, key, value, ...rest]: readonly unknown[]): boolean {
-  const plain = value === null || ['string', 'number', 'boolean'].includes(typeof value);
-  return rest.length === 0 && typeof id === 'string' && typeof key === 'string' && plain;
-}
+export const isSettingChange = argumentsOf(
+  isString,
+  isString,
+  (value) => value === null || ['string', 'number', 'boolean'].includes(typeof value),
+);
 
 /**
  * Saves one setting if it fits the extension's form, or forgets it with null,

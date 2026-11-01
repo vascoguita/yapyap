@@ -7,7 +7,8 @@ import { PRODUCT_NAME } from '../identity.ts';
 import type { SettingsService } from '../settings/service.ts';
 import type { ViewRegistry } from '../views.ts';
 import { CHROME_ORIGIN } from './assets.ts';
-import { noArguments, type ChromeHandler } from './ipc.ts';
+import { argumentsOf, isBoolean, noArguments } from '../ipc/arguments.ts';
+import type { ChromeHandler } from '../ipc/chrome.ts';
 
 /** Wide enough for a 40-character name to wrap onto two lines at most. */
 const SIDEBAR_WIDTH = 220;
@@ -85,21 +86,21 @@ export function sidebarHandlers(
     },
     {
       channel: CHROME_CHANNELS.sidebarSwitch,
-      accepts: ([id, ...rest]) => rest.length === 0 && listed(id),
+      accepts: argumentsOf(listed),
       handle: (_call, id) => {
         slot.current?.switchTo(id as string);
       },
     },
     {
       channel: CHROME_CHANNELS.sidebarStopSharing,
-      accepts: ([id, ...rest]) => rest.length === 0 && sharing(id),
+      accepts: argumentsOf(sharing),
       handle: (_call, id) => {
         slot.current?.stopSharing(id as string);
       },
     },
     {
       channel: CHROME_CHANNELS.sidebarSetCompact,
-      accepts: ([compact, ...rest]) => rest.length === 0 && typeof compact === 'boolean',
+      accepts: argumentsOf(isBoolean),
       handle: (_call, compact) => {
         settings.update((current) => ({
           ...current,

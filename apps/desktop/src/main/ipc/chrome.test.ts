@@ -1,11 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { ViewInfo } from '../views.ts';
-import {
-  noArguments,
-  registerChromeHandlers,
-  type IpcInvokeEvent,
-  type IpcMainPort,
-} from './ipc.ts';
+import { noArguments } from './arguments.ts';
+import { registerChromeHandlers, type IpcInvokeEvent, type IpcMainPort } from './chrome.ts';
 
 const CHROME: ViewInfo = { zone: 'chrome', home: 'app://chrome', label: 'YapYap' };
 const WHATSAPP: ViewInfo = { zone: 'whatsapp', home: 'https://web.whatsapp.com', label: 'W' };
@@ -57,12 +53,5 @@ describe('registerChromeHandlers', () => {
     expect(() => t.call(...args(t))).toThrow('Rejected an IPC call on test:op.');
     expect(t.handle).not.toHaveBeenCalled();
     expect(t.warn).toHaveBeenCalledExactlyOnceWith('Rejected an IPC call on test:op.');
-  });
-});
-
-describe('noArguments', () => {
-  it('accepts only an empty argument list', () => {
-    expect(noArguments([])).toBe(true);
-    expect(noArguments([undefined])).toBe(false);
   });
 });
