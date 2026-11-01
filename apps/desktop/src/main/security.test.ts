@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { fakeEmitter } from '../../test/emitter.ts';
 import { TRANSIENT_POPUP_MS } from './navigation/navigation-guard.ts';
 import { installSecurity, type GuardedContents } from './security.ts';
 import { rendererPreferences } from './web-preferences.ts';
@@ -10,12 +11,10 @@ function setup() {
   const app = {
     on: vi.fn((event: string, listener: Listener) => appListeners.set(event, listener)),
   };
-  const handlers = new Map<string, Listener[]>();
+  const { on, fire } = fakeEmitter();
   let openHandler: (details: { url: string }) => unknown = () => undefined;
   const contents = {
-    on: vi.fn((event: string, listener: Listener) => {
-      handlers.set(event, [...(handlers.get(event) ?? []), listener]);
-    }),
+    on,
     setWindowOpenHandler: vi.fn((handler: typeof openHandler) => {
       openHandler = handler;
     }),
@@ -50,11 +49,6 @@ function setup() {
   };
   const createSession = (session: object): void => {
     appListeners.get('session-created')?.(...([session] as never[]));
-  };
-  const fire = (event: string, ...args: unknown[]): void => {
-    for (const listener of handlers.get(event) ?? []) {
-      listener(...(args as never[]));
-    }
   };
   return {
     contents,

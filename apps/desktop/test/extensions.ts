@@ -8,6 +8,9 @@ import {
 import { fingerprint, signingPayload, type ExtensionArchive } from '@yapyap/extension-sign';
 import { strToU8, zipSync } from 'fflate';
 
+/** A well-formed key fingerprint that matches no real key. */
+export const FAKE_FINGERPRINT = Array.from({ length: 32 }, () => 'ab').join(':');
+
 /** A throwaway Ed25519 key, generated per test run and kept in memory only (ADR 0005). */
 export interface TestKey {
   readonly privateKey: KeyObject;

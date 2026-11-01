@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { fakeEmitter } from '../../test/emitter.ts';
 import { APP_ID } from './identity.ts';
 import { SHOW_FALLBACK_MS } from './show-when-ready.ts';
 import { startApp, type AppPort, type WindowPort } from './start.ts';
@@ -17,21 +18,16 @@ import type { ExtensionAction } from './extensions/runtime.ts';
 import type { AssistantBar } from './assistant/bar.ts';
 import type { AssistantBarView } from './assistant/bar-page.ts';
 
-type Listener = (...args: never[]) => void;
-
 const ACCOUNT = '0b6c3f0e-58a4-4a39-9a43-6f0c1c1f6a01';
 const SECOND = '7d2e9b1c-3f4a-4c5d-8e6f-1a2b3c4d5e6f';
 const THIRD = '0f0e0d0c-0b0a-4908-8706-050403020100';
 
 /** A web contents whose listeners the test can fire by event name. */
 function fakeContents() {
-  const handlers = new Map<string, Listener[]>();
-  const listen = (event: string, listener: Listener): void => {
-    handlers.set(event, [...(handlers.get(event) ?? []), listener]);
-  };
+  const { on, once, fire } = fakeEmitter();
   const contents = {
-    on: vi.fn(listen),
-    once: vi.fn(listen),
+    on,
+    once,
     focus: vi.fn(),
     setWindowOpenHandler: vi.fn(),
     setZoomFactor: vi.fn(),
@@ -56,11 +52,6 @@ function fakeContents() {
       clearStorageData: vi.fn(() => Promise.resolve()),
       fetch: vi.fn(() => Promise.resolve(new Response(new Uint8Array(4)))),
     },
-  };
-  const fire = (event: string, ...args: unknown[]): void => {
-    for (const listener of handlers.get(event) ?? []) {
-      listener(...(args as never[]));
-    }
   };
   return { contents, fire };
 }

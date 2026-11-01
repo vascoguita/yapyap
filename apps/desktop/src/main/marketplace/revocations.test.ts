@@ -1,15 +1,15 @@
 import type { MarketplaceIndex } from '@yapyap/extension-sdk';
 import { describe, expect, it } from 'vitest';
+import { FAKE_FINGERPRINT } from '../../../test/extensions.ts';
 import type { ExtensionRecord } from '../extensions/records.ts';
 import { pulledExtensions } from './revocations.ts';
 
-const SIGNER = Array.from({ length: 32 }, () => 'ab').join(':');
 const OTHER = Array.from({ length: 32 }, () => 'cd').join(':');
 
 const record = (id: string, extra: Partial<ExtensionRecord> = {}): ExtensionRecord => ({
   id,
   version: '1.0.0',
-  fingerprint: SIGNER,
+  fingerprint: FAKE_FINGERPRINT,
   firstParty: false,
   developer: false,
   capabilities: [],
@@ -41,12 +41,27 @@ describe('pulledExtensions', () => {
     ]);
     const pulled = pulledExtensions(
       index([
-        { id: 'org.example.all', versions: '*', signer: SIGNER, reason: 'Sent chats away.' },
-        { id: 'org.example.some', versions: ['1.1.0'], signer: SIGNER, reason: 'Crashes.' },
-        { id: 'org.example.kept', versions: ['2.0.0'], signer: SIGNER, reason: 'Later.' },
-        { id: 'org.example.borrowed', versions: '*', signer: SIGNER, reason: 'Not theirs.' },
-        { id: 'org.example.unsigned', versions: '*', signer: SIGNER, reason: 'No key.' },
-        { id: 'org.example.marked', versions: '*', signer: SIGNER, reason: 'Again.' },
+        {
+          id: 'org.example.all',
+          versions: '*',
+          signer: FAKE_FINGERPRINT,
+          reason: 'Sent chats away.',
+        },
+        {
+          id: 'org.example.some',
+          versions: ['1.1.0'],
+          signer: FAKE_FINGERPRINT,
+          reason: 'Crashes.',
+        },
+        { id: 'org.example.kept', versions: ['2.0.0'], signer: FAKE_FINGERPRINT, reason: 'Later.' },
+        {
+          id: 'org.example.borrowed',
+          versions: '*',
+          signer: FAKE_FINGERPRINT,
+          reason: 'Not theirs.',
+        },
+        { id: 'org.example.unsigned', versions: '*', signer: FAKE_FINGERPRINT, reason: 'No key.' },
+        { id: 'org.example.marked', versions: '*', signer: FAKE_FINGERPRINT, reason: 'Again.' },
       ]),
       records,
     );

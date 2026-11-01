@@ -1,8 +1,8 @@
 import type { MarketplaceIndex } from '@yapyap/extension-sdk';
 import { describe, expect, it } from 'vitest';
+import { FAKE_FINGERPRINT } from '../../../test/extensions.ts';
 import { marketplaceEntries, offeredVersion } from './listing.ts';
 
-const SIGNER = Array.from({ length: 32 }, () => 'ab').join(':');
 const OTHER = Array.from({ length: 32 }, () => 'cd').join(':');
 
 const version = (number: string, minYapYap = '0.1.0') => ({
@@ -23,7 +23,7 @@ const EXTENSION: MarketplaceIndex['extensions'][number] = {
   homepage: 'https://example.org/hello',
   license: 'MIT',
   review: 'reviewed',
-  signer: SIGNER,
+  signer: FAKE_FINGERPRINT,
   versions: [
     version('1.0.0'),
     version('1.2.0', '0.2.0'),
@@ -60,14 +60,14 @@ describe('offeredVersion', () => {
   });
 
   it('leaves out pulled versions, but only a revocation by the same signer counts', () => {
-    const pulled = (versions: '*' | string[], signer = SIGNER) =>
+    const pulled = (versions: '*' | string[], signer = FAKE_FINGERPRINT) =>
       index([EXTENSION], [{ id: EXTENSION.id, versions, signer, reason: 'Broken.' }]);
     expect(offeredVersion(pulled(['1.1.0']), EXTENSION, '0.1.2')?.version.version).toBe('1.0.0');
     expect(offeredVersion(pulled('*'), EXTENSION, '0.1.2')).toBeUndefined();
     expect(offeredVersion(pulled('*', OTHER), EXTENSION, '0.1.2')?.version.version).toBe('1.1.0');
     const elsewhere = index(
       [EXTENSION],
-      [{ id: 'org.example.other', versions: '*', signer: SIGNER, reason: 'x' }],
+      [{ id: 'org.example.other', versions: '*', signer: FAKE_FINGERPRINT, reason: 'x' }],
     );
     expect(offeredVersion(elsewhere, EXTENSION, '0.1.2')?.version.version).toBe('1.1.0');
   });
@@ -86,7 +86,7 @@ describe('marketplaceEntries', () => {
     const listed = marketplaceEntries(
       index(
         [EXTENSION, official, newer, gone],
-        [{ id: gone.id, versions: '*', signer: SIGNER, reason: 'Gone.' }],
+        [{ id: gone.id, versions: '*', signer: FAKE_FINGERPRINT, reason: 'Gone.' }],
       ),
       new Map([
         ['org.example.hello', '1.0.0'],

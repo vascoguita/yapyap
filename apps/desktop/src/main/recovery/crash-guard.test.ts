@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { fakeEmitter } from '../../../test/emitter.ts';
 import {
   guardCrashes,
   MAX_RELOADS,
@@ -7,14 +8,10 @@ import {
   type CrashableContents,
 } from './crash-guard.ts';
 
-type Listener = (...args: never[]) => void;
-
 function setup() {
-  const handlers = new Map<string, Listener>();
+  const { on, fire } = fakeEmitter();
   const contents = {
-    on: vi.fn((event: string, listener: Listener) => {
-      handlers.set(event, listener);
-    }),
+    on,
     reload: vi.fn(),
     forcefullyCrashRenderer: vi.fn(),
   } satisfies CrashableContents;
@@ -28,9 +25,6 @@ function setup() {
     warn: vi.fn(),
   };
   guardCrashes(contents, deps);
-  const fire = (event: string, ...args: unknown[]): void => {
-    handlers.get(event)?.(...(args as never[]));
-  };
   const crash = (reason = 'crashed'): void => {
     fire('render-process-gone', {}, { reason });
   };
