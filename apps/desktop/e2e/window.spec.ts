@@ -1,12 +1,12 @@
 import type { ElectronApplication } from '@playwright/test';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { closeApp, expect, launchApp, test, whatsAppPage } from './fixtures.ts';
+import { closeApp, expect, launchApp, mainWindow, test, whatsAppPage } from './fixtures.ts';
 
 const BOUNDS = { x: 60, y: 40, width: 900, height: 640 };
 
-const mainBounds = (app: ElectronApplication) =>
-  app.evaluate(({ BaseWindow }) => BaseWindow.getAllWindows()[0]?.getNormalBounds());
+const mainBounds = async (app: ElectronApplication) =>
+  (await mainWindow(app)).evaluate((window) => window.getNormalBounds());
 
 async function exited(app: ElectronApplication, signal?: NodeJS.Signals): Promise<void> {
   const done = new Promise((resolve) => app.process().once('exit', resolve));
@@ -27,9 +27,9 @@ test('reopens the window where it was left, even after SIGTERM', async ({
   fakeWhatsApp,
   profile,
 }) => {
-  await whatsAppPage(app);
-  await app.evaluate(({ BaseWindow }, bounds) => {
-    BaseWindow.getAllWindows()[0]?.setBounds(bounds);
+  const main = await mainWindow(app);
+  await main.evaluate((window, bounds) => {
+    window.setBounds(bounds);
   }, BOUNDS);
   await expect.poll(() => mainBounds(app)).toEqual(BOUNDS);
   // Windows has no SIGTERM: Node's kill() there ends the process outright, so
@@ -39,7 +39,6 @@ test('reopens the window where it was left, even after SIGTERM', async ({
   expect(saved).toEqual({ bounds: BOUNDS, maximized: false, fullScreen: false });
   const again = await launchApp(fakeWhatsApp.origin, profile);
   try {
-    await whatsAppPage(again);
     await expect.poll(() => mainBounds(again)).toEqual(BOUNDS);
   } finally {
     await closeApp(again);
@@ -52,20 +51,17 @@ test('starts with the default size when the saved state is corrupt', async ({
   profile,
 }) => {
   // The default as this machine shows it: small screens shrink it to fit.
-  await whatsAppPage(app);
-  await expect.poll(() => mainBounds(app)).toBeDefined();
   const fresh = await mainBounds(app);
   await exited(app);
   await writeFile(join(profile, 'window-state.json'), '{"bounds":"nonsense"');
   const again = await launchApp(fakeWhatsApp.origin, profile);
   try {
-    await whatsAppPage(again);
     await expect
       .poll(async () => {
         const bounds = await mainBounds(again);
-        return bounds === undefined ? undefined : [bounds.width, bounds.height];
+        return [bounds.width, bounds.height];
       })
-      .toEqual([fresh?.width, fresh?.height]);
+      .toEqual([fresh.width, fresh.height]);
   } finally {
     await closeApp(again);
   }

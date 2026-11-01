@@ -19,9 +19,8 @@ their reasons belong in the ADRs (`docs/adr/`), and released changes in
   credentials), #402 (renew the macOS certificate before 2027-11-25), #419
   (where reviewed third-party extension archives are hosted).
 - **Open outside milestones:** #345 and #346 (winget, Scoop and Homebrew),
-  #477 (the SDK and signing CLI on npm), #495 (start extensions on demand),
-  #507 (a slow welcome window on Windows E2E). See `gh issue list` for the
-  live list.
+  #477 (the SDK and signing CLI on npm), #495 (start extensions on demand).
+  See `gh issue list` for the live list.
 
 | Milestone                                            | Status                           |
 | ---------------------------------------------------- | -------------------------------- |
@@ -152,6 +151,11 @@ their reasons belong in the ADRs (`docs/adr/`), and released changes in
   extension's setup and removes it. `extensions/ai-assistant` and the
   `assistant:bar`, `local-model` and `localModels.find` extension APIs are
   gone (C42 and C43 in ADR 0008).
+- E2E reliability (#507): the welcome test waits for WhatsApp's first
+  load, which opens the welcome, and test profiles are deleted with
+  retries for Windows. Tests find the main window with `mainWindow`, never
+  by index; `launchAgain` kills a second launch that never exits; recording
+  tests wait for sound in the `.part` file instead of sleeping.
 - Progress page (#508): this page now holds the current state, conventions
   and condensed notes; git history keeps the long notes.
 - Versions in the docs (#511): README, the guide and CONTRIBUTING no longer

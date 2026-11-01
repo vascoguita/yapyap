@@ -5,15 +5,15 @@ import { expect, test } from './fixtures.ts';
 import { installExtension, extensionPage } from './extension-helpers.ts';
 
 /**
- * An extension that tries everything ADR 0004 says an extension cannot do, and
- * writes what happened as JSON in its title for the test to read.
- */
-/**
  * Well past the burst, since the bucket refills while the calls arrive: a
  * flood of exactly the burst passed on a slow runner.
  */
 const FLOOD = RPC_OPTIONS.rate.burst * 3;
 
+/**
+ * An extension that tries everything ADR 0004 says an extension cannot do, and
+ * writes what happened as JSON in its title for the test to read.
+ */
 const HOSTILE = `
 let stolen;
 // It listens for YapYap's port as the bootstrap does, hoping to use it directly.
@@ -44,6 +44,8 @@ const viaStolenPort = (method, params) =>
   });
 export default {
   async activate(host) {
+    // The bootstrap may take YapYap's port before this listener sees it, so
+    // the port may never come; the bound reports that as 'no-port', not a hang.
     await Promise.race([portArrived, new Promise((resolve) => setTimeout(resolve, 5000))]);
     const report = {
       reachesWhatsApp: window.opener !== null || window.parent !== window || window.length > 0,

@@ -1,4 +1,5 @@
-import { closeApp, expect, launchApp, test } from './fixtures.ts';
+import { chromePage } from './extension-helpers.ts';
+import { closeApp, expect, launchApp, test, whatsAppPage } from './fixtures.ts';
 
 test('greets the first launch with a welcome whose choices apply at once, and never again', async ({
   fakeWhatsApp,
@@ -6,13 +7,10 @@ test('greets the first launch with a welcome whose choices apply at once, and ne
 }) => {
   const first = await launchApp(fakeWhatsApp.origin, profile, [], { firstRun: true });
   try {
-    await expect
-      .poll(() => first.windows().some((page) => page.url().endsWith('/welcome.html')))
-      .toBe(true);
-    const welcome = first.windows().find((page) => page.url().endsWith('/welcome.html'));
-    if (welcome === undefined) {
-      throw new Error('No welcome.');
-    }
+    // The welcome opens once WhatsApp's first load ends, which a cold Windows
+    // runner can take longer than an expectation's timeout to reach (#507).
+    await (await whatsAppPage(first)).waitForLoadState('load');
+    const welcome = await chromePage(first, '/welcome.html');
     await expect(welcome.getByRole('heading', { name: 'Welcome to YapYap' })).toBeVisible();
     await welcome.getByRole('radio', { name: 'Dark', exact: true }).check();
     await expect
@@ -25,9 +23,7 @@ test('greets the first launch with a welcome whose choices apply at once, and ne
   }
   const again = await launchApp(fakeWhatsApp.origin, profile, [], { firstRun: true });
   try {
-    await expect
-      .poll(() => again.windows().some((page) => page.url().startsWith('http')))
-      .toBe(true);
+    await (await whatsAppPage(again)).waitForLoadState('load');
     expect(again.windows().some((page) => page.url().endsWith('/welcome.html'))).toBe(false);
   } finally {
     await closeApp(again);

@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { expect, test } from './fixtures.ts';
+import { expect, mainWindow, test } from './fixtures.ts';
 
 test('opens a window that loads the fake WhatsApp page', async ({ app, window, fakeWhatsApp }) => {
   await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
@@ -67,12 +67,13 @@ test('presents itself to WhatsApp as the bundled Chromium in desktop Chrome form
 
 test('hands keyboard focus to WhatsApp when its window is focused', async ({ app, window }) => {
   await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
+  const main = await mainWindow(app);
   await expect
-    .poll(() =>
-      app.evaluate(({ BaseWindow, webContents }) => {
-        BaseWindow.getAllWindows()[0]?.focus();
-        return webContents.getFocusedWebContents()?.getURL();
-      }),
-    )
+    .poll(async () => {
+      await main.evaluate((shown) => {
+        shown.focus();
+      });
+      return app.evaluate(({ webContents }) => webContents.getFocusedWebContents()?.getURL());
+    })
     .toMatch(/^http:\/\/127\.0\.0\.1:\d+\//);
 });
