@@ -16,9 +16,9 @@ function useKeepEditing(onSettle: (discard: boolean) => void) {
         onSettle(false);
       }
     };
-    window.addEventListener('keydown', onKey, true);
+    globalThis.addEventListener('keydown', onKey, true);
     return () => {
-      window.removeEventListener('keydown', onKey, true);
+      globalThis.removeEventListener('keydown', onKey, true);
     };
   }, [onSettle]);
   return keep;
