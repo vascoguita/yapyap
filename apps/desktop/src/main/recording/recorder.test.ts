@@ -23,7 +23,7 @@ function call(): CallTarget & { gone: () => void } {
   };
 }
 
-function setup(options: { answer?: boolean; consent?: boolean; supported?: boolean } = {}) {
+function setup(options: { answer?: boolean; supported?: boolean } = {}) {
   let current: CallTarget | undefined = call();
   const timers: { ms: number; run: () => void; cancelled: boolean }[] = [];
   const page = { contents: {}, start: vi.fn(), stop: vi.fn() };
@@ -38,7 +38,6 @@ function setup(options: { answer?: boolean; consent?: boolean; supported?: boole
     // Like the real lookup, every call gives a new target for the same window.
     callOf: () => (current === undefined ? undefined : { ...current }),
     ask: vi.fn(() => Promise.resolve(options.answer ?? true)),
-    consent: vi.fn(() => Promise.resolve(options.consent ?? true)),
     page: () => page,
     sink: vi.fn(() => Promise.resolve(sink)),
     now: () => now,
@@ -91,16 +90,11 @@ describe('createCallRecorder', () => {
     expect(t.deps.log).toHaveBeenCalledWith('A call recording started.');
   });
 
-  it('records nothing the user declines, or when they do not confirm the consent warning', async () => {
-    const declined = setup({ answer: false });
-    expect(await declined.recorder.record('Recorder')).toBe('declined');
-    expect(declined.deps.consent).not.toHaveBeenCalled();
-    const unconfirmed = setup({ consent: false });
-    expect(await unconfirmed.recorder.record('Recorder')).toBe('declined');
-    for (const t of [declined, unconfirmed]) {
-      expect(t.page.start).not.toHaveBeenCalled();
-      expect(t.recorder.state().recordingSince).toBeNull();
-    }
+  it('records nothing the user declines', async () => {
+    const t = setup({ answer: false });
+    expect(await t.recorder.record('Recorder')).toBe('declined');
+    expect(t.page.start).not.toHaveBeenCalled();
+    expect(t.recorder.state().recordingSince).toBeNull();
   });
 
   it('offers nothing where it cannot capture a call, and says so', async () => {

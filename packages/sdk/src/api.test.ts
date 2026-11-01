@@ -20,6 +20,7 @@ describe('the SDK entry point', () => {
       'MARKETPLACE_SIGNATURE_URL',
       'ManifestSchema',
       'MarketplaceIndexSchema',
+      'compareVersions',
       'defineExtension',
       'marketplaceArchiveName',
       'marketplaceArchiveUrl',

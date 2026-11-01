@@ -632,6 +632,22 @@ main.record-prompt p {
   margin: 0;
 }
 
+main.record-prompt .consent-warning {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  text-align: start;
+}
+
+main.record-prompt .consent-title {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
 main.record-prompt .actions {
   display: flex;
   gap: 8px;

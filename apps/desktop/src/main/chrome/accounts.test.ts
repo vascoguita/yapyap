@@ -129,15 +129,42 @@ describe('accountsHandlers', () => {
     expect(remove.accepts(['b'])).toBe(true);
     expect(remove.accepts(['b', 'c'])).toBe(false);
     expect(remove.accepts([2])).toBe(false);
-    await expect(remove.handle(t.call, 'b')).resolves.toHaveProperty('accounts');
-    expect(t.confirm).toHaveBeenCalledWith('Work');
+    await expect(remove.handle(t.call, 'a')).resolves.toHaveProperty('accounts');
+    expect(t.confirm).toHaveBeenCalledWith('Personal');
+    expect(t.holder.current.remove).toHaveBeenCalledWith('a');
+  });
+
+  it('removes a running account while another one runs', async () => {
+    const t = setup();
+    const [personal] = t.holder.current.entries;
+    if (personal === undefined) {
+      throw new Error('The setup has no first account.');
+    }
+    t.holder.current = { ...t.holder.current, entries: [{ ...personal, enabled: true }, WORK] };
+    await expect(t.handler('accounts:remove').handle(t.call, 'b')).resolves.toHaveProperty(
+      'accounts',
+    );
     expect(t.holder.current.remove).toHaveBeenCalledWith('b');
+  });
+
+  it('refuses the last running account without asking', async () => {
+    const t = setup();
+    await expect(t.handler('accounts:remove').handle(t.call, 'b')).resolves.toBeNull();
+    expect(t.confirm).not.toHaveBeenCalled();
+    expect(t.holder.current.remove).not.toHaveBeenCalled();
+  });
+
+  it('says so when the accounts refuse a removal the user agreed to', async () => {
+    const t = setup();
+    vi.mocked(t.holder.current.remove).mockResolvedValueOnce(false);
+    await expect(t.handler('accounts:remove').handle(t.call, 'a')).resolves.toBeNull();
+    expect(t.confirm).toHaveBeenCalledOnce();
   });
 
   it('keeps the account when the user declines, and ignores unknown ones', async () => {
     const t = setup(false);
     const remove = t.handler('accounts:remove');
-    await remove.handle(t.call, 'b');
+    await expect(remove.handle(t.call, 'a')).resolves.toHaveProperty('accounts');
     await remove.handle(t.call, 'zz');
     expect(t.confirm).toHaveBeenCalledOnce();
     expect(t.holder.current.remove).not.toHaveBeenCalled();

@@ -80,17 +80,23 @@ describe('recordingWindows', () => {
 
   it('opens the prompt attached to the call window, loaded once it shows', async () => {
     const t = setup();
-    const prompt = t.opened.openPrompt(CALL);
+    const prompt = t.opened.openPrompt(CALL, false);
     expect(t.windowOf).toHaveBeenCalledWith(CALL.contents);
     const [{ options, window }] = t.created as [(typeof t.created)[number]];
     expect(options).toEqual(
-      expect.objectContaining({ title: 'Call recording', parent: expect.anything() as object }),
+      expect.objectContaining({
+        title: 'Call recording',
+        height: 200,
+        parent: expect.anything() as object,
+      }),
     );
     expect(window.loadURL).toHaveBeenCalledWith('app://chrome/record-prompt.html');
     window.fire('ready-to-show');
     await prompt.loaded;
     const orphan = setup(undefined, null);
-    orphan.opened.openPrompt(CALL);
+    orphan.opened.openPrompt(CALL, true);
     expect(orphan.created[0]?.options).not.toHaveProperty('parent');
+    // The consent warning needs the room.
+    expect(orphan.created[0]?.options).toHaveProperty('height', 480);
   });
 });

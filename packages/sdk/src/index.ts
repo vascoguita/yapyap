@@ -43,3 +43,4 @@ export {
   MarketplaceIndexSchema,
   type MarketplaceIndex,
 } from './marketplace.ts';
+export { compareVersions } from './version.ts';

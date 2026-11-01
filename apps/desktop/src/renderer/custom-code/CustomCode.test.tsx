@@ -154,6 +154,45 @@ describe('CustomCodeEditor', () => {
     expect(chrome.customCode.preview).not.toHaveBeenCalled();
   });
 
+  it('closes on Escape while nothing changed, and asks before losing a change', async () => {
+    const close = vi.spyOn(window, 'close').mockImplementation(() => undefined);
+    await opened();
+    fireEvent.input(css(), { target: { value: 'p {}' } });
+    fireEvent.input(css(), { target: { value: '' } });
+    fireEvent.keyDown(document, { key: 'Enter' });
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(close).toHaveBeenCalledOnce();
+    fireEvent.change(scope(), { target: { value: WORK } });
+    fireEvent.input(js(), { target: { value: 'alert(1)' } });
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(close).toHaveBeenCalledOnce();
+    expect(screen.getByRole('alertdialog').textContent).toContain(
+      'Discard your unsaved changes to the code?',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Keep Editing' }));
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(js().value).toBe('alert(1)');
+    expect(close).toHaveBeenCalledOnce();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
+    expect(close).toHaveBeenCalledTimes(2);
+    close.mockRestore();
+  });
+
+  it('counts turning the code on as a change, until it is saved', async () => {
+    const close = vi.spyOn(window, 'close').mockImplementation(() => undefined);
+    await opened();
+    fireEvent.click(enabled());
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.getByRole('alertdialog')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Keep Editing' }));
+    fireEvent.click(saveButton());
+    await screen.findByText('Saved.');
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(close).toHaveBeenCalledOnce();
+    close.mockRestore();
+  });
+
   it('cannot save before the code has loaded', () => {
     render(<CustomCodeEditor api={api(() => Promise.reject(new Error('gone')))} />);
     expect(saveButton().disabled).toBe(true);

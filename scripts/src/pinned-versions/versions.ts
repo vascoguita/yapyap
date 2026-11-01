@@ -1,22 +1,8 @@
+import { compareVersions } from '../../../packages/sdk/src/version.ts';
+
 export interface NodeRelease {
   readonly version: string;
   readonly lts: string | false;
-}
-
-function parts(version: string): readonly number[] {
-  return version.replace(/^v/, '').split('.').map(Number);
-}
-
-/** Orders dotted numeric versions such as `v24.1.0` or `26.08`. */
-export function compareVersions(a: string, b: string): number {
-  const [left, right] = [parts(a), parts(b)];
-  for (let i = 0; i < Math.max(left.length, right.length); i++) {
-    const delta = (left[i] ?? 0) - (right[i] ?? 0);
-    if (delta !== 0) {
-      return delta;
-    }
-  }
-  return 0;
 }
 
 function latest(versions: readonly string[]): string | undefined {

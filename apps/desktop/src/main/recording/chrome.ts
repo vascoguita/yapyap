@@ -8,6 +8,7 @@ import {
 } from '../../shared/chrome-api.ts';
 import { noArguments, type ChromeCall, type ChromeHandler } from '../chrome/ipc.ts';
 import type { CallRecorderService } from '../extensions/host-methods.ts';
+import type { RecordingConsent } from './consent.ts';
 import { recordings, recordingSink, revealRecording, type LibraryPaths } from './library.ts';
 import { createCallRecorder, type CallRecorder, type CallTarget } from './recorder.ts';
 
@@ -33,10 +34,10 @@ export interface RecordingDependencies {
   readonly callOf: () => CallTarget | undefined;
   /** Opens the hidden recorder page. */
   readonly openRecorder: () => RecordingWindow;
-  /** Opens YapYap's window by the call, attached to the call window. */
-  readonly openPrompt: (call: CallTarget) => RecordingWindow;
-  /** Whether the user confirmed the consent warning; asks them if not yet. */
-  readonly consent: () => Promise<boolean>;
+  /** Opens YapYap's window by the call, attached to the call window, with room for the warning. */
+  readonly openPrompt: (call: CallTarget, consent: boolean) => RecordingWindow;
+  /** The user's confirmation of the consent warning, which the window asks for until given. */
+  readonly consent: RecordingConsent;
   /** Shows a file in the system's file manager. */
   readonly show: (file: string) => void;
   readonly now: () => Date;
@@ -63,13 +64,17 @@ function show(prompt: Prompt, state: RecordPromptState): void {
   });
 }
 
-/** Asks in a window by the call; closing it counts as **Not now**. */
-function ask(deps: RecordingDependencies, slots: Slots, extension: string, call: CallTarget) {
+/**
+ * Asks in a window by the call, with the consent warning until the user
+ * confirmed it; closing the window counts as **Not now**.
+ */
+async function ask(deps: RecordingDependencies, slots: Slots, extension: string, call: CallTarget) {
+  const consent = !(await deps.consent.confirmed());
   return new Promise<boolean>((resolve) => {
     slots.prompt?.window.close();
     const prompt: Prompt = {
-      window: deps.openPrompt(call),
-      state: { extension, phase: 'asking', since: null },
+      window: deps.openPrompt(call, consent),
+      state: { extension, consent, phase: 'asking', since: null },
       answer: resolve,
     };
     slots.prompt = prompt;
@@ -115,7 +120,6 @@ function recorderOf(deps: RecordingDependencies, slots: Slots): CallRecorder {
     supported: deps.supported,
     callOf: deps.callOf,
     ask: (extension, call) => ask(deps, slots, extension, call),
-    consent: deps.consent,
     page: () => page(deps, slots, () => format),
     sink: (started) => {
       format = deps.format();
@@ -137,8 +141,27 @@ function recorderOf(deps: RecordingDependencies, slots: Slots): CallRecorder {
 const isChunk = ([bytes, ...rest]: readonly unknown[]): boolean =>
   rest.length === 0 && bytes instanceof Uint8Array && bytes.length <= MAX_CHUNK_BYTES;
 
-const isAnswer = ([record, ...rest]: readonly unknown[]): boolean =>
-  rest.length === 0 && typeof record === 'boolean';
+const isAnswer = ([record, consented, ...rest]: readonly unknown[]): boolean =>
+  rest.length === 0 && typeof record === 'boolean' && typeof consented === 'boolean';
+
+/**
+ * Takes the user's answer. The window offers **Record** only once the
+ * consent warning's box is ticked, and YapYap checks that again here,
+ * keeping the confirmation once it is given (ADR 0015).
+ */
+function answer(consent: RecordingConsent, prompt: Prompt, record: boolean, consented: boolean) {
+  if (record && prompt.state.consent) {
+    if (!consented) {
+      throw new Error('Recording needs the consent warning confirmed.');
+    }
+    consent.confirm();
+  }
+  prompt.answer?.(record);
+  prompt.answer = undefined;
+  if (!record) {
+    prompt.window.close();
+  }
+}
 
 function recorderHandlers(recorder: CallRecorder): ChromeHandler[] {
   return [
@@ -167,7 +190,11 @@ function recorderHandlers(recorder: CallRecorder): ChromeHandler[] {
 }
 
 /** The prompt window's operations, which only that window may call. */
-function promptHandlers(slots: Slots, recorder: CallRecorder): ChromeHandler[] {
+function promptHandlers(
+  slots: Slots,
+  recorder: CallRecorder,
+  consent: RecordingConsent,
+): ChromeHandler[] {
   const owned = ({ sender }: ChromeCall): Prompt => {
     const prompt = slots.prompt;
     if (prompt?.window.webContents !== sender) {
@@ -184,13 +211,8 @@ function promptHandlers(slots: Slots, recorder: CallRecorder): ChromeHandler[] {
     {
       channel: CHROME_CHANNELS.recordPromptAnswer,
       accepts: isAnswer,
-      handle: (call, record) => {
-        const prompt = owned(call);
-        prompt.answer?.(record as boolean);
-        prompt.answer = undefined;
-        if (record !== true) {
-          prompt.window.close();
-        }
+      handle: (call, record, consented) => {
+        answer(consent, owned(call), record as boolean, consented as boolean);
       },
     },
     {
@@ -217,7 +239,7 @@ export function createRecording(deps: RecordingDependencies): {
   const recorder = recorderOf(deps, slots);
   return {
     recorder,
-    handlers: [...recorderHandlers(recorder), ...promptHandlers(slots, recorder)],
+    handlers: [...recorderHandlers(recorder), ...promptHandlers(slots, recorder, deps.consent)],
     service: {
       record: recorder.record,
       stop: recorder.stop,

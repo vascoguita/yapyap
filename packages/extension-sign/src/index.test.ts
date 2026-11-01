@@ -14,14 +14,12 @@ describe('the extension-sign library', () => {
       'fingerprint',
       'matchesIntegrity',
       'readExtensionArchive',
-      'readPins',
       'readPublicKey',
       'signIndex',
       'signingPayload',
       'verifyArchive',
       'verifyIndex',
       'verifyManifest',
-      'writePins',
     ]);
   });
 });

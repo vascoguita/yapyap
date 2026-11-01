@@ -35,6 +35,32 @@ describe('ProblemReport', () => {
     expect(await screen.findByText(/on your clipboard/)).toBeTruthy();
   });
 
+  it('closes on Escape unless the description would be lost', async () => {
+    const close = vi.spyOn(window, 'close').mockImplementation(() => undefined);
+    setup();
+    const description = screen.getByLabelText('What happened?');
+    fireEvent.input(description, { target: { value: '  ' } });
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(close).toHaveBeenCalledOnce();
+    fireEvent.input(description, { target: { value: 'It froze.' } });
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.getByRole('alertdialog').textContent).toContain(
+      'Discard your description of the problem?',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Keep Editing' }));
+    expect(close).toHaveBeenCalledOnce();
+    // Once on the clipboard and in the issue form, closing loses nothing.
+    fireEvent.click(screen.getByRole('button', { name: 'Copy and Open GitHub' }));
+    await screen.findByText(/on your clipboard/);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(close).toHaveBeenCalledTimes(2);
+    fireEvent.input(description, { target: { value: 'It froze twice.' } });
+    fireEvent.keyDown(document, { key: 'Escape' });
+    fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
+    expect(close).toHaveBeenCalledTimes(3);
+    close.mockRestore();
+  });
+
   it('says when GitHub could not be opened', async () => {
     setup(() => Promise.reject(new Error('no browser')));
     fireEvent.click(screen.getByRole('button', { name: 'Copy and Open GitHub' }));

@@ -24,6 +24,9 @@ const RECORD_PROMPT_PAGE: ChromePage = {
   },
 };
 
+/** Tall enough for the consent warning's text and box, shown until the user confirms it. */
+const CONSENT_HEIGHT = 480;
+
 function asRecordingWindow(window: ChromeWindowPort, loaded: Promise<void>): RecordingWindow {
   return {
     loaded,
@@ -48,7 +51,7 @@ export function recordingWindows(
   windowOf: (contents: object) => WindowOptions['parent'] | null,
 ): {
   readonly openRecorder: () => RecordingWindow;
-  readonly openPrompt: (call: CallTarget) => RecordingWindow;
+  readonly openPrompt: (call: CallTarget, consent: boolean) => RecordingWindow;
 } {
   return {
     openRecorder: () => {
@@ -72,13 +75,20 @@ export function recordingWindows(
       );
       return asRecordingWindow(window, loaded);
     },
-    openPrompt: (call) => {
+    openPrompt: (call, consent) => {
       const parent = windowOf(call.contents);
-      const window = openChromeWindow(deps, RECORD_PROMPT_PAGE, parent == null ? {} : { parent });
-      const loaded = new Promise<void>((resolve) => {
-        window.once('ready-to-show', resolve);
+      return openPrompt(deps, {
+        ...(consent ? { height: CONSENT_HEIGHT } : {}),
+        ...(parent == null ? {} : { parent }),
       });
-      return asRecordingWindow(window, loaded);
     },
   };
+}
+
+function openPrompt(deps: ChromeWindowDependencies, extra: WindowOptions): RecordingWindow {
+  const window = openChromeWindow(deps, RECORD_PROMPT_PAGE, extra);
+  const loaded = new Promise<void>((resolve) => {
+    window.once('ready-to-show', resolve);
+  });
+  return asRecordingWindow(window, loaded);
 }

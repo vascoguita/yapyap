@@ -80,7 +80,6 @@ function setup() {
       format: () => 'webm' as const,
       paths: { folder: '/recordings', index: '/user-data/recordings.json' },
       consentFile: '/user-data/recording-consent.json',
-      askConsent: vi.fn(() => Promise.resolve(false)),
       callWindowOf: vi.fn(() => undefined),
       show: vi.fn(),
     },

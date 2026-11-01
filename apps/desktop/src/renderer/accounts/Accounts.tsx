@@ -8,6 +8,7 @@ import type {
 } from '../../shared/chrome-api.ts';
 import { en } from '../../shared/messages/en.ts';
 import { isProxyAddress } from '../../shared/proxy-address.ts';
+import { DiscardPrompt } from '../shared/discard.tsx';
 
 const text = en.accounts;
 
@@ -25,6 +26,13 @@ const changeOf = ({ name, color, enabled, muted, proxy }: AccountSummary): Accou
 function isDirty(draft: AccountChange, account: AccountSummary): boolean {
   const saved = changeOf(account);
   return (Object.keys(saved) as (keyof AccountChange)[]).some((key) => draft[key] !== saved[key]);
+}
+
+/** As the menu and YapYap itself refuse: WhatsApp keeps running in one account at least. */
+function isLastRunning(list: AccountList, account: AccountSummary): boolean {
+  return (
+    account.enabled && list.accounts.every((other) => other.id === account.id || !other.enabled)
+  );
 }
 
 function colorName(color: string): string {
@@ -181,16 +189,18 @@ function Switches({ draft, onChange }: DraftProps): JSX.Element {
   );
 }
 
-function Editor(
-  props: DraftProps & {
-    readonly id: string;
-    readonly colors: readonly string[];
-    readonly dirty: boolean;
-    readonly onSave: (id: string, change: AccountChange) => void;
-    readonly onRevert: () => void;
-    readonly onRemove: (id: string) => void;
-  },
-): JSX.Element {
+interface EditorProps extends DraftProps {
+  readonly id: string;
+  readonly colors: readonly string[];
+  readonly dirty: boolean;
+  /** False for the last running account, which YapYap keeps. */
+  readonly removable: boolean;
+  readonly onSave: (id: string, change: AccountChange) => void;
+  readonly onRevert: () => void;
+  readonly onRemove: (id: string) => void;
+}
+
+function Editor(props: EditorProps): JSX.Element {
   const { id, draft, onChange, onSave, onRemove } = props;
   const submit = useCallback(
     (event: SubmitEvent): void => {
@@ -215,6 +225,7 @@ function Editor(
         id={id}
         draft={draft}
         dirty={props.dirty}
+        removable={props.removable}
         onRevert={props.onRevert}
         onRemove={onRemove}
       />
@@ -226,6 +237,7 @@ function EditorActions(props: {
   readonly id: string;
   readonly draft: AccountChange;
   readonly dirty: boolean;
+  readonly removable: boolean;
   readonly onRevert: () => void;
   readonly onRemove: (id: string) => void;
 }): JSX.Element {
@@ -234,8 +246,38 @@ function EditorActions(props: {
     onRemove(id);
   }, [id, onRemove]);
   return (
+    <>
+      {props.removable ? null : (
+        <p id="remove-hint" class="hint">
+          {text.removeRefused}
+        </p>
+      )}
+      <EditorButtons
+        draft={props.draft}
+        dirty={props.dirty}
+        removable={props.removable}
+        onRevert={props.onRevert}
+        onRemove={remove}
+      />
+    </>
+  );
+}
+
+function EditorButtons(props: {
+  readonly draft: AccountChange;
+  readonly dirty: boolean;
+  readonly removable: boolean;
+  readonly onRevert: () => void;
+  readonly onRemove: () => void;
+}): JSX.Element {
+  return (
     <div class="actions">
-      <button type="button" onClick={remove}>
+      <button
+        type="button"
+        disabled={!props.removable}
+        aria-describedby={props.removable ? undefined : 'remove-hint'}
+        onClick={props.onRemove}
+      >
         {text.remove}
       </button>
       <button type="button" disabled={!props.dirty} onClick={props.onRevert}>
@@ -290,30 +332,6 @@ function Permissions({ api, id }: { readonly api: ChromeApi; readonly id: string
         {text.permissions.forget}
       </button>
     </section>
-  );
-}
-
-function DiscardPrompt({ onSettle }: { readonly onSettle: (discard: boolean) => void }) {
-  return (
-    <div class="notice" role="alertdialog" aria-labelledby="discard-message">
-      <p id="discard-message">{text.discard.message}</p>
-      <button
-        type="button"
-        onClick={() => {
-          onSettle(false);
-        }}
-      >
-        {text.discard.keep}
-      </button>
-      <button
-        type="button"
-        onClick={() => {
-          onSettle(true);
-        }}
-      >
-        {text.discard.confirm}
-      </button>
-    </div>
   );
 }
 
@@ -397,6 +415,16 @@ function useLeaving(state: WindowState): {
   return { pending, request, settle };
 }
 
+/** Picking another account, which asks first while an edit is unsaved. */
+function useSelect(request: (pending: Pending) => void): (id: string) => void {
+  return useCallback(
+    (id: string): void => {
+      request({ kind: 'select', id });
+    },
+    [request],
+  );
+}
+
 function useEscapeToClose(request: (pending: Pending) => void): void {
   useEffect(() => {
     const onKey = (event: KeyboardEvent): void => {
@@ -438,7 +466,10 @@ function useActions(
   const remove = useCallback(
     (id: string): void => {
       api.accounts.remove(id).then((next) => {
-        show(next, id);
+        setError(next === null ? text.removeRefused : '');
+        if (next !== null) {
+          show(next, id);
+        }
       }, failed);
     },
     [api, show, failed],
@@ -483,13 +514,7 @@ export function Accounts({ api }: { readonly api: ChromeApi }): JSX.Element {
   const leaving = useLeaving(state);
   const actions = useActions(api, state.show);
   useEscapeToClose(leaving.request);
-  const { request } = leaving;
-  const select = useCallback(
-    (id: string): void => {
-      request({ kind: 'select', id });
-    },
-    [request],
-  );
+  const select = useSelect(leaving.request);
   const { list, account } = state;
   if (list == null || account === undefined) {
     return <NoAccounts loading={list === undefined} />;
@@ -500,12 +525,15 @@ export function Accounts({ api }: { readonly api: ChromeApi }): JSX.Element {
       <h1>{text.title}</h1>
       <p class="hint">{text.hint}</p>
       <AccountRows list={list} selected={account.id} onSelect={select} />
-      {leaving.pending === undefined ? null : <DiscardPrompt onSettle={leaving.settle} />}
+      {leaving.pending === undefined ? null : (
+        <DiscardPrompt message={text.discard} onSettle={leaving.settle} />
+      )}
       <Editor
         id={account.id}
         draft={draft}
         colors={list.colors}
         dirty={isDirty(draft, account)}
+        removable={!isLastRunning(list, account)}
         onChange={state.setEdit}
         onSave={actions.save}
         onRevert={state.revert}

@@ -1,17 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { compareVersions, latestBaseAppBranch, latestNodeLts } from './versions.ts';
-
-describe('compareVersions', () => {
-  it.each([
-    ['24.10.0', '24.9.0', 1],
-    ['v24.9.0', '24.10.0', -1],
-    ['26.08', '25.08', 1],
-    ['24.1', '24.1.0', 0],
-    ['24.1.0', '24.1', 0],
-  ])('compares %s with %s', (a, b, sign) => {
-    expect(Math.sign(compareVersions(a, b))).toBe(sign);
-  });
-});
+import { latestBaseAppBranch, latestNodeLts } from './versions.ts';
 
 describe('latestNodeLts', () => {
   it('picks the highest LTS release even if a maintenance line shipped later', () => {

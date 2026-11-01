@@ -144,6 +144,8 @@ export interface RecordPromptState {
   readonly phase: 'asking' | 'recording' | 'ended';
   /** When the recording started, as an ISO date; null until it does. */
   readonly since: string | null;
+  /** Whether the user must first confirm the consent warning, as before the first recording. */
+  readonly consent: boolean;
 }
 
 /** What the main process tells the hidden recorder page to do. */
@@ -240,8 +242,11 @@ export interface ChromeApi {
     readonly list: () => Promise<AccountList>;
     /** Null when YapYap refused the change, such as turning off the last running account. */
     readonly save: (id: string, change: AccountChange) => Promise<AccountList | null>;
-    /** Asks the user first, so the list may come back unchanged. */
-    readonly remove: (id: string) => Promise<AccountList>;
+    /**
+     * Asks the user first, so the list may come back unchanged; null when
+     * YapYap refused, such as for the last running account.
+     */
+    readonly remove: (id: string) => Promise<AccountList | null>;
     /** `audio` and `video` the account was allowed until YapYap quits; null while it is off. */
     readonly permissions: (id: string) => Promise<readonly string[] | null>;
     readonly forgetPermissions: (id: string) => Promise<readonly string[] | null>;
@@ -262,8 +267,11 @@ export interface ChromeApi {
   /** YapYap's own window by a call, which asks to record it and shows the recording (ADR 0015). */
   readonly recordPrompt: {
     readonly state: () => Promise<RecordPromptState>;
-    /** The user's answer: record this call, or not. */
-    readonly answer: (record: boolean) => Promise<void>;
+    /**
+     * The user's answer: record this call, or not, and whether they ticked
+     * the consent warning's box when the window showed it.
+     */
+    readonly answer: (record: boolean, consented: boolean) => Promise<void>;
     readonly stop: () => Promise<void>;
     readonly onState: (listener: (state: RecordPromptState) => void) => void;
   };

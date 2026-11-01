@@ -1453,6 +1453,20 @@ not edit the same lines.
   renderer build emits it, and the docs build copies it and the SDK's
   manifest schema into `docs/public/`. The renderer's Vite inputs are every
   `src/renderer/*.html`. Each pnpm override says when to remove it.
+- Audit fixes (#501):
+  - Version order lives in one place, `compareVersions` in the SDK
+    (`packages/sdk/src/version.ts`), used by the update notice, the
+    marketplace and the pinned-version check. A tester on 0.2.1-beta.1 is
+    now told about 0.2.1-beta.2.
+  - Accounts disables **Remove Account…** for the last running account, as
+    the menu does, and says why. YapYap refuses it before asking, and the
+    window shows any refusal.
+  - The recording consent warning is in the window by the call, whose
+    **Record** waits for its box; the main process refuses **Record**
+    without the tick (ADR 0015 is amended).
+  - Escape still closes Custom CSS and JavaScript and Report a Problem, but
+    asks before discarding unsaved text, as Accounts does.
+  - The unused key-pin file helpers left `packages/extension-sign`.
 
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,

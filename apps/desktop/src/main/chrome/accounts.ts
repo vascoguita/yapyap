@@ -30,6 +30,11 @@ function parseChange(value: unknown): AccountChange | undefined {
     : undefined;
 }
 
+/** WhatsApp always runs in one account at least, so the last running one stays. */
+function isLastRunning(entries: readonly AccountSummary[], entry: AccountSummary): boolean {
+  return entry.enabled && entries.every((other) => other === entry || !other.enabled);
+}
+
 const oneId = ([id, ...rest]: readonly unknown[]): boolean =>
   rest.length === 0 && typeof id === 'string';
 
@@ -82,10 +87,17 @@ export function accountsHandlers(
       handle: async (_call, id) => {
         const manager = current();
         const entry = manager?.entries.find((candidate) => candidate.id === id);
-        if (manager !== undefined && entry !== undefined && (await confirmRemove(entry.name))) {
-          await manager.remove(entry.id);
+        if (manager === undefined || entry === undefined) {
+          return list();
         }
-        return list();
+        // Refused before asking, so the user never confirms a removal that cannot happen.
+        if (isLastRunning(manager.entries, entry)) {
+          return null;
+        }
+        if (!(await confirmRemove(entry.name))) {
+          return list();
+        }
+        return (await manager.remove(entry.id)) ? list() : null;
       },
     },
     ...permissionHandlers(current),

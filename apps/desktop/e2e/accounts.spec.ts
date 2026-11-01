@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { closeApp, expect, launchApp, test, whatsAppPage } from './fixtures.ts';
+import type { ChromeApi } from '../src/shared/chrome-api.ts';
 
 /** Where the WhatsApp page's session keeps its data on disk. */
 const storagePath = (app: Awaited<ReturnType<typeof launchApp>>) =>
@@ -144,6 +145,27 @@ test('renames an account and turns another off from the Accounts window', async 
   await manage.getByLabel('Run this account').uncheck();
   await manage.getByRole('button', { name: 'Save' }).click();
   await expect(manage.getByRole('alert')).toContainText('must keep running');
+  // Nor can the last running account be removed: the button says why it is off.
+  const remove = manage.getByRole('button', { name: 'Remove Account…' });
+  await expect(remove).toBeDisabled();
+  await expect(manage.getByText('so this one cannot be removed')).toBeVisible();
+  // YapYap refuses it too, before asking anything, should a page ask anyway.
+  await app.evaluate(({ dialog }) => {
+    dialog.showMessageBox = () => {
+      throw new Error('YapYap asked about a removal it refuses.');
+    };
+  });
+  const refused = await manage.evaluate(async () => {
+    const { accounts } = (globalThis as unknown as { yapyap: ChromeApi }).yapyap;
+    const running = (await accounts.list()).accounts.find((account) => account.enabled);
+    return running === undefined ? 'none' : accounts.remove(running.id);
+  });
+  expect(refused).toBeNull();
+  // An account that is off can go: leaving the refused edit asks first.
+  await manage.getByRole('button', { name: 'Work Off' }).click();
+  await manage.getByRole('button', { name: 'Discard' }).click();
+  await expect(manage.getByLabel('Name')).toHaveValue('Work');
+  await expect(remove).toBeEnabled();
   const saved = JSON.parse(await readFile(join(profile, 'accounts.json'), 'utf8')) as {
     accounts: { name: string; enabled: boolean }[];
   };

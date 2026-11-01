@@ -1,5 +1,4 @@
 import type { WebFrameMain } from 'electron';
-import { en } from '../../shared/messages/en.ts';
 import type { ViewRegistry } from '../views.ts';
 import type { CallTarget } from './recorder.ts';
 
@@ -37,38 +36,4 @@ export function callWindowAmong(
           call.once('destroyed', listener);
         },
       };
-}
-
-/** What the consent warning's message box answers. */
-interface MessageBoxAnswer {
-  readonly response: number;
-  readonly checkboxChecked: boolean;
-}
-
-/**
- * Shows the consent warning (ADR 0015): the user confirms only by ticking
- * that they know the law and will ask, and choosing **Record**.
- */
-export async function askRecordingConsent(
-  show: (options: {
-    readonly type: 'warning';
-    readonly message: string;
-    readonly detail: string;
-    readonly checkboxLabel: string;
-    readonly buttons: string[];
-    readonly defaultId: number;
-    readonly cancelId: number;
-  }) => Promise<MessageBoxAnswer>,
-): Promise<boolean> {
-  const text = en.recording.consent;
-  const { response, checkboxChecked } = await show({
-    type: 'warning',
-    message: text.message,
-    detail: text.detail,
-    checkboxLabel: text.checkbox,
-    buttons: [text.record, text.cancel],
-    defaultId: 1,
-    cancelId: 1,
-  });
-  return response === 0 && checkboxChecked;
 }

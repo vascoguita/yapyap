@@ -8,6 +8,8 @@ export interface Messages {
     readonly cancel: string;
     readonly close: string;
     readonly whatsApp: string;
+    readonly discard: string;
+    readonly keepEditing: string;
   };
   readonly about: {
     readonly title: string;
@@ -301,6 +303,7 @@ export interface Messages {
     readonly open: string;
     readonly opened: string;
     readonly failed: string;
+    readonly discard: string;
   };
   readonly accounts: {
     readonly defaultName: string;
@@ -332,6 +335,7 @@ export interface Messages {
     readonly save: string;
     readonly remove: string;
     readonly refused: string;
+    readonly removeRefused: string;
     readonly failed: string;
     readonly unavailable: string;
     readonly permissions: {
@@ -346,7 +350,7 @@ export interface Messages {
       readonly screenState: string;
       readonly forget: string;
     };
-    readonly discard: { readonly message: string; readonly confirm: string; readonly keep: string };
+    readonly discard: string;
   };
   readonly sidebar: {
     readonly label: string;
@@ -528,6 +532,7 @@ export interface Messages {
     readonly save: string;
     readonly saved: string;
     readonly failed: string;
+    readonly discard: string;
   };
   readonly shortcuts: {
     readonly global: string;
@@ -761,8 +766,6 @@ export interface Messages {
       readonly message: string;
       readonly detail: string;
       readonly checkbox: string;
-      readonly record: string;
-      readonly cancel: string;
     };
   };
 }

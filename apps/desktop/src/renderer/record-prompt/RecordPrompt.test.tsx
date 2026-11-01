@@ -30,17 +30,42 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-const ASKING: RecordPromptState = { extension: 'Recorder', phase: 'asking', since: null };
+const ASKING: RecordPromptState = {
+  extension: 'Recorder',
+  phase: 'asking',
+  since: null,
+  consent: false,
+};
+
+const record = () => screen.getByRole<HTMLButtonElement>('button', { name: 'Record' });
 
 describe('RecordPrompt', () => {
   it('says which extension asks, and records only on Record', async () => {
     const t = setup(() => Promise.resolve(ASKING));
     await screen.findByText('Recorder wants to record this call.');
     expect(screen.getByText('Ask everyone on the call before you record it.')).toBeTruthy();
+    expect(screen.queryByRole('checkbox')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Not now' }));
-    expect(t.recordPrompt.answer).toHaveBeenLastCalledWith(false);
-    fireEvent.click(screen.getByRole('button', { name: 'Record' }));
-    expect(t.recordPrompt.answer).toHaveBeenLastCalledWith(true);
+    expect(t.recordPrompt.answer).toHaveBeenLastCalledWith(false, false);
+    fireEvent.click(record());
+    expect(t.recordPrompt.answer).toHaveBeenLastCalledWith(true, false);
+  });
+
+  it('offers Record only once the consent warning is ticked, until then', async () => {
+    const t = setup(() => Promise.resolve({ ...ASKING, consent: true }));
+    await screen.findByRole('heading', { name: 'Before you record calls' });
+    expect(screen.getByText(/against the law to record a call/)).toBeTruthy();
+    const box = screen.getByLabelText<HTMLInputElement>(/I will ask for it/);
+    expect(box.checked).toBe(false);
+    expect(record().disabled).toBe(true);
+    fireEvent.click(box);
+    expect(record().disabled).toBe(false);
+    fireEvent.click(record());
+    expect(t.recordPrompt.answer).toHaveBeenLastCalledWith(true, true);
+    fireEvent.click(box);
+    expect(record().disabled).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Not now' }));
+    expect(t.recordPrompt.answer).toHaveBeenLastCalledWith(false, false);
   });
 
   it('shows the recording with its time and a way to stop it, then that it is saved', async () => {
@@ -50,7 +75,7 @@ describe('RecordPrompt', () => {
     await waitFor(() => {
       expect(t.recordPrompt.onState).toHaveBeenCalled();
     });
-    t.push({ extension: 'Recorder', phase: 'recording', since: '2026-10-27T14:05:00.000Z' });
+    t.push({ ...ASKING, phase: 'recording', since: '2026-10-27T14:05:00.000Z' });
     expect(screen.getByRole('status').textContent).toBe('Recording 1:05');
     void act(() => {
       vi.advanceTimersByTime(2000);
@@ -58,7 +83,7 @@ describe('RecordPrompt', () => {
     expect(screen.getByRole('status').textContent).toBe('Recording 1:07');
     fireEvent.click(screen.getByRole('button', { name: 'Stop recording' }));
     expect(t.recordPrompt.stop).toHaveBeenCalledOnce();
-    t.push({ extension: 'Recorder', phase: 'ended', since: '2026-10-27T14:05:00.000Z' });
+    t.push({ ...ASKING, phase: 'ended', since: '2026-10-27T14:05:00.000Z' });
     expect(screen.getByRole('status').textContent).toBe('The recording is saved.');
   });
 

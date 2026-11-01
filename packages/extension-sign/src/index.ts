@@ -11,7 +11,6 @@ export { digestFiles, type FileDigest } from './files.ts';
 export { signIndex, verifyIndex } from './index-signature.ts';
 export { matchesIntegrity } from './integrity.ts';
 export { fingerprint, readPublicKey } from './keys.ts';
-export { readPins, writePins, type Pins } from './pins.ts';
 export { signingPayload, verifyManifest, type Manifest, type Verification } from './signature.ts';
 export {
   anchorFingerprints,
