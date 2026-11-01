@@ -1,5 +1,71 @@
 # Changelog
 
+## [0.2.1](https://github.com/vascoguita/yapyap/compare/v0.2.0...v0.2.1) (2026-11-01)
+
+
+### Features
+
+* **adapter:** resize the chat list with the mouse and keyboard, per account ([bc35eb5](https://github.com/vascoguita/yapyap/commit/bc35eb5f1eaaed6aeaeee6cef1e9f8b2526b2f77))
+* **adapter:** resize the chat list with the mouse and keyboard, per account ([#490](https://github.com/vascoguita/yapyap/issues/490)) ([9682344](https://github.com/vascoguita/yapyap/commit/96823441b952f8843638116da9416e2d199d3c63))
+* **ai-assistant:** catch up on unread chats from the chat list ([c8aedfb](https://github.com/vascoguita/yapyap/commit/c8aedfb2eef2b3204736621c1a3129f28ec3d189)), closes [#106](https://github.com/vascoguita/yapyap/issues/106)
+* **ai-assistant:** catch up on unread chats from the chat list ([#492](https://github.com/vascoguita/yapyap/issues/492)) ([a6e2a87](https://github.com/vascoguita/yapyap/commit/a6e2a87da773c38988b2067685e981293f813345))
+* **ai-assistant:** show and switch the model in the bar, with Auto picking it ([6dd2b3e](https://github.com/vascoguita/yapyap/commit/6dd2b3ed8b453ace5651a1479f84d2807ca4b985))
+* **ai-assistant:** show and switch the model in the bar, with Auto picking it ([#472](https://github.com/vascoguita/yapyap/issues/472)) ([b68a690](https://github.com/vascoguita/yapyap/commit/b68a6909a9fdd6a0eb9ed69c7b8b711534f98ecd))
+* **assistant:** find the AI model running on this computer with one click ([1f2c593](https://github.com/vascoguita/yapyap/commit/1f2c593d0e2d99a3168f14defc862f7a181c2f41))
+* **assistant:** find the AI model running on this computer with one click ([#480](https://github.com/vascoguita/yapyap/issues/480)) ([d6d5a53](https://github.com/vascoguita/yapyap/commit/d6d5a534f665d975aee357f22137ee4dd3e91494))
+* **assistant:** make the AI assistant part of YapYap ([7be0f47](https://github.com/vascoguita/yapyap/commit/7be0f470a41381660225ed7299b4fab8cd2cb274))
+* **assistant:** make the AI assistant part of YapYap ([#505](https://github.com/vascoguita/yapyap/issues/505)) ([9633cbf](https://github.com/vascoguita/yapyap/commit/9633cbfd32de09899888537d75c42e32d09aca04))
+* **assistant:** run a private model on this computer with wllama ([4243e7a](https://github.com/vascoguita/yapyap/commit/4243e7ad72ee0dee9aa1e99555fd7a9e10dd93bd))
+* **assistant:** run a private model on this computer with wllama ([#488](https://github.com/vascoguita/yapyap/issues/488)) ([2f6ad8c](https://github.com/vascoguita/yapyap/commit/2f6ad8c426b901ebe000f0dbcc9841b15dea5804))
+* **assistant:** show the bar inside the chat, right above the message box ([4215e2d](https://github.com/vascoguita/yapyap/commit/4215e2d79a07cfc98c4e760cfb7c0da02eb1e00a))
+* **assistant:** show the bar inside the chat, right above the message box ([#469](https://github.com/vascoguita/yapyap/issues/469)) ([2427e74](https://github.com/vascoguita/yapyap/commit/2427e74bee434cc04bebd6aeffdd0f42767257ec))
+* **assistant:** suggest replies automatically when a message arrives in the open chat ([20856a8](https://github.com/vascoguita/yapyap/commit/20856a8504d034693891dac41c9c7f18c4bbd567))
+* **assistant:** suggest replies automatically when a message arrives in the open chat ([#473](https://github.com/vascoguita/yapyap/issues/473)) ([390e005](https://github.com/vascoguita/yapyap/commit/390e0053ed2bf2d48a2148ed8a6c38765e49e65a))
+* **extensions:** let extensions holding local-model run a model in their page ([9a7a564](https://github.com/vascoguita/yapyap/commit/9a7a564418001fca110482e521390eee5cb1b18f))
+* **extensions:** local-model capability for running a model in the extension page ([#481](https://github.com/vascoguita/yapyap/issues/481)) ([f26a127](https://github.com/vascoguita/yapyap/commit/f26a12778e67effbbd1b096aeef3daeabeecfb1e))
+* **extensions:** read unread chats from the chat list for chat:read-unread-summary ([056b917](https://github.com/vascoguita/yapyap/commit/056b917562be5d0fd82174ce7e12356d41441a06))
+* **extensions:** unread summary from the chat list, without opening a chat ([#487](https://github.com/vascoguita/yapyap/issues/487)) ([8a6fa06](https://github.com/vascoguita/yapyap/commit/8a6fa0638040d61e42263af6ee9bdbda71821a2f))
+* **settings:** list the sections at the top, each a jump to its heading ([e38fe24](https://github.com/vascoguita/yapyap/commit/e38fe242dba30559660dce6141c23619feeabf4e)), closes [#549](https://github.com/vascoguita/yapyap/issues/549)
+* **settings:** list the sections at the top, each a jump to its heading ([#550](https://github.com/vascoguita/yapyap/issues/550)) ([5703053](https://github.com/vascoguita/yapyap/commit/5703053b6ff766f760c15d61863a2c25a65b9081))
+
+
+### Bug Fixes
+
+* **a11y:** quieter live regions, a focused discard prompt and named buttons ([fb85bff](https://github.com/vascoguita/yapyap/commit/fb85bfff0846937f27fe221a7aa8c33f9ec45b1f)), closes [#545](https://github.com/vascoguita/yapyap/issues/545)
+* **a11y:** quieter live regions, a focused discard prompt and named buttons ([#548](https://github.com/vascoguita/yapyap/issues/548)) ([d1f45a3](https://github.com/vascoguita/yapyap/commit/d1f45a35bfebf7967360c50b5079159f7c87417b))
+* **about:** call the GitHub issues link "Issue tracker" ([5309f8f](https://github.com/vascoguita/yapyap/commit/5309f8f95e3187e508ae3f9576c30b06b8755c78))
+* **adapter:** tell group chats apart by the sender names only groups show ([2557c8d](https://github.com/vascoguita/yapyap/commit/2557c8dc342a02087e3dc12e47caa866e9dba75d))
+* **adapter:** tell group chats apart by the sender names only groups show ([#486](https://github.com/vascoguita/yapyap/issues/486)) ([eede835](https://github.com/vascoguita/yapyap/commit/eede8353bd85dbfb4228a52969ce52ee849fb258))
+* **ai-assistant:** retry the panel's state with growing waits while YapYap's rate refuses ([043c234](https://github.com/vascoguita/yapyap/commit/043c234851732b5a3b7ee78f1f7bf6114d29c12d))
+* **ai-assistant:** send the key again until the hidden page answers, so it is never lost ([e65a2fd](https://github.com/vascoguita/yapyap/commit/e65a2fd426f9c9d543fe7c8003b4252f3502c0ef))
+* **ai-assistant:** send the key again until the hidden page answers, so it is never lost ([#485](https://github.com/vascoguita/yapyap/issues/485)) ([eeed081](https://github.com/vascoguita/yapyap/commit/eeed08144598861b9b2f11a32da15b90cafdcb2e))
+* **assistant:** keep bar requests until the extension listens, and test the bar's drawing ([6e41c38](https://github.com/vascoguita/yapyap/commit/6e41c383288b3b7a1d43e3a50cd9afbe054d7ba7))
+* **assistant:** put the bar above the message box and over the wallpaper on real WhatsApp ([0cfb971](https://github.com/vascoguita/yapyap/commit/0cfb9719c6b02cdd6541299e486131f64c6f22a0))
+* **assistant:** put the bar above the message box and over the wallpaper on real WhatsApp ([#483](https://github.com/vascoguita/yapyap/issues/483)) ([1b70670](https://github.com/vascoguita/yapyap/commit/1b706709078d1db806a0b54a4b19f960f6b49fd3))
+* **extensions:** say the unread summary grant also reads each chat's latest message ([4324db4](https://github.com/vascoguita/yapyap/commit/4324db49dc35cfe6387ac600091e29d487f97773))
+* **extensions:** show names, say what failed, and keep the Marketplace in place ([4a55dc7](https://github.com/vascoguita/yapyap/commit/4a55dc73d12a2eb13a6ea06621334f8aaf0f2086)), closes [#541](https://github.com/vascoguita/yapyap/issues/541)
+* **extensions:** show names, say what failed, and keep the Marketplace in place ([#542](https://github.com/vascoguita/yapyap/issues/542)) ([d652278](https://github.com/vascoguita/yapyap/commit/d65227848d74491c5cc6fefe5b351d39b059d3db))
+* **main:** catalog install errors, one Check Spelling item, and say when diagnostics are copied ([fd8c0fe](https://github.com/vascoguita/yapyap/commit/fd8c0fe2c7db0e36b28bd5f6fdef51cf4a398078)), closes [#560](https://github.com/vascoguita/yapyap/issues/560)
+* **main:** catalog install errors, one Check Spelling item, and say when diagnostics are copied ([#561](https://github.com/vascoguita/yapyap/issues/561)) ([3140c37](https://github.com/vascoguita/yapyap/commit/3140c371a14b1258d8bd88d3fdd559dd97f765ec))
+* offer newer betas, keep the last account, gate Record on consent, guard Escape ([c29c0e0](https://github.com/vascoguita/yapyap/commit/c29c0e083370e2d8afcdc601b0e66ed6dad9478a)), closes [#501](https://github.com/vascoguita/yapyap/issues/501)
+* offer newer betas, keep the last account, gate Record on consent, guard Escape ([#506](https://github.com/vascoguita/yapyap/issues/506)) ([788f8ae](https://github.com/vascoguita/yapyap/commit/788f8aef8ab962c0d4056fbcaad42c8ae8b8f238))
+* **release:** let extension release PRs pass lint and list each change once ([6536c6a](https://github.com/vascoguita/yapyap/commit/6536c6ac3f16d21bb5a1b88195a9507bdbe81a52))
+* **release:** let extension release PRs pass lint and list each change once ([#479](https://github.com/vascoguita/yapyap/issues/479)) ([0412e77](https://github.com/vascoguita/yapyap/commit/0412e77272c765c9e2ed8ac646730910ab9e2537))
+* **release:** read the marketplace entry once, and bound the notes cleanup ([2e3a70f](https://github.com/vascoguita/yapyap/commit/2e3a70f5a1e152acf9eec982301d82bda4886b30))
+* **release:** the assistant needs YapYap 0.2.1, the release that brings its bar ([55ce0cb](https://github.com/vascoguita/yapyap/commit/55ce0cbf9586a62876cbead0841614592d9c059b))
+* **settings:** give the section links WCAG 2.2's 24 px target size ([9659b0a](https://github.com/vascoguita/yapyap/commit/9659b0a4a149d9c267f0de72f6df0ae976f94d5f))
+* **ui:** keep wrapped radio options far enough apart for target size ([d3a3b9e](https://github.com/vascoguita/yapyap/commit/d3a3b9e14d2dd0d2543e0cb429ee2a224b0098a2))
+* **ui:** use one button casing, one set of trust labels and US English ([c2a7be0](https://github.com/vascoguita/yapyap/commit/c2a7be06c6beeaba12bcd1e8488212c540d8e304)), closes [#528](https://github.com/vascoguita/yapyap/issues/528)
+* **ui:** use one button casing, one set of trust labels and US English ([#530](https://github.com/vascoguita/yapyap/issues/530)) ([492044b](https://github.com/vascoguita/yapyap/commit/492044bd523daf70019753727b873aa2be1a6426))
+
+
+### Performance
+
+* **extensions:** start extensions on demand and stop them once idle ([ec1d722](https://github.com/vascoguita/yapyap/commit/ec1d7220965bee023a21d372e3d536a0b3cb45c6)), closes [#495](https://github.com/vascoguita/yapyap/issues/495)
+* **extensions:** start extensions on demand and stop them once idle ([#529](https://github.com/vascoguita/yapyap/issues/529)) ([c310d77](https://github.com/vascoguita/yapyap/commit/c310d7736e9ecfbdad5b52a117a0dea49be33004))
+* run no renderer for the main window and load the updater lazily ([ea3a386](https://github.com/vascoguita/yapyap/commit/ea3a386f6989d2621205d7833a8c35b473670ae5)), closes [#496](https://github.com/vascoguita/yapyap/issues/496)
+* run no renderer for the main window and load the updater lazily ([#497](https://github.com/vascoguita/yapyap/issues/497)) ([4f0c8ff](https://github.com/vascoguita/yapyap/commit/4f0c8ffbd39612651d2ddc56340080a6c7d7605e))
+
 ## [0.2.0](https://github.com/vascoguita/yapyap/compare/v0.1.1...v0.2.0) (2026-10-29)
 
 
