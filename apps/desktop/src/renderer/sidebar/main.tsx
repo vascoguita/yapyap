@@ -1,4 +1,4 @@
-import { render } from 'preact';
+import { mount } from '../shared/mount.tsx';
 import { Sidebar } from './Sidebar.tsx';
 
-render(<Sidebar api={globalThis.yapyap} />, document.body);
+mount(Sidebar);

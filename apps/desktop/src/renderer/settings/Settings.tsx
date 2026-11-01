@@ -130,13 +130,6 @@ export function useSnapshot(
   return [snapshot, error, change, load];
 }
 
-/** Settings is a dialog-like window, so Escape closes it. */
-export function closeOnEscape(event: KeyboardEvent): void {
-  if (event.key === 'Escape') {
-    window.close();
-  }
-}
-
 export function Settings({ api }: { readonly api: ChromeApi }): JSX.Element {
   const [snapshot, error, change, reload] = useSnapshot(api);
   const chooseFolder = useCallback(

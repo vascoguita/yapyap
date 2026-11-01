@@ -520,7 +520,7 @@ describe('openConsentWindow', () => {
     expect(window.loadURL).toHaveBeenCalledWith('app://chrome/extension-consent.html');
     expect(createWindow).toHaveBeenCalledWith({
       autoHideMenuBar: true,
-      title: 'Install Extension',
+      title: 'Review Extension',
       width: 520,
       height: 620,
       minWidth: 420,

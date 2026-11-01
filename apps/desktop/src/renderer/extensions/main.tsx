@@ -1,4 +1,5 @@
-import { render } from 'preact';
+import { en } from '../../shared/messages/en.ts';
+import { closeOnEscape, mount } from '../shared/mount.tsx';
 import { Extensions } from './Extensions.tsx';
 
-render(<Extensions api={globalThis.yapyap} />, document.body);
+mount(Extensions, { title: en.windows.extensions, escape: closeOnEscape });

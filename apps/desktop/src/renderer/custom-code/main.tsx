@@ -1,4 +1,5 @@
-import { render } from 'preact';
+import { en } from '../../shared/messages/en.ts';
+import { mount } from '../shared/mount.tsx';
 import { CustomCodeEditor } from './CustomCode.tsx';
 
-render(<CustomCodeEditor api={globalThis.yapyap} />, document.body);
+mount(CustomCodeEditor, { title: en.windows.customCode });

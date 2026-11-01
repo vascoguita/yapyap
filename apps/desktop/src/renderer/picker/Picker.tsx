@@ -11,12 +11,10 @@ const GROUPS = [
 ] as const;
 
 /** Escape cancels, like closing the window. */
-export function cancelOnEscape(api: ChromeApi): (event: KeyboardEvent) => void {
-  return (event) => {
-    if (event.key === 'Escape') {
-      void api.picker.cancel();
-    }
-  };
+export function cancelOnEscape(event: KeyboardEvent, api: ChromeApi): void {
+  if (event.key === 'Escape') {
+    void api.picker.cancel();
+  }
 }
 
 function Source(props: {

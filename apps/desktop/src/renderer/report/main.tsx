@@ -1,4 +1,5 @@
-import { render } from 'preact';
+import { en } from '../../shared/messages/en.ts';
+import { mount } from '../shared/mount.tsx';
 import { ProblemReport } from './ProblemReport.tsx';
 
-render(<ProblemReport api={globalThis.yapyap} />, document.body);
+mount(ProblemReport, { title: en.windows.report });

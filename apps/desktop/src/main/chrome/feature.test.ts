@@ -479,7 +479,7 @@ describe('createChromeFeature', () => {
     expect(t.deps.createWindow).toHaveBeenLastCalledWith(
       {
         autoHideMenuBar: true,
-        title: 'Proxy Sign-In',
+        title: 'Sign In to the Proxy',
         width: 440,
         height: 400,
         resizable: false,
@@ -580,7 +580,7 @@ describe('createChromeFeature', () => {
     expect(t.deps.createWindow).toHaveBeenCalledWith(
       {
         autoHideMenuBar: true,
-        title: 'Share your screen',
+        title: 'Choose What to Share',
         width: 760,
         height: 580,
         minWidth: 480,

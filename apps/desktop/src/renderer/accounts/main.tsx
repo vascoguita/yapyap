@@ -1,4 +1,5 @@
-import { render } from 'preact';
+import { en } from '../../shared/messages/en.ts';
+import { mount } from '../shared/mount.tsx';
 import { Accounts } from './Accounts.tsx';
 
-render(<Accounts api={globalThis.yapyap} />, document.body);
+mount(Accounts, { title: en.windows.accounts });

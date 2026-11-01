@@ -1,4 +1,5 @@
-import { render } from 'preact';
+import { en } from '../../shared/messages/en.ts';
+import { mount } from '../shared/mount.tsx';
 import { RecordPrompt } from './RecordPrompt.tsx';
 
-render(<RecordPrompt api={globalThis.yapyap} />, document.body);
+mount(RecordPrompt, { title: en.recording.windowTitle });

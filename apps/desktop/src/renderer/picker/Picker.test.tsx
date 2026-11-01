@@ -113,10 +113,9 @@ describe('Picker', () => {
 
   it('cancels on Escape only', () => {
     const t = api();
-    const onKey = cancelOnEscape(t);
-    onKey(new KeyboardEvent('keydown', { key: 'Enter' }));
+    cancelOnEscape(new KeyboardEvent('keydown', { key: 'Enter' }), t);
     expect(t.picker.cancel).not.toHaveBeenCalled();
-    onKey(new KeyboardEvent('keydown', { key: 'Escape' }));
+    cancelOnEscape(new KeyboardEvent('keydown', { key: 'Escape' }), t);
     expect(t.picker.cancel).toHaveBeenCalledOnce();
   });
 });
