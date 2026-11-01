@@ -108,7 +108,7 @@ function FolderField(props: FieldProps) {
       <output aria-labelledby={`${field.id}-label`}>
         {folder === '' ? field.folder?.defaultName : folder}
       </output>
-      <div class="actions">
+      <div class="actions folder-actions">
         {/* Named with the field too, so each folder's Choose… is told apart. */}
         <button
           type="button"

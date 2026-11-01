@@ -1169,29 +1169,6 @@ main.report .actions {
   justify-content: flex-end;
 }
 
-/*
- * Text and folder fields stack their label, value, buttons and hint in one
- * column; the checkbox fields' second column would squeeze the label.
- */
-.field.text {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 4px;
-}
-
-.field.text > * {
-  grid-column: 1;
-}
-
-.field.text output {
-  margin-block: 0;
-  overflow-wrap: anywhere;
-}
-
-.field.text .actions {
-  justify-content: flex-start;
-}
-
 main.custom-code {
   align-items: stretch;
   max-width: 640px;
@@ -1318,4 +1295,27 @@ main.welcome .option .hint {
   margin: 0;
   color: var(--muted);
   font-size: 0.9rem;
+}
+
+/*
+ * Text and folder fields stack their label, value, buttons and hint in one
+ * column; the checkbox fields' second column would squeeze the label.
+ */
+.field.text {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px;
+}
+
+.field.text > * {
+  grid-column: 1;
+}
+
+.field.text output {
+  margin-block: 0;
+  overflow-wrap: anywhere;
+}
+
+.folder-actions {
+  justify-content: flex-start;
 }
