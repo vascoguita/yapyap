@@ -1,7 +1,7 @@
 import type { ElectronApplication } from '@playwright/test';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { closeApp, expect, launchApp, mainWindow, test, whatsAppPage } from './fixtures.ts';
+import { closeApp, expect, launchApp, mainWindow, test } from './fixtures.ts';
 
 const BOUNDS = { x: 60, y: 40, width: 900, height: 640 };
 
@@ -69,17 +69,9 @@ test('starts with the default size when the saved state is corrupt', async ({
 
 test('hides the menu bar when the setting says so', async ({ app }) => {
   test.skip(process.platform === 'darwin', 'macOS keeps its menu bar outside the window');
-  await whatsAppPage(app);
   // Settings opens a second window, so find WhatsApp's by what it shows.
-  const autoHidden = () =>
-    app.evaluate(({ BrowserWindow, webContents }) => {
-      const page = webContents
-        .getAllWebContents()
-        .find((contents) => contents.getURL().startsWith('http'));
-      return page === undefined
-        ? undefined
-        : BrowserWindow.fromWebContents(page)?.isMenuBarAutoHide();
-    });
+  const main = await mainWindow(app);
+  const autoHidden = () => main.evaluate((window) => window.isMenuBarAutoHide());
   expect(await autoHidden()).toBe(false);
   const opened = app.waitForEvent('window');
   await app.evaluate(({ Menu }) => {

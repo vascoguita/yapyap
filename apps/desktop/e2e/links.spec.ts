@@ -1,5 +1,5 @@
 import type { ElectronApplication } from '@playwright/test';
-import { expect, test } from './fixtures.ts';
+import { expect, test, whatsAppContents } from './fixtures.ts';
 
 /** Replaces shell.openExternal so tests see every link that would leave the app. */
 async function recordExternalLinks(app: ElectronApplication): Promise<() => Promise<string[]>> {
@@ -60,14 +60,9 @@ test('opens web, mail and phone links outside the app, each exactly once', async
       'tel:+447700900123',
     ]);
   expect(await windowCount(app)).toBe(1);
-  expect(
-    await app.evaluate(({ webContents }) =>
-      webContents
-        .getAllWebContents()
-        .find((contents) => contents.getURL().startsWith('http'))
-        ?.getURL(),
-    ),
-  ).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/$/);
+  expect(await (await whatsAppContents(app)).evaluate((contents) => contents.getURL())).toMatch(
+    /^http:\/\/127\.0\.0\.1:\d+\/$/,
+  );
 });
 
 test('drops links with other schemes', async ({ app, window }) => {

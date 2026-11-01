@@ -1,8 +1,7 @@
 import type { ElectronApplication, Page } from '@playwright/test';
 import { mkdir, readdir, readFile, realpath, symlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { SETTINGS_VERSION } from '../src/main/settings/schema.ts';
-import { closeApp, expect, launchApp, test, whatsAppPage } from './fixtures.ts';
+import { closeApp, expect, launchApp, seedSettings, test, whatsAppPage } from './fixtures.ts';
 
 /** Points YapYap's downloads folder into the test profile. */
 async function useDownloads(app: ElectronApplication, profile: string): Promise<string> {
@@ -70,10 +69,7 @@ test('opens a finished PDF when asked to, and never a program', async ({
   fakeWhatsApp,
   profile,
 }) => {
-  await writeFile(
-    join(profile, 'settings.json'),
-    JSON.stringify({ schemaVersion: SETTINGS_VERSION, downloads: { openWhenDone: true } }),
-  );
+  await seedSettings(profile, { downloads: { openWhenDone: true } });
   const app = await launchApp(fakeWhatsApp.origin, profile);
   try {
     const folder = await useDownloads(app, profile);

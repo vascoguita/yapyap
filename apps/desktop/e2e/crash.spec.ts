@@ -1,16 +1,13 @@
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { expect, launchApp, test, whatsAppPage } from './fixtures.ts';
+import { expect, launchApp, seedSettings, test, whatsAppPage } from './fixtures.ts';
 
 test('saves a local crash report after an unclean exit, and clears the mark on quit', async ({
   fakeWhatsApp,
   profile,
 }) => {
-  await writeFile(
-    join(profile, 'settings.json'),
-    JSON.stringify({ schemaVersion: 1, privacy: { crashReports: 'local' } }),
-  );
+  await seedSettings(profile, { privacy: { crashReports: 'local' } });
   // What a session that never quit cleanly leaves behind.
   await writeFile(
     join(profile, 'running.json'),

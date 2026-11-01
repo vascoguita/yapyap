@@ -1,15 +1,15 @@
 import type { ElectronApplication } from '@playwright/test';
-import { writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
-import { expect, launchApp, test, whatsAppPage } from './fixtures.ts';
+import {
+  expect,
+  launchApp,
+  seedSettings,
+  test,
+  whatsAppContents,
+  whatsAppPage,
+} from './fixtures.ts';
 
-const whatsAppZoom = (app: ElectronApplication) =>
-  app.evaluate(({ webContents }) =>
-    webContents
-      .getAllWebContents()
-      .find((contents) => contents.getURL().startsWith('http'))
-      ?.getZoomFactor(),
-  );
+const whatsAppZoom = async (app: ElectronApplication) =>
+  (await whatsAppContents(app)).evaluate((contents) => contents.getZoomFactor());
 
 async function clickView(app: ElectronApplication, label: string): Promise<void> {
   await app.evaluate(({ Menu }, wanted) => {
@@ -55,10 +55,7 @@ test('zooms in 5% steps and keeps the level for the next launch', async ({
 });
 
 test('starts at 100% when the stored zoom is invalid', async ({ fakeWhatsApp, profile }) => {
-  await writeFile(
-    join(profile, 'settings.json'),
-    JSON.stringify({ schemaVersion: 1, appearance: { zoom: 99 } }),
-  );
+  await seedSettings(profile, { appearance: { zoom: 99 } });
   const app = await launchApp(fakeWhatsApp.origin, profile);
   try {
     await expect((await whatsAppPage(app)).getByTestId('fake-whatsapp')).toBeVisible();

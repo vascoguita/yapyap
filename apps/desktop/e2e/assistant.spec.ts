@@ -13,7 +13,7 @@ import {
   standInKeyring,
 } from './assistant-helpers.ts';
 import { assistantBarResult, chromePage, clickInBar, clickMenu } from './extension-helpers.ts';
-import { closeApp, expect, launchApp, test, whatsAppPage } from './fixtures.ts';
+import { closeApp, expect, launchApp, mainWindow, test, whatsAppPage } from './fixtures.ts';
 
 test('sets Claude up in Settings › Assistant, with the key encrypted, tested and in use', async ({
   app,
@@ -138,19 +138,12 @@ test('suggests replies on its own when a message arrives in an allowed chat', as
   await clickInBar(app, window, 'Allow here');
   await expect.poll(() => barNames(app)).toContain('Can we do 9?');
   // A virtual display without a window manager focuses nothing on its own.
+  const main = await mainWindow(app);
   await expect
     .poll(() =>
-      app.evaluate(({ BaseWindow, webContents }) => {
-        const whatsapp = webContents
-          .getAllWebContents()
-          .find((contents) => contents.getURL().startsWith('http'));
-        const main = BaseWindow.getAllWindows().find((candidate) =>
-          candidate.contentView.children.some(
-            (view) => (view as { webContents?: unknown }).webContents === whatsapp,
-          ),
-        );
-        main?.focus();
-        return main?.isFocused();
+      main.evaluate((owner) => {
+        owner.focus();
+        return owner.isFocused();
       }),
     )
     .toBe(true);

@@ -8,7 +8,9 @@ import {
   chromePage,
   clickMenu,
   installExtension,
+  EXTENSION_START_TIMEOUT,
   extensionPage,
+  extensionTitle,
   runExtensionCommand,
 } from './extension-helpers.ts';
 import { clickLastItem, lastMenu, recordMenus, shownMenus } from './menu-helpers.ts';
@@ -73,7 +75,7 @@ test('runs an installed extension hidden, on its own session, with no eval and n
     PROBE,
   );
   await expect
-    .poll(() => extensionPage(app), { timeout: 20_000 })
+    .poll(() => extensionPage(app), { timeout: EXTENSION_START_TIMEOUT })
     .toEqual({
       url: 'extension://org.example.hello/',
       title: 'no-eval offline no-popup',
@@ -122,7 +124,7 @@ test('lets no extension run WebAssembly, blob workers or threads', async ({ app,
     'tiny.wasm': TINY_WASM,
   });
   await expect
-    .poll(async () => (await extensionPage(app))?.title, { timeout: 20_000 })
+    .poll(() => extensionTitle(app), { timeout: EXTENSION_START_TIMEOUT })
     .toBe('no-wasm no-compile no-worker not-isolated');
 });
 
@@ -158,11 +160,11 @@ test('answers an extension’s calls over its port, only for what it was granted
     testManifest({ capabilities: ['notifications:show'], network }),
     NOTIFIER,
   );
-  await expect.poll(async () => (await extensionPage(app))?.title, { timeout: 20_000 }).toBe('ok');
+  await expect.poll(() => extensionTitle(app), { timeout: EXTENSION_START_TIMEOUT }).toBe('ok');
   const quiet = testManifest({ id: 'org.example.quiet', name: 'Quiet', capabilities: [], network });
   await installExtension(app, profile, quiet, NOTIFIER);
   await expect
-    .poll(async () => (await extensionPage(app, 'org.example.quiet'))?.title, { timeout: 20_000 })
+    .poll(() => extensionTitle(app, 'org.example.quiet'), { timeout: EXTENSION_START_TIMEOUT })
     .toBe('not-granted');
   expect(
     await app.evaluate(
@@ -215,7 +217,7 @@ test('keeps each extension’s secrets to itself', async ({ app, profile }) => {
     keeper(true),
   );
   await expect
-    .poll(async () => (await extensionPage(app))?.title, { timeout: 20_000 })
+    .poll(() => extensionTitle(app), { timeout: EXTENSION_START_TIMEOUT })
     .toBe('sk-test');
   const other = testManifest({
     id: 'org.example.other',
@@ -225,7 +227,7 @@ test('keeps each extension’s secrets to itself', async ({ app, profile }) => {
   });
   await installExtension(app, profile, other, keeper(false));
   await expect
-    .poll(async () => (await extensionPage(app, 'org.example.other'))?.title, { timeout: 20_000 })
+    .poll(() => extensionTitle(app, 'org.example.other'), { timeout: EXTENSION_START_TIMEOUT })
     .toBe('undefined');
   // What the file keeps is what the system's encryption made of the secret.
   const kept = await readFile(join(profile, 'extensions', '.secrets.json'), 'utf8');
@@ -260,14 +262,12 @@ test('keeps each extension’s storage to itself, across restarts', async ({
       testManifest({ capabilities: ['storage:local'], network }),
       counter(true),
     );
-    await expect
-      .poll(async () => (await extensionPage(first))?.title, { timeout: 20_000 })
-      .toBe('1');
+    await expect.poll(() => extensionTitle(first), { timeout: EXTENSION_START_TIMEOUT }).toBe('1');
     const other = { id: 'org.example.other', name: 'Other', capabilities: ['storage:local'] };
     await installExtension(first, profile, testManifest({ ...other, network }), counter(false));
     await expect
-      .poll(async () => (await extensionPage(first, 'org.example.other'))?.title, {
-        timeout: 20_000,
+      .poll(() => extensionTitle(first, 'org.example.other'), {
+        timeout: EXTENSION_START_TIMEOUT,
       })
       .toBe('0');
   } finally {
@@ -275,9 +275,7 @@ test('keeps each extension’s storage to itself, across restarts', async ({
   }
   const second = await launchApp(fakeWhatsApp.origin, profile);
   try {
-    await expect
-      .poll(async () => (await extensionPage(second))?.title, { timeout: 20_000 })
-      .toBe('2');
+    await expect.poll(() => extensionTitle(second), { timeout: EXTENSION_START_TIMEOUT }).toBe('2');
   } finally {
     await closeApp(second);
   }
@@ -315,7 +313,7 @@ test('puts an extension’s draft in the open chat’s message box, for the user
     DRAFTER,
   );
   await expect
-    .poll(async () => (await extensionPage(app))?.title, { timeout: 20_000 })
+    .poll(() => extensionTitle(app), { timeout: EXTENSION_START_TIMEOUT })
     .toBe('drafted');
   await expect(window.getByTestId('composer')).toHaveText('Sounds good, see you at 8.');
 });
@@ -347,14 +345,14 @@ test('stops an extension’s calls as soon as the user takes the permission back
     testManifest({ capabilities: ['notifications:show'], network: { hosts: [] } }),
     PERSISTENT,
   );
-  await expect.poll(async () => (await extensionPage(app))?.title, { timeout: 20_000 }).toBe('ok');
+  await expect.poll(() => extensionTitle(app), { timeout: EXTENSION_START_TIMEOUT }).toBe('ok');
   await clickMenu(app, 'Extensions…');
   const extensions = await chromePage(app, '/extensions.html');
   await extensions.getByText('Permissions').click();
   await extensions.getByRole('checkbox', { name: 'Show notifications' }).uncheck();
-  await expect.poll(async () => (await extensionPage(app))?.title).toBe('not-granted');
+  await expect.poll(() => extensionTitle(app)).toBe('not-granted');
   await extensions.getByRole('checkbox', { name: 'Show notifications' }).check();
-  await expect.poll(async () => (await extensionPage(app))?.title).toBe('ok');
+  await expect.poll(() => extensionTitle(app)).toBe('ok');
   await expect(extensions.getByRole('checkbox', { name: 'Show notifications' })).toBeChecked();
 });
 
@@ -381,10 +379,10 @@ test('lists an extension’s commands in the menu under its name, and runs the o
   });
   await installExtension(app, profile, manifest, GREETER);
   await expect
-    .poll(async () => (await extensionPage(app))?.title, { timeout: 20_000 })
+    .poll(() => extensionTitle(app), { timeout: EXTENSION_START_TIMEOUT })
     .toBe('waiting');
   await expect.poll(() => runExtensionCommand(app, 'Hello: Say hello')).toBe(true);
-  await expect.poll(async () => (await extensionPage(app))?.title).toBe('greeted');
+  await expect.poll(() => extensionTitle(app)).toBe('greeted');
   expect((await extensionPage(app))?.shown).toBe(false);
 });
 
@@ -413,12 +411,12 @@ test('gives an extension the settings the user chose in its form', async ({ app,
     },
   });
   await installExtension(app, profile, manifest, CONFIGURED);
-  await expect.poll(async () => (await extensionPage(app))?.title, { timeout: 20_000 }).toBe('{}');
+  await expect.poll(() => extensionTitle(app), { timeout: EXTENSION_START_TIMEOUT }).toBe('{}');
   await clickMenu(app, 'Extensions…');
   const extensions = await chromePage(app, '/extensions.html');
   await extensions.getByText('Settings').click();
   await extensions.getByLabel('Model').selectOption('large');
-  await expect.poll(async () => (await extensionPage(app))?.title).toBe('{"model":"large"}');
+  await expect.poll(() => extensionTitle(app)).toBe('{"model":"large"}');
   await expect(extensions.getByLabel('Model')).toHaveValue('large');
 });
 
@@ -459,7 +457,7 @@ test('adds an extension’s items to right clicks on the message box, a message 
   });
   await installExtension(app, profile, manifest, ACTOR);
   await expect
-    .poll(async () => (await extensionPage(app))?.title, { timeout: 20_000 })
+    .poll(() => extensionTitle(app), { timeout: EXTENSION_START_TIMEOUT })
     .toBe('waiting');
   await recordMenus(app);
   const rightClick = async (testId: string) => {
@@ -470,14 +468,14 @@ test('adds an extension’s items to right clicks on the message box, a message 
   };
   expect((await rightClick('composer'))?.at(-1)).toBe('Hello: Fix spelling');
   await clickLastItem(app);
-  await expect.poll(async () => (await extensionPage(app))?.title).toBe('fix');
+  await expect.poll(() => extensionTitle(app)).toBe('fix');
   // macOS selects the word under the pointer, so Copy may come first.
   expect((await rightClick('message'))?.at(-1)).toBe('Hello: Explain');
   await clickLastItem(app);
-  await expect.poll(async () => (await extensionPage(app))?.title).toBe('explain');
+  await expect.poll(() => extensionTitle(app)).toBe('explain');
   expect((await rightClick('list-item-0'))?.at(-1)).toBe('Hello: Summarize');
   await clickLastItem(app);
-  await expect.poll(async () => (await extensionPage(app))?.title).toBe('summarize');
+  await expect.poll(() => extensionTitle(app)).toBe('summarize');
 });
 
 /** A panel that says it loaded, and tries to retitle its window. */
@@ -507,7 +505,7 @@ test('opens an extension’s panel in a window of its own, titled with the exten
       panel?.click();
       return panel !== undefined;
     });
-  await expect.poll(open, { timeout: 20_000 }).toBe(true);
+  await expect.poll(open, { timeout: EXTENSION_START_TIMEOUT }).toBe(true);
   const panel = await chromePage(app, '/__yapyap/panel.html');
   await expect(panel.locator('body')).toHaveText('Notes for this chat');
   const title = () =>
@@ -551,12 +549,12 @@ test('reads the open chat for an extension allowed to, as plain data', async ({
   // Until the extension writes its title, the page is titled with its address.
   const read = async () => {
     try {
-      return JSON.parse((await extensionPage(app))?.title ?? 'null') as unknown;
+      return JSON.parse((await extensionTitle(app)) ?? 'null') as unknown;
     } catch {
       return undefined;
     }
   };
-  await expect.poll(read, { timeout: 20_000 }).toEqual({
+  await expect.poll(read, { timeout: EXTENSION_START_TIMEOUT }).toEqual({
     name: 'Test Chat One',
     group: false,
     messages: [
@@ -603,7 +601,7 @@ test('reads the unread chats from the chat list for an extension allowed to, as 
   );
   const read = async () => {
     try {
-      return JSON.parse((await extensionPage(app))?.title ?? 'null') as unknown;
+      return JSON.parse((await extensionTitle(app)) ?? 'null') as unknown;
     } catch {
       return undefined;
     }
@@ -611,7 +609,7 @@ test('reads the unread chats from the chat list for an extension allowed to, as 
   // Only the fake page's second chat has a badge: "Test Chat Two", 2 unread,
   // "Are you coming tomorrow?" as its preview.
   await expect
-    .poll(read, { timeout: 20_000 })
+    .poll(read, { timeout: EXTENSION_START_TIMEOUT })
     .toEqual([{ name: 13, unread: 2, messages: [{ outgoing: false, text: 24 }] }]);
 });
 
@@ -660,7 +658,7 @@ test('lets an extension use a server on this computer only with local-network an
     const network = { hosts: [] };
     await installExtension(app, profile, testManifest({ capabilities: [], network }), local);
     await expect
-      .poll(async () => (await extensionPage(app))?.title, { timeout: 20_000 })
+      .poll(() => extensionTitle(app), { timeout: EXTENSION_START_TIMEOUT })
       .toBe('blocked');
     const granted = testManifest({
       id: 'org.example.local',
@@ -672,14 +670,14 @@ test('lets an extension use a server on this computer only with local-network an
     const prompt = `Let Local use the server at ${host} on this computer?`;
     await installExtension(app, profile, granted, local, {}, prompt);
     await expect
-      .poll(async () => (await extensionPage(app, 'org.example.local'))?.title, {
-        timeout: 20_000,
+      .poll(() => extensionTitle(app, 'org.example.local'), {
+        timeout: EXTENSION_START_TIMEOUT,
       })
       .toBe('reached');
     expect(
       await app.evaluate(() => (globalThis as { extensionPrompts?: string[] }).extensionPrompts),
     ).toContain(prompt);
-    expect((await extensionPage(app))?.title).toBe('blocked');
+    expect(await extensionTitle(app)).toBe('blocked');
   } finally {
     server.close();
   }
@@ -716,7 +714,7 @@ test('lets an extension read and replace the draft only with the grant to read i
     SHOUTER,
   );
   await expect
-    .poll(async () => (await extensionPage(app))?.title, { timeout: 20_000 })
+    .poll(() => extensionTitle(app), { timeout: EXTENSION_START_TIMEOUT })
     .toBe('not-granted');
   const reader = testManifest({
     id: 'org.example.reader',
@@ -726,7 +724,7 @@ test('lets an extension read and replace the draft only with the grant to read i
   });
   await installExtension(app, profile, reader, SHOUTER);
   await expect
-    .poll(async () => (await extensionPage(app, 'org.example.reader'))?.title, { timeout: 20_000 })
+    .poll(() => extensionTitle(app, 'org.example.reader'), { timeout: EXTENSION_START_TIMEOUT })
     .toBe('read: see you soon');
   await expect(composer).toHaveText('SEE YOU SOON');
 });
@@ -772,16 +770,14 @@ test('removes an extension with everything it kept, once the user confirms', asy
     network: { hosts: [] },
   });
   await installExtension(app, profile, manifest, HOARDER);
-  await expect
-    .poll(async () => (await extensionPage(app))?.title, { timeout: 20_000 })
-    .toBe('fresh');
+  await expect.poll(() => extensionTitle(app), { timeout: EXTENSION_START_TIMEOUT }).toBe('fresh');
   await clickMenu(app, 'Extensions…');
   const extensions = await chromePage(app, '/extensions.html');
   const remove = extensions.getByRole('button', { name: 'Remove org.example.hello' });
   // Cancel, the dialog's default, keeps the extension running.
   await remove.click();
   await expect(remove).toBeEnabled();
-  expect((await extensionPage(app))?.title).toBe('fresh');
+  expect(await extensionTitle(app)).toBe('fresh');
   await app.evaluate(({ dialog }) => {
     dialog.showMessageBox = () => Promise.resolve({ response: 0, checkboxChecked: false });
   });
@@ -794,9 +790,7 @@ test('removes an extension with everything it kept, once the user confirms', asy
   await expect(readFile(join(folder, 'org.example.hello', '1.0.0', 'main.js'))).rejects.toThrow();
   // Installed again, it finds nothing of what it kept before.
   await installExtension(app, profile, manifest, HOARDER);
-  await expect
-    .poll(async () => (await extensionPage(app))?.title, { timeout: 20_000 })
-    .toBe('fresh');
+  await expect.poll(() => extensionTitle(app), { timeout: EXTENSION_START_TIMEOUT }).toBe('fresh');
 });
 
 test('shows an extension installed while the Extensions window is open', async ({
