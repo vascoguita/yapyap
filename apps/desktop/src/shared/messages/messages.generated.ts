@@ -72,6 +72,7 @@ export interface Messages {
   };
   readonly settings: {
     readonly title: string;
+    readonly sectionsLabel: string;
     readonly unavailable: string;
     readonly readOnly: string;
     readonly restartNeeded: string;

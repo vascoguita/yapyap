@@ -8,6 +8,39 @@ import { Field, type Change } from './Field.tsx';
 
 const text = en.settings;
 
+/** The sections this platform shows, in order, with the heading each one has. */
+function shownSections(
+  snapshot: SettingsSnapshot,
+): { readonly id: string; readonly title: string }[] {
+  // As the page renders them: the assistant's own section, then those with a field here.
+  const shown = SETTINGS_SECTIONS.filter(({ id }) =>
+    id === 'assistant'
+      ? 'assistant.enabled' in snapshot.values
+      : SETTING_FIELDS.some(
+          (field) => field.id.startsWith(`${id}.`) && field.id in snapshot.values,
+        ),
+  );
+  return [...shown, { id: 'backup', title: text.backup.title }];
+}
+
+/**
+ * Settings is one long page, so its top lists the sections and jumps to
+ * each; the assistant, YapYap's main feature, comes first.
+ */
+function SectionLinks({ snapshot }: { readonly snapshot: SettingsSnapshot }): JSX.Element {
+  return (
+    <nav aria-label={text.sectionsLabel} class="section-links">
+      <ul>
+        {shownSections(snapshot).map(({ id, title }) => (
+          <li key={id}>
+            <a href={`#${id}-title`}>{title}</a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+}
+
 function Sections(props: {
   readonly snapshot: SettingsSnapshot;
   readonly onChange: Change;
@@ -149,6 +182,7 @@ export function Settings({ api }: { readonly api: ChromeApi }): JSX.Element {
   return (
     <main class="settings">
       <h1>{text.title}</h1>
+      <SectionLinks snapshot={snapshot} />
       {snapshot.readOnly ? <p class="notice">{text.readOnly}</p> : null}
       {snapshot.restartPending ? <RestartNotice api={api} /> : null}
       {'assistant.enabled' in snapshot.values ? (
