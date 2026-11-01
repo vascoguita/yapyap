@@ -6,7 +6,8 @@ YapYap is a desktop window for the official WhatsApp Web, the same page you
 would open in Chrome. It loads `https://web.whatsapp.com` unchanged, on
 Chromium, and identifies itself as the Chrome version it is built on. It
 never sends messages or acts on WhatsApp for you: there is no automation of
-any kind, and extensions can only write drafts that you send yourself.
+any kind. The AI assistant and extensions only write drafts, and a message
+goes out only when you send it.
 
 YapYap is not made by WhatsApp or Meta, and nobody but WhatsApp can promise
 what WhatsApp will do. What YapYap can promise is that it behaves like a
@@ -53,6 +54,16 @@ devices WhatsApp allows for that phone number.
 No. YapYap has no telemetry and sends nothing about you anywhere. The
 [privacy page](/privacy) lists everything it keeps on your computer and how
 to delete it.
+
+## Does the AI assistant read my chats? {#assistant-privacy}
+
+Only chats you allow it in: the first time you ask for something in a chat,
+it shows exactly what it would send and waits for **Allow here**. **Catch up**
+reads only the chat list's previews, shows them, and sends them once when you
+click **Send**. With the private model or a model server on your computer,
+nothing leaves your computer; with Claude or OpenAI, that text goes to the
+service you chose, with your own key. See the
+[AI assistant guide](/guide/ai-assistant).
 
 ## Something is broken. What should I try first?
 

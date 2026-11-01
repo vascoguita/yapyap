@@ -24,10 +24,21 @@ follow what comes next on the
 ## First launch
 
 The first time YapYap starts, a short welcome asks for the choices most
-people make at once: the theme, whether closing the window keeps YapYap in
-the tray, starting at login, and how much notifications show. Each choice
+people make at once: where the AI assistant thinks, the theme, whether
+closing the window keeps YapYap in the tray, starting at login, and how much
+notifications show. Each choice
 applies as you make it; press <kbd>Esc</kbd> or **Start Using YapYap** when
 you are done. Everything it asks is also in Settings.
+
+## AI assistant
+
+YapYap's built-in assistant helps you write, right above the message box: it
+suggests replies, writes the message you describe, rewrites your draft,
+sums up a chat, and catches you up on unread chats. It runs a private model
+on your computer, a model server you already run, or Claude or OpenAI with
+your own key. It reads a chat only once you allow it there, and never sends
+a message on its own. The [AI assistant guide](/guide/ai-assistant) covers
+setting it up and every choice.
 
 ## Settings
 

@@ -19,7 +19,7 @@ checked channels.
 <figure class="diagram">
 <svg viewBox="0 0 760 440" role="img" aria-labelledby="zones-title zones-desc">
 <title id="zones-title">YapYap's processes and trust zones</title>
-<desc id="zones-desc">The trusted main process sits between three kinds of sandboxed renderer: WhatsApp accounts, YapYap's own chrome and extensions. Each reaches the main process through its own checked channel. WhatsApp views reach only web.whatsapp.com, extensions reach only hosts they were allowed, and the main process alone asks GitHub for updates.</desc>
+<desc id="zones-desc">The trusted main process sits between three kinds of sandboxed renderer: WhatsApp accounts, YapYap's own chrome and extensions. Each reaches the main process through its own checked channel. WhatsApp views reach only web.whatsapp.com, extensions reach only hosts they were allowed, and the main process alone reaches GitHub for updates and the AI provider you chose.</desc>
 <defs>
 <marker id="zones-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="arrowhead" d="M0,0 L10,5 L0,10 z"/></marker>
 </defs>
@@ -27,15 +27,15 @@ checked channels.
 <text class="title" x="130" y="42" text-anchor="middle">web.whatsapp.com</text>
 <text class="note" x="130" y="59" text-anchor="middle">the internet</text>
 <rect class="box untrusted" x="270" y="20" width="220" height="50" rx="8"/>
-<text class="title" x="380" y="42" text-anchor="middle">GitHub releases</text>
-<text class="note" x="380" y="59" text-anchor="middle">update metadata only</text>
+<text class="title" x="380" y="42" text-anchor="middle">Updates and AI providers</text>
+<text class="note" x="380" y="59" text-anchor="middle">GitHub, the provider you chose</text>
 <rect class="box untrusted" x="520" y="20" width="220" height="50" rx="8"/>
 <text class="title" x="630" y="42" text-anchor="middle">Hosts an extension may reach</text>
 <text class="note" x="630" y="59" text-anchor="middle">approved HTTPS hosts, loopback</text>
 <rect class="box trusted" x="140" y="130" width="480" height="80" rx="8"/>
 <text class="title" x="380" y="158" text-anchor="middle">Main process (Node.js): trusted</text>
 <text x="380" y="179" text-anchor="middle">settings · accounts · IPC checks · permissions · network filters</text>
-<text x="380" y="197" text-anchor="middle">extension host · capability checks · audit log · updates</text>
+<text x="380" y="197" text-anchor="middle">AI assistant · extension host · audit log · updates</text>
 <rect class="box untrusted" x="20" y="290" width="220" height="130" rx="8"/>
 <text class="title" x="130" y="314" text-anchor="middle">WhatsApp accounts</text>
 <text x="130" y="336" text-anchor="middle">one view per account</text>
@@ -207,4 +207,7 @@ Each design choice is recorded in an
 | WhatsApp notifications                                   | [0011](/adr/0011-whatsapp-notifications)                |
 | Translations and right-to-left support                   | [0012](/adr/0012-translations)                          |
 | The in-chat assistant bar                                | [0013](/adr/0013-in-chat-assistant-bar)                 |
+| The extension marketplace                                | [0014](/adr/0014-extension-marketplace)                 |
+| Call recording                                           | [0015](/adr/0015-call-recording)                        |
+| "Extensions", not "plugins"                              | [0016](/adr/0016-extensions-not-plugins)                |
 | The AI assistant as part of YapYap                       | [0017](/adr/0017-assistant-is-part-of-yapyap)           |

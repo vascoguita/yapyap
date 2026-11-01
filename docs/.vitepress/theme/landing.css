@@ -235,11 +235,6 @@
   box-shadow: 0 20px 50px rgb(30 20 80 / 16%);
 }
 
-.landing .feature-shot.panel {
-  max-width: 360px;
-  justify-self: center;
-}
-
 .landing .tiles {
   display: grid;
   grid-template-columns: 1fr 1fr;

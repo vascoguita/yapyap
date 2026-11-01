@@ -138,11 +138,11 @@ const faqs: readonly { readonly question: string; readonly answer: string }[] = 
         <a class="more" href="/guide/ai-assistant">Meet the assistant</a>
       </div>
       <img
-        class="feature-shot panel"
+        class="feature-shot"
         :src="shot('assistant')"
-        width="420"
-        height="640"
-        alt="Settings for the AI assistant: where it thinks, with Claude in use, and its model."
+        width="1280"
+        height="1360"
+        alt="Settings for the AI assistant: where it thinks, set to Automatic with Claude in use, and a private model ready to download."
       />
     </section>
 
