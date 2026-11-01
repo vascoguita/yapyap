@@ -1,5 +1,6 @@
 import { Value } from 'typebox/value';
-import { decodeSettings } from './decode.ts';
+import { decodeParsed, type Decoded } from './decode.ts';
+import { isRecord } from './record.ts';
 import { SettingsSchema, type Settings } from './schema.ts';
 import { en } from '../../shared/messages/en.ts';
 
@@ -67,9 +68,6 @@ export function exportSettings(settings: Settings): string {
   return `${JSON.stringify({ format: SETTINGS_EXPORT_FORMAT, settings: exported }, null, 2)}\n`;
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null;
-
 /** The settings inside an export; undefined when the value is not one. */
 function exportedSettings(value: unknown): unknown {
   return isRecord(value) && value['format'] === SETTINGS_EXPORT_FORMAT
@@ -85,7 +83,7 @@ const NOT_SETTINGS: ImportResult = {
 const DAMAGED: ImportResult = { kind: 'rejected', reason: en.settings.backup.damaged };
 
 /** Decoded settings as an import sees them: newer or unreadable ones are refused. */
-function checked(decoded: ReturnType<typeof decodeSettings>): ImportResult {
+function checked(decoded: Decoded): ImportResult {
   if (decoded.kind === 'newer') {
     return {
       kind: 'rejected',
@@ -107,5 +105,5 @@ export function readImport(text: string): ImportResult {
     return DAMAGED;
   }
   const settings = exportedSettings(value);
-  return settings === undefined ? NOT_SETTINGS : checked(decodeSettings(JSON.stringify(settings)));
+  return settings === undefined ? NOT_SETTINGS : checked(decodeParsed(settings));
 }
