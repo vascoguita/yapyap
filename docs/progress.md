@@ -253,3 +253,6 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   which the hidden recorder window uses too.
 - Account storage in E2E (#557): the restart test flushes the account's
   storage before quitting, which a quick quit on Windows had lost.
+- Windows E2E waits (#557): the restart test flushes the account's
+  storage before quitting, which a quick quit on Windows had lost, and the
+  recovery tests wait for WhatsApp's load before the health check's delay.
