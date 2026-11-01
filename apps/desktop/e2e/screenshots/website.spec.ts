@@ -155,9 +155,11 @@ test('Settings window', async ({ profile }) => {
     await clickMenu(app, 'Settings…');
     // The assistant, first in Settings, has a picture of its own; this one shows the rest.
     const settings = await chromePage(app, '/settings.html');
-    await settings.getByRole('heading', { name: 'General', exact: true }).evaluate((heading) => {
+    const general = settings.getByRole('heading', { name: 'General', exact: true });
+    await general.evaluate((heading) => {
       window.scrollTo(0, heading.getBoundingClientRect().top + window.scrollY - 24);
     });
+    await expect(general).toBeInViewport();
     await captureWindow(app, '/settings.html', 'settings', ['png']);
   } finally {
     await closeApp(app);
