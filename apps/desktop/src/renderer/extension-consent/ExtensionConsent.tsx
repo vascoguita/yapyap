@@ -111,6 +111,7 @@ function Actions(props: {
       </button>
       <button
         type="button"
+        class="primary"
         disabled={!reviewed && !acknowledged}
         onClick={() => {
           void api.extensions.answer(true, acknowledged);

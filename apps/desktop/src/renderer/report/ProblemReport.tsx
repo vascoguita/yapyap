@@ -43,6 +43,7 @@ function Open(props: {
       <div class="actions">
         <button
           type="button"
+          class="primary"
           onClick={() => {
             const { description, onOpened } = props;
             props.api.report.open(description).then(

@@ -6,6 +6,7 @@
   --accent: #3f2fb8;
   --border: #dcd9f2;
   --danger: #b3261e;
+  --accent-hover: #3326a0;
   font-family: system-ui, sans-serif;
 }
 
@@ -17,6 +18,7 @@
     --accent: #c9c3ff;
     --border: #34324a;
     --danger: #ffb4ab;
+    --accent-hover: #e0dcff;
   }
 }
 
@@ -65,6 +67,39 @@ button {
   font: inherit;
 }
 
+/* The one action a window is for: a form's submit button, or one marked primary. */
+button.primary,
+button[type='submit'] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--surface);
+  font-weight: 600;
+}
+
+button.primary:hover:not(:disabled),
+button[type='submit']:hover:not(:disabled) {
+  border-color: var(--accent-hover);
+  background: var(--accent-hover);
+}
+
+/* Every text box and list looks the same, in every window and theme. */
+select,
+textarea,
+input:is([type='text'], [type='search'], [type='url'], [type='password'], [type='number']) {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 a {
   color: var(--accent);
 }
@@ -73,6 +108,15 @@ a {
 output {
   display: block;
   margin-block: 1em;
+}
+
+/*
+ * A live region stays in the page so screen readers hear what it says
+ * later, but takes no room while it says nothing.
+ */
+output:empty,
+p[role='alert']:empty {
+  margin-block: 0;
 }
 
 button:focus-visible,
@@ -196,6 +240,22 @@ input:focus-visible {
 .choice legend {
   margin-bottom: 4px;
   padding: 0;
+}
+
+/*
+ * Each option keeps its button and its words together, apart from the next
+ * option. A row at least 24 px tall keeps wrapped options far enough apart
+ * for WCAG 2.2's target size.
+ */
+.choice label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-block-size: 24px;
+}
+
+.choice input {
+  margin: 0;
 }
 
 .choice .hint {
@@ -1109,21 +1169,6 @@ main.report .actions {
   justify-content: flex-end;
 }
 
-.field.text {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 4px;
-}
-
-.field.text input {
-  padding: 6px 10px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface);
-  color: var(--text);
-  font: inherit;
-}
-
 main.custom-code {
   align-items: stretch;
   max-width: 640px;
@@ -1250,4 +1295,27 @@ main.welcome .option .hint {
   margin: 0;
   color: var(--muted);
   font-size: 0.9rem;
+}
+
+/*
+ * Text and folder fields stack their label, value, buttons and hint in one
+ * column; the checkbox fields' second column would squeeze the label.
+ */
+.field.text {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px;
+}
+
+.field.text > * {
+  grid-column: 1;
+}
+
+.field.text output {
+  margin-block: 0;
+  overflow-wrap: anywhere;
+}
+
+.folder-actions {
+  justify-content: flex-start;
 }

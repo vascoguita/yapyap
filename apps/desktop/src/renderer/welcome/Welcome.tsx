@@ -74,6 +74,7 @@ export function Welcome({ api }: { readonly api: ChromeApi }): JSX.Element | nul
       <div class="actions">
         <button
           type="button"
+          class="primary"
           onClick={() => {
             window.close();
           }}
