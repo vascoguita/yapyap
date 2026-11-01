@@ -9,6 +9,15 @@ const TESTS = ['src/**/*.test.ts', 'src/**/*.test.tsx'];
 /** Every test file, from the repository root. */
 export const TEST_INCLUDE = ROOTS.flatMap((root) => TESTS.map((tests) => `${root}/${tests}`));
 
+/**
+ * Packages whose tests mock no modules, stub no globals and use no DOM, and
+ * whose modules keep no state, so their files can share workers rather than
+ * each paying about a second to start one. The desktop app's tests mock
+ * `electron` and set up `window.yapyap`, and the call recorder's panel tests
+ * share a DOM, so they keep a worker per file.
+ */
+const SHARED_WORKERS = new Set(['sdk', 'extension-sign', 'scripts', 'extension-example']);
+
 function projectName(root: string): string {
   return dirname(root) === 'extensions' ? `extension-${basename(root)}` : basename(root);
 }
@@ -22,7 +31,16 @@ export function testProjects(): TestProjectInlineConfiguration[] {
   return globSync(ROOTS.map((root) => `${root}/src`))
     .map((source) => dirname(source).replaceAll('\\', '/'))
     .sort((left, right) => left.localeCompare(right))
-    .map((root) => ({
-      test: { root, name: projectName(root), include: TESTS, environment: 'node' },
-    }));
+    .map((root) => {
+      const name = projectName(root);
+      return {
+        test: {
+          root,
+          name,
+          include: TESTS,
+          environment: 'node',
+          isolate: !SHARED_WORKERS.has(name),
+        },
+      };
+    });
 }

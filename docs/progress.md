@@ -170,3 +170,7 @@ their reasons belong in the ADRs (`docs/adr/`), and released changes in
   Marketplace screenshots are taken again, the guide has an assistant
   section, the FAQ says what the assistant reads, and the install guide
   says macOS builds are signed and notarized.
+- Faster unit tests (#531): the SDK, signing CLI, scripts and example
+  extension tests share workers across files (`isolate: false` in
+  `vitest.projects.ts`). The desktop app and the call recorder keep one
+  worker per file. Provider retry tests use fake timers.

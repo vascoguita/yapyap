@@ -70,6 +70,9 @@ describe('readImport', () => {
           expect(readImport(exportSettings(settings))).toEqual({ kind: 'ok', settings, reset: [] });
         },
       ),
+      // Each run checks the whole settings file against its schema, about 10 ms,
+      // and six theme and menu pairs need far fewer than the default 100 runs.
+      { numRuns: 30 },
     );
   });
 
