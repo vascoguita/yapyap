@@ -11,7 +11,7 @@ test('offers editing on a right click in the message box, and leads to Settings 
   await window.getByTestId('composer').click({ button: 'right' });
   await expect
     .poll(() => lastMenu(app))
-    .toEqual(['Cut', 'Copy', 'Paste', '', 'Select All', '', 'Check Spelling…']);
+    .toEqual(['Cut', 'Copy', 'Paste', '', 'Select All', '', 'Check Spelling']);
   const opened = app.waitForEvent('window');
   await clickLastItem(app);
   const settings = await opened;

@@ -3,6 +3,7 @@ import { decideInstall, type InstallDecision } from './decision.ts';
 import type { InstallRequest } from './install-request.ts';
 import { loadRecords, saveRecords, type ExtensionRecord } from './records.ts';
 import { installFiles, pruneVersions } from './storage.ts';
+import { en } from '../../shared/messages/en.ts';
 
 const MANIFEST = 'manifest.json';
 
@@ -33,8 +34,9 @@ export async function prepareInstall(options: PrepareOptions): Promise<PreparedI
   let archive: ExtensionArchive;
   try {
     archive = readExtensionArchive(options.bytes);
-  } catch (error) {
-    return { decision: { kind: 'rejected', reason: (error as Error).message } };
+  } catch {
+    // The archive reader names the defect in English; the user can only get another file.
+    return { decision: { kind: 'rejected', reason: en.extensions.reason.unreadable } };
   }
   const decision = decideInstall({
     archive,

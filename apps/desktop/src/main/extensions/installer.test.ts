@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { readExtensionArchive, verifyArchive } from '@yapyap/extension-sign';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { en } from '../../shared/messages/en.ts';
 import {
   signedArchive,
   testKey,
@@ -60,14 +61,14 @@ describe('prepareInstall and commitInstall', () => {
 
   it('rejects an archive it cannot read, without writing anything', async () => {
     await expect(prepare(new Uint8Array([1, 2, 3]))).resolves.toEqual({
-      decision: { kind: 'rejected', reason: 'The extension archive is not a valid ZIP file.' },
+      decision: { kind: 'rejected', reason: en.extensions.reason.unreadable },
     });
     await expect(readdir(root)).resolves.toEqual([]);
   });
 
   it('rejects an unsigned archive outside Developer Mode, without the archive', async () => {
     await expect(prepare(zipArchive(unsignedArchive()))).resolves.toEqual({
-      decision: { kind: 'rejected', reason: 'Unsigned extensions install only in Developer Mode.' },
+      decision: { kind: 'rejected', reason: en.extensions.reason.developerModeOnly },
     });
   });
 

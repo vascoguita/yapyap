@@ -37,8 +37,9 @@ describe('contextMenuOf', () => {
       'separator',
       'selectAll',
       'separator',
-      'Check Spelling…',
+      'Check Spelling',
     ]);
+    expect(items.at(-1)).toMatchObject({ type: 'checkbox', checked: false });
     expect(items[0]?.enabled).toBe(false);
     items.at(-1)?.click?.();
     expect(act.openSettings).toHaveBeenCalledOnce();

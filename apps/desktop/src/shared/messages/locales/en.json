@@ -73,6 +73,7 @@
     "cacheCleared": "Cache cleared. Retrying…",
     "copyDiagnostics": "Copy Diagnostics",
     "diagnosticsCopied": "Diagnostics copied to the clipboard.",
+    "diagnosticsNotCopied": "The diagnostics could not be copied. Try again.",
     "keepsLogin": "Clearing the cache keeps you logged in."
   },
   "settings": {
@@ -699,6 +700,14 @@
       "rejected": "This extension cannot be installed.",
       "failed": "The extension could not be installed. Try again."
     },
+    "reason": {
+      "unreadable": "This file is not a YapYap extension, or it is damaged.",
+      "manifestInvalid": "Its manifest.json is not valid: {{problem}}.",
+      "missingFile": "It is missing {{file}}, which its manifest names.",
+      "developerModeOnly": "Unsigned extensions install only in Developer Mode.",
+      "firstPartyName": "Only YapYap can publish extensions under its own name.",
+      "updateUnsigned": "This update is not signed, but the installed extension is."
+    },
     "consent": {
       "install": "Install {{name}}?",
       "update": "Update {{name}} to {{version}}?",
@@ -877,7 +886,6 @@
     "noSuggestions": "No Suggestions",
     "addToDictionary": "Add to Dictionary",
     "checkSpelling": "Check Spelling",
-    "spellingSettings": "Check Spelling…",
     "languages": "Languages…"
   },
   "proxyLogin": {
@@ -993,7 +1001,7 @@
     },
     "unsafeStart": {
       "message": "YapYap cannot start safely on this system",
-      "detail": "YapYap cannot start safely: its sandbox is turned off. On Ubuntu 24.04 and later this happens with the AppImage, because the system restricts unprivileged user namespaces. Install the .deb, .rpm or Flatpak package instead, or allow the AppImage with an AppArmor profile. YapYap never runs without its sandbox.",
+      "detail": "Its sandbox is turned off. On Ubuntu 24.04 and later this happens with the AppImage, because the system restricts unprivileged user namespaces. Install the .deb, .rpm or Flatpak package instead, or allow the AppImage with an AppArmor profile. YapYap never runs without its sandbox.",
       "guide": "Open Troubleshooting Guide"
     },
     "crashReview": {

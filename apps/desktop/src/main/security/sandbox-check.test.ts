@@ -45,7 +45,9 @@ describe('refuseUnsafeStart', () => {
     const t = setup(false);
     await refuseUnsafeStart(t.deps);
     expect(t.order).toEqual(['log', 'ready', 'explain', 'quit']);
-    expect(t.deps.logError).toHaveBeenCalledExactlyOnceWith(en.dialogs.unsafeStart.detail);
+    expect(t.deps.logError).toHaveBeenCalledExactlyOnceWith(
+      `${en.dialogs.unsafeStart.message}. ${en.dialogs.unsafeStart.detail}`,
+    );
     expect(t.deps.openExternal).not.toHaveBeenCalled();
   });
 
@@ -61,5 +63,9 @@ describe('refuseUnsafeStart', () => {
     expect(en.dialogs.unsafeStart.detail).toMatch(/\.deb, \.rpm or Flatpak/);
     expect(en.dialogs.unsafeStart.detail).toMatch(/AppArmor profile/);
     expect(en.dialogs.unsafeStart.detail).not.toMatch(/--no-sandbox|sysctl/);
+  });
+
+  it('says each thing once, since the log joins the message and the detail', () => {
+    expect(en.dialogs.unsafeStart.detail).not.toContain('cannot start safely');
   });
 });

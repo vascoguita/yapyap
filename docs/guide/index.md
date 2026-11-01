@@ -405,7 +405,7 @@ Right-click in WhatsApp's message box for **Cut**, **Copy**, **Paste** and
 **Select All**; right-click selected text elsewhere to copy it. Spell
 checking is off at first, because on Windows and Linux it needs a dictionary
 downloaded from Google (see [Privacy](/privacy)). Turn it on under
-Settings → Spelling, or with **Check Spelling…** in the right-click menu,
+Settings → Spelling, or by ticking **Check Spelling** in the right-click menu,
 which opens Settings. It checks your system's language, unless you pick
 others: with spell checking on, **Languages…** in the right-click menu lists
 every language YapYap has a dictionary for, searchable by its own name, its

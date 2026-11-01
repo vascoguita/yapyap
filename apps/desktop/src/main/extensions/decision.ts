@@ -9,6 +9,9 @@ import { diffGrants, type Grants } from './approvals.ts';
 import { installRequest, type InstallRequest, type Signer } from './install-request.ts';
 import { checkManifest } from './manifest.ts';
 import type { ExtensionRecord, ExtensionRecords } from './records.ts';
+import { en } from '../../shared/messages/en.ts';
+
+const REASON = en.extensions.reason;
 
 /** What may happen with an extension archive the user picked. */
 export type InstallDecision =
@@ -37,15 +40,15 @@ function unsignedSigner(
   developerMode: boolean,
 ): SignerResult {
   if (!developerMode) {
-    return { kind: 'rejected', reason: 'Unsigned extensions install only in Developer Mode.' };
+    return { kind: 'rejected', reason: REASON.developerModeOnly };
   }
   if (manifest.id.startsWith(FIRST_PARTY_PREFIX)) {
-    return { kind: 'rejected', reason: 'Only YapYap can publish extensions under its own name.' };
+    return { kind: 'rejected', reason: REASON.firstPartyName };
   }
   // Dropping the signature must not be a way around the pinned key.
   return (installed?.fingerprint ?? null) === null
     ? { kind: 'unsigned' }
-    : { kind: 'rejected', reason: 'This update is not signed, but the installed extension is.' };
+    : { kind: 'rejected', reason: REASON.updateUnsigned };
 }
 
 function signerOf(
