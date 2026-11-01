@@ -157,3 +157,5 @@ their reasons belong in the ADRs (`docs/adr/`), and released changes in
 - Versions in the docs (#511): README, the guide and CONTRIBUTING no longer
   name versions that go stale, and ADR 0002 keeps the toolchain choices and
   reasons without copying the pins from the manifests.
+- Comment fixes (#513): the unsafe-start message reaches stderr through the
+  log's mirror, and the chrome preload pushes four events, not one.
