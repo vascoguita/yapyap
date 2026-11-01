@@ -208,6 +208,9 @@ their reasons belong in the ADRs (`docs/adr/`), and released changes in
 - Comment fixes (#513): the unsafe-start message reaches stderr through the
   log's mirror, and the chrome preload pushes four events, not one.
 
+- Renderer tests (#514): `fakeChromeApi(overrides)` in
+  `apps/desktop/test/chrome-api.ts` builds `window.yapyap`; a test fakes
+  only the operations it uses.
 - Assistant-first docs (#516): the website's assistant, Settings and
   Marketplace screenshots are taken again, the guide has an assistant
   section, the FAQ says what the assistant reads, and the install guide
