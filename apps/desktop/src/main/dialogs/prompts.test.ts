@@ -44,11 +44,11 @@ describe.each([
   },
   {
     name: 'explainUnsafeStartWithDialog',
-    ask: () => prompts.explainUnsafeStartWithDialog('Details.'),
+    ask: () => prompts.explainUnsafeStartWithDialog(),
     shown: {
       type: 'error',
       message: TEXT.unsafeStart.message,
-      detail: 'Details.',
+      detail: TEXT.unsafeStart.detail,
       buttons: [TEXT.unsafeStart.guide, en.common.close],
       defaultId: 0,
     },

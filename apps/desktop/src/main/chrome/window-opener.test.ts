@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { SHOW_FALLBACK_MS } from '../show-when-ready.ts';
-import type { ViewInfo } from '../views.ts';
+import { SHOW_FALLBACK_MS } from '../window/show-when-ready.ts';
+import type { ViewInfo } from '../security/views.ts';
 import { createChromeWindowSlot, type ChromeWindowPort } from './window-opener.ts';
 
 function fakeWindow() {

@@ -15,7 +15,7 @@ import type { AdapterPage } from '../../adapter/world.ts';
 import { newChatHandlers, type ChatTarget } from './new-chat.ts';
 import { folderChoiceHandlers } from '../settings/folder-choice.ts';
 import { shortcutHandlers } from './shortcut-settings.ts';
-import { customCodeHandlers } from './custom-code-window.ts';
+import { CUSTOM_CODE_PAGE, customCodeHandlers } from './custom-code.ts';
 import type { CustomCodeController } from '../custom-code/custom-code.ts';
 import {
   createQuickPanel,
@@ -26,13 +26,9 @@ import {
   type QuickPanel,
 } from './quick-panel.ts';
 import { spellingHandlers, type SpellingSources } from './spelling-languages.ts';
-import { DOWNLOADS_PAGE, downloadsHandlers } from './downloads-window.ts';
+import { DOWNLOADS_PAGE, downloadsHandlers } from './downloads.ts';
 import type { DownloadList } from '../downloads/download-list.ts';
-import {
-  createProxyLoginPrompt,
-  PROXY_LOGIN_PAGE,
-  type ProxyLoginPrompt,
-} from './proxy-login-window.ts';
+import { createProxyLoginPrompt, PROXY_LOGIN_PAGE, type ProxyLoginPrompt } from './proxy-login.ts';
 import {
   decideUpdatePolicy,
   describeUpdatePolicy,
@@ -83,9 +79,9 @@ import { settingsHandlers, type SettingEffect } from '../settings/handlers.ts';
 import type { SettingsService } from '../settings/service.ts';
 import type { Settings } from '../settings/schema.ts';
 import { settingsTransferHandlers, type SettingsFiles } from '../settings/transfer-handlers.ts';
-import type { ViewRegistry } from '../views.ts';
-import type { RendererOptions } from '../web-preferences.ts';
-import type { WindowOptions } from '../windows.ts';
+import type { ViewRegistry } from '../security/views.ts';
+import type { RendererOptions } from '../window/web-preferences.ts';
+import type { WindowOptions } from '../window/windows.ts';
 import { CHROME_SCHEME, createChromeHandler } from './assets.ts';
 import { noArguments } from '../ipc/arguments.ts';
 import {
@@ -151,18 +147,6 @@ const SHORTCUTS_PAGE: ChromePage = {
     height: 640,
     minWidth: 400,
     minHeight: 360,
-    minimizable: false,
-  },
-};
-
-const CUSTOM_CODE_PAGE: ChromePage = {
-  path: 'custom-code.html',
-  window: {
-    title: en.windows.customCode,
-    width: 640,
-    height: 720,
-    minWidth: 480,
-    minHeight: 480,
     minimizable: false,
   },
 };

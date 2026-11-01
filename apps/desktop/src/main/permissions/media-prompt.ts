@@ -1,8 +1,8 @@
 import { dialog, systemPreferences } from 'electron';
 import { en } from '../../shared/messages/en.ts';
-import { PRODUCT_NAME } from '../identity.ts';
+import { PRODUCT_NAME } from '../identity/product.ts';
 import { confirm } from '../dialogs/confirm.ts';
-import type { ViewInfo } from '../views.ts';
+import type { ViewInfo } from '../security/views.ts';
 import type { MediaType } from './session-guard.ts';
 
 const TEXT = en.dialogs.media;

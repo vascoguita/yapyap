@@ -1,10 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import {
-  refuseUnsafeStart,
-  sandboxDisabled,
-  TROUBLESHOOTING_URL,
-  UNSAFE_START_MESSAGE,
-} from './sandbox-check.ts';
+import { en } from '../../shared/messages/en.ts';
+import { refuseUnsafeStart, sandboxDisabled, TROUBLESHOOTING_URL } from './sandbox-check.ts';
 
 const switches = (...present: string[]) => ({
   hasSwitch: (name: string) => present.includes(name),
@@ -30,8 +26,8 @@ describe('refuseUnsafeStart', () => {
         order.push('ready');
         return Promise.resolve();
       }),
-      explain: vi.fn((message: string) => {
-        order.push(`explain:${message === UNSAFE_START_MESSAGE ? 'message' : 'other'}`);
+      explain: vi.fn(() => {
+        order.push('explain');
         return Promise.resolve(wantsGuide);
       }),
       openExternal: vi.fn(() => Promise.resolve()),
@@ -48,8 +44,8 @@ describe('refuseUnsafeStart', () => {
   it('logs, explains once ready, and quits', async () => {
     const t = setup(false);
     await refuseUnsafeStart(t.deps);
-    expect(t.order).toEqual(['log', 'ready', 'explain:message', 'quit']);
-    expect(t.deps.logError).toHaveBeenCalledExactlyOnceWith(UNSAFE_START_MESSAGE);
+    expect(t.order).toEqual(['log', 'ready', 'explain', 'quit']);
+    expect(t.deps.logError).toHaveBeenCalledExactlyOnceWith(en.dialogs.unsafeStart.detail);
     expect(t.deps.openExternal).not.toHaveBeenCalled();
   });
 
@@ -62,8 +58,8 @@ describe('refuseUnsafeStart', () => {
   });
 
   it('points to the safe options and never suggests turning the sandbox off', () => {
-    expect(UNSAFE_START_MESSAGE).toMatch(/\.deb, \.rpm or Flatpak/);
-    expect(UNSAFE_START_MESSAGE).toMatch(/AppArmor profile/);
-    expect(UNSAFE_START_MESSAGE).not.toMatch(/--no-sandbox|sysctl/);
+    expect(en.dialogs.unsafeStart.detail).toMatch(/\.deb, \.rpm or Flatpak/);
+    expect(en.dialogs.unsafeStart.detail).toMatch(/AppArmor profile/);
+    expect(en.dialogs.unsafeStart.detail).not.toMatch(/--no-sandbox|sysctl/);
   });
 });

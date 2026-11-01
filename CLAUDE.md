@@ -246,9 +246,9 @@ Update this table in the PR that adds a command.
   the recovery monitor (`src/main/recovery/`), which shows the recovery
   screen.
 - Create windows only with `createSecureWindow` (or `createMainWindow`, for
-  the page-less main window) in `apps/desktop/src/main/windows.ts`. Lint rejects `new BrowserWindow`,
+  the page-less main window) in `apps/desktop/src/main/window/windows.ts`. Lint rejects `new BrowserWindow`,
   `BaseWindow`, `BrowserView` and `WebContentsView` anywhere else, and new
-  per-web-contents guards go in `web-contents-guards.ts`.
+  per-web-contents guards go in `security/web-contents-guards.ts`.
 - Import wllama from `@wllama/wllama/esm/index.js`: the package's `main`
   names a file it does not ship, and its TypeScript sources do not pass our
   checks. Keep `setCompat(null)`, or wllama fetches a build from a CDN.

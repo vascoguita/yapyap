@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { ViewInfo } from '../views.ts';
+import type { ViewInfo } from '../security/views.ts';
 import { noArguments } from './arguments.ts';
 import { registerWhatsAppListeners, type WhatsAppEvent } from './whatsapp.ts';
 

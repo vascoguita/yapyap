@@ -1,6 +1,6 @@
 import { dialog } from 'electron';
 import { en } from '../../shared/messages/en.ts';
-import { PRODUCT_NAME } from '../identity.ts';
+import { PRODUCT_NAME } from '../identity/product.ts';
 import type { CrashReviewChoice } from '../crash/crash-reports.ts';
 import { confirm } from './confirm.ts';
 
@@ -43,11 +43,11 @@ export function askToInstallUpdateWithDialog(version: string): Promise<boolean> 
  * True when the user wants the troubleshooting guide. YapYap quits either
  * way, so the guide is the default answer.
  */
-export function explainUnsafeStartWithDialog(message: string): Promise<boolean> {
+export function explainUnsafeStartWithDialog(): Promise<boolean> {
   return confirm({
     type: 'error',
     message: TEXT.unsafeStart.message,
-    detail: message,
+    detail: TEXT.unsafeStart.detail,
     yes: TEXT.unsafeStart.guide,
     no: en.common.close,
     enterMeansYes: true,

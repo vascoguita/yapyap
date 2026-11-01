@@ -1,7 +1,7 @@
 import type { RecordingFormat } from '../../shared/chrome-api.ts';
 import type { ChromeWindowDependencies } from '../chrome/window-opener.ts';
-import type { ViewRegistry } from '../views.ts';
-import type { WindowOptions } from '../windows.ts';
+import type { ViewRegistry } from '../security/views.ts';
+import type { WindowOptions } from '../window/windows.ts';
 import { createRecording } from './chrome.ts';
 import { recordingConsent } from './consent.ts';
 import type { LibraryPaths } from './library.ts';

@@ -2,14 +2,14 @@ import {
   presentAsChrome,
   type ChromeIdentity,
   type IdentitySession,
-} from './identity/user-agent.ts';
-import { createNavigationGuard, type NavigationContents } from './navigation/navigation-guard.ts';
+} from '../identity/user-agent.ts';
+import { createNavigationGuard, type NavigationContents } from '../navigation/navigation-guard.ts';
 import {
   guardSession,
   type PermissionMemory,
   type SessionGuardDependencies,
   type SessionPort,
-} from './permissions/session-guard.ts';
+} from '../permissions/session-guard.ts';
 import {
   installWebContentsGuards,
   preventWebviews,
@@ -17,7 +17,7 @@ import {
   type BluetoothContents,
   type WebviewContents,
 } from './web-contents-guards.ts';
-import { rendererPreferences } from './web-preferences.ts';
+import { rendererPreferences } from '../window/web-preferences.ts';
 
 export type GuardedContents = WebviewContents & BluetoothContents & NavigationContents;
 

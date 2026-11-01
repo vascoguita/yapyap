@@ -1,5 +1,5 @@
 import { extname, join, normalize, sep } from 'node:path';
-import { PRODUCT_NAME } from '../identity.ts';
+import { PRODUCT_NAME } from '../identity/product.ts';
 import { isSameOrigin } from '../navigation/link-policy.ts';
 
 export const CHROME_SCHEME = 'app';

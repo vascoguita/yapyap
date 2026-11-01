@@ -4,6 +4,20 @@ import { en } from '../../shared/messages/en.ts';
 import { isCustomCode, type CustomCodeController } from '../custom-code/custom-code.ts';
 import { argumentsOf, isString, noArguments } from '../ipc/arguments.ts';
 import type { ChromeHandler } from '../ipc/chrome.ts';
+import type { ChromePage } from './window-opener.ts';
+
+/** Where the user edits their own CSS and JavaScript (#72). */
+export const CUSTOM_CODE_PAGE: ChromePage = {
+  path: 'custom-code.html',
+  window: {
+    title: en.windows.customCode,
+    width: 640,
+    height: 720,
+    minWidth: 480,
+    minHeight: 480,
+    minimizable: false,
+  },
+};
 
 type AccountList = () => readonly { readonly id: string; readonly name: string }[];
 

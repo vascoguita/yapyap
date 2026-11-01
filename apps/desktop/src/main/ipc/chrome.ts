@@ -1,6 +1,6 @@
 import type { PayloadCheck } from './arguments.ts';
 import { isSameOrigin } from '../navigation/link-policy.ts';
-import type { ViewRegistry } from '../views.ts';
+import type { ViewRegistry } from '../security/views.ts';
 import { CHROME_ORIGIN } from '../chrome/assets.ts';
 
 export interface IpcInvokeEvent {
