@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import { anthropicProvider } from './anthropic.ts';
 import { ProviderError } from './provider.ts';
 
@@ -173,17 +173,28 @@ describe('anthropicProvider', () => {
   });
 
   it('fails as network when the provider cannot be reached, after retrying twice', async () => {
+    // The SDK backs off for about a second between tries; fake timers skip the wait.
+    vi.useFakeTimers();
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
     const fetch = vi.fn(() => Promise.reject(new TypeError('fetch failed')));
     const failure = anthropicProvider({
       apiKey: 'k',
       model: 'm',
       fetch: fetch,
     }).complete(REQUEST, vi.fn());
-    await expect(failure).rejects.toMatchObject({ kind: 'network' });
+    const failed = expect(failure).rejects.toMatchObject({ kind: 'network' });
+    await vi.runAllTimersAsync();
+    await failed;
     expect(fetch).toHaveBeenCalledTimes(3);
-  }, 20_000);
+  });
 
   it('fails as timeout when the provider takes too long', async () => {
+    vi.useFakeTimers();
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
     const fetch = vi.fn(
       (_url: string, init?: RequestInit) =>
         new Promise<Response>((_resolve, reject) => {
@@ -198,6 +209,8 @@ describe('anthropicProvider', () => {
       fetch: fetch as unknown as typeof globalThis.fetch,
       timeoutMs: 10,
     }).complete(REQUEST, vi.fn());
-    await expect(failure).rejects.toMatchObject({ kind: 'timeout' });
-  }, 20_000);
+    const failed = expect(failure).rejects.toMatchObject({ kind: 'timeout' });
+    await vi.runAllTimersAsync();
+    await failed;
+  });
 });

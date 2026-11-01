@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import { openAIProvider } from './openai.ts';
 import { ProviderError } from './provider.ts';
 
@@ -132,6 +132,11 @@ describe('openAIProvider', () => {
   });
 
   it('fails as timeout when the server takes too long', async () => {
+    // The SDK retries a timeout after backing off; fake timers skip the wait.
+    vi.useFakeTimers();
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
     const fetch = vi.fn(
       (_url: string, init?: RequestInit) =>
         new Promise<Response>((_resolve, reject) => {
@@ -140,7 +145,7 @@ describe('openAIProvider', () => {
           });
         }),
     );
-    await expect(
+    const failed = expect(
       openAIProvider({
         apiKey: 'k',
         model: 'm',
@@ -148,5 +153,7 @@ describe('openAIProvider', () => {
         timeoutMs: 10,
       }).complete(REQUEST, vi.fn()),
     ).rejects.toMatchObject({ kind: 'timeout' });
-  }, 20_000);
+    await vi.runAllTimersAsync();
+    await failed;
+  });
 });
