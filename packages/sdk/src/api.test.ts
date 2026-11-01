@@ -24,6 +24,8 @@ describe('the SDK entry point', () => {
       'defineExtension',
       'marketplaceArchiveName',
       'marketplaceArchiveUrl',
+      'readMarketplaceIndex',
+      'revocationOf',
     ]);
   });
 });

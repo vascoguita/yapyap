@@ -1,7 +1,8 @@
-import { Value } from 'typebox/value';
 import { verifyIndex } from '../../../packages/extension-sign/src/index-signature.ts';
 import {
-  MarketplaceIndexSchema,
+  MARKETPLACE_INDEX_MAX_BYTES,
+  readMarketplaceIndex,
+  revocationOf,
   type MarketplaceIndex,
 } from '../../../packages/sdk/src/marketplace.ts';
 import { compareVersions } from '../../../packages/sdk/src/version.ts';
@@ -33,9 +34,8 @@ export interface SiteExtension {
 }
 
 /**
- * The index the website lists, checked as YapYap checks it (ADR 0014): a
- * trust anchor signed its exact bytes, it matches the schema, and it has
- * not expired. Anything else lists nothing rather than something unverified.
+ * The index the website lists, read exactly as YapYap reads it (ADR 0014),
+ * so the site never lists what YapYap would refuse.
  */
 export function verifiedIndex(
   bytes: Uint8Array,
@@ -43,28 +43,14 @@ export function verifiedIndex(
   anchors: readonly string[],
   now: Date,
 ): MarketplaceIndex | undefined {
-  if (!verifyIndex(bytes, signature, anchors)) {
+  if (bytes.length > MARKETPLACE_INDEX_MAX_BYTES || !verifyIndex(bytes, signature, anchors)) {
     return undefined;
   }
-  try {
-    const index: unknown = JSON.parse(new TextDecoder().decode(bytes));
-    return Value.Check(MarketplaceIndexSchema, index) && Date.parse(index.expires) > now.getTime()
-      ? index
-      : undefined;
-  } catch {
-    return undefined;
-  }
+  const reading = readMarketplaceIndex(new TextDecoder().decode(bytes), now);
+  return reading.status === 'ready' ? reading.index : undefined;
 }
 
 type Listed = MarketplaceIndex['extensions'][number];
-
-const pulled = (index: MarketplaceIndex, extension: Listed, version: string): boolean =>
-  index.revoked.some(
-    (revocation) =>
-      revocation.id === extension.id &&
-      revocation.signer === extension.signer &&
-      (revocation.versions === '*' || revocation.versions.includes(version)),
-  );
 
 type ListedVersion = Listed['versions'][number];
 
@@ -106,7 +92,10 @@ export function siteExtensions(
   return index.extensions
     .flatMap((extension) => {
       const offered = extension.versions
-        .filter(({ version }) => !pulled(index, extension, version))
+        .filter(
+          ({ version }) =>
+            revocationOf(index, extension.id, extension.signer, version) === undefined,
+        )
         .sort((a, b) => compareVersions(b.version, a.version));
       const [newest] = offered;
       return newest === undefined ? [] : [siteExtension(extension, newest, offered, describe)];
