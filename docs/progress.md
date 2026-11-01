@@ -185,10 +185,17 @@ not edit the same lines.
   signs from the keychain it creates with only that certificate; other
   builds keep it off.
 
+- Adapter (#32): the page view, open chat and unread count come from
+  on-demand probes over the versioned `LANDMARKS` table.
+
 - The WhatsApp adapter reads the page view (loading, logged out, chats),
   whether a chat is open and the unread count, on demand and from a versioned
   landmark table; Copy Diagnostics shows the view (#32). An E2E test keeps
   typing latency under budget while the probe runs.
+
+- Reliability (#37, #39, #41, #379, #377): a renderer memory watchdog,
+  opt-in local crash reports with fingerprints (#113), a Linux display
+  backend setting, and a GPU crash fallback that counts one crash per run.
 
 - Renderer memory watchdog (#37): `reliability.memoryWatchdogMb` (file only)
   reloads the WhatsApp renderer after two minutes over the limit, but not
@@ -206,9 +213,15 @@ not edit the same lines.
   and the portal picker follows it. CI checks both backends paint, polling
   until the window is shown and painted.
 
+- Settings export and import (#43) live in Settings → Backup.
+
 - Settings export and import (#43) live in the Settings window's Backup
   section. A new settings section must be classified in `EXPORTED_SECTIONS`
   (`settings/transfer.ts`); a test fails until it is.
+
+- Translations (#55, #111, #374): UI text is in `locales/en.json` (i18next
+  JSON v4, no dotted keys) with a generated `Messages` type, logical CSS
+  only, and pseudo-locales for testing (ADR 0012).
 
 - Message catalogs (#55, part 1): every string the chrome windows show,
   including setting labels, lives in `src/shared/messages/en.ts`. Other
@@ -223,6 +236,11 @@ not edit the same lines.
   stay English, since they go into bug reports. Lint now also rejects
   literal text in the main process's `label`, `title`, `message`, `detail`,
   `body` and `buttons` properties.
+
+- Accounts (#56, #57, #58, #87, #381): one partition and view per account,
+  `accounts.json` rebuilt from the partition folders when damaged, the
+  account sidebar, the Accounts window, and account photos fetched only
+  from WhatsApp's hosts.
 
 - Account views (#56, second part): WhatsApp runs in a `WebContentsView`
   (`createAccountView`) beneath any overlay, in the account's partition; the
@@ -273,6 +291,11 @@ not edit the same lines.
   (`runAccounts().update`). Accounts that are off are left out of the menu.
   The color stands in for an avatar until profile photos (#87).
 
+- Notifications (#59–#62, #398): the WhatsApp preload's `Notification`
+  stand-in (ADR 0011), inline replies typed as unsent drafts, do not
+  disturb and per-account mute, notification privacy, and withdrawal once
+  a chat is read.
+
 - Notifications (#59): WhatsApp's views have a preload (ADR 0011) that
   replaces the page's `Notification` with a stand-in before any page script
   runs (`installNotificationShim`, sent with `executeInMainWorld`, so it must
@@ -308,6 +331,11 @@ not edit the same lines.
   `privacy.notificationText` (settings schema v6) replace the sender with
   “WhatsApp” and the text with “New message” before anything reaches the
   system; images are never shown (ADR 0011).
+
+- Tray, badge and startup (#63–#66, #234, #362, #458): tray menu and
+  symbolic icon, unread badges, close to tray, start minimized, start at
+  login (the Background portal under Flatpak), and chats left unread while
+  hidden.
 
 - Tray menu (#63, first part): the tray shows or hides the window (the
   label follows the window), switches between running accounts, opens
@@ -348,6 +376,10 @@ not edit the same lines.
   window's page reports itself hidden; verified on real Wayland and X11
   sessions, since Playwright keeps the pages it drives active.
 
+- Calls (#67, #78, #161, #180, #363): call windows inherit their account's
+  zone, media permission checks compare origins with `isSameOrigin`, and
+  screen shares are tracked and can be stopped from the tray and sidebar.
+
 - Call windows (#67): a popup on WhatsApp's own origin, opened directly or
   as `about:blank` that then goes there, is shown as a window of its
   account instead of being loaded into the account's view or discarded. It
@@ -355,6 +387,9 @@ not edit the same lines.
   so its own guards, permissions and screen-sharing rules treat it like the
   account, and it closes, never destroyed, when the account's page goes.
   The fake page opens calls both ways (`call.js`, `call.html`).
+
+- Updates (#68–#70, #184): `decideUpdatePolicy` picks self-update, notify,
+  system or manual; **Get beta updates** opts into pre-releases.
 
 - Update policy (#68): `decideUpdatePolicy` maps the stamped install channel
   and runtime evidence (`APPIMAGE`, `PORTABLE_EXECUTABLE_DIR`, Flatpak
@@ -375,6 +410,12 @@ not edit the same lines.
   stop calling YapYap unreleased and its accounts, notifications and plugins
   planned, link the changelog and the package repositories, and describe
   the Flatpak bundle as downloaded per release until Flathub (#119).
+
+- Desktop features (#72–#77, #79–#86): custom CSS and JavaScript, spell
+  checking (off by default), downloads, keyboard and global shortcuts,
+  proxies with sign-in, site permissions, chat list width, New Chat with
+  Number, interface scale, Report a Problem, cache limits, the welcome
+  window, the privacy screen and the quick access panel.
 
 - Custom CSS and JavaScript (#72): **Custom CSS and JavaScript…** opens a
   chrome window (`custom-code:get`, `:save`, `:preview`) with a warning, an
@@ -555,6 +596,13 @@ not edit the same lines.
   it to a 64-pixel PNG data URL in memory, and the sidebar shows it in place
   of the initial. It retries every minute until found, then every 30.
 
+- Extension platform (#88–#99, #301, #332, #342, #396, #426): the SDK
+  (`packages/sdk`), Ed25519 signing (`packages/extension-sign`), archives,
+  consent, the sandboxed runtime and RPC, grants, network allowlist,
+  secrets, storage, resource limits, commands, settings, menu items,
+  panels and the activity log (ADR 0004). "Plugin" was renamed to
+  "extension" everywhere, with no compatibility (ADR 0016).
+
 - Plugin SDK (#88): `@yapyap/plugin-sdk` defines the manifest as a TypeBox
   schema (the published `manifest.schema.json` is generated from it and
   tested to match) and the typed host API, one interface per capability. The
@@ -703,6 +751,11 @@ not edit the same lines.
   names a plugin makes up are never recorded. The Plugins window lists the
   latest 50 calls under Recent activity.
 
+- Extension chat access (#100, #105, #330, #410): `composer.insertDraft`,
+  `composer.readDraft` and `composer.replaceDraft`, `chat.readActive` and
+  `chat.readUnreadSummary`, each behind its own capability. Nothing logs
+  what they return.
+
 - Plugin drafts (#100, first part): `composer.insertDraft`, behind
   `composer:insert-draft`, focuses the active account's open chat's message
   box with the adapter's `FOCUS_COMPOSER` probe and types the text there
@@ -733,6 +786,9 @@ not edit the same lines.
   (ADR 0008, C39). The fake page's chat list now has WhatsApp's row markup
   and one unread chat.
 
+- Example extension and author guide (#101), and the hostile-extension E2E
+  suite (#102), which floods the host with three times the RPC burst.
+
 - Example plugin and author guide (#101): `plugins/example` is Greeter, a
   third-party plugin that drafts a greeting the user sets in its settings
   form when they run its command. `tsc` builds it into `dist/` with its
@@ -751,6 +807,10 @@ not edit the same lines.
   that keeps a core busy is restarted. The shared install helpers moved to
   `e2e/plugin-helpers.ts`. The suite found that Electron spreads CPU usage
   over every core, which #97's guard now accounts for.
+
+- AI assistant (#103–#107, #407, #430, #456, #457, #466–#468, #482, #484):
+  bring-your-own-model providers, local servers, the private model, consent
+  per chat, and the in-chat bar (ADR 0013). It moved into YapYap with #505.
 
 - AI providers (#103, first part): `plugins/ai-assistant/src/providers/`
   defines one `Provider` interface (stream text, cancel through an
@@ -838,6 +898,10 @@ not edit the same lines.
   own words. `e2e/ai-assistant.spec.ts` catches up on the fake page's unread
   chat and checks that the open chat and its badge stay as they were.
 
+- Performance (#109, #428, #496): nightly budgets for idle, per-account and
+  active use (ADR 0009). The main window is a `BaseWindow`, so its empty
+  page runs no renderer.
+
 - Account budgets (#109, first part): `bench/accounts.spec.ts` measures the
   memory a second account adds and the CPU a hidden account uses while
   idle, from cumulative CPU time, and the nightly run holds them to budgets
@@ -851,6 +915,8 @@ not edit the same lines.
   levels off: 45 rounds add no more than 15, so nothing leaks per round.
   CI measured 17–20 MB and 44–48% of a core on all three systems, against
   budgets of 40 MB and 70% (ADR 0009).
+
+- Accessibility (#110): axe-core and keyboard checks on every chrome page.
 
 - Accessibility checks (#110, first part): `e2e/accessibility.spec.ts` runs
   axe-core against WCAG 2.2 AA on every chrome page the menu opens, in the
@@ -891,6 +957,10 @@ not edit the same lines.
   `inset-inline-end` and so on), so they mirror for right-to-left
   languages. `scripts/src/bin/check-logical-css.ts`, part of `pnpm lint`,
   rejects a physical left or right in the renderer's stylesheets.
+
+- Docs (#112, #114–#117, #383–#385): security review, FAQ, privacy
+  inventory, architecture overview, user-first website, store screenshots
+  and the get-started guide.
 
 - Security review (#112): `/architecture/security-review` checks YapYap
   against Electron's 20-item security checklist and the plugin threat
@@ -971,6 +1041,8 @@ not edit the same lines.
   the release's version, and the `Security release:` exception, which only
   skipped the wait, is gone.
 
+- SonarQube Cloud (#185, #461): a required check on every PR (ADR 0010).
+
 - The SonarQube Cloud backlog is fixed; the few per-file exceptions, each with
   its reason, are in `sonar-project.properties` (ADR 0010, #185).
 
@@ -981,6 +1053,10 @@ not edit the same lines.
   has no open issues, so `SonarQube Cloud` is a required check and the README
   shows its badges (#185). The project now uses the built-in "Sonar way for
   Agentic AI" gate; Vitest still enforces 100% coverage.
+
+- CI cost and E2E stability (#188, #210, #223, #247, #296, #327, #394):
+  docs-only changes skip code jobs (ADR 0007); E2E teardown kills hung apps
+  and attaches diagnostics; local runs stay on the virtual X11 display.
 
 - E2E tests that use a fake-page control wired up by a script (popups,
   screen sharing, paste) wait for the page's `load` event first; the controls
@@ -1066,6 +1142,8 @@ not edit the same lines.
   which fixes GHSA-834v-8h66-3h79. It is a test-only dependency, so builds
   were never affected; the audit passes again.
 
+- Mutation (#275, #312): the nightly run is split into 16 shards.
+
 - Mutation gate for settings and chrome windows (#275): `decode.test.ts`
   writes out every value each choice accepts and checks unknown keys in
   every section, so schema literals no longer survive by changing the test
@@ -1126,6 +1204,9 @@ not edit the same lines.
   `plugins:changed` to an open Plugins window whenever a plugin starts or
   stops (`createChromeWindowSlot`), and the window lists them again.
 
+- Package repositories (#344, #350): signed apt, dnf and pacman
+  repositories on packages.guita.org, tested by `packaging/repository/test.sh`.
+
 - apt and dnf repositories (#344): `packages.guita.org`, a Cloudflare Pages
   project, serves signed stable and beta indexes and redirects every package
   path to GitHub Releases. `package-repository.ts` plans each channel from
@@ -1144,6 +1225,9 @@ not edit the same lines.
   to the caller once it is signed. Wrangler is installed into a folder of
   its own without install scripts, since Cloudflare's action installs it
   with pnpm, which the job does not set up.
+
+- Total downloads (#347): the daily docs build writes `downloads.json` and
+  the README badge's data.
 
 - Total downloads (#347): the docs build, now also daily, sums GitHub's
   download counts of every release's installers and packages
@@ -1240,6 +1324,10 @@ not edit the same lines.
   signed marketplace. The Marketplace tab's permission list was laid out as
   centered rows by the global list style; it is a bulleted list now.
 
+- Marketplace (#386–#391, #434): the signed index (ADR 0014), the
+  Marketplace tab, `yapyap://extensions/install/<id>` links, generated
+  website pages, submissions, release notes and screenshots.
+
 - Plugin marketplace design (#386): ADR 0014. One `index.json` on
   packages.guita.org, signed with the plugin signing key and checked against
   the app's trust anchors, with a growing serial and an expiry so old
@@ -1308,6 +1396,11 @@ not edit the same lines.
   version's `tag`. Where reviewed archives are hosted is open (#419), as a
   release here could confuse the beta channel's updater.
 
+- Call recording (#392, #393, #442, #443): YapYap records on the user's
+  click after consent (ADR 0015); the call recorder extension adds
+  commands with suggested shortcuts; WebM or WAV, in a folder the user
+  picks.
+
 - Call recording design (#392): ADR 0015 and C32. YapYap records, never a
   plugin: `calls:record` only lets a plugin ask, and recording starts on the
   user's **Record** click in a bar YapYap draws in the call window. A hidden
@@ -1356,6 +1449,9 @@ not edit the same lines.
   `APPLE_API_KEY_ID` and `APPLE_API_ISSUER` are set. It writes the key to a
   private file in the runner's temporary folder, and falls back to the
   Apple ID secrets otherwise.
+
+- Scorecard (#404, #406): releases carry Sigstore bundles and in-toto
+  provenance.
 
 - Scorecard (#404): releases carry their Sigstore bundle and in-toto
   provenance (#406), the deploy tool installs from a lockfile, and every job
@@ -1580,6 +1676,9 @@ not edit the same lines.
   `package.json`. App releases no longer carry the extensions. The
   assistant's first release of its own will be 0.2.0, needing YapYap 0.2.1.
 
+- Repository hygiene (#478, #499): one setup action for CI, one Vitest
+  project list shared with mutation, one copy of the app icon.
+
 - Extension release PRs (#478): release-please writes extension manifests in
   its own format, so Prettier leaves `extensions/*/public/manifest.json`
   alone, and the changelog cleanup (#358) now runs on every release PR,
@@ -1597,6 +1696,14 @@ not edit the same lines.
   since the channel keeps nothing for a page that is reloading. This was
   the cause of the panel E2E tests that failed under load.
 
+- Memory review (#496, ADR 0009): the main window is a `BaseWindow`, so no
+  renderer runs for its empty page (one process and about 78 MB of working
+  set less in every state measured), and electron-updater loads only in
+  builds that update themselves. The startup benchmark now fails when more
+  than one renderer runs at idle with one account. E2E tests find the main
+  window with `BaseWindow.getAllWindows()`, since
+  `BrowserWindow.getAllWindows()` leaves it out.
+
 - Repository hygiene (#499): CI jobs set up pnpm, Node.js and the install
   through `.github/actions/setup`, and a change to it runs the full
   packaging matrix. Pull request and nightly mutation share
@@ -1606,6 +1713,11 @@ not edit the same lines.
   renderer build emits it, and the docs build copies it and the SDK's
   manifest schema into `docs/public/`. The renderer's Vite inputs are every
   `src/renderer/*.html`. Each pnpm override says when to remove it.
+
+- Audit fixes (#501): `compareVersions` in the SDK, the last account
+  cannot be removed, **Record** waits for consent, and Escape asks before
+  discarding unsaved text.
+
 - Audit fixes (#501):
   - Version order lives in one place, `compareVersions` in the SDK
     (`packages/sdk/src/version.ts`), used by the update notice, the
@@ -1620,6 +1732,53 @@ not edit the same lines.
   - Escape still closes Custom CSS and JavaScript and Report a Problem, but
     asks before discarding unsaved text, as Accounts does.
   - The unused key-pin file helpers left `packages/extension-sign`.
+
+- Assistant in YapYap (#505, ADR 0017): `apps/desktop/src/main/assistant/`
+  runs the providers on a confined in-memory session and the private model
+  in a hidden engine window. Settings version 19 adds the local
+  `assistant` section. The first start imports an installed `ai-assistant`
+  extension's setup and removes it. `extensions/ai-assistant` and the
+  `assistant:bar`, `local-model` and `localModels.find` extension APIs are
+  gone (C42 and C43 in ADR 0008).
+
+- E2E reliability (#507): the welcome test waits for WhatsApp's first
+  load, which opens the welcome, and test profiles are deleted with
+  retries for Windows. Tests find the main window with `mainWindow`, never
+  by index; `launchAgain` kills a second launch that never exits; recording
+  tests wait for sound in the `.part` file instead of sleeping.
+
+- Progress page (#508): this page now holds the current state, conventions
+  and condensed notes; git history keeps the long notes.
+
+- Yes/no dialogs (#510): every two-button message box goes through
+  `confirm()` in `main/dialogs/`, with the safe answer on Enter and Escape;
+  the startup and account prompts live there too.
+
+- Versions in the docs (#511): README, the guide and CONTRIBUTING no longer
+  name versions that go stale, and ADR 0002 keeps the toolchain choices and
+  reasons without copying the pins from the manifests.
+
+- Comment fixes (#513): the unsafe-start message reaches stderr through the
+  log's mirror, and the chrome preload pushes four events, not one.
+
+- Assistant-first docs (#516): the website's assistant, Settings and
+  Marketplace screenshots are taken again, the guide has an assistant
+  section, the FAQ says what the assistant reads, and the install guide
+  says macOS builds are signed and notarized.
+Notes are sorted by the first issue they cite. Add a note where its issue
+number belongs, not at the top, so pull requests for different issues do
+not edit the same lines.
+
+- IPC from WhatsApp's preload (notifications, screen shares, the chat list
+  divider and the assistant bar) goes through `registerWhatsAppListeners` in
+  `apps/desktop/src/main/ipc/`, next to `registerChromeHandlers`, and every
+  payload check uses `argumentsOf` (#523). The chrome preload hears its four
+  events through one typed `listen`.
+
+- IPC registrars (#523): messages from WhatsApp's preload go through
+  `registerWhatsAppListeners` in `main/ipc/`, next to
+  `registerChromeHandlers`; payload checks use `argumentsOf`, and the chrome
+  preload hears its events through one typed `listen`.
 
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
@@ -1647,13 +1806,6 @@ not edit the same lines.
   (C36), a flood of exactly 40 calls fitted within it on a slow Windows
   runner, since the bucket refills while the calls arrive.
 
-- Memory review (#496, ADR 0009): the main window is a `BaseWindow`, so no
-  renderer runs for its empty page (one process and about 78 MB of working
-  set less in every state measured), and electron-updater loads only in
-  builds that update themselves. The startup benchmark now fails when more
-  than one renderer runs at idle with one account. E2E tests find the main
-  window with `BaseWindow.getAllWindows()`, since
-  `BrowserWindow.getAllWindows()` leaves it out.
 - The AI assistant is part of YapYap (ADR 0017), the maintainer's top
   priority of 2026-11-01. It runs in the main process
   (`apps/desktop/src/main/assistant/`) with the official SDKs on a confined
@@ -1669,8 +1821,3 @@ not edit the same lines.
   and shows a one-time note. `extensions/ai-assistant`, its release-please
   component and the `assistant:bar`, `local-model` and `localModels.find`
   extension APIs are removed. C42 and C43 in ADR 0008.
-- IPC from WhatsApp's preload (notifications, screen shares, the chat list
-  divider and the assistant bar) goes through `registerWhatsAppListeners` in
-  `apps/desktop/src/main/ipc/`, next to `registerChromeHandlers`, and every
-  payload check uses `argumentsOf` (#523). The chrome preload hears its four
-  events through one typed `listen`.
