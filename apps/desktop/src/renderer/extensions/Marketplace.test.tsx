@@ -11,7 +11,8 @@ const ENTRY: MarketplaceEntry = {
   summary: 'Says hello.',
   author: { name: 'Example', url: null },
   homepage: 'https://example.org',
-  review: 'reviewed',
+  review: 'official',
+  source: null,
   version: '1.1.0',
   capabilities: ['composer:insert-draft', 'unknown:capability'],
   hosts: ['api.example.org'],
@@ -66,9 +67,11 @@ describe('Marketplace', () => {
         ENTRY,
         {
           ...ENTRY,
-          id: 'org.guita.yapyap.ai',
-          name: 'AI',
-          review: 'official',
+          id: 'org.example.third',
+          name: 'Third',
+          review: 'unreviewed',
+          source: 'downloads.example.net',
+          version: null,
           capabilities: [],
           hosts: [],
           action: 'installed',
@@ -77,10 +80,12 @@ describe('Marketplace', () => {
     );
     expect(screen.getByRole('status').textContent).toBe('Loading the marketplace…');
     await screen.findByRole('heading', { name: 'Hello' });
-    expect(screen.getByText('Reviewed by YapYap')).toBeTruthy();
+    expect(screen.getByText('Third-party')).toBeTruthy();
+    expect(screen.getByText('Downloads from downloads.example.net')).toBeTruthy();
     expect(screen.getByText('By YapYap')).toBeTruthy();
     expect(screen.getAllByText('By Example')).toHaveLength(2);
-    expect(screen.getAllByText('Version 1.1.0')).toHaveLength(2);
+    // An unreviewed extension's version is known only once YapYap looked at its latest release.
+    expect(screen.getAllByText('Version 1.1.0')).toHaveLength(1);
     expect(
       screen.getByText('Write drafts in the message box, which you send yourself'),
     ).toBeTruthy();
@@ -126,6 +131,14 @@ describe('Marketplace', () => {
           notes: 'Faster greetings.',
         },
         { ...ENTRY, id: 'org.example.new', name: 'New', action: 'incompatible', notes: 'Unseen.' },
+        {
+          ...ENTRY,
+          id: 'org.example.third',
+          name: 'Third',
+          review: 'unreviewed',
+          source: 'downloads.example.net',
+          version: null,
+        },
       ]),
       () =>
         new Promise<void>((resolve) => {
@@ -133,6 +146,8 @@ describe('Marketplace', () => {
         }),
     );
     const install = await screen.findByRole('button', { name: 'Install Hello' });
+    // A third-party extension not installed yet has no known version, but installs all the same.
+    expect(screen.getByRole('button', { name: 'Install Third' }).textContent).toBe('Install');
     const search = screen.getByRole<HTMLInputElement>('searchbox', { name: 'Search extensions' });
     fireEvent.input(search, { target: { value: 'e' } });
     expect(screen.getByRole('button', { name: 'Update Old to 1.1.0' }).textContent).toBe(

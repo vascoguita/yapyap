@@ -55,7 +55,9 @@ model server you already run, or your own key for Claude or OpenAI.
 Extensions add features to YapYap. Open **File → Extensions…** (on macOS,
 **YapYap → Extensions…**), pick one in the
 **Marketplace** tab, and choose **Install**. YapYap shows what it asks to do,
-and installs nothing until you agree. You can take any permission back
+and installs nothing until you agree. Extensions marked **Third-party, not
+reviewed** come from their authors' own servers and are installed at your
+own risk. You can take any permission back
 later. [Browse the marketplace](/marketplace/).
 
-![The Marketplace tab, listing the call recorder and a reviewed extension](/screenshots/extensions.webp)
+![The Marketplace tab, listing the call recorder and a third-party extension](/screenshots/extensions.webp)

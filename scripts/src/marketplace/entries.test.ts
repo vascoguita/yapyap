@@ -1,22 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import { readEntry, readRevocations, type Entry } from './entries.ts';
+import { readEntry, readRevocations, type OfficialEntry, type UnreviewedEntry } from './entries.ts';
 
 const SIGNER = Array.from({ length: 32 }, () => 'ab').join(':');
 const RELEASES = 'https://github.com/vascoguita/yapyap/releases/download';
 
-const ENTRY: Entry = {
-  id: 'org.example.hello',
+const ENTRY: OfficialEntry = {
+  id: 'org.guita.yapyap.hello',
   summary: 'Says hello.',
-  homepage: 'https://example.org/hello',
+  homepage: 'https://yapyap.guita.org/',
   license: 'MIT',
-  review: 'reviewed',
+  review: 'official',
   signer: SIGNER,
-  repository: 'https://github.com/example/hello',
+  repository: 'https://github.com/vascoguita/yapyap',
   versions: [
     {
       version: '1.0.0',
-      tag: 'v1.0.0',
-      source: `${RELEASES}/extensions/org.example.hello-1.0.0.yapyap-extension`,
+      tag: 'hello-v1.0.0',
+      source: `${RELEASES}/hello-v1.0.0/org.guita.yapyap.hello-1.0.0.yapyap-extension`,
       sha256: `sha256-${'A'.repeat(43)}=`,
       minYapYap: '0.1.2',
       published: '2026-10-27T08:00:00.000Z',
@@ -24,24 +24,30 @@ const ENTRY: Entry = {
   ],
 };
 const [VERSION] = ENTRY.versions;
+const FILE = 'org.guita.yapyap.hello.json';
+
+const UNREVIEWED: UnreviewedEntry = {
+  id: 'org.example.hello',
+  name: 'Hello',
+  summary: 'Says hello.',
+  author: { name: 'Example', url: 'https://example.org' },
+  homepage: 'https://example.org/hello',
+  license: 'MIT',
+  review: 'unreviewed',
+  signer: SIGNER,
+  latest: 'https://downloads.example.org/hello/latest.yapyap-extension',
+  repository: 'https://git.example.org/hello',
+};
 
 describe('readEntry', () => {
-  it('reads a reviewed third-party entry, and an official one under YapYap’s own ID', () => {
-    expect(readEntry(ENTRY, 'org.example.hello.json')).toEqual(ENTRY);
-    const official = {
-      ...ENTRY,
-      id: 'org.guita.yapyap.hello',
-      review: 'official',
-      versions: [
-        { ...VERSION, source: `${RELEASES}/v0.1.2/org.guita.yapyap.hello-1.0.0.yapyap-extension` },
-      ],
-    };
-    expect(readEntry(official, 'org.guita.yapyap.hello.json')).toEqual(official);
+  it('reads an official entry under YapYap’s own ID, and an unreviewed third-party one', () => {
+    expect(readEntry(ENTRY, FILE)).toEqual(ENTRY);
+    expect(readEntry(UNREVIEWED, 'org.example.hello.json')).toEqual(UNREVIEWED);
   });
 
   it('says where the shape is wrong, at most five times', () => {
-    const problems = readEntry({ ...ENTRY, review: 'trusted' }, 'org.example.hello.json');
-    expect(problems).toContain('/review: must match a schema in anyOf');
+    const problems = readEntry({ ...ENTRY, review: 'reviewed' }, FILE);
+    expect(problems).toContainEqual(expect.stringMatching(/^\/review: /));
     expect(readEntry({}, 'x.json')).toHaveLength(1);
     expect(
       readEntry(
@@ -56,42 +62,40 @@ describe('readEntry', () => {
       'a file named after another ID',
       ENTRY,
       'org.example.other.json',
-      'must be named org.example.hello.json',
+      'must be named org.guita.yapyap.hello.json',
     ],
     [
       'a third-party extension marked official',
-      { ...ENTRY, review: 'official' },
-      'org.example.hello.json',
-      'are official',
-    ],
-    [
-      'YapYap’s own extension marked reviewed',
       {
         ...ENTRY,
-        id: 'org.guita.yapyap.hello',
+        id: 'org.example.hello',
         versions: [
-          { ...VERSION, source: `${RELEASES}/v1/org.guita.yapyap.hello-1.0.0.yapyap-extension` },
+          { ...VERSION, source: `${RELEASES}/v1/org.example.hello-1.0.0.yapyap-extension` },
         ],
       },
-      'org.guita.yapyap.hello.json',
+      'org.example.hello.json',
       'are official',
     ],
     [
-      'a version listed twice',
-      { ...ENTRY, versions: [VERSION, VERSION] },
-      'org.example.hello.json',
-      'listed twice',
+      'YapYap’s own extension listed as unreviewed',
+      { ...UNREVIEWED, id: 'org.guita.yapyap.hello' },
+      FILE,
+      'are official',
     ],
+    ['a version listed twice', { ...ENTRY, versions: [VERSION, VERSION] }, FILE, 'listed twice'],
     [
       'a source on another server',
       {
         ...ENTRY,
         versions: [
-          { ...VERSION, source: 'https://example.org/org.example.hello-1.0.0.yapyap-extension' },
+          {
+            ...VERSION,
+            source: 'https://example.org/org.guita.yapyap.hello-1.0.0.yapyap-extension',
+          },
         ],
       },
-      'org.example.hello.json',
-      'release asset named org.example.hello-1.0.0.yapyap-extension',
+      FILE,
+      'release asset named org.guita.yapyap.hello-1.0.0.yapyap-extension',
     ],
     [
       'a source in another repository',
@@ -101,11 +105,11 @@ describe('readEntry', () => {
           {
             ...VERSION,
             source:
-              'https://github.com/someone/yapyap/releases/download/v1/org.example.hello-1.0.0.yapyap-extension',
+              'https://github.com/someone/yapyap/releases/download/v1/org.guita.yapyap.hello-1.0.0.yapyap-extension',
           },
         ],
       },
-      'org.example.hello.json',
+      FILE,
       'release asset',
     ],
     [
@@ -113,10 +117,10 @@ describe('readEntry', () => {
       {
         ...ENTRY,
         versions: [
-          { ...VERSION, source: `${RELEASES}/extensions/org.example.hello-2.0.0.yapyap-extension` },
+          { ...VERSION, source: `${RELEASES}/v1/org.guita.yapyap.hello-2.0.0.yapyap-extension` },
         ],
       },
-      'org.example.hello.json',
+      FILE,
       '1.0.0: the source',
     ],
     [
@@ -126,11 +130,11 @@ describe('readEntry', () => {
         versions: [
           {
             ...VERSION,
-            source: `${RELEASES}/extensions/org.example.hello-1.0.0.yapyap-extension?x=1`,
+            source: `${RELEASES}/v1/org.guita.yapyap.hello-1.0.0.yapyap-extension?x=1`,
           },
         ],
       },
-      'org.example.hello.json',
+      FILE,
       'release asset',
     ],
   ])('refuses %s', (_case, entry, file, problem) => {
@@ -138,22 +142,34 @@ describe('readEntry', () => {
   });
 });
 
-describe('readEntry for a reviewed extension', () => {
-  it('needs its source repository, and the tag of each version', () => {
-    // Entries are JSON, where a missing field is simply absent.
-    const without = (value: object): unknown => JSON.parse(JSON.stringify(value));
-    expect(
-      readEntry(without({ ...ENTRY, repository: undefined }), 'org.example.hello.json'),
-    ).toEqual(['A reviewed extension names its source repository.']);
-    expect(
-      readEntry(
-        without({ ...ENTRY, versions: [{ ...VERSION, tag: undefined }] }),
-        'org.example.hello.json',
-      ),
-    ).toEqual(['1.0.0: a reviewed extension names the tag of its source.']);
-    expect(
-      readEntry({ ...ENTRY, versions: [{ ...VERSION, tag: 'v1 0' }] }, 'org.example.hello.json'),
-    ).toHaveLength(1);
+describe('readEntry for an unreviewed extension', () => {
+  // Entries are JSON, where a missing field is simply absent.
+  const without = (value: object): unknown => JSON.parse(JSON.stringify(value));
+  const file = 'org.example.hello.json';
+
+  it('needs no repository, and lists no versions or hashes', () => {
+    const plain = without({ ...UNREVIEWED, repository: undefined });
+    expect(readEntry(plain, file)).toEqual(plain);
+    expect(readEntry({ ...UNREVIEWED, versions: ENTRY.versions }, file)).toContainEqual(
+      expect.stringContaining('/versions') as string,
+    );
+  });
+
+  it.each([
+    ['over HTTP', 'http://downloads.example.org/hello.yapyap-extension'],
+    ['with credentials', 'https://user:token@downloads.example.org/hello'],
+    ['with no path', 'https://downloads.example.org'],
+    ['with a fragment', 'https://downloads.example.org/hello#latest'],
+  ])('refuses a latest address %s', (_case, latest) => {
+    expect(readEntry({ ...UNREVIEWED, latest }, file)).toEqual([
+      expect.stringMatching(/^\/latest: /) as string,
+    ]);
+  });
+
+  it('needs the name and author an official entry takes from its archive', () => {
+    expect(readEntry(without({ ...UNREVIEWED, name: undefined }), file)).toEqual([
+      expect.stringContaining('name') as string,
+    ]);
   });
 });
 

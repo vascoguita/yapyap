@@ -59,10 +59,13 @@ path }`. Every file in the archive must appear in that list. Extra,
   never pass for YapYap's own.
 - **URL installs** require a pinned `sha256-<base64>` integrity value next to
   the URL. A mismatch aborts before anything is unpacked.
-- **Marketplace installs** take the archive's SHA-256 and signer from the
-  signed extension index (ADR 0014). Reviewed third-party extensions listed there
-  skip the unreviewed-extension acknowledgement, since the maintainer reviewed
-  that exact archive; the consent window still shows everything above.
+- **Marketplace installs** (ADR 0014) take an official archive's SHA-256
+  and signer from the signed extension index. A third-party extension
+  listed there is not reviewed: the index gives only the address of its
+  author's latest archive and the key that must sign it, which is checked
+  before anything else and then pinned as above. Its consent window also
+  names the host it downloads from, and it needs the same acknowledgement
+  as any third-party extension (C46 in ADR 0008).
 - **Unsigned** extensions load only in Developer Mode (`extensions.developerMode`),
   with a persistent "Unsigned" badge in the chrome, and the Extensions window
   warns while Developer Mode is on. Developer Mode is never exported with

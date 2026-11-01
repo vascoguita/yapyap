@@ -31,6 +31,8 @@ function Action(props: {
     return <span class="hint">{text[extension.action]}</span>;
   }
   const update = extension.action === 'update';
+  // An update always names its version; only a fresh unreviewed install may not know it yet.
+  const offered = extension.version ?? '';
   return (
     <button
       type="button"
@@ -38,23 +40,46 @@ function Action(props: {
       disabled={props.busy}
       aria-label={
         update
-          ? text.updateLabel({ extension: extension.name, version: extension.version })
+          ? text.updateLabel({ extension: extension.name, version: offered })
           : text.installLabel({ extension: extension.name })
       }
       onClick={() => {
         props.onInstall(extension.id);
       }}
     >
-      {update ? text.update({ version: extension.version }) : text.install}
+      {update ? text.update({ version: offered }) : text.install}
     </button>
   );
 }
 
 /** A listing is marked as the installed extension will be, so one review reads the same everywhere. */
-const TRUST = { official: 'first-party', reviewed: 'reviewed' } as const satisfies Record<
+const TRUST = { official: 'first-party', unreviewed: 'third-party' } as const satisfies Record<
   MarketplaceEntry['review'],
   ExtensionTrust
 >;
+
+/** Who vouches for the extension, who made it, its version when known, and where it downloads from. */
+function About({ extension }: { readonly extension: MarketplaceEntry }): JSX.Element {
+  const trust = TRUST[extension.review];
+  return (
+    <>
+      <h2 class="name">{extension.name}</h2>
+      <span class={`trust trust-${trust}`}>{en.extensions.trust[trust]}</span>
+      <p class="hint">
+        <span>{text.by({ name: extension.author.name })}</span>
+        {extension.version === null ? null : (
+          <>
+            {' '}
+            <span>{text.version({ version: extension.version })}</span>
+          </>
+        )}
+      </p>
+      {extension.source === null ? null : (
+        <p class="hint">{text.from({ host: extension.source })}</p>
+      )}
+    </>
+  );
+}
 
 function Listing(props: {
   readonly extension: MarketplaceEntry;
@@ -63,16 +88,11 @@ function Listing(props: {
 }): JSX.Element {
   const { extension } = props;
   const grants = [...extension.capabilities.map(describe), ...extension.hosts];
+  // Notes come only with an official version, so they always have one to name.
+  const shown = extension.version ?? '';
   return (
     <li>
-      <h2 class="name">{extension.name}</h2>
-      <span class={`trust trust-${TRUST[extension.review]}`}>
-        {en.extensions.trust[TRUST[extension.review]]}
-      </span>
-      <p class="hint">
-        <span>{text.by({ name: extension.author.name })}</span>{' '}
-        <span>{text.version({ version: extension.version })}</span>
-      </p>
+      <About extension={extension} />
       <p>{extension.summary}</p>
       {grants.length === 0 ? null : (
         <ul class="grants">
@@ -83,7 +103,7 @@ function Listing(props: {
       )}
       {extension.action === 'update' && extension.notes !== null ? (
         <details class="notes">
-          <summary>{text.whatsNew({ version: extension.version })}</summary>
+          <summary>{text.whatsNew({ version: shown })}</summary>
           <p>{extension.notes}</p>
         </details>
       ) : null}
@@ -175,9 +195,9 @@ function MarketplaceList(props: {
 }
 
 /**
- * The extension marketplace (ADR 0014): YapYap's own extensions and reviewed
- * third-party ones, each marked as such, with what it asks for before the
- * consent window asks again.
+ * The extension marketplace (ADR 0014): YapYap's own extensions, and
+ * third-party ones nobody reviewed, each marked as such, with where it
+ * downloads from and what it asks for before the consent window asks again.
  */
 export function Marketplace({ api }: { readonly api: ChromeApi }): JSX.Element {
   const { view, busy, problem, load, install } = useMarketplace(api);

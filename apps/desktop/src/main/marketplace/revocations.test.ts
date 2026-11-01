@@ -18,7 +18,7 @@ const record = (id: string, extra: Partial<ExtensionRecord> = {}): ExtensionReco
 });
 
 const index = (revoked: MarketplaceIndex['revoked']): MarketplaceIndex => ({
-  format: 1,
+  format: 2,
   serial: 1,
   generated: '2026-10-27T08:00:00.000Z',
   expires: '2026-11-20T08:00:00.000Z',

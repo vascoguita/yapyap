@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readEntry, type Entry } from './entries.ts';
+import { readEntry, type OfficialEntry } from './entries.ts';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -60,12 +60,12 @@ describe('withRelease', () => {
     expect(next.versions[1]).not.toHaveProperty('notes');
     const again = withRelease(next, { ...RELEASE, archive: new Uint8Array([1]) }, DEFAULTS);
     expect(again.versions.map(({ version }) => version)).toEqual(['0.3.0', '0.2.0']);
-    const many: Entry = {
+    const many: OfficialEntry = {
       ...first,
       versions: Array.from({ length: 50 }, (_, index) => ({
         ...first.versions[0],
         version: `0.0.${String(index)}`,
-      })) as Entry['versions'],
+      })) as OfficialEntry['versions'],
     };
     const crowded = withRelease(many, RELEASE, DEFAULTS);
     expect(crowded.versions).toHaveLength(50);

@@ -9,6 +9,7 @@ const CONSENT: ExtensionConsent = {
   author: { name: 'Example', url: null },
   fingerprint: 'ab:cd',
   trust: 'third-party',
+  source: null,
   update: false,
   capabilities: ['storage:local'],
   hosts: [],
@@ -58,6 +59,16 @@ describe('createExtensionConsent', () => {
       'An extension YapYap has not reviewed needs the user to accept the risk.',
     );
     respond.handle(t.call, true, true);
+    await expect(answer).resolves.toBe(true);
+  });
+
+  it('needs the acknowledgement for a third-party extension from the marketplace too', async () => {
+    const t = setup();
+    const answer = t.prompt.ask({ ...CONSENT, source: 'downloads.example.org' });
+    expect(() => t.handler('extensions:answer').handle(t.call, true, false)).toThrow(
+      'needs the user to accept the risk',
+    );
+    t.handler('extensions:answer').handle(t.call, true, true);
     await expect(answer).resolves.toBe(true);
   });
 

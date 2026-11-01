@@ -21,9 +21,11 @@ import { readEntry, readRevocations, type Entry } from '../marketplace/entries.t
 import { screenshotPath, screenshotReader } from '../marketplace/screenshots.ts';
 
 // Usage: marketplace-index.ts <marketplace directory> [site directory]
-// Checks every entry and the archive each lists (ADR 0014). With a site
-// directory, it also writes extensions/index.json, signs it with
-// EXTENSION_SIGNING_KEY when that is set, and adds the archives' redirects.
+// Checks every entry and the official archives they list (ADR 0014); third-
+// party archives are checked by marketplace-latest.ts, on the pull request
+// that adds their entry. With a site directory, it also writes
+// extensions/index.json, signs it with EXTENSION_SIGNING_KEY when that is
+// set, and adds the official archives' redirects.
 const [folder = 'marketplace', site] = process.argv.slice(2);
 const read = (path: string): unknown => JSON.parse(readFileSync(path, 'utf8'));
 const extensionsFolder = join(folder, 'extensions');

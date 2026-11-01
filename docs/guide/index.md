@@ -161,6 +161,13 @@ only what you allow when you install it.
   install them at your own risk, and **Install** stays off until you tick
   that you understand. YapYap remembers the author's key, and refuses an
   update signed by a different one.
+- **Extensions… → Marketplace** lists YapYap's extensions and other
+  authors' ones, marked **Third-party** with the server they
+  download from. YapYap downloads a third-party extension's latest release
+  from its author's server, which sees your IP address, and installs it only
+  if the key the marketplace lists signed it. Each time you open the tab, it
+  checks the third-party extensions you installed for a newer release and
+  offers it as an update.
 - An update that asks for more than before shows what is new and asks
   again; one that asks for nothing new installs without asking.
 - **Extensions…** lists what is installed, marking extensions by other authors as

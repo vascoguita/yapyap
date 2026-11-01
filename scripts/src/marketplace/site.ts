@@ -15,13 +15,24 @@ export interface SiteExtension {
   readonly author: { readonly name: string; readonly url: string | null };
   readonly homepage: string;
   readonly license: string;
-  readonly review: 'official' | 'reviewed';
-  /** What the newest version asks for, in the words YapYap's consent window uses. */
+  readonly review: 'official' | 'unreviewed';
+  /**
+   * The host an unreviewed extension downloads from, its author's own; null
+   * for an official one, which downloads from YapYap's.
+   */
+  readonly source: string | null;
+  /** Where an unreviewed extension's source code lives, when its entry says. */
+  readonly repository: string | null;
+  /**
+   * What the newest official version asks for, in the words YapYap's consent
+   * window uses; empty for an unreviewed extension, whose latest archive
+   * says only when YapYap downloads it.
+   */
   readonly asks: readonly string[];
   readonly hosts: readonly string[];
-  /** Every version still offered, newest first, with the day it was published. */
   /** Pictures of the extension in use, served beside the index. */
   readonly screenshots: readonly { readonly url: string; readonly caption: string }[];
+  /** Every official version still offered, newest first, with the day it was published. */
   readonly versions: readonly {
     readonly version: string;
     readonly published: string;
@@ -51,15 +62,17 @@ export function verifiedIndex(
 }
 
 type Listed = MarketplaceIndex['extensions'][number];
+type Official = Extract<Listed, { review: 'official' }>;
+type ListedVersion = Official['versions'][number];
 
-type ListedVersion = Listed['versions'][number];
+/** Whether a revocation pulls this version, or with `*` the whole extension, as YapYap decides it. */
+const isPulled = (index: MarketplaceIndex, extension: Listed, version: string): boolean =>
+  revocationOf(index, extension.id, extension.signer, version) !== undefined;
 
-function siteExtension(
+/** What the page says about any listed extension, official or not. */
+function common(
   extension: Listed,
-  newest: ListedVersion,
-  versions: readonly ListedVersion[],
-  describe: (capability: string) => string,
-): SiteExtension {
+): Omit<SiteExtension, 'source' | 'repository' | 'asks' | 'hosts' | 'versions'> {
   return {
     id: extension.id,
     name: extension.name,
@@ -68,17 +81,59 @@ function siteExtension(
     homepage: extension.homepage,
     license: extension.license,
     review: extension.review,
-    asks: newest.capabilities.map(describe),
-    hosts: newest.hosts,
     screenshots: extension.screenshots ?? [],
-    versions: versions.map(({ version, published, minYapYap, notes }) => ({
-      version,
-      minYapYap,
-      published: published.slice(0, 10),
-      notes: notes ?? null,
-    })),
     installLink: `yapyap://extensions/install/${extension.id}`,
   };
+}
+
+/** An official extension, described by its newest version still offered; none when all were pulled. */
+function officialExtension(
+  index: MarketplaceIndex,
+  extension: Official,
+  describe: (capability: string) => string,
+): SiteExtension[] {
+  const offered = extension.versions
+    .filter(({ version }) => !isPulled(index, extension, version))
+    .sort((a, b) => compareVersions(b.version, a.version));
+  const [newest] = offered;
+  if (newest === undefined) {
+    return [];
+  }
+  return [
+    {
+      ...common(extension),
+      source: null,
+      repository: null,
+      asks: newest.capabilities.map(describe),
+      hosts: newest.hosts,
+      versions: offered.map(({ version, published, minYapYap, notes }: ListedVersion) => ({
+        version,
+        minYapYap,
+        published: published.slice(0, 10),
+        notes: notes ?? null,
+      })),
+    },
+  ];
+}
+
+/** An unreviewed extension, unless all of its versions were pulled. */
+function unreviewedExtension(
+  index: MarketplaceIndex,
+  extension: Extract<Listed, { review: 'unreviewed' }>,
+): SiteExtension[] {
+  if (isPulled(index, extension, '*')) {
+    return [];
+  }
+  return [
+    {
+      ...common(extension),
+      source: new URL(extension.latest).host,
+      repository: extension.repository ?? null,
+      asks: [],
+      hosts: [],
+      versions: [],
+    },
+  ];
 }
 
 /**
@@ -90,15 +145,10 @@ export function siteExtensions(
   describe: (capability: string) => string,
 ): SiteExtension[] {
   return index.extensions
-    .flatMap((extension) => {
-      const offered = extension.versions
-        .filter(
-          ({ version }) =>
-            revocationOf(index, extension.id, extension.signer, version) === undefined,
-        )
-        .sort((a, b) => compareVersions(b.version, a.version));
-      const [newest] = offered;
-      return newest === undefined ? [] : [siteExtension(extension, newest, offered, describe)];
-    })
+    .flatMap((extension) =>
+      extension.review === 'official'
+        ? officialExtension(index, extension, describe)
+        : unreviewedExtension(index, extension),
+    )
     .sort((a, b) => a.name.localeCompare(b.name));
 }
