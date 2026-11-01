@@ -283,3 +283,8 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   catalog (an unreadable archive gets one generic reason), Check Spelling is
   a checkbox whether spelling is on or off, Copy Diagnostics notifies how it
   went, and the unsafe-start detail no longer repeats its message.
+- No compatibility before 1.0 (#562, C45 in ADR 0008): settings are
+  schema version 1 with no migrations, and a file of another version is set
+  aside like a damaged one; the read-only mode for a newer build's settings,
+  the assistant extension's import and its one-time bar note are gone.
+  From 1.0, settings migrations start again at version 1.

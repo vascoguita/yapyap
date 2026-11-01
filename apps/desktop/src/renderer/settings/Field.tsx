@@ -40,7 +40,7 @@ function Choice(props: FieldProps & { readonly options: NonNullable<SettingField
     <fieldset
       class="choice"
       aria-describedby={`${field.id}-hint`}
-      disabled={snapshot.readOnly || field.id in snapshot.unavailable}
+      disabled={field.id in snapshot.unavailable}
     >
       <legend>{field.label}</legend>
       {options.map(({ value, label }) => (
@@ -82,7 +82,6 @@ function TextField(props: FieldProps & { readonly placeholder: string }) {
         spellcheck={false}
         placeholder={props.placeholder}
         defaultValue={String(snapshot.values[field.id] ?? '')}
-        disabled={snapshot.readOnly}
         aria-describedby={`${field.id}-hint`}
         onBlur={(event) => {
           save(event.currentTarget.value);
@@ -114,7 +113,6 @@ function FolderField(props: FieldProps) {
           type="button"
           id={`${field.id}-choose`}
           aria-labelledby={`${field.id}-choose ${field.id}-label`}
-          disabled={snapshot.readOnly}
           onClick={() => {
             onChooseFolder?.(field.id);
           }}
@@ -124,7 +122,6 @@ function FolderField(props: FieldProps) {
         {folder === '' ? null : (
           <button
             type="button"
-            disabled={snapshot.readOnly}
             onClick={() => {
               onChange(field.id, '');
             }}
@@ -156,7 +153,6 @@ export function Field(props: FieldProps): JSX.Element {
         id={field.id}
         type="checkbox"
         checked={snapshot.values[field.id] === true}
-        disabled={snapshot.readOnly}
         aria-describedby={hint}
         onChange={(event) => {
           onChange(field.id, event.currentTarget.checked);

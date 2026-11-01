@@ -53,18 +53,17 @@ could ask for too.
    a message: it puts drafts in the message box. Only the user's click on
    a suggestion's **Send** sends it, after YapYap checks the same chat is
    still open (ADR 0013).
-4. **Settings and state.** Settings version 19 adds an `assistant`
-   section: on or off, the provider (`auto`, `built-in`, `anthropic`,
-   `openai` or `local`), the model (`auto` or an ID), suggesting replies
-   as messages arrive (moved from `extensions.autoSuggest`), how many
-   messages it reads, and the model server's address, which only a
+4. **Settings and state.** The settings have an `assistant` section: on
+   or off, the provider (`auto`, `built-in`, `anthropic`, `openai` or
+   `local`), the model (`auto` or an ID), suggesting replies as messages
+   arrive, how many messages it reads, and the model server's address, which only a
    loopback `/v1` address can be. The section is local, like
    `extensions`: an export leaves it out and an import keeps it as it is,
    so a file someone hands the user cannot point the assistant elsewhere.
    API keys go to YapYap's secrets, encrypted by the system through
    `safeStorage`, under `assistant/key/<provider>`. What is no preference
    lives in state files: `assistant.json` holds the private model chosen
-   and whether it is ready, and a one-time note; `assistant-chats.json`
+   and whether it is ready; `assistant-chats.json`
    holds, per account, the SHA-256 of the name of each chat the user
    allowed. The names themselves, for Settings' list, are kept only
    encrypted, in the secrets, under `assistant/chat/<account>/<id>` (C42).
@@ -103,12 +102,9 @@ could ask for too.
    one-click fix. An Assistant menu holds the actions, with shortcuts
    Ctrl+Shift+Y, Ctrl+Shift+L and Ctrl+Shift+U (⌘ on macOS). The panel
    window is gone.
-8. **The extension goes.** On start, if the `org.guita.yapyap.ai-assistant`
-   extension is installed, YapYap takes over its provider, model,
-   message count, API keys and allowed chats, uninstalls it with its
-   storage, secrets and session, and the bar shows a one-time note. Its
-   private model lived in its own storage, so the note asks to download
-   it again. The extension API loses `assistant:bar`, `assistant.offer`,
+8. **The extension goes.** YapYap carries nothing over from the
+   `org.guita.yapyap.ai-assistant` extension: there is no backward
+   compatibility before 1.0 (ADR 0008). The extension API loses `assistant:bar`, `assistant.offer`,
    `local-model`, `localModels.find`, the test-model hook and the
    extension scheme's fetch support.
 
@@ -123,4 +119,4 @@ could ask for too.
   Both stay confined: the assistant's session reaches only the listed
   hosts, and the engine window reaches no network at all.
 - The assistant ships with YapYap releases, no longer on its own.
-- People who used the extension download the private model again.
+- People who used the extension set the assistant up again.

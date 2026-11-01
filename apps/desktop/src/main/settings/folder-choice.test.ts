@@ -4,11 +4,10 @@ import { defaultSettings } from './decode.ts';
 import { folderChoiceHandlers } from './folder-choice.ts';
 import type { Settings } from './schema.ts';
 
-function setup(chosen: string | undefined, readOnly = false) {
+function setup(chosen: string | undefined) {
   let settings: Settings = defaultSettings();
   const service = {
     current: () => settings,
-    readOnly,
     update: vi.fn((change: (current: Settings) => Settings) => {
       settings = change(settings);
     }),
@@ -33,13 +32,10 @@ describe('folderChoiceHandlers', () => {
     expect(t.settings().downloads.folder).toBe('/home/someone/Saved');
   });
 
-  it('changes nothing when the user cancels, or the settings belong to a newer YapYap', async () => {
+  it('changes nothing when the user cancels, or the folder is too long', async () => {
     const cancelled = setup(undefined);
     await cancelled.handler.handle({ sender }, 'downloads.folder');
     expect(cancelled.service.update).not.toHaveBeenCalled();
-    const newer = setup('/home/someone/Saved', true);
-    await newer.handler.handle({ sender }, 'downloads.folder');
-    expect(newer.service.update).not.toHaveBeenCalled();
     const tooLong = setup(`/${'x'.repeat(5000)}`);
     await tooLong.handler.handle({ sender }, 'downloads.folder');
     expect(tooLong.service.update).not.toHaveBeenCalled();

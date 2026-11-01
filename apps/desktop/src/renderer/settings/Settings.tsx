@@ -103,12 +103,8 @@ function useTransfer(): readonly [string, Transfer] {
   return [status, run];
 }
 
-function Backup(props: {
-  readonly api: ChromeApi;
-  readonly readOnly: boolean;
-  readonly onImported: () => void;
-}): JSX.Element {
-  const { api, readOnly, onImported } = props;
+function Backup(props: { readonly api: ChromeApi; readonly onImported: () => void }): JSX.Element {
+  const { api, onImported } = props;
   const [status, run] = useTransfer();
   return (
     <section aria-labelledby="backup-title">
@@ -125,7 +121,6 @@ function Backup(props: {
         </button>
         <button
           type="button"
-          disabled={readOnly}
           onClick={() => {
             run(api.settings.import, onImported);
           }}
@@ -183,13 +178,12 @@ export function Settings({ api }: { readonly api: ChromeApi }): JSX.Element {
     <main class="settings">
       <h1>{text.title}</h1>
       <SectionLinks snapshot={snapshot} />
-      {snapshot.readOnly ? <p class="notice">{text.readOnly}</p> : null}
       {snapshot.restartPending ? <RestartNotice api={api} /> : null}
       {'assistant.enabled' in snapshot.values ? (
         <AssistantSection api={api} snapshot={snapshot} onChange={change} />
       ) : null}
       <Sections snapshot={snapshot} onChange={change} onChooseFolder={chooseFolder} />
-      <Backup api={api} readOnly={snapshot.readOnly} onImported={reload} />
+      <Backup api={api} onImported={reload} />
       <p role="alert">{error}</p>
     </main>
   );

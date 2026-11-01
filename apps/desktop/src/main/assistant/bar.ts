@@ -25,7 +25,6 @@ import {
   type Rewrite,
 } from './rewrites.ts';
 import type { Setup } from './setup.ts';
-import type { AssistantState } from './state.ts';
 
 /** What the bar needs of the account on screen; nothing here sends a message on its own. */
 export interface BarAccounts {
@@ -48,7 +47,6 @@ export interface BarDependencies {
   readonly chats: Pick<AllowedChats, 'isAllowed' | 'allow'>;
   readonly accounts: BarAccounts;
   readonly privateModels: Pick<PrivateModels, 'status' | 'download' | 'smaller' | 'outOfMemory'>;
-  readonly state: Pick<AssistantState, 'notice' | 'setNotice'>;
   /** The languages the bar offers to translate to. */
   readonly languages: readonly string[];
   readonly openSettings: () => void;
@@ -376,12 +374,6 @@ const FIXES: Readonly<Record<Fix, (deps: BarDependencies) => unknown>> = {
   smaller: (deps) => deps.privateModels.smaller(),
 };
 
-/** Closes what the bar shows, and the one-time note with it. */
-function closeResult(bar: BarContext): void {
-  bar.deps.state.setNotice(undefined);
-  say(bar, { status: '' });
-}
-
 const BUTTONS: Readonly<Record<BarButtonId, (bar: BarContext) => unknown>> = {
   allow,
   'what-sent': whatSent,
@@ -391,7 +383,9 @@ const BUTTONS: Readonly<Record<BarButtonId, (bar: BarContext) => unknown>> = {
     update(bar, { status: text.status.copied });
   },
   use: useRewrite,
-  close: closeResult,
+  close: (bar) => {
+    say(bar, { status: '' });
+  },
   fix: (bar) => FIXES[bar.fix](bar.deps),
 };
 
@@ -435,18 +429,10 @@ async function suggestOnArrival(bar: BarContext): Promise<void> {
 const idle = (bar: BarContext): boolean =>
   !bar.busy && bar.state.result === null && bar.state.suggestions.length === 0;
 
-/** Shows how the setup stands, and the one-time note that the assistant became part of YapYap. */
+/** Shows how the setup stands. */
 async function refresh(bar: BarContext): Promise<void> {
-  if (!idle(bar)) {
-    return;
-  }
-  await ready(bar);
-  const notice = bar.deps.state.notice();
-  // The note comes first, setup or not: it says where the assistant's settings went.
-  if (notice !== undefined) {
-    const status = notice === 'moved' ? text.status.moved : text.status.movedRedownload;
-    say(bar, { status, fix: { action: 'settings', label: text.bar.openSettings } });
-    update(bar, { buttons: [...bar.state.buttons, close] });
+  if (idle(bar)) {
+    await ready(bar);
   }
 }
 

@@ -1,5 +1,4 @@
 import { Value } from 'typebox/value';
-import { migrate } from './migrations.ts';
 import { isRecord } from './record.ts';
 import { SettingsSchema, SETTINGS_VERSION, type Settings } from './schema.ts';
 
@@ -10,7 +9,6 @@ export type Decoded =
       /** JSON pointers of values that were invalid and are now their defaults. */
       readonly reset: readonly string[];
     }
-  | { readonly kind: 'newer'; readonly settings: Settings; readonly version: number }
   | { readonly kind: 'corrupt' };
 
 export function defaultSettings(): Settings {
@@ -27,22 +25,15 @@ function normalize(raw: Record<string, unknown>): { settings: Settings; reset: s
 }
 
 /**
- * Turns a parsed settings file into settings. A file from a newer YapYap is
- * read as far as this version understands it, and must not be overwritten.
+ * Turns a parsed settings file into settings. YapYap keeps no backward
+ * compatibility before 1.0 (ADR 0008), so a file of any other version is
+ * treated as corrupt.
  */
 export function decodeParsed(raw: unknown): Decoded {
-  if (!isRecord(raw)) {
+  if (!isRecord(raw) || raw['schemaVersion'] !== SETTINGS_VERSION) {
     return { kind: 'corrupt' };
   }
-  const result = migrate(raw);
-  if (result.kind === 'invalid') {
-    return { kind: 'corrupt' };
-  }
-  if (result.kind === 'newer') {
-    const { settings } = normalize({ ...raw, schemaVersion: SETTINGS_VERSION });
-    return { settings, kind: 'newer', version: result.version };
-  }
-  return { kind: 'ok', ...normalize(result.settings) };
+  return { kind: 'ok', ...normalize(raw) };
 }
 
 /** Turns the text of a settings file into settings; text that is no JSON is corrupt. */

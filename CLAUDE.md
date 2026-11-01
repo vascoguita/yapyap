@@ -224,7 +224,11 @@ Update this table in the PR that adds a command.
   `accounts.json`. Per-session guards such as downloads go on the account's
   session; in E2E tests, reach it through the WhatsApp page's web contents.
 - Window geometry lives in `window-state.json`, not in settings: it is state,
-  not a preference, and must never trigger a settings migration.
+  not a preference, and never goes in `settings.json`.
+- No backward compatibility before 1.0 (C45 in ADR 0008): no settings
+  migrations, no importers for older data. A new setting just gets its
+  default in the schema, and a settings file of another version is set
+  aside like a damaged one.
 - YapYap refuses to start with `--no-sandbox` or `ELECTRON_DISABLE_SANDBOX`.
   Playwright passes `--no-sandbox` to Electron unless `chromiumSandbox: true`
   is set, which `launchApp` does. Linux runs need unprivileged user

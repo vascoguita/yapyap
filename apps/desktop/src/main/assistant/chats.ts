@@ -30,8 +30,7 @@ export const isChatId = (value: unknown): value is string => Value.Check(ChatId,
 
 /**
  * A chat's fingerprint: the SHA-256 of its name, so the file never holds
- * the name itself. It is the same fingerprint the AI assistant extension
- * kept, so the chats it was allowed in carry over (ADR 0017).
+ * the name itself.
  */
 export const chatId = (name: string): string => createHash('sha256').update(name).digest('hex');
 
@@ -50,8 +49,6 @@ export interface AllowedChats {
   /** Drops a removed account's chats. */
   readonly forgetAccount: (account: string) => void;
   readonly list: () => Promise<readonly AllowedInAccount[]>;
-  /** Allows chats by fingerprint in each of `accounts`, as the extension had them. */
-  readonly adopt: (ids: readonly string[], accounts: readonly string[]) => void;
 }
 
 function readChats(file: TextFile): Map<string, string[]> {
@@ -146,11 +143,5 @@ export function allowedChats(
       names.forgetAll(`${NAMES}${account}/`);
     },
     list: () => listOf(kept),
-    adopt: (ids, accounts) => {
-      for (const account of accounts) {
-        add(kept, account, ids.filter(isChatId));
-      }
-      save();
-    },
   };
 }

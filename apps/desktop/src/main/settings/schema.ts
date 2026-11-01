@@ -9,7 +9,7 @@ import { LOCAL_SERVER } from '../../shared/local-server.ts';
  * it, so the schema is the only source of truth. Every value has a default,
  * which is what an invalid or missing value falls back to.
  */
-export const SETTINGS_VERSION = 19;
+export const SETTINGS_VERSION = 1;
 
 export const SettingsSchema = Type.Object(
   {
@@ -187,7 +187,7 @@ export const SettingsSchema = Type.Object(
       },
       { default: {}, additionalProperties: false },
     ),
-    // The AI assistant, part of YapYap since version 19 (ADR 0017).
+    // The AI assistant, part of YapYap (ADR 0017).
     assistant: Type.Object(
       {
         enabled: Type.Boolean({ default: true }),

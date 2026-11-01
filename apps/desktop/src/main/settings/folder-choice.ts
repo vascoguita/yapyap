@@ -18,7 +18,7 @@ const FOLDER_FIELDS: ReadonlySet<string> = new Set(
  * again afterwards.
  */
 export function folderChoiceHandlers(
-  service: Pick<SettingsService, 'current' | 'update' | 'readOnly'>,
+  service: Pick<SettingsService, 'current' | 'update'>,
   choose: (sender: object) => Promise<string | undefined>,
 ): ChromeHandler[] {
   return [
@@ -28,7 +28,7 @@ export function folderChoiceHandlers(
       handle: async ({ sender }, id) => {
         const folder = await choose(sender);
         const next = withValue(service.current(), String(id), folder);
-        if (folder !== undefined && !service.readOnly && Value.Check(SettingsSchema, next)) {
+        if (folder !== undefined && Value.Check(SettingsSchema, next)) {
           service.update(() => next);
         }
       },

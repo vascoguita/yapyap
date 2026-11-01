@@ -3,7 +3,7 @@ import { matchesGlob } from 'node:path';
 /**
  * Modules whose tests must kill at least 90% of mutants (ADR 0005): the
  * WhatsApp adapter, extension host, capability checker, signature verification,
- * settings migrations and AI providers, plus other security-sensitive parsers.
+ * settings and AI providers, plus other security-sensitive parsers.
  */
 export const MUTATION_SCOPE: readonly string[] = [
   'apps/desktop/src/adapter/**/*.ts',

@@ -5,16 +5,10 @@ import type { Settings } from '../settings/schema.ts';
 import type { ExtensionCommand } from '../extensions/runtime.ts';
 import { shortcutHandlers } from './shortcut-settings.ts';
 
-function setup(
-  readOnly = false,
-  platform = 'linux',
-  registered = true,
-  commands: readonly ExtensionCommand[] = [],
-) {
+function setup(platform = 'linux', registered = true, commands: readonly ExtensionCommand[] = []) {
   let settings: Settings = defaultSettings();
   const service = {
     current: () => settings,
-    readOnly,
     update: vi.fn((change: (current: Settings) => Settings) => {
       settings = change(settings);
     }),
@@ -68,14 +62,8 @@ describe('shortcutHandlers', () => {
     expect(t.service.update).not.toHaveBeenCalled();
   });
 
-  it('saves nothing in a newer YapYap’s file', () => {
-    const t = setup(true);
-    expect(t.set('settings', 'CmdOrCtrl+Shift+K').problem).toBe('');
-    expect(t.service.update).not.toHaveBeenCalled();
-  });
-
   it('accepts only shortcuts this platform has, with keys or null', () => {
-    const { accepts } = setup(false, 'win32').handler(CHROME_CHANNELS.shortcutsSet);
+    const { accepts } = setup('win32').handler(CHROME_CHANNELS.shortcutsSet);
     expect(accepts(['settings', 'CmdOrCtrl+K'])).toBe(true);
     expect(accepts(['settings', null])).toBe(true);
     expect(accepts(['quit', 'CmdOrCtrl+K'])).toBe(false);
@@ -122,7 +110,7 @@ describe('the shortcut that works from any app', () => {
   });
 
   it('says when the system did not grant the keys, and never for no keys', () => {
-    const t = setup(false, 'linux', false);
+    const t = setup('linux', false);
     const list = t.handler(CHROME_CHANNELS.shortcutsList).handle({ sender: {} }) as ShortcutChange;
     expect(list.global[0]?.registered).toBe(true);
     expect(t.set('toggleWindow', 'F9').global[0]?.registered).toBe(false);
@@ -140,7 +128,7 @@ describe('an extension command’s keys', () => {
   const STOP = { ...RECORD, id: 'stop', title: 'Stop', shortcut: 'CmdOrCtrl+Alt+S' };
 
   it('lists each running command with the keys it has and suggests', () => {
-    const t = setup(false, 'linux', true, [RECORD, { ...STOP, shortcut: undefined }]);
+    const t = setup('linux', true, [RECORD, { ...STOP, shortcut: undefined }]);
     const listed = t
       .handler(CHROME_CHANNELS.shortcutsList)
       .handle({ sender: {} }) as ShortcutChange;
@@ -166,7 +154,7 @@ describe('an extension command’s keys', () => {
   });
 
   it('takes other keys, removes them, and goes back to the suggestion', () => {
-    const t = setup(false, 'linux', true, [RECORD, STOP]);
+    const t = setup('linux', true, [RECORD, STOP]);
     expect(t.set('org.example.rec/record', 'CmdOrCtrl+Alt+Q').problem).toBe('');
     expect(t.settings().shortcuts.extensions).toEqual({
       'org.example.rec/record': 'CmdOrCtrl+Alt+Q',
@@ -179,7 +167,7 @@ describe('an extension command’s keys', () => {
   });
 
   it('refuses keys that do not fit, or that YapYap or another command uses', () => {
-    const t = setup(false, 'linux', true, [RECORD, STOP]);
+    const t = setup('linux', true, [RECORD, STOP]);
     expect(t.set('org.example.rec/record', 'Q').problem).toBe(
       'Use a key together with a modifier such as Ctrl, Alt, Shift or ⌘, or a function key alone.',
     );
@@ -191,7 +179,7 @@ describe('an extension command’s keys', () => {
   });
 
   it('accepts only commands that are running', () => {
-    const t = setup(false, 'linux', true, [RECORD]);
+    const t = setup('linux', true, [RECORD]);
     const accepts = t.handler(CHROME_CHANNELS.shortcutsSet).accepts;
     expect(accepts(['org.example.rec/record', ''])).toBe(true);
     expect(accepts(['org.example.rec/gone', 'CmdOrCtrl+Alt+G'])).toBe(false);

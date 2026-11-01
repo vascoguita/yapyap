@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { decodeSettings, defaultSettings } from './decode.ts';
 
 const DEFAULTS = {
-  schemaVersion: 19,
+  schemaVersion: 1,
   general: {
     language: 'system',
     startMinimized: false,
@@ -129,19 +129,10 @@ describe('decodeSettings', () => {
     expect(decoded.kind === 'ok' && 'secrets' in decoded.settings).toBe(false);
   });
 
-  it('reads what it understands of a newer file and marks it', () => {
-    const appearance = {
-      theme: 'light',
-      zoom: 2,
-      pinchZoom: true,
-      autoHideMenuBar: false,
-      compactSidebar: false,
-      trayIcon: 'color',
-    };
-    const decoded = decodeSettings(
-      JSON.stringify({ ...DEFAULTS, appearance, schemaVersion: 20, future: true }),
-    );
-    expect(decoded).toEqual({ kind: 'newer', settings: { ...DEFAULTS, appearance }, version: 20 });
+  it.each([0, 2])('treats a complete file of version %i as corrupt', (schemaVersion) => {
+    expect(decodeSettings(JSON.stringify({ ...DEFAULTS, schemaVersion }))).toEqual({
+      kind: 'corrupt',
+    });
   });
 
   it('accepts every option of each choice', () => {

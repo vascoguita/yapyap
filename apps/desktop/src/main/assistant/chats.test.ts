@@ -31,7 +31,7 @@ function stores(text = '', canKeep = true) {
 }
 
 describe('chatId', () => {
-  it('is the SHA-256 of the chat’s name, as the extension kept it', () => {
+  it('is the SHA-256 of the chat’s name', () => {
     expect(chatId('Ana')).toBe(createHash('sha256').update('Ana').digest('hex'));
     expect(isChatId(chatId('Ana'))).toBe(true);
     expect(isChatId('Ana')).toBe(false);
@@ -92,25 +92,13 @@ describe('allowedChats', () => {
   });
 
   it('remembers at most so many chats per account, forgetting the oldest', async () => {
-    const { file, names } = stores();
+    const full = Array.from({ length: MAX_ALLOWED }, (_, index) => chatId(String(index)));
+    const { file, names } = stores(JSON.stringify({ version: 1, accounts: { [ACCOUNT]: full } }));
     const chats = allowedChats(file, names, vi.fn());
-    chats.adopt(
-      Array.from({ length: MAX_ALLOWED }, (_, index) => chatId(String(index))),
-      [ACCOUNT],
-    );
     await chats.allow(ACCOUNT, 'Newest');
     expect(chats.isAllowed(ACCOUNT, '0')).toBe(false);
     expect(chats.isAllowed(ACCOUNT, '1')).toBe(true);
     expect(chats.isAllowed(ACCOUNT, 'Newest')).toBe(true);
-  });
-
-  it('adopts the extension’s fingerprints in every account, leaving out anything else', () => {
-    const { file, names } = stores();
-    const chats = allowedChats(file, names, vi.fn());
-    chats.adopt([chatId('Ana'), 'not a fingerprint'], [ACCOUNT, OTHER]);
-    expect(chats.isAllowed(ACCOUNT, 'Ana')).toBe(true);
-    expect(chats.isAllowed(OTHER, 'Ana')).toBe(true);
-    expect(file.text).not.toContain('not a fingerprint');
   });
 
   it('starts empty from a missing or damaged file, and says when it cannot save', async () => {

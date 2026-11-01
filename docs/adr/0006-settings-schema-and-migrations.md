@@ -17,21 +17,19 @@ through an export.
 - **Shape**: `{ "schemaVersion": n, ... }` described by a TypeBox schema in
   `apps/desktop/src/main/settings/schema.ts`. The TS type is derived from the
   schema, so there is one source of truth.
-- **Migrations**: an ordered array of pure functions
-  `migrate[n]: (vN) => vN+1`. Each has its own fixture-based test, and a
-  property test checks that any valid older version migrates to a valid
-  current one. Migrations are forward-only. If a file is newer than the app,
-  it is opened read-only and the user is warned before anything is
-  overwritten.
-- **Load algorithm**: parse → migrate → validate → apply defaults for
-  missing keys. On failure: try `.bak`. If that fails too, start with
-  defaults, keep the bad file as `settings.corrupt-<timestamp>.json`, and
-  show a notice. Launch never fails because of settings.
+- **Migrations**: none before 1.0 (C45 in ADR 0008). The schema version
+  is 1, and a file of any other version is treated as damaged. From 1.0,
+  a change of shape gets an ordered array of pure, forward-only functions
+  `migrate[n]: (vN) => vN+1`, each with its own fixture-based test.
+- **Load algorithm**: parse → check the version → validate → apply
+  defaults for missing keys. On failure: try `.bak`. If that fails too,
+  start with defaults, keep the bad file as
+  `settings.corrupt-<timestamp>.json`, and show a notice. Launch never
+  fails because of settings.
 - **Repair**: missing values take their defaults and only invalid values are
   reset (TypeBox `Value.Default`, then `Value.Repair`), so one bad value never
-  costs the others. Unknown keys are dropped. Sections are added as the
-  features that own them land, each with a migration once the schema version
-  is past 1.
+  costs the others. Unknown keys are dropped. Sections and values are
+  added as the features that own them land, with a default in the schema.
 - **Sections**: `general` (language, startMinimized, closeToTray, autostart),
   `appearance` (theme, zoom default), `notifications` (enabled, dnd,
   showPreview, sound), `accounts[]` (id, name, color, partition, muted, zoom,
@@ -50,14 +48,15 @@ through an export.
   anything under `secrets` are never exported; a section holding them stays
   out of exports and keeps its current values on import (`LOCAL_SECTIONS`).
   The `extensions` section is one: Developer Mode must not arrive in a file. Import reads at
-  most 64 KiB, requires the format marker, runs the same
-  migrate-and-validate pipeline, refuses files from a newer schema, and asks
-  before replacing. It is unavailable while the settings are read-only.
+  most 64 KiB, requires the format marker, runs the same checks as
+  loading, refuses a file of another schema version, and asks before
+  replacing.
 - **Secrets**: never stored in `settings.json`. Electron `safeStorage`
   ciphertext lives in `<userData>/secrets/<namespace>.bin`.
 
 ## Consequences
 
-- Every settings change that alters shape needs a migration, a schema version
-  bump, and a test. CI checks that `schemaVersion` matches the number of
-  migrations.
+- Before 1.0, a new setting needs only its default in the schema; a settings
+  file from another version is set aside rather than converted.
+- From 1.0, every settings change that alters shape needs a migration, a
+  schema version bump, and a test.

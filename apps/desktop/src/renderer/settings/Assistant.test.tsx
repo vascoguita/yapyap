@@ -37,7 +37,6 @@ const SNAPSHOT: SettingsSnapshot = {
     'assistant.localServer': '',
   },
   restartPending: false,
-  readOnly: false,
   problems: {},
   unavailable: {},
 };

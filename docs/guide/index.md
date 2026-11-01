@@ -56,8 +56,8 @@ To move your settings to another computer, or keep a copy, use **Export
 Settings…** under **Backup**, then **Import Settings…** on the other side.
 The file holds only your preferences, never your WhatsApp login or chats.
 YapYap checks an imported file the same way it checks its own settings, and
-asks before replacing yours. It refuses settings from a newer version of
-YapYap; update first, then import.
+asks before replacing yours. It refuses a file from another version of
+YapYap's settings.
 
 ## Theme
 

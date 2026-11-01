@@ -300,9 +300,13 @@ export async function launchApp(
   // Every test profile is new, which YapYap would greet with its welcome
   // window (#84); a settings file marks it as used, unless the test wants that.
   if (!firstRun) {
-    await writeFile(join(profile, 'settings.json'), '{"schemaVersion":1}\n', { flag: 'wx' }).catch(
-      () => undefined,
-    );
+    await writeFile(
+      join(profile, 'settings.json'),
+      JSON.stringify({ schemaVersion: SETTINGS_VERSION }),
+      {
+        flag: 'wx',
+      },
+    ).catch(() => undefined);
   }
   const started = Date.now();
   const app = await electron.launch({

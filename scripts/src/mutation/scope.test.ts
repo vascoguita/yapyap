@@ -5,7 +5,7 @@ describe('inMutationScope', () => {
   it.each([
     'apps/desktop/src/adapter/selectors/v1.ts',
     'apps/desktop/src/main/extensions/capabilities.ts',
-    'apps/desktop/src/main/settings/migrations.ts',
+    'apps/desktop/src/main/settings/decode.ts',
     'apps/desktop/src/main/settings/store.ts',
     'apps/desktop/src/main/whatsapp-origin.ts',
     'packages/extension-sign/src/sign.ts',

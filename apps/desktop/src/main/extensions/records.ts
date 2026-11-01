@@ -43,12 +43,6 @@ const ExtensionRecordSchema = Type.Object(
         uniqueItems: true,
       }),
     ),
-    /**
-     * Kept only so records written while extensions could look for AI
-     * models on this computer (#456) still load; nothing reads it since the
-     * assistant became part of YapYap (ADR 0017).
-     */
-    modelSearch: Type.Optional(Type.Boolean()),
     /** Capabilities and `network:<host>` grants the user took back from the whole extension (#94). */
     revoked: Type.Optional(Revocations),
     /** What the user filled in the extension's settings form (#98). */

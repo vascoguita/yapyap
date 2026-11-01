@@ -17,18 +17,10 @@ const PrivateModelRecord = Type.Object(
 /** The private model the user chose, and whether it is all there. */
 export type PrivateModelRecord = Static<typeof PrivateModelRecord>;
 
-/**
- * A one-time note the bar shows: the assistant became part of YapYap, and
- * the private model, which the extension kept in its own storage, must be
- * downloaded again (ADR 0017).
- */
-export type AssistantNotice = 'moved' | 'moved-redownload';
-
 const StateSchema = Type.Object(
   {
     version: Type.Literal(FORMAT_VERSION),
     privateModel: Type.Union([PrivateModelRecord, Type.Null()]),
-    notice: Type.Union([Type.Literal('moved'), Type.Literal('moved-redownload'), Type.Null()]),
   },
   { additionalProperties: false },
 );
@@ -39,11 +31,9 @@ type Saved = Static<typeof StateSchema>;
 export interface AssistantState {
   readonly privateModel: () => PrivateModelRecord | undefined;
   readonly setPrivateModel: (record: PrivateModelRecord | undefined) => void;
-  readonly notice: () => AssistantNotice | undefined;
-  readonly setNotice: (notice: AssistantNotice | undefined) => void;
 }
 
-const EMPTY: Saved = { version: FORMAT_VERSION, privateModel: null, notice: null };
+const EMPTY: Saved = { version: FORMAT_VERSION, privateModel: null };
 
 function readState(file: TextFile): Saved {
   try {
@@ -73,10 +63,6 @@ export function assistantState(file: TextFile, warn: (message: string) => void):
     privateModel: () => state.privateModel ?? undefined,
     setPrivateModel: (record) => {
       change({ privateModel: record ?? null });
-    },
-    notice: () => state.notice ?? undefined,
-    setNotice: (notice) => {
-      change({ notice: notice ?? null });
     },
   };
 }

@@ -70,8 +70,6 @@ export interface SettingsSnapshot {
   readonly values: Readonly<Record<string, SettingValue>>;
   /** A changed setting only takes effect after a restart. */
   readonly restartPending: boolean;
-  /** The settings belong to a newer YapYap, so changes cannot be saved. */
-  readonly readOnly: boolean;
   /** Why the last change of a field did not take effect, keyed by field ID. */
   readonly problems: Readonly<Record<string, string>>;
   /** Fields shown but not changeable here, with the reason, keyed by field ID. */

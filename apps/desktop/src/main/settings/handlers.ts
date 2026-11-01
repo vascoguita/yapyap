@@ -58,7 +58,6 @@ function snapshotOf(
       ({ id, restart: needsRestart }) =>
         needsRestart && readValue(current, id) !== readValue(launched, id),
     ),
-    readOnly: service.readOnly,
   };
 }
 
@@ -75,8 +74,7 @@ async function saveUnlessRefused(
   id: string,
   value: unknown,
 ): Promise<void> {
-  // A newer YapYap owns the file, so the system must not change either.
-  const problem = service.readOnly ? undefined : await effects[id]?.(value);
+  const problem = await effects[id]?.(value);
   if (problem !== undefined) {
     problems.set(id, problem);
     return;
