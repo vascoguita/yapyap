@@ -1,5 +1,6 @@
 import { Value } from 'typebox/value';
 import { migrate } from './migrations.ts';
+import { isRecord } from './record.ts';
 import { SettingsSchema, SETTINGS_VERSION, type Settings } from './schema.ts';
 
 export type Decoded =
@@ -16,17 +17,6 @@ export function defaultSettings(): Settings {
   return Value.Default(SettingsSchema, { schemaVersion: SETTINGS_VERSION }) as Settings;
 }
 
-function parse(text: string): Record<string, unknown> | undefined {
-  try {
-    const value: unknown = JSON.parse(text);
-    return typeof value === 'object' && value !== null && !Array.isArray(value)
-      ? (value as Record<string, unknown>)
-      : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
 /** Fills missing values with defaults and resets only the values that are invalid. */
 function normalize(raw: Record<string, unknown>): { settings: Settings; reset: string[] } {
   const filled = Value.Default(SettingsSchema, structuredClone(raw));
@@ -37,12 +27,11 @@ function normalize(raw: Record<string, unknown>): { settings: Settings; reset: s
 }
 
 /**
- * Turns a settings file into settings. A file from a newer YapYap is read as
- * far as this version understands it, and must not be overwritten.
+ * Turns a parsed settings file into settings. A file from a newer YapYap is
+ * read as far as this version understands it, and must not be overwritten.
  */
-export function decodeSettings(text: string): Decoded {
-  const raw = parse(text);
-  if (raw === undefined) {
+export function decodeParsed(raw: unknown): Decoded {
+  if (!isRecord(raw)) {
     return { kind: 'corrupt' };
   }
   const result = migrate(raw);
@@ -54,4 +43,15 @@ export function decodeSettings(text: string): Decoded {
     return { settings, kind: 'newer', version: result.version };
   }
   return { kind: 'ok', ...normalize(result.settings) };
+}
+
+/** Turns the text of a settings file into settings; text that is no JSON is corrupt. */
+export function decodeSettings(text: string): Decoded {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(text);
+  } catch {
+    return { kind: 'corrupt' };
+  }
+  return decodeParsed(raw);
 }
