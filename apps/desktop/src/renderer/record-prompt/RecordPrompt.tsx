@@ -122,10 +122,10 @@ function Recording({
   const now = useClock();
   return (
     <>
-      <output class="recording">
+      <p class="recording">
         <span class="dot" aria-hidden="true" />
         <span>{text.recording}</span> <time>{elapsed(since, now)}</time>
-      </output>
+      </p>
       <button
         type="button"
         class="primary"

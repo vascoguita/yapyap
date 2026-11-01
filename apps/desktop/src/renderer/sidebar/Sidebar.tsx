@@ -128,7 +128,8 @@ function Footer({ api, state }: { readonly api: ChromeApi; readonly state: Sideb
       {state.doNotDisturb ? (
         <p class="dnd" title={text.doNotDisturb}>
           <MutedIcon />
-          {compact ? null : text.doNotDisturb}
+          {/* The compact sidebar shows the icon alone, so the words stay for screen readers. */}
+          <span class={compact ? 'visually-hidden' : undefined}>{text.doNotDisturb}</span>
         </p>
       ) : null}
       <button

@@ -73,6 +73,7 @@ function Row(props: {
           <button
             key={action}
             type="button"
+            aria-label={text.actionLabel({ action: text[action], file: entry.name })}
             onClick={() => {
               props.onAct(entry.id, action);
             }}

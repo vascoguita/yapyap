@@ -77,11 +77,14 @@ describe('RecordPrompt', () => {
       expect(t.recordPrompt.onState).toHaveBeenCalled();
     });
     t.push({ ...ASKING, phase: 'recording', since: '2026-10-27T14:05:00.000Z' });
-    expect(screen.getByRole('status').textContent).toBe('Recording 1:05');
+    // The time ticks every second, so it is no live region: a screen reader would read each tick.
+    const shown = screen.getByText('Recording').parentElement;
+    expect(shown?.textContent).toBe('Recording 1:05');
+    expect(screen.queryByRole('status')).toBeNull();
     void act(() => {
       vi.advanceTimersByTime(2000);
     });
-    expect(screen.getByRole('status').textContent).toBe('Recording 1:07');
+    expect(shown?.textContent).toBe('Recording 1:07');
     fireEvent.click(screen.getByRole('button', { name: 'Stop Recording' }));
     expect(t.recordPrompt.stop).toHaveBeenCalledOnce();
     t.push({ ...ASKING, phase: 'ended', since: '2026-10-27T14:05:00.000Z' });

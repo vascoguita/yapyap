@@ -69,7 +69,13 @@ describe('Downloads', () => {
       'Cancel',
       'Clear Finished',
     ]);
-    fireEvent.click(button('Show in Folder'));
+    // Each row's buttons say which file they act on.
+    expect(
+      screen
+        .getAllByRole('button', { name: /^Cancel / })
+        .map((each) => each.getAttribute('aria-label')),
+    ).toEqual(['Cancel video.mp4', 'Cancel song.mp3', 'Cancel stream.bin']);
+    fireEvent.click(button('Show in Folder photo.jpg'));
     expect(yapyap.downloads.act).toHaveBeenCalledExactlyOnceWith(1, 'show');
     fireEvent.click(button('Clear Finished'));
     expect(yapyap.downloads.clear).toHaveBeenCalledOnce();

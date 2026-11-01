@@ -41,6 +41,8 @@ function GrantList(props: {
       {props.items.map((item) => (
         <li key={item} class={props.added.includes(item) ? 'added' : undefined}>
           {props.label(item)}
+          {/* Said in words too, not by color and weight alone. */}
+          {props.added.includes(item) ? <span class="new">{text.added}</span> : null}
         </li>
       ))}
     </ul>
