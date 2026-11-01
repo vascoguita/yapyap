@@ -1,7 +1,7 @@
 {
   "id": "org.guita.yapyap.ai-assistant",
   "name": "AI assistant",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Suggests replies right above the message box, writes the message you describe, rewrites your drafts, and catches you up on unread chats, with a private model on this computer or the AI service you choose. Nothing is sent without your click.",
   "author": {
     "name": "YapYap",
