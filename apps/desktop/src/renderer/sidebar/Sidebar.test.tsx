@@ -139,7 +139,8 @@ describe('Sidebar', () => {
     const work = screen.getByRole('button', { name: 'Work' });
     expect(work.textContent).toBe('W');
     expect(work.getAttribute('title')).toBe('Work');
-    expect(screen.getByTitle('Do not disturb').textContent).toBe('');
+    // The words are hidden from the eye only.
+    expect(screen.getByText('Do not disturb').className).toBe('visually-hidden');
     fireEvent.click(screen.getByRole('button', { name: 'Show account names' }));
     expect(t.sidebar.setCompact).toHaveBeenLastCalledWith(false);
   });

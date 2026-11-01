@@ -76,7 +76,7 @@ export function NewChat({ api }: { readonly api: ChromeApi }): JSX.Element {
       <h1>{text.title}</h1>
       <form onSubmit={submit}>
         <NumberField value={number} onChange={change} />
-        {failed ? <output>{text.notReady}</output> : null}
+        <output>{failed ? text.notReady : ''}</output>
         <Actions canOpen={valid} />
       </form>
     </main>

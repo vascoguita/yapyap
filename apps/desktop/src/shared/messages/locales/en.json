@@ -708,6 +708,7 @@
       "reviewed": "YapYap reviewed this version for the marketplace. A review looks for harmful or undeclared behavior; it is not a guarantee.",
       "asks": "It asks to:",
       "updateAsks": "This update asks for more than before:",
+      "added": "New",
       "hosts": "Connect to:",
       "nothing": "It asks for nothing.",
       "risk": "YapYap has not reviewed this extension. Install it only if you trust its author: you install it at your own risk.",
@@ -794,6 +795,7 @@
     "cancel": "Cancel",
     "show": "Show in Folder",
     "clear": "Clear Finished",
+    "actionLabel": "{{action}} {{file}}",
     "kept": "YapYap keeps this list only while it runs."
   },
   "customCode": {

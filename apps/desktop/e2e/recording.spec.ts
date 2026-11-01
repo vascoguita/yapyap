@@ -97,7 +97,7 @@ test('records a call only after the user clicks Record and confirms, and keeps i
     await expect
       .poll(() => extensionTitle(app), { timeout: EXTENSION_START_TIMEOUT })
       .toBe('recording');
-    await expect(prompt.getByRole('status')).toContainText('Recording');
+    await expect(prompt.getByText('Recording', { exact: true })).toBeVisible();
     const folder = join(music, 'YapYap');
     await expect
       .poll(() => recordedBytes(folder), { timeout: EXTENSION_START_TIMEOUT })

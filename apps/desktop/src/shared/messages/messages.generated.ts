@@ -623,6 +623,7 @@ export interface Messages {
       readonly reviewed: string;
       readonly asks: string;
       readonly updateAsks: string;
+      readonly added: string;
       readonly hosts: string;
       readonly nothing: string;
       readonly risk: string;
@@ -718,6 +719,10 @@ export interface Messages {
     readonly cancel: string;
     readonly show: string;
     readonly clear: string;
+    readonly actionLabel: (params: {
+      readonly action: string | number;
+      readonly file: string | number;
+    }) => string;
     readonly kept: string;
   };
   readonly customCode: {

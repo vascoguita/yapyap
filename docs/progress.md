@@ -258,3 +258,7 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
 - Windows E2E waits (#557): the restart test flushes the account's
   storage before quitting, which a quick quit on Windows had lost, and the
   recovery tests wait for WhatsApp's load before the health check's delay.
+- Screen readers (#545): the record prompt's ticking time is no live
+  region, the discard prompt takes the focus and keeps editing on Escape,
+  Downloads buttons name their file, and the consent window and compact
+  sidebar say in words what they showed by color or icon.
