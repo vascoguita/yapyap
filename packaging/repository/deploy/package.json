@@ -4,6 +4,6 @@
   "description": "Wrangler, which uploads packages.guita.org; installed with npm ci so every package is pinned by its hash.",
   "license": "MIT",
   "dependencies": {
-    "wrangler": "4.153.0"
+    "wrangler": "4.155.0"
   }
 }
