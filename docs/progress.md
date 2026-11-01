@@ -265,3 +265,5 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
 - State files (#527): every small state file is a `TextFile` from
   `textFileAt` (`main/atomic-write.ts`), written atomically; the extension
   records use `writeTextAtomicallyAsync`.
+- Start-up tests (#546): `start.test.ts` reads the tray, account menu,
+  sidebar and window listeners through named helpers.
