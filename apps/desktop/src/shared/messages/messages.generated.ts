@@ -7,7 +7,6 @@ export interface Messages {
     readonly loading: string;
     readonly cancel: string;
     readonly close: string;
-    readonly whatsApp: string;
     readonly discard: string;
     readonly keepEditing: string;
   };
@@ -474,7 +473,7 @@ export interface Messages {
         readonly notReady: string;
         readonly none: string;
       };
-      readonly behaviour: string;
+      readonly behavior: string;
       readonly privacy: {
         readonly title: string;
         readonly what: string;
@@ -590,7 +589,6 @@ export interface Messages {
     readonly title: string;
     readonly hint: string;
     readonly empty: string;
-    readonly install: string;
     readonly fileType: string;
     readonly version: (params: { readonly version: string | number }) => string;
     readonly trust: {
@@ -674,8 +672,6 @@ export interface Messages {
       readonly outdated: string;
       readonly retry: string;
       readonly empty: string;
-      readonly official: string;
-      readonly reviewed: string;
       readonly by: (params: { readonly name: string | number }) => string;
       readonly version: (params: { readonly version: string | number }) => string;
       readonly install: string;

@@ -73,7 +73,7 @@ describe('SpellingLanguagesPage', () => {
     await waitFor(() => {
       expect(yapyap.spelling.choose).toHaveBeenLastCalledWith(['de-DE']);
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Use system language' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Use System Language' }));
     await waitFor(() => {
       expect(yapyap.spelling.choose).toHaveBeenLastCalledWith([]);
     });

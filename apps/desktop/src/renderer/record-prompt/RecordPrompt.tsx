@@ -142,7 +142,7 @@ function Recording({
 /**
  * YapYap's own window by a call (ADR 0015): it says which extension wants to
  * record, records only on **Record**, and while recording shows a red mark,
- * the time, and **Stop recording**.
+ * the time, and **Stop Recording**.
  */
 export function RecordPrompt({ api }: { readonly api: ChromeApi }): JSX.Element | null {
   const state = usePromptState(api);

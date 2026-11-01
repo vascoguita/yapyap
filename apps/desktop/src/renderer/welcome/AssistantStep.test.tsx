@@ -41,7 +41,7 @@ describe('AssistantStep', () => {
     const t = setup();
     fireEvent.click(
       await screen.findByRole('button', {
-        name: 'Use the model server on this computer (localhost:11434)',
+        name: 'Use the Model Server on This Computer (localhost:11434)',
       }),
     );
     expect(t.onChange.mock.calls).toEqual([
@@ -54,7 +54,7 @@ describe('AssistantStep', () => {
   it('downloads the private model, with its size', async () => {
     const t = setup(() => Promise.resolve([]));
     fireEvent.click(
-      await screen.findByRole('button', { name: 'Download a private model (1.1 GB)' }),
+      await screen.findByRole('button', { name: 'Download a Private Model (1.1 GB)' }),
     );
     expect(t.assistant.privateModel).toHaveBeenCalledWith('download');
     expect(t.onChange).toHaveBeenCalledWith('assistant.provider', 'built-in');
@@ -63,16 +63,16 @@ describe('AssistantStep', () => {
 
   it('asks for a key for Claude or OpenAI, and leaves everything as it is for later', async () => {
     const t = setup(() => Promise.reject(new Error('busy')));
-    fireEvent.click(await screen.findByRole('button', { name: 'Use Claude, with my API key' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Use Claude with My API Key' }));
     expect(t.onChange).toHaveBeenCalledWith('assistant.provider', 'anthropic');
     fireEvent.input(screen.getByLabelText('API key for Claude (Anthropic)'), {
       target: { value: 'sk-ant' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Save key' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save Key' }));
     await waitFor(() => {
       expect(t.assistant.saveKey).toHaveBeenCalledWith('anthropic', 'sk-ant');
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Use OpenAI, with my API key' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Use OpenAI with My API Key' }));
     expect(screen.getByLabelText('API key for OpenAI')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Later' }));
     expect(screen.queryByLabelText('API key for OpenAI')).toBeNull();

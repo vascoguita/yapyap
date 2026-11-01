@@ -77,7 +77,7 @@ describe('Marketplace', () => {
     );
     expect(screen.getByRole('status').textContent).toBe('Loading the marketplace…');
     await screen.findByRole('heading', { name: 'Hello' });
-    expect(screen.getByText('Third-party, reviewed by YapYap')).toBeTruthy();
+    expect(screen.getByText('Reviewed by YapYap')).toBeTruthy();
     expect(screen.getByText('By YapYap')).toBeTruthy();
     expect(screen.getAllByText('By Example')).toHaveLength(2);
     expect(screen.getAllByText('Version 1.1.0')).toHaveLength(2);

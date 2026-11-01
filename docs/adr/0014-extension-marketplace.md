@@ -62,8 +62,8 @@ must not tell anyone more about the user than an ordinary download does.
    to the extension ID as with any third-party install.
 6. **The consent screen still decides.** A marketplace install shows the
    same consent window as a file: the author, the fingerprint, every
-   capability and host. A reviewed extension is marked **Third-party, reviewed
-   by YapYap**, and its window says that a review looks for harmful or
+   capability and host. A reviewed extension is marked **Reviewed by
+   YapYap**, and its window says that a review looks for harmful or
    undeclared behavior and is not a guarantee. It does not need the
    acknowledgement that unreviewed third-party extensions need (ADR 0004),
    because the maintainer has looked at it. Anything installed from a file

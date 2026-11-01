@@ -47,10 +47,10 @@ test('changes a setting from the keyboard, saves it and offers a restart', async
   await toggle.focus();
   await settings.keyboard.press('Space');
   await expect(toggle).not.toBeChecked();
-  await expect(settings.getByRole('button', { name: 'Restart now' })).toBeVisible();
+  await expect(settings.getByRole('button', { name: 'Restart Now' })).toBeVisible();
   await expect.poll(() => savedHardwareAcceleration(profile)).toBe(false);
   await settings.keyboard.press('Space');
-  await expect(settings.getByRole('button', { name: 'Restart now' })).toBeHidden();
+  await expect(settings.getByRole('button', { name: 'Restart Now' })).toBeHidden();
   await expect.poll(() => savedHardwareAcceleration(profile)).toBe(true);
 });
 
@@ -72,7 +72,7 @@ test('restarts the app from the restart notice', async ({ app }) => {
   });
   const settings = await openSettings(app);
   await settings.getByRole('checkbox', { name: 'Use hardware acceleration' }).click();
-  await settings.getByRole('button', { name: 'Restart now' }).click();
+  await settings.getByRole('button', { name: 'Restart Now' }).click();
   await expect
     .poll(() =>
       app.evaluate(() => (globalThis as unknown as { restartCalls: string[] }).restartCalls),
@@ -104,7 +104,7 @@ test('exports the settings to a file and imports them back', async ({ app, profi
     dialog.showMessageBox = () => Promise.resolve({ response: 0, checkboxChecked: false });
   }, file);
   const settings = await openSettings(app);
-  await settings.getByRole('button', { name: 'Export settings…' }).click();
+  await settings.getByRole('button', { name: 'Export Settings…' }).click();
   await expect(settings.getByText('Settings exported.')).toBeVisible();
   const exported = JSON.parse(await readFile(file, 'utf8')) as {
     format: string;
@@ -114,7 +114,7 @@ test('exports the settings to a file and imports them back', async ({ app, profi
   expect(exported.settings.appearance.theme).toBe('system');
   exported.settings.appearance.theme = 'dark';
   await writeFile(file, JSON.stringify(exported));
-  await settings.getByRole('button', { name: 'Import settings…' }).click();
+  await settings.getByRole('button', { name: 'Import Settings…' }).click();
   await expect(settings.getByText('Settings imported.')).toBeVisible();
   await expect(settings.getByRole('radio', { name: 'Dark', exact: true })).toBeChecked();
   const saved = JSON.parse(await readFile(join(profile, 'settings.json'), 'utf8')) as {

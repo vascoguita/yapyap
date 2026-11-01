@@ -244,3 +244,8 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
 - Test hygiene (#521): `tempDir()` in the root `test/temp-dir.ts` gives a
   test a temp folder that is removed when the test ends. The marketplace
   takes its clock as `now`, so its tests use fixed dates.
+- UI wording (#528): buttons in YapYap's windows use title case, as menus
+  and native dialogs do. The assistant bar stays sentence case, like the
+  WhatsApp page it sits in. One trust label per review, from
+  `extensions.trust`, serves the Installed list and the Marketplace. The
+  record prompt declines with Cancel, and the catalog is in US English.

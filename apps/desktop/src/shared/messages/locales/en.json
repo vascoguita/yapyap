@@ -3,7 +3,6 @@
     "loading": "Loading…",
     "cancel": "Cancel",
     "close": "Close",
-    "whatsApp": "WhatsApp",
     "discard": "Discard",
     "keepEditing": "Keep Editing"
   },
@@ -17,7 +16,7 @@
     },
     "versionValue": "{{version}} ({{channel}})",
     "unavailable": "Details are unavailable.",
-    "copyDetails": "Copy technical details",
+    "copyDetails": "Copy Technical Details",
     "copied": "Copied to the clipboard.",
     "copyFailed": "Could not copy the details.",
     "linksLabel": "Links",
@@ -67,12 +66,12 @@
         "advice": "Try again. If it keeps happening, clearing the cache usually helps."
       }
     },
-    "failed": "That did not work. Please try again.",
-    "retry": "Try again",
+    "failed": "That did not work. Try again.",
+    "retry": "Try Again",
     "retrying": "Retrying…",
-    "clearCache": "Clear cache and try again",
+    "clearCache": "Clear Cache and Try Again",
     "cacheCleared": "Cache cleared. Retrying…",
-    "copyDiagnostics": "Copy diagnostics",
+    "copyDiagnostics": "Copy Diagnostics",
     "diagnosticsCopied": "Diagnostics copied to the clipboard.",
     "keepsLogin": "Clearing the cache keeps you logged in."
   },
@@ -81,7 +80,7 @@
     "unavailable": "Settings are unavailable.",
     "readOnly": "These settings were saved by a newer version of YapYap, so they cannot be changed here.",
     "restartNeeded": "Restart YapYap to apply your changes.",
-    "restartNow": "Restart now",
+    "restartNow": "Restart Now",
     "restartNote": "Takes effect after a restart.",
     "waylandPlacement": "On Wayland, your desktop decides where windows go.",
     "saveFailed": "Could not save that setting.",
@@ -107,8 +106,8 @@
     "backup": {
       "title": "Backup",
       "hint": "Save your settings to a file, or bring them over from another computer. The file never includes your WhatsApp login or chats.",
-      "export": "Export settings…",
-      "import": "Import settings…",
+      "export": "Export Settings…",
+      "import": "Import Settings…",
       "failed": "Something went wrong. Try again.",
       "fileType": "YapYap settings",
       "exported": "Settings exported.",
@@ -274,7 +273,7 @@
         },
         "diskCacheMb": {
           "label": "Disk cache size",
-          "description": "How much disk space WhatsApp’s files may take in the cache. Smaller saves space; WhatsApp may load a little slower. Takes effect after a restart.",
+          "description": "How much disk space WhatsApp’s files may take in the cache. Smaller saves space; WhatsApp may load a little slower.",
           "options": {
             "128": "128 MB",
             "256": "256 MB",
@@ -285,7 +284,7 @@
         },
         "jsHeapMb": {
           "label": "Memory limit per page",
-          "description": "The most memory WhatsApp’s scripts may use in one account. Raise it if a large account crashes; lower it to save memory. Takes effect after a restart.",
+          "description": "The most memory WhatsApp’s scripts may use in one account. Raise it if a large account crashes; lower it to save memory.",
           "options": {
             "2048": "2 GB",
             "4096": "4 GB",
@@ -407,7 +406,7 @@
     "confirmDetail": "For 10 seconds, YapYap records where its time goes: pages, scripts, layout and drawing. Do whatever is slow during that time. The trace holds the addresses of the pages and files YapYap loads, but no messages, memory dumps or screenshots. It is saved where you choose, and nothing is sent.",
     "choose": "Choose Where to Save…",
     "saved": "The performance trace is saved.",
-    "savedDetail": "Attach it to a bug report if you choose to. Open it in the Perfetto trace viewer.",
+    "savedDetail": "Attach it to a bug report if you choose to. To see where the time went, open it at ui.perfetto.dev.",
     "failed": "The performance trace could not be recorded.",
     "failedDetail": "Try again in a moment."
   },
@@ -513,7 +512,7 @@
         "pause": "Pause",
         "resume": "Resume",
         "remove": "Remove",
-        "smaller": "Use the smaller model",
+        "smaller": "Use the Smaller Model",
         "none": "Not downloaded yet.",
         "downloading": "Downloading: {{percent}}% ({{done}} of {{size}})",
         "paused": "Paused at {{percent}}%.",
@@ -537,8 +536,8 @@
       "key": {
         "label": "API key for {{provider}}",
         "placeholder": "Paste your key",
-        "save": "Save key",
-        "forget": "Forget key",
+        "save": "Save Key",
+        "forget": "Forget Key",
         "test": "Test",
         "saved": "A key is saved, encrypted by your system.",
         "none": "No key saved.",
@@ -558,7 +557,7 @@
         "noModels": "no models yet",
         "address": "Or type its address",
         "addressPlaceholder": "http://localhost:11434/v1",
-        "saveAddress": "Use this address",
+        "saveAddress": "Use This Address",
         "badAddress": "Type an address on this computer, such as http://localhost:11434/v1.",
         "current": "Using {{server}}."
       },
@@ -568,7 +567,7 @@
         "notReady": "Set up where the assistant thinks first.",
         "none": "The provider listed no model. Check its key, or that the server runs."
       },
-      "behaviour": "Behaviour",
+      "behavior": "Behavior",
       "privacy": {
         "title": "Privacy",
         "what": "When you ask, the assistant reads the open chat’s latest messages, or your draft, and sends them with its instructions to the place you chose above. Catching up sends each unread chat’s name, count and latest message, after you see them. Nothing is sent without your click, and YapYap logs none of it.",
@@ -659,12 +658,12 @@
     "welcome": {
       "title": "Your AI assistant",
       "intro": "The assistant suggests replies, summarizes chats and rewrites what you type, right above the message box. It never sends anything without your click. Where should it think?",
-      "local": "Use the model server on this computer ({{server}})",
+      "local": "Use the Model Server on This Computer ({{server}})",
       "localHint": "Private and quick: your messages stay on this computer.",
-      "private": "Download a private model ({{size}})",
+      "private": "Download a Private Model ({{size}})",
       "privateHint": "Private: your messages never leave this computer. Slower than the services.",
-      "anthropic": "Use Claude, with my API key",
-      "openai": "Use OpenAI, with my API key",
+      "anthropic": "Use Claude with My API Key",
+      "openai": "Use OpenAI with My API Key",
       "keyHint": "Quick and capable. What you ask about goes to the service.",
       "later": "Later",
       "laterHint": "You can set it up any time in Settings, under Assistant.",
@@ -681,14 +680,13 @@
     "title": "Extensions",
     "hint": "Each extension runs in its own sandbox and can do only what you allowed when you installed it.",
     "empty": "No extensions are installed.",
-    "install": "Install Extension…",
     "fileType": "YapYap extensions",
     "version": "Version {{version}}",
     "trust": {
       "first-party": "By YapYap",
       "reviewed": "Reviewed by YapYap",
       "third-party": "Third-party",
-      "developer": "Unsigned"
+      "developer": "Not signed"
     },
     "pulled": "The marketplace pulled this version, so it does not run: {{reason}} Remove it, or install another version from the Marketplace tab.",
     "developerMode": "Developer Mode is on, so unsigned extensions can be installed. Turn it off in Settings when you no longer need it.",
@@ -759,8 +757,6 @@
       "outdated": "The marketplace list is out of date, so nothing is shown. Try again later.",
       "retry": "Try Again",
       "empty": "No extensions match.",
-      "official": "By YapYap",
-      "reviewed": "Third-party, reviewed by YapYap",
       "by": "By {{name}}",
       "version": "Version {{version}}",
       "install": "Install",
@@ -788,7 +784,7 @@
     "progress": "{{received}} of {{total}}",
     "paused": "Paused at {{received}}",
     "completed": "Done",
-    "cancelled": "Cancelled",
+    "cancelled": "Canceled",
     "interrupted": "Failed",
     "pause": "Pause",
     "resume": "Resume",
@@ -867,7 +863,7 @@
     "system": "Checking your system’s language: {{names}}.",
     "noSystem": "No dictionary matches your system’s language. Choose one below.",
     "chosen": "{{count}} of {{max}} chosen.",
-    "useSystem": "Use system language",
+    "useSystem": "Use System Language",
     "noMatch": "No language matches your search.",
     "macos": "macOS checks spelling in the languages chosen in System Settings → Keyboard → Text Input."
   },
@@ -1033,14 +1029,14 @@
     "asks": "{{extension}} wants to record this call.",
     "consentHint": "Ask everyone on the call before you record it.",
     "record": "Record",
-    "notNow": "Not now",
+    "notNow": "Cancel",
     "recording": "Recording",
-    "stop": "Stop recording",
+    "stop": "Stop Recording",
     "saved": "The recording is saved.",
     "consent": {
       "message": "Before you record calls",
       "detail": "In many places it is against the law to record a call without the consent of everyone on it. Ask the people on the call before you record, and keep the recording to yourself. YapYap saves recordings only on this computer.",
-      "checkbox": "I know the law where I and the people I call are may require everyone's consent, and I will ask for it"
+      "checkbox": "I know the law where I or the people I call live may require everyone’s consent, and I will ask for it"
     }
   }
 }

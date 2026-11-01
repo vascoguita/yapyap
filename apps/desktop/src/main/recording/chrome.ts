@@ -67,7 +67,7 @@ function show(prompt: Prompt, state: RecordPromptState): void {
 
 /**
  * Asks in a window by the call, with the consent warning until the user
- * confirmed it; closing the window counts as **Not now**.
+ * confirmed it; closing the window counts as **Cancel**.
  */
 async function ask(deps: RecordingDependencies, slots: Slots, extension: string, call: CallTarget) {
   const consent = !(await deps.consent.confirmed());

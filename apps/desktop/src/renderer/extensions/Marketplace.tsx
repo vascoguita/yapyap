@@ -1,6 +1,11 @@
 import type { JSX } from 'preact';
 import { useCallback, useEffect, useState } from 'preact/hooks';
-import type { ChromeApi, MarketplaceEntry, MarketplaceView } from '../../shared/chrome-api.ts';
+import type {
+  ChromeApi,
+  ExtensionTrust,
+  MarketplaceEntry,
+  MarketplaceView,
+} from '../../shared/chrome-api.ts';
 import { en } from '../../shared/messages/en.ts';
 
 const text = en.extensions.marketplace;
@@ -45,6 +50,12 @@ function Action(props: {
   );
 }
 
+/** A listing is marked as the installed extension will be, so one review reads the same everywhere. */
+const TRUST = { official: 'first-party', reviewed: 'reviewed' } as const satisfies Record<
+  MarketplaceEntry['review'],
+  ExtensionTrust
+>;
+
 function Listing(props: {
   readonly extension: MarketplaceEntry;
   readonly busy: boolean;
@@ -55,7 +66,9 @@ function Listing(props: {
   return (
     <li>
       <h2 class="name">{extension.name}</h2>
-      <span class={`trust trust-${extension.review}`}>{text[extension.review]}</span>
+      <span class={`trust trust-${TRUST[extension.review]}`}>
+        {en.extensions.trust[TRUST[extension.review]]}
+      </span>
       <p class="hint">
         <span>{text.by({ name: extension.author.name })}</span>{' '}
         <span>{text.version({ version: extension.version })}</span>

@@ -56,7 +56,7 @@ describe('Downloads', () => {
     expect(screen.getByText('Paused at 1 KB')).toBeTruthy();
     expect(screen.getByText('Failed')).toBeTruthy();
     expect(screen.getByText('Done')).toBeTruthy();
-    expect(screen.getByText('Cancelled')).toBeTruthy();
+    expect(screen.getByText('Canceled')).toBeTruthy();
     expect(screen.getByText('300 B')).toBeTruthy();
     expect(screen.getAllByRole('button').map((each) => each.textContent)).toEqual([
       'Pause',

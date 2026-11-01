@@ -15,7 +15,7 @@ async function technicalDetails(app: ElectronApplication): Promise<string> {
   });
   const about: Page = await opened;
   await about.waitForURL('app://chrome/about.html');
-  await about.getByRole('button', { name: 'Copy technical details' }).click();
+  await about.getByRole('button', { name: 'Copy Technical Details' }).click();
   await expect(about.getByRole('status')).toHaveText('Copied to the clipboard.');
   return app.evaluate(({ clipboard }) => clipboard.readText());
 }

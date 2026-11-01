@@ -39,7 +39,7 @@ Under **Where the assistant thinks**, choose one:
 1. Choose **Get a key from Anthropic** or **Get a key from OpenAI**, and
    create an API key in your account there.
 2. Paste it into **API key for Claude (Anthropic)** or **API key for
-   OpenAI**, and choose **Save key**.
+   OpenAI**, and choose **Save Key**.
 3. Choose **Test** to check that the provider accepts it.
 
 YapYap keeps the key encrypted with your system's secret store (Keychain,

@@ -33,7 +33,7 @@ test('sets Claude up in Settings › Assistant, with the key encrypted, tested a
   await expect(
     settings.getByRole('option', { name: 'Auto (recommended): Claude Haiku 5.5' }),
   ).toBeAttached();
-  await settings.getByRole('button', { name: 'Forget key' }).click();
+  await settings.getByRole('button', { name: 'Forget Key' }).click();
   await expect(settings.getByText('No key saved.').first()).toBeVisible();
 });
 
@@ -224,7 +224,7 @@ test('offers the model server it finds in the Welcome, and uses it on one click'
     ).toBeVisible();
     await welcome
       .getByRole('button', {
-        name: `Use the model server on this computer (localhost:${String(server.port)})`,
+        name: `Use the Model Server on This Computer (localhost:${String(server.port)})`,
       })
       .click();
     await expect(welcome.getByText(/^Done\./)).toBeVisible();

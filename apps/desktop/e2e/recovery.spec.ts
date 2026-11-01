@@ -45,7 +45,7 @@ test.describe('when WhatsApp loads a blank page', () => {
     await expect(
       screen.getByRole('heading', { name: 'WhatsApp did not finish loading' }),
     ).toBeVisible();
-    await screen.getByRole('button', { name: 'Copy diagnostics' }).click();
+    await screen.getByRole('button', { name: 'Copy Diagnostics' }).click();
     await expect(screen.getByRole('status')).toHaveText('Diagnostics copied to the clipboard.');
     const copied = await app.evaluate(({ clipboard }) => clipboard.readText());
     expect(copied).toMatch(/\nProblem: WhatsApp loaded a blank page\.$/);
@@ -63,7 +63,7 @@ test('shows the recovery screen when WhatsApp cannot be reached, and retries', a
     await expect(
       screen.getByRole('heading', { name: 'WhatsApp could not be reached' }),
     ).toBeVisible();
-    await screen.getByRole('button', { name: 'Try again', exact: true }).click();
+    await screen.getByRole('button', { name: 'Try Again', exact: true }).click();
     await expect.poll(() => screen.isClosed()).toBe(true);
     await recoveryScreen(app);
   } finally {

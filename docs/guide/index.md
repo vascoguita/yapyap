@@ -48,12 +48,12 @@ setting is a native control, so the window works fully from the keyboard,
 and <kbd>Esc</kbd> closes it.
 
 A setting that only takes effect at the next launch, such as hardware
-acceleration, shows **Restart now** once you change it. Settings are saved
+acceleration, shows **Restart Now** once you change it. Settings are saved
 the moment you change them; if the settings file is ever damaged, YapYap
 starts with the last good copy and tells you.
 
 To move your settings to another computer, or keep a copy, use **Export
-settings…** under **Backup**, then **Import settings…** on the other side.
+Settings…** under **Backup**, then **Import Settings…** on the other side.
 The file holds only your preferences, never your WhatsApp login or chats.
 YapYap checks an imported file the same way it checks its own settings, and
 asks before replacing yours. It refuses settings from a newer version of
@@ -82,8 +82,8 @@ turns off hardware acceleration for that launch only:
 - **macOS:** run `open -a YapYap --args --safe-mode`.
 
 When graphics crash in three separate runs within a day, YapYap starts the next launch
-without hardware acceleration on its own and tells you. **Copy technical
-details** in About includes the graphics mode, so bug reports show it.
+without hardware acceleration on its own and tells you. **Copy Technical
+Details** in About includes the graphics mode, so bug reports show it.
 
 On Linux, YapYap runs natively on Wayland when your desktop uses it, and on
 X11 otherwise. If the window is blank, blurry or in the wrong place, try the
@@ -164,7 +164,7 @@ only what you allow when you install it.
 - An update that asks for more than before shows what is new and asks
   again; one that asks for nothing new installs without asking.
 - **Extensions…** lists what is installed, marking extensions by other authors as
-  **Third-party** and extensions nobody signed as **Unsigned**.
+  **Third-party** and extensions nobody signed as **Not signed**.
   Under **Recent activity**, it shows what each extension asked YapYap to do,
   and whether YapYap did it or refused, but never what the extension sent or
   received.

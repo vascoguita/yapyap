@@ -65,7 +65,7 @@ describe('Settings', () => {
     expect(document.getElementById(`${HARDWARE}-hint`)?.textContent).toMatch(
       /flickers or stays blank\. Takes effect after a restart\.$/,
     );
-    expect(screen.queryByRole('button', { name: 'Restart now' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Restart Now' })).toBeNull();
   });
 
   it('puts the assistant first, in a section of its own', async () => {
@@ -91,7 +91,7 @@ describe('Settings', () => {
     render(<Settings api={t} />);
     fireEvent.click(await toggle());
     expect(t.settings.set).toHaveBeenCalledExactlyOnceWith(HARDWARE, false);
-    const restart = await screen.findByRole('button', { name: 'Restart now' });
+    const restart = await screen.findByRole('button', { name: 'Restart Now' });
     expect(screen.getByText('Restart YapYap to apply your changes.')).toBeTruthy();
     expect((await toggle()).checked).toBe(false);
     fireEvent.click(restart);
@@ -107,7 +107,7 @@ describe('Settings', () => {
     fireEvent.click(await toggle());
     expect(await screen.findByText('Could not save that setting.')).toBeTruthy();
     fireEvent.click(await toggle());
-    await screen.findByRole('button', { name: 'Restart now' });
+    await screen.findByRole('button', { name: 'Restart Now' });
     expect(screen.getByRole('alert').textContent).toBe('');
   });
 
@@ -142,7 +142,7 @@ describe('Settings', () => {
     await vi.waitFor(() => {
       expect(screen.getByRole<HTMLInputElement>('radio', { name: 'Dark' }).checked).toBe(true);
     });
-    expect(screen.queryByRole('button', { name: 'Restart now' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Restart Now' })).toBeNull();
   });
 
   it('locks the choices too when a newer YapYap owns the settings', async () => {
@@ -211,7 +211,7 @@ describe('Settings', () => {
   it('exports the settings and says how it went', async () => {
     const t = api();
     render(<Settings api={t} />);
-    fireEvent.click(await screen.findByRole('button', { name: 'Export settings…' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Export Settings…' }));
     expect(await screen.findByText('Settings exported.')).toBeTruthy();
     expect(t.settings.export).toHaveBeenCalledOnce();
     expect(t.settings.get).toHaveBeenCalledOnce();
@@ -228,7 +228,7 @@ describe('Settings', () => {
     const t = api({ get });
     render(<Settings api={t} />);
     expect((await toggle()).checked).toBe(true);
-    fireEvent.click(screen.getByRole('button', { name: 'Import settings…' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Import Settings…' }));
     expect(await screen.findByText('Settings imported.')).toBeTruthy();
     await vi.waitFor(async () => {
       expect((await toggle()).checked).toBe(false);
@@ -248,7 +248,7 @@ describe('Settings', () => {
         .mockRejectedValueOnce(new Error('ipc')),
     });
     render(<Settings api={t} />);
-    const button = await screen.findByRole('button', { name: 'Import settings…' });
+    const button = await screen.findByRole('button', { name: 'Import Settings…' });
     fireEvent.click(button);
     await vi.waitFor(() => {
       expect(t.settings.import).toHaveBeenCalledOnce();
@@ -263,11 +263,11 @@ describe('Settings', () => {
   it('allows export but not import when a newer YapYap owns the settings', async () => {
     render(<Settings api={api({ get: () => Promise.resolve(snapshot({ readOnly: true })) })} />);
     const exporting = await screen.findByRole<HTMLButtonElement>('button', {
-      name: 'Export settings…',
+      name: 'Export Settings…',
     });
     expect(exporting.disabled).toBe(false);
     expect(
-      screen.getByRole<HTMLButtonElement>('button', { name: 'Import settings…' }).disabled,
+      screen.getByRole<HTMLButtonElement>('button', { name: 'Import Settings…' }).disabled,
     ).toBe(true);
   });
 });
