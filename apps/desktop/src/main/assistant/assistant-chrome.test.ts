@@ -64,8 +64,6 @@ function harness(open = true) {
       state: {
         privateModel: () => undefined,
         setPrivateModel: vi.fn(),
-        notice: () => undefined,
-        setNotice: vi.fn(),
       },
       chats: {
         isAllowed: () => false,
@@ -73,7 +71,6 @@ function harness(open = true) {
         forget: vi.fn(),
         forgetAccount: vi.fn(),
         list: () => Promise.resolve([]),
-        adopt: vi.fn(),
       },
       keys: {
         get: () => Promise.resolve(undefined),
@@ -91,7 +88,6 @@ function harness(open = true) {
     settings: {
       current: () => settings,
       notice: undefined,
-      readOnly: false,
       firstRun: false,
       update: vi.fn(),
       onChange: (listener) => {
@@ -179,7 +175,6 @@ describe('createAssistantChrome', () => {
     expect(t.deps.notify).toHaveBeenCalledWith(
       'Open any chat to use the assistant: it sits right above the message box.',
     );
-    expect(t.deps.sources.state.setNotice).not.toHaveBeenCalled();
   });
 
   it('runs a menu action in the bar only where it shows, and says what to do otherwise', async () => {

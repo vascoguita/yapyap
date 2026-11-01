@@ -345,8 +345,7 @@ shows the latest 50 calls. `accountId` joins once grants are per account
   isolation and limits, and `host.localModels.find()` with its prompt.
   The test-model path and the `extension` scheme's fetch support went
   with them. Every extension is again under the one policy and the same
-  limits described above. Records that kept the old `modelSearch` answer
-  still load, and nothing reads it.
+  limits described above.
 - 2026-11-01 (#495): extensions run only while needed, when they say they
   can. The manifest gains `activation`, which the schema checks:
   - `startup`, the default, runs the extension from launch to quit, as

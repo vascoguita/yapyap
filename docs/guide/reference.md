@@ -57,10 +57,10 @@ ignores them until those features arrive, and the settings window shows a
 setting only once YapYap acts on it.
 
 YapYap checks `settings.json` every time it starts, and never fails to start
-because of it. An invalid value goes back to its default. A damaged file is
-kept as `settings.corrupt-<time>.json`, and YapYap restores the previous copy
-(`settings.json.bak`) or, if that is damaged too, the defaults. Settings
-written by a newer version of YapYap are used but never changed.
+because of it. An invalid value goes back to its default. A damaged file, or
+one from another version of YapYap's settings, is kept as
+`settings.corrupt-<time>.json`, and YapYap restores the previous copy
+(`settings.json.bak`) or, if that cannot be used either, the defaults.
 
 ### Memory limit
 

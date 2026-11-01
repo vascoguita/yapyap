@@ -86,15 +86,23 @@ export interface GuardedRequests {
 }
 
 /**
- * Cancels every request on the assistant's own session that it may not
+ * The assistant's own session, which cancels every request it may not
  * send, redirects included, so a provider or model host cannot send the
- * assistant anywhere else.
+ * assistant anywhere else. It is opened and guarded on first use, which
+ * comes only once the app is ready and sessions exist.
  */
-export function guardAssistantSession(
-  session: GuardedRequests,
+export function guardedAssistantSession<Session extends GuardedRequests>(
+  open: () => Session,
   allowed: (address: string) => boolean,
-): void {
-  session.webRequest.onBeforeRequest((details, callback) => {
-    callback({ cancel: !allowed(details.url) });
-  });
+): () => Session {
+  let opened: Session | undefined;
+  return () => {
+    if (opened === undefined) {
+      opened = open();
+      opened.webRequest.onBeforeRequest((details, callback) => {
+        callback({ cancel: !allowed(details.url) });
+      });
+    }
+    return opened;
+  };
 }

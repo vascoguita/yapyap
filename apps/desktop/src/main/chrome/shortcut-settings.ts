@@ -25,7 +25,7 @@ const text = en.shortcuts;
 /** Longer than any real accelerator. */
 const MAX_ACCELERATOR = 64;
 
-type Service = Pick<SettingsService, 'current' | 'update' | 'readOnly'>;
+type Service = Pick<SettingsService, 'current' | 'update'>;
 
 /** The running extensions' commands, in the order they started. */
 type Commands = () => readonly ExtensionCommand[];
@@ -146,9 +146,9 @@ function listOf(
  * The Keyboard Shortcuts window's operations (#75): list the shortcuts, and
  * change or reset one, in-app, global, or of an extension's command (#443).
  * Keys that do not fit or that another action uses are refused, with the
- * reason; nothing is saved for a newer YapYap's file. A global shortcut also
- * says whether the system granted its keys. An extension command's keys can
- * also be removed (empty keys), and reset goes back to its suggestion.
+ * reason. A global shortcut also says whether the system granted its keys.
+ * An extension command's keys can also be removed (empty keys), and reset
+ * goes back to its suggestion.
  */
 export function shortcutHandlers(
   service: Service,
@@ -177,7 +177,7 @@ export function shortcutHandlers(
       handle: (_call, id, accelerator): ShortcutChange => {
         const keys = accelerator as string | null;
         const problem = problemFor(String(id), keys);
-        if (problem === '' && !service.readOnly) {
+        if (problem === '') {
           save(service, String(id), keys);
         }
         return { ...list(), problem };

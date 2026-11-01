@@ -6,12 +6,11 @@ import type { SettingsService } from './service.ts';
 import { settingsTransferHandlers, type SettingsFiles } from './transfer-handlers.ts';
 import { exportSettings, SETTINGS_EXPORT_FORMAT } from './transfer.ts';
 
-function setup(readOnly = false) {
+function setup() {
   let settings = defaultSettings();
   const service: SettingsService = {
     current: () => settings,
     notice: undefined,
-    readOnly,
     firstRun: false,
     update: vi.fn((change: (current: Settings) => Settings) => {
       settings = change(settings);
@@ -52,8 +51,8 @@ const darkFile = (): string => {
 };
 
 describe('settings export', () => {
-  it('takes no arguments, even when the settings are read-only', () => {
-    expect(setup(true).exporting.accepts([])).toBe(true);
+  it('takes no arguments', () => {
+    expect(setup().exporting.accepts([])).toBe(true);
     expect(setup().exporting.accepts(['/etc/passwd'])).toBe(false);
   });
 
@@ -88,10 +87,9 @@ describe('settings export', () => {
 });
 
 describe('settings import', () => {
-  it('takes no arguments, and is refused when a newer YapYap owns the settings', () => {
+  it('takes no arguments', () => {
     expect(setup().importing.accepts([])).toBe(true);
     expect(setup().importing.accepts(['/home/me/in.json'])).toBe(false);
-    expect(setup(true).importing.accepts([])).toBe(false);
   });
 
   it('applies the file after the user confirms', async () => {

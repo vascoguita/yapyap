@@ -37,12 +37,11 @@ const DND = 'general.doNotDisturb';
 const PANEL = 'general.quickPanel';
 const PANEL_PLACE = 'general.quickPanelPlace';
 
-function setup(readOnly = false, effects: Readonly<Record<string, SettingEffect>> = {}) {
+function setup(effects: Readonly<Record<string, SettingEffect>> = {}) {
   let settings: Settings = defaultSettings();
   const service = {
     current: () => settings,
     notice: undefined,
-    readOnly,
     firstRun: false,
     update: vi.fn((change: (current: Settings) => Settings) => {
       settings = change(settings);
@@ -123,7 +122,6 @@ describe('settingsHandlers', () => {
     const service = {
       current: defaultSettings,
       notice: undefined,
-      readOnly: false,
       firstRun: false,
       update: vi.fn(),
       onChange: vi.fn(),
@@ -143,7 +141,7 @@ describe('settingsHandlers', () => {
   });
 
   it('shows the listed settings as they are', () => {
-    const t = setup(true);
+    const t = setup();
     const get = t.handler('settings:get');
     expect(get.accepts([])).toBe(true);
     expect(get.accepts([1])).toBe(false);
@@ -191,7 +189,6 @@ describe('settingsHandlers', () => {
         [CLOSE_TO_TRAY]: false,
       },
       restartPending: false,
-      readOnly: true,
       problems: {},
       unavailable: {},
     });
@@ -199,7 +196,7 @@ describe('settingsHandlers', () => {
 
   it('saves a change only once its effect took hold, and says why when not', async () => {
     const effect = vi.fn<SettingEffect>(() => 'The system refused.');
-    const t = setup(false, { [AUTOSTART]: effect });
+    const t = setup({ [AUTOSTART]: effect });
     const set = t.handler('settings:set');
     expect(await set.handle(t.call, AUTOSTART, true)).toMatchObject({
       values: { [AUTOSTART]: false },
@@ -220,7 +217,6 @@ describe('settingsHandlers', () => {
     const service = {
       current: () => settings,
       notice: undefined,
-      readOnly: false,
       firstRun: false,
       update: vi.fn((change: (current: Settings) => Settings) => {
         settings = change(settings);
@@ -248,13 +244,6 @@ describe('settingsHandlers', () => {
     });
     expect(set?.accepts([PANEL_PLACE, 'topLeft'])).toBe(false);
     expect(set?.accepts([PANEL, 'always'])).toBe(true);
-  });
-
-  it('leaves the system alone when a newer YapYap owns the settings', () => {
-    const effect = vi.fn<SettingEffect>(() => undefined);
-    const t = setup(true, { [AUTOSTART]: effect });
-    t.handler('settings:set').handle(t.call, AUTOSTART, true);
-    expect(effect).not.toHaveBeenCalled();
   });
 
   it('saves a change and asks for a restart until the launch value is back', async () => {
@@ -304,7 +293,6 @@ describe('settingsHandlers', () => {
         [CLOSE_TO_TRAY]: false,
       },
       restartPending: true,
-      readOnly: false,
       problems: {},
       unavailable: {},
     });

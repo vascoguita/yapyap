@@ -97,9 +97,8 @@ import { catalogOf } from './assistant/private/catalog.ts';
 import { diskModelFiles } from './assistant/private/files.ts';
 import { ENGINE_PARTITION } from './assistant/private/engine-window.ts';
 import { engineListener } from './assistant/private/engine-host.ts';
-import { assistantMayReach, confinedFetch, guardAssistantSession } from './assistant/net.ts';
+import { assistantMayReach, confinedFetch, guardedAssistantSession } from './assistant/net.ts';
 import { translationLanguages } from './assistant/rewrites.ts';
-import { importAssistantExtension } from './assistant/extension-import.ts';
 import { trayImage } from './tray/tray-icon.ts';
 import {
   createAccountHost,
@@ -147,7 +146,7 @@ const notify = (body: string): void => {
   new Notification({ title: PRODUCT_NAME, body }).show();
 };
 
-const settings = openSettings(app.getPath('userData'), Date.now(), warn);
+const settings = openSettings(app.getPath('userData'), Date.now());
 
 const installChannel = (): string =>
   readInstallChannel(() => readFileSync(join(app.getAppPath(), 'package.json'), 'utf8'));
@@ -238,8 +237,12 @@ const assistantReach = (address: string): boolean =>
     localServer: () => settings.current().assistant.localServer,
     testModel,
   });
+const assistantSession = guardedAssistantSession(
+  () => session.fromPartition('yapyap-assistant'),
+  assistantReach,
+);
 const assistantFetch = confinedFetch(
-  (input, init) => session.fromPartition('yapyap-assistant').fetch(input, init),
+  (input, init) => assistantSession().fetch(input, init),
   assistantReach,
 );
 
@@ -462,36 +465,6 @@ const chrome = createChromeFeature({
   isGlobalShortcutRegistered: (accelerator) => globalShortcut.isRegistered(accelerator),
 });
 
-const initialAccounts = loadAccounts(app.getPath('userData'));
-
-/** The AI assistant extension became part of YapYap: what the user set up there carries over (ADR 0017). */
-const takeOverExtension = async (): Promise<void> => {
-  guardAssistantSession(session.fromPartition('yapyap-assistant'), assistantReach);
-  await importAssistantExtension({
-    extensionSecrets,
-    keys,
-    settings,
-    root: join(app.getPath('userData'), 'extensions'),
-    storage: EXTENSION_STORAGE,
-    clearPartition: (id) => session.fromPartition(`persist:extension:${id}`).clearStorageData(),
-    chats: assistantChats,
-    accounts: () => initialAccounts.accounts.map(({ id }) => id),
-    state: assistantStore,
-  });
-};
-
-/** YapYap refuses to start without the sandbox; then it touches nothing of the profile. */
-const unsafeStart = sandboxDisabled(app.commandLine, process.env);
-
-if (!unsafeStart) {
-  app
-    .whenReady()
-    .then(takeOverExtension)
-    .catch(() => {
-      warn('Could not take over the AI assistant extension’s settings.');
-    });
-}
-
 // No top-level await: test harnesses hold back the `ready` event until the
 // entry module has finished evaluating.
 startApp({
@@ -509,7 +482,7 @@ startApp({
   createSidebar: (window, renderer) => createSidebarView(window, renderer),
   defaultSession: () => session.defaultSession,
   sessionOf: (partition) => session.fromPartition(partition),
-  accounts: initialAccounts,
+  accounts: loadAccounts(app.getPath('userData')),
   whatsAppPreload: join(import.meta.dirname, '..', 'preload', 'whatsapp.cjs'),
   notifications: {
     create: (options) => new Notification({ ...options, icon: trayIcon }),
@@ -563,7 +536,7 @@ startApp({
       powerMonitor.on('shutdown', listener);
     },
   },
-  sandboxDisabled: unsafeStart,
+  sandboxDisabled: sandboxDisabled(app.commandLine, process.env),
   explainUnsafeStart: explainUnsafeStartWithDialog,
   selfUpdate: {
     updater: async () => {

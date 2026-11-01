@@ -94,14 +94,15 @@ describe('readImport', () => {
     });
   });
 
-  it('refuses settings from a newer YapYap', () => {
-    expect(readImport(wrap({ ...defaultSettings(), schemaVersion: SETTINGS_VERSION + 1 }))).toEqual(
-      {
+  it.each([SETTINGS_VERSION - 1, SETTINGS_VERSION + 1])(
+    'refuses settings of another version: %i',
+    (schemaVersion) => {
+      expect(readImport(wrap({ ...defaultSettings(), schemaVersion }))).toEqual({
         kind: 'rejected',
-        reason: 'Those settings come from a newer version of YapYap. Update YapYap to import them.',
-      },
-    );
-  });
+        reason: 'That file is not a YapYap settings file.',
+      });
+    },
+  );
 
   it('says when a file cannot even be read', () => {
     expect(readImport('{')).toEqual({

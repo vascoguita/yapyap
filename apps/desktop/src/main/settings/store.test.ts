@@ -22,7 +22,6 @@ describe('loadSettings', () => {
   it('starts with defaults and no notice on first run, and says it is the first', () => {
     expect(loadSettings(fresh(), 1)).toEqual({
       settings: defaultSettings(),
-      readOnly: false,
       notice: undefined,
       firstRun: true,
     });
@@ -33,7 +32,6 @@ describe('loadSettings', () => {
     saveSettings(dir, custom());
     expect(loadSettings(dir, 1)).toEqual({
       settings: custom(),
-      readOnly: false,
       notice: undefined,
     });
   });
@@ -46,16 +44,18 @@ describe('loadSettings', () => {
     );
   });
 
-  it('opens a newer file read-only and says so', () => {
-    const dir = fresh();
-    writeFileSync(join(dir, SETTINGS_FILE), '{"schemaVersion":99}');
-    expect(loadSettings(dir, 1)).toEqual({
-      settings: defaultSettings(),
-      readOnly: true,
-      notice:
-        'Your settings come from a newer version of YapYap, so this version will not change them.',
-    });
-  });
+  it.each(['{"schemaVersion":0}', '{"schemaVersion":2}'])(
+    'sets aside a file of another version, as if it were damaged: %s',
+    (text) => {
+      const dir = fresh();
+      writeFileSync(join(dir, SETTINGS_FILE), text);
+      expect(loadSettings(dir, 3)).toEqual({
+        settings: defaultSettings(),
+        notice: 'Your settings file was damaged, so YapYap started with default settings.',
+      });
+      expect(readFileSync(join(dir, 'settings.corrupt-3.json'), 'utf8')).toBe(text);
+    },
+  );
 
   it('restores the backup when the file is damaged, keeping the damaged file aside', () => {
     const dir = fresh();
@@ -64,7 +64,6 @@ describe('loadSettings', () => {
     writeFileSync(join(dir, SETTINGS_FILE), '{"schemaVersion":');
     expect(loadSettings(dir, 42)).toEqual({
       settings: custom(),
-      readOnly: false,
       notice: 'Your settings file was damaged, so YapYap restored the last good copy.',
     });
     expect(readFileSync(join(dir, 'settings.corrupt-42.json'), 'utf8')).toBe('{"schemaVersion":');
@@ -74,7 +73,7 @@ describe('loadSettings', () => {
   it.each([
     ['no backup', undefined],
     ['a damaged backup', 'garbage'],
-    ['a newer backup', '{"schemaVersion":99}'],
+    ['a backup of another version', '{"schemaVersion":2}'],
   ])('falls back to defaults with %s', (_, backup) => {
     const dir = fresh();
     writeFileSync(join(dir, SETTINGS_FILE), 'garbage');
@@ -83,7 +82,6 @@ describe('loadSettings', () => {
     }
     expect(loadSettings(dir, 7)).toEqual({
       settings: defaultSettings(),
-      readOnly: false,
       notice: 'Your settings file was damaged, so YapYap started with default settings.',
     });
   });
@@ -99,7 +97,7 @@ describe('saveSettings', () => {
       defaultSettings(),
     );
     expect(readFileSync(join(dir, SETTINGS_FILE), 'utf8')).toMatch(
-      /^\{\n {2}"schemaVersion": 19,[\s\S]*\}\n$/,
+      /^\{\n {2}"schemaVersion": 1,[\s\S]*\}\n$/,
     );
     expect(readdirSync(dir).sort()).toEqual(['settings.json', 'settings.json.bak']);
   });

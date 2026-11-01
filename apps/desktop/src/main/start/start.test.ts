@@ -343,7 +343,6 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     settings: {
       current: () => defaultSettings(),
       notice: undefined as string | undefined,
-      readOnly: false,
       firstRun: false,
       update: vi.fn(),
       onChange: vi.fn(),

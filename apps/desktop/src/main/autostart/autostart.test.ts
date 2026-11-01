@@ -28,7 +28,6 @@ function settingsWith(autostart: boolean) {
   return {
     current: () => settings,
     notice: undefined,
-    readOnly: false,
     firstRun: false,
     update: vi.fn((change: (current: Settings) => Settings) => {
       settings = change(settings);

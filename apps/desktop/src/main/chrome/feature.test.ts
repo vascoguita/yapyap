@@ -79,7 +79,6 @@ function setup() {
     settings: {
       current: defaultSettings,
       notice: undefined,
-      readOnly: false,
       firstRun: false,
       update: vi.fn(),
       onChange: vi.fn(),
@@ -152,8 +151,6 @@ function setup() {
       state: {
         privateModel: () => undefined,
         setPrivateModel: vi.fn(),
-        notice: () => undefined,
-        setNotice: vi.fn(),
       },
       chats: {
         isAllowed: () => false,
@@ -161,7 +158,6 @@ function setup() {
         forget: vi.fn(),
         forgetAccount: vi.fn(),
         list: () => Promise.resolve([]),
-        adopt: vi.fn(),
       },
       keys: {
         get: () => Promise.resolve(undefined),
@@ -557,7 +553,6 @@ describe('createChromeFeature', () => {
         'general.closeToTray': false,
       },
       restartPending: false,
-      readOnly: false,
       problems: {},
       unavailable: {},
     });

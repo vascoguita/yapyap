@@ -13,7 +13,6 @@ const THEME = 'appearance.theme';
 const snapshot = (overrides: Partial<SettingsSnapshot> = {}): SettingsSnapshot => ({
   values: { [THEME]: 'system', [HARDWARE]: true },
   restartPending: false,
-  readOnly: false,
   problems: {},
   unavailable: {},
   ...overrides,
@@ -138,17 +137,10 @@ describe('Settings', () => {
     expect(screen.getByRole('alert').textContent).toBe('');
   });
 
-  it('locks the settings when a newer YapYap owns them', async () => {
-    render(<Settings api={api({ get: () => Promise.resolve(snapshot({ readOnly: true })) })} />);
-    expect((await toggle()).disabled).toBe(true);
-    expect(screen.getByText(/saved by a newer version of YapYap/)).toBeTruthy();
-  });
-
   it('shows unchecked switches for settings that are off', async () => {
     const off = snapshot({ values: { [THEME]: 'dark', [HARDWARE]: false } });
     render(<Settings api={api({ get: () => Promise.resolve(off) })} />);
     expect((await toggle()).checked).toBe(false);
-    expect(screen.queryByText(/newer version/)).toBeNull();
   });
 
   it('says when the settings cannot be loaded', async () => {
@@ -170,12 +162,6 @@ describe('Settings', () => {
       expect(screen.getByRole<HTMLInputElement>('radio', { name: 'Dark' }).checked).toBe(true);
     });
     expect(screen.queryByRole('button', { name: 'Restart Now' })).toBeNull();
-  });
-
-  it('locks the choices too when a newer YapYap owns the settings', async () => {
-    render(<Settings api={api({ get: () => Promise.resolve(snapshot({ readOnly: true })) })} />);
-    const group = await screen.findByRole<HTMLFieldSetElement>('group', { name: 'Theme' });
-    expect(group.disabled).toBe(true);
   });
 
   it('adds no restart hint to a setting that applies at once', () => {
@@ -285,17 +271,6 @@ describe('Settings', () => {
     fireEvent.click(button);
     expect(await screen.findByText('Something went wrong. Try again.')).toBeTruthy();
     expect(t.settings.get).toHaveBeenCalledOnce();
-  });
-
-  it('allows export but not import when a newer YapYap owns the settings', async () => {
-    render(<Settings api={api({ get: () => Promise.resolve(snapshot({ readOnly: true })) })} />);
-    const exporting = await screen.findByRole<HTMLButtonElement>('button', {
-      name: 'Export Settings…',
-    });
-    expect(exporting.disabled).toBe(false);
-    expect(
-      screen.getByRole<HTMLButtonElement>('button', { name: 'Import Settings…' }).disabled,
-    ).toBe(true);
   });
 });
 

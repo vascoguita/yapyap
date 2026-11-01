@@ -211,12 +211,6 @@ See also [Privacy](../privacy.md).
 
 ## Troubleshooting
 
-**"The AI assistant is now part of YapYap."** You used the assistant
-extension before. YapYap took over its provider, model, key and the chats
-you allowed, and removed the extension. If you used its private model,
-download it again in Settings: the extension kept its copy in its own
-storage, which went with it. Choose **Close** to hide the note.
-
 **"… did not accept your key."** Paste a new key in Settings, then
 **Test** it.
 

@@ -163,7 +163,6 @@ function Place(props: {
           name="assistant.provider"
           value={value}
           checked={chosen}
-          disabled={snapshot.readOnly}
           onChange={() => {
             props.onChange(PROVIDER, value);
           }}
@@ -336,7 +335,7 @@ function Places(props: PlaceProps): JSX.Element {
   const { snapshot, onChange, view } = props;
   const auto = snapshot.values[PROVIDER] === 'auto';
   return (
-    <fieldset class="places" disabled={snapshot.readOnly}>
+    <fieldset class="places">
       <legend>{text.where}</legend>
       <p class="hint">{text.whereHint}</p>
       <label class={auto ? 'place chosen' : 'place'}>
@@ -378,7 +377,7 @@ function ModelChoice(props: {
       <select
         id="assistant-model"
         value={listed ? picked : 'auto'}
-        disabled={snapshot.readOnly || view.models.length === 0}
+        disabled={view.models.length === 0}
         onChange={(event) => {
           onChange('assistant.model', event.currentTarget.value);
         }}

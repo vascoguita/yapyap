@@ -5,7 +5,7 @@ describe('createChromeBridge', () => {
   it('maps each operation to its own fixed channel', async () => {
     const info = { name: 'YapYap' };
     const problem = { kind: 'blank', description: 'Blank.' };
-    const snapshot = { values: {}, restartPending: false, readOnly: false };
+    const snapshot = { values: {}, restartPending: false };
     const answers: Record<string, unknown> = {
       'about:info': info,
       'recovery:problem': problem,

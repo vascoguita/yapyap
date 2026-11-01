@@ -54,7 +54,6 @@ function harness(answer = 'Yes, 8 works!\nCan we do 9?') {
   let assistant: Record<string, unknown> = { ...SETTINGS };
   const allowed = new Set<string>();
   const states: AssistantBarState[] = [];
-  let notice: 'moved' | 'moved-redownload' | undefined;
   const deps: BarDependencies = {
     core: {
       setup: vi.fn(() => Promise.resolve(setup)),
@@ -89,12 +88,6 @@ function harness(answer = 'Yes, 8 works!\nCan we do 9?') {
       smaller: vi.fn(() => Promise.resolve()),
       outOfMemory: vi.fn(),
     },
-    state: {
-      notice: () => notice,
-      setNotice: vi.fn((next: typeof notice) => {
-        notice = next;
-      }),
-    },
     languages: ['pt', 'en'],
     openSettings: vi.fn(),
     writeClipboard: vi.fn(),
@@ -116,9 +109,6 @@ function harness(answer = 'Yes, 8 works!\nCan we do 9?') {
     },
     setModel: (next: PrivateModelStatus) => {
       model = next;
-    },
-    setNotice: (next: typeof notice) => {
-      notice = next;
     },
     settings: () => assistant,
   };
@@ -319,7 +309,6 @@ describe('createAssistantBar', () => {
     await t.bar.catchUp();
     await t.bar.button('close');
     expect(t.last().result).toBeNull();
-    expect(t.deps.state.setNotice).toHaveBeenCalledWith(undefined);
   });
 
   it('says what is missing, with a one-click fix', async () => {
@@ -502,29 +491,6 @@ describe('createAssistantBar', () => {
     await t.bar.button('fix');
     expect(t.deps.chats.allow).not.toHaveBeenCalled();
     expect(t.deps.openSettings).not.toHaveBeenCalled();
-  });
-
-  it('shows the one-time note that the assistant is now part of YapYap until it is closed', async () => {
-    const t = harness();
-    t.setNotice('moved-redownload');
-    t.setSetup({ ...READY, provider: 'built-in', missing: 'download', models: [] });
-    await t.bar.refresh();
-    expect(t.last().status).toBe(
-      'The AI assistant is now part of YapYap. Download its private model again in Settings, under Assistant.',
-    );
-    expect(ids(t.last())).toEqual(['fix', 'close']);
-    await t.bar.button('fix');
-    expect(t.deps.openSettings).toHaveBeenCalledOnce();
-    t.setSetup(READY);
-    t.setNotice('moved');
-    await t.bar.refresh();
-    expect(t.last().status).toBe(
-      'The AI assistant is now part of YapYap. Its settings are in Settings, under Assistant.',
-    );
-    await t.bar.button('close');
-    expect(t.last().status).toBe('');
-    await t.bar.refresh();
-    expect(t.last().status).toBe('');
   });
 
   it('answers nothing when the setup broke between asking and the user’s click', async () => {

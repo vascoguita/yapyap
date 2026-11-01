@@ -14,16 +14,16 @@ coverage numbers mean something, and must never touch real WhatsApp.
 
 ### Layers
 
-| Layer         | Tool                      | Scope                                                                                                                                              |
-| ------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Unit          | Vitest (node / happy-dom) | All pure logic: settings migrations, URL policy, UA builder, capability checker, signature verification, redaction, update policy, adapter parsing |
-| Integration   | Vitest                    | IPC handlers with a fake Electron surface, extension host RPC pipeline, protocol handlers, extension installer                                     |
-| Property      | Vitest + fast-check       | Parsers and validators of untrusted input (origin overrides, license expressions, versions, later IPC payloads and extension manifests)            |
-| E2E           | Playwright `_electron`    | App chrome, multi-account, tray, settings, recovery actions, extensions, the malicious-extension suite, and accessibility (axe)                    |
-| Visual        | Playwright screenshots    | App chrome in light and dark themes, per OS baseline                                                                                               |
-| Mutation      | Stryker (command runner)  | WhatsApp adapter, extension host, capability checker, signature verification, settings migrations, AI providers. Score ≥ 90%, enforced.            |
-| Package smoke | CI per artifact           | Install, launch, window opens, fake WhatsApp loads                                                                                                 |
-| Benchmarks    | Nightly                   | Cold start and idle memory per account against budgets                                                                                             |
+| Layer         | Tool                      | Scope                                                                                                                                            |
+| ------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Unit          | Vitest (node / happy-dom) | All pure logic: settings decoding, URL policy, UA builder, capability checker, signature verification, redaction, update policy, adapter parsing |
+| Integration   | Vitest                    | IPC handlers with a fake Electron surface, extension host RPC pipeline, protocol handlers, extension installer                                   |
+| Property      | Vitest + fast-check       | Parsers and validators of untrusted input (origin overrides, license expressions, versions, later IPC payloads and extension manifests)          |
+| E2E           | Playwright `_electron`    | App chrome, multi-account, tray, settings, recovery actions, extensions, the malicious-extension suite, and accessibility (axe)                  |
+| Visual        | Playwright screenshots    | App chrome in light and dark themes, per OS baseline                                                                                             |
+| Mutation      | Stryker (command runner)  | WhatsApp adapter, extension host, capability checker, signature verification, settings, AI providers. Score ≥ 90%, enforced.                     |
+| Package smoke | CI per artifact           | Install, launch, window opens, fake WhatsApp loads                                                                                               |
+| Benchmarks    | Nightly                   | Cold start and idle memory per account against budgets                                                                                           |
 
 ### Fake WhatsApp
 

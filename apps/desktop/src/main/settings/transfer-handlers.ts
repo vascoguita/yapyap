@@ -72,10 +72,7 @@ async function importFrom(
   return { outcome: 'done', message: TEXT.imported };
 }
 
-/**
- * Export and import for the settings window. Import refuses settings that
- * belong to a newer YapYap, because those must never be overwritten.
- */
+/** Export and import for the settings window. */
 export function settingsTransferHandlers(
   service: SettingsService,
   files: SettingsFiles,
@@ -88,7 +85,7 @@ export function settingsTransferHandlers(
     },
     {
       channel: CHROME_CHANNELS.settingsImport,
-      accepts: (args) => noArguments(args) && !service.readOnly,
+      accepts: noArguments,
       handle: (call) => importFrom(service, files, call),
     },
   ];

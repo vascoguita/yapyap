@@ -75,7 +75,6 @@ export interface Messages {
     readonly title: string;
     readonly sectionsLabel: string;
     readonly unavailable: string;
-    readonly readOnly: string;
     readonly restartNeeded: string;
     readonly restartNow: string;
     readonly restartNote: string;
@@ -112,7 +111,6 @@ export interface Messages {
       readonly readFailed: string;
       readonly notSettings: string;
       readonly damaged: string;
-      readonly newer: string;
       readonly confirm: string;
       readonly confirmButton: string;
       readonly replaces: string;
@@ -122,7 +120,6 @@ export interface Messages {
     readonly loadNotices: {
       readonly restored: string;
       readonly defaults: string;
-      readonly newer: string;
       readonly reset: string;
     };
     readonly problems: { readonly autostartFailed: string };
@@ -549,8 +546,6 @@ export interface Messages {
       readonly key: (params: { readonly provider: string | number }) => string;
       readonly download: string;
       readonly noModel: (params: { readonly provider: string | number }) => string;
-      readonly moved: string;
-      readonly movedRedownload: string;
       readonly localServer: string;
       readonly openChat: string;
       readonly off: string;

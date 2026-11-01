@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   assistantMayReach,
   confinedFetch,
-  guardAssistantSession,
+  guardedAssistantSession,
   RequestRefused,
   type ConfinementSources,
 } from './net.ts';
@@ -75,22 +75,25 @@ describe('confinedFetch', () => {
   });
 });
 
-describe('guardAssistantSession', () => {
+describe('guardedAssistantSession', () => {
   it('cancels every request, redirects included, that the assistant may not send', () => {
     let listener: (
       details: { url: string },
       callback: (response: { cancel: boolean }) => void,
     ) => void = () => undefined;
-    guardAssistantSession(
-      {
-        webRequest: {
-          onBeforeRequest: (next) => {
-            listener = next;
-          },
-        },
+    const open = vi.fn(() => ({
+      webRequest: {
+        onBeforeRequest: vi.fn((next: typeof listener) => {
+          listener = next;
+        }),
       },
-      (address) => address === 'https://ok.example/',
-    );
+    }));
+    const session = guardedAssistantSession(open, (address) => address === 'https://ok.example/');
+    expect(open).not.toHaveBeenCalled();
+    const first = session();
+    expect(session()).toBe(first);
+    expect(open).toHaveBeenCalledOnce();
+    expect(first.webRequest.onBeforeRequest).toHaveBeenCalledOnce();
     const callback = vi.fn();
     listener({ url: 'https://ok.example/' }, callback);
     listener({ url: 'https://elsewhere.example/' }, callback);

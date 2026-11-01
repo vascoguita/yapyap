@@ -8,7 +8,7 @@ import { privateProvider } from './providers/private.ts';
 import type { Provider } from './providers/provider.ts';
 import type { EngineHost } from './private/engine-host.ts';
 
-export type AssistantSettings = Settings['assistant'];
+type AssistantSettings = Settings['assistant'];
 
 /** What decides who answers. */
 export interface SetupInputs {

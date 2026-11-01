@@ -82,18 +82,12 @@ const NOT_SETTINGS: ImportResult = {
 
 const DAMAGED: ImportResult = { kind: 'rejected', reason: en.settings.backup.damaged };
 
-/** Decoded settings as an import sees them: newer or unreadable ones are refused. */
+/** Decoded settings as an import sees them: unreadable ones, or another version's, are refused. */
 function checked(decoded: Decoded): ImportResult {
-  if (decoded.kind === 'newer') {
-    return {
-      kind: 'rejected',
-      reason: en.settings.backup.newer,
-    };
-  }
   return decoded.kind === 'corrupt' ? NOT_SETTINGS : decoded;
 }
 
-/** Reads an exported file through the same migrations and checks as `settings.json`. */
+/** Reads an exported file through the same checks as `settings.json`. */
 export function readImport(text: string): ImportResult {
   if (Buffer.byteLength(text) > MAX_IMPORT_BYTES) {
     return NOT_SETTINGS;

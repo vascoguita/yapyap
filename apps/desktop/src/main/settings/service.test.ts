@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { tempDir } from '../../../../../test/temp-dir.ts';
@@ -10,12 +10,11 @@ const fresh = () => tempDir('yapyap-settings-');
 describe('openSettings', () => {
   it('serves the loaded settings and saves changes', () => {
     const dir = fresh();
-    const settings = openSettings(dir, 1, vi.fn());
+    const settings = openSettings(dir, 1);
     const listener = vi.fn();
     settings.onChange(listener);
     expect(settings.current()).toEqual(defaultSettings());
     expect(settings.notice).toBeUndefined();
-    expect(settings.readOnly).toBe(false);
     settings.update((current) => ({
       ...current,
       general: { ...current.general, autostart: true },
@@ -39,29 +38,9 @@ describe('openSettings', () => {
 
   it('knows the first launch, and that every later one is not', () => {
     const dir = fresh();
-    const first = openSettings(dir, 1, vi.fn());
+    const first = openSettings(dir, 1);
     expect(first.firstRun).toBe(true);
     first.update((current) => current);
-    expect(openSettings(dir, 2, vi.fn()).firstRun).toBe(false);
-  });
-
-  it('never overwrites settings from a newer version', () => {
-    const dir = fresh();
-    writeFileSync(join(dir, 'settings.json'), '{"schemaVersion":99}');
-    const warn = vi.fn();
-    const settings = openSettings(dir, 1, warn);
-    expect(settings.readOnly).toBe(true);
-    const listener = vi.fn();
-    settings.onChange(listener);
-    settings.update((current) => ({
-      ...current,
-      general: { ...current.general, autostart: true },
-    }));
-    expect(readFileSync(join(dir, 'settings.json'), 'utf8')).toBe('{"schemaVersion":99}');
-    expect(settings.current().general.autostart).toBe(false);
-    expect(listener).not.toHaveBeenCalled();
-    expect(warn).toHaveBeenCalledExactlyOnceWith(
-      'Not saving settings: they belong to a newer version of YapYap.',
-    );
+    expect(openSettings(dir, 2).firstRun).toBe(false);
   });
 });

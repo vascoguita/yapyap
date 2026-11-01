@@ -16,7 +16,6 @@ describe('settingsHandlers with settings that apply at once', () => {
     const service = {
       current: () => settings,
       notice: undefined,
-      readOnly: false,
       firstRun: false,
       update: (change: (current: Settings) => Settings) => {
         settings = change(settings);
@@ -30,7 +29,6 @@ describe('settingsHandlers with settings that apply at once', () => {
     expect(await set?.handle(call, 'general.startMinimized', true)).toEqual({
       values: { 'general.startMinimized': true, 'reliability.hardwareAcceleration': true },
       restartPending: false,
-      readOnly: false,
       problems: {},
       unavailable: {},
     });
