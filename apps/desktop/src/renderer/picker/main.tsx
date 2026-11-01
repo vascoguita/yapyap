@@ -1,5 +1,5 @@
-import { render } from 'preact';
-import { cancelOnEscape, Picker } from './Picker.tsx';
+import { en } from '../../shared/messages/en.ts';
+import { mount } from '../shared/mount.tsx';
+import { Picker, cancelOnEscape } from './Picker.tsx';
 
-document.addEventListener('keydown', cancelOnEscape(globalThis.yapyap));
-render(<Picker api={globalThis.yapyap} />, document.body);
+mount(Picker, { title: en.windows.picker, escape: cancelOnEscape });

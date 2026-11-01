@@ -1,4 +1,5 @@
-import { render } from 'preact';
+import { en } from '../../shared/messages/en.ts';
+import { closeOnEscape, mount } from '../shared/mount.tsx';
 import { About } from './About.tsx';
 
-render(<About api={globalThis.yapyap} />, document.body);
+mount(About, { title: en.windows.about, escape: closeOnEscape });

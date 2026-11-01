@@ -416,7 +416,7 @@
     "crashTitle": "YapYap closed unexpectedly",
     "crashTitleWith": "YapYap closed unexpectedly (crash {{fingerprint}})",
     "crashWhatHappened": "YapYap closed unexpectedly. I was …",
-    "title": "Report a Problem",
+    "title": "Report a problem",
     "intro": "Describe what went wrong. YapYap sends nothing: it copies the report and opens GitHub in your browser, where you can edit it before you submit it.",
     "description": "What happened?",
     "placeholder": "What you did, what you expected and what happened instead",
@@ -944,9 +944,9 @@
     "assistantSettings": "Assistant Settings…"
   },
   "windows": {
-    "about": "About {{product}}",
-    "settings": "{{product}} Settings",
-    "picker": "Share your screen",
+    "about": "About YapYap",
+    "settings": "YapYap Settings",
+    "picker": "Choose What to Share",
     "newChat": "New Chat",
     "spellingLanguages": "Spelling Languages",
     "accounts": "Accounts",
@@ -955,10 +955,10 @@
     "customCode": "Custom CSS and JavaScript",
     "quickPanel": "YapYap",
     "downloads": "Downloads",
-    "extensionConsent": "Install Extension",
+    "extensionConsent": "Review Extension",
     "welcome": "Welcome",
     "report": "Report a Problem",
-    "proxyLogin": "Proxy Sign-In",
+    "proxyLogin": "Sign In to the Proxy",
     "offline": "{{pageTitle}} (offline)"
   },
   "dialogs": {

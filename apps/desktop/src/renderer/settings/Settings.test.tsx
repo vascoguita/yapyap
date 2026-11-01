@@ -5,7 +5,7 @@ import { fakeChromeApi } from '../../../test/chrome-api.ts';
 import type { ChromeApi, SettingsSnapshot } from '../../shared/chrome-api.ts';
 import type { SettingValue } from '../../shared/settings-fields.ts';
 import { Field } from './Field.tsx';
-import { closeOnEscape, Settings } from './Settings.tsx';
+import { Settings } from './Settings.tsx';
 
 const HARDWARE = 'reliability.hardwareAcceleration';
 const THEME = 'appearance.theme';
@@ -269,15 +269,6 @@ describe('Settings', () => {
     expect(
       screen.getByRole<HTMLButtonElement>('button', { name: 'Import settings…' }).disabled,
     ).toBe(true);
-  });
-
-  it('closes on Escape only', () => {
-    const close = vi.spyOn(window, 'close').mockImplementation(() => undefined);
-    closeOnEscape(new KeyboardEvent('keydown', { key: 'Enter' }));
-    expect(close).not.toHaveBeenCalled();
-    closeOnEscape(new KeyboardEvent('keydown', { key: 'Escape' }));
-    expect(close).toHaveBeenCalledOnce();
-    close.mockRestore();
   });
 });
 

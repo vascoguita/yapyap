@@ -101,7 +101,6 @@ import {
   type ChromeWindowDependencies,
 } from './window-opener.ts';
 import { en } from '../../shared/messages/en.ts';
-import { PRODUCT_NAME } from '../identity.ts';
 
 /** In memory only: app chrome never shares storage with WhatsApp or keeps any. */
 export const CHROME_PARTITION = 'yapyap-chrome';
@@ -109,7 +108,7 @@ export const CHROME_PARTITION = 'yapyap-chrome';
 const ABOUT_PAGE: ChromePage = {
   path: 'about.html',
   window: {
-    title: en.windows.about({ product: PRODUCT_NAME }),
+    title: en.windows.about,
     width: 480,
     height: 640,
     resizable: false,
@@ -221,7 +220,7 @@ const REPORT_PAGE: ChromePage = {
 const SETTINGS_PAGE: ChromePage = {
   path: 'settings.html',
   window: {
-    title: en.windows.settings({ product: PRODUCT_NAME }),
+    title: en.windows.settings,
     width: 640,
     height: 680,
     minWidth: 420,

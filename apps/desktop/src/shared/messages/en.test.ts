@@ -22,7 +22,6 @@ describe('the English catalog', () => {
   it('formats values into its text', () => {
     expect(en.about.versionValue({ version: '1.2.3', channel: 'beta' })).toBe('1.2.3 (beta)');
     expect(en.menu.about({ product: 'YapYap' })).toBe('About YapYap');
-    expect(en.windows.settings({ product: 'YapYap' })).toBe('YapYap Settings');
     expect(en.windows.offline({ pageTitle: 'WhatsApp' })).toBe('WhatsApp (offline)');
     expect(en.notices.newRelease({ version: '2.0.0' })).toBe(
       'YapYap 2.0.0 is available. Click to open its download page.',

@@ -1,4 +1,4 @@
-import { render } from 'preact';
+import { mount } from '../shared/mount.tsx';
 import { Recovery } from './Recovery.tsx';
 
-render(<Recovery api={globalThis.yapyap} />, document.body);
+mount(Recovery);

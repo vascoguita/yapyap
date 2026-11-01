@@ -1,4 +1,5 @@
-import { render } from 'preact';
+import { en } from '../../shared/messages/en.ts';
+import { mount } from '../shared/mount.tsx';
 import { QuickPanel } from './QuickPanel.tsx';
 
-render(<QuickPanel api={globalThis.yapyap} />, document.body);
+mount(QuickPanel, { title: en.windows.quickPanel });

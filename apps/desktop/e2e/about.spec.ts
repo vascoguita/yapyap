@@ -17,7 +17,7 @@ async function openAbout(app: ElectronApplication): Promise<Page> {
   return page;
 }
 
-test('opens About from the menu with the version, engines and disclaimer', async ({
+test('opens About from the menu with the version, engines and disclaimer, and closes on Escape', async ({
   app,
   window,
 }) => {
@@ -25,6 +25,8 @@ test('opens About from the menu with the version, engines and disclaimer', async
   const about = await openAbout(app);
   expect(about.url()).toBe('app://chrome/about.html');
   await expect(about.getByRole('heading', { name: 'YapYap' })).toBeVisible();
+  // The page titles its window from the catalog, as the main process does.
+  await expect(about).toHaveTitle('About YapYap');
   await expect(about.getByText(/\(development\)$/)).toBeVisible();
   const versions = await app.evaluate(() => process.versions);
   await expect(about.getByText(versions.electron, { exact: true })).toBeVisible();
@@ -32,6 +34,9 @@ test('opens About from the menu with the version, engines and disclaimer', async
   await expect(
     about.getByText(/not affiliated with, endorsed by, or sponsored by WhatsApp/),
   ).toBeVisible();
+  // Only the key-down: the window can close before Playwright hears back.
+  await about.keyboard.down('Escape').catch(() => undefined);
+  await expect.poll(() => about.isClosed()).toBe(true);
 });
 
 test('serves chrome with a strict CSP and only the typed bridge', async ({ app }) => {

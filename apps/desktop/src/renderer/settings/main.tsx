@@ -1,5 +1,5 @@
-import { render } from 'preact';
-import { closeOnEscape, Settings } from './Settings.tsx';
+import { en } from '../../shared/messages/en.ts';
+import { closeOnEscape, mount } from '../shared/mount.tsx';
+import { Settings } from './Settings.tsx';
 
-document.addEventListener('keydown', closeOnEscape);
-render(<Settings api={globalThis.yapyap} />, document.body);
+mount(Settings, { title: en.windows.settings, escape: closeOnEscape });

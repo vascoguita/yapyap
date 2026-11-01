@@ -1,6 +1,5 @@
-import { render } from 'preact';
-import { closeOnEscape } from '../settings/Settings.tsx';
+import { en } from '../../shared/messages/en.ts';
+import { closeOnEscape, mount } from '../shared/mount.tsx';
 import { SpellingLanguagesPage } from './SpellingLanguages.tsx';
 
-document.addEventListener('keydown', closeOnEscape);
-render(<SpellingLanguagesPage api={globalThis.yapyap} />, document.body);
+mount(SpellingLanguagesPage, { title: en.windows.spellingLanguages, escape: closeOnEscape });

@@ -1,6 +1,5 @@
-import { render } from 'preact';
-import { closeOnEscape } from '../settings/Settings.tsx';
+import { en } from '../../shared/messages/en.ts';
+import { closeOnEscape, mount } from '../shared/mount.tsx';
 import { Downloads } from './Downloads.tsx';
 
-document.addEventListener('keydown', closeOnEscape);
-render(<Downloads api={globalThis.yapyap} />, document.body);
+mount(Downloads, { title: en.windows.downloads, escape: closeOnEscape });

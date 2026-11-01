@@ -867,8 +867,8 @@ export interface Messages {
     readonly assistantSettings: string;
   };
   readonly windows: {
-    readonly about: (params: { readonly product: string | number }) => string;
-    readonly settings: (params: { readonly product: string | number }) => string;
+    readonly about: string;
+    readonly settings: string;
     readonly picker: string;
     readonly newChat: string;
     readonly spellingLanguages: string;
