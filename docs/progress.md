@@ -219,19 +219,15 @@ their reasons belong in the ADRs (`docs/adr/`), and released changes in
 - Chrome page entries (#522): every page starts through `mount(Page, {
 title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   window from `en.windows`; dialog-like windows close on Escape.
-- UI wording (#528): buttons in YapYap's windows use title case, like its
-  menus; the assistant bar keeps WhatsApp's sentence case. The Installed
-  list and the Marketplace share `extensions.trust`. The catalog is in US
-  English.
-- Faster unit tests (#531): the SDK, signing CLI, scripts and example
-  extension tests share workers across files (`isolate: false` in
-  `vitest.projects.ts`). The desktop app and the call recorder keep one
-  worker per file. Provider retry tests use fake timers.
 - IPC registrars (#523): messages from WhatsApp's preload go through
   `registerWhatsAppListeners` in `main/ipc/`, next to
   `registerChromeHandlers`; payload checks use `argumentsOf`, and the chrome
   preload hears its events through one typed `listen`.
 
+- UI wording (#528): buttons in YapYap's windows use title case, like its
+  menus; the assistant bar keeps WhatsApp's sentence case. The Installed
+  list and the Marketplace share `extensions.trust`. The catalog is in US
+  English.
 - Faster unit tests (#531): the SDK, signing CLI, scripts and example
   extension tests share workers across files (`isolate: false` in
   `vitest.projects.ts`). The desktop app and the call recorder keep one
@@ -252,12 +248,3 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
 - Test hygiene (#521): `tempDir()` in the root `test/temp-dir.ts` gives a
   test a temp folder that is removed when the test ends. The marketplace
   takes its clock as `now`, so its tests use fixed dates.
-- UI wording (#528): buttons in YapYap's windows use title case, as menus
-  and native dialogs do. The assistant bar stays sentence case, like the
-  WhatsApp page it sits in. One trust label per review, from
-  `extensions.trust`, serves the Installed list and the Marketplace. The
-  record prompt declines with Cancel, and the catalog is in US English.
-- UI wording (#528): buttons in YapYap's windows use title case, like its
-  menus; the assistant bar keeps WhatsApp's sentence case. The Installed
-  list and the Marketplace share `extensions.trust`. The catalog is in US
-  English.
