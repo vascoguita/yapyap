@@ -1,7 +1,12 @@
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { closeApp, expect, launchApp, test, whatsAppPage } from './fixtures.ts';
-import { builtExtension, chromePage, installExtension } from './extension-helpers.ts';
+import {
+  builtExtension,
+  chromePage,
+  installExtension,
+  recordedBytes,
+} from './extension-helpers.ts';
 
 test('the call recorder extension records a call from its panel, after the user agrees', async ({
   fakeWhatsApp,
@@ -64,7 +69,9 @@ test('the call recorder extension records a call from its panel, after the user 
     await prompt.getByRole('checkbox').check();
     await prompt.getByRole('button', { name: 'Record' }).click();
     await expect(status).toContainText('Recording since');
-    await new Promise((resolve) => setTimeout(resolve, 2500));
+    await expect
+      .poll(() => recordedBytes(join(music, 'YapYap')), { timeout: 20_000 })
+      .toBeGreaterThan(0);
     await panel.getByRole('button', { name: 'Stop' }).click();
     await expect(panel.getByRole('button', { name: 'Show in folder' })).toHaveCount(1);
     expect(await readdir(join(music, 'YapYap'))).toEqual([

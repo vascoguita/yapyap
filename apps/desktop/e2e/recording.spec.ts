@@ -8,6 +8,7 @@ import {
   chromePage,
   installExtension,
   extensionPage,
+  recordedBytes,
   runExtensionCommand,
 } from './extension-helpers.ts';
 
@@ -97,13 +98,13 @@ test('records a call only after the user clicks Record and confirms, and keeps i
       .poll(async () => (await extensionPage(app))?.title, { timeout: 20_000 })
       .toBe('recording');
     await expect(prompt.getByRole('status')).toContainText('Recording');
-    await new Promise((resolve) => setTimeout(resolve, 2500));
+    const folder = join(music, 'YapYap');
+    await expect.poll(() => recordedBytes(folder), { timeout: 20_000 }).toBeGreaterThan(0);
     await expect.poll(() => runExtensionCommand(app, 'Recorder: Stop')).toBe(true);
     await expect
       .poll(async () => (await extensionPage(app))?.title, { timeout: 20_000 })
       .toBe('stopped 1');
 
-    const folder = join(music, 'YapYap');
     const [file, ...others] = await readdir(folder);
     expect(others).toEqual([]);
     expect(file).toMatch(/^YapYap call \d{4}-\d{2}-\d{2} \d{2}\.\d{2}\.webm$/);
@@ -158,12 +159,13 @@ test('records as WAV when Settings says so, with the sizes in its header', async
     await expect
       .poll(async () => (await extensionPage(app))?.title, { timeout: 20_000 })
       .toBe('recording');
-    await new Promise((resolve) => setTimeout(resolve, 2500));
+    const folder = join(music, 'YapYap');
+    // Over half a second of stereo 16-bit sound.
+    await expect.poll(() => recordedBytes(folder), { timeout: 20_000 }).toBeGreaterThan(100_000);
     await expect.poll(() => runExtensionCommand(app, 'Recorder: Stop')).toBe(true);
     await expect
       .poll(async () => (await extensionPage(app))?.title, { timeout: 20_000 })
       .toBe('stopped 1');
-    const folder = join(music, 'YapYap');
     const [file] = await readdir(folder);
     expect(file).toMatch(/^YapYap call .+\.wav$/);
     const bytes = await readFile(join(folder, file ?? ''));
@@ -171,7 +173,6 @@ test('records as WAV when Settings says so, with the sizes in its header', async
     expect(bytes.subarray(0, 4).toString()).toBe('RIFF');
     expect(view.getUint32(4, true)).toBe(bytes.length - 8);
     expect(view.getUint32(40, true)).toBe(bytes.length - 44);
-    // Two and a half seconds of stereo 16-bit sound is well over 100 kB.
     expect(bytes.length).toBeGreaterThan(100_000);
   } finally {
     await closeApp(app);

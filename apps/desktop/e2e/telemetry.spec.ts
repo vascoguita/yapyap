@@ -36,6 +36,13 @@ async function startTrap(): Promise<{
   };
 }
 
+/**
+ * How long the session stays open after its last action. Nothing marks the
+ * moment a request did not happen, so the test can only wait long enough for
+ * start-up checks, update pings or beacons to have fired.
+ */
+const QUIET_MS = 10_000;
+
 /** Records every request any YapYap session completes, by URL scheme and origin only. */
 async function recordRequests(app: ElectronApplication): Promise<void> {
   await app.evaluate(({ app: electronApp, session, webContents }) => {
@@ -93,8 +100,7 @@ test('talks to nothing but WhatsApp during a session', async ({ fakeWhatsApp, pr
     await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
     await openFromMenu(app, 'About YapYap');
     await openFromMenu(app, 'Settings…');
-    // Long enough for start-up checks, update pings or beacons to fire.
-    await new Promise((resolve) => setTimeout(resolve, 10_000));
+    await new Promise((resolve) => setTimeout(resolve, QUIET_MS));
     expect(trap.hosts).toEqual([]);
     const seen = await app.evaluate(
       () => (globalThis as unknown as { seenRequests: string[] }).seenRequests,

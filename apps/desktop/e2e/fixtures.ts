@@ -2,6 +2,7 @@ import {
   _electron as electron,
   test as base,
   type ElectronApplication,
+  type JSHandle,
   type Page,
 } from '@playwright/test';
 import { spawn, spawnSync, type ChildProcessByStdio } from 'node:child_process';
@@ -193,6 +194,27 @@ export async function whatsAppPage(app: ElectronApplication, besides?: Page): Pr
 }
 
 /**
+ * The main window, which holds the active account's WhatsApp view. Windows
+ * have no stable order once a chrome window is open, so it is found through
+ * WhatsApp's web contents rather than by index.
+ */
+export async function mainWindow(
+  app: ElectronApplication,
+): Promise<JSHandle<Electron.BrowserWindow>> {
+  await whatsAppPage(app);
+  return app.evaluateHandle(({ BrowserWindow, webContents }) => {
+    const page = webContents
+      .getAllWebContents()
+      .find((contents) => contents.getURL().startsWith('http'));
+    const window = page === undefined ? null : BrowserWindow.fromWebContents(page);
+    if (window === null) {
+      throw new Error('WhatsApp has no window.');
+    }
+    return window;
+  });
+}
+
+/**
  * Quits the app, and if it hangs, kills it and fails with the windows it had
  * and its last log lines rather than an unexplained teardown timeout (#223).
  */
@@ -268,10 +290,6 @@ export async function launchApp(
   return app;
 }
 
-/**
- * Starts YapYap again on `profile` while the app under test runs there, as a
- * user or the OS would, and resolves with how it ended once it hands over.
- */
 /** Starts the development build as its own process, outside Playwright's control. */
 export async function spawnApp(
   origin: string,
@@ -285,6 +303,15 @@ export async function spawnApp(
   });
 }
 
+/** How long a second launch may take to hand over to the running app and exit. */
+const HANDOVER_TIMEOUT_MS = 30_000;
+
+/**
+ * Starts YapYap again on `profile` while the app under test runs there, as a
+ * user or the OS would, and resolves with how it ended once it hands over.
+ * One that never exits is killed, so it cannot outlive the test holding the
+ * profile, and the test fails with what it logged rather than a bare timeout.
+ */
 export async function launchAgain(
   origin: string,
   profile: string,
@@ -295,11 +322,27 @@ export async function launchAgain(
   second.stderr.on('data', (chunk: Buffer) => {
     stderr += chunk.toString();
   });
-  return new Promise((resolve) => {
+  const exited = new Promise<{ code: number | null; signal: string | null }>((resolve) => {
     second.once('exit', (code, signal) => {
-      resolve({ code, signal, stderr });
+      resolve({ code, signal });
     });
   });
+  let timer: NodeJS.Timeout | undefined;
+  const timedOut = new Promise<'timeout'>((resolve) => {
+    timer = setTimeout(() => {
+      resolve('timeout');
+    }, HANDOVER_TIMEOUT_MS);
+  });
+  const result = await Promise.race([exited, timedOut]);
+  clearTimeout(timer);
+  if (result === 'timeout') {
+    second.kill('SIGKILL');
+    await exited;
+    throw new Error(
+      `The second launch did not exit within ${String(HANDOVER_TIMEOUT_MS / 1000)} s.\n${stderr}`,
+    );
+  }
+  return { ...result, stderr };
 }
 
 interface Fixtures {
@@ -331,7 +374,9 @@ export const test = base.extend<Fixtures & Options & { leftovers: undefined }>({
   profile: async ({}, use) => {
     const profile = await mkdtemp(join(tmpdir(), 'yapyap-e2e-'));
     await use(profile);
-    await rm(profile, { recursive: true, force: true });
+    // Windows keeps a profile's files locked for a moment after Chromium's
+    // helper processes outlive the app, which fails a plain delete with EBUSY.
+    await rm(profile, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
   },
   app: async ({ fakeWhatsApp, profile }, use, testInfo) => {
     const app = await launchApp(fakeWhatsApp.origin, profile);

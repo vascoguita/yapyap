@@ -1,7 +1,8 @@
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { ElectronApplication } from '@playwright/test';
-import { closeApp, expect, launchApp, test, whatsAppPage } from './fixtures.ts';
+import { SHOW_FALLBACK_MS } from '../src/main/show-when-ready.ts';
+import { closeApp, expect, launchApp, mainWindow, test, whatsAppPage } from './fixtures.ts';
 
 const whatsApp = (app: ElectronApplication) =>
   app.evaluate(({ BrowserWindow, webContents }) => {
@@ -28,9 +29,9 @@ test('keeps running hidden when the window closes, with Close to the tray on', a
     await expect((await whatsAppPage(app)).getByTestId('fake-whatsapp')).toBeVisible();
     // Closing before YapYap first shows the window would race that first show.
     await expect.poll(() => whatsApp(app)).toBe('visible=true');
-    await app.evaluate(({ BaseWindow }) => {
-      // The main window is the only one open.
-      BaseWindow.getAllWindows()[0]?.close();
+    const main = await mainWindow(app);
+    await main.evaluate((window) => {
+      window.close();
     });
     await expect.poll(() => whatsApp(app)).toBe('visible=false');
   } finally {
@@ -51,8 +52,9 @@ test('starts hidden when Start minimized is on, even when it was last maximized'
   try {
     const window = await whatsAppPage(app);
     await window.waitForLoadState('load');
-    // Longer than the fallback that shows a window which never reports ready.
-    await window.waitForTimeout(3500);
+    // Nothing signals that the window stayed hidden, so the test waits out the
+    // fallback that shows a window which never reports ready.
+    await window.waitForTimeout(SHOW_FALLBACK_MS + 500);
     expect(await whatsApp(app)).toBe('visible=false');
   } finally {
     await closeApp(app);

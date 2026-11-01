@@ -1,4 +1,4 @@
-import { readdir, readFile, writeFile } from 'node:fs/promises';
+import { readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ElectronApplication, Page } from '@playwright/test';
@@ -59,8 +59,21 @@ export const chromePage = async (app: ElectronApplication, path: string): Promis
   return page;
 };
 
+/**
+ * How many bytes of sound the recording in progress has written to its
+ * `.part` file in `folder`, so a test can wait for sound rather than a while.
+ */
+export const recordedBytes = async (folder: string): Promise<number> => {
+  const names = await readdir(folder).catch(() => []);
+  const sizes = await Promise.all(
+    names
+      .filter((name) => name.endsWith('.part'))
+      .map(async (name) => (await stat(join(folder, name))).size),
+  );
+  return sizes.reduce((total, size) => total + size, 0);
+};
+
 /** An extension's page, if one runs: its title, whether it shows, and its session. */
-/** What the E2E tests read of an extension's page. */
 export interface ExtensionPage {
   readonly url: string;
   readonly title: string;
