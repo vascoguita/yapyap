@@ -1,7 +1,7 @@
 {
   "linux": {
     "coldStartMs": 2200,
-    "idleMemoryMb": 715,
+    "idleMemoryMb": 630,
     "idleRenderers": 1,
     "accountMemoryMb": 270,
     "hiddenCpuPercent": 2,
@@ -10,7 +10,7 @@
   },
   "darwin": {
     "coldStartMs": 3500,
-    "idleMemoryMb": 540,
+    "idleMemoryMb": 470,
     "idleRenderers": 1,
     "accountMemoryMb": 250,
     "hiddenCpuPercent": 2,
@@ -19,7 +19,7 @@
   },
   "win32": {
     "coldStartMs": 2000,
-    "idleMemoryMb": 440,
+    "idleMemoryMb": 375,
     "idleRenderers": 1,
     "accountMemoryMb": 230,
     "hiddenCpuPercent": 2,

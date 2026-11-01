@@ -125,6 +125,14 @@ timings in PRs would flap.
     with a budget of one (WhatsApp's) on every OS. The count is exact, so
     a window created ahead of time, one left running after it closes, or
     another empty page fails it at once, whatever the runner's noise.
+  - The idle-memory budgets now sit 10% above the medians of this change's
+    own benchmark run, as in #428, so the saving cannot quietly return:
+
+    | Runner         | Idle memory before | Idle memory after | Budget |
+    | -------------- | ------------------ | ----------------- | ------ |
+    | ubuntu-latest  | 651 MB             | 570 MB            | 630 MB |
+    | windows-latest | 399 MB             | 338 MB            | 375 MB |
+    | macos-latest   | 489 MB             | 428 MB            | 470 MB |
 
   What was checked and left as it is:
   - Chrome windows (`app://chrome/`) are created on demand and destroyed on
