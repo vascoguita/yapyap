@@ -242,11 +242,16 @@ input:focus-visible {
   padding: 0;
 }
 
-/* Each option keeps its button and its words together, apart from the next option. */
+/*
+ * Each option keeps its button and its words together, apart from the next
+ * option. A row at least 24 px tall keeps wrapped options far enough apart
+ * for WCAG 2.2's target size.
+ */
 .choice label {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  min-block-size: 24px;
 }
 
 .choice input {
