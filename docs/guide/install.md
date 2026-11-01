@@ -126,17 +126,17 @@ exactly what YapYap's release workflow built:
 
 ```sh
 sha256sum --check --ignore-missing SHA256SUMS
-gh attestation verify YapYap-0.1.0-linux-x86_64.AppImage --repo vascoguita/yapyap
+gh attestation verify YapYap-<version>-linux-x86_64.AppImage --repo vascoguita/yapyap
 ```
 
-Releases from v0.1.2 on also carry the signed provenance itself, as
-`yapyap-<version>.sigstore.json` (a Sigstore bundle) and
-`yapyap-<version>.intoto.jsonl` (its in-toto envelope), so you can check a
+Releases from v0.2.0 on also carry the signed provenance itself, as
+`yapyap-v<version>.sigstore.json` (a Sigstore bundle) and
+`yapyap-v<version>.intoto.jsonl` (its in-toto envelope), so you can check a
 file offline or with other tools:
 
 ```sh
-gh attestation verify YapYap-0.1.2-linux-x86_64.AppImage --repo vascoguita/yapyap \
-  --bundle yapyap-v0.1.2.sigstore.json
+gh attestation verify YapYap-<version>-linux-x86_64.AppImage --repo vascoguita/yapyap \
+  --bundle yapyap-v<version>.sigstore.json
 ```
 
 ## Beta versions {#betas}

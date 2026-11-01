@@ -13,7 +13,9 @@ account you add in YapYap uses one of those slots.
 :::
 
 ::: tip Early days
-YapYap is new: v0.1.0 is its first release. Report anything that goes wrong
+YapYap is young and not yet at 1.0, and the
+[changelog](https://github.com/vascoguita/yapyap/blob/master/CHANGELOG.md)
+lists what each release changed. Report anything that goes wrong
 as described in [Troubleshooting](/guide/troubleshooting#diagnostics), and
 follow what comes next on the
 [project board](https://github.com/users/vascoguita/projects/5).

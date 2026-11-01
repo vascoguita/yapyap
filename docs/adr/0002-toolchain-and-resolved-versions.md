@@ -12,131 +12,77 @@ memory. Dependencies must be minimal, and each one must be justified.
 
 ## Decision
 
+Exact versions live in the manifests and lockfile, not here: the root and
+workspace `package.json` files and `pnpm-lock.yaml` for npm packages,
+`.nvmrc` and `engines` for Node.js, `packageManager` for pnpm, the workflow
+files for GitHub Actions (pinned by commit SHA), and the Flatpak manifest for
+its runtime. This ADR records the choices and their reasons.
+
 ### Repository layout (pnpm workspaces)
 
 ```
-apps/desktop          Electron app (main, preloads, chrome renderer, WhatsApp adapter, extension host)
-packages/sdk          @yapyap/extension-sdk: typed extension API, manifest JSON Schema
+apps/desktop             Electron app (main, preloads, chrome renderer, WhatsApp adapter, AI assistant, extension host)
+packages/sdk             @yapyap/extension-sdk: typed extension API, manifest JSON Schema
 packages/extension-sign  @yapyap/extension-sign: Ed25519 signing and verification CLI
-extensions/ai-assistant  bundled first-party AI writing assistant
-extensions/example       minimal example extension
-docs                  VitePress site
+extensions/              first-party extensions (call recorder, example)
+scripts                  tested repository automation
+docs                     VitePress site
 ```
 
-### Resolved versions (verified 2026-10-18)
+### Versions
 
-Versions were checked against the npm registry (`npm view <pkg> dist-tags.latest`),
-`nodejs.org/dist/index.json`, `releases.electronjs.org`, and the GitHub
-Releases API. Pre-release, beta and nightly versions are never used.
+- Only the latest stable release of each runtime, tool, dependency and
+  action, pinned exactly. Pre-release, beta and nightly versions are never
+  used. Each version is checked against its registry or release page, never
+  taken from memory.
+- **Node.js:** the latest Active LTS line, matching the Node bundled in
+  Electron where possible. **pnpm:** pinned through `packageManager`.
+- **GitHub Actions** are pinned by commit SHA, with the tag in a comment.
+- Versions outside Dependabot's reach (the Node.js LTS line, the Flatpak
+  runtime and base app) are checked by a weekly workflow
+  (`.github/workflows/pinned-versions.yml`, `scripts/src/pinned-versions/`),
+  which opens a PR when a newer stable release exists.
 
-#### Runtimes
+### Build and test tools
 
-| Tool     | Version | Notes                                                                       |
-| -------- | ------- | --------------------------------------------------------------------------- |
-| Node.js  | 24.22.0 | Latest Active LTS ("Krypton"). Matches the Node bundled in Electron 45.0.0. |
-| pnpm     | 12.14.0 | Pinned via `packageManager` (Corepack)                                      |
-| Electron | 45.0.0  | Chromium 156.0.8078.48                                                      |
+- **electron-vite** builds the main process, preloads and renderer;
+  **electron-builder** packages every format; **@electron/fuses** checks the
+  hardened fuses.
+- **ESLint** with typescript-eslint, **Prettier** and **knip** for lint;
+  **Vitest** with V8 coverage for unit and integration tests;
+  **Playwright** for E2E; **Stryker** with the command runner for mutation
+  tests (ADR 0008, C12).
+- **axe-core** is evaluated directly, since Electron cannot open the extra
+  page `@axe-core/playwright` needs.
+- **happy-dom** and **@testing-library/preact** for component tests;
+  **commitlint** for commit messages.
+- **VitePress** and **typedoc** with `typedoc-plugin-markdown` for the docs
+  site and SDK reference; **@cyclonedx/cyclonedx-npm** and
+  **license-checker-rseidelsohn** for the SBOM and license checks.
 
-#### Build and language
+### Runtime dependencies
 
-| Package          | Version | Notes                                          |
-| ---------------- | ------- | ---------------------------------------------- |
-| typescript       | 6.0.3   | See "TypeScript 7" below                       |
-| electron-vite    | 6.0.0   |                                                |
-| vite             | 8.3.4   |                                                |
-| electron-builder | 26.15.3 |                                                |
-| electron-updater | 6.8.9   | Runtime dependency, self-updating targets only |
-| @electron/fuses  | 2.1.3   |                                                |
-
-#### Quality and tests
-
-| Package                                                                                   | Version |
-| ----------------------------------------------------------------------------------------- | ------- |
-| eslint                                                                                    | 10.13.0 |
-| @eslint/js                                                                                | 10.0.1  |
-| typescript-eslint                                                                         | 8.71.2  |
-| prettier                                                                                  | 3.9.10  |
-| knip                                                                                      | 6.42.0  |
-| vitest, @vitest/coverage-v8                                                               | 5.0.5   |
-| @playwright/test                                                                          | 1.64.1  |
-| axe-core (evaluated directly; Electron cannot open the page `@axe-core/playwright` needs) | 4.14.0  |
-| @stryker-mutator/core (command runner; see ADR 0008, C12)                                 | 10.0.0  |
-| happy-dom                                                                                 | 21.0.3  |
-| @testing-library/preact                                                                   | 3.2.4   |
-| @commitlint/cli, @commitlint/config-conventional                                          | 21.2.4  |
-| @types/node                                                                               | 26.6.5  |
-
-#### Runtime dependencies
-
-| Package           | Version | Justification                                                                                                                                                                                                                  |
-| ----------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| preact            | 11.0.1  | About 4 KB UI runtime for app chrome. TSX type-checks under strict lint. Unlike shadow-DOM component libraries, ARIA references work across components.                                                                        |
-| @preact/signals   | 2.11.3  | Fine-grained state for chrome UI without a store library                                                                                                                                                                       |
-| typebox           | 1.4.2   | One schema source gives TS types and publishable JSON Schema (extension manifest, RPC, settings). Its interpreter-mode validation needs no `eval`.                                                                             |
-| fflate            | 0.8.3   | Zero-dependency zip reader for `.yapyap-extension` bundles                                                                                                                                                                     |
-| electron-updater  | 6.8.9   | Signed update metadata for AppImage, NSIS and macOS only                                                                                                                                                                       |
-| @anthropic-ai/sdk | 1.2.0   | The AI assistant extension's Anthropic provider (#103): the vendor's own streaming, error types, retries and timeouts, bundled into the extension only; 1.2.0 because pnpm's one-day release-age policy still holds back 1.3.0 |
-| openai            | 7.43.0  | The AI assistant extension's OpenAI and OpenAI-compatible provider (#103): the vendor's chat-completions streaming and error types, which self-hosted servers speak too; bundled into the extension only                       |
+| Package           | Justification                                                                                                                                           |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| preact            | About 4 KB UI runtime for app chrome. TSX type-checks under strict lint. Unlike shadow-DOM component libraries, ARIA references work across components. |
+| typebox           | One schema source gives TS types and publishable JSON Schema (extension manifest, RPC, settings). Its interpreter-mode validation needs no `eval`.      |
+| fflate            | Zero-dependency zip reader for `.yapyap-extension` bundles                                                                                              |
+| electron-updater  | Signed update metadata for AppImage, NSIS and macOS only                                                                                                |
+| @anthropic-ai/sdk | The AI assistant's Anthropic provider: the vendor's own streaming, error types, retries and timeouts                                                    |
+| openai            | The AI assistant's OpenAI and OpenAI-compatible provider: the vendor's chat-completions streaming and error types, which self-hosted servers speak too  |
+| @wllama/wllama    | The AI assistant's private model: llama.cpp compiled to WebAssembly, bundled into the engine page                                                       |
 
 Everything else is written in-house and kept small: logging with redaction,
 settings store, i18n catalogs, and the RPC layer.
 
-#### Docs
-
-| Package                          | Version         |
-| -------------------------------- | --------------- |
-| vitepress                        | 1.6.4           |
-| typedoc, typedoc-plugin-markdown | 0.28.20, 4.14.1 |
-
-#### Supply chain
-
-| Package                     | Version |
-| --------------------------- | ------- |
-| @cyclonedx/cyclonedx-npm    | 6.0.1   |
-| license-checker-rseidelsohn | 5.0.1   |
-
-#### GitHub Actions (pinned by commit SHA)
-
-| Action                              | Tag     | SHA                                      |
-| ----------------------------------- | ------- | ---------------------------------------- |
-| actions/checkout                    | v7.0.1  | 3d3c42e5aac5ba805825da76410c181273ba90b1 |
-| actions/setup-node                  | v7.1.0  | 949feb2413d6458794dcd2491c4babbbce0c15c1 |
-| pnpm/action-setup                   | v6.1.0  | ea17c68df8912ef543352723c149a84f56e3d413 |
-| actions/cache                       | v6.1.0  | 55cc8345863c7cc4c66a329aec7e433d2d1c52a9 |
-| actions/upload-artifact             | v7.0.2  | cf430e030ddbb5b0abf93d22962f4752f3646cd9 |
-| actions/download-artifact           | v8.0.2  | 9000827ccba6bdab643e8b6fd33ac0654aef8333 |
-| actions/configure-pages             | v6.0.0  | 45bfe0192ca1faeb007ade9deae92b16b8254a0d |
-| actions/upload-pages-artifact       | v5.0.0  | fc324d3547104276b827a68afc52ff2a11cc49c9 |
-| actions/deploy-pages                | v5.0.1  | 368f82528645a54fb793d4d04e342629a3f51346 |
-| actions/attest-build-provenance     | v4.2.2  | 4d101475d8b20a2381f78447822ac1eab6504dd8 |
-| actions/dependency-review-action    | v5.0.0  | a1d282b36b6f3519aa1f3fc636f609c47dddb294 |
-| github/codeql-action                | v4.39.0 | 6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee |
-| ossf/scorecard-action               | v2.5.0  | fa7117db83c52d787ae5a89f350999701505d78e |
-| googleapis/release-please-action    | v5.0.0  | 45996ed1f6d02564a971a2fa1b5860e934307cf7 |
-| amannn/action-semantic-pull-request | v6.1.1  | 48f256284bd46cdaab1048c3721360e808335d50 |
-| dependabot/fetch-metadata           | v3.1.0  | 25dd0e34f4fe68f24cc83900b1fe3fe149efef98 |
-| anchore/sbom-action                 | v0.24.3 | 66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c |
-| flatpak/flatpak-github-actions      | v6.8    | 79327416609af08178ad73b352877e51450790b3 |
-
-#### Flatpak
-
-| Component                        | Version |
-| -------------------------------- | ------- |
-| org.freedesktop.Platform / Sdk   | 26.08   |
-| org.electronjs.Electron2.BaseApp | 26.08   |
-
-These versions sit outside Dependabot's reach. A weekly workflow
-(`.github/workflows/pinned-versions.yml`) checks them, and the Node.js LTS
-line, and opens a PR when a newer stable release exists.
-
 ### TypeScript 7
 
-`typescript@7.0.2` is the npm `latest`. However, `typescript-eslint@8.71.2`
-declares `typescript >=4.8.4 <6.1.0` and `typedoc@0.28.20` declares
-`typescript 6.0.x`. Both are required by this project (strict type-checked
-linting, SDK API reference). We pin TypeScript 6.0.3, the newest release that
-satisfies every peer. Dependabot will propose 7.x, and we adopt it once its
-peers support it. This conflict is logged in [ADR 0008](0008-requirement-conflicts.md).
+TypeScript 7 was the npm `latest` when this ADR was written, but the
+typescript-eslint and typedoc releases this project needs (strict
+type-checked linting, SDK API reference) accept only TypeScript 6. We pin
+the newest TypeScript 6 release that satisfies every peer. Dependabot
+proposes 7.x, and we adopt it once its peers support it. This conflict is
+logged in [ADR 0008](0008-requirement-conflicts.md) (C1).
 
 ### Install scripts
 
@@ -157,12 +103,13 @@ dependencies. Prettier checks formatting.
 ## Amendments
 
 - 2026-11-01 (ADR 0017): the AI assistant moved into the app.
-  `@anthropic-ai/sdk` (1.3.0) and `openai` (7.43.0) are now dependencies of
-  `apps/desktop` and run in the main process; `@wllama/wllama` (3.8.1) is a
-  development dependency of `apps/desktop`, bundled into the engine page,
-  with its `.wasm` copied beside the renderer's pages. `@noble/hashes` is
-  gone: the main process hashes the private model with `node:crypto`.
+  `@anthropic-ai/sdk` and `openai` are now dependencies of `apps/desktop`
+  and run in the main process; `@wllama/wllama` is bundled into the engine
+  page, with its `.wasm` copied beside the renderer's pages. `@noble/hashes`
+  is gone: the main process hashes the private model with `node:crypto`.
   `extensions/ai-assistant` no longer exists.
+- 2026-11-01: the tables of resolved versions were removed. They drifted
+  with every Dependabot PR, and the manifests already pin every version.
 
 ## Consequences
 

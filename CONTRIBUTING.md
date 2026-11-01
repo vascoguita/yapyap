@@ -293,7 +293,7 @@ the maintainer's call.
 
 To cut a beta, run the **Beta release** workflow with the coming stable
 version, from the Actions tab or with
-`gh workflow run beta.yml --repo vascoguita/yapyap -f version=0.1.0`. It
+`gh workflow run beta.yml --repo vascoguita/yapyap -f version=X.Y.Z`. It
 numbers the next `vX.Y.Z-beta.N`, creates the GitHub pre-release from the
 current `master`, and packages, smoke-tests and publishes it exactly like a
 stable release (`publish.yml` is shared), except that betas skip the AUR.
@@ -315,13 +315,13 @@ extension's release PR publishes that extension alone (see
 [Extension marketplace](#extension-marketplace)). There is no extension
 beta: test it with a development build before merging.
 
-Until the first release is near, the release PR is paused: the
-release-please job runs only when the repository variable
-`RELEASES_ENABLED` is `true`. Every update of the release PR runs the full
-check suite, which holds runners that feature PRs wait for. To resume, run
-`gh variable set RELEASES_ENABLED --body true --repo vascoguita/yapyap`; the
-next push to `master` opens the release PR again with every change since the
-last release.
+The release-please job runs only while the repository variable
+`RELEASES_ENABLED` is `true`, as it is now. Every update of the release PR
+runs the full check suite, which holds runners that feature PRs wait for, so
+setting it to `false` pauses the release PR during busy stretches. Setting it
+back to `true` (`gh variable set RELEASES_ENABLED --body true --repo
+vascoguita/yapyap`) makes the next push to `master` open the release PR again
+with every change since the last release.
 
 Release notes are generated from commit subjects, and only `feat`, `fix`,
 `perf` and `revert` commits appear in them. Each change appears once: the
