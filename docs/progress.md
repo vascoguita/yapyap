@@ -255,3 +255,6 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
 - Adapter world (#543): main-process probes run through `runInAdapterWorld`
   (`adapter/world.ts`), and chrome pages load through `loadChromePage`,
   which the hidden recorder window uses too.
+- Windows E2E waits (#557): the restart test flushes the account's
+  storage before quitting, which a quick quit on Windows had lost, and the
+  recovery tests wait for WhatsApp's load before the health check's delay.
