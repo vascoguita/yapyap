@@ -111,94 +111,6 @@ describe('bootExtension', () => {
     });
   });
 
-  it('hands the assistant bar’s requests to the extension’s handler, and survives one that fails', async () => {
-    const p = page();
-    const asked: unknown[] = [];
-    await bootExtension(
-      p.scope,
-      () =>
-        Promise.resolve({
-          default: {
-            activate: (api: ExtensionHost) => {
-              api.assistant.onRequest((request) => {
-                if (request.type === 'confirm') {
-                  throw new Error('bug');
-                }
-                asked.push(request);
-              });
-            },
-          },
-        }),
-      '/main.js',
-      'yapyap:extension-port',
-      helpers,
-    );
-    p.deliver('yapyap:extension-port');
-    p.reply({ assistant: { type: 'suggest' } });
-    await vi.waitFor(() => {
-      expect(asked).toEqual([{ type: 'suggest' }]);
-    });
-    p.reply({ assistant: { type: 'confirm' } });
-    p.reply({ assistant: { type: 'prompt', text: 'Say hi' } });
-    await vi.waitFor(() => {
-      expect(asked).toEqual([{ type: 'suggest' }, { type: 'prompt', text: 'Say hi' }]);
-    });
-  });
-
-  it('keeps the bar’s requests that come before the extension listens, and hands them over once it does', async () => {
-    const p = page();
-    const asked: unknown[] = [];
-    let listen = (): void => undefined;
-    const booted = bootExtension(
-      p.scope,
-      () =>
-        Promise.resolve({
-          default: {
-            activate: (api: ExtensionHost) =>
-              new Promise<void>((resolve) => {
-                listen = () => {
-                  api.assistant.onRequest((request) => {
-                    if (request.type === 'confirm') {
-                      throw new Error('bug');
-                    }
-                    asked.push(request);
-                  });
-                  resolve();
-                };
-              }),
-          },
-        }),
-      '/main.js',
-      'yapyap:extension-port',
-      helpers,
-    );
-    p.deliver('yapyap:extension-port');
-    p.reply({ assistant: { type: 'confirm' } });
-    p.reply({ assistant: { type: 'suggest' } });
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(asked).toEqual([]);
-    listen();
-    await booted;
-    await vi.waitFor(() => {
-      expect(asked).toEqual([{ type: 'suggest' }]);
-    });
-  });
-
-  it('ignores assistant requests when the extension listens for none', async () => {
-    const p = page();
-    await bootExtension(
-      p.scope,
-      () => Promise.resolve({ default: { activate: () => undefined } }),
-      '/main.js',
-      'yapyap:extension-port',
-      helpers,
-    );
-    p.deliver('yapyap:extension-port');
-    p.reply({ assistant: { type: 'suggest' } });
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(p.postMessage).not.toHaveBeenCalled();
-  });
-
   it('loads an entry without an activate function, and does nothing with it', async () => {
     const p = page();
     for (const module of [{}, null, { default: { activate: 'no' } }]) {
@@ -212,7 +124,7 @@ describe('bootExtension', () => {
 describe('hostApi', () => {
   it('turns every SDK method into one call, and keeps command handlers by ID', async () => {
     const call = vi.fn(() => Promise.resolve(undefined as never));
-    const handlers: HostHandlers = { commands: new Map(), early: [] };
+    const handlers: HostHandlers = { commands: new Map() };
     const api = hostApi(call, handlers, ownApi);
     await api.chat.readActive();
     await api.chat.readUnreadSummary();
@@ -232,14 +144,9 @@ describe('hostApi', () => {
     await api.secrets.set('s', 'v');
     await api.secrets.delete('s');
     await api.settings.get();
-    await api.localModels.find();
-    await api.assistant.offer({ suggestions: ['Yes'] });
     const translate = vi.fn();
     api.commands.onRun('translate', translate);
     expect(handlers.commands.get('translate')).toBe(translate);
-    const request = vi.fn();
-    api.assistant.onRequest(request);
-    expect(handlers.assistant).toBe(request);
     expect(call.mock.calls).toEqual([
       ['chat.readActive'],
       ['chat.readUnreadSummary'],
@@ -259,8 +166,6 @@ describe('hostApi', () => {
       ['secrets.set', 's', 'v'],
       ['secrets.delete', 's'],
       ['settings.get'],
-      ['localModels.find'],
-      ['assistant.offer', { suggestions: ['Yes'] }],
     ]);
   });
 });

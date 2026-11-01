@@ -125,67 +125,6 @@ export interface CommandsApi {
   readonly onRun: (id: string, handler: () => void | Promise<void>) => void;
 }
 
-/**
- * What the user asked for in YapYap's assistant bar (ADR 0013): reply
- * suggestions for the open chat, a message written from their own words,
- * or permission the extension asked for in its last offer.
- */
-export type AssistantRequest =
-  | { readonly type: 'suggest' }
-  | { readonly type: 'prompt'; readonly text: string }
-  | { readonly type: 'confirm' }
-  | { readonly type: 'choose'; readonly value: string };
-
-/** One option of an {@link AssistantChoice}. */
-export interface AssistantOption {
-  /** What is saved when the user picks it, at most 100 characters. */
-  readonly value: string;
-  /** What the user sees, at most 60 characters. */
-  readonly label: string;
-}
-
-/**
- * A choice the bar shows beside the suggestions, such as the model in use
- * (#467). When the user picks an option, YapYap sends a `choose` request
- * with its value, and asks for suggestions again if some were showing.
- */
-export interface AssistantChoice {
-  /** A short name for the choice, at most 40 characters, such as "Model". */
-  readonly label: string;
-  /** The value in use now, at most 100 characters. */
-  readonly current: string;
-  /** Up to 20 options. */
-  readonly options: readonly AssistantOption[];
-}
-
-/** What an extension shows in the assistant bar, as plain text under its name. */
-export interface AssistantOffer {
-  /** Up to five suggestions, each at most 1,000 characters. */
-  readonly suggestions: readonly string[];
-  /** A short status line, at most 200 characters, such as "Thinking…" or an error. */
-  readonly status?: string;
-  /**
-   * The label of a button that sends a `confirm` request, at most 40
-   * characters, such as "Allow here" when the extension needs the user's
-   * permission first.
-   */
-  readonly confirm?: string;
-  /** A choice to show, such as the model in use; the bar keeps the last one until another comes. */
-  readonly choice?: AssistantChoice;
-}
-
-/**
- * YapYap's assistant bar above the open chat's message box (ADR 0013). Needs
- * `assistant:bar`. The extension only offers text: YapYap puts a suggestion in
- * the message box, or sends it, only when the user clicks.
- */
-export interface AssistantApi {
-  /** Replaces what the bar shows for this extension. */
-  readonly offer: (offer: AssistantOffer) => Promise<void>;
-  /** Runs `handler` for each request the user makes in the bar. */
-  readonly onRequest: (handler: (request: AssistantRequest) => void | Promise<void>) => void;
-}
-
 /** Where the call on screen stands, as an extension with `calls:record` sees it. */
 export interface CallState {
   /**
@@ -231,40 +170,6 @@ export interface CallsApi {
   readonly reveal: (id: string) => Promise<void>;
 }
 
-/** A model server running on this computer, as {@link LocalModelsApi.find} found it. */
-export interface LocalModelServer {
-  /** The server as `host:port`, such as `localhost:11434`, as YapYap names it when it asks the user. */
-  readonly server: string;
-  /** Its OpenAI-compatible address, such as `http://localhost:11434/v1`. */
-  readonly endpoint: string;
-  /** The IDs of up to 20 models it serves, each at most 200 characters, in the server's own order. */
-  readonly models: readonly string[];
-}
-
-/**
- * Finding the AI models the user already runs on this computer (#456),
- * with `local-network`. YapYap looks, never the extension, and only at the
- * usual addresses of a few model servers.
- */
-export interface LocalModelsApi {
-  /**
-   * The model servers that answer on this computer, at most four, among the
-   * usual addresses of Ollama (port 11434), Alpaca (11435), LM Studio (1234)
-   * and llama.cpp (8080). YapYap asks each only for its list of models.
-   * Needs `local-network`.
-   *
-   * The first call asks the user whether the extension may look, and YapYap
-   * remembers the answer: after a refusal, every call rejects with
-   * `not-granted` without asking again, until the user takes
-   * `local-network` back from the extension and grants it again. The call
-   * waits for the user's answer, up to two minutes.
-   *
-   * Finding a server does not let the extension use it: its first request
-   * to the server still asks the user, as for any server on this computer.
-   */
-  readonly find: () => Promise<readonly LocalModelServer[]>;
-}
-
 /** Everything an extension can reach. HTTPS requests use the standard `fetch`, limited to `network.hosts`. */
 export interface ExtensionHost {
   /** Reading chats. */
@@ -283,10 +188,6 @@ export interface ExtensionHost {
   readonly commands: CommandsApi;
   /** The extension's own settings. */
   readonly settings: SettingsApi;
-  /** YapYap's assistant bar above the open chat's message box. */
-  readonly assistant: AssistantApi;
-  /** The AI models running on this computer, which YapYap looks for on the extension's behalf. */
-  readonly localModels: LocalModelsApi;
 }
 
 /** What an extension's entry module exports as its default. */

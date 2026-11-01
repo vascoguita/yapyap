@@ -864,18 +864,18 @@ function attachAssistantBar<Window extends WindowPort>(
     listenToAssistantBar(deps.ipc, bar, {
       origin,
       activePage,
+      openSettings: chrome.openSettings,
       views: security.views,
       warn: deps.warn,
     });
     const onScreen = (): boolean => window.isVisible() && window.isFocused();
     suggestAsMessagesArrive({
       activePage,
-      active: () =>
-        deps.settings.current().extensions.autoSuggest &&
-        bar.state().extension !== '' &&
-        !bar.state().working &&
-        onScreen(),
-      suggest: () => bar.suggest(),
+      active: () => {
+        const { enabled, autoSuggest } = deps.settings.current().assistant;
+        return enabled && autoSuggest && !bar.state().working && onScreen();
+      },
+      suggest: () => bar.suggestOnArrival(),
       every: setInterval,
     });
     return inPageAssistantBar(bar.state, { activePage, onScreen });

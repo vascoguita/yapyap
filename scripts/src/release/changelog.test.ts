@@ -141,20 +141,19 @@ describe('findReleasePullRequest', () => {
     const graphql = vi.fn<GitHubApi['graphql']>(() =>
       Promise.resolve({ repository: { pullRequests: { nodes: [] }, object: null } }),
     );
-    const assistant = RELEASE_TRACKS.find(({ branch }) => branch.endsWith('--ai-assistant'));
-    expect(assistant).toEqual({
-      branch: 'release-please--branches--master--components--ai-assistant',
-      changelog: 'extensions/ai-assistant/CHANGELOG.md',
+    const recorder = RELEASE_TRACKS.find(({ branch }) => branch.endsWith('--call-recorder'));
+    expect(recorder).toEqual({
+      branch: 'release-please--branches--master--components--call-recorder',
+      changelog: 'extensions/call-recorder/CHANGELOG.md',
     });
     expect(RELEASE_TRACKS.map(({ changelog }) => changelog)).toEqual([
       'CHANGELOG.md',
-      'extensions/ai-assistant/CHANGELOG.md',
       'extensions/call-recorder/CHANGELOG.md',
     ]);
-    await findReleasePullRequest({ graphql }, 'o/r', assistant);
+    await findReleasePullRequest({ graphql }, 'o/r', recorder);
     expect(graphql.mock.calls[0]?.[1]).toMatchObject({
-      branch: 'release-please--branches--master--components--ai-assistant',
-      file: 'release-please--branches--master--components--ai-assistant:extensions/ai-assistant/CHANGELOG.md',
+      branch: 'release-please--branches--master--components--call-recorder',
+      file: 'release-please--branches--master--components--call-recorder:extensions/call-recorder/CHANGELOG.md',
     });
   });
 });

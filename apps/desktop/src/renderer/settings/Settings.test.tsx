@@ -3,7 +3,8 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ChromeApi, SettingsSnapshot } from '../../shared/chrome-api.ts';
 import type { SettingValue } from '../../shared/settings-fields.ts';
-import { closeOnEscape, Field, Settings } from './Settings.tsx';
+import { Field } from './Field.tsx';
+import { closeOnEscape, Settings } from './Settings.tsx';
 
 const HARDWARE = 'reliability.hardwareAcceleration';
 const THEME = 'appearance.theme';
@@ -40,6 +41,15 @@ function api(overrides: Partial<ChromeApi['settings']> = {}) {
       ),
       chooseFolder: vi.fn(() => Promise.resolve()),
       ...overrides,
+    },
+    assistant: {
+      view: vi.fn(),
+      saveKey: vi.fn(),
+      forgetKey: vi.fn(),
+      testKey: vi.fn(),
+      findServers: vi.fn(),
+      privateModel: vi.fn(),
+      forgetChat: vi.fn(),
     },
     chat: { openNumber: vi.fn() },
     accounts: {
@@ -91,6 +101,7 @@ describe('Settings', () => {
   it('lists the settings by section, each explained', async () => {
     render(<Settings api={api()} />);
     expect(screen.getByText('Loading…')).toBeTruthy();
+    expect(screen.getByRole('main').getAttribute('aria-busy')).toBe('true');
     const box = await toggle();
     expect(box.checked).toBe(true);
     expect(box.disabled).toBe(false);
@@ -101,6 +112,24 @@ describe('Settings', () => {
       /flickers or stays blank\. Takes effect after a restart\.$/,
     );
     expect(screen.queryByRole('button', { name: 'Restart now' })).toBeNull();
+  });
+
+  it('puts the assistant first, in a section of its own', async () => {
+    const values = {
+      'assistant.enabled': true,
+      'assistant.provider': 'auto',
+      'assistant.autoSuggest': true,
+      [HARDWARE]: true,
+    };
+    const settings = api({ get: vi.fn(() => Promise.resolve(snapshot({ values }))) });
+    settings.assistant.view = vi.fn(() => new Promise<never>(() => undefined));
+    render(<Settings api={settings} />);
+    const section = await screen.findByRole('region', { name: 'Assistant' });
+    expect(document.querySelector('main section')).toBe(section);
+    expect(screen.getByRole('checkbox', { name: 'Show the assistant in chats' })).toBeTruthy();
+    expect(screen.getAllByRole('region', { name: 'Assistant' })).toHaveLength(1);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Show the assistant in chats' }));
+    expect(settings.settings.set).toHaveBeenCalledWith('assistant.enabled', false);
   });
 
   it('saves a change and offers a restart when it needs one', async () => {

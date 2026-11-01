@@ -9,10 +9,3 @@ export const PANEL_PAGE_PATH = '/__yapyap/panel.html';
 
 /** Where YapYap serves the stylesheet every panel starts with (#396). */
 export const PANEL_STYLE_PATH = '/__yapyap/panel.css';
-
-/**
- * Where an unpackaged YapYap serves the model its E2E tests download in
- * place of the AI assistant's pinned ones (#457), to an extension holding
- * `local-model`. A packaged YapYap answers 404.
- */
-export const TEST_MODEL_PATH = '/__yapyap/test-model.json';

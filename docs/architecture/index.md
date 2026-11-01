@@ -6,12 +6,13 @@ system; every web page runs in a sandboxed, context-isolated renderer with
 no Node.js access, and talks to the main process only through narrow,
 checked channels.
 
-| Zone         | Runs                                                                | Trust                         |
-| ------------ | ------------------------------------------------------------------- | ----------------------------- |
-| Main process | App logic, settings, IPC validation, extension host                 | Trusted                       |
-| App chrome   | YapYap's own UI, served from a custom `app://` protocol             | Trusted code, untrusted input |
-| WhatsApp     | One sandboxed renderer per account, with its own persistent session | Untrusted (remote)            |
-| Extensions   | One hidden, sandboxed renderer per extension                        | Untrusted (third party)       |
+| Zone         | Runs                                                                 | Trust                         |
+| ------------ | -------------------------------------------------------------------- | ----------------------------- |
+| Main process | App logic, settings, IPC validation, AI assistant, extension host    | Trusted                       |
+| App chrome   | YapYap's own UI, served from a custom `app://` protocol              | Trusted code, untrusted input |
+| WhatsApp     | One sandboxed renderer per account, with its own persistent session  | Untrusted (remote)            |
+| Engine       | A hidden, sandboxed renderer for the private model, while it is used | Trusted code, no network      |
+| Extensions   | One hidden, sandboxed renderer per extension                         | Untrusted (third party)       |
 
 ## Processes and trust zones
 
@@ -91,9 +92,7 @@ checked channels.
 - **Extensions** each run in a hidden, sandboxed page on a partition of their
   own, served only from `extension://<id>/` under a CSP that allows no eval
   and no inline or remote code. A request leaves the page only to a host
-  the user approved, or to this computer with `local-network`. Only an
-  extension holding `local-model` may compile WebAssembly and run threads,
-  to run an AI model in its own page. An extension's
+  the user approved, or to this computer with `local-network`. An extension's
   panel is a separate window with no preload; it reaches its extension's page
   over a `BroadcastChannel`, never the main process
   ([ADR 0004](/adr/0004-extension-isolation-and-trust-model)).
@@ -168,18 +167,22 @@ message box for you to send.
 
 ### An AI assistant reply
 
-1. You open the assistant's panel and ask for replies. The panel asks the
-   extension's page over its `BroadcastChannel`.
-2. The page reads the open chat through `chat:read-active`, which needs your
-   grant for that account and returns at most the number of messages you
-   set.
-3. The panel shows exactly what will be sent and asks before the first
-   request for each chat.
-4. The page sends it to the provider you chose, with your API key from the
-   system keychain, only to a host you approved, or only to this computer
-   in local-only mode.
-5. You pick a reply, and the page inserts it as a draft through
-   `composer:insert-draft`. You read it and send it yourself.
+The assistant is part of YapYap ([ADR 0017](/adr/0017-assistant-is-part-of-yapyap)).
+
+1. You choose **Suggest replies** in the bar above the message box. The
+   bar lives in WhatsApp's page, in the adapter's isolated world, in a
+   closed shadow root, and its click reaches the main process over a
+   fixed channel, checked for sender and payload.
+2. The main process reads the open chat through the adapter, at most the
+   number of messages you set. The first time in a chat, the bar asks
+   you to allow it there, and shows exactly what is sent when you ask.
+3. The main process sends it to the provider you chose, with your API key
+   from the system keychain, through a session of its own that reaches
+   only the providers, Hugging Face and the model server on this computer
+   you chose. With the private model, a hidden, sandboxed engine window
+   that reaches no network runs it instead.
+4. The suggestions appear in the bar as plain text. You click one to put
+   it in the message box, and send it yourself.
 
 See the [AI assistant guide](/guide/ai-assistant) for the settings and
 the [privacy page](/privacy) for everything YapYap keeps on disk.
@@ -203,3 +206,5 @@ Each design choice is recorded in an
 | Static analysis                                          | [0010](/adr/0010-static-analysis-with-sonarqube-cloud)  |
 | WhatsApp notifications                                   | [0011](/adr/0011-whatsapp-notifications)                |
 | Translations and right-to-left support                   | [0012](/adr/0012-translations)                          |
+| The in-chat assistant bar                                | [0013](/adr/0013-in-chat-assistant-bar)                 |
+| The AI assistant as part of YapYap                       | [0017](/adr/0017-assistant-is-part-of-yapyap)           |

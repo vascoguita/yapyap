@@ -3,9 +3,10 @@
 YapYap is an MIT-licensed, unofficial desktop client for WhatsApp Web on Linux,
 Windows and macOS. It wraps `https://web.whatsapp.com` in a hardened Electron
 shell, so WhatsApp runs on the stock Chromium it is built for. It adds isolated
-multi-account sessions, native notifications, a tray, and recovery tools. It
-also hosts a sandboxed, signed extension system, which ships with a
-bring-your-own-model AI writing assistant. It has no telemetry, and it is not
+multi-account sessions, native notifications, a tray, and recovery tools. Its
+main feature is a built-in AI writing assistant, with a private model on the
+user's computer or the provider they choose (ADR 0017). It also hosts a
+sandboxed, signed extension system. It has no telemetry, and it is not
 affiliated with WhatsApp or Meta.
 
 Start every session by reading this file, `docs/progress.md`, and the ADRs
@@ -50,20 +51,21 @@ Update this table in the PR that adds a command.
 
 ## Architecture map
 
-| Part             | Path                                                                           | Notes                                                                                   |
-| ---------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
-| Main process     | `apps/desktop/src/main/`                                                       | App lifecycle, windows, IPC validation, settings, updates                               |
-| Preloads         | `apps/desktop/src/preload/`                                                    | Minimal typed `contextBridge` APIs, one per zone                                        |
-| Chrome renderer  | `apps/desktop/src/renderer/`                                                   | YapYap's own UI (Preact), served from `app://`                                          |
-| WhatsApp adapter | `apps/desktop/src/adapter/`                                                    | **The only place** with WhatsApp DOM knowledge; versioned selectors; returns plain data |
-| Extension host   | `apps/desktop/src/main/extensions/`                                            | Sandboxed extension renderers, RPC, capabilities, signatures                            |
-| Extension SDK    | `packages/sdk/`                                                                | Typed extension API and manifest JSON Schema (TSDoc on every export)                    |
-| Signing CLI      | `packages/extension-sign/`                                                     | Ed25519 signing and verification (PKCS#8 PEM keys)                                      |
-| Extensions       | `extensions/ai-assistant/`, `extensions/call-recorder/`, `extensions/example/` | First-party extensions                                                                  |
-| Docs             | `docs/`                                                                        | VitePress site, ADRs in `docs/adr/`                                                     |
-| Repo automation  | `scripts/`                                                                     | Tested automation such as pinned-version checks; entries in `scripts/src/bin/`          |
-| Packaging        | `apps/desktop/electron-builder.yml`, `packaging/`                              | electron-builder targets, fuses, desktop entry, AppStream metainfo                      |
-| Release pipeline | `.github/workflows/{package,smoke,release}.yml`                                | CI and releases share packaging and smoke tests; releases add signing, SBOM, provenance |
+| Part             | Path                                                                              | Notes                                                                                   |
+| ---------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Main process     | `apps/desktop/src/main/`                                                          | App lifecycle, windows, IPC validation, settings, updates                               |
+| Preloads         | `apps/desktop/src/preload/`                                                       | Minimal typed `contextBridge` APIs, one per zone                                        |
+| Chrome renderer  | `apps/desktop/src/renderer/`                                                      | YapYap's own UI (Preact), served from `app://`                                          |
+| WhatsApp adapter | `apps/desktop/src/adapter/`                                                       | **The only place** with WhatsApp DOM knowledge; versioned selectors; returns plain data |
+| AI assistant     | `apps/desktop/src/main/assistant/`, `src/renderer/engine/`, `src/preload/engine/` | Setup, providers, bar, private model and its engine window (ADR 0017)                   |
+| Extension host   | `apps/desktop/src/main/extensions/`                                               | Sandboxed extension renderers, RPC, capabilities, signatures                            |
+| Extension SDK    | `packages/sdk/`                                                                   | Typed extension API and manifest JSON Schema (TSDoc on every export)                    |
+| Signing CLI      | `packages/extension-sign/`                                                        | Ed25519 signing and verification (PKCS#8 PEM keys)                                      |
+| Extensions       | `extensions/call-recorder/`, `extensions/example/`                                | First-party extensions                                                                  |
+| Docs             | `docs/`                                                                           | VitePress site, ADRs in `docs/adr/`                                                     |
+| Repo automation  | `scripts/`                                                                        | Tested automation such as pinned-version checks; entries in `scripts/src/bin/`          |
+| Packaging        | `apps/desktop/electron-builder.yml`, `packaging/`                                 | electron-builder targets, fuses, desktop entry, AppStream metainfo                      |
+| Release pipeline | `.github/workflows/{package,smoke,release}.yml`                                   | CI and releases share packaging and smoke tests; releases add signing, SBOM, provenance |
 
 ## Non-negotiable rules
 
@@ -249,8 +251,26 @@ Update this table in the PR that adds a command.
 - Import wllama from `@wllama/wllama/esm/index.js`: the package's `main`
   names a file it does not ship, and its TypeScript sources do not pass our
   checks. Keep `setCompat(null)`, or wllama fetches a build from a CDN.
-  E2E tests give the AI assistant a tiny model through
-  `YAPYAP_TEST_BUILT_IN_MODEL`, which a packaged build ignores.
+  E2E tests give the assistant's private model a tiny model through
+  `YAPYAP_TEST_BUILT_IN_MODEL`, and fake model servers through
+  `YAPYAP_TEST_MODEL_PORTS`; a packaged build ignores both.
+- The assistant's network requests go only through its confined `fetch`
+  (`src/main/assistant/net.ts`) on the in-memory `yapyap-assistant`
+  session, whose request guard allows only the providers, Hugging Face and
+  the chosen loopback server. Never use `globalThis.fetch` or another
+  session for them. Provider output is plain text, never markup.
+- The private model's engine window opens only on first use and closes when
+  idle. Never open it at startup: the startup bench budgets renderer
+  processes (ADR 0009). It runs on `app://engine` under its own CSP; serve
+  nothing else there.
+- The `assistant` settings section is local, like `extensions`: never
+  exported or imported (`LOCAL_SECTIONS` in `settings/transfer.ts`). The
+  assistant's state that is no preference lives in `assistant.json` and
+  `assistant-chats.json`, its keys and chat names in `secrets.json`.
+- The assistant never sends a message: it puts drafts in the message box.
+  Only the user's click on a suggestion's send button sends, after the bar
+  checks the chat is unchanged. Its UI text, including the bar's, lives in
+  `en.json` under `assistant`.
 - Packaged builds disable the Node inspector fuse, so Playwright's Electron
   launcher cannot drive them. The smoke test connects over CDP through the
   `DevToolsActivePort` file in the profile directory instead.

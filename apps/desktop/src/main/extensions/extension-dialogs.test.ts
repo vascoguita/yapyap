@@ -12,8 +12,7 @@ vi.mock('electron', () => ({
   dialog: { showOpenDialog: electron.showOpenDialog, showMessageBox: electron.showMessageBox },
 }));
 
-const { askModelSearch, electronExtensionDialogs: dialogs } =
-  await import('./extension-dialogs.ts');
+const { electronExtensionDialogs: dialogs } = await import('./extension-dialogs.ts');
 
 describe('electronExtensionDialogs', () => {
   let dir: string;
@@ -92,23 +91,6 @@ describe('electronExtensionDialogs', () => {
     });
     electron.showMessageBox.mockResolvedValueOnce({ response: 1 });
     await expect(dialogs.askLocal('Hello', 'localhost:11435')).resolves.toBe(false);
-  });
-
-  it('asks before looking for AI models for an extension, says what it checks, and denies by default', async () => {
-    electron.showMessageBox.mockResolvedValueOnce({ response: 0 });
-    await expect(askModelSearch('AI assistant')).resolves.toBe(true);
-    expect(electron.showMessageBox).toHaveBeenLastCalledWith({
-      type: 'question',
-      title: 'YapYap',
-      message: 'Let AI assistant look for AI models on this computer?',
-      detail:
-        'YapYap checks the usual addresses of Ollama, Alpaca, LM Studio and llama.cpp on this computer, and asks each only for its list of models. Nothing else is sent, and nothing leaves this computer. The extension learns which models you run; it asks you again before it uses one.',
-      buttons: ['Allow', 'Deny'],
-      defaultId: 1,
-      cancelId: 1,
-    });
-    electron.showMessageBox.mockResolvedValueOnce({ response: 1 });
-    await expect(askModelSearch('AI assistant')).resolves.toBe(false);
   });
 
   it('asks before removing an extension, and keeps it by default', async () => {

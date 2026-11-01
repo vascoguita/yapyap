@@ -2,173 +2,11 @@ import type { JSX } from 'preact';
 import { useCallback, useEffect, useState } from 'preact/hooks';
 import type { ChromeApi, SettingsSnapshot, TransferResult } from '../../shared/chrome-api.ts';
 import { en } from '../../shared/messages/en.ts';
-import {
-  SETTING_FIELDS,
-  SETTINGS_SECTIONS,
-  type SettingField,
-  type SettingValue,
-} from '../../shared/settings-fields.ts';
+import { SETTING_FIELDS, SETTINGS_SECTIONS } from '../../shared/settings-fields.ts';
+import { AssistantSection } from './Assistant.tsx';
+import { Field, type Change } from './Field.tsx';
 
 const text = en.settings;
-
-type Change = (id: string, value: SettingValue) => void;
-
-interface FieldProps {
-  readonly field: SettingField;
-  readonly snapshot: SettingsSnapshot;
-  readonly onChange: Change;
-  /** Opens the system's folder dialog for a folder field. */
-  readonly onChooseFolder?: (id: string) => void;
-}
-
-/** The field's description, then why its last change did not take effect. */
-function Hint({ field, snapshot }: Omit<FieldProps, 'onChange'>): JSX.Element {
-  const unavailable = snapshot.unavailable[field.id];
-  return (
-    <p id={`${field.id}-hint`} class="hint">
-      {field.description}
-      {field.restart ? ` ${text.restartNote}` : ''}
-      {unavailable === undefined ? '' : ` ${unavailable}`}
-      <span class="problem" aria-live="polite">
-        {snapshot.problems[field.id]}
-      </span>
-    </p>
-  );
-}
-
-function Choice(props: FieldProps & { readonly options: NonNullable<SettingField['options']> }) {
-  const { field, snapshot, onChange, options } = props;
-  return (
-    <fieldset
-      class="choice"
-      aria-describedby={`${field.id}-hint`}
-      disabled={snapshot.readOnly || field.id in snapshot.unavailable}
-    >
-      <legend>{field.label}</legend>
-      {options.map(({ value, label }) => (
-        <label key={String(value)}>
-          <input
-            type="radio"
-            name={field.id}
-            value={value}
-            checked={snapshot.values[field.id] === value}
-            onChange={() => {
-              onChange(field.id, value);
-            }}
-          />
-          {label}
-        </label>
-      ))}
-      <Hint field={field} snapshot={snapshot} />
-    </fieldset>
-  );
-}
-
-/**
- * A line of text, saved on Enter or when focus leaves, so a half-typed
- * address is never checked; YapYap refuses one that does not fit.
- */
-function TextField(props: FieldProps & { readonly placeholder: string }) {
-  const { field, snapshot, onChange } = props;
-  const save = (value: string): void => {
-    if (value !== snapshot.values[field.id]) {
-      onChange(field.id, value.trim());
-    }
-  };
-  return (
-    <div class="field text">
-      <label for={field.id}>{field.label}</label>
-      <input
-        id={field.id}
-        type="text"
-        spellcheck={false}
-        placeholder={props.placeholder}
-        defaultValue={String(snapshot.values[field.id] ?? '')}
-        disabled={snapshot.readOnly}
-        aria-describedby={`${field.id}-hint`}
-        onBlur={(event) => {
-          save(event.currentTarget.value);
-        }}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter') {
-            save(event.currentTarget.value);
-          }
-        }}
-      />
-      <Hint field={field} snapshot={snapshot} />
-    </div>
-  );
-}
-
-/** A folder chosen in the system's dialog; the page never types a path itself. */
-function FolderField(props: FieldProps) {
-  const { field, snapshot, onChange, onChooseFolder } = props;
-  const folder = String(snapshot.values[field.id] ?? '');
-  return (
-    <div class="field text">
-      <span id={`${field.id}-label`}>{field.label}</span>
-      <output aria-labelledby={`${field.id}-label`}>
-        {folder === '' ? field.folder?.defaultName : folder}
-      </output>
-      <div class="actions">
-        {/* Named with the field too, so each folder's Choose… is told apart. */}
-        <button
-          type="button"
-          id={`${field.id}-choose`}
-          aria-labelledby={`${field.id}-choose ${field.id}-label`}
-          disabled={snapshot.readOnly}
-          onClick={() => {
-            onChooseFolder?.(field.id);
-          }}
-        >
-          {text.chooseFolder}
-        </button>
-        {folder === '' ? null : (
-          <button
-            type="button"
-            disabled={snapshot.readOnly}
-            onClick={() => {
-              onChange(field.id, '');
-            }}
-          >
-            {field.folder?.useDefault}
-          </button>
-        )}
-      </div>
-      <Hint field={field} snapshot={snapshot} />
-    </div>
-  );
-}
-
-export function Field(props: FieldProps): JSX.Element {
-  const { field, snapshot, onChange } = props;
-  if (field.folder !== undefined) {
-    return <FolderField {...props} />;
-  }
-  if (field.options !== undefined) {
-    return <Choice {...props} options={field.options} />;
-  }
-  if (field.text !== undefined) {
-    return <TextField {...props} placeholder={field.text.placeholder} />;
-  }
-  const hint = `${field.id}-hint`;
-  return (
-    <div class="field">
-      <input
-        id={field.id}
-        type="checkbox"
-        checked={snapshot.values[field.id] === true}
-        disabled={snapshot.readOnly}
-        aria-describedby={hint}
-        onChange={(event) => {
-          onChange(field.id, event.currentTarget.checked);
-        }}
-      />
-      <label for={field.id}>{field.label}</label>
-      <Hint field={field} snapshot={snapshot} />
-    </div>
-  );
-}
 
 function Sections(props: {
   readonly snapshot: SettingsSnapshot;
@@ -180,7 +18,8 @@ function Sections(props: {
     const fields = SETTING_FIELDS.filter(
       (field) => field.id.startsWith(`${id}.`) && field.id in props.snapshot.values,
     );
-    if (fields.length === 0) {
+    // The assistant's section is its own, with more than fields (ADR 0017).
+    if (fields.length === 0 || id === 'assistant') {
       return [];
     }
     return [
@@ -308,7 +147,7 @@ export function Settings({ api }: { readonly api: ChromeApi }): JSX.Element {
   );
   if (snapshot == null) {
     return (
-      <main class="settings">
+      <main class="settings" aria-busy={snapshot === undefined}>
         <h1>{text.title}</h1>
         <p>{snapshot === undefined ? en.common.loading : text.unavailable}</p>
       </main>
@@ -319,6 +158,9 @@ export function Settings({ api }: { readonly api: ChromeApi }): JSX.Element {
       <h1>{text.title}</h1>
       {snapshot.readOnly ? <p class="notice">{text.readOnly}</p> : null}
       {snapshot.restartPending ? <RestartNotice api={api} /> : null}
+      {'assistant.enabled' in snapshot.values ? (
+        <AssistantSection api={api} snapshot={snapshot} onChange={change} />
+      ) : null}
       <Sections snapshot={snapshot} onChange={change} onChooseFolder={chooseFolder} />
       <Backup api={api} readOnly={snapshot.readOnly} onImported={reload} />
       <p role="alert">{error}</p>

@@ -71,7 +71,6 @@ function setup(root: string, developerMode = false, overrides: object = {}) {
       every: vi.fn(),
       now: () => 0,
       cores: 1,
-      memoryMb: 8192,
     },
     askHost: vi.fn(() => Promise.resolve(false)),
     askLocal: vi.fn(() => Promise.resolve(false)),
@@ -113,7 +112,6 @@ function setup(root: string, developerMode = false, overrides: object = {}) {
       readUnreadSummary: vi.fn(),
       replaceDraft: vi.fn(),
       readDraft: vi.fn(),
-      pressEnter: vi.fn(() => Promise.resolve(true)),
       active: () => undefined,
       list: () => accounts,
     },
@@ -262,19 +260,6 @@ describe('createExtensionChrome', () => {
         expect.objectContaining({ insertDraft: t.insertDraft }),
       );
     });
-    // Hello does not hold assistant:bar, so the bar serves no one and ignores its offer.
-    const [, services] = t.deps.methodsFor.mock.calls[0] as unknown as [
-      unknown,
-      { offerAssistant: (offer: { suggestions: string[] }) => void },
-    ];
-    services.offerAssistant({ suggestions: ['On my way'] });
-    const view = { show: vi.fn(), publish: vi.fn() };
-    t.chrome.attachAssistantBar((bar) => {
-      expect(bar.state()).toEqual(expect.objectContaining({ extension: '', suggestions: [] }));
-      return view;
-    });
-    expect(view.show).toHaveBeenLastCalledWith(false);
-    expect(view.publish).not.toHaveBeenCalled();
   });
 
   it('lets the user take a grant back and give it again, for one account or the extension', async () => {
@@ -320,26 +305,6 @@ describe('createExtensionChrome', () => {
     ]);
     await set.handle(call, 'org.example.gone', 'notifications:show', null, false);
     expect([...(await loadRecords(root)).keys()]).toEqual(['org.example.hello']);
-  });
-
-  it('forgets the user’s answer about looking for models once local-network is turned off or on', async () => {
-    const hello = record('org.example.hello', {
-      developer: true,
-      capabilities: ['local-network', 'notifications:show'],
-      modelSearch: false,
-    });
-    await saveRecords(root, new Map([['org.example.hello', hello]]));
-    const t = setup(root);
-    const set = t.handler('extensions:set-grant');
-    const call = { sender: {} };
-    const kept = async () => (await loadRecords(root)).get('org.example.hello')?.modelSearch;
-    await set.handle(call, 'org.example.hello', 'notifications:show', null, false);
-    expect(await kept()).toBe(false);
-    await set.handle(call, 'org.example.hello', 'local-network', null, false);
-    expect(await kept()).toBeUndefined();
-    await saveRecords(root, new Map([['org.example.hello', { ...hello, modelSearch: true }]]));
-    await set.handle(call, 'org.example.hello', 'local-network', null, true);
-    expect(await kept()).toBeUndefined();
   });
 
   it('removes an extension through IPC once the user confirms, and answers with the list', async () => {
@@ -608,7 +573,6 @@ describe('installFlow', () => {
         every: vi.fn(),
         now: () => 0,
         cores: 1,
-        memoryMb: 8192,
       },
       askHost: vi.fn(() => Promise.resolve(false)),
       askLocal: vi.fn(() => Promise.resolve(false)),

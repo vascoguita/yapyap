@@ -148,3 +148,16 @@ still should.
   memory comes with a confirm button (**Resume**, **Try the smaller
   one**). Its consent asks to read the chat's messages, which stay on the
   computer, rather than to send them to a provider.
+- 2026-11-01 (ADR 0017, the maintainer's decision): the assistant is part
+  of YapYap, and the bar is its own. No extension fills it any more:
+  `assistant:bar`, `host.assistant.offer` and the `confirm` and `choose`
+  requests are gone. The bar holds the assistant's actions (Suggest
+  replies, Summarize, Rewrite, Catch up), the model in use, a gear for
+  Settings, a field to describe a message, and a result area with Copy,
+  Use and Close. Its bridge has a fixed channel per action, and the
+  buttons under its status line send only the ID of a button the bar
+  shows at that moment. Everything else holds: it renders in the
+  adapter's isolated world in a closed shadow root, acts only on trusted
+  events, writes the assistant's text only as text, asks before a chat's
+  messages are first read, and sends a suggestion only on the user's
+  click of its **Send**.

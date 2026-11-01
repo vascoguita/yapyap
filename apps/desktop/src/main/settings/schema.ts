@@ -2,13 +2,14 @@ import { Type, type Static, type TString } from 'typebox';
 import { MAX_SPELLING_LANGUAGES } from '../../shared/chrome-api.ts';
 import { MAX_PROXY_ADDRESS, PROXY_ADDRESS } from '../../shared/proxy-address.ts';
 import { SHORTCUT_IDS, type ShortcutId } from '../../shared/shortcuts.ts';
+import { LOCAL_SERVER } from '../../shared/local-server.ts';
 
 /**
  * The settings file's shape (ADR 0006). The TypeScript type is derived from
  * it, so the schema is the only source of truth. Every value has a default,
  * which is what an invalid or missing value falls back to.
  */
-export const SETTINGS_VERSION = 18;
+export const SETTINGS_VERSION = 19;
 
 export const SettingsSchema = Type.Object(
   {
@@ -183,8 +184,34 @@ export const SettingsSchema = Type.Object(
           [Type.Literal('5'), Type.Literal('10'), Type.Literal('20'), Type.Literal('50')],
           { default: '20' },
         ),
+      },
+      { default: {}, additionalProperties: false },
+    ),
+    // The AI assistant, part of YapYap since version 19 (ADR 0017).
+    assistant: Type.Object(
+      {
+        enabled: Type.Boolean({ default: true }),
+        // Who answers; `auto` takes the first that is set up (ADR 0017).
+        provider: Type.Union(
+          [
+            Type.Literal('auto'),
+            Type.Literal('built-in'),
+            Type.Literal('anthropic'),
+            Type.Literal('openai'),
+            Type.Literal('local'),
+          ],
+          { default: 'auto' },
+        ),
+        // `auto`, or a model's ID from the provider's own list.
+        model: Type.String({ default: 'auto', minLength: 1, maxLength: 200 }),
         // Suggest replies when a message arrives in the open chat, as the maintainer chose (#468).
         autoSuggest: Type.Boolean({ default: true }),
+        // How many of the open chat's latest messages the assistant sends.
+        messages: Type.Union([Type.Literal('5'), Type.Literal('10'), Type.Literal('20')], {
+          default: '10',
+        }),
+        // A model server on this computer; loopback only, so nothing else can be named here.
+        localServer: Type.String({ default: '', maxLength: 100, pattern: LOCAL_SERVER }),
       },
       { default: {}, additionalProperties: false },
     ),

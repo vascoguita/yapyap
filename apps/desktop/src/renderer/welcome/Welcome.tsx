@@ -2,7 +2,9 @@ import type { JSX } from 'preact';
 import type { ChromeApi, SettingsSnapshot } from '../../shared/chrome-api.ts';
 import { en } from '../../shared/messages/en.ts';
 import { SETTING_FIELDS, type SettingValue } from '../../shared/settings-fields.ts';
-import { Field, useSnapshot } from '../settings/Settings.tsx';
+import { Field } from '../settings/Field.tsx';
+import { useSnapshot } from '../settings/Settings.tsx';
+import { AssistantStep } from './AssistantStep.tsx';
 
 /** The six-step guide on the website, which opens in the browser (#385). */
 const GET_STARTED = 'https://yapyap.guita.org/guide/get-started';
@@ -60,6 +62,7 @@ export function Welcome({ api }: { readonly api: ChromeApi }): JSX.Element | nul
           {text.guide}
         </a>
       </p>
+      <AssistantStep api={api} onChange={change} />
       <section>
         <h2>{text.language}</h2>
         <p>{text.languageNote}</p>

@@ -5,6 +5,7 @@ export type SettingValue = boolean | string | number;
 
 /** A settings file section, in the order the settings window lists them. */
 export const SETTINGS_SECTIONS = [
+  { id: 'assistant', title: en.settings.sections.assistant },
   { id: 'general', title: en.settings.sections.general },
   { id: 'spelling', title: en.settings.sections.spelling },
   { id: 'appearance', title: en.settings.sections.appearance },
@@ -75,6 +76,28 @@ const INTERFACE_SCALES = [
  * acts on it, so the window never offers a switch that does nothing.
  */
 export const SETTING_FIELDS: readonly SettingField[] = [
+  { ...described('assistant', 'enabled'), restart: false },
+  {
+    ...described('assistant', 'provider'),
+    restart: false,
+    options: choices(text.assistant.provider.options),
+  },
+  {
+    ...described('assistant', 'model'),
+    restart: false,
+    text: { placeholder: en.assistant.settings.model.auto },
+  },
+  { ...described('assistant', 'autoSuggest'), restart: false },
+  {
+    ...described('assistant', 'messages'),
+    restart: false,
+    options: choices(text.assistant.messages.options),
+  },
+  {
+    ...described('assistant', 'localServer'),
+    restart: false,
+    text: { placeholder: en.assistant.settings.local.addressPlaceholder },
+  },
   { ...described('general', 'autostart'), restart: false },
   { ...described('general', 'startMinimized'), restart: false },
   { ...described('general', 'betaUpdates'), restart: false },
@@ -177,5 +200,4 @@ export const SETTING_FIELDS: readonly SettingField[] = [
     restart: false,
     options: choices(text.extensions.chatMessages.options),
   },
-  { ...described('extensions', 'autoSuggest'), restart: false },
 ];

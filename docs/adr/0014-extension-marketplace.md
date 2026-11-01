@@ -144,3 +144,7 @@ must not tell anyone more about the user than an ordinary download does.
   records. Each version's `minYapYap` comes from `yapyap.minVersion` in the
   extension's `package.json`. Third-party extensions keep their own
   repositories.
+- 2026-11-01 (ADR 0017): the AI assistant is no longer an extension, so
+  the marketplace no longer lists it and it has no release-please
+  component of its own. It ships with YapYap. The call recorder is the
+  first-party extension that still releases on its own.

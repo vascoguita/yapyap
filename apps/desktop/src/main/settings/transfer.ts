@@ -38,10 +38,11 @@ export const EXPORTED_SECTIONS = [
 /**
  * Sections that stay with this installation: never exported, and kept as
  * they are on import. A file someone hands the user must not be able to
- * turn on Developer Mode, which installs extensions nobody signed, or let
- * extensions read more messages.
+ * turn on Developer Mode, which installs extensions nobody signed, let
+ * extensions read more messages, or point the assistant at another
+ * provider or server (ADR 0017).
  */
-export const LOCAL_SECTIONS = ['extensions'] as const;
+export const LOCAL_SECTIONS = ['extensions', 'assistant'] as const;
 
 /** Imported settings, with this installation's own sections left as they are. */
 export function keepLocal(imported: Settings, current: Settings): Settings {

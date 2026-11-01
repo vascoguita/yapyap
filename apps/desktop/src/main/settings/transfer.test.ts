@@ -32,8 +32,9 @@ describe('exportSettings', () => {
   it('writes the settings under a format marker, readable by people', () => {
     const settings = defaultSettings();
     const text = exportSettings(settings);
-    const { extensions, ...exported } = settings;
-    expect(extensions).toEqual({ developerMode: false, chatMessages: '20', autoSuggest: true });
+    const { extensions, assistant, ...exported } = settings;
+    expect(extensions).toEqual({ developerMode: false, chatMessages: '20' });
+    expect(assistant).toMatchObject({ provider: 'auto' });
     expect(JSON.parse(text)).toEqual({ format: 'yapyap-settings', settings: exported });
     expect(text).toMatch(/^\{\n {2}"format": "yapyap-settings",\n/);
     expect(text.endsWith('}\n')).toBe(true);
@@ -42,8 +43,8 @@ describe('exportSettings', () => {
   it('leaves out anything the schema does not define, whatever got into memory', () => {
     const settings = { ...defaultSettings(), session: 'cookie=secret' };
     const exported = JSON.parse(exportSettings(settings)) as { settings: Record<string, unknown> };
-    const { extensions, ...expected } = defaultSettings();
-    expect(extensions).toBeDefined();
+    const { extensions, assistant, ...expected } = defaultSettings();
+    expect([extensions, assistant]).not.toContain(undefined);
     expect(exported.settings).toEqual(expected);
     expect(settings.session).toBe('cookie=secret');
   });

@@ -27,6 +27,14 @@ browser. YapYap does not read, copy or upload them.
   Windows, the Secret Service or KWallet on Linux) and kept in
   `secrets.json`, never in the settings or the logs. Without a keychain,
   YapYap keeps nothing and asks each time.
+- **The AI assistant sends only what you ask it to, where you chose.** It
+  reads a chat only after you allow it there, and you can see exactly what
+  it sends first with **What is sent?**. With the private model or a model
+  server on your computer, nothing leaves your computer. With Claude or
+  OpenAI, what you ask about goes to `api.anthropic.com` or
+  `api.openai.com`, with your own key; YapYap refuses every other address
+  for the assistant. The private model downloads from Hugging Face once,
+  on your click. Nothing of it is logged. See [AI assistant](./guide/ai-assistant.md).
 - **Logs stay local and are redacted.** YapYap never logs message content.
   Before a line is written, phone numbers, email addresses, tokens and your
   home folder are replaced with placeholders. Logs live in the `logs` folder
@@ -85,20 +93,23 @@ spelling dictionary are kept with the account's data.
 
 ### YapYap
 
-| Path                                    | What it holds                                                                                      | How to delete it                                                    |
-| --------------------------------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| `settings.json`, `settings.json.bak`    | Your settings, and the copy before the last change. Never passwords                                | Delete both while YapYap is closed to go back to the defaults       |
-| `settings.corrupt-….json`               | A settings file YapYap could not read, set aside for you to inspect                                | Delete it at any time                                               |
-| `secrets.json`                          | Proxy passwords you chose to remember, encrypted by your system's keychain                         | Delete it while YapYap is closed; YapYap asks again                 |
-| `custom-code.json`                      | Your custom CSS and JavaScript                                                                     | Clear the snippets in **Custom CSS and JavaScript…**                |
-| `window-state.json`, `quick-panel.json` | Where the main window and the quick panel were, so they reopen there                               | Delete them at any time                                             |
-| `chat-list.json`                        | How wide each account's chat list is, if you changed it                                            | Delete it at any time                                               |
-| `downloads.json`                        | The folder you last saved a download to                                                            | Delete it at any time                                               |
-| `gpu-crashes.json`                      | The times of recent graphics crashes, which turn on the safe graphics fallback                     | Delete it at any time                                               |
-| `running.json`                          | The version and start time of the running session, left behind only if YapYap did not quit cleanly | YapYap deletes it when it quits                                     |
-| `crash-report.txt`                      | With crash reports on, the report of the last unclean exit                                         | YapYap deletes it after 30 days; delete it yourself at any time     |
-| `logs/`                                 | Redacted logs                                                                                      | YapYap deletes them after 14 days; delete them yourself at any time |
-| `Dictionaries/`                         | Spelling dictionaries downloaded once you turned spell checking on                                 | Delete it while YapYap is closed                                    |
+| Path                                    | What it holds                                                                                                                                          | How to delete it                                                        |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
+| `settings.json`, `settings.json.bak`    | Your settings, and the copy before the last change. Never passwords                                                                                    | Delete both while YapYap is closed to go back to the defaults           |
+| `settings.corrupt-….json`               | A settings file YapYap could not read, set aside for you to inspect                                                                                    | Delete it at any time                                                   |
+| `secrets.json`                          | Proxy passwords you chose to remember, the assistant's API keys, and the names of the chats you allowed it in, all encrypted by your system's keychain | Delete it while YapYap is closed; YapYap asks again                     |
+| `assistant.json`                        | Which private model you chose and whether it is all downloaded, and a one-time note for the assistant's bar                                            | Delete it while YapYap is closed                                        |
+| `assistant-chats.json`                  | For each account, a fingerprint (SHA-256) of the name of each chat you allowed the assistant in, never the name                                        | **Remove** in Settings → Assistant, or delete it while YapYap is closed |
+| `models/`                               | The private model, once downloaded, and a download in progress                                                                                         | **Remove** in Settings → Assistant                                      |
+| `custom-code.json`                      | Your custom CSS and JavaScript                                                                                                                         | Clear the snippets in **Custom CSS and JavaScript…**                    |
+| `window-state.json`, `quick-panel.json` | Where the main window and the quick panel were, so they reopen there                                                                                   | Delete them at any time                                                 |
+| `chat-list.json`                        | How wide each account's chat list is, if you changed it                                                                                                | Delete it at any time                                                   |
+| `downloads.json`                        | The folder you last saved a download to                                                                                                                | Delete it at any time                                                   |
+| `gpu-crashes.json`                      | The times of recent graphics crashes, which turn on the safe graphics fallback                                                                         | Delete it at any time                                                   |
+| `running.json`                          | The version and start time of the running session, left behind only if YapYap did not quit cleanly                                                     | YapYap deletes it when it quits                                         |
+| `crash-report.txt`                      | With crash reports on, the report of the last unclean exit                                                                                             | YapYap deletes it after 30 days; delete it yourself at any time         |
+| `logs/`                                 | Redacted logs                                                                                                                                          | YapYap deletes them after 14 days; delete them yourself at any time     |
+| `Dictionaries/`                         | Spelling dictionaries downloaded once you turned spell checking on                                                                                     | Delete it while YapYap is closed                                        |
 
 ### Extensions
 

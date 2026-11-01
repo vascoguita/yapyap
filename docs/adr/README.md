@@ -22,5 +22,6 @@ ADR that supersedes the old one.
 | [0014](0014-extension-marketplace.md)                 | The extension marketplace                          | Accepted |
 | [0015](0015-call-recording.md)                        | Call recording                                     | Accepted |
 | [0016](0016-extensions-not-plugins.md)                | Extensions, not plugins                            | Accepted |
+| [0017](0017-assistant-is-part-of-yapyap.md)           | The assistant is part of YapYap                    | Accepted |
 
 New ADRs copy [`template.md`](template.md) and take the next free number.

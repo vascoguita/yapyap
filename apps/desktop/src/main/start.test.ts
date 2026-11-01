@@ -15,7 +15,7 @@ import { WHATSAPP_ORIGIN } from './whatsapp-origin.ts';
 import type { WindowOptions } from './windows.ts';
 import type { ExtensionAction } from './extensions/runtime.ts';
 import type { AssistantBar } from './assistant/bar.ts';
-import type { AssistantBarView } from './assistant/bar-sources.ts';
+import type { AssistantBarView } from './assistant/bar-page.ts';
 
 type Listener = (...args: never[]) => void;
 
@@ -153,21 +153,26 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     installExtensionFromLink: vi.fn(),
     assistantBar: {
       state: vi.fn(() => ({
-        extension: 'Assistant',
         status: '',
-        suggestions: ['On my way'],
-        confirm: undefined,
         working: false,
+        suggestions: ['On my way'],
+        result: null,
+        buttons: [],
         choice: undefined,
+        rewrites: [],
       })),
-      refresh: vi.fn(),
-      offer: vi.fn(),
+      refresh: vi.fn(() => Promise.resolve()),
       suggest: vi.fn(() => Promise.resolve()),
+      suggestOnArrival: vi.fn(() => Promise.resolve()),
       prompt: vi.fn(() => Promise.resolve()),
-      confirm: vi.fn(),
+      summarize: vi.fn(() => Promise.resolve()),
+      rewrite: vi.fn(() => Promise.resolve()),
+      catchUp: vi.fn(() => Promise.resolve()),
       use: vi.fn(() => Promise.resolve()),
       send: vi.fn(() => Promise.resolve()),
       choose: vi.fn(() => Promise.resolve()),
+      button: vi.fn(() => Promise.resolve()),
+      privateModelChanged: vi.fn(() => Promise.resolve()),
     } satisfies AssistantBar,
     assistantBarView: undefined as AssistantBarView | undefined,
     attachAssistantBar: vi.fn((create: (bar: AssistantBar) => AssistantBarView) => {
@@ -918,7 +923,7 @@ describe('startApp', () => {
     // Only the bar's own drawing counts here, not the look for new messages.
     f.settings.current = () => ({
       ...settings,
-      extensions: { ...settings.extensions, autoSuggest: false },
+      assistant: { ...settings.assistant, autoSuggest: false },
     });
     await startApp(f);
     f.runtime.assistantBarView?.show(true);
@@ -951,11 +956,11 @@ describe('startApp', () => {
     await vi.advanceTimersByTimeAsync(1500);
     f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValue('aaaaaaaa:00000002');
     await vi.advanceTimersByTimeAsync(1500);
-    expect(f.runtime.assistantBar.suggest).toHaveBeenCalledOnce();
+    expect(f.runtime.assistantBar.suggestOnArrival).toHaveBeenCalledOnce();
     f.window.isFocused.mockReturnValue(false);
     f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValue('aaaaaaaa:00000003');
     await vi.advanceTimersByTimeAsync(3000);
-    expect(f.runtime.assistantBar.suggest).toHaveBeenCalledOnce();
+    expect(f.runtime.assistantBar.suggestOnArrival).toHaveBeenCalledOnce();
     f.runtime.assistantBarView?.show(false);
     vi.useRealTimers();
   });

@@ -56,7 +56,7 @@ const everyday: readonly Highlight[] = [
 /** YapYap against the official desktop app, only on points anyone can verify. */
 const comparison: readonly string[] = [
   'A desktop app for Linux, as well as Windows and macOS',
-  'An AI assistant with the model you choose, even one on your own computer',
+  'A built-in AI assistant with the model you choose, even one on your own computer',
   'Sandboxed extensions',
   'Your own CSS and JavaScript',
   'Open source',
@@ -130,12 +130,10 @@ const faqs: readonly { readonly question: string; readonly answer: string }[] = 
           Claude, OpenAI, or a model that runs on your own machine and never leaves it.
         </p>
         <ul>
-          <li>Works with Claude, OpenAI and local models such as Ollama</li>
+          <li>Built in: set it up once in Settings, no install</li>
+          <li>Works with Claude, OpenAI, local models such as Ollama, or a private model</li>
           <li>You see exactly what is shared, and nothing is sent without your click</li>
-          <li>
-            Suggestions and “write it for me” right above the message box
-            <span class="planned">Coming soon</span>
-          </li>
+          <li>Suggestions, summaries, rewrites and catch-ups right above the message box</li>
         </ul>
         <a class="more" href="/guide/ai-assistant">Meet the assistant</a>
       </div>
@@ -144,7 +142,7 @@ const faqs: readonly { readonly question: string; readonly answer: string }[] = 
         :src="shot('assistant')"
         width="420"
         height="640"
-        alt="The AI assistant offering three suggested replies to a chat."
+        alt="Settings for the AI assistant: where it thinks, with Claude in use, and its model."
       />
     </section>
 

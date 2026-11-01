@@ -99,7 +99,7 @@ describe('saveSettings', () => {
       defaultSettings(),
     );
     expect(readFileSync(join(dir, SETTINGS_FILE), 'utf8')).toMatch(
-      /^\{\n {2}"schemaVersion": 18,[\s\S]*\}\n$/,
+      /^\{\n {2}"schemaVersion": 19,[\s\S]*\}\n$/,
     );
     expect(readdirSync(dir).sort()).toEqual(['settings.json', 'settings.json.bak']);
   });

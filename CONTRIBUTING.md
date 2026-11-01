@@ -303,13 +303,14 @@ PR open on `master` and updates it from Conventional Commits. Merging that PR
 tags `vX.Y.Z`, updates `CHANGELOG.md` and creates the GitHub Release, which
 starts the release build. Never tag by hand.
 
-The first-party extensions in `extensions/ai-assistant` and
-`extensions/call-recorder` stay in this repository, since they change with
-the SDK and the host, but they have releases of their own (#474).
-release-please keeps one release PR for each, `chore(<name>): release X.Y.Z`,
-from the commits that touch its folder. A `feat` raises the minor version,
-and each has its own `CHANGELOG.md` and `<name>-vX.Y.Z` tags. The app's
-release leaves their folders out and no longer carries them. Merging an
+The first-party call recorder extension in `extensions/call-recorder` stays
+in this repository, since it changes with the SDK and the host, but it has
+releases of its own (#474). release-please keeps a release PR for it,
+`chore(call-recorder): release X.Y.Z`, from the commits that touch its
+folder. A `feat` raises the minor version, and it has its own
+`CHANGELOG.md` and `call-recorder-vX.Y.Z` tags. The app's release leaves
+its folder out and no longer carries it. The AI assistant is part of the
+app and releases with it (ADR 0017). Merging an
 extension's release PR publishes that extension alone (see
 [Extension marketplace](#extension-marketplace)). There is no extension
 beta: test it with a development build before merging.

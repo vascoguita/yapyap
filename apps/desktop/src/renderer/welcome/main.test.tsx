@@ -6,7 +6,13 @@ describe('welcome entry', () => {
   it('renders the welcome page', async () => {
     const snapshot = { values: {}, restartPending: false, readOnly: false, problems: {} };
     Object.defineProperty(window, 'yapyap', {
-      value: { settings: { get: vi.fn(() => Promise.resolve(snapshot)) } },
+      value: {
+        settings: { get: vi.fn(() => Promise.resolve(snapshot)) },
+        assistant: {
+          view: vi.fn(() => new Promise(() => undefined)),
+          findServers: vi.fn(() => new Promise(() => undefined)),
+        },
+      },
     });
     await import('./main.tsx');
     await waitFor(() => {

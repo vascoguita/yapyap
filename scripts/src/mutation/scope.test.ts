@@ -9,7 +9,7 @@ describe('inMutationScope', () => {
     'apps/desktop/src/main/settings/store.ts',
     'apps/desktop/src/main/whatsapp-origin.ts',
     'packages/extension-sign/src/sign.ts',
-    'extensions/ai-assistant/src/providers/anthropic.ts',
+    'apps/desktop/src/main/assistant/providers/anthropic.ts',
     'apps\\desktop\\src\\adapter\\unread.ts',
   ])('includes %s', (path) => {
     expect(inMutationScope(path)).toBe(true);

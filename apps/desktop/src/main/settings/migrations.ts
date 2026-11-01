@@ -149,6 +149,20 @@ function addAutoSuggest(settings: Raw): Raw {
 }
 
 /**
+ * Version 19 makes the AI assistant part of YapYap (ADR 0017): its section
+ * takes over suggesting replies automatically, as the user had it.
+ */
+function addAssistant(settings: Raw): Raw {
+  const extensions = settings['extensions'];
+  if (!isSection(extensions)) {
+    return settings;
+  }
+  const { autoSuggest, ...rest } = extensions;
+  const assistant = autoSuggest === undefined ? {} : { autoSuggest };
+  return { ...settings, extensions: rest, assistant };
+}
+
+/**
  * `MIGRATIONS[n]` turns a version n+1 file into version n+2. They are pure,
  * forward-only, and each has its own test; a test also checks that there is
  * exactly one migration per version step.
@@ -171,6 +185,7 @@ export const MIGRATIONS: readonly ((settings: Raw) => Raw)[] = [
   addExtensionShortcuts,
   addRecordingFormat,
   addAutoSuggest,
+  addAssistant,
 ];
 
 export type MigrationResult =

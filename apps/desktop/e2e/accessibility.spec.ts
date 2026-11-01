@@ -29,6 +29,9 @@ async function openChrome(app: ElectronApplication, label: string, page: string)
   const window = await opened;
   await window.waitForURL(`app://chrome/${page}`);
   await window.waitForLoadState('load');
+  // Parts of a page fill in after it loads; walking or auditing it earlier misses them.
+  await expect(window.locator('main')).toBeAttached();
+  await expect(window.locator('[aria-busy="true"]')).toHaveCount(0);
   return window;
 }
 

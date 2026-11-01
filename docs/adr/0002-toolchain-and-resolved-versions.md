@@ -154,6 +154,16 @@ ESLint `strict-type-checked` + `stylistic-type-checked`, `complexity: 8`,
 coverage-ignore comments. `knip` fails on unused exports, files and
 dependencies. Prettier checks formatting.
 
+## Amendments
+
+- 2026-11-01 (ADR 0017): the AI assistant moved into the app.
+  `@anthropic-ai/sdk` (1.3.0) and `openai` (7.43.0) are now dependencies of
+  `apps/desktop` and run in the main process; `@wllama/wllama` (3.8.1) is a
+  development dependency of `apps/desktop`, bundled into the engine page,
+  with its `.wasm` copied beside the renderer's pages. `@noble/hashes` is
+  gone: the main process hashes the private model with `node:crypto`.
+  `extensions/ai-assistant` no longer exists.
+
 ## Consequences
 
 - Upgrades arrive as grouped weekly Dependabot PRs with a 3-day cooldown.

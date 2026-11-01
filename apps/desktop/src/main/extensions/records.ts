@@ -44,9 +44,9 @@ const ExtensionRecordSchema = Type.Object(
       }),
     ),
     /**
-     * Whether the user let it look for AI models on this computer (#456);
-     * missing until they were asked, and again once they take
-     * `local-network` back or grant it again.
+     * Kept only so records written while extensions could look for AI
+     * models on this computer (#456) still load; nothing reads it since the
+     * assistant became part of YapYap (ADR 0017).
      */
     modelSearch: Type.Optional(Type.Boolean()),
     /** Capabilities and `network:<host>` grants the user took back from the whole extension (#94). */

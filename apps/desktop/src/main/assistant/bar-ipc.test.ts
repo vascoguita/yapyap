@@ -13,18 +13,28 @@ function setup() {
   };
   const bar = {
     suggest: vi.fn(() => Promise.resolve()),
+    summarize: vi.fn(() => Promise.resolve()),
+    rewrite: vi.fn(() => Promise.resolve()),
+    catchUp: vi.fn(() => Promise.resolve()),
     prompt: vi.fn(() => Promise.resolve()),
-    confirm: vi.fn(),
     use: vi.fn(() => Promise.resolve()),
     send: vi.fn(() => Promise.resolve()),
     choose: vi.fn(() => Promise.resolve()),
+    button: vi.fn(() => Promise.resolve()),
   };
+  const openSettings = vi.fn();
   const active = {};
   const views: ViewRegistry = new WeakMap();
   views.set(active, { zone: 'whatsapp', home: ORIGIN, label: 'Home', account: 'a' });
   const warn = vi.fn();
   let page: object = active;
-  listenToAssistantBar(ipc, bar, { views, origin: ORIGIN, activePage: () => page, warn });
+  listenToAssistantBar(ipc, bar, {
+    views,
+    origin: ORIGIN,
+    activePage: () => page,
+    openSettings,
+    warn,
+  });
   const fromBar = { sender: active, senderFrame: { url: `${ORIGIN}/` } };
   const hear = async (channel: string, event: object, ...args: unknown[]): Promise<void> => {
     listeners.get(`whatsapp:assistant-bar-${channel}`)?.(event, ...args);
@@ -34,6 +44,7 @@ function setup() {
   return {
     ipc,
     bar,
+    openSettings,
     views,
     warn,
     fromBar,
@@ -48,15 +59,23 @@ describe('listenToAssistantBar', () => {
   it('passes each of the bar’s actions on, a request trimmed', async () => {
     const t = setup();
     await t.hear('suggest', t.fromBar);
+    await t.hear('summarize', t.fromBar);
+    await t.hear('rewrite', t.fromBar, 'translate:pt');
+    await t.hear('catch-up', t.fromBar);
     await t.hear('prompt', t.fromBar, '  say I am late ');
-    await t.hear('confirm', t.fromBar);
     await t.hear('use', t.fromBar, 0);
     await t.hear('send', t.fromBar, 4);
     await t.hear('choose', t.fromBar, 'claude-haiku-5-5');
+    await t.hear('button', t.fromBar, 'what-sent');
+    await t.hear('settings', t.fromBar);
     expect(t.bar.choose).toHaveBeenCalledExactlyOnceWith('claude-haiku-5-5');
     expect(t.bar.suggest).toHaveBeenCalledOnce();
+    expect(t.bar.summarize).toHaveBeenCalledOnce();
+    expect(t.bar.catchUp).toHaveBeenCalledOnce();
+    expect(t.bar.rewrite).toHaveBeenCalledExactlyOnceWith('translate:pt');
+    expect(t.bar.button).toHaveBeenCalledExactlyOnceWith('what-sent');
+    expect(t.openSettings).toHaveBeenCalledOnce();
     expect(t.bar.prompt).toHaveBeenCalledExactlyOnceWith('say I am late');
-    expect(t.bar.confirm).toHaveBeenCalledOnce();
     expect(t.bar.use).toHaveBeenCalledExactlyOnceWith(0);
     expect(t.bar.send).toHaveBeenCalledExactlyOnceWith(4);
     expect(t.warn).not.toHaveBeenCalled();
@@ -98,16 +117,18 @@ describe('listenToAssistantBar', () => {
       await t.hear('send', t.fromBar, ...args);
     }
     await t.hear('suggest', t.fromBar, 1);
-    await t.hear('confirm', t.fromBar, 'yes');
-    for (const args of [[], [''], ['m'.repeat(101)], [7], ['a', 'b']]) {
+    for (const args of [[], [''], ['m'.repeat(201)], [7], ['a', 'b']]) {
       await t.hear('choose', t.fromBar, ...args);
+    }
+    for (const args of [[], ['press'], ['allow', 'twice']]) {
+      await t.hear('button', t.fromBar, ...args);
     }
     expect(t.bar.choose).not.toHaveBeenCalled();
     expect(t.bar.use).not.toHaveBeenCalled();
     expect(t.bar.send).not.toHaveBeenCalled();
     expect(t.bar.suggest).not.toHaveBeenCalled();
-    expect(t.bar.confirm).not.toHaveBeenCalled();
-    expect(t.warn).toHaveBeenCalledTimes(19);
+    expect(t.bar.button).not.toHaveBeenCalled();
+    expect(t.warn).toHaveBeenCalledTimes(21);
   });
 
   it('warns, without the error, when an action fails', async () => {

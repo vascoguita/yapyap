@@ -3,12 +3,13 @@ import type { AssistantBarState } from '../../shared/assistant-bar-api.ts';
 import { inPageAssistantBar } from './bar-page.ts';
 
 const STATE: AssistantBarState = {
-  extension: 'Assistant',
   status: 'Thinking…',
-  suggestions: ['On my way'],
-  confirm: undefined,
   working: true,
+  suggestions: ['On my way'],
+  result: null,
+  buttons: [],
   choice: undefined,
+  rewrites: [{ value: 'shorter', label: 'Shorter' }],
 };
 
 function fakePage() {
@@ -60,25 +61,40 @@ describe('inPageAssistantBar', () => {
     expect(contentOf(t.page())).toEqual({
       visible: true,
       labels: {
-        label: 'AI suggestions',
-        from: 'From Assistant',
+        label: 'AI assistant',
+        name: 'Assistant',
         suggest: 'Suggest replies',
+        summarize: 'Summarize',
+        rewrite: 'Rewrite',
+        rewriteLabel: 'Rewrite my draft',
+        catchUp: 'Catch up',
+        catchUpLabel: 'Catch up on unread chats',
+        settings: 'Assistant settings',
+        model: 'Model',
         use: 'Put in the message box',
         sendLabel: 'Send this suggestion now',
         write: 'Write a message',
         writePlaceholder: 'Say what you want to write, such as “I’ll be ten minutes late”',
       },
       status: 'Thinking…',
-      suggestions: ['On my way'],
-      confirm: null,
       working: true,
+      suggestions: ['On my way'],
+      result: null,
+      buttons: [],
       choice: null,
+      rewrites: [{ value: 'shorter', label: 'Shorter' }],
     });
     const choice = { label: 'Model', current: 'm', options: [{ value: 'm', label: 'M' }] };
-    t.setState({ ...STATE, confirm: 'Send 3 messages', working: false, choice });
+    const buttons = [{ id: 'copy', label: 'Copy', primary: false }] as const;
+    t.setState({ ...STATE, result: 'Summary', buttons, working: false, choice });
     t.view.publish(STATE);
     expect(contentOf(t.page())).toEqual(
-      expect.objectContaining({ confirm: 'Send 3 messages', working: false, choice }),
+      expect.objectContaining({
+        result: 'Summary',
+        buttons,
+        working: false,
+        choice: { current: 'm', options: choice.options },
+      }),
     );
     t.view.show(false);
     expect(contentOf(t.page())).toEqual(expect.objectContaining({ visible: false }));
@@ -122,5 +138,15 @@ describe('inPageAssistantBar', () => {
     t.view.show(true);
     await vi.runOnlyPendingTimersAsync();
     expect(t.page().executeJavaScriptInIsolatedWorld).toHaveBeenCalledTimes(3);
+  });
+
+  it('says whether the bar has a place in the active page now', async () => {
+    const t = setup();
+    t.page().executeJavaScriptInIsolatedWorld.mockResolvedValueOnce(false);
+    expect(await t.view.onPage()).toBe(false);
+    t.page().executeJavaScriptInIsolatedWorld.mockResolvedValueOnce(true);
+    expect(await t.view.onPage()).toBe(true);
+    t.page().executeJavaScriptInIsolatedWorld.mockRejectedValueOnce(new Error('loading'));
+    expect(await t.view.onPage()).toBe(false);
   });
 });

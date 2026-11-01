@@ -12,6 +12,7 @@ describe('createChromeBridge', () => {
       'settings:get': snapshot,
       'settings:set': snapshot,
       'chat:open-number': true,
+      'assistant:save-key': true,
     };
     const invoke = vi.fn<(channel: string, ...args: unknown[]) => Promise<unknown>>((channel) =>
       Promise.resolve(answers[channel] ?? 'ignored'),
@@ -43,6 +44,13 @@ describe('createChromeBridge', () => {
     await api.picker.choose('screen:1:0', true);
     await api.picker.cancel();
     expect(await api.chat.openNumber('+44 7700 900123')).toBe(true);
+    expect(await api.assistant.view()).toBe('ignored');
+    expect(await api.assistant.saveKey('anthropic', 'sk')).toBe(true);
+    await api.assistant.forgetKey('openai');
+    expect(await api.assistant.testKey('anthropic')).toBe('ignored');
+    expect(await api.assistant.findServers()).toBe('ignored');
+    await api.assistant.privateModel('download');
+    await api.assistant.forgetChat('a', 'b');
     expect(await api.accounts.list()).toBe('ignored');
     const change = { name: 'Work', color: 'blue', enabled: true, muted: false, proxy: '' };
     expect(await api.accounts.save('a', change)).toBe('ignored');
@@ -118,6 +126,13 @@ describe('createChromeBridge', () => {
       ['picker:choose', 'screen:1:0', true],
       ['picker:cancel'],
       ['chat:open-number', '+44 7700 900123'],
+      ['assistant:view'],
+      ['assistant:save-key', 'anthropic', 'sk'],
+      ['assistant:forget-key', 'openai'],
+      ['assistant:test-key', 'anthropic'],
+      ['assistant:find-servers'],
+      ['assistant:private-model', 'download'],
+      ['assistant:forget-chat', 'a', 'b'],
       ['accounts:list'],
       [
         'accounts:save',
@@ -173,6 +188,7 @@ describe('createChromeBridge', () => {
       'about',
       'recovery',
       'settings',
+      'assistant',
       'chat',
       'accounts',
       'sidebar',

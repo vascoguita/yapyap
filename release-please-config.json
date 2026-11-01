@@ -71,23 +71,7 @@
           "jsonpath": "$.version"
         }
       ],
-      "exclude-paths": ["extensions/ai-assistant", "extensions/call-recorder"]
-    },
-    "extensions/ai-assistant": {
-      "package-name": "ai-assistant",
-      "component": "ai-assistant",
-      "include-component-in-tag": true,
-      "pull-request-title-pattern": "chore(${component}): release ${version}",
-      "changelog-path": "CHANGELOG.md",
-      "extra-files": [
-        {
-          "type": "json",
-          "path": "public/manifest.json",
-          "jsonpath": "$.version"
-        }
-      ],
-      "component-no-space": true,
-      "bump-patch-for-minor-pre-major": false
+      "exclude-paths": ["extensions/call-recorder"]
     },
     "extensions/call-recorder": {
       "package-name": "call-recorder",

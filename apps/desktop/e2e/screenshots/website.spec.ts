@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { SETTINGS_VERSION } from '../../src/main/settings/schema.ts';
-import { claudeAnswer, readyAssistant } from '../assistant-helpers.ts';
+import { CLAUDE_ANSWER, readyClaude } from '../assistant-helpers.ts';
 import { startFakeWhatsApp } from '../fake-whatsapp-server.ts';
 import { closeApp, expect, launchApp, test } from '../fixtures.ts';
 import { chromePage, clickMenu } from '../extension-helpers.ts';
@@ -160,17 +160,16 @@ test('Settings window', async ({ profile }) => {
   }
 });
 
-/** What the Marketplace shows in the get-started guide: the assistant, and an invented extension. */
+/** What the Marketplace shows in the get-started guide: the call recorder, and an invented extension. */
 const LISTINGS: readonly Listing[] = [
   {
-    id: 'org.guita.yapyap.ai-assistant',
-    name: 'AI assistant',
-    summary:
-      'Suggests replies, summarizes chats and rewrites your drafts with the AI model you choose, using your own key.',
+    id: 'org.guita.yapyap.call-recorder',
+    name: 'Call recorder',
+    summary: 'Records the call on screen, after you agree, and keeps the files on this computer.',
     review: 'official',
     author: 'YapYap',
-    capabilities: ['assistant:bar', 'chat:read-active', 'composer:insert-draft', 'secrets:own'],
-    hosts: ['api.anthropic.com', 'api.openai.com'],
+    capabilities: ['calls:record'],
+    hosts: [],
   },
   {
     id: 'org.example.translate',
@@ -208,7 +207,7 @@ test('Accounts and Extensions windows, for the get-started guide (#385)', async 
   }
 });
 
-test('AI assistant suggesting replies', async ({ profile }) => {
+test('AI assistant settings', async ({ profile }) => {
   const showcase = await startFakeWhatsApp('showcase.html');
   await seed(profile, 'light');
   await preparePersonas(showcase.origin, profile);
@@ -216,14 +215,9 @@ test('AI assistant suggesting replies', async ({ profile }) => {
     `--force-device-scale-factor=${String(SCALE)}`,
   ]);
   try {
-    const replies =
-      'Amazing, thank you Inês! 🎉\nSaturday at 10 works for me\nShall we book lunch after?';
-    const panel = await readyAssistant(app, profile, claudeAnswer(replies));
-    await panel.getByRole('button', { name: 'Look at this chat' }).click();
-    await panel.getByRole('button', { name: 'Allow in this chat' }).click();
-    await panel.getByRole('button', { name: 'Send', exact: true }).click();
-    await expect(panel.getByRole('button', { name: 'Saturday at 10 works for me' })).toBeVisible();
-    await captureWindow(app, '/__yapyap/panel.html', 'assistant', ['png', 'webp']);
+    const settings = await readyClaude(app, CLAUDE_ANSWER);
+    await expect(settings.getByText('In use')).toBeVisible();
+    await captureWindow(app, '/settings.html', 'assistant', ['png', 'webp']);
   } finally {
     await closeApp(app);
     await showcase.close();

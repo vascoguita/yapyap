@@ -70,6 +70,13 @@ import { guardCrashes, type CrashableContents } from '../recovery/crash-guard.ts
 import { monitorPage, type MonitoredContents } from '../recovery/monitor.ts';
 import { isAccountColor } from '../accounts/accounts.ts';
 import { EXTENSION_SCHEME } from '../extensions/extension-files.ts';
+import {
+  createAssistantChrome,
+  type AssistantChrome,
+  type AssistantSources,
+} from '../assistant/assistant-chrome.ts';
+import { serveEngineFiles } from '../assistant/private/engine-files.ts';
+import { engineWindowOpener } from '../assistant/private/engine-window.ts';
 import { setDoNotDisturb } from '../notifications/quiet.ts';
 import { settingsHandlers, type SettingEffect } from '../settings/handlers.ts';
 import type { SettingsService } from '../settings/service.ts';
@@ -280,6 +287,21 @@ export interface ChromeFeatureDependencies {
   /** Asks before removing the account named `name`; true when the user agrees. */
   readonly confirmRemoveAccount: (name: string) => Promise<boolean>;
   readonly extensions: ExtensionChromeDependencies;
+  /** The AI assistant, part of YapYap (ADR 0017). */
+  readonly assistant: AssistantSources & {
+    /** The engine page's preload. */
+    readonly enginePreload: string;
+    /** The engine's own session's protocol, where `app://engine` is served. */
+    readonly engineProtocol: () => {
+      handle(
+        scheme: string,
+        handler: (request: {
+          readonly url: string;
+          readonly headers: Headers;
+        }) => Promise<Response>,
+      ): void;
+    };
+  };
   /** Call recording, which YapYap does on the user's click (ADR 0015). */
   readonly recording: RecordingSources;
   readonly captureSources: (kind: SourceKind) => Promise<readonly DesktopSource[]>;
@@ -333,7 +355,7 @@ interface ChromeRuntime {
     create: (renderer: RendererOptions) => SidebarPort,
   ) => (source: SidebarSource) => void;
   /** Gives the assistant bar its view in the active account's WhatsApp (ADR 0013). */
-  readonly attachAssistantBar: ExtensionChrome['attachAssistantBar'];
+  readonly attachAssistantBar: AssistantChrome['attachBar'];
 }
 
 /** The accounts as the menu and the Accounts window need them. */
@@ -603,13 +625,13 @@ type ChromeOpeners = Pick<
 
 function chromeOpeners(
   windows: ChromeWindowDependencies,
-  extensions: ExtensionChrome,
+  { extensions, openSettings }: { extensions: ExtensionChrome; openSettings: () => void },
 ): ChromeOpeners {
   const opener = (page: ChromePage) => createChromeWindowOpener(windows, page);
   return {
+    openSettings,
     openAccounts: opener(ACCOUNTS_PAGE),
     openAbout: opener(ABOUT_PAGE),
-    openSettings: opener(SETTINGS_PAGE),
     openNewChat: opener(NEW_CHAT_PAGE),
     openShortcuts: opener(SHORTCUTS_PAGE),
     openCustomCode: opener(CUSTOM_CODE_PAGE),
@@ -647,18 +669,25 @@ function menuAccounts(
 
 type MenuExtensions = Pick<
   ExtensionChrome,
-  'commands' | 'runCommand' | 'panels' | 'openPanel' | 'onCommandsChange' | 'refreshAssistantBar'
+  'commands' | 'runCommand' | 'panels' | 'openPanel' | 'onCommandsChange'
 >;
+
+type MenuAssistant = Pick<AssistantChrome, 'actions' | 'refreshBar'>;
 
 /** The menu's actions for the accounts as they are, and the running extensions' commands. */
 function menuActionsOf(
   deps: Omit<ChromeFeatureDependencies, 'facts'> & FactsSource,
   slots: Pick<ChromeSlots, 'recoveries' | 'pages'>,
   openers: ChromeOpeners,
-  extensions: MenuExtensions,
+  { extensions, assistant }: { extensions: MenuExtensions; assistant: MenuAssistant },
   warn: (message: string) => void,
 ): (menu: AccountMenu | undefined) => MenuActions {
   const copyDiagnostics = diagnosticsCopier(deps, slots.pages, warn);
+  const act = (run: () => Promise<void>) => () => {
+    run().catch(() => {
+      warn('An assistant action failed.');
+    });
+  };
   return (menu) => ({
     ...menuAccounts(menu),
     ...openers,
@@ -673,6 +702,11 @@ function menuActionsOf(
     runExtensionCommand: extensions.runCommand,
     extensionPanels: extensions.panels(),
     openExtensionPanel: extensions.openPanel,
+    assistant: {
+      suggest: act(assistant.actions.suggest),
+      summarize: act(assistant.actions.summarize),
+      catchUp: act(assistant.actions.catchUp),
+    },
   });
 }
 
@@ -699,10 +733,10 @@ function accountMenuSetter(
   deps: Omit<ChromeFeatureDependencies, 'facts'> & FactsSource,
   slots: Pick<ChromeSlots, 'recoveries' | 'pages' | 'accounts'>,
   openers: ChromeOpeners,
-  extensions: MenuExtensions,
+  parts: { extensions: MenuExtensions; assistant: MenuAssistant },
   warn: (message: string) => void,
 ): (menu: AccountMenu) => void {
-  const actions = menuActionsOf(deps, slots, openers, extensions, warn);
+  const actions = menuActionsOf(deps, slots, openers, parts, warn);
   const set = (menu: AccountMenu | undefined): void => {
     const { custom, extensions: chosen } = deps.settings.current().shortcuts;
     deps.setMenu(buildMenuTemplate(deps.platform, actions(menu), custom, chosen));
@@ -711,13 +745,13 @@ function accountMenuSetter(
     set(slots.accounts.current);
   };
   set(undefined);
-  extensions.onCommandsChange(rebuild);
+  parts.extensions.onCommandsChange(rebuild);
   onShortcutChange(deps.settings, rebuild);
   return (menu) => {
     slots.accounts.current = menu;
     set(menu);
-    // The bar's grants are per account, so another account may get another extension, or none.
-    extensions.refreshAssistantBar();
+    // Each account has its own allowed chats and its own open chat.
+    parts.assistant.refreshBar();
   };
 }
 
@@ -787,8 +821,6 @@ export function extensionAccounts(accounts: AccountsSlot): Omit<ExtensionAccount
       accounts.current === undefined ? Promise.resolve(false) : accounts.current.replaceDraft(text),
     readDraft: () =>
       accounts.current === undefined ? Promise.resolve(null) : accounts.current.readDraft(),
-    pressEnter: () =>
-      accounts.current === undefined ? Promise.resolve(false) : accounts.current.pressEnter(),
     active: () => accounts.current?.entries.find((entry) => entry.active)?.id,
     list: () => (accounts.current?.entries ?? []).map(({ id, name }) => ({ id, name })),
   };
@@ -818,6 +850,43 @@ function chromeSlots(
   };
 }
 
+/**
+ * The AI assistant (ADR 0017), and `app://engine` on the engine's own
+ * session, which serves its page and the downloaded model.
+ */
+function assistantOf(
+  deps: ChromeFeatureDependencies,
+  windows: ChromeWindowDependencies<PanelWindow>,
+  accounts: AccountsSlot,
+  openSettings: () => void,
+): AssistantChrome {
+  const { assistant } = deps;
+  const chrome = createAssistantChrome({
+    openSettings,
+    sources: assistant,
+    settings: deps.settings,
+    openEngine: engineWindowOpener({
+      createWindow: deps.createWindow,
+      views: windows.views,
+      preload: assistant.enginePreload,
+      warn: windows.warn,
+    }),
+    accounts: () => accounts.current,
+    writeClipboard: deps.writeClipboard,
+    notify: deps.notify,
+    warn: windows.warn,
+  });
+  assistant.engineProtocol().handle(
+    CHROME_SCHEME,
+    serveEngineFiles({
+      root: deps.rendererRoot,
+      readFile: deps.readFile,
+      model: chrome.modelFile,
+    }),
+  );
+  return chrome;
+}
+
 /** Windows that ask or stand by: extension prompts, proxy sign-in and the quick-access panel. */
 function standbyWindows(
   deps: ChromeFeatureDependencies,
@@ -826,13 +895,19 @@ function standbyWindows(
   accounts: AccountsSlot,
 ): {
   extensions: ExtensionChrome;
+  assistant: AssistantChrome;
+  /** One Settings window, which the menu and the assistant's bar both open. */
+  openSettings: () => void;
   proxyLogin: ProxyLoginPrompt;
   quickPanel: QuickPanel;
   recording: ReturnType<typeof callRecording>;
 } {
   const recording = callRecording(deps.recording, windows, deps.windowOf, accounts);
+  const settingsOpener = createChromeWindowOpener(windows, SETTINGS_PAGE);
   return {
     recording,
+    openSettings: settingsOpener,
+    assistant: assistantOf(deps, windows, accounts, settingsOpener),
     extensions: createExtensionChrome(deps.extensions, deps.settings, windows, {
       ...extensionAccounts(accounts),
       calls: recording.service,
@@ -857,7 +932,7 @@ function menuSetter(
   warn: (message: string) => void,
 ): (menu: AccountMenu) => void {
   return stopOnSwitch(
-    accountMenuSetter(deps, slots, openers, standby.extensions, warn),
+    accountMenuSetter(deps, slots, openers, standby, warn),
     standby.recording.recorder,
   );
 }
@@ -876,6 +951,7 @@ function standbyHandlers(
     ),
     ...standby.recording.handlers,
     ...standby.extensions.handlers,
+    ...standby.assistant.handlers,
     ...standby.proxyLogin.handlers,
     ...standby.quickPanel.handlers,
   ];
@@ -887,16 +963,9 @@ const unavailableOn = (wayland: boolean): Readonly<Record<string, string>> =>
 
 /** What the menu and links need from the running extensions. */
 function extensionEntries(
-  extensions: Pick<
-    ExtensionChrome,
-    'actions' | 'runCommand' | 'installFromLink' | 'attachAssistantBar'
-  >,
-): Pick<
-  ChromeRuntime,
-  'extensionActions' | 'runExtensionCommand' | 'installExtensionFromLink' | 'attachAssistantBar'
-> {
+  extensions: Pick<ExtensionChrome, 'actions' | 'runCommand' | 'installFromLink'>,
+): Pick<ChromeRuntime, 'extensionActions' | 'runExtensionCommand' | 'installExtensionFromLink'> {
   return {
-    attachAssistantBar: extensions.attachAssistantBar,
     extensionActions: extensions.actions,
     runExtensionCommand: extensions.runCommand,
     installExtensionFromLink: extensions.installFromLink,
@@ -923,7 +992,7 @@ function startChrome(
     ...standbyHandlers(standby, deps),
   ];
   registerChromeHandlers(deps.ipc, views, handlers, warn);
-  const openers = chromeOpeners(windows, extensions);
+  const openers = chromeOpeners(windows, standby);
   return {
     attachRecovery: recoveryAttacher(withGraphics, renderer, views, warn, recoveries, pages),
     pickCaptureSource: picker.pick,
@@ -939,6 +1008,7 @@ function startChrome(
     attachQuickPanel: quickPanel.attach,
     attachSidebar: (create) => attachSidebar(create(renderer), views, sidebar, warn),
     ...extensionEntries(extensions),
+    attachAssistantBar: standby.assistant.attachBar,
     recorder: recording.recorder,
   };
 }
@@ -948,16 +1018,15 @@ export function createChromeFeature(deps: ChromeFeatureDependencies): ChromeFeat
   return {
     beforeReady: () => {
       deps.registerSchemesAsPrivileged([
-        { scheme: CHROME_SCHEME, privileges: { standard: true, secure: true } },
-        // Served only on each extension's own session (ADR 0004). Without fetch
-        // support, a page cannot fetch its own files, and a model's engine must
-        // fetch its `.wasm` to compile it (#457). The CSP still decides: only
-        // `local-model` adds `'self'` to `connect-src`, so other extensions stay
-        // unable to fetch their own files.
+        // The private model's engine page fetches its `.wasm` and the model
+        // from `app://engine` (ADR 0017). The CSP still decides: chrome
+        // pages allow no `connect-src`, so they fetch nothing.
         {
-          scheme: EXTENSION_SCHEME,
+          scheme: CHROME_SCHEME,
           privileges: { standard: true, secure: true, supportFetchAPI: true },
         },
+        // Served only on each extension's own session (ADR 0004).
+        { scheme: EXTENSION_SCHEME, privileges: { standard: true, secure: true } },
       ]);
     },
     afterReady: (views, warn, graphics, wayland) => {

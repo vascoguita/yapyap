@@ -41,6 +41,15 @@ function api(list: () => Promise<AccountList> = () => Promise.resolve(LIST)) {
       import: vi.fn(),
       chooseFolder: vi.fn(),
     },
+    assistant: {
+      view: vi.fn(),
+      saveKey: vi.fn(),
+      forgetKey: vi.fn(),
+      testKey: vi.fn(),
+      findServers: vi.fn(),
+      privateModel: vi.fn(),
+      forgetChat: vi.fn(),
+    },
     chat: { openNumber: vi.fn() },
     accounts,
     sidebar: {

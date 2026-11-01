@@ -24,7 +24,11 @@ function setup(get: () => Promise<SettingsSnapshot> = () => Promise.resolve(SNAP
       Promise.resolve({ ...SNAPSHOT, values: { ...SNAPSHOT.values, 'appearance.theme': 'dark' } }),
     ),
   };
-  render(<Welcome api={{ settings } as unknown as ChromeApi} />);
+  const assistant = {
+    view: vi.fn(() => new Promise(() => undefined)),
+    findServers: vi.fn(() => new Promise(() => undefined)),
+  };
+  render(<Welcome api={{ settings, assistant } as unknown as ChromeApi} />);
   return { settings };
 }
 

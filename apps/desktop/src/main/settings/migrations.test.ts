@@ -51,6 +51,35 @@ describe('migrate', () => {
   });
 });
 
+describe('version 18 to 19', () => {
+  const toVersion19 = MIGRATIONS[17];
+
+  it('moves suggesting replies automatically to the assistant’s own section', () => {
+    expect(
+      toVersion19?.({ schemaVersion: 18, extensions: { developerMode: true, autoSuggest: false } }),
+    ).toEqual({
+      schemaVersion: 18,
+      extensions: { developerMode: true },
+      assistant: { autoSuggest: false },
+    });
+  });
+
+  it('starts the assistant’s section with its defaults when there was no choice', () => {
+    expect(toVersion19?.({ extensions: { chatMessages: '5' } })).toEqual({
+      extensions: { chatMessages: '5' },
+      assistant: {},
+    });
+  });
+
+  it.each([undefined, null, 'on'])(
+    'leaves an extensions section of %j for validation to reset',
+    (extensions) => {
+      const settings = { schemaVersion: 18, extensions };
+      expect(toVersion19?.(settings)).toBe(settings);
+    },
+  );
+});
+
 describe('version 17 to 18', () => {
   const toVersion18 = MIGRATIONS[16];
 

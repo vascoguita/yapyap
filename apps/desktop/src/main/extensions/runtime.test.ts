@@ -9,7 +9,6 @@ import type { ProcessMetrics } from './resource-guard.ts';
 import type { CallingExtension } from './host-methods.ts';
 import { RPC_OPTIONS, type RpcMethod } from './rpc.ts';
 import { createExtensionRuntime, extensionPartition } from './runtime.ts';
-import { EXTENSION_CSP, LOCAL_MODEL_CSP } from './extension-files.ts';
 
 const MANIFEST = {
   id: 'org.example.hello',
@@ -185,7 +184,6 @@ function setup() {
       }),
       now: () => 0,
       cores: 1,
-      memoryMb: 8192,
     },
     askHost: vi.fn<(extension: string, host: string) => Promise<boolean>>(() =>
       Promise.resolve(false),
@@ -245,23 +243,6 @@ describe('createExtensionRuntime', () => {
     expect(await script.text()).toBe('export default {};');
   });
 
-  it('keeps the user’s answer about looking for models in the extension’s record (#456)', async () => {
-    const hello = record({ capabilities: ['local-network'] });
-    await install(hello);
-    await saveRecords(root, new Map([['org.example.hello', hello]]));
-    const t = setup();
-    await t.runtime.startAll();
-    const [calling] = t.deps.methodsFor.mock.calls[0] ?? [];
-    if (calling === undefined) {
-      throw new Error('The extension got no methods.');
-    }
-    expect(calling.modelSearch.answer()).toBeUndefined();
-    await calling.modelSearch.keep(false);
-    expect(calling.modelSearch.answer()).toBe(false);
-    const kept = (await loadRecords(root)).get('org.example.hello');
-    expect(kept).toEqual({ ...hello, modelSearch: false });
-  });
-
   it('gives each page the extension loads a port of its own, served with the extension’s name', async () => {
     await install(record({ capabilities: ['notifications:show'] }));
     await saveRecords(
@@ -313,9 +294,7 @@ describe('createExtensionRuntime', () => {
     await saveRecords(root, new Map([['org.example.hello', record()]]));
     const t = setup();
     await t.runtime.startAll();
-    expect(t.runtime.processes()).toEqual([
-      { id: 'org.example.hello', name: 'Hello', pid: 4242, localModel: false },
-    ]);
+    expect(t.runtime.processes()).toEqual([{ id: 'org.example.hello', name: 'Hello', pid: 4242 }]);
     t.deps.limits.metrics.mockReturnValue([
       { pid: 4242, cpu: { percentCPUUsage: 100 }, memory: { workingSetSize: 0 } },
     ]);
@@ -462,28 +441,6 @@ describe('createExtensionRuntime', () => {
     expect(t.deps.askHost).not.toHaveBeenCalled();
   });
 
-  it('serves the local-model policy and limits only while the extension holds local-model', async () => {
-    const model = record({ capabilities: ['local-model'] });
-    await install(model);
-    await saveRecords(root, new Map([['org.example.hello', model]]));
-    const t = setup();
-    await t.runtime.startAll();
-    const [, serve] = t.only(t.only([...t.sessions.values()]).protocol.handle.mock.calls);
-    const page = () => serve({ url: 'extension://org.example.hello/' });
-    expect((await page()).headers.get('content-security-policy')).toBe(LOCAL_MODEL_CSP);
-    expect((await page()).headers.get('cross-origin-embedder-policy')).toBe('require-corp');
-    expect(t.only(t.runtime.processes()).localModel).toBe(true);
-    // Taking it back applies from the page's next load, and to the next sample.
-    await saveRecords(
-      root,
-      new Map([['org.example.hello', { ...model, revoked: ['local-model'] }]]),
-    );
-    await t.runtime.regrant('org.example.hello');
-    expect((await page()).headers.get('content-security-policy')).toBe(EXTENSION_CSP);
-    expect((await page()).headers.has('cross-origin-embedder-policy')).toBe(false);
-    expect(t.only(t.runtime.processes()).localModel).toBe(false);
-  });
-
   it('lists the running extensions’ commands, runs one over the port, and says when they change', async () => {
     const commands = [{ id: 'translate', title: 'Translate draft' }];
     await install(record(), { ...MANIFEST, contributes: { commands } });
@@ -512,29 +469,6 @@ describe('createExtensionRuntime', () => {
     t.runtime.stop('org.example.hello');
     expect(changes).toHaveBeenCalledTimes(2);
     expect(t.runtime.commands()).toEqual([]);
-  });
-
-  it('lists the extensions that may fill the assistant bar for the account on screen, and passes them requests', async () => {
-    const assistant = record({ capabilities: ['assistant:bar'] });
-    await install(assistant);
-    await saveRecords(root, new Map([['org.example.hello', assistant]]));
-    const t = setup();
-    await t.runtime.startAll();
-    expect(t.runtime.assistants()).toEqual([]);
-    t.deps.activeAccount.mockReturnValue('acct-1');
-    expect(t.runtime.assistants()).toEqual([{ id: 'org.example.hello', name: 'Hello' }]);
-    // Before its page has loaded, a request waits for its port, then goes through.
-    expect(t.runtime.askAssistant('org.example.hello', { type: 'confirm' })).toBe(true);
-    const host = t.only(t.hosts);
-    host.load();
-    expect(host.ports[0]?.postMessage).toHaveBeenCalledExactlyOnceWith({
-      assistant: { type: 'confirm' },
-    });
-    expect(t.runtime.askAssistant('org.example.hello', { type: 'suggest' })).toBe(true);
-    expect(host.ports[0]?.postMessage).toHaveBeenLastCalledWith({ assistant: { type: 'suggest' } });
-    expect(t.runtime.askAssistant('org.example.other', { type: 'suggest' })).toBe(false);
-    t.deps.activeAccount.mockReturnValue(undefined);
-    expect(t.runtime.askAssistant('org.example.hello', { type: 'suggest' })).toBe(false);
   });
 
   it('reads the unread summary only for an account it was granted for, and audits the call, not the chats', async () => {

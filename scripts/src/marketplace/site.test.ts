@@ -78,8 +78,8 @@ describe('siteExtensions', () => {
   it('shows each extension by name, with its newest version’s requests and every version offered', () => {
     const official = {
       ...EXTENSION,
-      id: 'org.guita.yapyap.ai-assistant',
-      name: 'AI assistant',
+      id: 'org.guita.yapyap.call-recorder',
+      name: 'Call recorder',
       review: 'official' as const,
       author: { name: 'YapYap' },
     };
@@ -87,10 +87,10 @@ describe('siteExtensions', () => {
       siteExtensions({ ...INDEX, extensions: [EXTENSION, official] }, describeCapability),
     ).toEqual([
       expect.objectContaining({
-        id: 'org.guita.yapyap.ai-assistant',
+        id: 'org.guita.yapyap.call-recorder',
         review: 'official',
         author: { name: 'YapYap', url: null },
-        installLink: 'yapyap://extensions/install/org.guita.yapyap.ai-assistant',
+        installLink: 'yapyap://extensions/install/org.guita.yapyap.call-recorder',
       }),
       {
         id: 'org.example.hello',
