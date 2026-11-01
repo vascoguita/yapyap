@@ -1740,3 +1740,6 @@ not edit the same lines.
   About, Extensions and the extension consent included, close on Escape.
   Pages that keep a draft handle Escape themselves. One table test checks
   every entry.
+- Chrome page entries (#522): every page starts through `mount(Page, {
+  title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
+  window from `en.windows`; dialog-like windows close on Escape.
