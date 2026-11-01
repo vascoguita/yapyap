@@ -84,7 +84,7 @@ import {
   type ReplyContents,
 } from './notifications/reply.ts';
 import { readOpenChat, readUnreadChats } from './extensions/chat-reading.ts';
-import type { WindowOptions } from './windows.ts';
+import type { MainWindowOptions } from './windows.ts';
 import {
   bringToFront,
   claimSingleInstance,
@@ -97,7 +97,7 @@ import { extensionLinkInArguments } from './navigation/extension-link.ts';
 import { type UnsafeStartDependencies } from './sandbox-check.ts';
 import { type DownloadDependencies, type DownloadingSession } from './downloads/downloads.ts';
 import { quitOnShutdown, type ShutdownSources } from './shutdown.ts';
-import { showWhenReady, type ReadyPage } from './show-when-ready.ts';
+import { showWhenPageReady, type ReadyPage } from './show-when-ready.ts';
 import {
   focusPageWithWindow,
   type FocusablePage,
@@ -231,13 +231,13 @@ export interface WindowPort extends LinkWindow, Omit<ManagedWindow, 'on' | 'once
   isFocused(): boolean;
   /** The Windows taskbar overlay, an image from `badge.createImage`. */
   setOverlayIcon(overlay: object | null, description: string): void;
-  once: ManagedWindow['once'] & ((event: 'ready-to-show', listener: () => void) => unknown);
+  once: ManagedWindow['once'];
   show(): void;
 }
 
 export interface StartDependencies<Window extends WindowPort> {
   readonly app: AppPort;
-  readonly createWindow: (options: WindowOptions) => Window;
+  readonly createWindow: (options: MainWindowOptions) => Window;
   /** The account sidebar, docked in the main window. */
   readonly createSidebar: (window: Window, renderer: RendererOptions) => SidebarPort;
   /** An account's views in the window, hidden until it is the active one. */
@@ -311,7 +311,7 @@ export interface StartDependencies<Window extends WindowPort> {
   /** electron-updater and the restart prompt, for builds that update themselves. */
   readonly selfUpdate: {
     /** Creates electron-updater's updater; called only for builds that update themselves. */
-    readonly updater: () => Updater;
+    readonly updater: () => Promise<Updater>;
     readonly askToInstall: SelfUpdateDependencies['askToInstall'];
   };
   readonly badge: {
@@ -943,7 +943,7 @@ function wireMainWindow<Window extends WindowPort>(
       activePage().focus();
     },
   });
-  showWhenReady(window, deps.settings.current().general.startMinimized, activePage());
+  showWhenPageReady(window, deps.settings.current().general.startMinimized, activePage());
   return page;
 }
 

@@ -23,20 +23,8 @@ export interface SelfUpdateDependencies {
   readonly warn: (message: string) => void;
 }
 
-/**
- * For builds that can update themselves (ADR 0003), downloads new
- * releases in the background and installs one only when the user agrees to
- * restart. electron-updater checks each download's SHA-512 against the
- * release metadata, and macOS checks the code signature, before anything
- * installs. Betas are offered only to users who asked for them, downgrades
- * never, and every other policy makes no request at all.
- */
-export function startSelfUpdates(createUpdater: () => Updater, deps: SelfUpdateDependencies): void {
-  if (deps.policy !== 'self-update') {
-    return;
-  }
-  // Created only here: electron-updater sets up platform machinery as soon as it exists.
-  const updater = createUpdater();
+/** Sets `updater` up, checks now, and checks again at every interval. */
+function runSelfUpdates(updater: Updater, deps: SelfUpdateDependencies): void {
   updater.autoDownload = true;
   updater.autoInstallOnAppQuit = false;
   updater.allowDowngrade = false;
@@ -64,4 +52,32 @@ export function startSelfUpdates(createUpdater: () => Updater, deps: SelfUpdateD
   };
   check();
   deps.every(check, NOTICE_INTERVAL_MS);
+}
+
+/**
+ * For builds that can update themselves (ADR 0003), downloads new
+ * releases in the background and installs one only when the user agrees to
+ * restart. electron-updater checks each download's SHA-512 against the
+ * release metadata, and macOS checks the code signature, before anything
+ * installs. Betas are offered only to users who asked for them, downgrades
+ * never, and every other policy makes no request at all.
+ */
+export function startSelfUpdates(
+  createUpdater: () => Promise<Updater>,
+  deps: SelfUpdateDependencies,
+): void {
+  if (deps.policy !== 'self-update') {
+    return;
+  }
+  // Loaded and created only here: electron-updater holds megabytes of code
+  // that builds the system updates never need, and sets up platform
+  // machinery as soon as it exists.
+  createUpdater().then(
+    (updater) => {
+      runSelfUpdates(updater, deps);
+    },
+    () => {
+      deps.warn('Could not load the YapYap updater.');
+    },
+  );
 }

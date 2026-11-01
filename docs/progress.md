@@ -1479,3 +1479,11 @@ not edit the same lines.
   (`RPC_OPTIONS.rate.burst`), not a fixed 40: once the burst rose to 40
   (C36), a flood of exactly 40 calls fitted within it on a slow Windows
   runner, since the bucket refills while the calls arrive.
+
+- Memory review (#496, ADR 0009): the main window is a `BaseWindow`, so no
+  renderer runs for its empty page (one process and about 78 MB of working
+  set less in every state measured), and electron-updater loads only in
+  builds that update themselves. The startup benchmark now fails when more
+  than one renderer runs at idle with one account. E2E tests find the main
+  window with `BaseWindow.getAllWindows()`, since
+  `BrowserWindow.getAllWindows()` leaves it out.

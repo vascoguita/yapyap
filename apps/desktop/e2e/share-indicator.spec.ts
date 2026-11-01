@@ -31,8 +31,8 @@ const sidebarOf = async (app: ElectronApplication): Promise<Page> => {
 async function shareScreen(app: ElectronApplication, page: Page): Promise<void> {
   await expect
     .poll(() =>
-      app.evaluate(({ BrowserWindow }) => {
-        const [main] = BrowserWindow.getAllWindows();
+      app.evaluate(({ BaseWindow }) => {
+        const [main] = BaseWindow.getAllWindows();
         main?.focus();
         return main?.isFocused();
       }),

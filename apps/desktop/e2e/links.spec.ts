@@ -36,7 +36,7 @@ async function recordPopupEvents(app: ElectronApplication): Promise<() => Promis
 }
 
 const windowCount = (app: ElectronApplication) =>
-  app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length);
+  app.evaluate(({ BaseWindow }) => BaseWindow.getAllWindows().length);
 
 test('opens web, mail and phone links outside the app, each exactly once', async ({
   app,

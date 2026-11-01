@@ -97,6 +97,66 @@ timings in PRs would flap.
   | windows-latest | 8–20 MB  | 42–45%   | 40 MB, 70% |
   | macos-latest   | 15–22 MB | 42–45%   | 40 MB, 70% |
 
+- **Memory review (#496, 2026-11-01).** A survey measured, on the fake page
+  under Xvfb on Linux, each process's working set, its proportional set
+  size (PSS, which shares each shared page among the processes using it)
+  and its private memory, in five states: one account, after opening and
+  closing Settings, About, Extensions and Downloads, two accounts, with the
+  example and call-recorder extensions, and hidden in the tray. Each figure is
+  the mean of three launches before the changes below and two after:
+
+  | State                | Processes | Working set (MB) | PSS (MB)  | Private (MB) |
+  | -------------------- | --------- | ---------------- | --------- | ------------ |
+  | One account          | 5 → 4     | 648 → 570        | 266 → 253 | 161 → 156    |
+  | After chrome windows | 5 → 4     | 653 → 576        | 269 → 257 | 164 → 159    |
+  | Two accounts         | 7 → 6     | 894 → 816        | 297 → 285 | 163 → 154    |
+  | With two extensions  | 9 → 8     | 1115 → 1039      | 326 → 315 | 189 → 181    |
+  | Hidden in the tray   | 9 → 8     | 1120 → 1044      | 325 → 315 | 187 → 178    |
+
+  What changed:
+  - The main window is a `BaseWindow` (ADR 0001 already described it so),
+    not a `BrowserWindow`. Its own page stayed empty, since WhatsApp and the
+    sidebar run in views, but Chromium still ran a renderer for it: about
+    76 MB of working set and 15 MB of PSS for nothing.
+  - electron-updater loads only in builds that update themselves. Distro,
+    Flatpak and development builds no longer hold its 4 MB of JavaScript
+    heap; the main process's heap fell from 15 to 13 MB.
+  - The startup benchmark also counts renderer processes once settled,
+    with a budget of one (WhatsApp's) on every OS. The count is exact, so
+    a window created ahead of time, one left running after it closes, or
+    another empty page fails it at once, whatever the runner's noise.
+  - The idle-memory budgets now sit 10% above the medians of this change's
+    own benchmark run, as in #428, so the saving cannot quietly return:
+
+    | Runner         | Idle memory before | Idle memory after | Budget |
+    | -------------- | ------------------ | ----------------- | ------ |
+    | ubuntu-latest  | 651 MB             | 570 MB            | 630 MB |
+    | windows-latest | 399 MB             | 338 MB            | 375 MB |
+    | macos-latest   | 489 MB             | 428 MB            | 470 MB |
+
+  What was checked and left as it is:
+  - Chrome windows (`app://chrome/`) are created on demand and destroyed on
+    close: memory returns to where it was once they close, and the sidebar
+    loads only once a second account exists.
+  - Chromium switches: disabling `HardwareMediaKeyHandling`,
+    `MediaSessionService` and `SpareRendererForSitePerProcess` saved 2–4 MB,
+    within run-to-run noise, and the first would take media keys away from
+    voice messages. Running the network service in the browser process, or
+    turning off the GPU process, would weaken the sandbox or calls.
+    Lowering V8's heap is already a setting (`reliability.jsHeapMb`).
+  - Hidden accounts are not discarded or suspended: WhatsApp's own scripts
+    raise its notifications (ADR 0011), so a hidden account must keep
+    running. Chromium already throttles it while hidden (0.2% of a core,
+    above), unless the user turned off `privacy.unreadWhileHidden`.
+  - Each idle extension holds a renderer (about 107 MB of working set, 22 MB
+    of PSS). Starting extensions only when needed would need activation
+    events in the manifest (ADR 0004), since extensions add their commands
+    and listen for calls from `activate`; that is a change to the extension
+    model, not a safe tweak (#495).
+  - No timer or map in the main process grows without bound: per-page
+    timers stop when their page is destroyed, and the 15 rounds of
+    `activity.spec.ts` level off as before.
+
 - **Warm-up.** The first launch on a fresh runner takes 3–7 s while the disk
   cache fills. The benchmark makes one warm-up launch and leaves it out, then
   takes the median of seven.

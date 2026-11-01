@@ -4,6 +4,13 @@ import { rendererPreferences, secureWebPreferences } from './web-preferences.ts'
 const constructed = vi.hoisted(() => [] as unknown[]);
 
 vi.mock('electron', () => ({
+  BaseWindow: class {
+    readonly options: unknown;
+    constructor(options: unknown) {
+      this.options = options;
+      constructed.push(options);
+    }
+  },
   BrowserWindow: class {
     readonly options: unknown;
     constructor(options: unknown) {
@@ -22,7 +29,20 @@ vi.mock('electron', () => ({
   },
 }));
 
-const { createAccountHost, createSecureWindow, createSidebarView } = await import('./windows.ts');
+const { createAccountHost, createMainWindow, createSecureWindow, createSidebarView } =
+  await import('./windows.ts');
+
+describe('createMainWindow', () => {
+  beforeEach(() => {
+    constructed.length = 0;
+  });
+
+  it('creates a window without a page of its own, so no renderer runs for it', () => {
+    const window = createMainWindow({ title: 'YapYap', show: false });
+    expect(constructed).toStrictEqual([{ title: 'YapYap', show: false }]);
+    expect(window).not.toHaveProperty('webContents');
+  });
+});
 
 describe('createSecureWindow', () => {
   beforeEach(() => {

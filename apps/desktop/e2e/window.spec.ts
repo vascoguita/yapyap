@@ -6,7 +6,7 @@ import { closeApp, expect, launchApp, test, whatsAppPage } from './fixtures.ts';
 const BOUNDS = { x: 60, y: 40, width: 900, height: 640 };
 
 const mainBounds = (app: ElectronApplication) =>
-  app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.getNormalBounds());
+  app.evaluate(({ BaseWindow }) => BaseWindow.getAllWindows()[0]?.getNormalBounds());
 
 async function exited(app: ElectronApplication, signal?: NodeJS.Signals): Promise<void> {
   const done = new Promise((resolve) => app.process().once('exit', resolve));
@@ -28,8 +28,8 @@ test('reopens the window where it was left, even after SIGTERM', async ({
   profile,
 }) => {
   await whatsAppPage(app);
-  await app.evaluate(({ BrowserWindow }, bounds) => {
-    BrowserWindow.getAllWindows()[0]?.setBounds(bounds);
+  await app.evaluate(({ BaseWindow }, bounds) => {
+    BaseWindow.getAllWindows()[0]?.setBounds(bounds);
   }, BOUNDS);
   await expect.poll(() => mainBounds(app)).toEqual(BOUNDS);
   // Windows has no SIGTERM: Node's kill() there ends the process outright, so
