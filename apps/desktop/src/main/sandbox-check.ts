@@ -2,7 +2,10 @@ import { en } from '../shared/messages/en.ts';
 
 export const TROUBLESHOOTING_URL = 'https://yapyap.guita.org/guide/troubleshooting#sandbox';
 
-/** Also written to stderr, so it reaches people who start YapYap from a terminal. */
+/**
+ * Also logged, and the log mirrors to stderr, so it reaches people who start
+ * YapYap from a terminal.
+ */
 export const UNSAFE_START_MESSAGE = en.dialogs.unsafeStart.detail;
 
 export interface SandboxSwitches {

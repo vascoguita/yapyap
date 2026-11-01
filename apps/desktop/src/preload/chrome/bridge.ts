@@ -24,7 +24,7 @@ import {
 } from '../../shared/chrome-api.ts';
 
 type Invoke = (channel: string, ...args: unknown[]) => Promise<unknown>;
-/** Hears the sidebar's state, the only thing the main process sends. */
+/** Hears the sidebar's state whenever the main process pushes a new one. */
 type Listen = (listener: (state: SidebarState) => void) => void;
 type ListenToExtensions = (listener: () => void) => void;
 type ListenToPrompt = (listener: (state: RecordPromptState) => void) => void;
