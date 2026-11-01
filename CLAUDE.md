@@ -134,6 +134,10 @@ Update this table in the PR that adds a command.
   `needs.changes.outputs` (ADR 0007). Required checks of other workflows
   live in `.github/rulesets/master.json`; re-apply it after changing it (see
   CONTRIBUTING).
+- CI jobs set up pnpm, Node.js and the install with the local
+  `.github/actions/setup` action after checkout; bump its action pins there.
+  Vitest projects and the mutation config's test files both come from
+  `vitest.projects.ts`.
 - Terminals inside VS Code export `ELECTRON_RUN_AS_NODE=1`. The E2E fixture
   strips it; strip it yourself before running `electron` by hand.
 - Electron (44 and later) has no postinstall step. It downloads its binary on first use, so

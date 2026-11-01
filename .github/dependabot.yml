@@ -31,7 +31,8 @@ updates:
       include: scope
 
   - package-ecosystem: github-actions
-    directory: /
+    # The root covers the workflows; local composite actions pin actions too.
+    directories: ['/', '/.github/actions/*']
     schedule:
       interval: weekly
       day: monday

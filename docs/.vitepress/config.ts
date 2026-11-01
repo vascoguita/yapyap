@@ -1,6 +1,20 @@
+import { cpSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitepress';
 
 const repository = 'https://github.com/vascoguita/yapyap';
+
+/**
+ * Files the site serves whose sources live elsewhere: the app icon and the
+ * SDK's manifest schema, served at its $id. They are copied into `public/`
+ * on every build and dev start instead of being committed twice.
+ */
+const SHARED_FILES = [
+  ['../../apps/desktop/build/icon.svg', '../public/logo.svg'],
+  ['../../packages/sdk/schema/manifest.schema.json', '../public/schema/manifest.schema.json'],
+] as const;
+
+const fromHere = (path: string): string => fileURLToPath(new URL(path, import.meta.url));
 
 const extensionsSidebar = [
   {
@@ -31,6 +45,18 @@ export default defineConfig({
       pageData.title = `${name} · Marketplace`;
       pageData.description = summary;
     }
+  },
+  vite: {
+    plugins: [
+      {
+        name: 'yapyap-shared-files',
+        buildStart() {
+          for (const [source, target] of SHARED_FILES) {
+            cpSync(fromHere(source), fromHere(target));
+          }
+        },
+      },
+    ],
   },
   head: [
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' }],

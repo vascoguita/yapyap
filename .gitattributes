@@ -3,4 +3,3 @@
 docs/progress.md merge=union
 # The SDK's schema test compares these byte for byte with the generated text.
 packages/sdk/schema/*.json text eol=lf
-docs/public/schema/*.json text eol=lf

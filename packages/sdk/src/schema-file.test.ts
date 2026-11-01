@@ -7,12 +7,11 @@ import { manifestSchemaJson } from './schema-file.ts';
 const ROOT = join(import.meta.dirname, '..', '..', '..');
 
 describe('the published manifest schema', () => {
-  it.each(['packages/sdk/schema/manifest.schema.json', 'docs/public/schema/manifest.schema.json'])(
-    '%s matches the TypeBox schema (regenerate with pnpm --filter @yapyap/extension-sdk schema)',
-    (path) => {
-      expect(readFileSync(join(ROOT, path), 'utf8')).toBe(manifestSchemaJson());
-    },
-  );
+  it('matches the TypeBox schema (regenerate with pnpm --filter @yapyap/extension-sdk schema)', () => {
+    expect(readFileSync(join(ROOT, 'packages/sdk/schema/manifest.schema.json'), 'utf8')).toBe(
+      manifestSchemaJson(),
+    );
+  });
 
   it('is plain JSON Schema with its public $id', () => {
     const schema = JSON.parse(manifestSchemaJson()) as Record<string, unknown>;

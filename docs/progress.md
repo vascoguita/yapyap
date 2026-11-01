@@ -1444,6 +1444,16 @@ not edit the same lines.
   since the channel keeps nothing for a page that is reloading. This was
   the cause of the panel E2E tests that failed under load.
 
+- Repository hygiene (#499): CI jobs set up pnpm, Node.js and the install
+  through `.github/actions/setup`, and a change to it runs the full
+  packaging matrix. Pull request and nightly mutation share
+  `mutation.yml`. The Vitest projects come from `vitest.projects.ts`, which
+  the mutation config also reads, so mutation runs now include the `.tsx`
+  tests too. The app icon has one copy, `apps/desktop/build/icon.svg`: the
+  renderer build emits it, and the docs build copies it and the SDK's
+  manifest schema into `docs/public/`. The renderer's Vite inputs are every
+  `src/renderer/*.html`. Each pnpm override says when to remove it.
+
 - The release PR is paused until the first release is near: release-please
   runs only when the `RELEASES_ENABLED` variable is `true` (CONTRIBUTING,
   Releases).

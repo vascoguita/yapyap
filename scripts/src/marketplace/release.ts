@@ -1,9 +1,7 @@
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { RELEASE_DOWNLOADS } from '../release/releases.ts';
 import type { Entry } from './entries.ts';
-
-/** Where release assets of this repository are downloaded from (ADR 0014). */
-const RELEASES = 'https://github.com/vascoguita/yapyap/releases/download';
 
 /** The marketplace's own limits on a version's notes (#434) and an extension's versions. */
 const MAX_NOTES = 2000;
@@ -71,7 +69,7 @@ export function withRelease(
   const listed: Entry['versions'][number] = {
     version: release.version,
     tag: release.tag,
-    source: `${RELEASES}/${release.tag}/${release.file}`,
+    source: `${RELEASE_DOWNLOADS}/${release.tag}/${release.file}`,
     sha256: sha256Of(release.archive),
     minYapYap: release.minYapYap,
     published: release.published,

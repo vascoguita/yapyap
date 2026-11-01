@@ -69,7 +69,7 @@ rpm:
 
 win:
   executableName: YapYap
-  icon: build/icon.png
+  icon: build/icons/1024x1024.png
 nsis:
   oneClick: false
   perMachine: false
@@ -79,7 +79,7 @@ portable:
   artifactName: ${productName}-${version}-win-${arch}-portable.${ext}
 
 mac:
-  icon: build/icon.png
+  icon: build/icons/1024x1024.png
   category: public.app-category.social-networking
   hardenedRuntime: true
   # Library validation stays on: YapYap loads no code signed by anyone else.

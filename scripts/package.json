@@ -8,13 +8,10 @@
   "type": "module",
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
-    "check-pinned-versions": "node src/bin/check-pinned-versions.ts",
-    "check-licenses": "node src/bin/check-licenses.ts",
-    "mutation-targets": "node src/bin/mutation-targets.ts",
-    "package": "node src/bin/package.ts",
-    "verify-fuses": "node src/bin/verify-fuses.ts"
+    "check-licenses": "node src/bin/check-licenses.ts"
   },
   "devDependencies": {
+    "@electron/fuses": "2.1.3",
     "fast-check": "4.10.2",
     "fflate": "0.8.3",
     "typebox": "1.4.3"

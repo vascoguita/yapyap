@@ -1,6 +1,7 @@
+import { RELEASE_PAGES } from './releases.ts';
+
 const VERSION = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
-const RELEASES = 'https://github.com/vascoguita/yapyap/releases/tag/v';
 
 /**
  * Adds a release entry to AppStream metainfo, which software centers and
@@ -18,7 +19,7 @@ export function stampRelease(metainfo: string, version: string, date: string): s
   }
   const entry = [
     `    <release version="${version}" date="${date}">`,
-    `      <url type="details">${RELEASES}${version}</url>`,
+    `      <url type="details">${RELEASE_PAGES}/v${version}</url>`,
     '    </release>',
   ].join('\n');
   if (metainfo.includes('<releases/>')) {

@@ -1,3 +1,5 @@
+import { RELEASE_DOWNLOADS } from './releases.ts';
+
 type AurArch = 'x86_64' | 'aarch64';
 
 /** A file the PKGBUILD downloads, with the checksum makepkg verifies. */
@@ -14,7 +16,6 @@ export interface AurRelease {
 
 const PKGNAME = 'yapyap-bin';
 const ARCHES: readonly AurArch[] = ['x86_64', 'aarch64'];
-const DOWNLOADS = 'https://github.com/vascoguita/yapyap/releases/download/v';
 const SOURCES = 'https://raw.githubusercontent.com/vascoguita/yapyap/v';
 const LISTS = ['license', 'depends', 'provides', 'conflicts', 'options'] as const;
 const FIELDS = {
@@ -61,7 +62,7 @@ function licenseUrl(release: AurRelease): string {
 
 function debUrl(release: AurRelease, arch: AurArch): string {
   const { fileName } = release.debs[arch];
-  return `${fileName}::${DOWNLOADS}${release.version}/${fileName}`;
+  return `${fileName}::${RELEASE_DOWNLOADS}/v${release.version}/${fileName}`;
 }
 
 function quoted(values: readonly string[]): string {

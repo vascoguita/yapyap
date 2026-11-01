@@ -1,5 +1,26 @@
-import { resolve } from 'node:path';
+import { globSync, readFileSync } from 'node:fs';
+import { basename, resolve } from 'node:path';
 import { defineConfig } from 'electron-vite';
+import type { Plugin } from 'vite';
+
+const RENDERER = resolve(import.meta.dirname, 'src/renderer');
+
+/**
+ * The chrome pages show the app icon, whose one source is the packaging
+ * icon, so it is emitted from there rather than kept as a second copy.
+ */
+function appIcon(): Plugin {
+  return {
+    name: 'yapyap-app-icon',
+    generateBundle() {
+      this.emitFile({
+        type: 'asset',
+        fileName: 'icon.svg',
+        source: readFileSync(resolve(import.meta.dirname, 'build/icon.svg')),
+      });
+    },
+  };
+}
 
 export default defineConfig({
   main: {
@@ -24,33 +45,17 @@ export default defineConfig({
     },
   },
   renderer: {
-    root: resolve(import.meta.dirname, 'src/renderer'),
+    root: RENDERER,
+    plugins: [appIcon()],
     build: {
+      // Every HTML shell in the renderer folder is a chrome page.
       rolldownOptions: {
-        input: {
-          about: resolve(import.meta.dirname, 'src/renderer/about.html'),
-          recovery: resolve(import.meta.dirname, 'src/renderer/recovery.html'),
-          settings: resolve(import.meta.dirname, 'src/renderer/settings.html'),
-          picker: resolve(import.meta.dirname, 'src/renderer/picker.html'),
-          'new-chat': resolve(import.meta.dirname, 'src/renderer/new-chat.html'),
-          accounts: resolve(import.meta.dirname, 'src/renderer/accounts.html'),
-          welcome: resolve(import.meta.dirname, 'src/renderer/welcome.html'),
-          report: resolve(import.meta.dirname, 'src/renderer/report.html'),
-          sidebar: resolve(import.meta.dirname, 'src/renderer/sidebar.html'),
-          extensions: resolve(import.meta.dirname, 'src/renderer/extensions.html'),
-          'extension-consent': resolve(import.meta.dirname, 'src/renderer/extension-consent.html'),
-          shortcuts: resolve(import.meta.dirname, 'src/renderer/shortcuts.html'),
-          'custom-code': resolve(import.meta.dirname, 'src/renderer/custom-code.html'),
-          'quick-panel': resolve(import.meta.dirname, 'src/renderer/quick-panel.html'),
-          downloads: resolve(import.meta.dirname, 'src/renderer/downloads.html'),
-          'spelling-languages': resolve(
-            import.meta.dirname,
-            'src/renderer/spelling-languages.html',
-          ),
-          'proxy-login': resolve(import.meta.dirname, 'src/renderer/proxy-login.html'),
-          recorder: resolve(import.meta.dirname, 'src/renderer/recorder.html'),
-          'record-prompt': resolve(import.meta.dirname, 'src/renderer/record-prompt.html'),
-        },
+        input: Object.fromEntries(
+          globSync('*.html', { cwd: RENDERER }).map((page) => [
+            basename(page, '.html'),
+            resolve(RENDERER, page),
+          ]),
+        ),
       },
     },
   },

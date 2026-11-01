@@ -1,13 +1,9 @@
 import { defineConfig } from 'vitest/config';
+import { testProjects } from './vitest.projects.ts';
 
 export default defineConfig({
   test: {
-    projects: [
-      'apps/*/vitest.config.ts',
-      'packages/*/vitest.config.ts',
-      'extensions/*/vitest.config.ts',
-      'scripts/vitest.config.ts',
-    ],
+    projects: testProjects(),
     coverage: {
       provider: 'v8',
       include: [
