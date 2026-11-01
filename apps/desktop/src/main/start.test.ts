@@ -406,6 +406,57 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
   };
 }
 
+type Fakes = ReturnType<typeof fakes>;
+
+interface TrayEntry {
+  readonly label?: string;
+  readonly checked?: boolean;
+  readonly click?: () => void;
+}
+
+/** The tray menu as YapYap last built it. */
+const trayMenu = (f: Pick<Fakes, 'tray'>): TrayEntry[] =>
+  (f.tray.buildMenu.mock.calls.at(-1)?.[0] ?? []) as TrayEntry[];
+
+const trayItem = (f: Pick<Fakes, 'tray'>, label: string): TrayEntry | undefined =>
+  trayMenu(f).find((entry) => entry.label === label);
+
+/** Clicks the tray item with this label, which must be there. */
+function clickTray(f: Pick<Fakes, 'tray'>, label: string): void {
+  const click = trayItem(f, label)?.click;
+  if (click === undefined) {
+    throw new Error(`The tray has no ${label}.`);
+  }
+  click();
+}
+
+/** What the account menu was last told. */
+function accountMenu(f: Pick<Fakes, 'runtime'>): AccountMenu {
+  const [last] = f.runtime.setAccountMenu.mock.calls.at(-1) ?? [];
+  if (last === undefined) {
+    throw new Error('No account menu was set.');
+  }
+  return last;
+}
+
+/** What the sidebar was last shown. */
+function sidebar(f: Pick<Fakes, 'runtime'>): SidebarSource {
+  const [last] = f.runtime.sidebar.mock.calls.at(-1) ?? [];
+  if (last === undefined) {
+    throw new Error('The sidebar was never shown.');
+  }
+  return last;
+}
+
+/** Runs every listener the main window has for `name`. */
+function windowEvent(f: Pick<Fakes, 'window'>, name: string): void {
+  for (const [event, listener] of f.window.on.mock.calls) {
+    if (event === name) {
+      (listener as () => void)();
+    }
+  }
+}
+
 describe('startApp', () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -819,23 +870,15 @@ describe('startApp', () => {
     const tray = f.tray.create.mock.results[0]?.value as {
       setToolTip: ReturnType<typeof vi.fn>;
     };
-    const lastMenu = () =>
-      (f.tray.buildMenu.mock.calls.at(-1)?.[0] ?? []) as { label?: string; click?: () => void }[];
-    const click = (label: string) => {
-      lastMenu()
-        .find((entry) => entry.label === label)
-        ?.click?.();
-    };
-    expect(lastMenu()[0]?.label).toBe('Hide YapYap');
+    expect(trayMenu(f)[0]?.label).toBe('Hide YapYap');
     f.window.isVisible.mockReturnValue(false);
-    const hidden = f.window.on.mock.calls.find(([event]) => event === 'hide');
-    (hidden?.[1] as (() => void) | undefined)?.();
-    expect(lastMenu()[0]?.label).toBe('Show YapYap');
+    windowEvent(f, 'hide');
+    expect(trayMenu(f)[0]?.label).toBe('Show YapYap');
     f.web.fire('page-title-updated', {}, '(2) WhatsApp');
     expect(tray.setToolTip).toHaveBeenLastCalledWith('YapYap: 2 unread chats');
-    click('Settings…');
+    clickTray(f, 'Settings…');
     expect(f.runtime.openSettings).toHaveBeenCalledOnce();
-    click('Quit YapYap');
+    clickTray(f, 'Quit YapYap');
     expect(f.app.quit).toHaveBeenCalledOnce();
   });
 
@@ -856,24 +899,24 @@ describe('startApp', () => {
     expect(f.window.restore).toHaveBeenCalledOnce();
     expect(f.window.show).toHaveBeenCalled();
     f.web.fire('page-title-updated', {}, '(2) WhatsApp');
-    expect(f.runtime.panel).toHaveBeenLastCalledWith(f.runtime.sidebar.mock.calls.at(-1)?.[0]);
+    expect(f.runtime.panel).toHaveBeenLastCalledWith(sidebar(f));
   });
 
   it('reads the active account’s open chat for an extension, through the adapter', async () => {
     const f = fakes();
     await startApp(f);
-    const [menu] = f.runtime.setAccountMenu.mock.calls.at(-1) ?? [];
+    const menu = accountMenu(f);
     f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValueOnce(null);
-    await expect(menu?.readActiveChat(5)).resolves.toBeNull();
+    await expect(menu.readActiveChat(5)).resolves.toBeNull();
     f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValueOnce([]);
-    await expect(menu?.readUnreadSummary()).resolves.toEqual([]);
+    await expect(menu.readUnreadSummary()).resolves.toEqual([]);
     f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValueOnce('Draft');
-    await expect(menu?.readDraft()).resolves.toBe('Draft');
+    await expect(menu.readDraft()).resolves.toBe('Draft');
     f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValueOnce(true);
-    await expect(menu?.replaceDraft('New')).resolves.toBe(true);
+    await expect(menu.replaceDraft('New')).resolves.toBe(true);
     expect(f.web.contents.insertText).toHaveBeenLastCalledWith('New');
     f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValueOnce(true);
-    await expect(menu?.pressEnter()).resolves.toBe(true);
+    await expect(menu.pressEnter()).resolves.toBe(true);
     expect(f.web.contents.sendInputEvent).toHaveBeenCalledWith(
       expect.objectContaining({ type: 'keyDown', keyCode: 'Enter' }),
     );
@@ -882,9 +925,8 @@ describe('startApp', () => {
   it('puts an extension’s draft in the active account’s open chat, and only there', async () => {
     const f = fakes();
     await startApp(f);
-    const [menu] = f.runtime.setAccountMenu.mock.calls.at(-1) ?? [];
     f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValueOnce(true);
-    await expect(menu?.insertDraft('Draft')).resolves.toBe(true);
+    await expect(accountMenu(f).insertDraft('Draft')).resolves.toBe(true);
     expect(f.web.contents.insertText).toHaveBeenCalledExactlyOnceWith('Draft');
   });
 
@@ -1007,14 +1049,6 @@ describe('startApp', () => {
       };
       return { ...f, accounts, newAccountId: () => THIRD };
     }
-    const menu = (f: ReturnType<typeof twoAccounts>): AccountMenu => {
-      const [last] = f.runtime.setAccountMenu.mock.calls.at(-1) ?? [];
-      if (last === undefined) {
-        throw new Error('No account menu was set.');
-      }
-      return last;
-    };
-
     it('loads both in the background, shows the active one and lists them', async () => {
       const f = twoAccounts(['/opt/YapYap/yapyap', 'https://wa.me/447700900123']);
       await startApp(f);
@@ -1025,7 +1059,7 @@ describe('startApp', () => {
       expect(work?.webContents.loadURL).toHaveBeenCalledWith(
         `${WHATSAPP_ORIGIN}/send?phone=447700900123`,
       );
-      expect(menu(f).entries).toEqual([
+      expect(accountMenu(f).entries).toEqual([
         {
           id: ACCOUNT,
           name: 'Personal',
@@ -1045,17 +1079,17 @@ describe('startApp', () => {
           active: true,
         },
       ]);
-      expect(menu(f).activeContents()).toBe(work?.webContents);
+      expect(accountMenu(f).activeContents()).toBe(work?.webContents);
     });
 
     it('lets the Accounts window read and forget each running account’s camera and microphone answers', async () => {
       const f = twoAccounts();
       await startApp(f);
-      expect(menu(f).permissions(ACCOUNT)).toEqual([]);
-      expect(menu(f).permissions('not-running')).toBeUndefined();
-      menu(f).forgetPermissions(ACCOUNT);
-      menu(f).forgetPermissions('not-running');
-      expect(menu(f).permissions(ACCOUNT)).toEqual([]);
+      expect(accountMenu(f).permissions(ACCOUNT)).toEqual([]);
+      expect(accountMenu(f).permissions('not-running')).toBeUndefined();
+      accountMenu(f).forgetPermissions(ACCOUNT);
+      accountMenu(f).forgetPermissions('not-running');
+      expect(accountMenu(f).permissions(ACCOUNT)).toEqual([]);
     });
 
     it('titles the window after the active account and counts every account’s unread chats', async () => {
@@ -1066,7 +1100,7 @@ describe('startApp', () => {
       work?.page.fire('page-title-updated', {}, '(1) WhatsApp');
       expect(f.window.setTitle).toHaveBeenLastCalledWith('(1) WhatsApp');
       expect(f.badge.setBadgeCount).toHaveBeenLastCalledWith(3);
-      menu(f).switchTo(ACCOUNT);
+      accountMenu(f).switchTo(ACCOUNT);
       expect(f.window.setTitle).toHaveBeenLastCalledWith('(2) WhatsApp');
       expect(work?.hide).toHaveBeenCalledOnce();
       expect(f.saveAccounts).toHaveBeenCalledWith(expect.objectContaining({ active: ACCOUNT }));
@@ -1075,11 +1109,7 @@ describe('startApp', () => {
     it('switches accounts from the tray and shows the window', async () => {
       const f = twoAccounts();
       await startApp(f);
-      const template = (f.tray.buildMenu.mock.calls.at(-1)?.[0] ?? []) as {
-        label?: string;
-        click?: () => void;
-      }[];
-      template.find((entry) => entry.label === 'Personal')?.click?.();
+      clickTray(f, 'Personal');
       expect(f.hosts[0]?.show).toHaveBeenCalledOnce();
       expect(f.window.show).toHaveBeenCalled();
     });
@@ -1163,7 +1193,7 @@ describe('startApp', () => {
       };
       show(0, '1');
       show(1, '2');
-      void menu(f).remove(ACCOUNT);
+      void accountMenu(f).remove(ACCOUNT);
       expect(f.natives[0]?.close).toHaveBeenCalledOnce();
       expect(f.natives[1]?.close).not.toHaveBeenCalled();
       f.listeners.get('will-quit')?.();
@@ -1178,12 +1208,6 @@ describe('startApp', () => {
     };
     const audioMuted = (f: ReturnType<typeof twoAccounts>) =>
       f.hosts.map((host) => host.page.contents.setAudioMuted.mock.calls.at(-1)?.[0] as boolean);
-    const windowEvent = (f: ReturnType<typeof twoAccounts>, name: string) => {
-      const listeners = f.window.on.mock.calls.filter(([event]) => event === name);
-      for (const [, listener] of listeners) {
-        (listener as () => void)();
-      }
-    };
 
     const withMuted = (f: ReturnType<typeof twoAccounts>, index: number) => {
       f.accounts = {
@@ -1203,10 +1227,7 @@ describe('startApp', () => {
       await startApp(f);
       titled(f, 0, '(2) WhatsApp');
       titled(f, 1, '(5) WhatsApp');
-      const [last] = f.runtime.sidebar.mock.calls.at(-1) ?? [];
-      if (last === undefined) {
-        throw new Error('The sidebar was never shown.');
-      }
+      const last = sidebar(f);
       expect(last.state).toEqual({
         accounts: [
           {
@@ -1243,8 +1264,7 @@ describe('startApp', () => {
       );
       titled(f, 1, '(1) WhatsApp');
       await vi.waitFor(() => {
-        const [last] = f.runtime.sidebar.mock.calls.at(-1) ?? [];
-        expect(last?.state.accounts.map((account) => account.avatar)).toEqual([
+        expect(sidebar(f).state.accounts.map((account) => account.avatar)).toEqual([
           undefined,
           'data:image/png;base64,avatar',
         ]);
@@ -1254,20 +1274,12 @@ describe('startApp', () => {
     it('covers every account with the privacy screen from the tray, and the menu follows', async () => {
       const f = twoAccounts();
       await startApp(f);
-      const trayItem = (label: string) =>
-        (
-          (f.tray.buildMenu.mock.calls.at(-1)?.[0] ?? []) as {
-            label?: string;
-            click?: () => void;
-          }[]
-        ).find((entry) => entry.label === label);
-      (trayItem('Privacy Screen')?.click as () => void)();
+      clickTray(f, 'Privacy Screen');
       for (const host of f.hosts) {
         expect(host.page.contents.insertCSS).toHaveBeenCalledWith(expect.stringContaining('blur('));
       }
-      expect(trayItem('Privacy Screen')).toMatchObject({ checked: true });
-      const [menu] = f.runtime.setAccountMenu.mock.calls.at(-1) ?? [];
-      expect(menu?.privacyScreen).toBe(true);
+      expect(trayItem(f, 'Privacy Screen')).toMatchObject({ checked: true });
+      expect(accountMenu(f).privacyScreen).toBe(true);
     });
 
     it('shows a screen share in the tray and the sidebar, and stops it from either', async () => {
@@ -1280,18 +1292,15 @@ describe('startApp', () => {
       const work = workHost.webContents;
       const fromWork = { sender: work, senderFrame: { url: `${WHATSAPP_ORIGIN}/` } };
       const report = (channel: string) => f.ipcListeners.get(`whatsapp:share-${channel}`);
-      const trayMenu = () =>
-        (f.tray.buildMenu.mock.calls.at(-1)?.[0] ?? []) as { label?: string; click?: () => void }[];
-      const sidebarSharing = () =>
-        f.runtime.sidebar.mock.calls.at(-1)?.[0].state.accounts.map((entry) => entry.sharing);
+      const sidebarSharing = () => sidebar(f).state.accounts.map((entry) => entry.sharing);
       report('started')?.(fromWork, '1');
-      const [stop] = trayMenu();
+      const [stop] = trayMenu(f);
       expect(stop?.label).toBe('Stop Sharing Screen (Work)');
       expect(sidebarSharing()).toEqual([false, true]);
-      (stop?.click as () => void)();
+      stop?.click?.();
       expect(work.send).toHaveBeenCalledWith('whatsapp:share-stop', '1');
       report('ended')?.(fromWork, '1');
-      expect(trayMenu()[0]?.label).toBe('Hide YapYap');
+      expect(trayMenu(f)[0]?.label).toBe('Hide YapYap');
     });
 
     it('silences a muted account, and mutes its sound while it is out of sight', async () => {
@@ -1302,7 +1311,7 @@ describe('startApp', () => {
       showFrom(f, 1);
       expect(f.natives.map((native) => native.options.title)).toEqual(['Work: Alice']);
       expect(audioMuted(f)).toEqual([true, false]);
-      menu(f).switchTo(ACCOUNT);
+      accountMenu(f).switchTo(ACCOUNT);
       expect(audioMuted(f)).toEqual([false, false]);
       windowEvent(f, 'minimize');
       expect(audioMuted(f)).toEqual([true, false]);
@@ -1318,21 +1327,13 @@ describe('startApp', () => {
       let settings = defaultSettings();
       f.settings.current = () => settings;
       await startApp(f);
-      const tray = () =>
-        (f.tray.buildMenu.mock.calls.at(-1)?.[0] ?? []) as {
-          label?: string;
-          checked?: boolean;
-          click?: () => void;
-        }[];
-      tray()
-        .find((entry) => entry.label === 'Do Not Disturb')
-        ?.click?.();
+      clickTray(f, 'Do Not Disturb');
       const [change] = f.settings.update.mock.calls[0] as [(current: Settings) => Settings];
       settings = change(settings);
       for (const [listener] of f.settings.onChange.mock.calls as [(next: Settings) => void][]) {
         listener(settings);
       }
-      expect(tray().find((entry) => entry.label === 'Do Not Disturb')?.checked).toBe(true);
+      expect(trayItem(f, 'Do Not Disturb')?.checked).toBe(true);
       expect(audioMuted(f)).toEqual([true, false]);
       showFrom(f, 0);
       showFrom(f, 1);
@@ -1384,7 +1385,7 @@ describe('startApp', () => {
         [{ code: expect.stringContaining(`globalThis, {"width":${width},`) as unknown }],
       ];
       expect(work.executeJavaScriptInIsolatedWorld).toHaveBeenCalledWith(...sized('null'));
-      menu(f).switchTo(ACCOUNT);
+      accountMenu(f).switchTo(ACCOUNT);
       expect(personal.executeJavaScriptInIsolatedWorld).toHaveBeenCalledWith(...sized('320'));
       personal.executeJavaScriptInIsolatedWorld.mockClear();
       f.window.isVisible.mockReturnValue(false);
@@ -1412,7 +1413,7 @@ describe('startApp', () => {
       send('resize', { ...fromWork, sender: {} }, 400);
       expect(f.warn).toHaveBeenCalledWith('Ignored a message on whatsapp:chat-list-resize.');
       expect(f.chatListWidths.set).toHaveBeenCalledTimes(2);
-      void menu(f).remove(ACCOUNT);
+      void accountMenu(f).remove(ACCOUNT);
       await vi.waitFor(() => {
         expect(f.chatListWidths.forget).toHaveBeenCalledExactlyOnceWith(ACCOUNT);
       });
@@ -1421,7 +1422,7 @@ describe('startApp', () => {
     it('adds an account in its own session and shows it', async () => {
       const f = twoAccounts();
       await startApp(f);
-      menu(f).add();
+      accountMenu(f).add();
       expect(f.createAccountHost).toHaveBeenLastCalledWith(f.window, {
         partition: `persist:account-${THIRD}`,
         preload: '/out/preload/whatsapp.cjs',
@@ -1436,14 +1437,14 @@ describe('startApp', () => {
     it('removes an account: closes it and deletes its data, warning if that fails', async () => {
       const f = twoAccounts();
       await startApp(f);
-      void menu(f).remove(ACCOUNT);
+      void accountMenu(f).remove(ACCOUNT);
       await vi.advanceTimersByTimeAsync(0);
       expect(f.hosts[0]?.close).toHaveBeenCalledOnce();
       expect(f.accountSession.clearStorageData).toHaveBeenCalledOnce();
       expect(f.accountSession.clearCache).toHaveBeenCalledOnce();
       f.accountSession.clearStorageData.mockRejectedValueOnce(new Error('busy'));
-      menu(f).add();
-      void menu(f).remove(SECOND);
+      accountMenu(f).add();
+      void accountMenu(f).remove(SECOND);
       await vi.advanceTimersByTimeAsync(0);
       expect(f.warn).toHaveBeenCalledWith('Could not delete the data of a removed account.');
     });
