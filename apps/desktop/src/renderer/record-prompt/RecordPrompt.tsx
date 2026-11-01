@@ -46,22 +46,53 @@ function useClock(): number {
   return now;
 }
 
-function Asking({
-  api,
-  extension,
-}: {
-  readonly api: ChromeApi;
-  readonly extension: string;
+/**
+ * The consent warning (ADR 0015), shown until the user confirms it: they
+ * confirm only by ticking that they know the law and will ask.
+ */
+function ConsentWarning(props: {
+  readonly ticked: boolean;
+  readonly onTick: (ticked: boolean) => void;
 }): JSX.Element {
   return (
+    <section class="consent-warning" aria-labelledby="consent-title">
+      <h2 id="consent-title" class="consent-title">
+        {text.consent.message}
+      </h2>
+      <p>{text.consent.detail}</p>
+      <div class="field">
+        <input
+          id="consent"
+          type="checkbox"
+          checked={props.ticked}
+          onChange={(event) => {
+            props.onTick(event.currentTarget.checked);
+          }}
+        />
+        <label htmlFor="consent">{text.consent.checkbox}</label>
+      </div>
+    </section>
+  );
+}
+
+function Asking({
+  api,
+  state,
+}: {
+  readonly api: ChromeApi;
+  readonly state: RecordPromptState;
+}): JSX.Element {
+  const [ticked, setTicked] = useState(false);
+  return (
     <>
-      <p>{text.asks({ extension })}</p>
+      <p>{text.asks({ extension: state.extension })}</p>
       <p class="hint">{text.consentHint}</p>
+      {state.consent ? <ConsentWarning ticked={ticked} onTick={setTicked} /> : null}
       <div class="actions">
         <button
           type="button"
           onClick={() => {
-            void api.recordPrompt.answer(false);
+            void api.recordPrompt.answer(false, false);
           }}
         >
           {text.notNow}
@@ -69,8 +100,9 @@ function Asking({
         <button
           type="button"
           class="primary"
+          disabled={state.consent && !ticked}
           onClick={() => {
-            void api.recordPrompt.answer(true);
+            void api.recordPrompt.answer(true, ticked);
           }}
         >
           {text.record}
@@ -120,7 +152,7 @@ export function RecordPrompt({ api }: { readonly api: ChromeApi }): JSX.Element 
   return (
     <main class="record-prompt">
       <h1>{text.windowTitle}</h1>
-      {state.phase === 'asking' ? <Asking api={api} extension={state.extension} /> : null}
+      {state.phase === 'asking' ? <Asking api={api} state={state} /> : null}
       {state.phase === 'recording' && state.since !== null ? (
         <Recording api={api} since={state.since} />
       ) : null}

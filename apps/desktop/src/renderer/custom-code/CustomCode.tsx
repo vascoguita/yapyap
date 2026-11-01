@@ -8,9 +8,24 @@ import {
   type Snippet,
 } from '../../shared/custom-code.ts';
 import { en } from '../../shared/messages/en.ts';
+import { DiscardPrompt, useEscapeToClose } from '../shared/discard.tsx';
 
 const text = en.customCode;
 const EMPTY: Snippet = { css: '', js: '' };
+
+/**
+ * Whether `draft` differs from `saved`. Edits only add scopes to a draft, and
+ * a scope's emptied snippet counts as none, so typing and erasing changes nothing.
+ */
+function isChanged(draft: CustomCode, saved: CustomCode): boolean {
+  return (
+    draft.enabled !== saved.enabled ||
+    Object.entries(draft.snippets).some(([scope, mine]) => {
+      const theirs = saved.snippets[scope] ?? EMPTY;
+      return mine.css !== theirs.css || mine.js !== theirs.js;
+    })
+  );
+}
 
 function CodeField(props: {
   readonly id: 'css' | 'js';
@@ -191,7 +206,8 @@ function useEditor(api: ChromeApi) {
   const enable = (enabled: boolean): void => {
     change({ ...draft, enabled }, true);
   };
-  return { view, draft, scope, setScope, status, enable, edit, save };
+  const dirty = view !== undefined && isChanged(draft, view.code);
+  return { view, draft, dirty, scope, setScope, status, enable, edit, save };
 }
 
 /**
@@ -199,11 +215,13 @@ function useEditor(api: ChromeApi) {
  * until the user turns it on, and says plainly that the code can read chats.
  */
 export function CustomCodeEditor({ api }: { readonly api: ChromeApi }): JSX.Element {
-  const { view, draft, scope, setScope, status, enable, edit, save } = useEditor(api);
+  const { view, draft, dirty, scope, setScope, status, enable, edit, save } = useEditor(api);
+  const leaving = useEscapeToClose(dirty);
   return (
     <main class="custom-code">
       <h1>{text.title}</h1>
       <p class="warning">{text.warning}</p>
+      {leaving.asking ? <DiscardPrompt message={text.discard} onSettle={leaving.settle} /> : null}
       <form onSubmit={save}>
         <Fields
           draft={draft}

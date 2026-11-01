@@ -30,6 +30,11 @@ function parseChange(value: unknown): AccountChange | undefined {
     : undefined;
 }
 
+/** WhatsApp always runs in one account at least, so the last running one stays. */
+function isLastRunning(entries: readonly AccountSummary[], entry: AccountSummary): boolean {
+  return entry.enabled && entries.every((other) => other === entry || !other.enabled);
+}
+
 const oneId = ([id, ...rest]: readonly unknown[]): boolean =>
   rest.length === 0 && typeof id === 'string';
 
@@ -51,6 +56,26 @@ function permissionHandlers(current: () => AccountManager | undefined): ChromeHa
       },
     },
   ];
+}
+
+/**
+ * Removes the account once the user agrees; false when YapYap refused,
+ * true when it is gone or stays because the user declined.
+ */
+async function removeAccount(
+  manager: AccountManager,
+  id: string,
+  confirmRemove: (name: string) => Promise<boolean>,
+): Promise<boolean> {
+  const entry = manager.entries.find((candidate) => candidate.id === id);
+  if (entry === undefined) {
+    return true;
+  }
+  // Refused before asking, so the user never confirms a removal that cannot happen.
+  if (isLastRunning(manager.entries, entry)) {
+    return false;
+  }
+  return !(await confirmRemove(entry.name)) || manager.remove(entry.id);
 }
 
 /**
@@ -81,11 +106,10 @@ export function accountsHandlers(
       accepts: ([id, ...rest]) => rest.length === 0 && typeof id === 'string',
       handle: async (_call, id) => {
         const manager = current();
-        const entry = manager?.entries.find((candidate) => candidate.id === id);
-        if (manager !== undefined && entry !== undefined && (await confirmRemove(entry.name))) {
-          await manager.remove(entry.id);
+        if (manager === undefined) {
+          return list();
         }
-        return list();
+        return (await removeAccount(manager, id as string, confirmRemove)) ? list() : null;
       },
     },
     ...permissionHandlers(current),

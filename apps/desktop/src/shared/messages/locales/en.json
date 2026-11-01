@@ -3,7 +3,9 @@
     "loading": "Loading…",
     "cancel": "Cancel",
     "close": "Close",
-    "whatsApp": "WhatsApp"
+    "whatsApp": "WhatsApp",
+    "discard": "Discard",
+    "keepEditing": "Keep Editing"
   },
   "about": {
     "title": "YapYap",
@@ -387,7 +389,8 @@
     "diagnosticsHint": "Versions, your system, graphics and the end of YapYap’s log, with phone numbers and other personal details removed. Never your messages.",
     "open": "Copy and Open GitHub",
     "opened": "The report is on your clipboard, and GitHub is open in your browser.",
-    "failed": "Could not open GitHub. Copy Diagnostics from the Help menu instead."
+    "failed": "Could not open GitHub. Copy Diagnostics from the Help menu instead.",
+    "discard": "Discard your description of the problem?"
   },
   "accounts": {
     "defaultName": "WhatsApp",
@@ -419,6 +422,7 @@
     "save": "Save",
     "remove": "Remove Account…",
     "refused": "At least one account must keep running, so this one cannot be turned off.",
+    "removeRefused": "At least one account must keep running, so this one cannot be removed.",
     "failed": "Could not save the account. Try again.",
     "unavailable": "Accounts are unavailable.",
     "permissions": {
@@ -433,11 +437,7 @@
       "screenState": "Asks every time",
       "forget": "Ask Again for Camera and Microphone"
     },
-    "discard": {
-      "message": "Discard your changes to this account?",
-      "confirm": "Discard",
-      "keep": "Keep Editing"
-    }
+    "discard": "Discard your changes to this account?"
   },
   "sidebar": {
     "label": "Accounts",
@@ -604,7 +604,8 @@
     "jsHint": "Runs when WhatsApp loads, after the code for all accounts, apart from WhatsApp’s own scripts. Reload WhatsApp to run a change.",
     "save": "Save",
     "saved": "Saved.",
-    "failed": "Could not save the code."
+    "failed": "Could not save the code.",
+    "discard": "Discard your unsaved changes to the code?"
   },
   "shortcuts": {
     "global": "From any app",
@@ -832,9 +833,7 @@
     "consent": {
       "message": "Before you record calls",
       "detail": "In many places it is against the law to record a call without the consent of everyone on it. Ask the people on the call before you record, and keep the recording to yourself. YapYap saves recordings only on this computer.",
-      "checkbox": "I know the law where I and the people I call are may require everyone's consent, and I will ask for it",
-      "record": "Record",
-      "cancel": "Cancel"
+      "checkbox": "I know the law where I and the people I call are may require everyone's consent, and I will ask for it"
     }
   }
 }

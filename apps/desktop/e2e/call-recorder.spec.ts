@@ -22,10 +22,6 @@ test('the call recorder extension records a call from its panel, after the user 
       'org.example.call-recorder',
     );
     await installExtension(app, profile, manifest, main, others);
-    // After the install, whose own stub refuses everything: the user confirms the consent warning.
-    await app.evaluate(({ dialog }) => {
-      dialog.showMessageBox = () => Promise.resolve({ response: 0, checkboxChecked: true });
-    });
     const open = () =>
       app.evaluate(({ Menu }) => {
         const item = Menu.getApplicationMenu()
@@ -64,6 +60,8 @@ test('the call recorder extension records a call from its panel, after the user 
     await panel.getByRole('button', { name: 'Record' }).click();
     const prompt = await chromePage(app, '/record-prompt.html');
     await expect(prompt.getByText('Call recorder wants to record this call.')).toBeVisible();
+    // The first recording asks the user to confirm the consent warning in the same window.
+    await prompt.getByRole('checkbox').check();
     await prompt.getByRole('button', { name: 'Record' }).click();
     await expect(status).toContainText('Recording since');
     await new Promise((resolve) => setTimeout(resolve, 2500));

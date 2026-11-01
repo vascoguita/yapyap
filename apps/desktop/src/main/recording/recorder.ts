@@ -39,10 +39,11 @@ export interface RecorderDependencies {
   readonly supported: boolean;
   /** The call running for the account on screen, if any. */
   readonly callOf: () => CallTarget | undefined;
-  /** Asks the user, in YapYap's own window by the call, whether `extension` may record it. */
+  /**
+   * Asks the user, in YapYap's own window by the call, whether `extension`
+   * may record it, with the consent warning until they have confirmed it.
+   */
   readonly ask: (extension: string, call: CallTarget) => Promise<boolean>;
-  /** The user's confirmation that they know the consent laws, asked before the first recording. */
-  readonly consent: () => Promise<boolean>;
   readonly page: () => RecorderPage;
   readonly sink: (started: Date) => Promise<RecordingSink>;
   readonly now: () => Date;
@@ -156,15 +157,6 @@ async function startRunning(
   deps.onChange(stateOf(deps, state));
 }
 
-/** Whether the user agrees, both to this recording and, the first time, to the consent warning. */
-async function agreed(
-  deps: RecorderDependencies,
-  extension: string,
-  call: CallTarget,
-): Promise<boolean> {
-  return (await deps.ask(extension, call)) ? deps.consent() : false;
-}
-
 async function record(
   deps: RecorderDependencies,
   state: RecorderState,
@@ -186,7 +178,7 @@ async function record(
   // One question at a time, held until the recording has started, so two never run.
   state.asking = true;
   try {
-    if (!(await agreed(deps, extension, call))) {
+    if (!(await deps.ask(extension, call))) {
       return 'declined';
     }
     // The call may have ended while the user decided. Each lookup gives a new

@@ -31,8 +31,8 @@ type ListenToRecorder = (listener: (command: RecorderCommand) => void) => void;
 function recordPromptBridge(invoke: Invoke, listen: ListenToPrompt): ChromeApi['recordPrompt'] {
   return {
     state: () => invoke(CHROME_CHANNELS.recordPromptState) as Promise<RecordPromptState>,
-    answer: async (record) => {
-      await invoke(CHROME_CHANNELS.recordPromptAnswer, record);
+    answer: async (record, consented) => {
+      await invoke(CHROME_CHANNELS.recordPromptAnswer, record, consented);
     },
     stop: async () => {
       await invoke(CHROME_CHANNELS.recordPromptStop);
@@ -61,7 +61,7 @@ function accountsBridge(invoke: Invoke): ChromeApi['accounts'] {
     list: () => invoke(CHROME_CHANNELS.accountsList) as Promise<AccountList>,
     save: (id, change) =>
       invoke(CHROME_CHANNELS.accountsSave, id, change) as Promise<AccountList | null>,
-    remove: (id) => invoke(CHROME_CHANNELS.accountsRemove, id) as Promise<AccountList>,
+    remove: (id) => invoke(CHROME_CHANNELS.accountsRemove, id) as Promise<AccountList | null>,
     permissions: (id) =>
       invoke(CHROME_CHANNELS.accountsPermissions, id) as Promise<readonly string[] | null>,
     forgetPermissions: (id) =>

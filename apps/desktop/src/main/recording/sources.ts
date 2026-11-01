@@ -18,8 +18,6 @@ export interface RecordingSources {
   readonly format: () => RecordingFormat;
   /** Where the user's confirmation of the consent warning is kept. */
   readonly consentFile: string;
-  /** Shows the consent warning; true only once the user confirms it. */
-  readonly askConsent: () => Promise<boolean>;
   /** The call window of the account whose WhatsApp is `main`, if a call runs. */
   readonly callWindowOf: (main: object, views: ViewRegistry) => CallTarget | undefined;
   readonly show: (file: string) => void;
@@ -46,7 +44,7 @@ export function callRecording(
       return main === undefined ? undefined : sources.callWindowOf(main, windows.views);
     },
     ...recordingWindows(windows, windowOf),
-    consent: recordingConsent(sources.consentFile, sources.askConsent),
+    consent: recordingConsent(sources.consentFile),
     show: sources.show,
     now: () => new Date(),
     after: (ms, run) => {

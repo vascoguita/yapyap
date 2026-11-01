@@ -212,6 +212,36 @@ describe('Accounts', () => {
     await screen.findByText('Could not save the account. Try again.');
   });
 
+  it('says why YapYap refused a removal', async () => {
+    const t = await shown();
+    t.accounts.remove.mockResolvedValueOnce(null);
+    fireEvent.click(button('Remove Account…'));
+    await screen.findByText(
+      'At least one account must keep running, so this one cannot be removed.',
+      {
+        selector: '[role="alert"]',
+      },
+    );
+    expect(name().value).toBe('Work');
+  });
+
+  it('offers no removal of the last running account, and says why', async () => {
+    const [personal, work, old] = LIST.accounts;
+    const only = [{ ...personal, enabled: false }, work, old] as AccountList['accounts'];
+    render(<Accounts api={api(() => Promise.resolve({ ...LIST, accounts: only })).fake} />);
+    await waitFor(() => {
+      expect(name().value).toBe('Work');
+    });
+    expect(button('Remove Account…').disabled).toBe(true);
+    expect(button('Remove Account…').getAttribute('aria-describedby')).toBe('remove-hint');
+    expect(document.getElementById('remove-hint')?.textContent).toBe(
+      'At least one account must keep running, so this one cannot be removed.',
+    );
+    fireEvent.click(button('Old Off'));
+    expect(button('Remove Account…').disabled).toBe(false);
+    expect(document.getElementById('remove-hint')).toBeNull();
+  });
+
   it('shows what the account may use, and asks again for camera and microphone when told', async () => {
     const t = await shown();
     expect(await screen.findByText('Permissions')).toBeTruthy();

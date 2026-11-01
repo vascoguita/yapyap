@@ -66,7 +66,10 @@ function setup(options: { consent?: boolean; deferred?: boolean } = {}) {
       prompts.push(prompt);
       return prompt;
     }),
-    consent: vi.fn(() => Promise.resolve(options.consent ?? true)),
+    consent: {
+      confirmed: vi.fn(() => Promise.resolve(options.consent ?? true)),
+      confirm: vi.fn(),
+    },
     show: vi.fn(),
     now: () => new Date(2026, 9, 27, 14, 5),
     after: vi.fn(() => () => undefined),
@@ -92,19 +95,22 @@ describe('createRecording', () => {
       expect(t.prompts).toHaveLength(1);
     });
     const prompt = at(t.prompts, 0);
-    expect(t.deps.openPrompt).toHaveBeenCalledWith(t.call);
+    expect(t.deps.openPrompt).toHaveBeenCalledWith(t.call, false);
     const state = t.handler('record-prompt:state');
     expect(state.handle(t.from(prompt.webContents))).toEqual({
       extension: 'Recorder',
       phase: 'asking',
       since: null,
+      consent: false,
     });
     const answer = t.handler('record-prompt:answer');
-    expect(answer.accepts([true])).toBe(true);
-    expect(answer.accepts(['yes'])).toBe(false);
-    expect(answer.accepts([true, 1])).toBe(false);
-    answer.handle(t.from(prompt.webContents), true);
+    expect(answer.accepts([true, false])).toBe(true);
+    for (const args of [[true], ['yes', false], [true, 1], [true, true, true]]) {
+      expect(answer.accepts(args)).toBe(false);
+    }
+    answer.handle(t.from(prompt.webContents), true, false);
     expect(await asked).toBe('recording');
+    expect(t.deps.consent.confirm).not.toHaveBeenCalled();
     const page = at(t.pages, 0);
     await vi.waitFor(() => {
       expect(page.webContents.send).toHaveBeenCalledWith('recorder:command', 'start');
@@ -113,6 +119,7 @@ describe('createRecording', () => {
       extension: 'Recorder',
       phase: 'recording',
       since: new Date(2026, 9, 27, 14, 5).toISOString(),
+      consent: false,
     });
     expect(prompt.close).not.toHaveBeenCalled();
   });
@@ -123,7 +130,7 @@ describe('createRecording', () => {
     await vi.waitFor(() => {
       expect(t.prompts).toHaveLength(1);
     });
-    t.handler('record-prompt:answer').handle(t.from(t.prompts[0]?.webContents ?? {}), false);
+    t.handler('record-prompt:answer').handle(t.from(t.prompts[0]?.webContents ?? {}), false, false);
     expect(await declined).toBe('declined');
     expect(t.prompts[0]?.close).toHaveBeenCalledOnce();
     const closed = t.recording.service.record('Recorder');
@@ -146,7 +153,7 @@ describe('createRecording', () => {
     });
     const prompt = at(t.prompts, 0);
     expect(() => t.handler('record-prompt:stop').handle(t.from({}))).toThrow();
-    t.handler('record-prompt:answer').handle(t.from(prompt.webContents), true);
+    t.handler('record-prompt:answer').handle(t.from(prompt.webContents), true, false);
     await asked;
     const page = at(t.pages, 0);
     t.handler('recorder:chunk').handle(t.from(page.webContents), new Uint8Array([1]));
@@ -171,7 +178,7 @@ describe('createRecording', () => {
       expect(t.prompts).toHaveLength(1);
     });
     const prompt = at(t.prompts, 0);
-    t.handler('record-prompt:answer').handle(t.from(prompt.webContents), true);
+    t.handler('record-prompt:answer').handle(t.from(prompt.webContents), true, false);
     await asked;
     const page = at(t.pages, 0);
     await vi.waitFor(() => {
@@ -208,7 +215,11 @@ describe('createRecording', () => {
       await vi.waitFor(() => {
         expect(t.prompts).toHaveLength(round + 1);
       });
-      t.handler('record-prompt:answer').handle(t.from(t.prompts[round]?.webContents ?? {}), true);
+      t.handler('record-prompt:answer').handle(
+        t.from(t.prompts[round]?.webContents ?? {}),
+        true,
+        false,
+      );
       await asked;
       const page = at(t.pages, 0);
       chunk.handle(t.from(page.webContents), new Uint8Array([round]));
@@ -222,7 +233,7 @@ describe('createRecording', () => {
     await vi.waitFor(() => {
       expect(t.prompts).toHaveLength(3);
     });
-    t.handler('record-prompt:answer').handle(t.from(t.prompts[2]?.webContents ?? {}), true);
+    t.handler('record-prompt:answer').handle(t.from(t.prompts[2]?.webContents ?? {}), true, false);
     await asked;
     expect(t.deps.openRecorder).toHaveBeenCalledTimes(2);
   });
@@ -233,7 +244,7 @@ describe('createRecording', () => {
     await vi.waitFor(() => {
       expect(t.prompts).toHaveLength(1);
     });
-    t.handler('record-prompt:answer').handle(t.from(t.prompts[0]?.webContents ?? {}), true);
+    t.handler('record-prompt:answer').handle(t.from(t.prompts[0]?.webContents ?? {}), true, false);
     await asked;
     t.handler('recorder:failed').handle(t.from(t.pages[0]?.webContents ?? {}));
     expect(t.recording.service.state().recordingSince).toBeNull();
@@ -241,14 +252,36 @@ describe('createRecording', () => {
     expect(await t.recording.service.reveal('f'.repeat(32))).toBe(false);
   });
 
-  it('closes an earlier prompt when a new one opens, and records nothing without consent', async () => {
+  it('asks for the consent warning until confirmed, and records only once its box is ticked', async () => {
     const t = setup({ consent: false });
     const first = t.recording.service.record('Recorder');
     await vi.waitFor(() => {
       expect(t.prompts).toHaveLength(1);
     });
-    t.handler('record-prompt:answer').handle(t.from(t.prompts[0]?.webContents ?? {}), true);
+    const prompt = at(t.prompts, 0).webContents;
+    expect(t.deps.openPrompt).toHaveBeenCalledWith(t.call, true);
+    expect(t.handler('record-prompt:state').handle(t.from(prompt))).toHaveProperty('consent', true);
+    const answer = t.handler('record-prompt:answer');
+    // A page that sends Record without the tick gets nothing recorded, and can still answer.
+    expect(() => answer.handle(t.from(prompt), true, false)).toThrow(
+      'Recording needs the consent warning confirmed.',
+    );
+    expect(t.deps.consent.confirm).not.toHaveBeenCalled();
+    expect(t.deps.openRecorder).not.toHaveBeenCalled();
+    answer.handle(t.from(prompt), true, true);
+    expect(await first).toBe('recording');
+    expect(t.deps.consent.confirm).toHaveBeenCalledOnce();
+  });
+
+  it('keeps no consent the user did not give, and finds no call once it ended', async () => {
+    const t = setup({ consent: false });
+    const first = t.recording.service.record('Recorder');
+    await vi.waitFor(() => {
+      expect(t.prompts).toHaveLength(1);
+    });
+    t.handler('record-prompt:answer').handle(t.from(at(t.prompts, 0).webContents), false, true);
     expect(await first).toBe('declined');
+    expect(t.deps.consent.confirm).not.toHaveBeenCalled();
     t.deps.callOf.mockReturnValue(undefined);
     expect(await t.recording.service.record('Recorder')).toBe('no-call');
     expect(t.recording.service.state().call).toBe(false);
@@ -262,7 +295,7 @@ describe('createRecording, as Electron closes windows', () => {
     await vi.waitFor(() => {
       expect(t.prompts).toHaveLength(1);
     });
-    t.handler('record-prompt:answer').handle(t.from(at(t.prompts, 0).webContents), true);
+    t.handler('record-prompt:answer').handle(t.from(at(t.prompts, 0).webContents), true, false);
     await first;
     const page = at(t.pages, 0);
     // The user closes the window by the call; the recording keeps going until stopped.
@@ -278,7 +311,7 @@ describe('createRecording, as Electron closes windows', () => {
     expect(t.handler('record-prompt:state').handle(t.from(at(t.prompts, 1).webContents))).toEqual(
       expect.objectContaining({ phase: 'asking' }),
     );
-    t.handler('record-prompt:answer').handle(t.from(at(t.prompts, 1).webContents), false);
+    t.handler('record-prompt:answer').handle(t.from(at(t.prompts, 1).webContents), false, false);
     expect(await second).toBe('declined');
   });
 });

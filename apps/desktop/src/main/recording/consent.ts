@@ -13,23 +13,24 @@ async function confirmedVersion(file: string): Promise<number> {
   }
 }
 
+/** The user's confirmation of the consent warning, kept in a file of its own. */
+export interface RecordingConsent {
+  /** Whether the user confirmed this wording of the warning. */
+  readonly confirmed: () => Promise<boolean>;
+  /** Keeps the confirmation, given in YapYap's window by the call. */
+  readonly confirm: () => void;
+}
+
 /**
- * Whether the user confirmed the consent warning: asked before the first
- * recording, kept in `file` once they confirm, and asked again when the
- * warning changes. Declining keeps nothing, so they are asked next time.
+ * The consent warning's confirmation (ADR 0015): asked before the first
+ * recording, kept in `file` once given, and asked again when the warning
+ * changes. Declining keeps nothing, so the user is asked next time.
  */
-export function recordingConsent(
-  file: string,
-  ask: () => Promise<boolean>,
-): () => Promise<boolean> {
-  return async () => {
-    if ((await confirmedVersion(file)) === CONSENT_VERSION) {
-      return true;
-    }
-    const confirmed = await ask();
-    if (confirmed) {
+export function recordingConsent(file: string): RecordingConsent {
+  return {
+    confirmed: async () => (await confirmedVersion(file)) === CONSENT_VERSION,
+    confirm: () => {
       writeTextAtomically(file, `${JSON.stringify({ version: CONSENT_VERSION })}\n`);
-    }
-    return confirmed;
+    },
   };
 }

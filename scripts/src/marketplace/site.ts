@@ -4,7 +4,7 @@ import {
   MarketplaceIndexSchema,
   type MarketplaceIndex,
 } from '../../../packages/sdk/src/marketplace.ts';
-import { compareVersions } from '../../../apps/desktop/src/main/marketplace/versions.ts';
+import { compareVersions } from '../../../packages/sdk/src/version.ts';
 
 /** A listed extension as its page on the website shows it (#390). */
 export interface SiteExtension {

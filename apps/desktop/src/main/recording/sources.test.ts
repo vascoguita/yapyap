@@ -1,5 +1,5 @@
 import type { WebFrameMain } from 'electron';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -21,7 +21,6 @@ function sources(): RecordingSources & { callWindowOf: ReturnType<typeof vi.fn> 
     format: () => 'webm' as const,
     paths: { folder: '/recordings', index: '/user-data/recordings.json' },
     consentFile: '/user-data/recording-consent.json',
-    askConsent: vi.fn(() => Promise.resolve(false)),
     callWindowOf: vi.fn(() => ({ contents: {}, frame: {} as WebFrameMain, onGone: vi.fn() })),
     show: vi.fn(),
   };
@@ -51,7 +50,6 @@ describe('callRecording', () => {
       ...sources(),
       paths: { folder: join(root, 'Calls'), index: join(root, 'recordings.json') },
       consentFile: join(root, 'consent.json'),
-      askConsent: vi.fn(() => Promise.resolve(true)),
       callWindowOf: vi.fn(() => call),
     };
     const window = () => ({
@@ -81,8 +79,10 @@ describe('callRecording', () => {
       expect(created).toHaveLength(1);
     });
     const answer = recording.handlers.find((entry) => entry.channel === 'record-prompt:answer');
-    answer?.handle({ sender: created[0]?.webContents ?? {} }, true);
+    // The first recording asks for the consent warning too, and keeps the answer.
+    answer?.handle({ sender: created[0]?.webContents ?? {} }, true, true);
     expect(await asked).toBe('recording');
+    expect(existsSync(join(root, 'consent.json'))).toBe(true);
     const stopped = recording.service.stop();
     // The page never says it ended, so the grace period ends the wait.
     await vi.advanceTimersByTimeAsync(5000);

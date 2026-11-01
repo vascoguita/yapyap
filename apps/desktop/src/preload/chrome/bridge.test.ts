@@ -66,7 +66,7 @@ describe('createChromeBridge', () => {
     expect(await api.extensions.marketplace()).toBe('ignored');
     await api.extensions.installListed('org.example.hello');
     expect(await api.recordPrompt.state()).toBe('ignored');
-    await api.recordPrompt.answer(true);
+    await api.recordPrompt.answer(true, false);
     await api.recordPrompt.stop();
     await api.recorder.chunk(new Uint8Array([1]));
     await api.recorder.ended();
@@ -142,7 +142,7 @@ describe('createChromeBridge', () => {
       ['extensions:marketplace'],
       ['extensions:install-listed', 'org.example.hello'],
       ['record-prompt:state'],
-      ['record-prompt:answer', true],
+      ['record-prompt:answer', true, false],
       ['record-prompt:stop'],
       ['recorder:chunk', new Uint8Array([1])],
       ['recorder:ended'],

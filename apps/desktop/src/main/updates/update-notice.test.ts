@@ -19,6 +19,10 @@ describe('isNewer', () => {
     ['0.1.0', '0.1.0-beta.2'],
     ['v0.2.0', '0.1.0'],
     ['99999.0.0', '0.99999.99999'],
+    ['0.2.1-beta.2', '0.2.1-beta.1'],
+    ['0.2.1-beta.10', '0.2.1-beta.9'],
+    ['0.2.1-rc.1', '0.2.1-beta.2'],
+    ['0.2.1-beta.1', '0.2.0'],
   ])('%s is newer than %s', (candidate, current) => {
     expect(isNewer(candidate, current)).toBe(true);
   });
@@ -31,6 +35,10 @@ describe('isNewer', () => {
     ['1.0', '0.1.0'],
     ['0.2.0', 'development'],
     ['123456.0.0', '0.1.0'],
+    ['0.2.1-beta.1', '0.2.1-beta.2'],
+    ['0.2.1-beta.2', '0.2.1-beta.2'],
+    ['0.2.1-beta..2', '0.2.1-beta.1'],
+    ['0.2.0', '0.2.1-beta.1'],
   ])('%s is not newer than %s', (candidate, current) => {
     expect(isNewer(candidate, current)).toBe(false);
   });
@@ -72,15 +80,13 @@ describe('newestRelease', () => {
     draft,
   });
 
-  it('picks the newest release, betas included, whatever the order', () => {
-    expect(
-      newestRelease([
-        entry('v0.1.0', false),
-        entry('v0.2.0-beta.2', true),
-        entry('v0.1.1', false),
-        entry('v0.2.0-beta.1', true),
-      ])?.version,
-    ).toBe('0.2.0-beta.2');
+  it.each([
+    ['oldest first', ['v0.1.0', 'v0.2.0-beta.1', 'v0.1.1', 'v0.2.0-beta.2']],
+    ['newest first', ['v0.2.0-beta.2', 'v0.2.0-beta.1', 'v0.1.1', 'v0.1.0']],
+  ])('picks the newest release, betas included, listed %s', (_order, tags) => {
+    expect(newestRelease(tags.map((tag) => entry(tag, tag.includes('-'))))?.version).toBe(
+      '0.2.0-beta.2',
+    );
   });
 
   it('prefers a release over its own betas', () => {
@@ -128,12 +134,13 @@ describe('watchForReleases', () => {
     policy: 'notify' | 'self-update' | 'system' | 'manual',
     answers: unknown[],
     betas = false,
+    currentVersion = '0.1.0',
   ) {
     let tick: (() => void) | undefined;
     const deps = {
       policy,
       betas: () => betas,
-      currentVersion: '0.1.0',
+      currentVersion,
       fetchJson: vi.fn(() => {
         const answer = answers.shift();
         return answer instanceof Error ? Promise.reject(answer) : Promise.resolve(answer);
@@ -200,6 +207,21 @@ describe('watchForReleases', () => {
     expect(t.deps.showNotice).toHaveBeenCalledWith(
       expect.stringContaining('0.2.0-beta.1'),
       'https://github.com/vascoguita/yapyap/releases/tag/v0.2.0-beta.1',
+    );
+  });
+
+  it('tells a tester on a beta about the next beta of the same release', async () => {
+    const beta = (tag: string) => ({ tag_name: tag, draft: false, prerelease: true });
+    const t = setup(
+      'notify',
+      [[beta('v0.2.1-beta.1'), beta('v0.2.1-beta.2')]],
+      true,
+      '0.2.1-beta.1',
+    );
+    await flush();
+    expect(t.deps.showNotice).toHaveBeenCalledExactlyOnceWith(
+      expect.stringContaining('0.2.1-beta.2'),
+      'https://github.com/vascoguita/yapyap/releases/tag/v0.2.1-beta.2',
     );
   });
 

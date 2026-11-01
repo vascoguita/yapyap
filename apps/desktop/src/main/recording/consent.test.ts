@@ -1,7 +1,7 @@
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { CONSENT_VERSION, recordingConsent } from './consent.ts';
 
 let root: string;
@@ -17,29 +17,24 @@ afterEach(() => {
 });
 
 describe('recordingConsent', () => {
-  it('asks once, and keeps the answer once the user confirms', async () => {
-    const ask = vi.fn(() => Promise.resolve(true));
-    const consent = recordingConsent(file, ask);
-    expect(await consent()).toBe(true);
-    expect(await consent()).toBe(true);
-    expect(ask).toHaveBeenCalledOnce();
+  it('is unconfirmed until the user confirms, and keeps the confirmation', async () => {
+    const consent = recordingConsent(file);
+    expect(await consent.confirmed()).toBe(false);
+    consent.confirm();
+    expect(await consent.confirmed()).toBe(true);
+    expect(await recordingConsent(file).confirmed()).toBe(true);
     expect(JSON.parse(readFileSync(file, 'utf8'))).toEqual({ version: CONSENT_VERSION });
   });
 
-  it('asks again after a refusal, and when the warning changed', async () => {
-    const ask = vi.fn(() => Promise.resolve(false));
-    const consent = recordingConsent(file, ask);
-    expect(await consent()).toBe(false);
-    expect(await consent()).toBe(false);
-    expect(ask).toHaveBeenCalledTimes(2);
+  it('is unconfirmed again when the warning changed, or the file is unreadable', async () => {
+    const consent = recordingConsent(file);
     for (const text of [
       JSON.stringify({ version: CONSENT_VERSION - 1 }),
       '{',
       JSON.stringify({ version: 'one' }),
     ]) {
       writeFileSync(file, text);
-      expect(await consent()).toBe(false);
+      expect(await consent.confirmed()).toBe(false);
     }
-    expect(ask).toHaveBeenCalledTimes(5);
   });
 });

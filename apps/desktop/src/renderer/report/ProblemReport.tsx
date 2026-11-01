@@ -2,6 +2,7 @@ import type { JSX } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import type { ChromeApi } from '../../shared/chrome-api.ts';
 import { en } from '../../shared/messages/en.ts';
+import { DiscardPrompt, useEscapeToClose } from '../shared/discard.tsx';
 
 const text = en.report;
 
@@ -29,7 +30,12 @@ function Description(props: {
   );
 }
 
-function Open(props: { readonly api: ChromeApi; readonly description: string }): JSX.Element {
+function Open(props: {
+  readonly api: ChromeApi;
+  readonly description: string;
+  /** Once opened, the description is on the clipboard and in GitHub's form, so closing loses nothing. */
+  readonly onOpened: (description: string) => void;
+}): JSX.Element {
   const [status, setStatus] = useState('');
   return (
     <>
@@ -38,9 +44,11 @@ function Open(props: { readonly api: ChromeApi; readonly description: string }):
         <button
           type="button"
           onClick={() => {
-            props.api.report.open(props.description).then(
+            const { description, onOpened } = props;
+            props.api.report.open(description).then(
               () => {
                 setStatus(text.opened);
+                onOpened(description);
               },
               () => {
                 setStatus(text.failed);
@@ -62,14 +70,17 @@ function Open(props: { readonly api: ChromeApi; readonly description: string }):
  */
 export function ProblemReport({ api }: { readonly api: ChromeApi }): JSX.Element {
   const [description, setDescription] = useState('');
+  const [opened, setOpened] = useState('');
   const [diagnostics, setDiagnostics] = useState('');
   useEffect(() => {
     api.report.diagnostics().then(setDiagnostics, () => undefined);
   }, [api]);
+  const leaving = useEscapeToClose(description.trim() !== '' && description !== opened);
   return (
     <main class="report">
       <h1>{text.title}</h1>
       <p class="hint">{text.intro}</p>
+      {leaving.asking ? <DiscardPrompt message={text.discard} onSettle={leaving.settle} /> : null}
       <Description value={description} onChange={setDescription} />
       <label htmlFor="diagnostics">{text.diagnostics}</label>
       <p class="hint" id="diagnostics-hint">
@@ -83,7 +94,7 @@ export function ProblemReport({ api }: { readonly api: ChromeApi }): JSX.Element
         aria-describedby="diagnostics-hint"
         value={diagnostics}
       />
-      <Open api={api} description={description} />
+      <Open api={api} description={description} onOpened={setOpened} />
     </main>
   );
 }

@@ -19,7 +19,9 @@ recording, YapYap asks you to confirm that you know this.
    same menu, or press <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>R</kbd>
    (<kbd>⌘</kbd>+<kbd>⌥</kbd>+<kbd>R</kbd> on macOS).
 3. YapYap opens a small window by the call, naming the extension that asks.
-   Recording starts only when you choose **Record** there.
+   Recording starts only when you choose **Record** there. Before your first
+   recording, the window also shows the consent warning: **Record** is
+   available once you tick its box.
 
 While it records, that window shows the time and **Stop**;
 <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd> (<kbd>⌘</kbd>+<kbd>⌥</kbd>+<kbd>S</kbd>

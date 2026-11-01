@@ -65,7 +65,7 @@ import { reviewCrashWithDialog } from './crash-review-prompt.ts';
 import trayIcon from '../../build/icons/32x32.png?asset';
 import { PRODUCT_NAME } from './identity.ts';
 import { rewriteClientHints } from './identity/user-agent.ts';
-import { askRecordingConsent, callWindowAmong } from './recording/electron.ts';
+import { callWindowAmong } from './recording/electron.ts';
 import { recordingsFolder } from './recording/library.ts';
 import { createLogger } from './logging/logger.ts';
 import { logProcessErrors } from './process-errors.ts';
@@ -307,7 +307,6 @@ const chrome = createChromeFeature({
       index: join(app.getPath('userData'), 'recordings.json'),
     },
     consentFile: join(app.getPath('userData'), 'recording-consent.json'),
-    askConsent: () => askRecordingConsent((options) => dialog.showMessageBox(options)),
     callWindowOf: (main, views) => callWindowAmong(webContents.getAllWebContents(), main, views),
     show: (file) => {
       shell.showItemInFolder(file);

@@ -1,6 +1,7 @@
 import { readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { SETTINGS_VERSION } from '../src/main/settings/schema.ts';
+import type { ChromeApi } from '../src/shared/chrome-api.ts';
 import { testManifest } from '../test/extensions.ts';
 import { closeApp, expect, launchApp, test, whatsAppPage } from './fixtures.ts';
 import {
@@ -57,10 +58,6 @@ test('records a call only after the user clicks Record and confirms, and keeps i
     await expect
       .poll(async () => (await extensionPage(app))?.title, { timeout: 20_000 })
       .toBe('waiting');
-    // After the install, whose own stub refuses everything: the user confirms the consent warning.
-    await app.evaluate(({ dialog }) => {
-      dialog.showMessageBox = () => Promise.resolve({ response: 0, checkboxChecked: true });
-    });
     if (process.platform === 'darwin') {
       // Capturing a call's sound is not offered on macOS yet (ADR 0015): nothing is asked.
       await page.getByTestId('call').click();
@@ -82,9 +79,20 @@ test('records a call only after the user clicks Record and confirms, and keeps i
     await expect.poll(() => runExtensionCommand(app, 'Recorder: Record')).toBe(true);
     const prompt = await chromePage(app, '/record-prompt.html');
     await expect(prompt.getByText('Recorder wants to record this call.')).toBeVisible();
-    // Nothing records before the click.
+    // Nothing records before the click, and Record waits for the consent warning's box.
     expect((await extensionPage(app))?.title).toBe('no-call');
-    await prompt.getByRole('button', { name: 'Record' }).click();
+    await expect(prompt.getByRole('heading', { name: 'Before you record calls' })).toBeVisible();
+    const record = prompt.getByRole('button', { name: 'Record' });
+    await expect(record).toBeDisabled();
+    // YapYap refuses Record without the tick even when the page sends it.
+    await expect(
+      prompt.evaluate(() =>
+        (globalThis as unknown as { yapyap: ChromeApi }).yapyap.recordPrompt.answer(true, false),
+      ),
+    ).rejects.toThrow('Recording needs the consent warning confirmed.');
+    expect((await extensionPage(app))?.title).toBe('no-call');
+    await prompt.getByRole('checkbox', { name: /I will ask for it/ }).check();
+    await record.click();
     await expect
       .poll(async () => (await extensionPage(app))?.title, { timeout: 20_000 })
       .toBe('recording');
@@ -142,12 +150,10 @@ test('records as WAV when Settings says so, with the sizes in its header', async
     await expect
       .poll(async () => (await extensionPage(app))?.title, { timeout: 20_000 })
       .toBe('waiting');
-    await app.evaluate(({ dialog }) => {
-      dialog.showMessageBox = () => Promise.resolve({ response: 0, checkboxChecked: true });
-    });
     await page.getByTestId('call').click();
     await expect.poll(() => runExtensionCommand(app, 'Recorder: Record')).toBe(true);
     const prompt = await chromePage(app, '/record-prompt.html');
+    await prompt.getByRole('checkbox').check();
     await prompt.getByRole('button', { name: 'Record' }).click();
     await expect
       .poll(async () => (await extensionPage(app))?.title, { timeout: 20_000 })

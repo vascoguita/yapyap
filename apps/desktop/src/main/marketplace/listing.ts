@@ -1,6 +1,6 @@
 import type { MarketplaceIndex } from '@yapyap/extension-sdk';
 import type { MarketplaceEntry } from '../../shared/chrome-api.ts';
-import { compareVersions } from './versions.ts';
+import { compareVersions } from '@yapyap/extension-sdk';
 
 type Listed = MarketplaceIndex['extensions'][number];
 export type ListedVersion = Listed['versions'][number];

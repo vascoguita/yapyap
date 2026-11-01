@@ -330,6 +330,10 @@ importers:
       typebox:
         specifier: 1.4.3
         version: 1.4.3
+    devDependencies:
+      fast-check:
+        specifier: 4.10.2
+        version: 4.10.2
 
   scripts:
     devDependencies:

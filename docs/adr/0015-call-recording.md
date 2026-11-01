@@ -99,3 +99,13 @@ Recording is not offered on macOS for now: on macOS CI the recorder page
 received no sound from the call window, and nobody has verified it on a
 Mac. There, `host.calls.record` resolves `unsupported` without asking, and
 `host.calls.state` reports `supported: false`, until it is checked on a Mac.
+
+## Amendment (2026-11-01)
+
+**The consent warning moved into the window by the call** (item 4). A
+system message box cannot keep **Record** unavailable until its box is
+ticked, so it accepted **Record** without the tick and then did nothing.
+Until the user has confirmed the warning, the window by the call shows it,
+with its box, and offers **Record** only once the box is ticked. The main
+process refuses a **Record** answer without the tick, and keeps the
+confirmation only when it comes with one.

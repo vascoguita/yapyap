@@ -1,3 +1,4 @@
+import { compareVersions } from '@yapyap/extension-sdk';
 import type { UpdatePolicy } from './update-policy.ts';
 import { en } from '../../shared/messages/en.ts';
 
@@ -10,39 +11,25 @@ export const RECENT_RELEASES_API =
 export const NOTICE_INTERVAL_MS = 86_400_000;
 
 const RELEASE_PAGE = 'https://github.com/vascoguita/yapyap/releases/tag/';
-/** Parts of up to five digits keep the combined order key an exact integer. */
-const VERSION =
-  /^v?(?<major>\d{1,5})\.(?<minor>\d{1,5})\.(?<patch>\d{1,5})(?<pre>-[0-9A-Za-z.-]+)?$/;
-const PART = 100_000;
+/**
+ * The only tags YapYap publishes: three short numbers, and a prerelease for a
+ * beta. Anything else in an answer from the network is not trusted as a version.
+ */
+const VERSION = /^v?\d{1,5}\.\d{1,5}\.\d{1,5}(?<pre>-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
 
-interface Version {
-  /** Major, minor and patch as one number that sorts like the version. */
-  readonly order: number;
-  readonly prerelease: boolean;
-}
-
-function parseVersion(text: string): Version | undefined {
+/** Whether `text` is a beta's version; undefined when it is no version YapYap publishes. */
+function isPrerelease(text: string): boolean | undefined {
   const parts = VERSION.exec(text)?.groups;
-  if (parts === undefined) {
-    return undefined;
-  }
-  return {
-    order: (Number(parts['major']) * PART + Number(parts['minor'])) * PART + Number(parts['patch']),
-    prerelease: parts['pre'] !== undefined,
-  };
+  return parts === undefined ? undefined : parts['pre'] !== undefined;
 }
 
-/** Whether `candidate` is a later version than `current`; a release beats its own betas. */
+/**
+ * Whether `candidate` is a later version than `current`: a release beats
+ * its own betas, and a later beta of a release beats an earlier one.
+ */
 export function isNewer(candidate: string, current: string): boolean {
-  const next = parseVersion(candidate);
-  const now = parseVersion(current);
-  if (next === undefined || now === undefined) {
-    return false;
-  }
-  if (next.order === now.order) {
-    return now.prerelease && !next.prerelease;
-  }
-  return next.order > now.order;
+  const known = isPrerelease(candidate) !== undefined && isPrerelease(current) !== undefined;
+  return known && compareVersions(candidate, current) > 0;
 }
 
 export interface ReleaseNotice {
@@ -61,8 +48,7 @@ function parseRelease(value: unknown, betas: boolean): ReleaseNotice | undefined
     return undefined;
   }
   const version = tag.replace(/^v/, '');
-  const parsed = parseVersion(version);
-  if (parsed?.prerelease !== prerelease || (prerelease && !betas)) {
+  if (isPrerelease(version) !== prerelease || (prerelease && !betas)) {
     return undefined;
   }
   return { version, url: `${RELEASE_PAGE}v${version}` };
