@@ -159,3 +159,7 @@ their reasons belong in the ADRs (`docs/adr/`), and released changes in
   reasons without copying the pins from the manifests.
 - Comment fixes (#513): the unsafe-start message reaches stderr through the
   log's mirror, and the chrome preload pushes four events, not one.
+- Assistant-first docs (#516): the website's assistant, Settings and
+  Marketplace screenshots are taken again, the guide has an assistant
+  section, the FAQ says what the assistant reads, and the install guide
+  says macOS builds are signed and notarized.
