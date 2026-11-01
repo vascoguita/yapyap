@@ -231,3 +231,7 @@ their reasons belong in the ADRs (`docs/adr/`), and released changes in
 - Settings migrations (#538): one table entry per version, built from
   `adding(section, values)`; an import parses its JSON once
   (`decodeParsed`).
+
+- Marketplace checks (#536): `revocationOf` and `readMarketplaceIndex` in
+  the SDK serve the app and the website, which now also refuses an index
+  that is too large, signed too far ahead or valid too long.

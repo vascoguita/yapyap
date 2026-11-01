@@ -1,4 +1,4 @@
-import type { MarketplaceIndex } from '@yapyap/extension-sdk';
+import { revocationOf, type MarketplaceIndex } from '@yapyap/extension-sdk';
 import type { ExtensionRecords } from '../extensions/records.ts';
 
 /** An installed extension the marketplace pulled, and the reason it gives. */
@@ -15,12 +15,10 @@ export interface Pulled {
  */
 export function pulledExtensions(index: MarketplaceIndex, records: ExtensionRecords): Pulled[] {
   return [...records.values()].flatMap((record) => {
-    const revocation = index.revoked.find(
-      ({ id, signer, versions }) =>
-        id === record.id &&
-        signer === record.fingerprint &&
-        (versions === '*' || versions.includes(record.version)),
-    );
+    const revocation =
+      record.fingerprint === null
+        ? undefined
+        : revocationOf(index, record.id, record.fingerprint, record.version);
     return revocation === undefined || record.pulled !== undefined
       ? []
       : [{ id: record.id, reason: revocation.reason }];

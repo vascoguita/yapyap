@@ -1,4 +1,5 @@
 import { Type, type Static } from 'typebox';
+import { Value } from 'typebox/value';
 import { ManifestSchema } from './manifest.ts';
 
 /** Where YapYap downloads the extension marketplace's index (ADR 0014). */
@@ -108,3 +109,69 @@ export const MarketplaceIndexSchema = Type.Object(
 
 /** The extension marketplace's index; see {@link MarketplaceIndexSchema}. */
 export type MarketplaceIndex = Static<typeof MarketplaceIndexSchema>;
+
+/** A revocation in the index; see {@link MarketplaceIndexSchema}. */
+export type MarketplaceRevocation = MarketplaceIndex['revoked'][number];
+
+/**
+ * The revocation that pulls this version of an extension, if any (ADR 0014).
+ * It must name the same ID and the same signing key, so nobody can pull
+ * someone else's extension by reusing its ID.
+ */
+export function revocationOf(
+  index: MarketplaceIndex,
+  id: string,
+  signer: string,
+  version: string,
+): MarketplaceRevocation | undefined {
+  return index.revoked.find(
+    (revocation) =>
+      revocation.id === id &&
+      revocation.signer === signer &&
+      (revocation.versions === '*' || revocation.versions.includes(version)),
+  );
+}
+
+/** How far ahead of the reader's clock a signed index may be, for a clock that runs late. */
+const CLOCK_SKEW_MS = 86_400_000;
+
+/** Whether the index was signed recently, has not expired, and is valid no longer than allowed. */
+function isCurrent(index: MarketplaceIndex, now: Date): boolean {
+  const generated = Date.parse(index.generated);
+  const expires = Date.parse(index.expires);
+  return (
+    generated <= now.getTime() + CLOCK_SKEW_MS &&
+    expires > now.getTime() &&
+    expires - generated <= MARKETPLACE_MAX_VALIDITY_MS
+  );
+}
+
+function parseIndex(text: string): MarketplaceIndex | undefined {
+  try {
+    const value: unknown = JSON.parse(text);
+    return Value.Check(MarketplaceIndexSchema, value) ? value : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** An index's text once read: usable, or why not. */
+export type MarketplaceIndexReading =
+  | { readonly status: 'ready'; readonly index: MarketplaceIndex }
+  /** Not an index, or, as the reader decides, too large or not signed by a trusted key. */
+  | { readonly status: 'invalid' }
+  /** Past its expiry, signed too far in the future, or valid for too long. */
+  | { readonly status: 'outdated' };
+
+/**
+ * Reads the text of an index whose size and signature the reader already
+ * checked (ADR 0014): it must match {@link MarketplaceIndexSchema} and be
+ * current at `now`.
+ */
+export function readMarketplaceIndex(text: string, now: Date): MarketplaceIndexReading {
+  const index = parseIndex(text);
+  if (index === undefined) {
+    return { status: 'invalid' };
+  }
+  return isCurrent(index, now) ? { status: 'ready', index } : { status: 'outdated' };
+}

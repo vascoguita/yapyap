@@ -34,6 +34,10 @@ export {
   marketplaceArchiveName,
   marketplaceArchiveUrl,
   MarketplaceIndexSchema,
+  readMarketplaceIndex,
+  revocationOf,
   type MarketplaceIndex,
+  type MarketplaceIndexReading,
+  type MarketplaceRevocation,
 } from './marketplace.ts';
 export { compareVersions } from './version.ts';

@@ -1,19 +1,8 @@
-import type { MarketplaceIndex } from '@yapyap/extension-sdk';
 import type { MarketplaceEntry } from '../../shared/chrome-api.ts';
-import { compareVersions } from '@yapyap/extension-sdk';
+import { compareVersions, revocationOf, type MarketplaceIndex } from '@yapyap/extension-sdk';
 
 type Listed = MarketplaceIndex['extensions'][number];
 export type ListedVersion = Listed['versions'][number];
-
-/** Whether a revocation pulls this version of this extension: same ID, same signer (ADR 0014). */
-function pulled(index: MarketplaceIndex, extension: Listed, version: string): boolean {
-  return index.revoked.some(
-    (revocation) =>
-      revocation.id === extension.id &&
-      revocation.signer === extension.signer &&
-      (revocation.versions === '*' || revocation.versions.includes(version)),
-  );
-}
 
 const newest = (versions: readonly ListedVersion[]): ListedVersion | undefined =>
   [...versions].sort((a, b) => compareVersions(b.version, a.version))[0];
@@ -28,7 +17,9 @@ export function offeredVersion(
   extension: Listed,
   appVersion: string,
 ): { readonly version: ListedVersion; readonly runs: boolean } | undefined {
-  const available = extension.versions.filter(({ version }) => !pulled(index, extension, version));
+  const available = extension.versions.filter(
+    ({ version }) => revocationOf(index, extension.id, extension.signer, version) === undefined,
+  );
   const running = newest(
     available.filter(({ minYapYap }) => compareVersions(appVersion, minYapYap) >= 0),
   );

@@ -1,5 +1,5 @@
 import { createPublicKey } from 'node:crypto';
-import { fingerprint } from './keys.ts';
+import { fingerprint, isEd25519 } from './keys.ts';
 import type { Verification } from './signature.ts';
 
 /** Extension IDs YapYap's own key must sign; nobody else can publish under them. */
@@ -17,7 +17,7 @@ export function anchorFingerprints(pems: readonly string[]): ReadonlySet<string>
   return new Set(
     pems.map((pem) => {
       const key = createPublicKey(pem);
-      if (key.asymmetricKeyType !== 'ed25519') {
+      if (!isEd25519(key)) {
         throw new Error('A trust anchor is not an Ed25519 public key.');
       }
       return fingerprint(key);

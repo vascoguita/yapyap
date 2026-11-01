@@ -6,6 +6,8 @@ import {
   marketplaceArchiveName,
   marketplaceArchiveUrl,
   MarketplaceIndexSchema,
+  readMarketplaceIndex,
+  revocationOf,
   type MarketplaceIndex,
 } from './marketplace.ts';
 
@@ -92,5 +94,64 @@ describe('marketplace addresses', () => {
     expect(marketplaceArchiveUrl('org.example.hello', '1.2.0')).toBe(
       'https://packages.guita.org/extensions/org.example.hello/org.example.hello-1.2.0.yapyap-extension',
     );
+  });
+});
+
+describe('revocationOf', () => {
+  const index: MarketplaceIndex = {
+    ...INDEX,
+    revoked: [
+      { id: 'org.example.bad', versions: '*', signer: SIGNER, reason: 'Sent chats away.' },
+      { id: 'org.example.some', versions: ['1.0.0'], signer: SIGNER, reason: 'Broken.' },
+    ],
+  };
+
+  it('finds the revocation of the same ID, signer and version', () => {
+    expect(revocationOf(index, 'org.example.bad', SIGNER, '9.9.9')?.reason).toBe(
+      'Sent chats away.',
+    );
+    expect(revocationOf(index, 'org.example.some', SIGNER, '1.0.0')?.reason).toBe('Broken.');
+  });
+
+  it('pulls nothing for another version, ID or signer', () => {
+    expect(revocationOf(index, 'org.example.some', SIGNER, '1.0.1')).toBeUndefined();
+    expect(revocationOf(index, 'org.example.good', SIGNER, '1.0.0')).toBeUndefined();
+    const other = Array.from({ length: 32 }, () => 'cd').join(':');
+    expect(revocationOf(index, 'org.example.bad', other, '1.0.0')).toBeUndefined();
+  });
+});
+
+describe('readMarketplaceIndex', () => {
+  const NOW = new Date('2026-11-01T00:00:00.000Z');
+  const text = (index: object) => JSON.stringify(index);
+
+  it('reads a current index', () => {
+    expect(readMarketplaceIndex(text(INDEX), NOW)).toEqual({ status: 'ready', index: INDEX });
+  });
+
+  it.each(['not json', '{}', text({ ...INDEX, format: 2 })])('refuses what is no index', (bad) => {
+    expect(readMarketplaceIndex(bad, NOW)).toEqual({ status: 'invalid' });
+  });
+
+  it.each([
+    ['has expired', { expires: '2026-10-31T23:59:59.000Z' }],
+    ['was signed over a day ahead', { generated: '2026-11-02T00:00:01.000Z' }],
+    [
+      'is valid for over 30 days',
+      { expires: '2026-11-26T09:00:00.001Z', generated: '2026-10-27T09:00:00.000Z' },
+    ],
+  ])('calls an index outdated that %s', (_case, change) => {
+    expect(readMarketplaceIndex(text({ ...INDEX, ...change }), NOW)).toEqual({
+      status: 'outdated',
+    });
+  });
+
+  it('allows a clock up to a day behind the signer', () => {
+    const ahead = {
+      ...INDEX,
+      generated: '2026-11-02T00:00:00.000Z',
+      expires: '2026-11-20T00:00:00.000Z',
+    };
+    expect(readMarketplaceIndex(text(ahead), NOW).status).toBe('ready');
   });
 });

@@ -2,6 +2,9 @@ import { createHash, createPrivateKey, createPublicKey, type KeyObject } from 'n
 
 const RAW_KEY_BYTES = 32;
 
+/** The only key type YapYap signs or verifies with (ADR 0004). */
+export const isEd25519 = (key: KeyObject): boolean => key.asymmetricKeyType === 'ed25519';
+
 /**
  * Reads an Ed25519 private key from PKCS#8 PEM. Errors never repeat the
  * input, so a mistyped command cannot echo key material.
@@ -13,7 +16,7 @@ export function readPrivateKey(pem: string): KeyObject {
   } catch {
     throw new Error('The private key is not a PKCS#8 PEM key.');
   }
-  if (key.asymmetricKeyType !== 'ed25519') {
+  if (!isEd25519(key)) {
     throw new Error('The private key is not an Ed25519 key.');
   }
   return key;
@@ -32,7 +35,7 @@ export function readPublicKey(spkiBase64: string): KeyObject | undefined {
       format: 'der',
       type: 'spki',
     });
-    return key.asymmetricKeyType === 'ed25519' ? key : undefined;
+    return isEd25519(key) ? key : undefined;
   } catch {
     return undefined;
   }
