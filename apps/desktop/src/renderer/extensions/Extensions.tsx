@@ -228,16 +228,16 @@ function SettingsForm(props: {
 
 /** YapYap asks the user to confirm in a dialog of its own, which defaults to Cancel. */
 function RemoveButton(props: {
-  readonly extension: string;
+  readonly extension: InstalledExtension;
   readonly onRemove: (extension: string) => void;
 }): JSX.Element {
   return (
     <button
       type="button"
       class="remove"
-      aria-label={text.removeLabel({ extension: props.extension })}
+      aria-label={text.removeLabel({ extension: props.extension.name })}
       onClick={() => {
-        props.onRemove(props.extension);
+        props.onRemove(props.extension.id);
       }}
     >
       {text.remove}
@@ -254,13 +254,13 @@ function ExtensionRow(props: {
   const { extension } = props;
   return (
     <li>
-      <span class="name">{extension.id}</span>
-      <span class="hint">{text.version({ version: extension.version })}</span>
+      <span class="name">{extension.name}</span>
       <span class={`trust trust-${extension.trust}`}>{text.trust[extension.trust]}</span>
+      <span class="hint id">
+        {extension.id} · {text.version({ version: extension.version })}
+      </span>
       {extension.pulled === null ? null : (
-        <p class="warning" role="alert">
-          {text.pulled({ reason: extension.pulled })}
-        </p>
+        <p class="warning">{text.pulled({ reason: extension.pulled })}</p>
       )}
       {extension.grants.length === 0 ? null : (
         <details class="permissions">
@@ -281,7 +281,7 @@ function ExtensionRow(props: {
       {extension.settings.length === 0 ? null : (
         <SettingsForm extension={extension} onChange={props.onSetting} />
       )}
-      <RemoveButton extension={extension.id} onRemove={props.onRemove} />
+      <RemoveButton extension={extension} onRemove={props.onRemove} />
     </li>
   );
 }
@@ -294,7 +294,14 @@ const describe = (capability: string): string =>
     ? text.connectTo({ host: capability.slice(NETWORK.length) })
     : ((text.capabilities as Readonly<Record<string, string>>)[capability] ?? capability);
 
-function Activity({ activity }: { readonly activity: readonly ExtensionActivity[] }): JSX.Element {
+function Activity(props: {
+  readonly activity: readonly ExtensionActivity[];
+  readonly extensions: readonly InstalledExtension[];
+}): JSX.Element {
+  const { activity } = props;
+  // A removed extension keeps its entries, under its ID.
+  const nameOf = (id: string): string =>
+    props.extensions.find((extension) => extension.id === id)?.name ?? id;
   return (
     <section aria-labelledby="activity-title">
       <h2 id="activity-title">{text.activity.title}</h2>
@@ -306,7 +313,7 @@ function Activity({ activity }: { readonly activity: readonly ExtensionActivity[
           {activity.map((entry) => (
             <li key={`${entry.time}|${entry.extension}|${entry.method}|${entry.outcome}`}>
               <time dateTime={entry.time}>{new Date(entry.time).toLocaleString()}</time>
-              <span class="name">{entry.extension}</span>
+              <span class="name">{nameOf(entry.extension)}</span>
               <span>{describe(entry.capability)}</span>
               <span class={`outcome outcome-${entry.outcome}`}>
                 {text.activity.outcomes[entry.outcome]}
@@ -319,43 +326,60 @@ function Activity({ activity }: { readonly activity: readonly ExtensionActivity[
   );
 }
 
+/**
+ * The list YapYap last answered with, and what went wrong last. Each answer
+ * replaces what the window last said, so an old failure does not linger.
+ */
+function useAnswers() {
+  const [list, setList] = useState<ExtensionList | null>(null);
+  const [problem, setProblem] = useState('');
+  const settled = useCallback((updated: ExtensionList): void => {
+    setList(updated);
+    setProblem('');
+  }, []);
+  const failed = useCallback((): void => {
+    setProblem(text.changeFailed);
+  }, []);
+  return { list, problem, setProblem, settled, failed };
+}
+
 /** The extension list, and how to change a grant or a setting, each answered with the new list. */
 function useExtensionList(api: ChromeApi) {
-  const [list, setList] = useState<ExtensionList | null>(null);
+  const { list, problem, setProblem, settled, failed } = useAnswers();
   useEffect(() => {
     const load = (): void => {
-      api.extensions.list().then(setList, () => undefined);
+      api.extensions.list().then(settled, () => {
+        setProblem(text.listFailed);
+      });
     };
     load();
     // An extension installed or removed while the window is open shows up at once (#342).
     api.extensions.onChange(load);
-  }, [api]);
+  }, [api, settled, setProblem]);
   const setting = useCallback<SettingChange>(
     (extension, key, value) =>
       api.extensions.setSetting(extension, key, value).then(
         (updated) => {
-          setList(updated);
+          settled(updated);
           return true;
         },
         () => false,
       ),
-    [api],
+    [api, settled],
   );
   const grant = useCallback<GrantChange>(
     (extension, capability, account, granted) => {
-      api.extensions
-        .setGrant(extension, capability, account, granted)
-        .then(setList, () => undefined);
+      api.extensions.setGrant(extension, capability, account, granted).then(settled, failed);
     },
-    [api],
+    [api, settled, failed],
   );
   const remove = useCallback(
     (extension: string) => {
-      api.extensions.remove(extension).then(setList, () => undefined);
+      api.extensions.remove(extension).then(settled, failed);
     },
-    [api],
+    [api, settled, failed],
   );
-  return { list, grant, setting, remove };
+  return { list, problem, grant, setting, remove };
 }
 
 type Tab = 'installed' | 'marketplace';
@@ -403,32 +427,63 @@ function Tabs(props: { readonly tab: Tab; readonly onChange: (tab: Tab) => void 
  */
 export function Extensions({ api }: { readonly api: ChromeApi }): JSX.Element | null {
   const [tab, setTab] = useState<Tab>('installed');
+  const browse = useCallback(() => {
+    setTab('marketplace');
+    document.getElementById('tab-marketplace')?.focus();
+  }, []);
   return (
     <main class="extensions">
       <h1>{text.title}</h1>
       <Tabs tab={tab} onChange={setTab} />
       <section role="tabpanel" id="tab-panel" aria-labelledby={`tab-${tab}`}>
-        {tab === 'installed' ? <Installed api={api} /> : <Marketplace api={api} />}
+        {tab === 'installed' ? (
+          <Installed api={api} onBrowse={browse} />
+        ) : (
+          <Marketplace api={api} />
+        )}
       </section>
     </main>
   );
 }
 
-function Installed({ api }: { readonly api: ChromeApi }): JSX.Element | null {
-  const { list, grant, setting, remove } = useExtensionList(api);
-  if (list === null) {
-    return null;
-  }
+/** With nothing installed, the way to the Marketplace is right there. */
+function Empty({ onBrowse }: { readonly onBrowse: () => void }): JSX.Element {
+  return (
+    <div class="empty">
+      <p>{text.empty}</p>
+      <button type="button" class="primary" onClick={onBrowse}>
+        {text.browse}
+      </button>
+    </div>
+  );
+}
+
+function Installed(props: { readonly api: ChromeApi; readonly onBrowse: () => void }): JSX.Element {
+  const { list, problem, grant, setting, remove } = useExtensionList(props.api);
+  return (
+    <>
+      <p role="alert">{problem}</p>
+      {list === null ? null : (
+        <InstalledList list={list} {...{ grant, setting, remove }} onBrowse={props.onBrowse} />
+      )}
+    </>
+  );
+}
+
+function InstalledList(props: {
+  readonly list: ExtensionList;
+  readonly grant: GrantChange;
+  readonly setting: SettingChange;
+  readonly remove: (extension: string) => void;
+  readonly onBrowse: () => void;
+}): JSX.Element {
+  const { list, grant, setting, remove } = props;
   return (
     <>
       <p class="hint">{text.hint}</p>
-      {list.developerMode ? (
-        <p class="warning" role="alert">
-          {text.developerMode}
-        </p>
-      ) : null}
+      {list.developerMode ? <p class="warning">{text.developerMode}</p> : null}
       {list.extensions.length === 0 ? (
-        <p>{text.empty}</p>
+        <Empty onBrowse={props.onBrowse} />
       ) : (
         <ul class="extension-list">
           {list.extensions.map((extension) => (
@@ -442,7 +497,7 @@ function Installed({ api }: { readonly api: ChromeApi }): JSX.Element | null {
           ))}
         </ul>
       )}
-      <Activity activity={list.activity} />
+      <Activity activity={list.activity} extensions={list.extensions} />
     </>
   );
 }

@@ -679,7 +679,10 @@
     "stopped": "{{extension}} kept using too much of your computer, so YapYap stopped it. Install it again to start it.",
     "title": "Extensions",
     "hint": "Each extension runs in its own sandbox and can do only what you allowed when you installed it.",
+    "listFailed": "The installed extensions could not be listed. Close this window and open it again.",
+    "changeFailed": "YapYap could not make that change. Try again.",
     "empty": "No extensions are installed.",
+    "browse": "Browse the Marketplace",
     "fileType": "YapYap extensions",
     "version": "Version {{version}}",
     "trust": {

@@ -251,3 +251,7 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
 - Adapter world (#543): main-process probes run through `runInAdapterWorld`
   (`adapter/world.ts`), and chrome pages load through `loadChromePage`,
   which the hidden recorder window uses too.
+- Extensions window (#541): `InstalledExtension` carries the manifest's
+  name, which the list, Remove and Recent activity show. Failures are said
+  in one live region, a Marketplace install refreshes the list in place,
+  and an empty Installed tab leads to the Marketplace.

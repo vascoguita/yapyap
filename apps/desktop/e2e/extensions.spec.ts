@@ -50,7 +50,8 @@ test('installs a third-party extension only once the user accepts the risk, and 
     .toEqual(['Hello 1.0.0 is installed.']);
   await clickMenu(app, 'Extensions…');
   const extensions = await chromePage(app, '/extensions.html');
-  await expect(extensions.getByText('org.example.hello')).toBeVisible();
+  await expect(extensions.getByText('Hello', { exact: true })).toBeVisible();
+  await expect(extensions.getByText('org.example.hello · Version 1.0.0')).toBeVisible();
   await expect(extensions.getByText('Third-party')).toBeVisible();
 });
 
@@ -176,7 +177,7 @@ test('answers an extension’s calls over its port, only for what it was granted
   const extensions = await chromePage(app, '/extensions.html');
   const activity = extensions.getByRole('region', { name: 'Recent activity' });
   await expect(activity.getByRole('listitem')).toHaveCount(2);
-  await expect(activity.getByRole('listitem').first()).toContainText('org.example.quiet');
+  await expect(activity.getByRole('listitem').first()).toContainText('Quiet');
   await expect(activity.getByRole('listitem').first()).toContainText('Refused: not allowed');
   await expect(activity.getByRole('listitem').last()).toContainText('Show notificationsDone');
   await expect(activity).not.toContainText('Your draft is ready.');
@@ -773,7 +774,7 @@ test('removes an extension with everything it kept, once the user confirms', asy
   await expect.poll(() => extensionTitle(app), { timeout: EXTENSION_START_TIMEOUT }).toBe('fresh');
   await clickMenu(app, 'Extensions…');
   const extensions = await chromePage(app, '/extensions.html');
-  const remove = extensions.getByRole('button', { name: 'Remove org.example.hello' });
+  const remove = extensions.getByRole('button', { name: 'Remove Hello' });
   // Cancel, the dialog's default, keeps the extension running.
   await remove.click();
   await expect(remove).toBeEnabled();
@@ -806,5 +807,5 @@ test('shows an extension installed while the Extensions window is open', async (
     testManifest({ capabilities: [], network: { hosts: [] } }),
     'export default { activate() {} };',
   );
-  await expect(extensions.getByRole('button', { name: 'Remove org.example.hello' })).toBeVisible();
+  await expect(extensions.getByRole('button', { name: 'Remove Hello' })).toBeVisible();
 });

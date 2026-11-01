@@ -17,18 +17,24 @@ async function formFor(
   return formOf(manifest?.contributes?.settings);
 }
 
-/** What the Extensions window shows of an extension's settings: the form, with what the user saved. */
-export async function settingsOf(
+/**
+ * What the Extensions window shows of an installed extension besides its
+ * record: its name, as every other window shows it, and its settings form
+ * with what the user saved. An unreadable manifest leaves the ID and no form.
+ */
+export async function detailsOf(
   root: string,
   record: ExtensionRecord,
   readFile: ReadFile,
-): Promise<ExtensionSetting[]> {
-  const form = await formFor(root, record, readFile);
+): Promise<{ readonly name: string; readonly settings: ExtensionSetting[] }> {
+  const manifest = await manifestIn(join(root, record.id, record.version), readFile);
+  const form = formOf(manifest?.contributes?.settings);
   const values = valuesOf(form, record.settings);
-  return form.map((field) => {
+  const settings = form.map((field) => {
     const value = values[field.key];
     return value === undefined ? field : { ...field, value };
   });
+  return { name: manifest?.name ?? record.id, settings };
 }
 
 /** A setting change: an extension, a short key, and a plain value or null. */

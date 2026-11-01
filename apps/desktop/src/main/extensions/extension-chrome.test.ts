@@ -390,6 +390,8 @@ describe('createExtensionChrome', () => {
       extensions: [
         {
           id: 'org.alpha',
+          // Without a readable manifest, the ID stands in for the name.
+          name: 'org.alpha',
           version: '1.0.0',
           trust: 'third-party',
           pulled: null,
@@ -398,6 +400,7 @@ describe('createExtensionChrome', () => {
         },
         {
           id: 'org.guita.yapyap.ai',
+          name: 'org.guita.yapyap.ai',
           version: '1.0.0',
           trust: 'first-party',
           pulled: null,
@@ -406,6 +409,7 @@ describe('createExtensionChrome', () => {
         },
         {
           id: 'org.zeta',
+          name: 'org.zeta',
           version: '1.0.0',
           trust: 'developer',
           pulled: null,

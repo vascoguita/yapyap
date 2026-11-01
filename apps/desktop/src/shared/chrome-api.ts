@@ -199,6 +199,8 @@ export type RecordingFormat = 'webm' | 'wav';
 /** An installed extension, as the Extensions window lists it. */
 export interface InstalledExtension {
   readonly id: string;
+  /** The manifest's name, or the ID when the manifest cannot be read. */
+  readonly name: string;
   readonly version: string;
   readonly trust: ExtensionTrust;
   /** Why the marketplace pulled this version, which YapYap then does not run (ADR 0014). */

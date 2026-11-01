@@ -92,31 +92,43 @@ function Listing(props: {
   );
 }
 
-/** The marketplace list, loaded when the tab opens and again after each install. */
+const UNREACHABLE: MarketplaceView = { status: 'unreachable', extensions: [] };
+
+/**
+ * The marketplace list, loaded when the tab opens and refreshed in place
+ * after each install, so the search and the focus stay where they were.
+ */
 function useMarketplace(api: ChromeApi) {
   const [view, setView] = useState<MarketplaceView | null>(null);
   const [busy, setBusy] = useState(false);
-  const load = useCallback(() => {
-    setView(null);
+  const [problem, setProblem] = useState('');
+  const refresh = useCallback(() => {
     api.extensions.marketplace().then(setView, () => {
-      setView({ status: 'unreachable', extensions: [] });
+      setView(UNREACHABLE);
     });
   }, [api]);
+  const load = useCallback(() => {
+    setView(null);
+    refresh();
+  }, [refresh]);
   useEffect(load, [load]);
   const install = useCallback(
     (id: string) => {
       setBusy(true);
+      setProblem('');
       api.extensions
         .installListed(id)
-        .catch(() => undefined)
+        .catch(() => {
+          setProblem(en.extensions.result.failed);
+        })
         .finally(() => {
           setBusy(false);
-          load();
+          refresh();
         });
     },
-    [api, load],
+    [api, refresh],
   );
-  return { view, busy, load, install };
+  return { view, busy, problem, load, install };
 }
 
 const matches = (extension: MarketplaceEntry, query: string): boolean =>
@@ -168,7 +180,7 @@ function MarketplaceList(props: {
  * consent window asks again.
  */
 export function Marketplace({ api }: { readonly api: ChromeApi }): JSX.Element {
-  const { view, busy, load, install } = useMarketplace(api);
+  const { view, busy, problem, load, install } = useMarketplace(api);
   if (view === null) {
     return <output>{text.loading}</output>;
   }
@@ -182,5 +194,10 @@ export function Marketplace({ api }: { readonly api: ChromeApi }): JSX.Element {
       </>
     );
   }
-  return <MarketplaceList extensions={view.extensions} busy={busy} onInstall={install} />;
+  return (
+    <>
+      <p role="alert">{problem}</p>
+      <MarketplaceList extensions={view.extensions} busy={busy} onInstall={install} />
+    </>
+  );
 }
