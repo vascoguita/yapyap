@@ -10,7 +10,8 @@ import {
   summarizeGpu,
   type RuntimeFacts,
 } from '../about/about-info.ts';
-import { readPageState, type ProbedContents } from '../about/page-state.ts';
+import { readPageState } from '../about/page-state.ts';
+import type { AdapterPage } from '../../adapter/world.ts';
 import { newChatHandlers, type ChatTarget } from './new-chat.ts';
 import { folderChoiceHandlers } from '../settings/folder-choice.ts';
 import { shortcutHandlers } from './shortcut-settings.ts';
@@ -94,7 +95,7 @@ import {
   type IpcMainPort,
 } from '../ipc/chrome.ts';
 import {
-  createChromeWindowOpener,
+  createChromeWindowSlot,
   openChromeWindow,
   openPromptWindow,
   type ChromePage,
@@ -445,7 +446,7 @@ function recoveryAttacher(
   views: ViewRegistry,
   warn: (message: string) => void,
   recoveries: Map<object, Recovery>,
-  pages: ProbedContents[],
+  pages: AdapterPage[],
 ): ChromeRuntime['attachRecovery'] {
   const technicalDetails = () => diagnostics(deps);
   return (contents, origin, createOverlay) => {
@@ -573,7 +574,7 @@ function diagnostics(
 /** The first WhatsApp view is the one diagnostics describe until accounts arrive. */
 async function currentDiagnostics(
   deps: Omit<ChromeFeatureDependencies, 'facts'> & FactsSource,
-  pages: readonly ProbedContents[],
+  pages: readonly AdapterPage[],
 ): Promise<string> {
   const page = pages[0];
   const state = page === undefined ? undefined : await readPageState(page);
@@ -583,7 +584,7 @@ async function currentDiagnostics(
 /** Report a Problem's operations, describing the WhatsApp views open now. */
 function reportHandlers(
   deps: Omit<ChromeFeatureDependencies, 'facts'> & FactsSource,
-  pages: readonly ProbedContents[],
+  pages: readonly AdapterPage[],
 ): ChromeHandler[] {
   return problemReportHandlers({
     diagnostics: () => currentDiagnostics(deps, pages),
@@ -594,7 +595,7 @@ function reportHandlers(
 
 async function writeDiagnostics(
   deps: Omit<ChromeFeatureDependencies, 'facts'> & FactsSource,
-  pages: readonly ProbedContents[],
+  pages: readonly AdapterPage[],
 ): Promise<unknown> {
   return deps.writeClipboard(await currentDiagnostics(deps, pages));
 }
@@ -627,7 +628,7 @@ function chromeOpeners(
   windows: ChromeWindowDependencies,
   { extensions, openSettings }: { extensions: ExtensionChrome; openSettings: () => void },
 ): ChromeOpeners {
-  const opener = (page: ChromePage) => createChromeWindowOpener(windows, page);
+  const opener = (page: ChromePage) => createChromeWindowSlot(windows, page).open;
   return {
     openSettings,
     openAccounts: opener(ACCOUNTS_PAGE),
@@ -829,7 +830,7 @@ export function extensionAccounts(accounts: AccountsSlot): Omit<ExtensionAccount
 /** What YapYap's pages share with the main process: the pages it watches and what they act on. */
 interface ChromeSlots {
   readonly recoveries: Map<object, Recovery>;
-  readonly pages: ProbedContents[];
+  readonly pages: AdapterPage[];
   readonly picker: SourcePicker;
   readonly chats: ChatTarget;
   readonly accounts: AccountsSlot;
@@ -903,7 +904,7 @@ function standbyWindows(
   recording: ReturnType<typeof callRecording>;
 } {
   const recording = callRecording(deps.recording, windows, deps.windowOf, accounts);
-  const settingsOpener = createChromeWindowOpener(windows, SETTINGS_PAGE);
+  const settingsOpener = createChromeWindowSlot(windows, SETTINGS_PAGE).open;
   return {
     recording,
     openSettings: settingsOpener,
@@ -1002,8 +1003,8 @@ function startChrome(
     },
     setAccountMenu: menuSetter(withGraphics, slots, openers, standby, warn),
     openSettings: openers.openSettings,
-    openWelcome: createChromeWindowOpener(windows, WELCOME_PAGE),
-    openSpellingLanguages: createChromeWindowOpener(windows, SPELLING_LANGUAGES_PAGE),
+    openWelcome: createChromeWindowSlot(windows, WELCOME_PAGE).open,
+    openSpellingLanguages: createChromeWindowSlot(windows, SPELLING_LANGUAGES_PAGE).open,
     askProxyLogin: proxyLogin.ask,
     attachQuickPanel: quickPanel.attach,
     attachSidebar: (create) => attachSidebar(create(renderer), views, sidebar, warn),

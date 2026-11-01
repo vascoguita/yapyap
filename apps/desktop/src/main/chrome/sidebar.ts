@@ -3,10 +3,9 @@ import {
   SIDEBAR_STATE_EVENT,
   type SidebarState,
 } from '../../shared/chrome-api.ts';
-import { PRODUCT_NAME } from '../identity.ts';
 import type { SettingsService } from '../settings/service.ts';
 import type { ViewRegistry } from '../views.ts';
-import { CHROME_ORIGIN } from './assets.ts';
+import { CHROME_ORIGIN, CHROME_VIEW } from './assets.ts';
 import { argumentsOf, isBoolean, noArguments } from '../ipc/arguments.ts';
 import type { ChromeHandler } from '../ipc/chrome.ts';
 
@@ -35,8 +34,6 @@ export interface SidebarSlot {
   current?: SidebarSource;
 }
 
-const SIDEBAR_VIEW = { zone: 'chrome', home: CHROME_ORIGIN, label: PRODUCT_NAME } as const;
-
 /**
  * Shows the sidebar only when there is a choice of account, so one account
  * keeps the whole window, and sends each new state to the page. The page
@@ -50,7 +47,7 @@ export function attachSidebar(
   warn: (message: string) => void,
 ): (source: SidebarSource) => void {
   let loaded = false;
-  views.set(port.webContents, SIDEBAR_VIEW);
+  views.set(port.webContents, CHROME_VIEW);
   return (source) => {
     slot.current = source;
     const { accounts, compact } = source.state;

@@ -1,10 +1,9 @@
-import { ADAPTER_WORLD_ID } from '../../adapter/page-health.ts';
+import { runInAdapterWorld, type AdapterPage } from '../../adapter/world.ts';
 import { OWN_AVATAR } from '../../adapter/own-avatar.ts';
 import { isSameOrigin } from '../navigation/link-policy.ts';
 
 /** An account's WhatsApp page, as reading its profile photo needs it. */
-export interface AvatarPage {
-  executeJavaScriptInIsolatedWorld(worldId: number, scripts: { code: string }[]): Promise<unknown>;
+export interface AvatarPage extends AdapterPage {
   /** The account's own session, so the photo comes with its login, not the default one. */
   readonly session: { fetch(url: string): Promise<Response> };
   isDestroyed(): boolean;
@@ -60,7 +59,7 @@ async function readAvatar(
   page: AvatarPage,
   deps: Pick<AvatarDependencies, 'home' | 'toDataUrl'>,
 ): Promise<string | undefined> {
-  const src = await page.executeJavaScriptInIsolatedWorld(ADAPTER_WORLD_ID, [{ code: OWN_AVATAR }]);
+  const src = await runInAdapterWorld(page, OWN_AVATAR);
   if (typeof src !== 'string' || !isAvatarUrl(src, deps.home)) {
     return undefined;
   }

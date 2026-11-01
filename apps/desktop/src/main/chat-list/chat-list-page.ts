@@ -1,5 +1,5 @@
 import { chatListWidthRender, type ListContent } from '../../adapter/chat-list-width.ts';
-import { ADAPTER_WORLD_ID } from '../../adapter/page-health.ts';
+import { runInAdapterWorld, type AdapterPage } from '../../adapter/world.ts';
 import { en } from '../../shared/messages/en.ts';
 import type { ChatListWidths } from './widths.ts';
 
@@ -11,17 +11,10 @@ import type { ChatListWidths } from './widths.ts';
  */
 const RENDER_EVERY_MS = 1000;
 
-interface ListPage {
-  executeJavaScriptInIsolatedWorld(
-    worldId: number,
-    scripts: { readonly code: string }[],
-  ): Promise<unknown>;
-}
-
 /** The account on screen, and its WhatsApp page. */
 interface ActiveAccount {
   readonly account: string;
-  readonly page: ListPage;
+  readonly page: AdapterPage;
 }
 
 export interface ChatListPort {
@@ -44,11 +37,9 @@ function contentOf(width: number | undefined): ListContent {
 }
 
 /** A page that went away, or one between loads, is simply sized at the next render. */
-async function renderIn(page: ListPage, content: ListContent): Promise<void> {
+async function renderIn(page: AdapterPage, content: ListContent): Promise<void> {
   try {
-    await page.executeJavaScriptInIsolatedWorld(ADAPTER_WORLD_ID, [
-      { code: chatListWidthRender(content) },
-    ]);
+    await runInAdapterWorld(page, chatListWidthRender(content));
   } catch {
     // Nothing to do: the next render tries again.
   }

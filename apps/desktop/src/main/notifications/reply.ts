@@ -4,13 +4,9 @@ import {
   READ_COMPOSER,
   SELECT_COMPOSER,
 } from '../../adapter/composer.ts';
-import { ADAPTER_WORLD_ID } from '../../adapter/page-health.ts';
+import { runInAdapterWorld, type AdapterPage } from '../../adapter/world.ts';
 
-export interface ReplyContents {
-  executeJavaScriptInIsolatedWorld(
-    worldId: number,
-    scripts: { readonly code: string }[],
-  ): Promise<unknown>;
+export interface ReplyContents extends AdapterPage {
   /** Typed into the focused element as the user's own input. */
   insertText(text: string): Promise<void>;
   /** Gives the page keyboard focus within its window. */
@@ -35,9 +31,7 @@ async function focused(contents: ReplyContents, code = FOCUS_COMPOSER): Promise<
   // Typing goes to the page that has the keyboard, so WhatsApp's view takes
   // it first: a YapYap window, such as Extensions, may still hold it (#376).
   contents.focus();
-  const result = await contents
-    .executeJavaScriptInIsolatedWorld(ADAPTER_WORLD_ID, [{ code }])
-    .catch(() => false);
+  const result = await runInAdapterWorld(contents, code).catch(() => false);
   return result === true;
 }
 
@@ -94,9 +88,7 @@ export async function replaceDraft(contents: ReplyContents, text: string): Promi
  * so it is never logged.
  */
 export async function readDraft(contents: ReplyContents): Promise<string | null> {
-  const found = await contents.executeJavaScriptInIsolatedWorld(ADAPTER_WORLD_ID, [
-    { code: READ_COMPOSER },
-  ]);
+  const found = await runInAdapterWorld(contents, READ_COMPOSER);
   const draft = parseDraft(found);
   if (draft === undefined) {
     throw new Error('The draft could not be read.');

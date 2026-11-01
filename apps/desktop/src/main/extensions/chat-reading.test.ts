@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ADAPTER_WORLD_ID } from '../../adapter/page-health.ts';
+import { ADAPTER_WORLD_ID } from '../../adapter/world.ts';
 import { readOpenChat, readUnreadChats } from './chat-reading.ts';
 
 const page = (found: unknown) => ({

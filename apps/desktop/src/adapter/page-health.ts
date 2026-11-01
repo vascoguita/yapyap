@@ -1,9 +1,3 @@
-/** Bump when the heuristics below change, so diagnostics show which ones ran. */
-export const PAGE_HEALTH_VERSION = 1;
-
-/** The isolated world adapter code runs in, apart from WhatsApp's own scripts. */
-export const ADAPTER_WORLD_ID = 1000;
-
 export interface PageHealth {
   readonly unsupported: boolean;
   readonly blank: boolean;

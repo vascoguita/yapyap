@@ -1,8 +1,7 @@
 import { showWhenReady } from '../show-when-ready.ts';
 import type { ViewRegistry } from '../views.ts';
 import type { WindowOptions } from '../windows.ts';
-import { CHROME_ORIGIN } from './assets.ts';
-import { PRODUCT_NAME } from '../identity.ts';
+import { CHROME_ORIGIN, CHROME_VIEW } from './assets.ts';
 
 export interface ChromeWindowPort {
   /** Where YapYap tells the page that something it shows has changed. */
@@ -42,12 +41,28 @@ export function openChromeWindow<Window extends ChromeWindowPort>(
     ...extra,
     show: false,
   });
-  deps.views.set(window.webContents, { zone: 'chrome', home: CHROME_ORIGIN, label: PRODUCT_NAME });
   showWhenReady(window);
-  window.loadURL(`${CHROME_ORIGIN}/${page.path}`).catch(() => {
-    deps.warn(`Could not load ${page.path}.`);
-  });
+  void loadChromePage(deps, window, page.path);
   return window;
+}
+
+/**
+ * Loads one of YapYap's own pages in `window`, known as chrome to the
+ * permission and navigation guards. Settles once the load ends, however it
+ * ends; a failure is logged.
+ */
+export function loadChromePage(
+  deps: Pick<ChromeWindowDependencies, 'views' | 'warn'>,
+  window: Pick<ChromeWindowPort, 'webContents' | 'loadURL'>,
+  path: string,
+): Promise<void> {
+  deps.views.set(window.webContents, CHROME_VIEW);
+  return window.loadURL(`${CHROME_ORIGIN}/${path}`).then(
+    () => undefined,
+    () => {
+      deps.warn(`Could not load ${path}.`);
+    },
+  );
 }
 
 /** A chrome window opened at most once, which YapYap can tell about changes while it is open. */
@@ -80,14 +95,6 @@ export function createChromeWindowSlot(
   };
 }
 
-/** Opens `page` in a chrome window, or focuses that window when it is already open. */
-export function createChromeWindowOpener(
-  deps: ChromeWindowDependencies,
-  page: ChromePage,
-): () => void {
-  return createChromeWindowSlot(deps, page).open;
-}
-
 /** A window that asks one question and goes away once answered or closed. */
 export interface PromptWindow {
   readonly webContents: object;
@@ -98,7 +105,11 @@ export interface PromptWindow {
 
 /** Opens `page` as a prompt window, which closing twice cannot break. */
 export function openPromptWindow(deps: ChromeWindowDependencies, page: ChromePage): PromptWindow {
-  const window = openChromeWindow(deps, page);
+  return asPromptWindow(openChromeWindow(deps, page));
+}
+
+/** `window` as a prompt window, which closing twice cannot break. */
+export function asPromptWindow(window: ChromeWindowPort): PromptWindow {
   return {
     webContents: window.webContents,
     close: () => {

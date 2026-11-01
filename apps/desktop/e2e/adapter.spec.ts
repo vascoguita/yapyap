@@ -1,5 +1,5 @@
 import type { ElectronApplication } from '@playwright/test';
-import { ADAPTER_WORLD_ID } from '../src/adapter/page-health.ts';
+import { ADAPTER_WORLD_ID } from '../src/adapter/world.ts';
 import { PAGE_STATE_PROBE } from '../src/adapter/page-state.ts';
 import { expect, test } from './fixtures.ts';
 

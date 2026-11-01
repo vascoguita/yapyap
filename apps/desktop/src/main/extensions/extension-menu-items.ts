@@ -1,15 +1,11 @@
 import { clickTargetProbe, parseClickTarget } from '../../adapter/click-target.ts';
-import { ADAPTER_WORLD_ID } from '../../adapter/page-health.ts';
+import { runInAdapterWorld, type AdapterPage } from '../../adapter/world.ts';
 import { en } from '../../shared/messages/en.ts';
 import type { ContextMenuItem } from '../spelling/context-menu.ts';
 import type { ExtensionAction } from './runtime.ts';
 
 /** The WhatsApp page a right click happened on. */
-export interface ClickedPage {
-  executeJavaScriptInIsolatedWorld(
-    worldId: number,
-    scripts: { readonly code: string }[],
-  ): Promise<unknown>;
+export interface ClickedPage extends AdapterPage {
   getZoomFactor(): number;
 }
 
@@ -39,9 +35,7 @@ export async function extensionMenuItems(
   // The page measures in CSS pixels, which zoom makes larger than the view's.
   const zoom = page.getZoomFactor();
   const code = clickTargetProbe(point.x / zoom, point.y / zoom);
-  const found = await page
-    .executeJavaScriptInIsolatedWorld(ADAPTER_WORLD_ID, [{ code }])
-    .catch(() => undefined);
+  const found = await runInAdapterWorld(page, code).catch(() => undefined);
   const target = parseClickTarget(found);
   return actions
     .filter(({ on }) => on === target)

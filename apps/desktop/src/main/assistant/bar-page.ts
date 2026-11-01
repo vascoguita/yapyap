@@ -1,5 +1,5 @@
 import { assistantBarRender, type BarContent } from '../../adapter/assistant-bar.ts';
-import { ADAPTER_WORLD_ID } from '../../adapter/page-health.ts';
+import { runInAdapterWorld, type AdapterPage } from '../../adapter/world.ts';
 import type { AssistantBarState } from '../../shared/assistant-bar-api.ts';
 import { en } from '../../shared/messages/en.ts';
 
@@ -18,16 +18,9 @@ export interface AssistantBarView {
  */
 const RENDER_EVERY_MS = 1000;
 
-interface BarPage {
-  executeJavaScriptInIsolatedWorld(
-    worldId: number,
-    scripts: { readonly code: string }[],
-  ): Promise<unknown>;
-}
-
 export interface InPageBarPort {
   /** The WhatsApp page of the account on screen. */
-  readonly activePage: () => BarPage;
+  readonly activePage: () => AdapterPage;
   /** Whether the main window is visible and focused, the only time the bar needs putting back. */
   readonly onScreen: () => boolean;
 }
@@ -67,11 +60,9 @@ function contentOf(state: AssistantBarState, visible: boolean): BarContent {
 }
 
 /** A page that went away, or one between loads, simply has no bar until the next render. */
-async function renderIn(page: BarPage, content: BarContent): Promise<boolean> {
+async function renderIn(page: AdapterPage, content: BarContent): Promise<boolean> {
   try {
-    const shown = await page.executeJavaScriptInIsolatedWorld(ADAPTER_WORLD_ID, [
-      { code: assistantBarRender(content) },
-    ]);
+    const shown = await runInAdapterWorld(page, assistantBarRender(content));
     return shown === true;
   } catch {
     // Nothing to do: the next render tries again, and the page's text is never logged.
@@ -92,7 +83,7 @@ export function inPageAssistantBar(
 ): AssistantBarView {
   let visible = false;
   let timer: ReturnType<typeof setInterval> | undefined;
-  let last: BarPage | undefined;
+  let last: AdapterPage | undefined;
   const render = (): void => {
     const page = port.activePage();
     if (last !== undefined && last !== page) {

@@ -1,11 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { SHOW_FALLBACK_MS } from '../show-when-ready.ts';
 import type { ViewInfo } from '../views.ts';
-import {
-  createChromeWindowOpener,
-  createChromeWindowSlot,
-  type ChromeWindowPort,
-} from './window-opener.ts';
+import { createChromeWindowSlot, type ChromeWindowPort } from './window-opener.ts';
 
 function fakeWindow() {
   let ready: () => void = () => undefined;
@@ -45,16 +41,16 @@ function setup() {
     createWindow,
     views,
     warn,
-    open: createChromeWindowOpener(
+    open: createChromeWindowSlot(
       { createWindow, views, warn },
       { path: 'about.html', window: { title: 'About YapYap', width: 480, show: true } },
-    ),
+    ).open,
   };
 }
 
 const settle = () => new Promise((resolve) => setTimeout(resolve));
 
-describe('createChromeWindowOpener', () => {
+describe('createChromeWindowSlot opening', () => {
   it('opens a hidden chrome window on the page and shows it when ready', () => {
     const t = setup();
     t.open();
