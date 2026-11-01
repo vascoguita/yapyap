@@ -227,6 +227,7 @@ their reasons belong in the ADRs (`docs/adr/`), and released changes in
   `whatsAppContents`, wait for test extensions with `extensionTitle` and
   `EXTENSION_START_TIMEOUT`, and write settings with `seedSettings`, at the
   current schema version.
+
 - Settings migrations (#538): one table entry per version, built from
   `adding(section, values)`; an import parses its JSON once
   (`decodeParsed`).
