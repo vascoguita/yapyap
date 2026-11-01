@@ -249,3 +249,7 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   WhatsApp page it sits in. One trust label per review, from
   `extensions.trust`, serves the Installed list and the Marketplace. The
   record prompt declines with Cancel, and the catalog is in US English.
+- UI wording (#528): buttons in YapYap's windows use title case, like its
+  menus; the assistant bar keeps WhatsApp's sentence case. The Installed
+  list and the Marketplace share `extensions.trust`. The catalog is in US
+  English.
