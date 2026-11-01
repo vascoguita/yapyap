@@ -59,6 +59,26 @@ function permissionHandlers(current: () => AccountManager | undefined): ChromeHa
 }
 
 /**
+ * Removes the account once the user agrees; false when YapYap refused,
+ * true when it is gone or stays because the user declined.
+ */
+async function removeAccount(
+  manager: AccountManager,
+  id: string,
+  confirmRemove: (name: string) => Promise<boolean>,
+): Promise<boolean> {
+  const entry = manager.entries.find((candidate) => candidate.id === id);
+  if (entry === undefined) {
+    return true;
+  }
+  // Refused before asking, so the user never confirms a removal that cannot happen.
+  if (isLastRunning(manager.entries, entry)) {
+    return false;
+  }
+  return !(await confirmRemove(entry.name)) || manager.remove(entry.id);
+}
+
+/**
  * The Accounts window's operations. Every change is checked again here, and
  * removing an account asks the user first, in a dialog the page cannot fake.
  */
@@ -86,18 +106,10 @@ export function accountsHandlers(
       accepts: ([id, ...rest]) => rest.length === 0 && typeof id === 'string',
       handle: async (_call, id) => {
         const manager = current();
-        const entry = manager?.entries.find((candidate) => candidate.id === id);
-        if (manager === undefined || entry === undefined) {
+        if (manager === undefined) {
           return list();
         }
-        // Refused before asking, so the user never confirms a removal that cannot happen.
-        if (isLastRunning(manager.entries, entry)) {
-          return null;
-        }
-        if (!(await confirmRemove(entry.name))) {
-          return list();
-        }
-        return (await manager.remove(entry.id)) ? list() : null;
+        return (await removeAccount(manager, id as string, confirmRemove)) ? list() : null;
       },
     },
     ...permissionHandlers(current),

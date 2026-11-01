@@ -53,7 +53,7 @@ describe('accountsHandlers', () => {
   it('lists nothing and changes nothing before the accounts are open', async () => {
     const t = setup(true, false);
     expect(t.handler('accounts:list').handle(t.call)).toHaveProperty('accounts', []);
-    const change = { name: 'Work', color: 'blue', enabled: true, muted: false };
+    const change = { name: 'Work', color: 'blue', enabled: true, muted: false, proxy: '' };
     expect(t.handler('accounts:save').handle(t.call, 'b', change)).toBeNull();
     await t.handler('accounts:remove').handle(t.call, 'b');
     expect(t.confirm).not.toHaveBeenCalled();
@@ -106,21 +106,27 @@ describe('accountsHandlers', () => {
   });
 
   it.each([
-    [['b', { name: '', color: 'blue', enabled: true, muted: false }]],
-    [['b', { name: '   ', color: 'blue', enabled: true, muted: false }]],
-    [['b', { name: 'x'.repeat(41), color: 'blue', enabled: true, muted: false }]],
-    [['b', { name: 'Work', color: 'pink', enabled: true, muted: false }]],
-    [['b', { name: 'Work', color: 'blue', enabled: 'yes', muted: false }]],
-    [['b', { name: 'Work', color: 'blue', enabled: true, muted: 'yes' }]],
+    [['b', { name: '', color: 'blue', enabled: true, muted: false, proxy: '' }]],
+    [['b', { name: '   ', color: 'blue', enabled: true, muted: false, proxy: '' }]],
+    [['b', { name: 'x'.repeat(41), color: 'blue', enabled: true, muted: false, proxy: '' }]],
+    [['b', { name: 'Work', color: 'pink', enabled: true, muted: false, proxy: '' }]],
+    [['b', { name: 'Work', color: 'blue', enabled: 'yes', muted: false, proxy: '' }]],
+    [['b', { name: 'Work', color: 'blue', enabled: true, muted: 'yes', proxy: '' }]],
     [['b', { name: 'Work', color: 'blue', enabled: true, muted: false }]],
     [['b', { name: 'Work', color: 'blue', enabled: true, muted: false, proxy: 'ftp://x' }]],
     [['b', { name: 'Work', color: 'blue', enabled: true, muted: false, proxy: 7 }]],
-    [['b', { name: 'Work', color: 'blue', enabled: true, muted: false, avatar: 'x' }]],
+    [['b', { name: 'Work', color: 'blue', enabled: true, muted: false, proxy: '', avatar: 'x' }]],
     [['b', null]],
-    [[1, { name: 'Work', color: 'blue', enabled: true, muted: false }]],
-    [['b', { name: 'Work', color: 'blue', enabled: true, muted: false }, 'extra']],
+    [[1, { name: 'Work', color: 'blue', enabled: true, muted: false, proxy: '' }]],
+    [['b', { name: 'Work', color: 'blue', enabled: true, muted: false, proxy: '' }, 'extra']],
   ])('refuses a malformed change: %j', (args) => {
     expect(setup().handler('accounts:save').accepts(args)).toBe(false);
+  });
+
+  it('takes a name of up to 40 characters, and either switch on or off', () => {
+    const save = setup().handler('accounts:save');
+    const change = { name: 'x'.repeat(40), color: 'blue', enabled: false, muted: true, proxy: '' };
+    expect(save.accepts(['b', change])).toBe(true);
   });
 
   it('removes an account only after the user agrees, by its own name', async () => {
@@ -165,7 +171,7 @@ describe('accountsHandlers', () => {
     const t = setup(false);
     const remove = t.handler('accounts:remove');
     await expect(remove.handle(t.call, 'a')).resolves.toHaveProperty('accounts');
-    await remove.handle(t.call, 'zz');
+    await expect(remove.handle(t.call, 'zz')).resolves.toHaveProperty('accounts');
     expect(t.confirm).toHaveBeenCalledOnce();
     expect(t.holder.current.remove).not.toHaveBeenCalled();
   });
