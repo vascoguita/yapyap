@@ -122,7 +122,7 @@ export async function readyClaude(
   await playClaude(app, ...answers);
   const settings = await openAssistantSettings(app);
   await settings.getByLabel('API key for Claude (Anthropic)').fill('sk-ant-e2e-key');
-  await settings.getByRole('button', { name: 'Save key' }).first().click();
+  await settings.getByRole('button', { name: 'Save Key' }).first().click();
   await expect(
     settings.getByText('A key is saved, encrypted by your system.').first(),
   ).toBeVisible();

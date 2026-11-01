@@ -501,7 +501,7 @@ function AssistantDetails(props: PlaceProps) {
       )}
       <Places {...props} />
       <ModelChoice {...props} />
-      <h3>{text.behaviour}</h3>
+      <h3>{text.behavior}</h3>
       {fieldsOf(['assistant.autoSuggest', 'assistant.messages'], snapshot, onChange)}
       <Privacy {...props} />
       <p class="hint">{text.shortcuts}</p>

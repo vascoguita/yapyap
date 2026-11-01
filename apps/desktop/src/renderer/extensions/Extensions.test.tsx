@@ -60,7 +60,7 @@ describe('Extensions', () => {
     await screen.findByText('org.example.hello');
     expect(screen.getByText('Third-party').className).toBe('trust trust-third-party');
     expect(screen.getByText('By YapYap')).toBeTruthy();
-    expect(screen.getByText('Unsigned')).toBeTruthy();
+    expect(screen.getByText('Not signed')).toBeTruthy();
     expect(screen.getByText('Version 2.0.0')).toBeTruthy();
     expect(screen.queryByRole('alert')).toBeNull();
   });

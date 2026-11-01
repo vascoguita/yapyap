@@ -47,9 +47,9 @@ describe('Recovery', () => {
   });
 
   it.each<[string, keyof ChromeApi['recovery'], string]>([
-    ['Try again', 'retry', 'Retrying…'],
-    ['Clear cache and try again', 'clearCache', 'Cache cleared. Retrying…'],
-    ['Copy diagnostics', 'copyDiagnostics', 'Diagnostics copied to the clipboard.'],
+    ['Try Again', 'retry', 'Retrying…'],
+    ['Clear Cache and Try Again', 'clearCache', 'Cache cleared. Retrying…'],
+    ['Copy Diagnostics', 'copyDiagnostics', 'Diagnostics copied to the clipboard.'],
   ])('runs "%s" and announces it', async (label, action, status) => {
     const recoveryApi = api(problem('blank'));
     render(<Recovery api={recoveryApi} />);
@@ -62,8 +62,8 @@ describe('Recovery', () => {
     render(
       <Recovery api={api(problem('blank'), { retry: () => Promise.reject(new Error('no')) })} />,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
-    expect(await screen.findByText('That did not work. Please try again.')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Try Again' }));
+    expect(await screen.findByText('That did not work. Try again.')).toBeTruthy();
   });
 
   it('reassures that clearing the cache keeps the login', () => {

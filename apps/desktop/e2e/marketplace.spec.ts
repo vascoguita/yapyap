@@ -22,7 +22,7 @@ test('installs a reviewed extension from the marketplace, through the usual cons
     const extensions = await chromePage(app, '/extensions.html');
     await extensions.getByRole('tab', { name: 'Marketplace' }).click();
     await expect(extensions.getByRole('heading', { name: 'Hello' })).toBeVisible();
-    await expect(extensions.getByText('Third-party, reviewed by YapYap')).toBeVisible();
+    await expect(extensions.getByText('Reviewed by YapYap')).toBeVisible();
     await extensions.getByRole('button', { name: 'Install Hello' }).click();
     const consent = await chromePage(app, '/extension-consent.html');
     await expect(consent.getByText(/YapYap reviewed this version/)).toBeVisible();

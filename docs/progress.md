@@ -224,6 +224,10 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   `registerChromeHandlers`; payload checks use `argumentsOf`, and the chrome
   preload hears its events through one typed `listen`.
 
+- UI wording (#528): buttons in YapYap's windows use title case, like its
+  menus; the assistant bar keeps WhatsApp's sentence case. The Installed
+  list and the Marketplace share `extensions.trust`. The catalog is in US
+  English.
 - Faster unit tests (#531): the SDK, signing CLI, scripts and example
   extension tests share workers across files (`isolate: false` in
   `vitest.projects.ts`). The desktop app and the call recorder keep one

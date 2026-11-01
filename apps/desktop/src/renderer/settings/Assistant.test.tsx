@@ -133,10 +133,10 @@ describe('AssistantSection', () => {
   it('saves, tests and forgets a key, which it never shows', async () => {
     const t = setup();
     const key = await screen.findByLabelText('API key for Claude (Anthropic)');
-    fireEvent.click(nth(screen.getAllByRole('button', { name: 'Save key' }), 0));
+    fireEvent.click(nth(screen.getAllByRole('button', { name: 'Save Key' }), 0));
     expect(await screen.findByText('Paste a key first.')).toBeTruthy();
     fireEvent.input(key, { target: { value: 'sk-ant' } });
-    fireEvent.click(nth(screen.getAllByRole('button', { name: 'Save key' }), 0));
+    fireEvent.click(nth(screen.getAllByRole('button', { name: 'Save Key' }), 0));
     await waitFor(() => {
       expect(t.assistant.saveKey).toHaveBeenCalledWith('anthropic', 'sk-ant');
     });
@@ -146,14 +146,14 @@ describe('AssistantSection', () => {
     t.assistant.testKey.mockResolvedValueOnce('Claude (Anthropic) did not accept your key.');
     fireEvent.click(screen.getByRole('button', { name: 'Test' }));
     expect(await screen.findByText('Claude (Anthropic) did not accept your key.')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Forget key' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Forget Key' }));
     await waitFor(() => {
       expect(t.assistant.forgetKey).toHaveBeenCalledWith('anthropic');
     });
     t.assistant.saveKey.mockResolvedValueOnce(false);
     const openai = screen.getByLabelText('API key for OpenAI');
     fireEvent.input(openai, { target: { value: 'sk-openai' } });
-    fireEvent.click(nth(screen.getAllByRole('button', { name: 'Save key' }), 1));
+    fireEvent.click(nth(screen.getAllByRole('button', { name: 'Save Key' }), 1));
     expect(await screen.findByText(/cannot keep the key safely/)).toBeTruthy();
     expect(
       screen
@@ -209,10 +209,10 @@ describe('AssistantSection', () => {
     ]);
     const address = screen.getByLabelText('Or type its address');
     fireEvent.input(address, { target: { value: 'example.org:80' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Use this address' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Use This Address' }));
     expect(await screen.findByText(/Type an address on this computer/)).toBeTruthy();
     fireEvent.input(address, { target: { value: 'localhost:1234' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Use this address' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Use This Address' }));
     expect(t.onChange).toHaveBeenCalledWith('assistant.localServer', 'http://localhost:1234/v1');
     t.assistant.findServers.mockResolvedValueOnce([]);
     fireEvent.click(screen.getByRole('button', { name: 'Find' }));

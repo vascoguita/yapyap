@@ -124,7 +124,7 @@ describe('createRecording', () => {
     expect(prompt.close).not.toHaveBeenCalled();
   });
 
-  it('records nothing on Not now, or when the window is closed instead', async () => {
+  it('records nothing on Cancel, or when the window is closed instead', async () => {
     const t = setup();
     const declined = t.recording.service.record('Recorder');
     await vi.waitFor(() => {

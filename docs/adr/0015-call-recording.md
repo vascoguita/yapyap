@@ -36,7 +36,7 @@ WhatsApp's page, and ADR 0004 gives extensions no way to reach it.
    than falling back to the whole system's sound.
 3. **Each recording starts from the user's click in YapYap.** An extension's
    request makes YapYap show a bar of its own in the call window, saying
-   which extension wants to record this call, with **Record** and **Not now**.
+   which extension wants to record this call, with **Record** and **Cancel**.
    Recording starts only on **Record**, for that call only. Nothing records
    automatically, and an extension asking repeatedly is rate-limited like any
    other call (ADR 0004).
@@ -47,7 +47,7 @@ WhatsApp's page, and ADR 0004 gives extensions no way to reach it.
 5. **Recording is always visible and one click stops it.** While it runs, a
    red recording mark with the elapsed time shows in the call window's bar,
    on the account in the sidebar, and in the tray icon and its menu, each
-   with **Stop recording**. YapYap stops the recording when the call window
+   with **Stop Recording**. YapYap stops the recording when the call window
    closes, the account is switched or removed, the main window closes, or
    YapYap quits, and after four hours at most.
 6. **Files stay on this computer.** The recorder streams the encoded audio
@@ -78,7 +78,7 @@ Building the recorder (#392) changed three details; the decision stands.
 - **The prompt is a small window of YapYap's own, attached to the call
   window**, not a bar inside it: WhatsApp's call window is WhatsApp's page,
   and YapYap draws nothing into it (ADR 0001). The window names the extension,
-  offers **Record** and **Not now**, and, while recording, shows the
+  offers **Record** and **Cancel**, and, while recording, shows the
   elapsed time and **Stop**.
 - **The recorder page runs on the chrome session**, hidden, under the
   chrome CSP, which loads nothing from the network. The session guard

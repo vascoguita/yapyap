@@ -9,7 +9,7 @@ const { params } = useData();
 
 # {{ $params.name }}
 
-<p class="badge">{{ $params.review === 'official' ? 'By YapYap' : 'Third-party, reviewed by YapYap' }}</p>
+<p class="badge">{{ $params.review === 'official' ? 'By YapYap' : 'Reviewed by YapYap' }}</p>
 
 {{ $params.summary }}
 

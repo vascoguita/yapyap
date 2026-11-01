@@ -46,7 +46,7 @@ describe('RecordPrompt', () => {
     await screen.findByText('Recorder wants to record this call.');
     expect(screen.getByText('Ask everyone on the call before you record it.')).toBeTruthy();
     expect(screen.queryByRole('checkbox')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Not now' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(t.recordPrompt.answer).toHaveBeenLastCalledWith(false, false);
     fireEvent.click(record());
     expect(t.recordPrompt.answer).toHaveBeenLastCalledWith(true, false);
@@ -65,7 +65,7 @@ describe('RecordPrompt', () => {
     expect(t.recordPrompt.answer).toHaveBeenLastCalledWith(true, true);
     fireEvent.click(box);
     expect(record().disabled).toBe(true);
-    fireEvent.click(screen.getByRole('button', { name: 'Not now' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(t.recordPrompt.answer).toHaveBeenLastCalledWith(false, false);
   });
 
@@ -82,7 +82,7 @@ describe('RecordPrompt', () => {
       vi.advanceTimersByTime(2000);
     });
     expect(screen.getByRole('status').textContent).toBe('Recording 1:07');
-    fireEvent.click(screen.getByRole('button', { name: 'Stop recording' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Stop Recording' }));
     expect(t.recordPrompt.stop).toHaveBeenCalledOnce();
     t.push({ ...ASKING, phase: 'ended', since: '2026-10-27T14:05:00.000Z' });
     expect(screen.getByRole('status').textContent).toBe('The recording is saved.');

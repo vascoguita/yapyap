@@ -71,7 +71,7 @@ describe('About', () => {
   it('copies the technical details and announces the result', async () => {
     const about = api();
     render(<About api={about} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Copy technical details' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Copy Technical Details' }));
     expect(await screen.findByText('Copied to the clipboard.')).toBeTruthy();
     expect(about.about.copyTechnicalDetails).toHaveBeenCalledOnce();
     expect(screen.getByRole('status').textContent).toBe('Copied to the clipboard.');
@@ -79,7 +79,7 @@ describe('About', () => {
 
   it('announces when copying fails', async () => {
     render(<About api={api({ copyTechnicalDetails: () => Promise.reject(new Error('no')) })} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Copy technical details' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Copy Technical Details' }));
     expect(await screen.findByText('Could not copy the details.')).toBeTruthy();
   });
 });

@@ -64,7 +64,7 @@ test('serves chrome with a strict CSP and only the typed bridge', async ({ app }
 
 test('copies technical details to the clipboard', async ({ app }) => {
   const about = await openAbout(app);
-  await about.getByRole('button', { name: 'Copy technical details' }).click();
+  await about.getByRole('button', { name: 'Copy Technical Details' }).click();
   await expect(about.getByRole('status')).toHaveText('Copied to the clipboard.');
   const clipboard = await app.evaluate(({ clipboard }) => clipboard.readText());
   expect(clipboard).toMatch(/^YapYap \S+ \(development\)\nElectron /);
