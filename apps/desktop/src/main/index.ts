@@ -383,6 +383,7 @@ const chrome = createChromeFeature({
       appVersion: app.getVersion(),
       fetchIndex: cappedFetcher(marketplaceRequest, MARKETPLACE_INDEX_MAX_BYTES),
       fetchArchive: cappedFetcher(marketplaceRequest, ARCHIVE_LIMITS.archiveBytes),
+      now: () => new Date(),
     },
     sessionOf: (partition) => session.fromPartition(partition),
     presentHeaders: (headers) => rewriteClientHints(headers, process.versions.chrome),

@@ -1,19 +1,12 @@
-import {
-  mkdirSync,
-  mkdtempSync,
-  readdirSync,
-  readFileSync,
-  utimesSync,
-  writeFileSync,
-} from 'node:fs';
-import { tmpdir } from 'node:os';
+import { mkdirSync, readdirSync, readFileSync, utimesSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { tempDir } from '../../../../../test/temp-dir.ts';
 import { createLogger } from './logger.ts';
 
 const HOME = '/home/maria';
 const NOW = Date.UTC(2026, 9, 21, 12, 0, 0);
-const fresh = () => mkdtempSync(join(tmpdir(), 'yapyap-logs-'));
+const fresh = () => tempDir('yapyap-logs-');
 
 describe('createLogger', () => {
   it('writes timestamped, redacted lines and keeps the recent ones', () => {

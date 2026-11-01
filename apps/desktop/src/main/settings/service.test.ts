@@ -1,11 +1,11 @@
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
+import { tempDir } from '../../../../../test/temp-dir.ts';
 import { defaultSettings } from './decode.ts';
 import { openSettings } from './service.ts';
 
-const fresh = () => mkdtempSync(join(tmpdir(), 'yapyap-settings-'));
+const fresh = () => tempDir('yapyap-settings-');
 
 describe('openSettings', () => {
   it('serves the loaded settings and saves changes', () => {

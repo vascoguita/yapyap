@@ -1,11 +1,11 @@
-import { existsSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { tempDir } from '../../../../../test/temp-dir.ts';
 import { defaultSettings } from './decode.ts';
 import { loadSettings, saveSettings, SETTINGS_FILE } from './store.ts';
 
-const fresh = () => mkdtempSync(join(tmpdir(), 'yapyap-settings-'));
+const fresh = () => tempDir('yapyap-settings-');
 const custom = () => ({
   ...defaultSettings(),
   appearance: {

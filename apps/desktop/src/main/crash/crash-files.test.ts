@@ -1,11 +1,11 @@
-import { mkdirSync, mkdtempSync, readdirSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { tempDir } from '../../../../../test/temp-dir.ts';
 import { profileCrashFiles, readPreviousLog } from './crash-files.ts';
 
 function fresh(): string {
-  return mkdtempSync(join(tmpdir(), 'yapyap-crash-'));
+  return tempDir('yapyap-crash-');
 }
 
 describe('profileCrashFiles', () => {

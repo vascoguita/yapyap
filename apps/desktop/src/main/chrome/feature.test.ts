@@ -127,6 +127,7 @@ function setup() {
         appVersion: '0.1.2',
         fetchIndex: vi.fn(() => Promise.resolve(undefined)),
         fetchArchive: vi.fn(() => Promise.resolve(undefined)),
+        now: () => new Date(0),
       },
     },
     assistant: {

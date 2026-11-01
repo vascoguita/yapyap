@@ -238,3 +238,6 @@ their reasons belong in the ADRs (`docs/adr/`), and released changes in
 - Marketplace checks (#536): `revocationOf` and `readMarketplaceIndex` in
   the SDK serve the app and the website, which now also refuses an index
   that is too large, signed too far ahead or valid too long.
+- Test hygiene (#521): `tempDir()` in the root `test/temp-dir.ts` gives a
+  test a temp folder that is removed when the test ends. The marketplace
+  takes its clock as `now`, so its tests use fixed dates.

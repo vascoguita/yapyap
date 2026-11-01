@@ -27,6 +27,8 @@ export interface MarketplaceDependencies {
   readonly fetchIndex: Fetcher;
   /** Downloads an archive, up to the archive size limit. */
   readonly fetchArchive: Fetcher;
+  /** The time, against which the index's dates are checked. */
+  readonly now: () => Date;
   /** Where extensions are installed; the serial is kept there. */
   readonly root: string;
   /** The installed extensions' records. */
@@ -54,7 +56,7 @@ function loader(deps: MarketplaceDependencies): () => Promise<MarketplaceState> 
       signatureUrl: deps.source.signatureUrl,
       anchors: deps.source.anchors,
       fetch: deps.fetchIndex,
-      now: () => new Date(),
+      now: deps.now,
       lastSerial: () => lastSerial(deps.root),
       saveSerial: async (serial) => {
         // Nothing may be installed yet, so the extensions folder may not exist.
