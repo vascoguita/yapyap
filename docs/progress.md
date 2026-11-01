@@ -219,6 +219,14 @@ their reasons belong in the ADRs (`docs/adr/`), and released changes in
 - Chrome page entries (#522): every page starts through `mount(Page, {
 title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   window from `en.windows`; dialog-like windows close on Escape.
+- UI wording (#528): buttons in YapYap's windows use title case, like its
+  menus; the assistant bar keeps WhatsApp's sentence case. The Installed
+  list and the Marketplace share `extensions.trust`. The catalog is in US
+  English.
+- Faster unit tests (#531): the SDK, signing CLI, scripts and example
+  extension tests share workers across files (`isolate: false` in
+  `vitest.projects.ts`). The desktop app and the call recorder keep one
+  worker per file. Provider retry tests use fake timers.
 - IPC registrars (#523): messages from WhatsApp's preload go through
   `registerWhatsAppListeners` in `main/ipc/`, next to
   `registerChromeHandlers`; payload checks use `argumentsOf`, and the chrome
