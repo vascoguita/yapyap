@@ -2,10 +2,9 @@ import type { ElectronApplication } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { SETTINGS_VERSION } from '../../src/main/settings/schema.ts';
 import { CLAUDE_ANSWER, readyClaude } from '../assistant-helpers.ts';
 import { startFakeWhatsApp } from '../fake-whatsapp-server.ts';
-import { closeApp, expect, launchApp, test } from '../fixtures.ts';
+import { closeApp, expect, launchApp, seedSettings, test } from '../fixtures.ts';
 import { chromePage, clickMenu } from '../extension-helpers.ts';
 import { fakeMarketplace, marketplaceEnv, type Listing } from '../marketplace-helpers.ts';
 
@@ -23,10 +22,7 @@ const WORK = '7d2e9b1c-3f4a-4c5d-8e6f-1a2b3c4d5e6f';
 test.skip(process.platform !== 'linux', 'Screenshots are taken on Linux, under Xvfb.');
 
 async function seed(profile: string, theme: 'light' | 'dark'): Promise<void> {
-  await writeFile(
-    join(profile, 'settings.json'),
-    JSON.stringify({ schemaVersion: SETTINGS_VERSION, appearance: { theme } }),
-  );
+  await seedSettings(profile, { appearance: { theme } });
   // The window opens where screenshots want it, as it would where the user left it.
   await writeFile(
     join(profile, 'window-state.json'),

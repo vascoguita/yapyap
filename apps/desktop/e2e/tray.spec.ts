@@ -2,7 +2,15 @@ import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { ElectronApplication } from '@playwright/test';
 import { SHOW_FALLBACK_MS } from '../src/main/show-when-ready.ts';
-import { closeApp, expect, launchApp, mainWindow, test, whatsAppPage } from './fixtures.ts';
+import {
+  closeApp,
+  expect,
+  launchApp,
+  mainWindow,
+  seedSettings,
+  test,
+  whatsAppPage,
+} from './fixtures.ts';
 
 const whatsApp = (app: ElectronApplication) =>
   app.evaluate(({ BrowserWindow, webContents }) => {
@@ -14,7 +22,7 @@ const whatsApp = (app: ElectronApplication) =>
   });
 
 async function launchWith(origin: string, profile: string, general: object) {
-  await writeFile(join(profile, 'settings.json'), JSON.stringify({ schemaVersion: 4, general }));
+  await seedSettings(profile, { general });
   return launchApp(origin, profile);
 }
 

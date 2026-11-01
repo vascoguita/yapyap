@@ -1,7 +1,7 @@
 import type { ElectronApplication, Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { expect, test, whatsAppPage } from './fixtures.ts';
+import { expect, mainWindow, test, whatsAppPage } from './fixtures.ts';
 
 const PANEL = 'app://chrome/quick-panel.html';
 
@@ -31,15 +31,8 @@ const panelWindow = (app: ElectronApplication) =>
     return window === null ? null : { onTop: window.isAlwaysOnTop() };
   }, PANEL);
 
-const mainVisible = (app: ElectronApplication) =>
-  app.evaluate(({ BrowserWindow, webContents }) => {
-    const whatsApp = webContents
-      .getAllWebContents()
-      .find((page) => page.getURL().startsWith('http'));
-    return whatsApp === undefined
-      ? false
-      : (BrowserWindow.fromWebContents(whatsApp)?.isVisible() ?? false);
-  });
+const mainVisible = async (app: ElectronApplication) =>
+  (await mainWindow(app)).evaluate((window) => window.isVisible());
 
 test('offers a panel on top of other apps while YapYap’s window is hidden', async ({
   app,
@@ -50,13 +43,9 @@ test('offers a panel on top of other apps while YapYap’s window is hidden', as
   await expect(panelGroup.getByRole('radio', { name: 'Off' })).toBeChecked();
   await panelGroup.getByRole('radio', { name: 'While YapYap’s window is hidden' }).check();
   expect(await panelWindow(app)).toBeNull();
-  await app.evaluate(({ BrowserWindow, webContents }) => {
-    const whatsApp = webContents
-      .getAllWebContents()
-      .find((page) => page.getURL().startsWith('http'));
-    if (whatsApp !== undefined) {
-      BrowserWindow.fromWebContents(whatsApp)?.hide();
-    }
+  const main = await mainWindow(app);
+  await main.evaluate((window) => {
+    window.hide();
   });
   await expect.poll(() => panelWindow(app)).toEqual({ onTop: true });
   await expect.poll(() => app.windows().some((page) => page.url() === PANEL)).toBe(true);

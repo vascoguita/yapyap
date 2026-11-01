@@ -1,5 +1,5 @@
 import type { ElectronApplication } from '@playwright/test';
-import { expect, test } from './fixtures.ts';
+import { expect, mainWindow, test, whatsAppContents } from './fixtures.ts';
 
 /**
  * Records system notifications instead of showing them, so tests never put
@@ -70,38 +70,25 @@ const toggleDoNotDisturb = (app: ElectronApplication) =>
   });
 
 /** Whether WhatsApp's page is muted. */
-const whatsAppAudioMuted = (app: ElectronApplication) =>
-  app.evaluate(({ webContents }) =>
-    webContents
-      .getAllWebContents()
-      .find((contents) => contents.getURL().startsWith('http'))
-      ?.isAudioMuted(),
-  );
+const whatsAppAudioMuted = async (app: ElectronApplication) =>
+  (await whatsAppContents(app)).evaluate((contents) => contents.isAudioMuted());
 
 /** Shows or hides the window around WhatsApp's page. */
-const setWindowShown = (app: ElectronApplication, shown: boolean) =>
-  app.evaluate(({ BrowserWindow, webContents }, show) => {
-    const page = webContents
-      .getAllWebContents()
-      .find((contents) => contents.getURL().startsWith('http'));
-    const owner = page === undefined ? null : BrowserWindow.fromWebContents(page);
+const setWindowShown = async (app: ElectronApplication, shown: boolean) =>
+  (await mainWindow(app)).evaluate((owner, show) => {
     if (show) {
-      owner?.show();
+      owner.show();
     } else {
-      owner?.hide();
+      owner.hide();
     }
   }, shown);
 
 /** Records the window's visibility events, so a failure says what the window did. */
-const recordWindowEvents = (app: ElectronApplication) =>
-  app.evaluate(({ BrowserWindow, webContents }) => {
-    const page = webContents
-      .getAllWebContents()
-      .find((contents) => contents.getURL().startsWith('http'));
-    const owner = page === undefined ? null : BrowserWindow.fromWebContents(page);
+const recordWindowEvents = async (app: ElectronApplication) =>
+  (await mainWindow(app)).evaluate((owner) => {
     const seen: string[] = [];
     for (const event of ['show', 'hide', 'focus', 'blur', 'minimize', 'restore'] as const) {
-      owner?.on(event as 'show', () => {
+      owner.on(event as 'show', () => {
         seen.push(`${event}:${String(owner.isVisible())}`);
       });
     }

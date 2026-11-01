@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ElectronApplication, Page } from '@playwright/test';
 import { signedArchive, testKey, zipArchive, type TestFiles } from '../test/extensions.ts';
-import { expect, whatsAppPage } from './fixtures.ts';
+import { expect, whatsAppContents, whatsAppPage } from './fixtures.ts';
 
 /**
  * Clicks a menu item by its label, wherever it sits in the application menu.
@@ -99,6 +99,22 @@ export const extensionPage = (
       ownSession: page.session !== session.defaultSession,
     };
   }, `extension://${id}/`);
+
+/**
+ * How long a test waits for an installed extension to start and report
+ * through its title: its renderer starts cold, which a slow runner can take
+ * well over an expectation's default timeout to do.
+ */
+export const EXTENSION_START_TIMEOUT = 20_000;
+
+/**
+ * The title of an extension's page, where test extensions write how things
+ * went, or undefined while it does not run.
+ */
+export const extensionTitle = async (
+  app: ElectronApplication,
+  id?: string,
+): Promise<string | undefined> => (await extensionPage(app, id))?.title;
 
 /**
  * Installs a signed third-party extension with `main.js` and `files`,
@@ -232,35 +248,30 @@ function readBarResult(): string | null {
   return kept === undefined || kept.parts.result.hidden ? null : kept.parts.result.textContent;
 }
 
+/** Runs `read` in the adapter's isolated world of WhatsApp's page, where the bar lives. */
+const inBarWorld = async (app: ElectronApplication, read: () => unknown): Promise<unknown> =>
+  (await whatsAppContents(app)).evaluate(
+    (page, code): Promise<unknown> => page.executeJavaScriptInIsolatedWorld(1000, [{ code }]),
+    `(${read.toString()})()`,
+  );
+
 /** The assistant bar's longer text, such as a summary or what is sent, or null while it shows none. */
-export const assistantBarResult = (app: ElectronApplication): Promise<string | null> =>
-  app.evaluate(async ({ webContents }, code) => {
-    const page = webContents
-      .getAllWebContents()
-      .find((candidate) => candidate.getURL().startsWith('http://127.0.0.1'));
-    const result: unknown = await page?.executeJavaScriptInIsolatedWorld(1000, [{ code }]);
-    return typeof result === 'string' ? result : null;
-  }, `(${readBarResult.toString()})()`);
+export const assistantBarResult = async (app: ElectronApplication): Promise<string | null> => {
+  const result = await inBarWorld(app, readBarResult);
+  return typeof result === 'string' ? result : null;
+};
 
 /** The assistant bar's status line in the active account's WhatsApp, or null while it is not there. */
-export const assistantBarStatus = (app: ElectronApplication): Promise<string | null> =>
-  app.evaluate(async ({ webContents }, code) => {
-    const page = webContents
-      .getAllWebContents()
-      .find((candidate) => candidate.getURL().startsWith('http://127.0.0.1'));
-    const status: unknown = await page?.executeJavaScriptInIsolatedWorld(1000, [{ code }]);
-    return typeof status === 'string' ? status : null;
-  }, `(${readBarStatus.toString()})()`);
+export const assistantBarStatus = async (app: ElectronApplication): Promise<string | null> => {
+  const status = await inBarWorld(app, readBarStatus);
+  return typeof status === 'string' ? status : null;
+};
 
 /** The assistant bar's controls in the active account's WhatsApp, or null while it is not there. */
-export const assistantBarControls = (app: ElectronApplication): Promise<BarControl[] | null> =>
-  app.evaluate(async ({ webContents }, code) => {
-    const page = webContents
-      .getAllWebContents()
-      .find((candidate) => candidate.getURL().startsWith('http://127.0.0.1'));
-    const controls: unknown = await page?.executeJavaScriptInIsolatedWorld(1000, [{ code }]);
-    return (controls ?? null) as BarControl[] | null;
-  }, `(${readBarControls.toString()})()`);
+export const assistantBarControls = async (
+  app: ElectronApplication,
+): Promise<BarControl[] | null> =>
+  ((await inBarWorld(app, readBarControls)) ?? null) as BarControl[] | null;
 
 /**
  * Clicks a control of the assistant bar as the user would, with the mouse:

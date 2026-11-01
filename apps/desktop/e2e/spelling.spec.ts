@@ -1,7 +1,6 @@
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { SETTINGS_VERSION } from '../src/main/settings/schema.ts';
-import { closeApp, expect, launchApp, test, whatsAppPage } from './fixtures.ts';
+import { closeApp, expect, launchApp, seedSettings, test, whatsAppPage } from './fixtures.ts';
 import { clickLastItem, lastMenu, recordMenus, shownMenus } from './menu-helpers.ts';
 
 test('offers editing on a right click in the message box, and leads to Settings for spelling', async ({
@@ -34,10 +33,7 @@ test('shows no menu where there is nothing to edit or copy', async ({ app, windo
 
 test('picks spelling languages from a searchable list', async ({ fakeWhatsApp, profile }) => {
   test.skip(process.platform === 'darwin', 'macOS picks spelling languages itself.');
-  await writeFile(
-    join(profile, 'settings.json'),
-    JSON.stringify({ schemaVersion: SETTINGS_VERSION, spelling: { enabled: true } }),
-  );
+  await seedSettings(profile, { spelling: { enabled: true } });
   // Spelling on makes Chromium fetch a dictionary; a dead proxy keeps the
   // test off the network, while loopback still reaches the fake page.
   const app = await launchApp(fakeWhatsApp.origin, profile, ['--proxy-server=http://127.0.0.1:1']);

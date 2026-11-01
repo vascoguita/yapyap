@@ -2,7 +2,12 @@ import type { ElectronApplication } from '@playwright/test';
 import { RPC_OPTIONS } from '../src/main/extensions/rpc.ts';
 import { testManifest } from '../test/extensions.ts';
 import { expect, test } from './fixtures.ts';
-import { installExtension, extensionPage } from './extension-helpers.ts';
+import {
+  EXTENSION_START_TIMEOUT,
+  extensionPage,
+  extensionTitle,
+  installExtension,
+} from './extension-helpers.ts';
 
 /**
  * Well past the burst, since the bucket refills while the calls arrive: a
@@ -135,7 +140,7 @@ test('a hostile extension cannot reach WhatsApp, other extensions, the network o
   });
   await installExtension(app, profile, victim, VICTIM);
   await expect
-    .poll(async () => (await extensionPage(app, 'org.example.victim'))?.title, { timeout: 20_000 })
+    .poll(() => extensionTitle(app, 'org.example.victim'), { timeout: EXTENSION_START_TIMEOUT })
     .toBe('ready');
   const hostile = testManifest({
     id: 'org.example.hostile',
@@ -150,11 +155,12 @@ test('a hostile extension cannot reach WhatsApp, other extensions, the network o
     HOSTILE.replace('__WHATSAPP__', `${fakeWhatsApp.origin}/`),
   );
   await expect
-    .poll(async () => (await extensionPage(app, 'org.example.hostile'))?.title, { timeout: 30_000 })
+    .poll(() => extensionTitle(app, 'org.example.hostile'), { timeout: 30_000 })
     .toMatch(/^\{/);
-  const report = JSON.parse(
-    (await extensionPage(app, 'org.example.hostile'))?.title ?? '{}',
-  ) as Record<string, unknown>;
+  const report = JSON.parse((await extensionTitle(app, 'org.example.hostile')) ?? '{}') as Record<
+    string,
+    unknown
+  >;
   // YapYap hands its port over before an extension's own code has loaded, so the extension usually
   // never gets hold of it; if it ever does, there is still no operation that sends.
   expect(report).toEqual({
@@ -187,7 +193,7 @@ test('an extension that keeps the processor busy is restarted', async ({ app, pr
     SPINNER,
   );
   await expect
-    .poll(() => rendererOf(app, 'org.example.spinner'), { timeout: 20_000 })
+    .poll(() => rendererOf(app, 'org.example.spinner'), { timeout: EXTENSION_START_TIMEOUT })
     .not.toBeNull();
   const first = await rendererOf(app, 'org.example.spinner');
   // Three samples five seconds apart over the limit, then a new renderer. A

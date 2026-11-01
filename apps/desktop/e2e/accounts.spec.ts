@@ -1,16 +1,11 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { closeApp, expect, launchApp, test, whatsAppPage } from './fixtures.ts';
+import { closeApp, expect, launchApp, test, whatsAppContents, whatsAppPage } from './fixtures.ts';
 import type { ChromeApi } from '../src/shared/chrome-api.ts';
 
 /** Where the WhatsApp page's session keeps its data on disk. */
-const storagePath = (app: Awaited<ReturnType<typeof launchApp>>) =>
-  app.evaluate(({ webContents }) =>
-    webContents
-      .getAllWebContents()
-      .find((contents) => contents.getURL().startsWith('http'))
-      ?.session.getStoragePath(),
-  );
+const storagePath = async (app: Awaited<ReturnType<typeof launchApp>>) =>
+  (await whatsAppContents(app)).evaluate((contents) => contents.session.getStoragePath());
 
 test('keeps the account’s WhatsApp session in its own partition across restarts', async ({
   fakeWhatsApp,

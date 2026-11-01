@@ -10,6 +10,7 @@ import type { Readable } from 'node:stream';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { SETTINGS_VERSION } from '../src/main/settings/schema.ts';
 import { appEnvironment } from './app-environment.ts';
 import { startFakeWhatsApp, type FakeWhatsApp } from './fake-whatsapp-server.ts';
 
@@ -194,6 +195,26 @@ export async function whatsAppPage(app: ElectronApplication, besides?: Page): Pr
 }
 
 /**
+ * The web contents of the first account's WhatsApp, in the main process,
+ * once its page has appeared. Every other web contents is YapYap's own, on
+ * `app:` or `extension:`, so WhatsApp's is the one on HTTP.
+ */
+export async function whatsAppContents(
+  app: ElectronApplication,
+): Promise<JSHandle<Electron.WebContents>> {
+  await whatsAppPage(app);
+  return app.evaluateHandle(({ webContents }) => {
+    const page = webContents
+      .getAllWebContents()
+      .find((contents) => contents.getURL().startsWith('http'));
+    if (page === undefined) {
+      throw new Error('WhatsApp has no web contents.');
+    }
+    return page;
+  });
+}
+
+/**
  * The main window, which holds the active account's WhatsApp view. Windows
  * have no stable order once a chrome window is open, so it is found through
  * WhatsApp's web contents rather than by index.
@@ -201,17 +222,14 @@ export async function whatsAppPage(app: ElectronApplication, besides?: Page): Pr
 export async function mainWindow(
   app: ElectronApplication,
 ): Promise<JSHandle<Electron.BrowserWindow>> {
-  await whatsAppPage(app);
-  return app.evaluateHandle(({ BrowserWindow, webContents }) => {
-    const page = webContents
-      .getAllWebContents()
-      .find((contents) => contents.getURL().startsWith('http'));
-    const window = page === undefined ? null : BrowserWindow.fromWebContents(page);
+  const contents = await whatsAppContents(app);
+  return app.evaluateHandle(({ BrowserWindow }, page) => {
+    const window = BrowserWindow.fromWebContents(page);
     if (window === null) {
       throw new Error('WhatsApp has no window.');
     }
     return window;
-  });
+  }, contents);
 }
 
 /**
@@ -250,6 +268,20 @@ export async function closeApp(app: ElectronApplication): Promise<void> {
       ].join('\n'),
     );
   }
+}
+
+/**
+ * Writes `settings` as the profile's settings file, at the current schema
+ * version, before YapYap starts there. What it leaves out takes its default.
+ */
+export async function seedSettings(
+  profile: string,
+  settings: Readonly<Record<string, unknown>>,
+): Promise<void> {
+  await writeFile(
+    join(profile, 'settings.json'),
+    JSON.stringify({ schemaVersion: SETTINGS_VERSION, ...settings }),
+  );
 }
 
 /**

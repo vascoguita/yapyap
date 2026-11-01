@@ -1,13 +1,13 @@
-import { readdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { readdir, readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
-import { SETTINGS_VERSION } from '../src/main/settings/schema.ts';
 import type { ChromeApi } from '../src/shared/chrome-api.ts';
 import { testManifest } from '../test/extensions.ts';
-import { closeApp, expect, launchApp, test, whatsAppPage } from './fixtures.ts';
+import { closeApp, expect, launchApp, seedSettings, test, whatsAppPage } from './fixtures.ts';
 import {
   chromePage,
   installExtension,
-  extensionPage,
+  EXTENSION_START_TIMEOUT,
+  extensionTitle,
   recordedBytes,
   runExtensionCommand,
 } from './extension-helpers.ts';
@@ -57,13 +57,13 @@ test('records a call only after the user clicks Record and confirms, and keeps i
     });
     await installExtension(app, profile, manifest, RECORDER);
     await expect
-      .poll(async () => (await extensionPage(app))?.title, { timeout: 20_000 })
+      .poll(() => extensionTitle(app), { timeout: EXTENSION_START_TIMEOUT })
       .toBe('waiting');
     if (process.platform === 'darwin') {
       // Capturing a call's sound is not offered on macOS yet (ADR 0015): nothing is asked.
       await page.getByTestId('call').click();
       await expect.poll(() => runExtensionCommand(app, 'Recorder: Record')).toBe(true);
-      await expect.poll(async () => (await extensionPage(app))?.title).toBe('unsupported');
+      await expect.poll(() => extensionTitle(app)).toBe('unsupported');
       expect(app.windows().some((window) => window.url().endsWith('/record-prompt.html'))).toBe(
         false,
       );
@@ -71,7 +71,7 @@ test('records a call only after the user clicks Record and confirms, and keeps i
     }
     // Nothing to record before a call starts.
     await expect.poll(() => runExtensionCommand(app, 'Recorder: Record')).toBe(true);
-    await expect.poll(async () => (await extensionPage(app))?.title).toBe('no-call');
+    await expect.poll(() => extensionTitle(app)).toBe('no-call');
 
     await page.getByTestId('call').click();
     await expect
@@ -81,7 +81,7 @@ test('records a call only after the user clicks Record and confirms, and keeps i
     const prompt = await chromePage(app, '/record-prompt.html');
     await expect(prompt.getByText('Recorder wants to record this call.')).toBeVisible();
     // Nothing records before the click, and Record waits for the consent warning's box.
-    expect((await extensionPage(app))?.title).toBe('no-call');
+    expect(await extensionTitle(app)).toBe('no-call');
     await expect(prompt.getByRole('heading', { name: 'Before you record calls' })).toBeVisible();
     const record = prompt.getByRole('button', { name: 'Record' });
     await expect(record).toBeDisabled();
@@ -91,18 +91,20 @@ test('records a call only after the user clicks Record and confirms, and keeps i
         (globalThis as unknown as { yapyap: ChromeApi }).yapyap.recordPrompt.answer(true, false),
       ),
     ).rejects.toThrow('Recording needs the consent warning confirmed.');
-    expect((await extensionPage(app))?.title).toBe('no-call');
+    expect(await extensionTitle(app)).toBe('no-call');
     await prompt.getByRole('checkbox', { name: /I will ask for it/ }).check();
     await record.click();
     await expect
-      .poll(async () => (await extensionPage(app))?.title, { timeout: 20_000 })
+      .poll(() => extensionTitle(app), { timeout: EXTENSION_START_TIMEOUT })
       .toBe('recording');
     await expect(prompt.getByRole('status')).toContainText('Recording');
     const folder = join(music, 'YapYap');
-    await expect.poll(() => recordedBytes(folder), { timeout: 20_000 }).toBeGreaterThan(0);
+    await expect
+      .poll(() => recordedBytes(folder), { timeout: EXTENSION_START_TIMEOUT })
+      .toBeGreaterThan(0);
     await expect.poll(() => runExtensionCommand(app, 'Recorder: Stop')).toBe(true);
     await expect
-      .poll(async () => (await extensionPage(app))?.title, { timeout: 20_000 })
+      .poll(() => extensionTitle(app), { timeout: EXTENSION_START_TIMEOUT })
       .toBe('stopped 1');
 
     const [file, ...others] = await readdir(folder);
@@ -124,10 +126,7 @@ test('records as WAV when Settings says so, with the sizes in its header', async
   profile,
 }) => {
   test.skip(process.platform === 'darwin', 'Recording is not offered on macOS yet (ADR 0015).');
-  await writeFile(
-    join(profile, 'settings.json'),
-    JSON.stringify({ schemaVersion: SETTINGS_VERSION, recording: { format: 'wav' } }),
-  );
+  await seedSettings(profile, { recording: { format: 'wav' } });
   const app = await launchApp(fakeWhatsApp.origin, profile, ['--use-fake-device-for-media-stream']);
   try {
     const music = join(profile, 'music');
@@ -149,7 +148,7 @@ test('records as WAV when Settings says so, with the sizes in its header', async
     });
     await installExtension(app, profile, manifest, RECORDER);
     await expect
-      .poll(async () => (await extensionPage(app))?.title, { timeout: 20_000 })
+      .poll(() => extensionTitle(app), { timeout: EXTENSION_START_TIMEOUT })
       .toBe('waiting');
     await page.getByTestId('call').click();
     await expect.poll(() => runExtensionCommand(app, 'Recorder: Record')).toBe(true);
@@ -157,14 +156,16 @@ test('records as WAV when Settings says so, with the sizes in its header', async
     await prompt.getByRole('checkbox').check();
     await prompt.getByRole('button', { name: 'Record' }).click();
     await expect
-      .poll(async () => (await extensionPage(app))?.title, { timeout: 20_000 })
+      .poll(() => extensionTitle(app), { timeout: EXTENSION_START_TIMEOUT })
       .toBe('recording');
     const folder = join(music, 'YapYap');
     // Over half a second of stereo 16-bit sound.
-    await expect.poll(() => recordedBytes(folder), { timeout: 20_000 }).toBeGreaterThan(100_000);
+    await expect
+      .poll(() => recordedBytes(folder), { timeout: EXTENSION_START_TIMEOUT })
+      .toBeGreaterThan(100_000);
     await expect.poll(() => runExtensionCommand(app, 'Recorder: Stop')).toBe(true);
     await expect
-      .poll(async () => (await extensionPage(app))?.title, { timeout: 20_000 })
+      .poll(() => extensionTitle(app), { timeout: EXTENSION_START_TIMEOUT })
       .toBe('stopped 1');
     const [file] = await readdir(folder);
     expect(file).toMatch(/^YapYap call .+\.wav$/);
