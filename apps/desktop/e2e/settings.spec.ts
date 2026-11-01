@@ -36,6 +36,18 @@ test('puts Settings in the menu on the conventional shortcut', async ({ app }) =
   expect(accelerator).toBe('CmdOrCtrl+,');
 });
 
+test('jumps to a section from the list at the top, staying on the page', async ({ app }) => {
+  const settings = await openSettings(app);
+  const network = settings.getByRole('heading', { name: 'Network' });
+  await expect(network).not.toBeInViewport();
+  await settings
+    .getByRole('navigation', { name: 'Settings sections' })
+    .getByRole('link', { name: 'Network' })
+    .click();
+  await expect(network).toBeInViewport();
+  expect(settings.url()).toBe('app://chrome/settings.html#network-title');
+});
+
 test('changes a setting from the keyboard, saves it and offers a restart', async ({
   app,
   profile,

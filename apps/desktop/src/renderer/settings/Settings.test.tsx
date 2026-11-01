@@ -86,6 +86,33 @@ describe('Settings', () => {
     expect(settings.settings.set).toHaveBeenCalledWith('assistant.enabled', false);
   });
 
+  it('lists the sections it shows at the top, each a jump to its heading', async () => {
+    const withAssistant = { 'assistant.enabled': true, [HARDWARE]: true, 'general.unknown': 1 };
+    const settings = api({
+      get: vi.fn(() => Promise.resolve(snapshot({ values: withAssistant }))),
+    });
+    settings.assistant.view = vi.fn(() => new Promise<never>(() => undefined));
+    render(<Settings api={settings} />);
+    const nav = await screen.findByRole('navigation', { name: 'Settings sections' });
+    // A value without a field here, such as general.unknown, adds no section.
+    const links = [...nav.querySelectorAll('a')].map((link) => [
+      link.textContent,
+      link.getAttribute('href'),
+    ]);
+    expect(links).toEqual([
+      ['Assistant', '#assistant-title'],
+      ['Reliability', '#reliability-title'],
+      ['Backup', '#backup-title'],
+    ]);
+    for (const [, href] of links) {
+      expect(document.getElementById(String(href).slice(1))).not.toBeNull();
+    }
+    cleanup();
+    render(<Settings api={api()} />);
+    const without = await screen.findByRole('navigation', { name: 'Settings sections' });
+    expect(without.textContent).toBe('AppearanceReliabilityBackup');
+  });
+
   it('saves a change and offers a restart when it needs one', async () => {
     const t = api();
     render(<Settings api={t} />);

@@ -165,6 +165,23 @@ section {
   border-top: 1px solid var(--border);
 }
 
+/* Settings' section list: a row of links that wraps, under the title. */
+.section-links ul {
+  justify-content: flex-start;
+  gap: 4px 12px;
+}
+
+/* A jump lands with the heading clear of the window's top edge. */
+main.settings h2 {
+  scroll-margin-block-start: 12px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html:has(main.settings) {
+    scroll-behavior: smooth;
+  }
+}
+
 h2 {
   margin: 0;
   font-size: 1.1rem;

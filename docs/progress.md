@@ -270,3 +270,5 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   records use `writeTextAtomicallyAsync`.
 - Start-up tests (#546): `start.test.ts` reads the tray, account menu,
   sidebar and window listeners through named helpers.
+- Settings sections (#549): the top of Settings links to each section it
+  shows, Assistant first and Backup last.
