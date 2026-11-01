@@ -41,6 +41,7 @@ export function Recovery({ api }: { readonly api: ChromeApi }): JSX.Element {
       <div class="actions">
         <button
           type="button"
+          class="primary"
           onClick={() => {
             run(api.recovery.retry, text.retrying);
           }}
