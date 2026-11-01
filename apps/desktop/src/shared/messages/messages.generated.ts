@@ -588,7 +588,10 @@ export interface Messages {
     readonly stopped: (params: { readonly extension: string | number }) => string;
     readonly title: string;
     readonly hint: string;
+    readonly listFailed: string;
+    readonly changeFailed: string;
     readonly empty: string;
+    readonly browse: string;
     readonly fileType: string;
     readonly version: (params: { readonly version: string | number }) => string;
     readonly trust: {

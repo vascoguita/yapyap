@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { isSettingChange, saveSetting, settingsOf } from './extension-settings.ts';
+import { detailsOf, isSettingChange, saveSetting } from './extension-settings.ts';
 import { loadRecords, saveRecords, type ExtensionRecord } from './records.ts';
 
 const RECORD: ExtensionRecord = {
@@ -50,13 +50,19 @@ afterEach(async () => {
 
 const saved = async () => (await loadRecords(root)).get(RECORD.id)?.settings;
 
-describe('settingsOf', () => {
-  it('shows the form with what the user saved, and nothing for an extension without one', async () => {
-    expect(await settingsOf(root, { ...RECORD, settings: { model: 'large' } }, read)).toEqual([
-      { key: 'model', type: 'string', title: 'Model', enum: ['small', 'large'], value: 'large' },
-      { key: 'replies', type: 'integer', minimum: 1, maximum: 5 },
-    ]);
-    expect(await settingsOf(root, { ...RECORD, version: '9.9.9' }, read)).toEqual([]);
+describe('detailsOf', () => {
+  it('shows the name and the form with what the user saved, and the ID without a manifest', async () => {
+    expect(await detailsOf(root, { ...RECORD, settings: { model: 'large' } }, read)).toEqual({
+      name: MANIFEST.name,
+      settings: [
+        { key: 'model', type: 'string', title: 'Model', enum: ['small', 'large'], value: 'large' },
+        { key: 'replies', type: 'integer', minimum: 1, maximum: 5 },
+      ],
+    });
+    expect(await detailsOf(root, { ...RECORD, version: '9.9.9' }, read)).toEqual({
+      name: RECORD.id,
+      settings: [],
+    });
   });
 });
 

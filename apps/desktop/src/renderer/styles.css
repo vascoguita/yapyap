@@ -872,6 +872,26 @@ main.extensions .extension-list li {
   border-bottom: 1px solid var(--border);
 }
 
+/* The ID and version sit under the name, which is what people know an extension by. */
+main.extensions .extension-list .id {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+main.extensions .empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+main.extensions .empty p {
+  margin: 0;
+}
+
 main.extensions .activity {
   flex-direction: column;
   align-items: stretch;

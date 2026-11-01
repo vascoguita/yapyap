@@ -112,7 +112,7 @@ describe('Marketplace', () => {
     expect(screen.getByText('No extensions match.')).toBeTruthy();
   });
 
-  it('installs or updates by ID, then loads the list again', async () => {
+  it('installs or updates by ID, then refreshes the list in place', async () => {
     let finish = (): void => undefined;
     const extensions = setup(
       ready([
@@ -133,6 +133,8 @@ describe('Marketplace', () => {
         }),
     );
     const install = await screen.findByRole('button', { name: 'Install Hello' });
+    const search = screen.getByRole<HTMLInputElement>('searchbox', { name: 'Search extensions' });
+    fireEvent.input(search, { target: { value: 'e' } });
     expect(screen.getByRole('button', { name: 'Update Old to 1.1.0' }).textContent).toBe(
       'Update to 1.1.0',
     );
@@ -152,14 +154,22 @@ describe('Marketplace', () => {
     await waitFor(() => {
       expect(extensions.marketplace).toHaveBeenCalledTimes(2);
     });
+    // The list never left: no loading line, and the search is as the user typed it.
+    expect(screen.queryByText('Loading the marketplace…')).toBeNull();
+    expect(search.isConnected).toBe(true);
+    expect(search.value).toBe('e');
+    expect(screen.getByRole('alert').textContent).toBe('');
   });
 
-  it('keeps going when an install fails', async () => {
+  it('says so when an install fails, and keeps going', async () => {
     const extensions = setup(ready([ENTRY]), () => Promise.reject(new Error('gone')));
     fireEvent.click(await screen.findByRole('button', { name: 'Install Hello' }));
     await waitFor(() => {
       expect(extensions.marketplace).toHaveBeenCalledTimes(2);
     });
+    expect(screen.getByRole('alert').textContent).toBe(
+      'The extension could not be installed. Try again.',
+    );
   });
 
   it.each([

@@ -28,7 +28,7 @@ import {
 } from './install-flow.ts';
 import { commitInstall, prepareInstall } from './installer.ts';
 import { grantsOf, withGrant } from './grants.ts';
-import { isSettingChange, saveSetting, settingsOf } from './extension-settings.ts';
+import { detailsOf, isSettingChange, saveSetting } from './extension-settings.ts';
 import { loadRecords, saveRecords } from './records.ts';
 import { removeExtension, type RemovalDependencies } from './removal.ts';
 import type { AuditLog } from './audit-log.ts';
@@ -146,11 +146,11 @@ async function listExtensions(
   const listed = await Promise.all(
     [...installed.values()].map(async (record) => ({
       id: record.id,
+      ...(await detailsOf(root, record, readFile)),
       version: record.version,
       trust: trustOf(record),
       pulled: record.pulled ?? null,
       grants: grantsOf(record, accounts()),
-      settings: await settingsOf(root, record, readFile),
     })),
   );
   const extensions = listed.toSorted((a, b) => compareCodeUnits(a.id, b.id));

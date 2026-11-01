@@ -13,6 +13,7 @@ function setup(list: () => Promise<ExtensionList>) {
     setGrant: vi.fn(list),
     setSetting: vi.fn(list),
     remove: vi.fn(list),
+    marketplace: vi.fn(),
     onChange: vi.fn(),
   };
   render(<Extensions api={fakeChromeApi({ extensions })} />);
@@ -30,6 +31,7 @@ describe('Extensions', () => {
         extensions: [
           {
             id: 'org.example.hello',
+            name: 'Hello',
             version: '1.0.0',
             trust: 'third-party',
             pulled: null,
@@ -38,6 +40,7 @@ describe('Extensions', () => {
           },
           {
             id: 'org.guita.yapyap.ai',
+            name: 'Assistant',
             version: '2.0.0',
             trust: 'first-party',
             pulled: null,
@@ -46,6 +49,7 @@ describe('Extensions', () => {
           },
           {
             id: 'org.me.draft',
+            name: 'Draft',
             version: '0.1.0',
             trust: 'developer',
             pulled: null,
@@ -57,19 +61,27 @@ describe('Extensions', () => {
         activity: [],
       }),
     );
-    await screen.findByText('org.example.hello');
+    // Each extension shows by name, with its ID and version beside it.
+    await screen.findByText('Hello');
+    expect(screen.getByText('org.guita.yapyap.ai · Version 2.0.0')).toBeTruthy();
     expect(screen.getByText('Third-party').className).toBe('trust trust-third-party');
     expect(screen.getByText('By YapYap')).toBeTruthy();
     expect(screen.getByText('Not signed')).toBeTruthy();
-    expect(screen.getByText('Version 2.0.0')).toBeTruthy();
-    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.getByRole('alert').textContent).toBe('');
   });
 
-  it('says when nothing is installed, and warns while Developer Mode is on', async () => {
-    setup(() => Promise.resolve({ extensions: [], developerMode: true, activity: [] }));
+  it('says when nothing is installed, leads to the Marketplace, and warns in Developer Mode', async () => {
+    const extensions = setup(() =>
+      Promise.resolve({ extensions: [], developerMode: true, activity: [] }),
+    );
+    extensions.marketplace.mockReturnValue(new Promise<never>(() => undefined));
     await screen.findByText('No extensions are installed.');
-    expect(screen.getByRole('alert').textContent).toMatch(/Developer Mode is on/);
+    expect(screen.getByText(/Developer Mode is on/).className).toBe('warning');
     expect(screen.getByText('No extension has asked for anything yet.')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Browse the Marketplace' }));
+    const marketplace = screen.getByRole('tab', { name: 'Marketplace' });
+    expect(marketplace.getAttribute('aria-selected')).toBe('true');
+    expect(document.activeElement).toBe(marketplace);
   });
 
   it('shows what each extension asked for, newest first, and how it went', async () => {
@@ -79,6 +91,7 @@ describe('Extensions', () => {
         extensions: [
           {
             id: 'org.example.hello',
+            name: 'Hello',
             version: '1.0.0',
             trust: 'third-party',
             pulled: null,
@@ -109,6 +122,13 @@ describe('Extensions', () => {
             method: 'network.fetch',
             outcome: 'rate-limited',
           },
+          {
+            time,
+            extension: 'org.example.gone',
+            capability: 'notifications:show',
+            method: 'notifications.show',
+            outcome: 'ok',
+          },
         ],
       }),
     );
@@ -116,17 +136,23 @@ describe('Extensions', () => {
     const rows = [...section.querySelectorAll('li')].map((row) => row.textContent);
     const when = new Date(time).toLocaleString();
     expect(rows).toEqual([
-      `${when}org.example.helloKeep its own secrets, such as API keys, encryptedRefused: not allowed`,
-      `${when}org.example.helloShow notificationsDone`,
-      `${when}org.example.helloConnect to api.example.orgRefused: too many requests`,
+      `${when}HelloKeep its own secrets, such as API keys, encryptedRefused: not allowed`,
+      `${when}HelloShow notificationsDone`,
+      `${when}HelloConnect to api.example.orgRefused: too many requests`,
+      // A removed extension's entries stay, under its ID.
+      `${when}org.example.goneShow notificationsDone`,
     ]);
-    expect(screen.getByText('Done').className).toBe('outcome outcome-ok');
+    expect(screen.getAllByText('Done')[0]?.className).toBe('outcome outcome-ok');
   });
 
-  it('shows nothing when the list cannot be read', async () => {
+  it('says so when the list cannot be read', async () => {
     setup(() => Promise.reject(new Error('unreadable')));
-    await Promise.resolve();
-    expect(screen.getByRole('tabpanel').textContent).toBe('');
+    await waitFor(() => {
+      expect(screen.getByRole('alert').textContent).toBe(
+        'The installed extensions could not be listed. Close this window and open it again.',
+      );
+    });
+    expect(screen.queryByText('Recent activity')).toBeNull();
   });
 
   it('lets the user turn each permission off, for the extension or account by account', async () => {
@@ -135,6 +161,7 @@ describe('Extensions', () => {
         extensions: [
           {
             id: 'org.example.hello',
+            name: 'Hello',
             version: '1.0.0',
             trust: 'third-party',
             pulled: null,
@@ -198,6 +225,7 @@ describe('Extensions', () => {
         extensions: [
           {
             id: 'org.example.quiet',
+            name: 'Quiet',
             version: '1.0.0',
             trust: 'third-party',
             pulled: null,
@@ -209,13 +237,14 @@ describe('Extensions', () => {
         activity: [],
       }),
     );
-    await screen.findByText('org.example.quiet');
+    await screen.findByText('Quiet');
     expect(screen.queryByText('Permissions')).toBeNull();
   });
 
   it('removes an extension, showing the list YapYap answers with', async () => {
     const hello = {
       id: 'org.example.hello',
+      name: 'Hello',
       version: '1.0.0',
       trust: 'third-party' as const,
       pulled: 'It sent chats away.',
@@ -226,11 +255,15 @@ describe('Extensions', () => {
       Promise.resolve({ extensions: [hello], developerMode: false, activity: [] }),
     );
     // A pulled extension stays listed, with the reason, until the user removes it.
-    expect((await screen.findByRole('alert')).textContent).toBe(
-      'The marketplace pulled this version, so it does not run: It sent chats away. Remove it, or install another version from the Marketplace tab.',
-    );
+    expect(
+      (
+        await screen.findByText(
+          'The marketplace pulled this version, so it does not run: It sent chats away. Remove it, or install another version from the Marketplace tab.',
+        )
+      ).className,
+    ).toBe('warning');
     extensions.remove.mockResolvedValueOnce({ extensions: [], developerMode: false, activity: [] });
-    fireEvent.click(await screen.findByRole('button', { name: 'Remove org.example.hello' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Remove Hello' }));
     expect(extensions.remove).toHaveBeenCalledExactlyOnceWith('org.example.hello');
     await screen.findByText('No extensions are installed.');
     cleanup();
@@ -238,9 +271,15 @@ describe('Extensions', () => {
       Promise.resolve({ extensions: [hello], developerMode: false, activity: [] }),
     );
     again.remove.mockRejectedValueOnce(new Error('unwritable'));
-    fireEvent.click(await screen.findByRole('button', { name: 'Remove org.example.hello' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Remove Hello' }));
     expect(again.remove).toHaveBeenCalledOnce();
-    expect(screen.getByText('org.example.hello')).toBeTruthy();
+    // A refused removal leaves the extension listed and says so.
+    await waitFor(() => {
+      expect(screen.getByRole('alert').textContent).toBe(
+        'YapYap could not make that change. Try again.',
+      );
+    });
+    expect(screen.getByText('Hello')).toBeTruthy();
   });
 
   it('lists the extensions again when YapYap says they changed', async () => {
@@ -251,6 +290,7 @@ describe('Extensions', () => {
           ? [
               {
                 id: 'org.example.hello',
+                name: 'Hello',
                 version: '1.0.0',
                 trust: 'third-party' as const,
                 pulled: null,
@@ -267,7 +307,7 @@ describe('Extensions', () => {
     installed = true;
     const [changed] = extensions.onChange.mock.calls[0] as [() => void];
     changed();
-    expect(await screen.findByText('org.example.hello')).toBeTruthy();
+    expect(await screen.findByText('Hello')).toBeTruthy();
     expect(extensions.list).toHaveBeenCalledTimes(2);
   });
 
@@ -277,6 +317,7 @@ describe('Extensions', () => {
         extensions: [
           {
             id: 'org.example.hello',
+            name: 'Hello',
             version: '1.0.0',
             trust: 'third-party',
             pulled: null,
@@ -294,7 +335,18 @@ describe('Extensions', () => {
       screen.getByRole('checkbox', { name: 'Keep its own secrets, such as API keys, encrypted' }),
     );
     expect(extensions.setGrant).toHaveBeenCalledOnce();
-    expect(screen.getByText('org.example.hello')).toBeTruthy();
+    expect(screen.getByText('Hello')).toBeTruthy();
+    const problem = screen.getByRole('alert');
+    await waitFor(() => {
+      expect(problem.textContent).toBe('YapYap could not make that change. Try again.');
+    });
+    // The next change that works clears it.
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: 'Keep its own secrets, such as API keys, encrypted' }),
+    );
+    await waitFor(() => {
+      expect(problem.textContent).toBe('');
+    });
   });
 
   it('shows an extension’s settings form, and saves each field as the user changes it', async () => {
@@ -303,6 +355,7 @@ describe('Extensions', () => {
         extensions: [
           {
             id: 'org.example.hello',
+            name: 'Hello',
             version: '1.0.0',
             trust: 'third-party',
             pulled: null,
@@ -364,6 +417,7 @@ describe('Extensions', () => {
         extensions: [
           {
             id: 'org.example.hello',
+            name: 'Hello',
             version: '1.0.0',
             trust: 'third-party',
             pulled: null,
