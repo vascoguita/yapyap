@@ -1,6 +1,7 @@
 import { dialog, systemPreferences } from 'electron';
 import { en } from '../../shared/messages/en.ts';
 import { PRODUCT_NAME } from '../identity.ts';
+import { confirm } from '../dialogs/confirm.ts';
 import type { ViewInfo } from '../views.ts';
 import type { MediaType } from './session-guard.ts';
 
@@ -39,20 +40,15 @@ export async function askMediaWithDialog(
   view: ViewInfo,
   mediaTypes: readonly MediaType[],
 ): Promise<boolean> {
-  const { response } = await dialog.showMessageBox({
+  const allowed = await confirm({
     type: 'question',
-    title: PRODUCT_NAME,
     message: TEXT.request({
       account: view.label,
       devices: DEVICE_LIST.format(mediaTypes.map((type) => DEVICE_NAMES[type])),
     }),
     detail: TEXT.detail,
-    buttons: [TEXT.allow, TEXT.deny],
-    defaultId: 1,
-    cancelId: 1,
+    yes: TEXT.allow,
+    no: TEXT.deny,
   });
-  if (response !== 0) {
-    return false;
-  }
-  return systemAllows(mediaTypes);
+  return allowed && systemAllows(mediaTypes);
 }

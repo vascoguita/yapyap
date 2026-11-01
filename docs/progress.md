@@ -158,6 +158,9 @@ their reasons belong in the ADRs (`docs/adr/`), and released changes in
   tests wait for sound in the `.part` file instead of sleeping.
 - Progress page (#508): this page now holds the current state, conventions
   and condensed notes; git history keeps the long notes.
+- Yes/no dialogs (#510): every two-button message box goes through
+  `confirm()` in `main/dialogs/`, with the safe answer on Enter and Escape;
+  the startup and account prompts live there too.
 - Versions in the docs (#511): README, the guide and CONTRIBUTING no longer
   name versions that go stale, and ADR 0002 keeps the toolchain choices and
   reasons without copying the pins from the manifests.

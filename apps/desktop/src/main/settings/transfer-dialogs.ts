@@ -3,7 +3,7 @@ import { open, writeFile } from 'node:fs/promises';
 import type { SettingsFiles } from './transfer-handlers.ts';
 import { MAX_IMPORT_BYTES } from './transfer.ts';
 import { en } from '../../shared/messages/en.ts';
-import { PRODUCT_NAME } from '../identity.ts';
+import { confirm } from '../dialogs/confirm.ts';
 
 const FILTERS = [{ name: en.settings.backup.fileType, extensions: ['json'] }];
 
@@ -53,16 +53,14 @@ export const electronSettingsFiles: SettingsFiles = {
       return false;
     }
     // Replacing settings cannot be undone, so Cancel is the default and Escape answer.
-    const { response } = await dialog.showMessageBox(window, {
+    return confirm({
       detail,
       type: 'question',
-      title: PRODUCT_NAME,
       message: en.settings.backup.confirm,
-      buttons: [en.settings.backup.confirmButton, en.common.cancel],
-      defaultId: 1,
-      cancelId: 1,
+      yes: en.settings.backup.confirmButton,
+      no: en.common.cancel,
+      parent: window,
     });
-    return response === 0;
   },
   read: readPrefix,
   write: (path, text) => writeFile(path, text),
