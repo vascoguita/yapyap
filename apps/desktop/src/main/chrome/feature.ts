@@ -666,7 +666,7 @@ function menuActionsOf(
   { extensions, assistant }: { extensions: MenuExtensions; assistant: MenuAssistant },
   warn: (message: string) => void,
 ): (menu: AccountMenu | undefined) => MenuActions {
-  const copyDiagnostics = diagnosticsCopier(deps, slots.pages, warn);
+  const copyDiagnostics = diagnosticsCopier(deps, slots.pages, deps.notify, warn);
   const act = (run: () => Promise<void>) => () => {
     run().catch(() => {
       warn('An assistant action failed.');
@@ -778,12 +778,19 @@ function allHandlers(
 function diagnosticsCopier(
   deps: Parameters<typeof writeDiagnostics>[0],
   pages: Parameters<typeof writeDiagnostics>[1],
+  notify: (message: string) => void,
   warn: (message: string) => void,
 ): () => void {
   return () => {
-    writeDiagnostics(deps, pages).catch(() => {
-      warn('Could not copy the diagnostics.');
-    });
+    writeDiagnostics(deps, pages).then(
+      () => {
+        notify(en.recovery.diagnosticsCopied);
+      },
+      () => {
+        warn('Could not copy the diagnostics.');
+        notify(en.recovery.diagnosticsNotCopied);
+      },
+    );
   };
 }
 

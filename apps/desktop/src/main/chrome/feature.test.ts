@@ -1,6 +1,7 @@
 import type { MenuItemConstructorOptions } from 'electron';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
+import { en } from '../../shared/messages/en.ts';
 import { RPC_OPTIONS } from '../extensions/rpc.ts';
 import { defaultSettings } from '../settings/decode.ts';
 import type { Settings } from '../settings/schema.ts';
@@ -1111,6 +1112,7 @@ describe('createChromeFeature', () => {
         '\nWhatsApp view=chats, chat_open=true (landmarks v9)\n\nRecent log:',
       ),
     );
+    expect(t.deps.notify).toHaveBeenLastCalledWith(en.recovery.diagnosticsCopied);
   });
 
   it('logs diagnostics it could not copy', async () => {
@@ -1125,6 +1127,7 @@ describe('createChromeFeature', () => {
     (copy?.click as (() => void) | undefined)?.();
     await new Promise((resolve) => setTimeout(resolve));
     expect(warn).toHaveBeenCalledWith('Could not copy the diagnostics.');
+    expect(t.deps.notify).toHaveBeenLastCalledWith(en.recovery.diagnosticsNotCopied);
   });
 
   it('keeps chrome storage in memory', () => {

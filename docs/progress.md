@@ -279,3 +279,7 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   `identity/product.ts`, window plumbing in `window/`, security plumbing
   and `views.ts` in `security/`; chrome handler modules are named after
   their feature, and the unsafe-start prompt reads its own text.
+- Main-process text (#560): extension install errors come from the
+  catalog (an unreadable archive gets one generic reason), Check Spelling is
+  a checkbox whether spelling is on or off, Copy Diagnostics notifies how it
+  went, and the unsafe-start detail no longer repeats its message.

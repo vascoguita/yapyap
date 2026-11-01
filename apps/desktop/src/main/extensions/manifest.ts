@@ -1,6 +1,7 @@
 import { ManifestSchema, type Manifest } from '@yapyap/extension-sdk';
 import type { ExtensionArchive } from '@yapyap/extension-sign';
 import { Value } from 'typebox/value';
+import { en } from '../../shared/messages/en.ts';
 
 export type ManifestCheck =
   | { readonly valid: true; readonly manifest: Manifest }
@@ -8,11 +9,12 @@ export type ManifestCheck =
 
 /** Only the first problem: one clear reason reads better than a list of schema errors. */
 function firstError(value: unknown): string {
-  const reasons = [...Value.Errors(ManifestSchema, value)].slice(0, 1).map((error) => {
-    const where = error.instancePath === '' ? '' : ` at ${error.instancePath}`;
-    return `${where}: ${error.message}`;
-  });
-  return `manifest.json is not valid${reasons.join('')}.`;
+  const problem = [...Value.Errors(ManifestSchema, value)]
+    .slice(0, 1)
+    .map((error) =>
+      error.instancePath === '' ? error.message : `${error.instancePath} ${error.message}`,
+    );
+  return en.extensions.reason.manifestInvalid({ problem: problem.join('') });
 }
 
 /**
@@ -29,5 +31,5 @@ export function checkManifest(archive: ExtensionArchive): ManifestCheck {
   const missing = entries.find((entry) => entry !== undefined && !archive.files.has(entry));
   return missing === undefined
     ? { valid: true, manifest }
-    : { valid: false, reason: `The extension archive has no ${missing}.` };
+    : { valid: false, reason: en.extensions.reason.missingFile({ file: missing }) };
 }

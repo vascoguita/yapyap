@@ -78,7 +78,14 @@ function spellingSwitch(actions: ContextMenuActions): ContextMenuItem[] {
         },
         { label: en.contextMenu.languages, click: actions.openLanguages },
       ]
-    : [{ label: en.contextMenu.spellingSettings, click: actions.openSettings }];
+    : [
+        {
+          label: en.contextMenu.checkSpelling,
+          type: 'checkbox',
+          checked: false,
+          click: actions.openSettings,
+        },
+      ];
 }
 
 /** What a right click offers: editing and spelling in text boxes, and Copy for selected text. */

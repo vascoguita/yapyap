@@ -1,5 +1,6 @@
 import type { ExtensionArchive } from '@yapyap/extension-sign';
 import { describe, expect, it } from 'vitest';
+import { en } from '../../shared/messages/en.ts';
 import {
   signedArchive,
   testKey,
@@ -64,8 +65,10 @@ describe('decideInstall', () => {
     const archive = signedArchive(AUTHOR, testManifest({ version: 'latest' }));
     expect(decide(archive)).toEqual({
       kind: 'rejected',
-      reason:
-        'manifest.json is not valid at /version: must match pattern "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-[0-9A-Za-z.-]+)?$".',
+      reason: en.extensions.reason.manifestInvalid({
+        problem:
+          '/version must match pattern "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-[0-9A-Za-z.-]+)?$"',
+      }),
     });
   });
 
@@ -117,7 +120,7 @@ describe('decideInstall', () => {
     const archive = signedArchive(AUTHOR, testManifest({ id: FIRST_PARTY_ID }));
     expect(decide(archive)).toEqual({
       kind: 'rejected',
-      reason: 'Only YapYap can publish extensions under its own name.',
+      reason: en.extensions.reason.firstPartyName,
     });
   });
 
@@ -138,7 +141,7 @@ describe('decideInstall', () => {
     it('are rejected outside Developer Mode', () => {
       expect(decide(unsignedArchive())).toEqual({
         kind: 'rejected',
-        reason: 'Unsigned extensions install only in Developer Mode.',
+        reason: en.extensions.reason.developerModeOnly,
       });
     });
 
@@ -153,14 +156,14 @@ describe('decideInstall', () => {
       const archive = unsignedArchive(testManifest({ id: FIRST_PARTY_ID }));
       expect(decide(archive, new Map(), true)).toEqual({
         kind: 'rejected',
-        reason: 'Only YapYap can publish extensions under its own name.',
+        reason: en.extensions.reason.firstPartyName,
       });
     });
 
     it('cannot replace a signed extension, which would drop its pinned key', () => {
       expect(decide(unsignedArchive(), installed(), true)).toEqual({
         kind: 'rejected',
-        reason: 'This update is not signed, but the installed extension is.',
+        reason: en.extensions.reason.updateUnsigned,
       });
     });
 

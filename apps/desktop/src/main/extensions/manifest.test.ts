@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { en } from '../../shared/messages/en.ts';
 import { testManifest, unsignedArchive } from '../../../test/extensions.ts';
 import { checkManifest } from './manifest.ts';
 
@@ -12,7 +13,7 @@ describe('checkManifest', () => {
     const archive = unsignedArchive(testManifest({ author: 'nobody' }));
     expect(checkManifest(archive)).toEqual({
       valid: false,
-      reason: 'manifest.json is not valid at /author: must be object.',
+      reason: en.extensions.reason.manifestInvalid({ problem: '/author must be object' }),
     });
   });
 
@@ -20,7 +21,7 @@ describe('checkManifest', () => {
     const archive = unsignedArchive({ ...testManifest(), unexpected: true });
     expect(checkManifest(archive)).toEqual({
       valid: false,
-      reason: 'manifest.json is not valid at /unexpected: schema is false.',
+      reason: en.extensions.reason.manifestInvalid({ problem: '/unexpected schema is false' }),
     });
   });
 
@@ -28,8 +29,10 @@ describe('checkManifest', () => {
     const missing = unsignedArchive({});
     expect(checkManifest(missing)).toEqual({
       valid: false,
-      reason:
-        'manifest.json is not valid: must have required properties id, name, version, author, apiVersion, entry, capabilities.',
+      reason: en.extensions.reason.manifestInvalid({
+        problem:
+          'must have required properties id, name, version, author, apiVersion, entry, capabilities',
+      }),
     });
   });
 
@@ -42,7 +45,7 @@ describe('checkManifest', () => {
     const archive = unsignedArchive(testManifest(), { 'other.js': '' });
     expect(checkManifest(archive)).toEqual({
       valid: false,
-      reason: 'The extension archive has no main.js.',
+      reason: en.extensions.reason.missingFile({ file: 'main.js' }),
     });
   });
 
@@ -52,7 +55,7 @@ describe('checkManifest', () => {
     });
     expect(checkManifest(unsignedArchive(manifest))).toEqual({
       valid: false,
-      reason: 'The extension archive has no panel.js.',
+      reason: en.extensions.reason.missingFile({ file: 'panel.js' }),
     });
     const complete = unsignedArchive(manifest, { 'main.js': '', 'panel.js': '' });
     expect(checkManifest(complete).valid).toBe(true);

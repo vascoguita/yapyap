@@ -68,6 +68,7 @@ export interface Messages {
     readonly cacheCleared: string;
     readonly copyDiagnostics: string;
     readonly diagnosticsCopied: string;
+    readonly diagnosticsNotCopied: string;
     readonly keepsLogin: string;
   };
   readonly settings: {
@@ -611,6 +612,14 @@ export interface Messages {
       readonly rejected: string;
       readonly failed: string;
     };
+    readonly reason: {
+      readonly unreadable: string;
+      readonly manifestInvalid: (params: { readonly problem: string | number }) => string;
+      readonly missingFile: (params: { readonly file: string | number }) => string;
+      readonly developerModeOnly: string;
+      readonly firstPartyName: string;
+      readonly updateUnsigned: string;
+    };
     readonly consent: {
       readonly install: (params: { readonly name: string | number }) => string;
       readonly update: (params: {
@@ -804,7 +813,6 @@ export interface Messages {
     readonly noSuggestions: string;
     readonly addToDictionary: string;
     readonly checkSpelling: string;
-    readonly spellingSettings: string;
     readonly languages: string;
   };
   readonly proxyLogin: {
