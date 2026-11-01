@@ -42,6 +42,10 @@ const TABLE = [
   { id: 'minimize', label: text.minimize, accelerator: 'CmdOrCtrl+M' },
   { id: 'close', label: text.close, accelerator: 'CmdOrCtrl+W' },
   { id: 'downloads', label: text.downloads, accelerator: 'CmdOrCtrl+J', mac: 'Shift+Cmd+J' },
+  // WhatsApp Web keeps Ctrl+Alt and Ctrl+Shift with brackets for itself, so these stay clear of both.
+  { id: 'assistantSuggest', label: text.assistantSuggest, accelerator: 'CmdOrCtrl+Shift+Y' },
+  { id: 'assistantSummarize', label: text.assistantSummarize, accelerator: 'CmdOrCtrl+Shift+L' },
+  { id: 'assistantCatchUp', label: text.assistantCatchUp, accelerator: 'CmdOrCtrl+Shift+U' },
   { id: 'hide', label: text.hide, accelerator: 'Cmd+H', platforms: ['darwin'] },
   // Windows closes apps with Alt+F4, which needs no menu item.
   { id: 'quit', label: text.quit, accelerator: 'CmdOrCtrl+Q', platforms: ['darwin', 'linux'] },

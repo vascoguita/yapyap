@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { decodeSettings, defaultSettings } from './decode.ts';
 
 const DEFAULTS = {
-  schemaVersion: 18,
+  schemaVersion: 19,
   general: {
     language: 'system',
     startMinimized: false,
@@ -39,7 +39,15 @@ const DEFAULTS = {
     blurWhenIdle: false,
   },
   network: { proxyMode: 'system', proxyServer: '' },
-  extensions: { developerMode: false, chatMessages: '20', autoSuggest: true },
+  extensions: { developerMode: false, chatMessages: '20' },
+  assistant: {
+    enabled: true,
+    provider: 'auto',
+    model: 'auto',
+    autoSuggest: true,
+    messages: '10',
+    localServer: '',
+  },
   shortcuts: { custom: {}, extensions: {}, global: { toggleWindow: '' } },
   downloads: { askWhere: false, openWhenDone: false, folder: '' },
   recording: { folder: '', format: 'webm' },
@@ -60,6 +68,8 @@ const CHOICES: Readonly<Record<string, readonly string[]>> = {
   'reliability.displayBackend': ['auto', 'wayland', 'x11'],
   'privacy.crashReports': ['off', 'local', 'ask'],
   'network.proxyMode': ['system', 'direct', 'manual'],
+  'assistant.provider': ['auto', 'built-in', 'anthropic', 'openai', 'local'],
+  'assistant.messages': ['5', '10', '20'],
 };
 
 /** The defaults with one setting changed. */
@@ -129,9 +139,9 @@ describe('decodeSettings', () => {
       trayIcon: 'color',
     };
     const decoded = decodeSettings(
-      JSON.stringify({ ...DEFAULTS, appearance, schemaVersion: 19, future: true }),
+      JSON.stringify({ ...DEFAULTS, appearance, schemaVersion: 20, future: true }),
     );
-    expect(decoded).toEqual({ kind: 'newer', settings: { ...DEFAULTS, appearance }, version: 19 });
+    expect(decoded).toEqual({ kind: 'newer', settings: { ...DEFAULTS, appearance }, version: 20 });
   });
 
   it('accepts every option of each choice', () => {

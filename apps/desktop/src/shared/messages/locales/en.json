@@ -93,6 +93,7 @@
     "defaultRecordingFolder": "YapYap in your Music folder",
     "useDefaultRecordingFolder": "Use Default Folder",
     "sections": {
+      "assistant": "Assistant",
       "general": "General",
       "spelling": "Spelling",
       "appearance": "Appearance",
@@ -134,6 +135,44 @@
     },
     "autostartReason": "So YapYap starts when you log in, as you chose in its settings.",
     "fields": {
+      "assistant": {
+        "enabled": {
+          "label": "Show the assistant in chats",
+          "description": "Shows the assistant bar right above the message box. Nothing is read or sent until you ask, and never without your click."
+        },
+        "provider": {
+          "label": "Where the assistant thinks",
+          "description": "Automatic uses the first one that is set up: the private model, then a model server on this computer, then Claude, then OpenAI.",
+          "options": {
+            "auto": "Automatic",
+            "built-in": "Private, on this computer",
+            "anthropic": "Claude (Anthropic)",
+            "openai": "OpenAI",
+            "local": "A model server on this computer"
+          }
+        },
+        "model": {
+          "label": "Model",
+          "description": "Auto picks a quick, inexpensive model from what the provider lists, and follows its newer models."
+        },
+        "autoSuggest": {
+          "label": "Suggest replies as messages arrive",
+          "description": "When a message arrives in the chat you have open, the assistant suggests replies on its own, but only in chats you allowed it to read."
+        },
+        "messages": {
+          "label": "Messages the assistant reads",
+          "description": "How many of the open chat’s latest messages it reads when you ask it about the chat.",
+          "options": {
+            "5": "5",
+            "10": "10",
+            "20": "20"
+          }
+        },
+        "localServer": {
+          "label": "Model server address",
+          "description": "A server on this computer that speaks OpenAI’s API, such as Ollama’s."
+        }
+      },
       "general": {
         "startMinimized": {
           "label": "Start minimized",
@@ -319,10 +358,6 @@
             "20": "20",
             "50": "50"
           }
-        },
-        "autoSuggest": {
-          "label": "Suggest replies automatically",
-          "description": "When a message arrives in the chat you have open, the assistant bar asks for reply suggestions on its own. Each chat still asks before its messages first go to your AI provider."
         }
       },
       "downloads": {
@@ -451,18 +486,190 @@
     "full": "Show account names",
     "doNotDisturb": "Do not disturb"
   },
-  "assistantBar": {
-    "label": "AI suggestions",
-    "from": "From {{extension}}",
-    "suggest": "Suggest replies",
-    "write": "Write a message",
-    "writePlaceholder": "Say what you want to write, such as “I’ll be ten minutes late”",
-    "use": "Put in the message box",
-    "send": "Send",
-    "sendLabel": "Send this suggestion now",
-    "noChat": "Open a chat first.",
-    "chatChanged": "You opened another chat, so these suggestions are gone. Ask again here.",
-    "thinking": "Thinking…"
+  "assistant": {
+    "privateModel": "Private model ({{name}})",
+    "providers": {
+      "built-in": "the private model on this computer",
+      "anthropic": "Claude (Anthropic)",
+      "openai": "OpenAI",
+      "local": "the model server on this computer"
+    },
+    "providerTitles": {
+      "built-in": "The private model on this computer",
+      "anthropic": "Claude (Anthropic)",
+      "openai": "OpenAI",
+      "local": "The model server on this computer"
+    },
+    "settings": {
+      "intro": "Suggests replies, summarizes chats, rewrites what you type and catches you up on unread chats. It never sends a message: it only puts drafts in the message box, for you to send.",
+      "where": "Where the assistant thinks",
+      "whereHint": "Choose one. Automatic uses the first that is set up.",
+      "inUse": "In use",
+      "automatic": "Automatic: use the first that is set up",
+      "private": {
+        "title": "Private, on this computer",
+        "description": "A small AI model that runs on this computer, so your messages never leave it. It downloads once ({{size}}) and answers more slowly than the services.",
+        "download": "Download",
+        "pause": "Pause",
+        "resume": "Resume",
+        "remove": "Remove",
+        "smaller": "Use the smaller model",
+        "none": "Not downloaded yet.",
+        "downloading": "Downloading: {{percent}}% ({{done}} of {{size}})",
+        "paused": "Paused at {{percent}}%.",
+        "failed": "The download stopped at {{percent}}%. Check your connection, then resume.",
+        "diskFull": "Not enough disk space: free up {{size}}, then resume.",
+        "damaged": "The download was damaged, so it was deleted. Download it again.",
+        "ready": "Ready. It takes {{size}} on this computer.",
+        "outOfMemory": "This computer doesn’t have enough memory for this model.",
+        "outOfMemorySmall": "This computer doesn’t have enough memory for the private model. Close other apps, then try again."
+      },
+      "anthropic": {
+        "title": "Claude (Anthropic)",
+        "description": "Sends what you ask about to Anthropic, with your own API key.",
+        "getKey": "Get a key from Anthropic"
+      },
+      "openai": {
+        "title": "OpenAI",
+        "description": "Sends what you ask about to OpenAI, with your own API key.",
+        "getKey": "Get a key from OpenAI"
+      },
+      "key": {
+        "label": "API key for {{provider}}",
+        "placeholder": "Paste your key",
+        "save": "Save key",
+        "forget": "Forget key",
+        "test": "Test",
+        "saved": "A key is saved, encrypted by your system.",
+        "none": "No key saved.",
+        "testing": "Testing…",
+        "works": "The key works.",
+        "cannotKeep": "This system cannot keep the key safely, so it was not saved. Set up your system’s keyring, then try again.",
+        "empty": "Paste a key first."
+      },
+      "local": {
+        "title": "A model server on this computer",
+        "description": "Uses a model you already run, with Ollama, LM Studio, llama.cpp or another server that speaks OpenAI’s API. Nothing leaves this computer.",
+        "find": "Find",
+        "finding": "Looking…",
+        "none": "No model server answers on this computer. Start one, such as Ollama, then try again.",
+        "found": "{{server}}: {{models}}",
+        "use": "Use",
+        "noModels": "no models yet",
+        "address": "Or type its address",
+        "addressPlaceholder": "http://localhost:11434/v1",
+        "saveAddress": "Use this address",
+        "badAddress": "Type an address on this computer, such as http://localhost:11434/v1.",
+        "current": "Using {{server}}."
+      },
+      "model": {
+        "auto": "Auto (recommended)",
+        "autoNamed": "Auto (recommended): {{model}}",
+        "notReady": "Set up where the assistant thinks first.",
+        "none": "The provider listed no model. Check its key, or that the server runs."
+      },
+      "behaviour": "Behaviour",
+      "privacy": {
+        "title": "Privacy",
+        "what": "When you ask, the assistant reads the open chat’s latest messages, or your draft, and sends them with its instructions to the place you chose above. Catching up sends each unread chat’s name, count and latest message, after you see them. Nothing is sent without your click, and YapYap logs none of it.",
+        "where": {
+          "built-in": "Right now, everything stays on this computer.",
+          "local": "Right now, it goes to the model server on this computer.",
+          "anthropic": "Right now, it goes to Anthropic, at api.anthropic.com.",
+          "openai": "Right now, it goes to OpenAI, at api.openai.com.",
+          "none": "Right now, it goes nowhere: the assistant is not set up yet."
+        },
+        "chats": "Chats the assistant may read",
+        "chatsHint": "The assistant asks in each chat before it reads it the first time.",
+        "noChats": "None yet.",
+        "unnamed": "A chat allowed before (its name was not kept)",
+        "remove": "Remove",
+        "removeLabel": "Stop reading {{chat}}",
+        "chat": "{{account}}: {{chat}}"
+      },
+      "shortcuts": "Keyboard shortcuts for the assistant are in Keyboard Shortcuts.",
+      "unavailable": "The assistant’s settings could not be read. Try again in a moment."
+    },
+    "bar": {
+      "label": "AI assistant",
+      "name": "Assistant",
+      "suggest": "Suggest replies",
+      "summarize": "Summarize",
+      "rewrite": "Rewrite",
+      "rewriteLabel": "Rewrite my draft",
+      "styles": {
+        "friendlier": "Friendlier",
+        "formal": "More formal",
+        "shorter": "Shorter"
+      },
+      "translate": "Translate to {{language}}",
+      "catchUp": "Catch up",
+      "catchUpLabel": "Catch up on unread chats",
+      "write": "Write a message",
+      "writePlaceholder": "Say what you want to write, such as “I’ll be ten minutes late”",
+      "use": "Put in the message box",
+      "sendLabel": "Send this suggestion now",
+      "model": "Model",
+      "settings": "Assistant settings",
+      "copy": "Copy",
+      "close": "Close",
+      "useRewrite": "Use",
+      "allow": "Allow here",
+      "whatSent": "What is sent?",
+      "send": "Send",
+      "setUp": "Set up…",
+      "pasteKey": "Paste a key…",
+      "resume": "Resume download",
+      "smaller": "Try the smaller model",
+      "openSettings": "Open settings"
+    },
+    "status": {
+      "noChat": "Open a chat first.",
+      "chatChanged": "You opened another chat, so this is gone. Ask again here.",
+      "thinking": "Thinking…",
+      "copied": "Copied.",
+      "consent": "Allow the assistant to read this chat? It sends the latest messages to {{provider}} when you ask.",
+      "consentPrivate": "Allow the assistant to read this chat? Its messages stay on this computer.",
+      "preview": "This is exactly what is sent:",
+      "catchUp": "This is exactly what is sent. It covers only the latest message of each unread chat, including chats where the assistant is off. No chat is opened or marked as read.",
+      "nothing": "The model had nothing to suggest. Try again.",
+      "emptyDraft": "Type a draft in the message box first.",
+      "noUnread": "No chat has unread messages.",
+      "setUp": "Set up the assistant to start: choose where it thinks.",
+      "key": "Paste your API key for {{provider}} to start.",
+      "download": "Download the private model to start.",
+      "noModel": "{{provider}} listed no model. Check its key, or that it runs.",
+      "moved": "The AI assistant is now part of YapYap. Its settings are in Settings, under Assistant.",
+      "movedRedownload": "The AI assistant is now part of YapYap. Download its private model again in Settings, under Assistant.",
+      "localServer": "The model server on this computer does not answer. Start it, then try again.",
+      "openChat": "Open any chat to use the assistant: it sits right above the message box.",
+      "off": "The assistant is off. Turn it on in Settings, under Assistant."
+    },
+    "problems": {
+      "auth": "{{provider}} did not accept your key.",
+      "rateLimited": "{{provider}} is busy, or your quota is used up. Try again later.",
+      "network": "{{provider}} could not be reached.",
+      "timeout": "{{provider}} took too long to answer.",
+      "refused": "The model declined to answer.",
+      "badRequest": "{{provider}} did not accept the request. Try another model.",
+      "cancelled": "Stopped.",
+      "outOfMemory": "This computer doesn’t have enough memory for this model.",
+      "failed": "Something went wrong. Try again."
+    },
+    "welcome": {
+      "title": "Your AI assistant",
+      "intro": "The assistant suggests replies, summarizes chats and rewrites what you type, right above the message box. It never sends anything without your click. Where should it think?",
+      "local": "Use the model server on this computer ({{server}})",
+      "localHint": "Private and quick: your messages stay on this computer.",
+      "private": "Download a private model ({{size}})",
+      "privateHint": "Private: your messages never leave this computer. Slower than the services.",
+      "anthropic": "Use Claude, with my API key",
+      "openai": "Use OpenAI, with my API key",
+      "keyHint": "Quick and capable. What you ask about goes to the service.",
+      "later": "Later",
+      "laterHint": "You can set it up any time in Settings, under Assistant.",
+      "done": "Done. You can change this in Settings, under Assistant."
+    }
   },
   "chatList": {
     "label": "Chat list width",
@@ -526,9 +733,7 @@
       "notifications:show": "Show notifications",
       "storage:local": "Keep its own data on this computer",
       "secrets:own": "Keep its own secrets, such as API keys, encrypted",
-      "assistant:bar": "Show suggestions above the message box, which only you can send, with a click",
-      "calls:record": "Ask to record your calls; YapYap records only when you click Record, and the extension never gets the recording",
-      "local-model": "Run an AI model on this computer, which can use a lot of its processor and memory"
+      "calls:record": "Ask to record your calls; YapYap records only when you click Record, and the extension never gets the recording"
     },
     "activity": {
       "title": "Recent activity",
@@ -648,7 +853,10 @@
       "downloads": "Show downloads",
       "toggleWindow": "Show or hide YapYap, from any app",
       "hide": "Hide YapYap",
-      "quit": "Quit YapYap"
+      "quit": "Quit YapYap",
+      "assistantSuggest": "Suggest replies in the open chat",
+      "assistantSummarize": "Summarize the open chat",
+      "assistantCatchUp": "Catch up on unread chats"
     }
   },
   "spellingLanguages": {
@@ -728,7 +936,12 @@
     "downloads": "Downloads…",
     "edit": "&Edit",
     "window": "&Window",
-    "reportProblem": "Report a Problem…"
+    "reportProblem": "Report a Problem…",
+    "assistant": "A&ssistant",
+    "assistantSuggest": "Suggest Replies",
+    "assistantSummarize": "Summarize This Chat",
+    "assistantCatchUp": "Catch Up on Unread Chats",
+    "assistantSettings": "Assistant Settings…"
   },
   "windows": {
     "about": "About {{product}}",
@@ -758,12 +971,6 @@
     "extensionLocalServer": {
       "message": "Let {{extension}} use the server at {{server}} on this computer?",
       "detail": "The extension could then use everything that server offers, such as a local AI model, and read its answers. Only allow a server you set up for this extension.",
-      "allow": "Allow",
-      "deny": "Deny"
-    },
-    "extensionModelSearch": {
-      "message": "Let {{extension}} look for AI models on this computer?",
-      "detail": "YapYap checks the usual addresses of Ollama, Alpaca, LM Studio and llama.cpp on this computer, and asks each only for its list of models. Nothing else is sent, and nothing leaves this computer. The extension learns which models you run; it asks you again before it uses one.",
       "allow": "Allow",
       "deny": "Deny"
     },

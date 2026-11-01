@@ -3,15 +3,11 @@ import type { AddressInfo } from 'node:net';
 import type { ElectronApplication, Page } from '@playwright/test';
 import { expect } from './fixtures.ts';
 import {
-  builtExtension,
+  assistantBarControls,
+  assistantBarStatus,
   chromePage,
-  installExtension,
-  type BuiltExtension,
+  clickMenu,
 } from './extension-helpers.ts';
-
-/** The built assistant, under a third-party ID: only YapYap's own key may sign its real one. */
-export const builtAssistant = (): Promise<BuiltExtension> =>
-  builtExtension('ai-assistant', 'org.example.ai-assistant');
 
 /** Claude's streamed answer saying `text`, as the Messages API sends it. */
 export const claudeAnswer = (text: string): string =>
@@ -30,11 +26,7 @@ export const claudeAnswer = (text: string): string =>
       },
     },
     { type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' } },
-    {
-      type: 'content_block_delta',
-      index: 0,
-      delta: { type: 'text_delta', text },
-    },
+    { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text } },
     { type: 'content_block_stop', index: 0 },
     {
       type: 'message_delta',
@@ -69,35 +61,35 @@ const CLAUDE_MODELS = JSON.stringify({
 
 /**
  * Plays Claude on the assistant's own session, so nothing reaches the real
- * API: it lists two models, and answers every message with `answer`,
- * keeping what was asked in `claudeRequests`.
+ * API: it lists two models, and answers every message with the next of
+ * `answers`, the last one again once they run out, keeping what was asked
+ * in `claudeRequests`.
  */
-export async function playClaude(app: ElectronApplication, answer: string): Promise<void> {
+async function playClaude(app: ElectronApplication, ...answers: readonly string[]): Promise<void> {
   await app.evaluate(
-    ({ session }, { body, models }) => {
+    ({ session }, { bodies, models }) => {
       const asked: string[] = [];
       Object.assign(globalThis, { claudeRequests: asked });
-      session
-        .fromPartition('persist:extension:org.example.ai-assistant')
-        .protocol.handle('https', async (request) => {
-          if (new URL(request.url).pathname === '/v1/models') {
-            return new Response(models, { headers: { 'content-type': 'application/json' } });
-          }
-          asked.push(await request.text());
-          return new Response(body, { headers: { 'content-type': 'text/event-stream' } });
-        });
+      session.fromPartition('yapyap-assistant').protocol.handle('https', async (request) => {
+        if (new URL(request.url).pathname === '/v1/models') {
+          return new Response(models, { headers: { 'content-type': 'application/json' } });
+        }
+        asked.push(await request.text());
+        const body = bodies[Math.min(asked.length, bodies.length) - 1] ?? '';
+        return new Response(body, { headers: { 'content-type': 'text/event-stream' } });
+      });
     },
-    { body: answer, models: CLAUDE_MODELS },
+    { bodies: [...answers], models: CLAUDE_MODELS },
   );
 }
+
+/** What Claude was asked since {@link playClaude}, as the request bodies. */
+export const claudeRequests = (app: ElectronApplication): Promise<string[]> =>
+  app.evaluate(() => (globalThis as { claudeRequests?: string[] }).claudeRequests ?? []);
 
 /** Three suggested replies. */
 export const CLAUDE_ANSWER = claudeAnswer('Yes, 8 works!\nCan we do 9?\nSee you there');
 
-/**
- * Installs the built assistant with a stand-in keyring and Claude answering
- * `answer`, opens its panel and saves a key; returns the panel.
- */
 /** The test system has no keyring, so encryption is stood in for, reversibly. */
 export async function standInKeyring(app: ElectronApplication): Promise<void> {
   await app.evaluate(({ safeStorage }) => {
@@ -113,20 +105,42 @@ export async function standInKeyring(app: ElectronApplication): Promise<void> {
   });
 }
 
-/** Opens the assistant's panel from the menu, once the assistant runs. */
-export async function openAssistantPanel(app: ElectronApplication): Promise<Page> {
-  const open = () =>
-    app.evaluate(({ Menu }) => {
-      const panel = Menu.getApplicationMenu()
-        ?.items.flatMap((menu) => menu.submenu?.items ?? [])
-        .find((entry) => entry.label === 'Extension Commands')
-        ?.submenu?.items.find((entry) => entry.label === 'AI assistant: Assistant');
-      panel?.click();
-      return panel !== undefined;
-    });
-  await expect.poll(open, { timeout: 20_000 }).toBe(true);
-  return chromePage(app, '/__yapyap/panel.html');
+/** Opens Settings from the Assistant menu; the assistant is its first section. */
+export async function openAssistantSettings(app: ElectronApplication): Promise<Page> {
+  await clickMenu(app, 'Assistant Settings…');
+  const settings = await chromePage(app, '/settings.html');
+  await expect(settings.getByRole('region', { name: 'Assistant' })).toBeVisible();
+  return settings;
 }
+
+/** Saves an API key for Claude in Settings › Assistant, with Claude played by {@link playClaude}. */
+export async function readyClaude(
+  app: ElectronApplication,
+  ...answers: readonly string[]
+): Promise<Page> {
+  await standInKeyring(app);
+  await playClaude(app, ...answers);
+  const settings = await openAssistantSettings(app);
+  await settings.getByLabel('API key for Claude (Anthropic)').fill('sk-ant-e2e-key');
+  await settings.getByRole('button', { name: 'Save key' }).first().click();
+  await expect(
+    settings.getByText('A key is saved, encrypted by your system.').first(),
+  ).toBeVisible();
+  return settings;
+}
+
+/** The bar's status line, once it says something matching `pattern`. */
+export async function barSays(
+  app: ElectronApplication,
+  pattern: RegExp | string,
+  timeout = 20_000,
+): Promise<void> {
+  await expect.poll(() => assistantBarStatus(app), { timeout }).toMatch(pattern);
+}
+
+/** The names of the bar's controls that show. */
+export const barNames = async (app: ElectronApplication): Promise<string[] | undefined> =>
+  (await assistantBarControls(app))?.map(({ name }) => name);
 
 /** A model server on this computer, as the E2E tests run it. */
 export interface FakeModelServer {
@@ -135,6 +149,19 @@ export interface FakeModelServer {
   readonly chats: string[];
   readonly close: () => void;
 }
+
+/** `text` as an OpenAI-compatible server streams a chat answer. */
+const openAIAnswer = (text: string): string =>
+  [
+    { choices: [{ index: 0, delta: { role: 'assistant', content: text }, finish_reason: null }] },
+    { choices: [{ index: 0, delta: {}, finish_reason: 'stop' }] },
+  ]
+    .map(
+      (chunk) =>
+        `data: ${JSON.stringify({ id: 'e2e', object: 'chat.completion.chunk', created: 1, model: 'tiny-e2e', ...chunk })}\n\n`,
+    )
+    .join('')
+    .concat('data: [DONE]\n\n');
 
 /**
  * An OpenAI-compatible server on a free loopback port, as Ollama or LM Studio
@@ -171,19 +198,6 @@ export async function fakeModelServer(answer: string): Promise<FakeModelServer> 
   return { port, chats, close: () => server.close() };
 }
 
-/** `text` as an OpenAI-compatible server streams a chat answer. */
-const openAIAnswer = (text: string): string =>
-  [
-    { choices: [{ index: 0, delta: { role: 'assistant', content: text }, finish_reason: null }] },
-    { choices: [{ index: 0, delta: {}, finish_reason: 'stop' }] },
-  ]
-    .map(
-      (chunk) =>
-        `data: ${JSON.stringify({ id: 'e2e', object: 'chat.completion.chunk', created: 1, model: 'tiny-e2e', ...chunk })}\n\n`,
-    )
-    .join('')
-    .concat('data: [DONE]\n\n');
-
 /** A free loopback port where nothing listens, for a search that finds nothing. */
 export async function quietPort(): Promise<number> {
   const server = createServer();
@@ -195,21 +209,4 @@ export async function quietPort(): Promise<number> {
     });
   });
   return port;
-}
-
-export async function readyAssistant(
-  app: ElectronApplication,
-  profile: string,
-  answer: string,
-): Promise<Page> {
-  await standInKeyring(app);
-  const { manifest, main, others } = await builtAssistant();
-  await installExtension(app, profile, manifest, main, others);
-  await playClaude(app, answer);
-  const panel = await openAssistantPanel(app);
-  await panel.getByLabel('API key').fill('sk-ant-e2e-key');
-  await panel.getByRole('button', { name: 'Save key' }).click();
-  // Ready waits for the provider's list of models, which Auto picks from.
-  await expect(panel.getByRole('status')).toContainText('Ready.', { timeout: 20_000 });
-  return panel;
 }

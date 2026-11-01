@@ -139,74 +139,14 @@ answers CORS for a local server the user allowed, so it needs no
 API keys in `host.secrets`, which the operating system encrypts, never in
 settings.
 
-### Finding models on the user's computer
+### The AI assistant
 
-With `local-network`, `host.localModels.find()` returns the AI model
-servers running on the user's computer, so the user need not type an
-address. YapYap looks, not the extension: it asks the usual addresses of
-Ollama (port 11434), Alpaca (11435), LM Studio (1234) and llama.cpp (8080)
-for their lists of models, and returns up to four servers, each with its
-`server` (such as `localhost:11434`), its OpenAI-compatible `endpoint`
-(such as `http://localhost:11434/v1`) and up to 20 model IDs:
-
-```ts
-const [server] = (await host.localModels.find()).filter(({ models }) => models.length > 0);
-```
-
-The first call asks the user whether the extension may look, and the call
-waits up to two minutes for the answer. YapYap remembers it: after a
-refusal, every call rejects with `not-granted` until the user turns
-`local-network` off and on again. Call it only when the user asks, such as
-from a **Find a model** button. A YapYap older than this API rejects the
-call with `invalid`. Finding a server does not let the extension use it:
-its first request there still asks the user, as above.
-
-### Running a model
-
-With `local-model`, an extension can run an AI model in its own page, with
-an engine compiled to WebAssembly that it ships in its package. Its pages
-may then compile WebAssembly (`'wasm-unsafe-eval'`), `fetch` the
-extension's own files, such as the engine's `.wasm`, which YapYap serves as
-`application/wasm`, and start workers from `blob:` URLs. Its pages are also
-cross-origin isolated (`self.crossOriginIsolated` is true), so the engine
-can use `SharedArrayBuffer` and several threads. Isolation refuses
-cross-origin replies that do not opt in, so reach other servers with
-CORS requests, as `fetch` makes by default. Its CPU is not limited, and it
-may use up to 4 GiB of memory, or half the computer's memory if that is
-less; past that, YapYap restarts it. Leave a core free for the rest of the
-computer. Without the grant, or once the user takes it back, all of this
-is refused from the page's next load.
-
-### The assistant bar
-
-With `assistant:bar`, an extension fills the bar YapYap draws above the open
-chat's message box ([ADR 0013](/adr/0013-in-chat-assistant-bar)). `host.assistant.onRequest`
-runs a handler for each thing the user does in the bar: `suggest`,
-`prompt` with the text the user typed, `confirm` when the user clicks
-the button the extension offered, or `choose` with the option the user
-picked in its choice. `host.assistant.offer` replaces what the bar
-shows: up to five suggestions of at most 1,000 characters, a status line
-of at most 200, an optional `confirm` label of at most 40, such as
-"Allow here", and an optional `choice`, such as the model in use: a
-label of at most 40 characters, the current value, and up to 20 options,
-each a value of at most 100 characters and a label of at most 60. The
-bar keeps the last choice until another comes, passes on only an option
-the extension offered, and asks for suggestions again after a pick if
-some were showing.
-
-```ts
-host.assistant.onRequest(async (request) => {
-  if (request.type === 'suggest') {
-    await host.assistant.offer({ suggestions: ['On my way!', 'Running late, sorry'] });
-  }
-});
-```
-
-Everything the bar shows is plain text under the extension's name, drawn by
-YapYap. The user puts a suggestion in the message box, or sends it, with a
-click. The extension never sends: YapYap does, after checking that the chat
-the suggestion was asked for is still the one open. Only the first running
-extension holding the grant for the account on screen fills the bar.
+The AI assistant is part of YapYap, not an extension
+([ADR 0017](/adr/0017-assistant-is-part-of-yapyap)). Extensions cannot
+draw in its bar, run a model with WebAssembly, or ask YapYap to look for
+model servers. An extension that writes with AI calls its provider from
+its own page, with `network.hosts` and `host.secrets` as above, and puts
+its text in the message box with `composer:insert-draft`.
 
 ### Styling a panel
 

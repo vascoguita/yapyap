@@ -205,6 +205,113 @@ input:focus-visible {
   font-size: 0.9rem;
 }
 
+/* Settings › Assistant and the Welcome's assistant step (ADR 0017). */
+section.assistant h3,
+section.assistant h4 {
+  margin: 8px 0 0;
+  font-size: 1rem;
+}
+
+section.assistant h4 {
+  font-size: 0.95rem;
+}
+
+.places {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.places legend {
+  margin-block-end: 4px;
+  padding: 0;
+  font-weight: 600;
+}
+
+.places .hint,
+.place .hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.place {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.place.chosen {
+  border-color: var(--accent);
+}
+
+/* Automatic is a choice alone, with no card below its name. */
+label.place {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.place > label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.place .actions,
+.key .actions {
+  justify-content: flex-start;
+}
+
+.badge {
+  padding: 0 8px;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  color: var(--accent);
+  font-size: 0.8rem;
+}
+
+.key {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.key input,
+.key select {
+  max-inline-size: 100%;
+  padding: 4px 8px;
+  font: inherit;
+}
+
+.servers {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.servers li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+  padding-block: 4px;
+  border-block-end: 1px solid var(--border);
+  overflow-wrap: anywhere;
+}
+
 /* Motion only for people who have not asked their system to reduce it. */
 @media (prefers-reduced-motion: no-preference) {
   button,
@@ -1091,4 +1198,18 @@ main.extensions .grant-accounts {
   padding: 4px 8px;
   border: 1px solid var(--border);
   border-radius: 6px;
+}
+
+/* The Welcome's assistant step (ADR 0017). */
+main.welcome .option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+main.welcome .option .hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
 }

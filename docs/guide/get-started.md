@@ -41,12 +41,14 @@ running in the tray when you close the window.
 
 ## 5. Write with the AI assistant
 
-The AI assistant suggests replies and writes messages for you to check and
-send. It works with your own key for Claude or OpenAI, or with a model that
-runs on your computer, so nothing leaves it.
+The AI assistant is built in. Right above the message box, it suggests
+replies, writes the message you describe, rewrites your draft and catches
+you up on unread chats, for you to check and send. Set it up in
+**Settings → Assistant**: a private model that runs on your computer, a
+model server you already run, or your own key for Claude or OpenAI.
 [Set up the assistant](/guide/ai-assistant).
 
-![The AI assistant suggesting replies](/screenshots/assistant.webp)
+![Settings for the AI assistant](/screenshots/assistant.webp)
 
 ## 6. Add extensions
 
@@ -56,4 +58,4 @@ Extensions add features to YapYap. Open **File → Extensions…** (on macOS,
 and installs nothing until you agree. You can take any permission back
 later. [Browse the marketplace](/marketplace/).
 
-![The Marketplace tab, listing the AI assistant and a reviewed extension](/screenshots/extensions.webp)
+![The Marketplace tab, listing the call recorder and a reviewed extension](/screenshots/extensions.webp)

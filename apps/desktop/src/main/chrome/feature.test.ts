@@ -5,6 +5,7 @@ import { RPC_OPTIONS } from '../extensions/rpc.ts';
 import { defaultSettings } from '../settings/decode.ts';
 import type { Settings } from '../settings/schema.ts';
 import type { ViewInfo } from '../views.ts';
+import { CATALOG } from '../assistant/private/catalog.ts';
 import {
   CHROME_PARTITION,
   createChromeFeature,
@@ -33,6 +34,15 @@ function setup() {
   };
   let handler: ((request: { url: string }) => Promise<Response>) | undefined;
   let menu: MenuItemConstructorOptions[] = [];
+  const engineProtocol = {
+    handle:
+      vi.fn<
+        (
+          scheme: string,
+          serve: (request: { url: string; headers: Headers }) => Promise<Response>,
+        ) => void
+      >(),
+  };
   const deps = {
     registerSchemesAsPrivileged: vi.fn(),
     chromeProtocol: vi.fn(() => ({
@@ -101,7 +111,6 @@ function setup() {
         every: vi.fn(),
         now: () => 0,
         cores: 1,
-        memoryMb: 8192,
       },
       askHost: vi.fn(() => Promise.resolve(false)),
       askLocal: vi.fn(() => Promise.resolve(false)),
@@ -119,6 +128,51 @@ function setup() {
         fetchIndex: vi.fn(() => Promise.resolve(undefined)),
         fetchArchive: vi.fn(() => Promise.resolve(undefined)),
       },
+    },
+    assistant: {
+      fetch: vi.fn(),
+      catalog: CATALOG,
+      hardware: () => ({ memory: 16 * 1024 ** 3, cores: 8 }),
+      files: {
+        path: () => '/models/m.gguf',
+        saved: () => Promise.resolve(0),
+        read: async function* () {
+          yield* [] as Uint8Array[];
+          await Promise.resolve();
+        },
+        append: vi.fn(),
+        finish: vi.fn(),
+        discard: vi.fn(),
+        clear: vi.fn(),
+        used: () => Promise.resolve(0),
+        free: () => Promise.resolve(undefined),
+      },
+      state: {
+        privateModel: () => undefined,
+        setPrivateModel: vi.fn(),
+        notice: () => undefined,
+        setNotice: vi.fn(),
+      },
+      chats: {
+        isAllowed: () => false,
+        allow: vi.fn(),
+        forget: vi.fn(),
+        forgetAccount: vi.fn(),
+        list: () => Promise.resolve([]),
+        adopt: vi.fn(),
+      },
+      keys: {
+        get: () => Promise.resolve(undefined),
+        save: vi.fn(),
+        forget: vi.fn(),
+        canKeep: () => Promise.resolve(true),
+      },
+      languages: ['en'],
+      findServers: () => Promise.resolve([]),
+      listenToEngine: vi.fn(),
+      now: () => 0,
+      enginePreload: '/app/preload/engine.cjs',
+      engineProtocol: () => engineProtocol,
     },
     spelling: { available: () => ['en-GB', 'pt-PT'], system: () => ['en-GB'] },
     chooseFolder: vi.fn(() => Promise.resolve<string | undefined>(undefined)),
@@ -180,6 +234,7 @@ function setup() {
     },
     handler: () => handler,
     menu: () => menu,
+    engineProtocol,
   };
 }
 
@@ -188,8 +243,8 @@ describe('createChromeFeature', () => {
     const t = setup();
     t.feature.beforeReady();
     expect(t.deps.registerSchemesAsPrivileged).toHaveBeenCalledExactlyOnceWith([
-      { scheme: 'app', privileges: { standard: true, secure: true } },
-      { scheme: 'extension', privileges: { standard: true, secure: true, supportFetchAPI: true } },
+      { scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true } },
+      { scheme: 'extension', privileges: { standard: true, secure: true } },
     ]);
   });
 
@@ -458,6 +513,12 @@ describe('createChromeFeature', () => {
     expect(t.window.loadURL).toHaveBeenCalledWith('app://chrome/settings.html');
     expect(t.call('settings:get')).toEqual({
       values: {
+        'assistant.enabled': true,
+        'assistant.provider': 'auto',
+        'assistant.model': 'auto',
+        'assistant.autoSuggest': true,
+        'assistant.messages': '10',
+        'assistant.localServer': '',
         'appearance.theme': 'system',
         'appearance.autoHideMenuBar': false,
         'appearance.zoom': 1,
@@ -479,7 +540,6 @@ describe('createChromeFeature', () => {
         'network.proxyServer': '',
         'extensions.developerMode': false,
         'extensions.chatMessages': '20',
-        'extensions.autoSuggest': true,
         'downloads.askWhere': false,
         'downloads.openWhenDone': false,
         'downloads.folder': '',
@@ -805,17 +865,48 @@ describe('createChromeFeature', () => {
     expect(t.call('sidebar:state', port.webContents)).toBe(state);
   });
 
-  it('gives the assistant bar its view, empty and hidden while no extension fills it', () => {
+  it('gives the assistant bar its view, shown as the settings say, and serves the engine page', async () => {
     const t = setup();
     const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated', false);
-    const view = { show: vi.fn(), publish: vi.fn() };
-    const create = vi.fn((bar: { state: () => { extension: string } }) => {
-      expect(bar.state()).toEqual(expect.objectContaining({ extension: '', suggestions: [] }));
+    const view = { show: vi.fn(), publish: vi.fn(), onPage: vi.fn(() => Promise.resolve(true)) };
+    const create = vi.fn((bar: { state: () => { suggestions: readonly string[] } }) => {
+      expect(bar.state()).toEqual(expect.objectContaining({ suggestions: [] }));
       return view;
     });
     runtime.attachAssistantBar(create);
     expect(create).toHaveBeenCalledOnce();
-    expect(view.show).toHaveBeenLastCalledWith(false);
+    expect(view.show).toHaveBeenLastCalledWith(true);
+    expect(t.engineProtocol.handle).toHaveBeenCalledWith('app', expect.any(Function));
+    const serve = t.engineProtocol.handle.mock.calls[0]?.[1];
+    const page = await serve?.({ url: 'app://engine/model.gguf', headers: new Headers() });
+    expect(page?.status).toBe(404);
+    t.clickAbout();
+    await expect(t.call('assistant:view')).resolves.toMatchObject({ inUse: null });
+  });
+
+  it('runs the assistant’s actions from its menu, and says when one fails', async () => {
+    const t = setup();
+    const warn = vi.fn();
+    const runtime = t.feature.afterReady(t.views, warn, 'hardware accelerated', false);
+    runtime.attachAssistantBar(() => ({
+      show: vi.fn(),
+      publish: vi.fn(),
+      onPage: () => Promise.resolve(true),
+    }));
+    await vi.waitFor(() => {
+      expect(t.deps.assistant.keys.get).toBeDefined();
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const menu = t.menu().find((entry) => entry.label === 'A&ssistant');
+    const submenu = (menu?.submenu ?? []) as { label?: string; click?: () => void }[];
+    t.deps.assistant.keys.get = () => Promise.reject(new Error('locked'));
+    for (const item of submenu) {
+      item.click?.();
+    }
+    await vi.waitFor(() => {
+      expect(t.window.loadURL).toHaveBeenCalledWith('app://chrome/settings.html');
+      expect(warn).toHaveBeenCalledWith('An assistant action failed.');
+    });
   });
 
   it('opens the Accounts window from the Account menu, listing the current accounts', () => {
@@ -1101,7 +1192,6 @@ describe('createChromeFeature', () => {
     await expect(accounts.readUnreadSummary()).resolves.toEqual([]);
     await expect(accounts.replaceDraft('Hi')).resolves.toBe(false);
     await expect(accounts.readDraft()).resolves.toBeNull();
-    await expect(accounts.pressEnter()).resolves.toBe(false);
     expect(accounts.active()).toBeUndefined();
     expect(accounts.list()).toEqual([]);
     const insertDraft = vi.fn(() => Promise.resolve(true));
@@ -1111,14 +1201,12 @@ describe('createChromeFeature', () => {
     const readUnreadSummary = vi.fn(() => Promise.resolve(unread));
     const replaceDraft = vi.fn(() => Promise.resolve(true));
     const readDraft = vi.fn(() => Promise.resolve('Draft'));
-    const pressEnter = vi.fn(() => Promise.resolve(true));
     slot.current = {
       insertDraft,
       readActiveChat,
       readUnreadSummary,
       replaceDraft,
       readDraft,
-      pressEnter,
       entries: [
         { id: 'a', name: 'Home', active: false },
         { id: 'b', name: 'Work', active: true },
@@ -1132,8 +1220,6 @@ describe('createChromeFeature', () => {
     await expect(accounts.replaceDraft('New')).resolves.toBe(true);
     expect(replaceDraft).toHaveBeenCalledExactlyOnceWith('New');
     await expect(accounts.readDraft()).resolves.toBe('Draft');
-    await expect(accounts.pressEnter()).resolves.toBe(true);
-    expect(pressEnter).toHaveBeenCalledOnce();
     expect(accounts.active()).toBe('b');
     expect(accounts.list()).toEqual([
       { id: 'a', name: 'Home' },

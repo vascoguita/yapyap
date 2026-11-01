@@ -21,8 +21,10 @@
 [![Technical debt](https://sonarcloud.io/api/project_badges/measure?project=vascoguita_yapyap&metric=sqale_index)](https://sonarcloud.io/summary/new_code?id=vascoguita_yapyap)
 [![Lines of code](https://sonarcloud.io/api/project_badges/measure?project=vascoguita_yapyap&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=vascoguita_yapyap)
 
-A fast, private, extensible desktop client for WhatsApp Web, for Linux,
-Windows and macOS.
+A fast, private desktop client for WhatsApp Web, for Linux, Windows and
+macOS, with a built-in AI assistant that helps you write: reply ideas,
+summaries, rewrites and catch-ups, right above the message box, with a
+private model on your computer or the AI service you choose.
 
 <p align="center"><img src="docs/public/screenshots/main.webp" alt="YapYap's main window: the Personal and Work accounts in a sidebar, beside WhatsApp with an open chat" width="800"></p>
 
@@ -48,14 +50,17 @@ YapYap is young: v0.1.0 is its first release. Follow what comes next on the
 
 ## Highlights
 
+- A built-in AI assistant above the message box: it suggests replies,
+  writes the message you describe, rewrites your draft in another tone or
+  language, sums up a chat, and catches you up on unread chats. Use a
+  private model that runs on your computer, a model server you already
+  run, or Claude or OpenAI with your own key. It reads a chat only once you
+  allow it there, shows exactly what it sends, and never sends a message
 - Multiple accounts with fully isolated sessions
 - Native notifications, tray or menu bar with unread counts, and do-not-disturb
 - Recovery tools that fix a stuck session without logging you out
 - A sandboxed, signed extension system with per-account permissions, and a
   marketplace of official and reviewed extensions
-- An optional "bring your own model" AI assistant that suggests replies
-  beneath the chat, with your own key or a model on your computer; nothing
-  is sent without your click
 - Call recording, which starts only when you click Record and confirm that
   everyone on the call agrees
 - No telemetry

@@ -15,8 +15,9 @@
       logging out.
     </p>
     <p>
-      It has no telemetry, keeps its logs local and redacted, and supports signed, sandboxed extensions,
-      including an optional bring-your-own-model writing assistant that only ever inserts drafts.
+      It has a built-in AI writing assistant, with a private model or the provider you choose, that
+      only ever inserts drafts. It has no telemetry, keeps its logs local and redacted, and supports
+      signed, sandboxed extensions.
     </p>
     <p>YapYap is unofficial and is not affiliated with, endorsed by, or sponsored by WhatsApp or Meta.</p>
   </description>
@@ -32,7 +33,7 @@
       <image type="source" width="1920" height="869">https://yapyap.guita.org/screenshots/main.png</image>
     </screenshot>
     <screenshot>
-      <caption>The AI assistant suggesting replies with your own model</caption>
+      <caption>Setting up the AI assistant with the model you choose</caption>
       <image type="source" width="840" height="1280">https://yapyap.guita.org/screenshots/assistant.png</image>
     </screenshot>
     <screenshot>

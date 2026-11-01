@@ -86,14 +86,19 @@ import { MARKETPLACE_INDEX_MAX_BYTES } from '@yapyap/extension-sdk';
 import { ARCHIVE_LIMITS, anchorFingerprints, TRUST_ANCHORS } from '@yapyap/extension-sign';
 import { cappedFetcher } from './marketplace/fetch.ts';
 import { marketplaceSource } from './marketplace/source.ts';
-import { askModelSearch, electronExtensionDialogs } from './extensions/extension-dialogs.ts';
-import type { LocalModelsService } from './extensions/host-methods.ts';
-import {
-  findLocalModels,
-  loopbackRequest,
-  modelServerPorts,
-  testModelOf,
-} from './extensions/local-models.ts';
+import { electronExtensionDialogs } from './extensions/extension-dialogs.ts';
+import { findLocalModels, loopbackRequest, modelServerPorts } from './assistant/local-servers.ts';
+import { ENGINE_CHANNELS } from '../shared/engine-api.ts';
+import { assistantState } from './assistant/state.ts';
+import { allowedChats } from './assistant/chats.ts';
+import { assistantKeys } from './assistant/keys.ts';
+import { catalogOf } from './assistant/private/catalog.ts';
+import { diskModelFiles } from './assistant/private/files.ts';
+import { ENGINE_PARTITION } from './assistant/private/engine-window.ts';
+import { engineListener } from './assistant/private/engine-host.ts';
+import { assistantMayReach, confinedFetch, guardAssistantSession } from './assistant/net.ts';
+import { translationLanguages } from './assistant/rewrites.ts';
+import { importAssistantExtension } from './assistant/extension-import.ts';
 import { trayImage } from './tray/tray-icon.ts';
 import {
   createAccountHost,
@@ -102,7 +107,6 @@ import {
   createSidebarView,
 } from './windows.ts';
 
-const MEBIBYTE = 1024 * 1024;
 const PICKER_THUMBNAIL = { width: 320, height: 180 };
 
 const GPU_CRASH_LOG = join(app.getPath('userData'), 'gpu-crashes.json');
@@ -113,6 +117,9 @@ const CUSTOM_CODE = join(app.getPath('userData'), 'custom-code.json');
 const QUICK_PANEL_STATE = join(app.getPath('userData'), 'quick-panel.json');
 const CHAT_LIST_STATE = join(app.getPath('userData'), 'chat-list.json');
 const EXTENSION_STORAGE = join(app.getPath('userData'), 'extensions', '.storage');
+// The assistant's state and allowed chats are no preferences, so they live apart from settings (ADR 0017).
+const ASSISTANT_STATE = join(app.getPath('userData'), 'assistant.json');
+const ASSISTANT_CHATS = join(app.getPath('userData'), 'assistant-chats.json');
 
 // Holds the tray for the app's lifetime; a collected Tray disappears from the panel.
 let tray: Tray | undefined;
@@ -203,9 +210,6 @@ const customCode = createCustomCode(
   warn,
 );
 
-/** The model E2E tests give the AI assistant (#457); never in a packaged build. */
-const TEST_MODEL = testModelOf(process.env, app.isPackaged);
-
 // Extensions' secrets live apart from YapYap's own, so no mistake in an extension's namespace reaches them (#96).
 const extensionSecrets = openSecretStore(
   secretFileAt(join(app.getPath('userData'), 'extensions', '.secrets.json')),
@@ -213,15 +217,45 @@ const extensionSecrets = openSecretStore(
   process.platform,
 );
 
-/** Where YapYap looks for model servers when an extension asks it to (#456): loopback only. */
-const modelServers: LocalModelsService = {
-  ask: askModelSearch,
-  find: () =>
-    findLocalModels({
-      ports: modelServerPorts(process.env, app.isPackaged),
-      request: loopbackRequest(fetch),
-    }),
-};
+const secrets = openSecretStore(
+  secretFileAt(join(app.getPath('userData'), 'secrets.json')),
+  safeStorage,
+  process.platform,
+);
+
+/** The private model's catalog, or in an unpackaged build under E2E tests, a test model (#457). */
+const catalog = catalogOf(process.env, app.isPackaged);
+const testModel = catalog.standard.id === 'test' ? catalog.standard.url : undefined;
+
+/** Read and write for the user alone: the assistant's state names chats by fingerprint. */
+const OWNER_ONLY = 0o600;
+
+const stateFile = (path: string) => ({
+  read: () => readFileSync(path, 'utf8'),
+  write: (text: string) => {
+    writeTextAtomically(path, text, OWNER_ONLY);
+  },
+});
+
+const assistantStore = assistantState(stateFile(ASSISTANT_STATE), warn);
+const assistantChats = allowedChats(stateFile(ASSISTANT_CHATS), secrets, warn);
+const keys = assistantKeys(secrets);
+
+/**
+ * The assistant's requests go through Electron's network stack on a session
+ * of its own, in memory, so system proxies apply and no cookie or cache is
+ * kept, and only to the providers, Hugging Face and the chosen model server
+ * on this computer (ADR 0017).
+ */
+const assistantReach = (address: string): boolean =>
+  assistantMayReach(address, {
+    localServer: () => settings.current().assistant.localServer,
+    testModel,
+  });
+const assistantFetch = confinedFetch(
+  (input, init) => session.fromPartition('yapyap-assistant').fetch(input, init),
+  assistantReach,
+);
 
 /**
  * A plain request for the marketplace (ADR 0014), on an in-memory session of
@@ -312,6 +346,28 @@ const chrome = createChromeFeature({
       shell.showItemInFolder(file);
     },
   },
+  assistant: {
+    catalog,
+    keys,
+    fetch: assistantFetch,
+    hardware: () => ({ memory: totalmem(), cores: availableParallelism() }),
+    files: diskModelFiles(join(app.getPath('userData'), 'models')),
+    state: assistantStore,
+    chats: assistantChats,
+    languages: translationLanguages(app.getPreferredSystemLanguages()),
+    // YapYap looks only on the user's click, at a few fixed ports on loopback (#456).
+    findServers: () =>
+      findLocalModels({
+        ports: modelServerPorts(process.env, app.isPackaged),
+        request: loopbackRequest(fetch),
+      }),
+    listenToEngine: (hear) => {
+      ipcMain.on(ENGINE_CHANNELS.event, engineListener(hear));
+    },
+    now: Date.now,
+    enginePreload: join(import.meta.dirname, '..', 'preload', 'engine.cjs'),
+    engineProtocol: () => session.fromPartition(ENGINE_PARTITION).protocol,
+  },
   extensions: {
     ...electronExtensionDialogs,
     forgetData: async (id) => {
@@ -328,7 +384,6 @@ const chrome = createChromeFeature({
     },
     sessionOf: (partition) => session.fromPartition(partition),
     presentHeaders: (headers) => rewriteClientHints(headers, process.versions.chrome),
-    ...(TEST_MODEL === undefined ? {} : { testModel: TEST_MODEL }),
     // An extension's code runs in a window never shown; its UI is YapYap's, or its panel (ADR 0004).
     createHost: (partition) => {
       const host = createSecureWindow(
@@ -378,7 +433,6 @@ const chrome = createChromeFeature({
         insertDraft: chats.insertDraft,
         replaceDraft: chats.replaceDraft,
         readDraft: chats.readDraft,
-        offerAssistant: chats.offerAssistant,
         readActiveChat: () =>
           chats.readActiveChat(Number(settings.current().extensions.chatMessages)),
         readUnreadSummary: chats.readUnreadSummary,
@@ -389,7 +443,6 @@ const chrome = createChromeFeature({
         secrets: extensionSecrets,
         storage: keyValueStore(EXTENSION_STORAGE, extension.id),
         calls: chats.calls,
-        localModels: modelServers,
       }),
     limits: {
       metrics: () => app.getAppMetrics(),
@@ -399,7 +452,6 @@ const chrome = createChromeFeature({
       every: (callback, ms) => setInterval(callback, ms),
       now: Date.now,
       cores: availableParallelism(),
-      memoryMb: totalmem() / MEBIBYTE,
     },
     audit: createAuditLog(
       auditFileAt(join(app.getPath('userData'), 'extensions', 'audit.log')),
@@ -428,6 +480,36 @@ const chrome = createChromeFeature({
   isGlobalShortcutRegistered: (accelerator) => globalShortcut.isRegistered(accelerator),
 });
 
+const initialAccounts = loadAccounts(app.getPath('userData'));
+
+/** The AI assistant extension became part of YapYap: what the user set up there carries over (ADR 0017). */
+const takeOverExtension = async (): Promise<void> => {
+  guardAssistantSession(session.fromPartition('yapyap-assistant'), assistantReach);
+  await importAssistantExtension({
+    extensionSecrets,
+    keys,
+    settings,
+    root: join(app.getPath('userData'), 'extensions'),
+    storage: EXTENSION_STORAGE,
+    clearPartition: (id) => session.fromPartition(`persist:extension:${id}`).clearStorageData(),
+    chats: assistantChats,
+    accounts: () => initialAccounts.accounts.map(({ id }) => id),
+    state: assistantStore,
+  });
+};
+
+/** YapYap refuses to start without the sandbox; then it touches nothing of the profile. */
+const unsafeStart = sandboxDisabled(app.commandLine, process.env);
+
+if (!unsafeStart) {
+  app
+    .whenReady()
+    .then(takeOverExtension)
+    .catch(() => {
+      warn('Could not take over the AI assistant extension’s settings.');
+    });
+}
+
 // No top-level await: test harnesses hold back the `ready` event until the
 // entry module has finished evaluating.
 startApp({
@@ -439,12 +521,13 @@ startApp({
   notify,
   warn,
   customCode,
+  secrets,
   createWindow: (options) => createMainWindow(options),
   createAccountHost: (window, renderer) => createAccountHost(window, renderer),
   createSidebar: (window, renderer) => createSidebarView(window, renderer),
   defaultSession: () => session.defaultSession,
   sessionOf: (partition) => session.fromPartition(partition),
-  accounts: loadAccounts(app.getPath('userData')),
+  accounts: initialAccounts,
   whatsAppPreload: join(import.meta.dirname, '..', 'preload', 'whatsapp.cjs'),
   notifications: {
     create: (options) => new Notification({ ...options, icon: trayIcon }),
@@ -487,11 +570,6 @@ startApp({
   contextMenu: (items) => {
     Menu.buildFromTemplate(items).popup();
   },
-  secrets: openSecretStore(
-    secretFileAt(join(app.getPath('userData'), 'secrets.json')),
-    safeStorage,
-    process.platform,
-  ),
   onResume: (listener) => {
     powerMonitor.on('resume', listener);
   },
@@ -526,7 +604,7 @@ startApp({
       powerMonitor.on('shutdown', listener);
     },
   },
-  sandboxDisabled: sandboxDisabled(app.commandLine, process.env),
+  sandboxDisabled: unsafeStart,
   explainUnsafeStart: explainUnsafeStartWithDialog,
   selfUpdate: {
     updater: async () => {

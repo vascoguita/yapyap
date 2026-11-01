@@ -65,6 +65,12 @@ export interface MenuActions {
   readonly openReport: () => void;
   /** Help → Record a Performance Trace, for slow-downs a log cannot explain (#113). */
   readonly recordTrace: () => void;
+  /** The assistant's actions, which its bar in the open chat answers (ADR 0017). */
+  readonly assistant: {
+    readonly suggest: () => void;
+    readonly summarize: () => void;
+    readonly catchUp: () => void;
+  };
 }
 
 /** Zoom in YapYap's own 5% steps, kept per account. */
@@ -210,6 +216,32 @@ function accountMenu(actions: MenuActions, keys: Keys): MenuItemConstructorOptio
   };
 }
 
+/** The assistant's actions and its settings, which open at the assistant (ADR 0017). */
+function assistantMenu(actions: MenuActions, keys: Keys): MenuItemConstructorOptions {
+  return {
+    label: en.menu.assistant,
+    submenu: [
+      {
+        label: en.menu.assistantSuggest,
+        ...keyed('assistantSuggest', keys),
+        click: actions.assistant.suggest,
+      },
+      {
+        label: en.menu.assistantSummarize,
+        ...keyed('assistantSummarize', keys),
+        click: actions.assistant.summarize,
+      },
+      {
+        label: en.menu.assistantCatchUp,
+        ...keyed('assistantCatchUp', keys),
+        click: actions.assistant.catchUp,
+      },
+      { type: 'separator' },
+      { label: en.menu.assistantSettings, click: actions.openSettings },
+    ],
+  };
+}
+
 /**
  * The application menu: the platform's standard menus, with About opening
  * YapYap's own window instead of the stock panel. Settings sits where each
@@ -315,6 +347,7 @@ export function buildMenuTemplate(
     return [
       file,
       accountMenu(actions, keys),
+      assistantMenu(actions, keys),
       ...standard,
       { role: 'help', submenu: [...about, { type: 'separator' }, ...help] },
     ];
@@ -323,6 +356,7 @@ export function buildMenuTemplate(
     macAppMenu([...about], [...settings, ...extensionItems(actions, keys)], quit, keys),
     { role: 'fileMenu' },
     accountMenu(actions, keys),
+    assistantMenu(actions, keys),
     ...standard,
     { role: 'help', submenu: help },
   ];

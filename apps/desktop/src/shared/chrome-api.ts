@@ -22,6 +22,48 @@ export interface RecoveryProblem {
   readonly description: string;
 }
 
+/** A service the user brings an API key for. */
+export type KeyedProvider = 'anthropic' | 'openai';
+
+/** What the user can do with the private model now. */
+export type PrivateModelAction = 'download' | 'pause' | 'resume' | 'remove' | 'smaller';
+
+/** A model server found on this computer, as Settings lists it. */
+export interface FoundServer {
+  readonly server: string;
+  readonly endpoint: string;
+  readonly models: readonly string[];
+}
+
+/**
+ * Settings › Assistant (ADR 0017): who answers, how each place it can
+ * think stands, the provider's models, and the chats it may read. The
+ * preferences themselves are settings fields; this is the rest.
+ */
+export interface AssistantView {
+  /** Who answers now, or null while nothing is set up. */
+  readonly inUse: 'built-in' | 'anthropic' | 'openai' | 'local' | null;
+  /** What keeps the assistant from answering, in the user's words; empty once nothing does. */
+  readonly status: string;
+  /** Whether a key is saved, by provider; never the key itself. */
+  readonly keys: Readonly<Record<KeyedProvider, boolean>>;
+  readonly privateModel: {
+    /** Its download size, as people read it. */
+    readonly size: string;
+    readonly status: string;
+    readonly actions: readonly PrivateModelAction[];
+  };
+  /** What the provider in use lists, and the model Auto picks; empty until it is set up. */
+  readonly models: readonly { readonly id: string; readonly label: string }[];
+  readonly auto: string | null;
+  /** The chats the assistant may read, by account; a name YapYap could not keep safely is null. */
+  readonly chats: readonly {
+    readonly account: string;
+    readonly accountName: string;
+    readonly chats: readonly { readonly id: string; readonly name: string | null }[];
+  }[];
+}
+
 /** The settings window's view of the settings. */
 export interface SettingsSnapshot {
   /** Keyed by field ID, for the fields in `SETTING_FIELDS`. */
@@ -233,6 +275,19 @@ export interface ChromeApi {
     readonly import: () => Promise<TransferResult>;
     /** Asks in the system's folder dialog; read the settings again afterwards. */
     readonly chooseFolder: (id: string) => Promise<void>;
+  };
+  /** Settings › Assistant and the Welcome's assistant step (ADR 0017). */
+  readonly assistant: {
+    readonly view: () => Promise<AssistantView>;
+    /** Keeps a key, encrypted; false when this system cannot keep it safely. */
+    readonly saveKey: (provider: KeyedProvider, key: string) => Promise<boolean>;
+    readonly forgetKey: (provider: KeyedProvider) => Promise<void>;
+    /** Asks the provider for its models with the saved key: '' when it works, else what failed, in words. */
+    readonly testKey: (provider: KeyedProvider) => Promise<string>;
+    /** Looks for model servers on this computer, at the usual addresses. */
+    readonly findServers: () => Promise<readonly FoundServer[]>;
+    readonly privateModel: (action: PrivateModelAction) => Promise<void>;
+    readonly forgetChat: (account: string, id: string) => Promise<void>;
   };
   readonly chat: {
     /** Opens the chat with an international number; false when WhatsApp cannot yet. */
@@ -527,6 +582,13 @@ export const CHROME_CHANNELS = {
   quickPanelSetDoNotDisturb: 'quick-panel:set-do-not-disturb',
   proxyLoginRequest: 'proxy-login:request',
   proxyLoginAnswer: 'proxy-login:answer',
+  assistantView: 'assistant:view',
+  assistantSaveKey: 'assistant:save-key',
+  assistantForgetKey: 'assistant:forget-key',
+  assistantTestKey: 'assistant:test-key',
+  assistantFindServers: 'assistant:find-servers',
+  assistantPrivateModel: 'assistant:private-model',
+  assistantForgetChat: 'assistant:forget-chat',
 } as const;
 
 /** The one channel YapYap sends on, from the main process to the sidebar. */

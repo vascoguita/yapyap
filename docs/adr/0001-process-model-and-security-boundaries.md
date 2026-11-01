@@ -277,6 +277,22 @@ back from every build and asserts them.
 - Some conveniences are lost by design: no `<webview>`, no remote modules, no
   Node in any renderer.
 
+## Amendments
+
+- 2026-11-01 (ADR 0017): two new parts. The AI assistant's requests leave
+  from the main process, through an in-memory session of its own,
+  `yapyap-assistant`, whose `fetch` and `webRequest` guard allow only
+  the providers, Hugging Face and the one model server on this computer
+  the user chose. The private model runs in a hidden engine window, made
+  with `createSecureWindow` on the in-memory `yapyap-engine` partition,
+  on `app://engine`, with its own CSP (WebAssembly and `blob:` workers,
+  `connect-src 'self'`), COOP and COEP, and a preload with two fixed
+  channels whose events the main process checks for sender, origin and
+  shape. It is registered as a chrome view of its own origin, so it may
+  not navigate away nor call the chrome API. The `app` scheme gained
+  `supportFetchAPI` for it; chrome pages still allow no `connect-src`.
+  The `extension` scheme lost it.
+
 ## Never without the sandbox
 
 YapYap refuses to start when Chromium's sandbox is turned off, by

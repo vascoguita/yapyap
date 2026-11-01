@@ -88,6 +88,7 @@ export interface Messages {
     readonly defaultRecordingFolder: string;
     readonly useDefaultRecordingFolder: string;
     readonly sections: {
+      readonly assistant: string;
       readonly general: string;
       readonly spelling: string;
       readonly appearance: string;
@@ -126,6 +127,28 @@ export interface Messages {
     readonly problems: { readonly autostartFailed: string };
     readonly autostartReason: string;
     readonly fields: {
+      readonly assistant: {
+        readonly enabled: { readonly label: string; readonly description: string };
+        readonly provider: {
+          readonly label: string;
+          readonly description: string;
+          readonly options: {
+            readonly auto: string;
+            readonly 'built-in': string;
+            readonly anthropic: string;
+            readonly openai: string;
+            readonly local: string;
+          };
+        };
+        readonly model: { readonly label: string; readonly description: string };
+        readonly autoSuggest: { readonly label: string; readonly description: string };
+        readonly messages: {
+          readonly label: string;
+          readonly description: string;
+          readonly options: { readonly '5': string; readonly '10': string; readonly '20': string };
+        };
+        readonly localServer: { readonly label: string; readonly description: string };
+      };
       readonly general: {
         readonly startMinimized: { readonly label: string; readonly description: string };
         readonly autostart: { readonly label: string; readonly description: string };
@@ -251,7 +274,6 @@ export interface Messages {
             readonly '50': string;
           };
         };
-        readonly autoSuggest: { readonly label: string; readonly description: string };
       };
       readonly downloads: {
         readonly askWhere: { readonly label: string; readonly description: string };
@@ -363,18 +385,200 @@ export interface Messages {
     readonly full: string;
     readonly doNotDisturb: string;
   };
-  readonly assistantBar: {
-    readonly label: string;
-    readonly from: (params: { readonly extension: string | number }) => string;
-    readonly suggest: string;
-    readonly write: string;
-    readonly writePlaceholder: string;
-    readonly use: string;
-    readonly send: string;
-    readonly sendLabel: string;
-    readonly noChat: string;
-    readonly chatChanged: string;
-    readonly thinking: string;
+  readonly assistant: {
+    readonly privateModel: (params: { readonly name: string | number }) => string;
+    readonly providers: {
+      readonly 'built-in': string;
+      readonly anthropic: string;
+      readonly openai: string;
+      readonly local: string;
+    };
+    readonly providerTitles: {
+      readonly 'built-in': string;
+      readonly anthropic: string;
+      readonly openai: string;
+      readonly local: string;
+    };
+    readonly settings: {
+      readonly intro: string;
+      readonly where: string;
+      readonly whereHint: string;
+      readonly inUse: string;
+      readonly automatic: string;
+      readonly private: {
+        readonly title: string;
+        readonly description: (params: { readonly size: string | number }) => string;
+        readonly download: string;
+        readonly pause: string;
+        readonly resume: string;
+        readonly remove: string;
+        readonly smaller: string;
+        readonly none: string;
+        readonly downloading: (params: {
+          readonly done: string | number;
+          readonly percent: string | number;
+          readonly size: string | number;
+        }) => string;
+        readonly paused: (params: { readonly percent: string | number }) => string;
+        readonly failed: (params: { readonly percent: string | number }) => string;
+        readonly diskFull: (params: { readonly size: string | number }) => string;
+        readonly damaged: string;
+        readonly ready: (params: { readonly size: string | number }) => string;
+        readonly outOfMemory: string;
+        readonly outOfMemorySmall: string;
+      };
+      readonly anthropic: {
+        readonly title: string;
+        readonly description: string;
+        readonly getKey: string;
+      };
+      readonly openai: {
+        readonly title: string;
+        readonly description: string;
+        readonly getKey: string;
+      };
+      readonly key: {
+        readonly label: (params: { readonly provider: string | number }) => string;
+        readonly placeholder: string;
+        readonly save: string;
+        readonly forget: string;
+        readonly test: string;
+        readonly saved: string;
+        readonly none: string;
+        readonly testing: string;
+        readonly works: string;
+        readonly cannotKeep: string;
+        readonly empty: string;
+      };
+      readonly local: {
+        readonly title: string;
+        readonly description: string;
+        readonly find: string;
+        readonly finding: string;
+        readonly none: string;
+        readonly found: (params: {
+          readonly models: string | number;
+          readonly server: string | number;
+        }) => string;
+        readonly use: string;
+        readonly noModels: string;
+        readonly address: string;
+        readonly addressPlaceholder: string;
+        readonly saveAddress: string;
+        readonly badAddress: string;
+        readonly current: (params: { readonly server: string | number }) => string;
+      };
+      readonly model: {
+        readonly auto: string;
+        readonly autoNamed: (params: { readonly model: string | number }) => string;
+        readonly notReady: string;
+        readonly none: string;
+      };
+      readonly behaviour: string;
+      readonly privacy: {
+        readonly title: string;
+        readonly what: string;
+        readonly where: {
+          readonly 'built-in': string;
+          readonly local: string;
+          readonly anthropic: string;
+          readonly openai: string;
+          readonly none: string;
+        };
+        readonly chats: string;
+        readonly chatsHint: string;
+        readonly noChats: string;
+        readonly unnamed: string;
+        readonly remove: string;
+        readonly removeLabel: (params: { readonly chat: string | number }) => string;
+        readonly chat: (params: {
+          readonly account: string | number;
+          readonly chat: string | number;
+        }) => string;
+      };
+      readonly shortcuts: string;
+      readonly unavailable: string;
+    };
+    readonly bar: {
+      readonly label: string;
+      readonly name: string;
+      readonly suggest: string;
+      readonly summarize: string;
+      readonly rewrite: string;
+      readonly rewriteLabel: string;
+      readonly styles: {
+        readonly friendlier: string;
+        readonly formal: string;
+        readonly shorter: string;
+      };
+      readonly translate: (params: { readonly language: string | number }) => string;
+      readonly catchUp: string;
+      readonly catchUpLabel: string;
+      readonly write: string;
+      readonly writePlaceholder: string;
+      readonly use: string;
+      readonly sendLabel: string;
+      readonly model: string;
+      readonly settings: string;
+      readonly copy: string;
+      readonly close: string;
+      readonly useRewrite: string;
+      readonly allow: string;
+      readonly whatSent: string;
+      readonly send: string;
+      readonly setUp: string;
+      readonly pasteKey: string;
+      readonly resume: string;
+      readonly smaller: string;
+      readonly openSettings: string;
+    };
+    readonly status: {
+      readonly noChat: string;
+      readonly chatChanged: string;
+      readonly thinking: string;
+      readonly copied: string;
+      readonly consent: (params: { readonly provider: string | number }) => string;
+      readonly consentPrivate: string;
+      readonly preview: string;
+      readonly catchUp: string;
+      readonly nothing: string;
+      readonly emptyDraft: string;
+      readonly noUnread: string;
+      readonly setUp: string;
+      readonly key: (params: { readonly provider: string | number }) => string;
+      readonly download: string;
+      readonly noModel: (params: { readonly provider: string | number }) => string;
+      readonly moved: string;
+      readonly movedRedownload: string;
+      readonly localServer: string;
+      readonly openChat: string;
+      readonly off: string;
+    };
+    readonly problems: {
+      readonly auth: (params: { readonly provider: string | number }) => string;
+      readonly rateLimited: (params: { readonly provider: string | number }) => string;
+      readonly network: (params: { readonly provider: string | number }) => string;
+      readonly timeout: (params: { readonly provider: string | number }) => string;
+      readonly refused: string;
+      readonly badRequest: (params: { readonly provider: string | number }) => string;
+      readonly cancelled: string;
+      readonly outOfMemory: string;
+      readonly failed: string;
+    };
+    readonly welcome: {
+      readonly title: string;
+      readonly intro: string;
+      readonly local: (params: { readonly server: string | number }) => string;
+      readonly localHint: string;
+      readonly private: (params: { readonly size: string | number }) => string;
+      readonly privateHint: string;
+      readonly anthropic: string;
+      readonly openai: string;
+      readonly keyHint: string;
+      readonly later: string;
+      readonly laterHint: string;
+      readonly done: string;
+    };
   };
   readonly chatList: { readonly label: string; readonly hint: string };
   readonly extensions: {
@@ -444,9 +648,7 @@ export interface Messages {
       readonly 'notifications:show': string;
       readonly 'storage:local': string;
       readonly 'secrets:own': string;
-      readonly 'assistant:bar': string;
       readonly 'calls:record': string;
-      readonly 'local-model': string;
     };
     readonly activity: {
       readonly title: string;
@@ -576,6 +778,9 @@ export interface Messages {
       readonly toggleWindow: string;
       readonly hide: string;
       readonly quit: string;
+      readonly assistantSuggest: string;
+      readonly assistantSummarize: string;
+      readonly assistantCatchUp: string;
     };
   };
   readonly spellingLanguages: {
@@ -655,6 +860,11 @@ export interface Messages {
     readonly edit: string;
     readonly window: string;
     readonly reportProblem: string;
+    readonly assistant: string;
+    readonly assistantSuggest: string;
+    readonly assistantSummarize: string;
+    readonly assistantCatchUp: string;
+    readonly assistantSettings: string;
   };
   readonly windows: {
     readonly about: (params: { readonly product: string | number }) => string;
@@ -689,12 +899,6 @@ export interface Messages {
         readonly extension: string | number;
         readonly server: string | number;
       }) => string;
-      readonly detail: string;
-      readonly allow: string;
-      readonly deny: string;
-    };
-    readonly extensionModelSearch: {
-      readonly message: (params: { readonly extension: string | number }) => string;
       readonly detail: string;
       readonly allow: string;
       readonly deny: string;

@@ -6,7 +6,6 @@ import {
   HOST_PAGE,
   panelPage,
   EXTENSION_CSP,
-  LOCAL_MODEL_CSP,
   serveExtensionFiles,
   type ExtensionSource,
 } from './extension-files.ts';
@@ -18,7 +17,6 @@ const FOLDER = resolve('/extensions', ID, '1.0.0');
 function setup(
   files: Readonly<Record<string, string>> = { 'main.js': 'export default {};' },
   panel?: string,
-  testModel?: string,
 ) {
   const readFile = vi.fn((path: string) => {
     const name = Object.keys(files).find((file) => join(FOLDER, file) === path);
@@ -27,22 +25,12 @@ function setup(
       : Promise.resolve(new TextEncoder().encode(files[name]));
   });
   let source: ExtensionSource | undefined = { folder: FOLDER, entry: 'main.js', panel };
-  let localModel = false;
-  const serve = serveExtensionFiles(
-    ID,
-    () => source,
-    readFile,
-    () => localModel,
-    testModel,
-  );
+  const serve = serveExtensionFiles(ID, () => source, readFile);
   return {
     readFile,
     get: (url: string) => serve({ url }),
     stop: () => {
       source = undefined;
-    },
-    hold: (held: boolean) => {
-      localModel = held;
     },
   };
 }
@@ -114,7 +102,7 @@ describe('serveExtensionFiles', () => {
       'a.webp': 'image/webp',
       'a.woff2': 'font/woff2',
       'a.txt': 'text/plain; charset=utf-8',
-      'a.wasm': 'application/wasm',
+      'a.wasm': 'application/octet-stream',
     };
     const t = setup(Object.fromEntries(Object.keys(types).map((name) => [name, 'x'])));
     for (const [name, type] of Object.entries(types)) {
@@ -157,10 +145,10 @@ const EVERY_KIND = [
 
 const headersOf = (response: Response): [string, string][] => [...response.headers.entries()];
 
-describe('serveExtensionFiles, for local-model (#457)', () => {
+describe('serveExtensionFiles, headers', () => {
   const files = { 'main.js': 'export default {};', 'engine.wasm': '\0asm\x01\0\0\0' };
 
-  it('keeps every other extension’s headers exactly as they were', async () => {
+  it('serves every response under the extension CSP, uncached and unsniffed', async () => {
     const t = setup(files, 'main.js');
     for (const path of EVERY_KIND) {
       const response = await t.get(`extension://${ID}${path}`);
@@ -175,40 +163,6 @@ describe('serveExtensionFiles, for local-model (#457)', () => {
         ['x-content-type-options', 'nosniff'],
       ]);
     }
-  });
-
-  it('lets a holder compile WebAssembly, fetch its own files and start blob workers, cross-origin isolated', async () => {
-    const t = setup(files, 'main.js');
-    t.hold(true);
-    for (const path of EVERY_KIND) {
-      const response = await t.get(`extension://${ID}${path}`);
-      expect(response.status).toBe(200);
-      expect(response.headers.get('content-security-policy')).toBe(LOCAL_MODEL_CSP);
-      expect(response.headers.get('cross-origin-opener-policy')).toBe('same-origin');
-      expect(response.headers.get('cross-origin-embedder-policy')).toBe('require-corp');
-      expect(response.headers.get('x-content-type-options')).toBe('nosniff');
-    }
-    expect(LOCAL_MODEL_CSP).toBe(
-      "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; worker-src blob:; " +
-        "style-src 'self'; img-src 'self' data:; " +
-        "connect-src 'self' https: http://localhost:* http://127.0.0.1:* http://[::1]:*; " +
-        "base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
-    );
-    // Still no eval of JavaScript, no inline or remote scripts.
-    expect(LOCAL_MODEL_CSP).not.toMatch(/'unsafe-eval'|'unsafe-inline'|script-src[^;]*https/);
-  });
-
-  it('reads the grant on every response, so taking it back applies from the next load', async () => {
-    const t = setup(files);
-    t.hold(true);
-    expect((await t.get(`extension://${ID}/`)).headers.get('content-security-policy')).toBe(
-      LOCAL_MODEL_CSP,
-    );
-    t.hold(false);
-    const page = await t.get(`extension://${ID}/`);
-    expect(page.headers.get('content-security-policy')).toBe(EXTENSION_CSP);
-    expect(page.headers.has('cross-origin-opener-policy')).toBe(false);
-    expect(page.headers.has('cross-origin-embedder-policy')).toBe(false);
   });
 });
 
@@ -235,31 +189,5 @@ describe('confineExtensionRequests', () => {
     expect(EXTENSION_CSP).toBe(
       "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src https: http://localhost:* http://127.0.0.1:* http://[::1]:*; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
     );
-  });
-});
-
-describe('serveExtensionFiles, with a test model (#457)', () => {
-  const MODEL = '{"url":"http://127.0.0.1:9/tiny.gguf","size":9,"sha256":"aa"}';
-  const URL_ = `extension://${ID}/__yapyap/test-model.json`;
-
-  it('serves an unpackaged build’s test model to an extension holding local-model alone', async () => {
-    const t = setup(undefined, undefined, MODEL);
-    expect((await t.get(URL_)).status).toBe(404);
-    t.hold(true);
-    const served = await t.get(URL_);
-    expect(served.status).toBe(200);
-    expect(served.headers.get('content-type')).toBe('application/json');
-    expect(served.headers.get('content-security-policy')).toBe(LOCAL_MODEL_CSP);
-    expect(await served.text()).toBe(MODEL);
-  });
-
-  it('serves none without one, whatever the extension ships at that path', async () => {
-    const t = setup({
-      'main.js': 'x',
-      '__yapyap/test-model.json': '{"url":"https://evil.example"}',
-    });
-    t.hold(true);
-    expect((await t.get(URL_)).status).toBe(404);
-    expect(t.readFile).not.toHaveBeenCalled();
   });
 });

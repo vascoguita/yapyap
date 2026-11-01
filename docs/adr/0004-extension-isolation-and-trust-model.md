@@ -339,6 +339,14 @@ shows the latest 50 calls. `accountId` joins once grants are per account
   at `/__yapyap/test-model.json`, to `local-model` holders only, in place
   of the pinned ones; a packaged YapYap ignores the variable and answers
   404, and no extension can ship a file at that path.
+- 2026-11-01 (ADR 0017): the AI assistant is part of YapYap, so the
+  capabilities that existed only for it are gone: `assistant:bar` and
+  `host.assistant`, `local-model` with its wider CSP, cross-origin
+  isolation and limits, and `host.localModels.find()` with its prompt.
+  The test-model path and the `extension` scheme's fetch support went
+  with them. Every extension is again under the one policy and the same
+  limits described above. Records that kept the old `modelSearch` answer
+  still load, and nothing reads it.
 
 ## Consequences
 

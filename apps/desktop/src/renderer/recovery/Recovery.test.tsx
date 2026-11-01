@@ -25,6 +25,15 @@ function api(
       import: vi.fn(),
       chooseFolder: vi.fn(),
     },
+    assistant: {
+      view: vi.fn(),
+      saveKey: vi.fn(),
+      forgetKey: vi.fn(),
+      testKey: vi.fn(),
+      findServers: vi.fn(),
+      privateModel: vi.fn(),
+      forgetChat: vi.fn(),
+    },
     chat: { openNumber: vi.fn() },
     accounts: {
       list: vi.fn(),

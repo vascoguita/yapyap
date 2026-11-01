@@ -1,5 +1,6 @@
 import { globSync, readFileSync } from 'node:fs';
-import { basename, resolve } from 'node:path';
+import { createRequire } from 'node:module';
+import { basename, dirname, join, resolve } from 'node:path';
 import { defineConfig } from 'electron-vite';
 import type { Plugin } from 'vite';
 
@@ -22,6 +23,26 @@ function appIcon(): Plugin {
   };
 }
 
+/**
+ * The private model's engine (ADR 0017): wllama's one WebAssembly build,
+ * shipped beside the renderer's pages under a fixed name, so YapYap holds
+ * every byte that runs and nothing is fetched from a CDN.
+ */
+function engineWasm(): Plugin {
+  const require = createRequire(import.meta.url);
+  const entry = require.resolve('@wllama/wllama/esm/index.js');
+  return {
+    name: 'engine-wasm',
+    generateBundle() {
+      this.emitFile({
+        type: 'asset',
+        fileName: 'wllama.wasm',
+        source: readFileSync(join(dirname(entry), 'wasm', 'wllama.wasm')),
+      });
+    },
+  };
+}
+
 export default defineConfig({
   main: {
     resolve: {
@@ -38,6 +59,7 @@ export default defineConfig({
           chrome: resolve(import.meta.dirname, 'src/preload/chrome/index.ts'),
           whatsapp: resolve(import.meta.dirname, 'src/preload/whatsapp/index.ts'),
           extension: resolve(import.meta.dirname, 'src/preload/extension/index.ts'),
+          engine: resolve(import.meta.dirname, 'src/preload/engine/index.ts'),
         },
         // Sandboxed preloads cannot load ES modules.
         output: { format: 'cjs', entryFileNames: '[name].cjs' },
@@ -46,7 +68,7 @@ export default defineConfig({
   },
   renderer: {
     root: RENDERER,
-    plugins: [appIcon()],
+    plugins: [appIcon(), engineWasm()],
     build: {
       // Every HTML shell in the renderer folder is a chrome page.
       rolldownOptions: {

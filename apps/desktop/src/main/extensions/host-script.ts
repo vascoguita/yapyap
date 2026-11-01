@@ -1,9 +1,4 @@
-import type {
-  ActiveChat,
-  AssistantRequest,
-  ExtensionHost,
-  UnreadChat,
-} from '@yapyap/extension-sdk';
+import type { ActiveChat, ExtensionHost, UnreadChat } from '@yapyap/extension-sdk';
 import { EXTENSION_PORT_CHANNEL } from '../../shared/extension-rpc.ts';
 
 /** The page's side of the port, as far as the bootstrap uses it. */
@@ -22,22 +17,15 @@ interface PageScope {
 
 type Call = <T>(method: string, ...params: unknown[]) => Promise<T>;
 
-/** What the user asks of the extension outside its calls: commands, and the assistant bar's requests. */
+/** What the user asks of the extension outside its calls: the commands it contributes. */
 export interface HostHandlers {
   readonly commands: Map<string, () => unknown>;
-  assistant?: (request: AssistantRequest) => unknown;
-  /**
-   * Bar requests that came before the extension listened: the bar shows as
-   * soon as the extension runs, which can be a moment before its
-   * `activate` reaches `onRequest`, and a click then must not be lost.
-   */
-  readonly early: AssistantRequest[];
 }
 
 /** The parts of the host API that belong to the extension itself, not to an account. */
 type OwnApi = Pick<
   ExtensionHost,
-  'notifications' | 'storage' | 'secrets' | 'commands' | 'settings' | 'localModels'
+  'notifications' | 'storage' | 'secrets' | 'commands' | 'settings'
 >;
 
 /**
@@ -68,23 +56,11 @@ export function hostApi(
       recordings: () => call('calls.recordings'),
       reveal: (id) => call('calls.reveal', id),
     },
-    assistant: {
-      offer: (offer) => call('assistant.offer', offer),
-      onRequest: (handler) => {
-        handlers.assistant = handler;
-        for (const request of handlers.early.splice(0)) {
-          Promise.resolve()
-            .then(() => handler(request))
-            .catch(() => undefined);
-        }
-      },
-    },
   };
 }
 
 /**
  * The extension's own part of the host API: its storage, secrets, commands,
- * finding models on this computer,
  * settings and notifications. Like {@link hostApi}, it runs as source text.
  */
 export function ownApi(call: Call, handlers: HostHandlers): OwnApi {
@@ -106,24 +82,23 @@ export function ownApi(call: Call, handlers: HostHandlers): OwnApi {
       },
     },
     settings: { get: () => call('settings.get') },
-    localModels: { find: () => call('localModels.find') },
   };
 }
 
 type Pending = Map<number, { resolve(value: never): void; reject(error: unknown): void }>;
 
 /**
- * Settles the call a reply answers, or hands what YapYap sends on its own,
- * a command the user picked or a request from the assistant bar, to `onHost`.
+ * Settles the call a reply answers, or hands a command the user picked,
+ * which YapYap sends on its own, to `onHost`.
  */
 export function settleReply(
   pending: Pending,
   data: unknown,
-  onHost: (message: { readonly command?: string; readonly assistant?: unknown }) => void,
+  onHost: (message: { readonly command: string }) => void,
 ): void {
-  const { id, result, error, command, assistant } = Object(data) as Record<string, unknown>;
-  if (typeof command === 'string' || assistant !== undefined) {
-    onHost({ ...(typeof command === 'string' ? { command } : {}), assistant });
+  const { id, result, error, command } = Object(data) as Record<string, unknown>;
+  if (typeof command === 'string') {
+    onHost({ command });
     return;
   }
   const waiter = pending.get(Number(id));
@@ -137,8 +112,8 @@ export function settleReply(
 
 /**
  * Calls over a port that may not have arrived yet: they wait for it, in
- * order. YapYap also sends a command the user picked (#98), or an assistant
- * bar request (ADR 0013), which go to `onHost`.
+ * order. YapYap also sends a command the user picked (#98), which goes to
+ * `onHost`.
  */
 export function rpcClient(
   onHost: Parameters<typeof settleReply>[2],
@@ -192,16 +167,11 @@ export function bootExtension(
     readonly settleReply: typeof settleReply;
   },
 ): Promise<void> {
-  const handlers: HostHandlers = { commands: new Map(), early: [] };
+  const handlers: HostHandlers = { commands: new Map() };
   // A handler that throws or rejects affects only itself.
-  const keep = (request: AssistantRequest): number => handlers.early.push(request);
-  const client = helpers.rpcClient(({ command, assistant }) => {
+  const client = helpers.rpcClient(({ command }) => {
     Promise.resolve()
-      .then(() =>
-        command === undefined
-          ? (handlers.assistant ?? keep)(assistant as AssistantRequest)
-          : handlers.commands.get(command)?.(),
-      )
+      .then(() => handlers.commands.get(command)?.())
       .catch(() => undefined);
   }, helpers.settleReply);
   let connected = false;

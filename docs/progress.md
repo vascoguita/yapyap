@@ -1501,3 +1501,18 @@ not edit the same lines.
   than one renderer runs at idle with one account. E2E tests find the main
   window with `BaseWindow.getAllWindows()`, since
   `BrowserWindow.getAllWindows()` leaves it out.
+- The AI assistant is part of YapYap (ADR 0017), the maintainer's top
+  priority of 2026-11-01. It runs in the main process
+  (`apps/desktop/src/main/assistant/`) with the official SDKs on a confined
+  in-memory session, and its private model downloads in the main process
+  and runs in a hidden engine window that opens on first use. Settings
+  version 19 adds the `assistant` section, kept local, and takes over
+  `extensions.autoSuggest`. Settings › Assistant is the first section and
+  the one place to set it up; the Welcome has an assistant step; the bar
+  in the chat holds Suggest replies, Summarize, Rewrite and Catch up, the
+  model and a gear; an Assistant menu has their shortcuts. The panel
+  window is gone. On first start, YapYap takes over an installed
+  `ai-assistant` extension's setup, keys and allowed chats, uninstalls it
+  and shows a one-time note. `extensions/ai-assistant`, its release-please
+  component and the `assistant:bar`, `local-model` and `localModels.find`
+  extension APIs are removed. C42 and C43 in ADR 0008.

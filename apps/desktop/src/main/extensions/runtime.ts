@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import { ManifestSchema, type AssistantRequest, type Manifest } from '@yapyap/extension-sdk';
+import { ManifestSchema, type Manifest } from '@yapyap/extension-sdk';
 import { Value } from 'typebox/value';
 import type { ViewRegistry } from '../views.ts';
 import { en } from '../../shared/messages/en.ts';
@@ -32,8 +32,6 @@ import { serveExtensionRpc, type RpcMethod, type RpcOptions, type RpcPort } from
  */
 /** Lets an extension reach servers on this computer, such as a local AI model. */
 const LOCAL_NETWORK = 'local-network';
-/** Lets an extension run an AI model in its own page (#457). */
-const LOCAL_MODEL = 'local-model';
 
 export function extensionPartition(record: Pick<ExtensionRecord, 'id' | 'capabilities'>): string {
   const partition = `extension:${record.id}`;
@@ -114,7 +112,7 @@ export interface ExtensionRuntimeDependencies {
   /** What the CPU and memory limits need besides the extensions themselves (#97). */
   readonly limits: Pick<
     ResourceGuardDependencies,
-    'metrics' | 'notify' | 'every' | 'now' | 'cores' | 'memoryMb'
+    'metrics' | 'notify' | 'every' | 'now' | 'cores'
   >;
   /** The account on screen, which account capabilities are checked against (#94). */
   readonly activeAccount: () => string | undefined;
@@ -124,8 +122,6 @@ export interface ExtensionRuntimeDependencies {
   readonly askLocal: (extension: string, server: string) => Promise<boolean>;
   /** What every session does to request headers, kept by the extension's own listener. */
   readonly presentHeaders: (headers: Readonly<Record<string, string>>) => Record<string, string>;
-  /** The model E2E tests serve to `local-model` holders in an unpackaged YapYap (#457), as JSON. */
-  readonly testModel?: string;
 }
 
 export interface ExtensionRuntime {
@@ -154,10 +150,6 @@ export interface ExtensionRuntime {
   readonly openPanel: (extension: string) => boolean;
   /** Calls `listener` whenever extensions start or stop. */
   readonly onChange: (listener: () => void) => void;
-  /** Running extensions holding `assistant:bar` for the account on screen, in start order (ADR 0013). */
-  readonly assistants: () => readonly { readonly id: string; readonly name: string }[];
-  /** Passes an assistant bar request to the extension; false when it may not take one. */
-  readonly askAssistant: (extension: string, request: AssistantRequest) => boolean;
 }
 
 /** Where an extension's menu item shows: the message box, a message, or a chat in the list. */
@@ -218,7 +210,6 @@ function connect(
     id,
     name: known.name,
     settings: () => valuesOf(known.form, known.record.settings),
-    modelSearch: modelSearchOf(deps.root, known),
   });
   // Grants are read on every call, so taking one back stops the next call (#94).
   const granted = (capability: string): boolean =>
@@ -229,9 +220,6 @@ function connect(
     serveExtensionRpc(port, granted, methods, deps.rpc, (call) => {
       deps.audit.record({ ...call, extension: id });
     });
-    for (const request of running.waiting.splice(0)) {
-      port.postMessage({ assistant: request });
-    }
   });
 }
 
@@ -252,18 +240,6 @@ const withHost =
 const withLocalServer =
   (server: string): Approval =>
   (record) => ({ ...record, localServers: [...(record.localServers ?? []), server] });
-
-/** The user's answer about looking for AI models on this computer (#456), kept in the extension's record. */
-function modelSearchOf(root: string, known: KnownExtension): CallingExtension['modelSearch'] {
-  return {
-    answer: () => known.record.modelSearch,
-    keep: async (allowed) => {
-      const approval: Approval = (record) => ({ ...record, modelSearch: allowed });
-      known.record = approval(known.record);
-      await remember(root, known.record.id, approval);
-    },
-  };
-}
 
 /** Writes an approval into the extension's record, so it outlives a restart. */
 async function remember(root: string, id: string, approval: Approval): Promise<void> {
@@ -291,11 +267,6 @@ interface RunningExtension {
   readonly panel: string | undefined;
   port?: RpcPort;
   panelWindow?: ExtensionPanelWindow;
-  /**
-   * Bar requests made before the page had its port: the bar shows as soon
-   * as the extension runs, which can be a moment before its page loaded.
-   */
-  readonly waiting: AssistantRequest[];
 }
 
 interface RuntimeState {
@@ -310,23 +281,9 @@ interface RuntimeState {
   readonly listeners: Set<() => void>;
 }
 
-/** Whether the extension may run a model now, which its pages and limits follow (#457). */
-const runsModels = (known: KnownExtension): boolean => holds(known.record, LOCAL_MODEL, undefined);
-
-/** The extension's files, served under the policy its grants call for at each request. */
-const filesOf = (
-  deps: ExtensionRuntimeDependencies,
-  state: RuntimeState,
-  id: string,
-  known: KnownExtension,
-) =>
-  serveExtensionFiles(
-    id,
-    () => state.sources.get(id),
-    deps.readFile,
-    () => runsModels(known),
-    deps.testModel,
-  );
+/** The extension's files, from the version that runs now. */
+const filesOf = (deps: ExtensionRuntimeDependencies, state: RuntimeState, id: string) =>
+  serveExtensionFiles(id, () => state.sources.get(id), deps.readFile);
 
 /** Serves the extension's files on its own session, and nothing from anywhere else. */
 function serve(
@@ -341,7 +298,7 @@ function serve(
   }
   state.served.add(partition);
   const session = deps.sessionOf(partition);
-  session.protocol.handle(EXTENSION_SCHEME, filesOf(deps, state, id, known));
+  session.protocol.handle(EXTENSION_SCHEME, filesOf(deps, state, id));
   const approve = async (approval: Approval): Promise<void> => {
     known.record = approval(known.record);
     await remember(deps.root, id, approval);
@@ -392,7 +349,6 @@ function runningExtension(
     commands: manifest.contributes?.commands ?? [],
     actions: actionsOf(manifest),
     panel: manifest.contributes?.panel?.title,
-    waiting: [],
   };
 }
 
@@ -575,40 +531,6 @@ function extensionActionsOf(state: RuntimeState): ExtensionAction[] {
   );
 }
 
-const ASSISTANT_BAR = 'assistant:bar';
-
-/** The running extensions that may fill the assistant bar for the account on screen. */
-function assistantsOf(
-  deps: Pick<ExtensionRuntimeDependencies, 'activeAccount'>,
-  state: RuntimeState,
-): { id: string; name: string }[] {
-  return [...state.hosts].flatMap(([id, { name }]) => {
-    const known = state.known.get(id);
-    return known !== undefined && holds(known.record, ASSISTANT_BAR, deps.activeAccount())
-      ? [{ id, name }]
-      : [];
-  });
-}
-
-/** Hands an assistant bar request to an extension that may take one now. */
-function askAssistant(
-  deps: Pick<ExtensionRuntimeDependencies, 'activeAccount'>,
-  state: RuntimeState,
-  extension: string,
-  request: AssistantRequest,
-): boolean {
-  const running = state.hosts.get(extension);
-  if (running === undefined || !assistantsOf(deps, state).some(({ id }) => id === extension)) {
-    return false;
-  }
-  if (running.port === undefined) {
-    running.waiting.push(request);
-  } else {
-    running.port.postMessage({ assistant: request });
-  }
-  return true;
-}
-
 /** Asks a running extension to run one of the commands it declared; false when it cannot. */
 function runCommand(state: RuntimeState, extension: string, command: string): boolean {
   const running = state.hosts.get(extension);
@@ -620,11 +542,10 @@ function runCommand(state: RuntimeState, extension: string, command: string): bo
 }
 
 function processesOf(state: RuntimeState): ExtensionProcess[] {
-  return [...state.hosts].map(([id, { host, name, known }]) => ({
+  return [...state.hosts].map(([id, { host, name }]) => ({
     id,
     name,
     pid: host.webContents.getOSProcessId(),
-    localModel: runsModels(known),
   }));
 }
 
@@ -671,8 +592,6 @@ export function createExtensionRuntime(deps: ExtensionRuntimeDependencies): Exte
     },
     ...contributionsOf(state),
     openPanel: (extension) => openPanel(deps, state, extension),
-    assistants: () => assistantsOf(deps, state),
-    askAssistant: (extension, request) => askAssistant(deps, state, extension, request),
     regrant: (id) => regrant(deps.root, state, id),
     forget: (id) => forget(deps, state, id),
   };

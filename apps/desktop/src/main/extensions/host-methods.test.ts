@@ -6,10 +6,7 @@ const HELLO: CallingExtension = {
   id: 'org.example.hello',
   name: 'Hello',
   settings: () => ({ model: 'small' }),
-  modelSearch: { answer: () => undefined, keep: () => Promise.resolve() },
 };
-
-const OLLAMA = { server: 'localhost:11434', endpoint: 'http://localhost:11434/v1', models: ['a'] };
 
 function services() {
   const stored = new Map<string, string>();
@@ -31,16 +28,11 @@ function services() {
       }),
       delete: vi.fn((key: string) => kept.delete(key)),
     },
-    localModels: {
-      ask: vi.fn((extension: string) => Promise.resolve(extension === 'Hello')),
-      find: vi.fn(() => Promise.resolve([OLLAMA])),
-    },
     notify: vi.fn(),
     quiet: vi.fn(() => false),
     insertDraft: vi.fn<(text: string) => Promise<boolean>>(() => Promise.resolve(true)),
     replaceDraft: vi.fn<(text: string) => Promise<boolean>>(() => Promise.resolve(true)),
     readDraft: vi.fn(() => Promise.resolve<string | null>('Runing late')),
-    offerAssistant: vi.fn(),
     readActiveChat: vi.fn(() =>
       Promise.resolve({ name: 'Team', group: true, messages: [{ outgoing: false, text: 'Hi' }] }),
     ),
@@ -181,14 +173,11 @@ describe('hostMethods', () => {
       'composer.insertDraft',
       'composer.replaceDraft',
       'composer.readDraft',
-      // The assistant bar takes text to show; only YapYap's bar sends, on a click (ADR 0013).
-      'assistant.offer',
       'calls.record',
       'calls.stop',
       'calls.state',
       'calls.recordings',
       'calls.reveal',
-      'localModels.find',
     ]);
   });
 });
@@ -299,157 +288,11 @@ describe('composer drafts', () => {
   });
 });
 
-describe('assistant.offer', () => {
-  it('shows a plain-text offer in the assistant bar, behind assistant:bar', async () => {
-    const given = services();
-    const offer = method('assistant.offer', HELLO, given);
-    expect(offer.capability).toBe('assistant:bar');
-    await offer.run([{ suggestions: ['Yes!'], status: 'One idea', confirm: 'Allow here' }]);
-    expect(given.offerAssistant).toHaveBeenCalledExactlyOnceWith({
-      suggestions: ['Yes!'],
-      status: 'One idea',
-      confirm: 'Allow here',
-    });
-  });
-
-  it('takes at most five short suggestions, a short status and label, and nothing else', () => {
-    expect(accepts('assistant.offer', [{ suggestions: [] }])).toBe(true);
-    for (const offer of [
-      { suggestions: ['a', 'b', 'c', 'd', 'e', 'f'] },
-      { suggestions: [''] },
-      { suggestions: ['x'.repeat(1001)] },
-      { suggestions: [], status: 'x'.repeat(201) },
-      { suggestions: [], confirm: '' },
-      { suggestions: [], confirm: 'x'.repeat(41) },
-      { suggestions: [], html: '<b>' },
-      {},
-    ]) {
-      expect(accepts('assistant.offer', [offer])).toBe(false);
-    }
-  });
-
-  it('takes a short choice of at most twenty short options, and nothing else in it', () => {
-    const option = { value: 'claude-haiku-5-5', label: 'Claude Haiku 5.5' };
-    const choice = { label: 'Model', current: 'auto', options: [option] };
-    expect(accepts('assistant.offer', [{ suggestions: [], choice }])).toBe(true);
-    const edges = {
-      ...choice,
-      label: 'x'.repeat(40),
-      current: 'x'.repeat(100),
-      options: Array.from({ length: 20 }, () => ({
-        value: 'v'.repeat(100),
-        label: 'l'.repeat(60),
-      })),
-    };
-    expect(accepts('assistant.offer', [{ suggestions: [], choice: edges }])).toBe(true);
-    for (const wrong of [
-      { ...choice, label: '' },
-      { ...choice, label: 'x'.repeat(41) },
-      { ...choice, current: 'x'.repeat(101) },
-      { ...choice, options: Array.from({ length: 21 }, () => option) },
-      { ...choice, options: [{ ...option, value: '' }] },
-      { ...choice, options: [{ ...option, value: 'v'.repeat(101) }] },
-      { ...choice, options: [{ ...option, label: '' }] },
-      { ...choice, options: [{ ...option, label: 'l'.repeat(61) }] },
-      { ...choice, options: [{ ...option, html: '<b>' }] },
-      { ...choice, setting: 'model' },
-    ]) {
-      expect(accepts('assistant.offer', [{ suggestions: [], choice: wrong }])).toBe(false);
-    }
-  });
-});
-
 describe('deleting', () => {
   it('needs the name of the secret or stored value to forget', () => {
     expect(accepts('secrets.delete', ['apiKey'])).toBe(true);
     expect(accepts('secrets.delete', [])).toBe(false);
     expect(accepts('storage.delete', ['model'])).toBe(true);
     expect(accepts('storage.delete', [])).toBe(false);
-  });
-});
-
-/** An extension whose answer about looking for models is kept in memory, as its record would. */
-function searching(answer?: boolean) {
-  const kept: { answer: boolean | undefined } = { answer };
-  const extension: CallingExtension = {
-    ...HELLO,
-    modelSearch: {
-      answer: () => kept.answer,
-      keep: vi.fn((allowed: boolean) => {
-        kept.answer = allowed;
-        return Promise.resolve();
-      }),
-    },
-  };
-  return { kept, extension };
-}
-
-describe('localModels.find', () => {
-  it('needs local-network, takes nothing, and waits two minutes for the user’s answer', () => {
-    const find = method('localModels.find');
-    expect(find.capability).toBe('local-network');
-    expect(find.timeoutMs).toBe(120_000);
-    expect(accepts('localModels.find', [])).toBe(true);
-    expect(accepts('localModels.find', ['http://localhost:9999'])).toBe(false);
-  });
-
-  it('asks the user once, naming the extension, keeps the answer, and then finds without asking', async () => {
-    const given = services();
-    const { kept, extension } = searching();
-    const find = method('localModels.find', extension, given);
-    await expect(find.run([])).resolves.toEqual([OLLAMA]);
-    expect(given.localModels.ask).toHaveBeenCalledExactlyOnceWith('Hello');
-    expect(kept.answer).toBe(true);
-    await expect(find.run([])).resolves.toEqual([OLLAMA]);
-    expect(given.localModels.ask).toHaveBeenCalledOnce();
-    expect(given.localModels.find).toHaveBeenCalledTimes(2);
-  });
-
-  it('asks once for calls made while the question is open', async () => {
-    const given = services();
-    let answer: (allowed: boolean) => void = () => undefined;
-    given.localModels.ask.mockReturnValueOnce(
-      new Promise<boolean>((resolve) => {
-        answer = resolve;
-      }),
-    );
-    const { extension } = searching();
-    const find = method('localModels.find', extension, given);
-    const first = find.run([]);
-    const second = find.run([]);
-    answer(true);
-    await expect(Promise.all([first, second])).resolves.toEqual([[OLLAMA], [OLLAMA]]);
-    expect(given.localModels.ask).toHaveBeenCalledOnce();
-  });
-
-  it('refuses as not granted, without looking, once the user said no, and never asks again', async () => {
-    const given = services();
-    const { kept, extension } = searching();
-    const other = { ...extension, name: 'Other' };
-    const find = method('localModels.find', other, given);
-    const refusal = { kind: 'not-granted', message: 'The user did not let the extension look.' };
-    await expect(find.run([])).rejects.toMatchObject(refusal);
-    expect(kept.answer).toBe(false);
-    await expect(find.run([])).rejects.toMatchObject(refusal);
-    expect(given.localModels.ask).toHaveBeenCalledOnce();
-    expect(given.localModels.find).not.toHaveBeenCalled();
-  });
-
-  it('asks again after a question that failed, since no answer was kept', async () => {
-    const given = services();
-    given.localModels.ask.mockRejectedValueOnce(new Error('No window.'));
-    const { kept, extension } = searching();
-    const find = method('localModels.find', extension, given);
-    await expect(find.run([])).rejects.toThrow('No window.');
-    expect(kept.answer).toBeUndefined();
-    await expect(find.run([])).resolves.toEqual([OLLAMA]);
-    expect(given.localModels.ask).toHaveBeenCalledTimes(2);
-  });
-
-  it('finds at once for an extension the user already let look', async () => {
-    const given = services();
-    const { extension } = searching(true);
-    await expect(method('localModels.find', extension, given).run([])).resolves.toEqual([OLLAMA]);
-    expect(given.localModels.ask).not.toHaveBeenCalled();
   });
 });

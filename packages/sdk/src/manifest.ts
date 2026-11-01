@@ -3,12 +3,6 @@ import { Type, type Static } from 'typebox';
 /**
  * What an extension can ask for (ADR 0004). Network access is declared host by
  * host in `network.hosts` instead, and each host becomes its own grant.
- *
- * `local-model` is for an extension that runs an AI model on the computer,
- * in its own page: its page may compile WebAssembly, fetch its own files and
- * start workers from `blob:` URLs, it is cross-origin isolated so it can use
- * `SharedArrayBuffer` and several threads, and its CPU and memory limits
- * fit a model of one or two gigabytes.
  */
 export const CAPABILITIES = [
   'chat:read-active',
@@ -19,9 +13,7 @@ export const CAPABILITIES = [
   'storage:local',
   'secrets:own',
   'local-network',
-  'assistant:bar',
   'calls:record',
-  'local-model',
 ] as const;
 
 /** One of {@link CAPABILITIES}. */
@@ -104,9 +96,7 @@ export const ManifestSchema = Type.Object(
         Type.Literal('storage:local'),
         Type.Literal('secrets:own'),
         Type.Literal('local-network'),
-        Type.Literal('assistant:bar'),
         Type.Literal('calls:record'),
-        Type.Literal('local-model'),
       ]),
       { uniqueItems: true },
     ),

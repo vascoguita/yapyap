@@ -31,7 +31,6 @@ describe('holds', () => {
         'chat:read-unread-summary',
         'composer:insert-draft',
         'composer:read-draft',
-        'assistant:bar',
         'calls:record',
       ] as ExtensionRecord['capabilities'],
     };

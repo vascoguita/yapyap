@@ -6,18 +6,28 @@ import {
   assistantBarRender,
   assistantSuggestion,
   buildAssistantBar,
+  fillAssistantButtons,
+  fillAssistantOptions,
+  labelAssistantBar,
   renderAssistantBar,
   updateAssistantBar,
-  updateAssistantChoice,
   wireAssistantBar,
+  wireAssistantFields,
   type BarContent,
 } from './assistant-bar.ts';
 import { LANDMARKS } from './page-state.ts';
 
 const LABELS = {
-  label: 'AI suggestions',
-  from: 'From Assistant',
+  label: 'AI assistant',
+  name: 'Assistant',
   suggest: 'Suggest replies',
+  summarize: 'Summarize',
+  rewrite: 'Rewrite',
+  rewriteLabel: 'Rewrite my draft',
+  catchUp: 'Catch up',
+  catchUpLabel: 'Catch up on unread chats',
+  settings: 'Assistant settings',
+  model: 'Model',
   use: 'Put in the message box',
   sendLabel: 'Send this suggestion now',
   write: 'Write a message',
@@ -28,10 +38,15 @@ const CONTENT: BarContent = {
   visible: true,
   labels: LABELS,
   status: '',
-  suggestions: ['On my way', '<b>Soon</b>'],
-  confirm: null,
   working: false,
+  suggestions: ['On my way', '<b>Soon</b>'],
+  result: null,
+  buttons: [],
   choice: null,
+  rewrites: [
+    { value: 'shorter', label: 'Shorter' },
+    { value: 'translate:pt', label: 'Translate to Portuguese' },
+  ],
 };
 
 const PLACES = {
@@ -46,8 +61,11 @@ const KIT = {
   align: alignAssistantBar,
   build: buildAssistantBar,
   wire: wireAssistantBar,
+  fields: wireAssistantFields,
+  label: labelAssistantBar,
+  buttons: fillAssistantButtons,
   update: updateAssistantBar,
-  choose: updateAssistantChoice,
+  options: fillAssistantOptions,
   suggestion: assistantSuggestion,
 };
 
@@ -55,9 +73,13 @@ interface Stored {
   host: HTMLElement;
   parts: {
     input: HTMLInputElement;
-    confirm: HTMLButtonElement;
     suggest: HTMLButtonElement;
     choice: HTMLSelectElement;
+    rewrite: HTMLButtonElement;
+    rewrites: HTMLElement;
+    result: HTMLElement;
+    buttons: HTMLElement;
+    status: HTMLElement;
   };
 }
 
@@ -68,11 +90,15 @@ function setup() {
     '<div id="main"><div role="row">Hi</div><footer style="order: 3; z-index: 2"><div contenteditable="true"></div></footer></div>';
   const bridge = {
     suggest: vi.fn(),
+    summarize: vi.fn(),
+    rewrite: vi.fn(),
+    catchUp: vi.fn(),
     prompt: vi.fn(),
-    confirm: vi.fn(),
     use: vi.fn(),
     send: vi.fn(),
     choose: vi.fn(),
+    button: vi.fn(),
+    settings: vi.fn(),
   };
   const scope: Record<string, unknown> = { bridge, getComputedStyle };
   const render = (content: BarContent = CONTENT): boolean =>
@@ -104,15 +130,26 @@ describe('renderAssistantBar', () => {
     expect(host.shadowRoot).toBeNull();
     const shadow = t.shadow();
     expect(shadow.querySelector('style')?.textContent).toBe('.bar { display: flex; }');
-    expect(shadow.querySelector('.bar')?.getAttribute('aria-label')).toBe('AI suggestions');
-    expect(shadow.querySelector('.from')?.textContent).toBe('From Assistant');
+    expect(shadow.querySelector('.bar')?.getAttribute('aria-label')).toBe('AI assistant');
+    expect(shadow.querySelector('.name')?.textContent).toBe('Assistant');
     expect(t.stored().parts.input.getAttribute('maxlength')).toBe('2000');
     expect(t.stored().parts.input.placeholder).toBe('Say what you want to write');
-    expect(t.stored().parts.confirm.hidden).toBe(true);
-    // The classes the bar's own styles hang on.
+    expect(t.stored().parts.result.hidden).toBe(true);
+    expect(t.stored().parts.choice.hidden).toBe(true);
+    const actions = [...shadow.querySelectorAll('[data-action]')].map((node) => [
+      node.getAttribute('data-action'),
+      node.textContent,
+    ]);
+    expect(actions.slice(0, 5)).toEqual([
+      ['suggest', 'Suggest replies'],
+      ['summarize', 'Summarize'],
+      ['rewrites', 'Rewrite'],
+      ['catchUp', 'Catch up'],
+      ['settings', '⚙'],
+    ]);
+    const gear = shadow.querySelector('.gear');
+    expect(gear?.getAttribute('aria-label')).toBe('Assistant settings');
     expect(shadow.querySelector('.bar > .row')).not.toBeNull();
-    expect(t.stored().parts.confirm.className).toBe('button');
-    expect(t.stored().parts.input.className).toBe('input');
     expect(t.stored().parts.input.getAttribute('type')).toBe('text');
   });
 
@@ -142,20 +179,37 @@ describe('renderAssistantBar', () => {
     expect(before).not.toHaveBeenCalled();
   });
 
-  it('writes the extension’s text as text, never as markup', () => {
+  it('writes the assistant’s text as text, never as markup', () => {
     const t = setup();
-    t.render({ ...CONTENT, status: '<i>busy</i>', confirm: '<u>Yes</u>' });
+    t.render({
+      ...CONTENT,
+      status: '<i>busy</i>',
+      result: '<u>Summary</u>\n- line',
+      buttons: [
+        { id: 'copy', label: '<s>Copy</s>', primary: false },
+        { id: 'close', label: 'Close', primary: true },
+      ],
+    });
     const shadow = t.shadow();
     const uses = [...shadow.querySelectorAll('.use')].map((use) => use.textContent);
     expect(uses).toEqual(['On my way', '<b>Soon</b>']);
-    expect(shadow.querySelector('b')).toBeNull();
-    expect(shadow.querySelector('.status')?.textContent).toBe('<i>busy</i>');
-    expect(t.stored().parts.confirm.textContent).toBe('<u>Yes</u>');
-    expect(t.stored().parts.confirm.hidden).toBe(false);
+    expect(shadow.querySelector('b, i, u, s')).toBeNull();
+    expect(t.stored().parts.status.textContent).toBe('<i>busy</i>');
+    expect(t.stored().parts.result.textContent).toBe('<u>Summary</u>\n- line');
+    expect(t.stored().parts.result.hidden).toBe(false);
+    const buttons = [...t.stored().parts.buttons.children].map((node) => [
+      node.className,
+      node.getAttribute('data-id'),
+      node.textContent,
+    ]);
+    expect(buttons).toEqual([
+      ['button', 'copy', '<s>Copy</s>'],
+      ['button primary', 'close', 'Close'],
+    ]);
     const send = shadow.querySelector('.send');
     expect(send?.getAttribute('aria-label')).toBe('Send this suggestion now');
     expect(send?.getAttribute('data-index')).toBe('0');
-    expect(send?.querySelector('svg path')).not.toBeNull();
+    expect(send?.querySelector('svg path')?.getAttribute('d')).toBe('M2 8l12-6-4 12-2-5z');
   });
 
   it('changes nothing when nothing changed, and updates in place when something did', () => {
@@ -171,6 +225,7 @@ describe('renderAssistantBar', () => {
     expect(list?.children).toHaveLength(0);
     expect(t.stored().parts.suggest.disabled).toBe(true);
     expect(t.stored().parts.input.disabled).toBe(true);
+    expect(t.stored().parts.rewrite.disabled).toBe(true);
   });
 
   it('puts the same bar back when WhatsApp redraws the chat, and above the new message box', () => {
@@ -183,9 +238,6 @@ describe('renderAssistantBar', () => {
     expect(t.render()).toBe(true);
     expect(footer()?.previousElementSibling).toBe(host);
     expect(t.stored().parts.input.value).toBe('half typed');
-    footer()?.before(document.createElement('div'));
-    t.render();
-    expect(footer()?.previousElementSibling).toBe(host);
   });
 
   it('takes the bar away when it is hidden or no chat is open, and reports it', () => {
@@ -202,52 +254,86 @@ describe('renderAssistantBar', () => {
   });
 });
 
-describe('the bar’s buttons and field', () => {
+describe('the bar’s controls', () => {
   it('act on the user’s clicks only, never on clicks a page script made up', () => {
     const t = setup();
-    t.render({ ...CONTENT, confirm: 'Yes' });
+    t.render({ ...CONTENT, buttons: [{ id: 'allow', label: 'Allow here', primary: true }] });
     const shadow = t.shadow();
     const click = (selector: string, event = trusted(new MouseEvent('click', { bubbles: true }))) =>
       shadow.querySelector(selector)?.dispatchEvent(event);
     click('.primary', new MouseEvent('click', { bubbles: true }));
     shadow.querySelector<HTMLElement>('.send')?.click();
     expect(Object.values(t.bridge).flatMap((act) => act.mock.calls)).toEqual([]);
-    click('.primary');
-    click('[data-action="confirm"]');
+    click('[data-action="suggest"]');
+    click('[data-action="summarize"]');
+    click('[data-action="catchUp"]');
+    click('[data-action="settings"]');
+    click('[data-id="allow"]');
     click('.use');
     click('li:nth-child(2) .send path');
     click('.suggestions');
-    expect(t.bridge.suggest).toHaveBeenCalledOnce();
-    expect(t.bridge.confirm).toHaveBeenCalledOnce();
+    expect(t.bridge.suggest.mock.calls).toEqual([[]]);
+    expect(t.bridge.summarize.mock.calls).toEqual([[]]);
+    expect(t.bridge.catchUp.mock.calls).toEqual([[]]);
+    expect(t.bridge.settings.mock.calls).toEqual([[]]);
+    expect(t.bridge.button.mock.calls).toEqual([['allow']]);
     expect(t.bridge.use).toHaveBeenCalledExactlyOnceWith(0);
     expect(t.bridge.send).toHaveBeenCalledExactlyOnceWith(1);
   });
 
-  it('shows the extension’s choice beside its name, and passes on only the user’s pick', () => {
+  it('shows the models only once there are some, and passes on only the user’s pick', () => {
     const t = setup();
     t.render();
     const { choice } = t.stored().parts;
-    expect(choice.hidden).toBe(true);
     const options = [
-      { value: 'fast', label: 'Fast <i>' },
+      { value: 'auto', label: 'Auto <i>' },
       { value: 'smart', label: 'Smart' },
     ];
-    t.render({ ...CONTENT, choice: { label: 'Model', current: 'smart', options } });
+    t.render({ ...CONTENT, choice: { current: 'smart', options } });
     expect(choice.hidden).toBe(false);
     expect(choice.getAttribute('aria-label')).toBe('Model');
     expect([...choice.options].map((option) => [option.value, option.textContent])).toEqual([
-      ['fast', 'Fast <i>'],
+      ['auto', 'Auto <i>'],
       ['smart', 'Smart'],
     ]);
     expect(choice.value).toBe('smart');
-    expect(choice.previousElementSibling?.className).toBe('from');
-    choice.value = 'fast';
+    choice.value = 'auto';
     choice.dispatchEvent(new Event('change', { bubbles: true }));
     expect(t.bridge.choose).not.toHaveBeenCalled();
     choice.dispatchEvent(trusted(new Event('change', { bubbles: true })));
-    expect(t.bridge.choose).toHaveBeenCalledExactlyOnceWith('fast');
-    t.render({ ...CONTENT, working: true, choice: { label: 'Model', current: 'fast', options } });
+    expect(t.bridge.choose).toHaveBeenCalledExactlyOnceWith('auto');
+    t.render({ ...CONTENT, working: true, choice: { current: 'auto', options } });
     expect(choice.disabled).toBe(true);
+  });
+
+  it('opens the ways to rewrite in the bar, and rewrites in the one the user picks', () => {
+    const t = setup();
+    t.render();
+    const { rewrite, rewrites } = t.stored().parts;
+    const click = (target: Element) => {
+      target.dispatchEvent(trusted(new MouseEvent('click', { bubbles: true })));
+    };
+    expect(rewrite.getAttribute('aria-label')).toBe('Rewrite my draft');
+    expect(rewrites.hidden).toBe(true);
+    expect([...rewrites.children].map((button) => button.textContent)).toEqual([
+      'Shorter',
+      'Translate to Portuguese',
+    ]);
+    click(rewrite);
+    expect(rewrites.hidden).toBe(false);
+    click(rewrite);
+    expect(rewrites.hidden).toBe(true);
+    click(rewrite);
+    const [shorter] = [...rewrites.children];
+    if (shorter === undefined) {
+      throw new Error('No Shorter.');
+    }
+    click(shorter);
+    expect(t.bridge.rewrite.mock.calls).toEqual([['shorter']]);
+    expect(rewrites.hidden).toBe(true);
+    // Updating the bar keeps the list closed as it was.
+    t.render({ ...CONTENT, status: 'Thinking…' });
+    expect(rewrites.hidden).toBe(true);
   });
 
   it('asks with what the user typed on Enter, then clears the field', () => {
@@ -305,25 +391,13 @@ describe('the bar’s buttons and field', () => {
     expect(t.bridge.use).not.toHaveBeenCalled();
     expect(t.bridge.prompt).not.toHaveBeenCalled();
   });
-
-  it('labels its field, leaves an unasked question blank, and draws the send arrow', () => {
-    const t = setup();
-    t.render();
-    expect(t.stored().parts.input.getAttribute('aria-label')).toBe('Write a message');
-    expect(t.stored().parts.confirm.textContent).toBe('');
-    const icon = t.shadow().querySelector('.send svg');
-    expect(icon?.namespaceURI).toBe('http://www.w3.org/2000/svg');
-    expect(icon?.getAttribute('viewBox')).toBe('0 0 16 16');
-    expect(icon?.getAttribute('aria-hidden')).toBe('true');
-    expect(icon?.querySelector('path')?.getAttribute('d')).toBe('M2 8l12-6-4 12-2-5z');
-  });
 });
 
 describe('assistantBarRender', () => {
   it('sends the bar’s helpers, its place and its own styles along with the content', () => {
     const code = assistantBarRender(CONTENT);
     expect(code).toMatch(
-      /\{ align: [\s\S]+, build: [\s\S]+, wire: [\s\S]+, update: [\s\S]+, suggestion: [\s\S]+ \}\)$/,
+      /\{ align: [\s\S]+, build: [\s\S]+, wire: [\s\S]+, fields: [\s\S]+, label: [\s\S]+, buttons: [\s\S]+, update: [\s\S]+, options: [\s\S]+, suggestion: [\s\S]+ \}\)$/,
     );
     expect(code).toContain('"store":"yapyapAssistantBarView"');
     expect(code).toContain(':host { display: block; color-scheme: light dark; }');

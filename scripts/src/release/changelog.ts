@@ -102,7 +102,7 @@ export interface ReleaseTrack {
 /** YapYap's own release PR, and one for each first-party extension, which release on their own (#474). */
 export const RELEASE_TRACKS: readonly ReleaseTrack[] = [
   { branch: RELEASE_BRANCH, changelog: 'CHANGELOG.md' },
-  ...['ai-assistant', 'call-recorder'].map((name) => ({
+  ...['call-recorder'].map((name) => ({
     branch: `release-please--branches--master--components--${name}`,
     changelog: `extensions/${name}/CHANGELOG.md`,
   })),

@@ -16,41 +16,41 @@ const DEFAULTS = {
 };
 
 const RELEASE: Release = {
-  id: 'org.guita.yapyap.ai-assistant',
+  id: 'org.guita.yapyap.call-recorder',
   version: '0.2.0',
-  tag: 'ai-assistant-v0.2.0',
-  file: 'org.guita.yapyap.ai-assistant-0.2.0.yapyap-extension',
+  tag: 'call-recorder-v0.2.0',
+  file: 'org.guita.yapyap.call-recorder-0.2.0.yapyap-extension',
   archive: new TextEncoder().encode('archive'),
   minYapYap: '0.3.0',
   published: '2026-10-31T08:00:00.000Z',
   notes:
-    '## [0.2.0](https://x/compare) (2026-10-31)\n\n### Features\n\n* **ai-assistant:** pick the model ([#472](https://x/472)) ([6dd2b3e](https://x/6dd2b3e))\n',
+    '## [0.2.0](https://x/compare) (2026-10-31)\n\n### Features\n\n* **call-recorder:** pick the model ([#472](https://x/472)) ([6dd2b3e](https://x/6dd2b3e))\n',
 };
 
 const ASSET =
-  'https://github.com/vascoguita/yapyap/releases/download/ai-assistant-v0.2.0/org.guita.yapyap.ai-assistant-0.2.0.yapyap-extension';
+  'https://github.com/vascoguita/yapyap/releases/download/call-recorder-v0.2.0/org.guita.yapyap.call-recorder-0.2.0.yapyap-extension';
 
 describe('withRelease', () => {
   it('starts an official entry the first time, with the release as its only version', () => {
     const entry = withRelease(undefined, RELEASE, DEFAULTS);
     expect(entry).toEqual({
-      id: 'org.guita.yapyap.ai-assistant',
+      id: 'org.guita.yapyap.call-recorder',
       ...DEFAULTS,
       review: 'official',
       versions: [
         {
           version: '0.2.0',
-          tag: 'ai-assistant-v0.2.0',
+          tag: 'call-recorder-v0.2.0',
           source: ASSET,
           // SHA-256 of "archive".
           sha256: 'sha256-DrPja/sk3Nm7HRvs4VMSFrWVOaj94X7oAiSvBlPJKqM=',
           minYapYap: '0.3.0',
           published: '2026-10-31T08:00:00.000Z',
-          notes: '* ai-assistant: pick the model',
+          notes: '* call-recorder: pick the model',
         },
       ],
     });
-    expect(readEntry(entry, 'org.guita.yapyap.ai-assistant.json')).toEqual(entry);
+    expect(readEntry(entry, 'org.guita.yapyap.call-recorder.json')).toEqual(entry);
   });
 
   it('lists a new release last, replaces one released again, and keeps fifty at most', () => {

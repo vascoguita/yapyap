@@ -5,9 +5,7 @@ import { join } from 'node:path';
 import { signedArchive, testKey, testManifest, zipArchive } from '../test/extensions.ts';
 import { closeApp, expect, launchApp, test } from './fixtures.ts';
 import {
-  assistantBarControls,
   chromePage,
-  clickInBar,
   clickMenu,
   installExtension,
   extensionPage,
@@ -92,8 +90,9 @@ test('runs an installed extension hidden, on its own session, with no eval and n
 });
 
 /**
- * What an engine running a model needs (#457), each tried and written in the
- * title: fetching and compiling its own `.wasm`, compiling WebAssembly at
+ * What an engine running a model would need, each tried and written in the
+ * title, which no extension gets since the assistant became YapYap's own
+ * (ADR 0017): fetching and compiling its own `.wasm`, compiling WebAssembly at
  * all, a module worker from a `blob:` URL, and cross-origin isolation.
  */
 const MODEL_PROBE = `
@@ -117,28 +116,14 @@ export {};
 /** The smallest WebAssembly module: its magic number and version. */
 const TINY_WASM = '\0asm\x01\0\0\0';
 
-test('lets only an extension holding local-model run WebAssembly, blob workers and threads', async ({
-  app,
-  profile,
-}) => {
+test('lets no extension run WebAssembly, blob workers or threads', async ({ app, profile }) => {
   const network = { hosts: [] };
-  await installExtension(
-    app,
-    profile,
-    testManifest({ capabilities: ['local-model'], network }),
-    MODEL_PROBE,
-    { 'tiny.wasm': TINY_WASM },
-  );
+  await installExtension(app, profile, testManifest({ capabilities: [], network }), MODEL_PROBE, {
+    'tiny.wasm': TINY_WASM,
+  });
   await expect
     .poll(async () => (await extensionPage(app))?.title, { timeout: 20_000 })
-    .toBe('wasm compile worker isolated');
-  const plain = testManifest({ id: 'org.example.plain', name: 'Plain', capabilities: [], network });
-  await installExtension(app, profile, plain, MODEL_PROBE, { 'tiny.wasm': TINY_WASM });
-  await expect
-    .poll(async () => (await extensionPage(app, 'org.example.plain'))?.title, { timeout: 20_000 })
     .toBe('no-wasm no-compile no-worker not-isolated');
-  // Each policy belongs to its own extension's session: the holder's is untouched.
-  expect((await extensionPage(app))?.title).toBe('wasm compile worker isolated');
 });
 
 /** Shows a notification, then writes in its title how that went. */
@@ -695,21 +680,6 @@ test('lets an extension use a server on this computer only with local-network an
       await app.evaluate(() => (globalThis as { extensionPrompts?: string[] }).extensionPrompts),
     ).toContain(prompt);
     expect((await extensionPage(app))?.title).toBe('blocked');
-    // A cross-origin isolated page (local-model, #457) still reads the server's
-    // reply: YapYap answers CORS for it, which isolation accepts.
-    const model = testManifest({
-      id: 'org.example.model',
-      name: 'Model',
-      capabilities: ['local-network', 'local-model'],
-      network,
-    });
-    const asked = `Let Model use the server at ${host} on this computer?`;
-    await installExtension(app, profile, model, local, {}, asked);
-    await expect
-      .poll(async () => (await extensionPage(app, 'org.example.model'))?.title, {
-        timeout: 20_000,
-      })
-      .toBe('reached');
   } finally {
     server.close();
   }
@@ -843,102 +813,4 @@ test('shows an extension installed while the Extensions window is open', async (
     'export default { activate() {} };',
   );
   await expect(extensions.getByRole('button', { name: 'Remove org.example.hello' })).toBeVisible();
-});
-
-/** Offers a suggestion for every request the bar makes: what the user asked for, or a stock one. */
-const SUGGESTER = `
-export default {
-  activate(host) {
-    host.assistant.onRequest((request) =>
-      host.assistant.offer({
-        suggestions: [request.type === 'prompt' ? 'You asked: ' + request.text : 'On my way!'],
-      }),
-    );
-  },
-};
-`;
-
-test('asks for suggestions on its own when a message arrives in the open chat', async ({
-  app,
-  profile,
-  window,
-}) => {
-  await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
-  await installExtension(
-    app,
-    profile,
-    testManifest({ capabilities: ['assistant:bar'], network: { hosts: [] } }),
-    SUGGESTER,
-  );
-  // A virtual display without a window manager focuses nothing on its own.
-  // The extension's hidden host is a window too, and window order differs by
-  // OS, so the main window is the one that holds WhatsApp.
-  await expect
-    .poll(() =>
-      app.evaluate(({ BrowserWindow, webContents }) => {
-        const whatsapp = webContents
-          .getAllWebContents()
-          .find((contents) => contents.getURL().startsWith('http'));
-        const main = whatsapp === undefined ? null : BrowserWindow.fromWebContents(whatsapp);
-        main?.focus();
-        return main?.isFocused();
-      }),
-    )
-    .toBe(true);
-  const names = async () => (await assistantBarControls(app))?.map(({ name }) => name);
-  await expect.poll(names).toEqual(['Suggest replies', 'Write a message']);
-  // What is already there when the bar first looks asks for nothing.
-  await window.waitForTimeout(2000);
-  expect(await names()).toEqual(['Suggest replies', 'Write a message']);
-  await window.evaluate(() => {
-    const row = document.createElement('div');
-    row.setAttribute('role', 'row');
-    row.innerHTML =
-      '<div data-id="3EB0F9"><span data-testid="selectable-text">Still on?</span></div>';
-    const rows = document.querySelectorAll('#main [role="row"]');
-    rows[rows.length - 1]?.after(row);
-  });
-  await expect
-    .poll(names, { timeout: 10_000 })
-    .toEqual(['Suggest replies', 'On my way!', 'Send this suggestion now', 'Write a message']);
-});
-
-test('sends an extension’s suggestion from the bar above the message box only on the user’s click', async ({
-  app,
-  profile,
-  window,
-}) => {
-  await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
-  await installExtension(
-    app,
-    profile,
-    testManifest({ capabilities: ['assistant:bar'], network: { hosts: [] } }),
-    SUGGESTER,
-  );
-  await clickInBar(app, window, 'Suggest replies');
-  await expect
-    .poll(async () => (await assistantBarControls(app))?.map(({ name }) => name))
-    .toEqual(['Suggest replies', 'On my way!', 'Send this suggestion now', 'Write a message']);
-  // The bar sits right above the message box, and WhatsApp cannot read what it shows.
-  const page = await window.evaluate(() => {
-    const host = document.querySelector('#main footer')?.previousElementSibling;
-    return { shadow: host?.shadowRoot, text: document.body.innerText };
-  });
-  expect(page.shadow).toBeNull();
-  expect(page.text).not.toContain('On my way!');
-  await expect(window.getByTestId('sent')).toHaveCount(0);
-  await clickInBar(app, window, 'On my way!');
-  await expect(window.getByTestId('composer')).toHaveText('On my way!');
-  await clickInBar(app, window, 'Send this suggestion now');
-  await expect(window.getByTestId('sent')).toHaveText('On my way!');
-  await expect(window.getByTestId('composer')).toHaveText('');
-  // Typing in the bar's field stays there, and Enter asks the extension.
-  await clickInBar(app, window, 'Write a message');
-  await window.keyboard.type('say I am late');
-  await window.keyboard.press('Enter');
-  await expect
-    .poll(async () => (await assistantBarControls(app))?.map(({ name }) => name))
-    .toContain('You asked: say I am late');
-  await expect(window.getByTestId('composer')).toHaveText('');
-  await expect(window.getByTestId('sent')).toHaveCount(1);
 });

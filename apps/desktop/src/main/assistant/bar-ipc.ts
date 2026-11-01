@@ -1,10 +1,10 @@
 import { MAX_PROMPT } from '../../adapter/assistant-bar.ts';
-import { ASSISTANT_BAR_CHANNELS } from '../../shared/assistant-bar-api.ts';
+import { ASSISTANT_BAR_CHANNELS, BAR_BUTTON_IDS } from '../../shared/assistant-bar-api.ts';
 import { isSameOrigin } from '../navigation/link-policy.ts';
 import type { ViewRegistry } from '../views.ts';
 import type { AssistantBar } from './bar.ts';
 
-/** As many suggestions as an extension may offer. */
+/** More suggestions than the bar ever shows. */
 const MAX_SUGGESTIONS = 5;
 
 interface BarIpcEvent {
@@ -21,6 +21,8 @@ export interface BarIpcDependencies {
   readonly origin: string;
   /** The page of the account on screen, the only one whose bar is shown. */
   readonly activePage: () => object;
+  /** Opens Settings, where the assistant is the first section. */
+  readonly openSettings: () => void;
   readonly warn: (message: string) => void;
 }
 
@@ -43,8 +45,8 @@ const isPrompt = (args: readonly unknown[]): args is [string] => {
 
 const noArguments = (args: readonly unknown[]): args is [] => args.length === 0;
 
-/** The bar's choice offers at most this long a value; the bar then checks it was offered. */
-const MAX_CHOICE = 100;
+/** The bar's lists offer at most this long a value; the bar then checks it was offered. */
+const MAX_CHOICE = 200;
 
 const isChoice = (args: readonly unknown[]): args is [string] => {
   const [value, ...rest] = args;
@@ -53,17 +55,23 @@ const isChoice = (args: readonly unknown[]): args is [string] => {
   );
 };
 
+const isButton = (args: readonly unknown[]): args is [string] => {
+  const [id, ...rest] = args;
+  return rest.length === 0 && (BAR_BUTTON_IDS as readonly unknown[]).includes(id);
+};
+
+type BarActions = Pick<
+  AssistantBar,
+  'suggest' | 'summarize' | 'rewrite' | 'catchUp' | 'prompt' | 'use' | 'send' | 'choose' | 'button'
+>;
+
 /**
  * Hears the bar's clicks from WhatsApp's page (ADR 0013). Only the active
  * account's WhatsApp view, on WhatsApp's own origin, is heard, and only with
  * the arguments each action takes; anything else is dropped and logged
  * without its content.
  */
-export function listenToAssistantBar(
-  ipc: BarIpc,
-  bar: Pick<AssistantBar, 'suggest' | 'prompt' | 'confirm' | 'use' | 'send' | 'choose'>,
-  deps: BarIpcDependencies,
-): void {
+export function listenToAssistantBar(ipc: BarIpc, bar: BarActions, deps: BarIpcDependencies): void {
   const fromBar = ({ sender, senderFrame }: BarIpcEvent): boolean =>
     deps.views.get(sender)?.zone === 'whatsapp' &&
     sender === deps.activePage() &&
@@ -85,10 +93,15 @@ export function listenToAssistantBar(
         });
     });
   };
-  on(ASSISTANT_BAR_CHANNELS.suggest, noArguments, bar.suggest);
-  on(ASSISTANT_BAR_CHANNELS.prompt, isPrompt, (text) => bar.prompt(text.trim()));
-  on(ASSISTANT_BAR_CHANNELS.confirm, noArguments, bar.confirm);
-  on(ASSISTANT_BAR_CHANNELS.use, isIndex, bar.use);
-  on(ASSISTANT_BAR_CHANNELS.send, isIndex, bar.send);
-  on(ASSISTANT_BAR_CHANNELS.choose, isChoice, bar.choose);
+  const channels = ASSISTANT_BAR_CHANNELS;
+  on(channels.suggest, noArguments, bar.suggest);
+  on(channels.summarize, noArguments, bar.summarize);
+  on(channels.rewrite, isChoice, bar.rewrite);
+  on(channels.catchUp, noArguments, bar.catchUp);
+  on(channels.prompt, isPrompt, (text) => bar.prompt(text.trim()));
+  on(channels.use, isIndex, bar.use);
+  on(channels.send, isIndex, bar.send);
+  on(channels.choose, isChoice, bar.choose);
+  on(channels.button, isButton, bar.button);
+  on(channels.settings, noArguments, deps.openSettings);
 }

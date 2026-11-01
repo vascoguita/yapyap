@@ -18,11 +18,11 @@ const INDEX: MarketplaceIndex = {
   expires: '2026-11-26T09:00:00.000Z',
   extensions: [
     {
-      id: 'org.guita.yapyap.ai-assistant',
-      name: 'AI assistant',
+      id: 'org.guita.yapyap.call-recorder',
+      name: 'Call recorder',
       summary: 'Suggests replies with the model you choose.',
       author: { name: 'YapYap', url: 'https://yapyap.guita.org' },
-      homepage: 'https://yapyap.guita.org/guide/ai-assistant',
+      homepage: 'https://yapyap.guita.org/guide/call-recorder',
       license: 'MIT',
       review: 'official',
       signer: SIGNER,

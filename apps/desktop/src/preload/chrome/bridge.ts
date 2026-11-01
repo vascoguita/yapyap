@@ -2,7 +2,9 @@ import {
   CHROME_CHANNELS,
   type AboutInfo,
   type AccountList,
+  type AssistantView,
   type ChromeApi,
+  type FoundServer,
   type DownloadEntry,
   type MarketplaceView,
   type PickerOffer,
@@ -52,6 +54,26 @@ function recorderBridge(invoke: Invoke, listen: ListenToRecorder): ChromeApi['re
     },
     failed: async () => {
       await invoke(CHROME_CHANNELS.recorderFailed);
+    },
+  };
+}
+
+function assistantBridge(invoke: Invoke): ChromeApi['assistant'] {
+  return {
+    view: () => invoke(CHROME_CHANNELS.assistantView) as Promise<AssistantView>,
+    saveKey: (provider, key) =>
+      invoke(CHROME_CHANNELS.assistantSaveKey, provider, key) as Promise<boolean>,
+    forgetKey: async (provider) => {
+      await invoke(CHROME_CHANNELS.assistantForgetKey, provider);
+    },
+    testKey: (provider) => invoke(CHROME_CHANNELS.assistantTestKey, provider) as Promise<string>,
+    findServers: () =>
+      invoke(CHROME_CHANNELS.assistantFindServers) as Promise<readonly FoundServer[]>,
+    privateModel: async (action) => {
+      await invoke(CHROME_CHANNELS.assistantPrivateModel, action);
+    },
+    forgetChat: async (account, id) => {
+      await invoke(CHROME_CHANNELS.assistantForgetChat, account, id);
     },
   };
 }
@@ -251,6 +273,7 @@ export function createChromeBridge(
     about: aboutBridge(invoke),
     recovery: recoveryBridge(invoke),
     settings: settingsBridge(invoke),
+    assistant: assistantBridge(invoke),
     chat: {
       openNumber: (number) => invoke(CHROME_CHANNELS.chatOpenNumber, number) as Promise<boolean>,
     },

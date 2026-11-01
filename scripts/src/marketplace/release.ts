@@ -11,7 +11,7 @@ const MAX_VERSIONS = 50;
 export interface Release {
   readonly id: string;
   readonly version: string;
-  /** The release's tag, such as `ai-assistant-v0.2.0`. */
+  /** The release's tag, such as `call-recorder-v0.2.0`. */
   readonly tag: string;
   /** The signed archive's file name, attached to that release. */
   readonly file: string;

@@ -144,7 +144,7 @@ export async function builtExtension(folder: string, id: string): Promise<BuiltE
     string,
     unknown
   >;
-  // Scripts as text, and binaries such as the private model's engine (#457) as bytes.
+  // Scripts as text, and binaries as bytes.
   const names = (await readdir(dist)).filter((name) => name !== 'manifest.json');
   const files = Object.fromEntries(
     await Promise.all(
@@ -185,17 +185,24 @@ function readBarControls(): BarControl[] | null {
   }
   kept.host.scrollIntoView({ block: 'center' });
   const root = kept.parts.input.getRootNode() as ShadowRoot;
-  return [...root.querySelectorAll<HTMLButtonElement | HTMLInputElement>('button, input')]
-    .filter((control) => !control.hidden)
-    .map((control) => {
-      const box = control.getBoundingClientRect();
-      return {
-        name: control.getAttribute('aria-label') ?? control.textContent,
-        disabled: control.disabled,
-        x: box.x + box.width / 2,
-        y: box.y + box.height / 2,
-      };
-    });
+  return (
+    [
+      ...root.querySelectorAll<HTMLButtonElement | HTMLInputElement | HTMLSelectElement>(
+        'button, input, select',
+      ),
+    ]
+      // Controls inside a closed part of the bar take no room, and cannot be clicked.
+      .filter((control) => !control.hidden && control.getClientRects().length > 0)
+      .map((control) => {
+        const box = control.getBoundingClientRect();
+        return {
+          name: control.getAttribute('aria-label') ?? control.textContent,
+          disabled: control.disabled,
+          x: box.x + box.width / 2,
+          y: box.y + box.height / 2,
+        };
+      })
+  );
 }
 
 /** Runs in the adapter's isolated world, as {@link readBarControls} does: the bar's status line. */
@@ -204,6 +211,23 @@ function readBarStatus(): string | null {
     .yapyapAssistantBarView;
   return kept?.parts.status.textContent ?? null;
 }
+
+/** Runs in the adapter's isolated world: the longer text the bar shows, or null for none. */
+function readBarResult(): string | null {
+  const kept = (globalThis as { yapyapAssistantBarView?: { parts: { result: HTMLElement } } })
+    .yapyapAssistantBarView;
+  return kept === undefined || kept.parts.result.hidden ? null : kept.parts.result.textContent;
+}
+
+/** The assistant bar's longer text, such as a summary or what is sent, or null while it shows none. */
+export const assistantBarResult = (app: ElectronApplication): Promise<string | null> =>
+  app.evaluate(async ({ webContents }, code) => {
+    const page = webContents
+      .getAllWebContents()
+      .find((candidate) => candidate.getURL().startsWith('http://127.0.0.1'));
+    const result: unknown = await page?.executeJavaScriptInIsolatedWorld(1000, [{ code }]);
+    return typeof result === 'string' ? result : null;
+  }, `(${readBarResult.toString()})()`);
 
 /** The assistant bar's status line in the active account's WhatsApp, or null while it is not there. */
 export const assistantBarStatus = (app: ElectronApplication): Promise<string | null> =>

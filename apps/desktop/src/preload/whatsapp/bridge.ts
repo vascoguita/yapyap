@@ -50,29 +50,27 @@ export function createShareBridge(ipc: PreloadIpc): ShareBridge {
 }
 
 /**
- * The assistant bar's side of its five user actions, on fixed channels
+ * The assistant bar's side of its user actions, on fixed channels
  * (ADR 0013). Only the adapter's isolated world gets it, never WhatsApp's.
  */
 export function createAssistantBarBridge(ipc: Pick<PreloadIpc, 'send'>): AssistantBarBridge {
+  const send =
+    (channel: string) =>
+    (...args: unknown[]): void => {
+      ipc.send(channel, ...args);
+    };
+  const channels = ASSISTANT_BAR_CHANNELS;
   return {
-    suggest: () => {
-      ipc.send(ASSISTANT_BAR_CHANNELS.suggest);
-    },
-    prompt: (text) => {
-      ipc.send(ASSISTANT_BAR_CHANNELS.prompt, text);
-    },
-    confirm: () => {
-      ipc.send(ASSISTANT_BAR_CHANNELS.confirm);
-    },
-    use: (index) => {
-      ipc.send(ASSISTANT_BAR_CHANNELS.use, index);
-    },
-    send: (index) => {
-      ipc.send(ASSISTANT_BAR_CHANNELS.send, index);
-    },
-    choose: (value) => {
-      ipc.send(ASSISTANT_BAR_CHANNELS.choose, value);
-    },
+    suggest: send(channels.suggest),
+    summarize: send(channels.summarize),
+    rewrite: send(channels.rewrite),
+    catchUp: send(channels.catchUp),
+    prompt: send(channels.prompt),
+    use: send(channels.use),
+    send: send(channels.send),
+    choose: send(channels.choose),
+    button: send(channels.button),
+    settings: send(channels.settings),
   };
 }
 

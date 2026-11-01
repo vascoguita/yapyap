@@ -2,7 +2,14 @@ import { assistantBarRender, type BarContent } from '../../adapter/assistant-bar
 import { ADAPTER_WORLD_ID } from '../../adapter/page-health.ts';
 import type { AssistantBarState } from '../../shared/assistant-bar-api.ts';
 import { en } from '../../shared/messages/en.ts';
-import type { AssistantBarView } from './bar-sources.ts';
+
+/** Where the bar shows and sends its state, once the main window has accounts. */
+export interface AssistantBarView {
+  readonly show: (visible: boolean) => void;
+  readonly publish: (state: AssistantBarState) => void;
+  /** Puts the bar in the active page now; false when it has no place there, as with no chat open. */
+  readonly onPage: () => Promise<boolean>;
+}
 
 /**
  * How often the bar is put back while it shows. WhatsApp drops it whenever
@@ -27,34 +34,48 @@ export interface InPageBarPort {
 
 /** The bar's labels in the user's words, and the state as plain JSON. */
 function contentOf(state: AssistantBarState, visible: boolean): BarContent {
-  const text = en.assistantBar;
+  const text = en.assistant.bar;
   return {
     visible,
     labels: {
       label: text.label,
-      from: text.from({ extension: state.extension }),
+      name: text.name,
       suggest: text.suggest,
+      summarize: text.summarize,
+      rewrite: text.rewrite,
+      rewriteLabel: text.rewriteLabel,
+      catchUp: text.catchUp,
+      catchUpLabel: text.catchUpLabel,
+      settings: text.settings,
+      model: text.model,
       use: text.use,
       sendLabel: text.sendLabel,
       write: text.write,
       writePlaceholder: text.writePlaceholder,
     },
     status: state.status,
-    suggestions: state.suggestions,
-    confirm: state.confirm ?? null,
     working: state.working,
-    choice: state.choice ?? null,
+    suggestions: state.suggestions,
+    result: state.result,
+    buttons: state.buttons,
+    choice:
+      state.choice === undefined
+        ? null
+        : { current: state.choice.current, options: state.choice.options },
+    rewrites: state.rewrites,
   };
 }
 
 /** A page that went away, or one between loads, simply has no bar until the next render. */
-async function renderIn(page: BarPage, content: BarContent): Promise<void> {
+async function renderIn(page: BarPage, content: BarContent): Promise<boolean> {
   try {
-    await page.executeJavaScriptInIsolatedWorld(ADAPTER_WORLD_ID, [
+    const shown = await page.executeJavaScriptInIsolatedWorld(ADAPTER_WORLD_ID, [
       { code: assistantBarRender(content) },
     ]);
+    return shown === true;
   } catch {
     // Nothing to do: the next render tries again, and the page's text is never logged.
+    return false;
   }
 }
 
@@ -93,5 +114,6 @@ export function inPageAssistantBar(
       render();
     },
     publish: render,
+    onPage: () => renderIn(port.activePage(), contentOf(state(), visible)),
   };
 }

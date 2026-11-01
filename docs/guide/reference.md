@@ -24,6 +24,12 @@ the [profile folder](#files).
 | Hide the menu bar                       | `appearance.autoHideMenuBar`        | Off                         | Windows and Linux; <kbd>Alt</kbd> shows it                                                    |
 | Interface scale                         | `appearance.zoom`                   | 100%                        | 50% to 200% in Settings; the View menu goes in 5% steps up to 300%                            |
 | Zoom with a pinch or the wheel          | `appearance.pinchZoom`              | On                          | Off ignores pinches and Ctrl with the wheel; the View menu still zooms                        |
+| Show the assistant in chats             | `assistant.enabled`                 | On                          | Off hides the assistant's bar                                                                 |
+| Where the assistant thinks              | `assistant.provider`                | Automatic                   | `auto`, `built-in`, `anthropic`, `openai` or `local`; see [AI assistant](/guide/ai-assistant) |
+| Model                                   | `assistant.model`                   | Auto                        | `auto`, or a model's ID from the provider's list                                              |
+| Suggest replies as messages arrive      | `assistant.autoSuggest`             | On                          | Only in chats you allowed the assistant in                                                    |
+| Messages the assistant reads            | `assistant.messages`                | 10                          | `5`, `10` or `20` of the open chat's latest messages                                          |
+| Model server address                    | `assistant.localServer`             | Empty                       | A `/v1` address on this computer; the assistant section is never exported or imported         |
 | Use hardware acceleration               | `reliability.hardwareAcceleration`  | On                          | Takes effect after a restart                                                                  |
 | Use hardware video decoding             | `reliability.hardwareVideoDecoding` | On                          | Takes effect after a restart                                                                  |
 | Display backend                         | `reliability.displayBackend`        | Automatic                   | Linux; `auto`, `wayland` or `x11`; restart                                                    |
@@ -35,7 +41,6 @@ the [profile folder](#files).
 | Show who wrote in notifications         | `privacy.notificationSender`        | On                          | Off shows “WhatsApp” instead                                                                  |
 | Developer Mode                          | `extensions.developerMode`          | Off                         | Installs unsigned extensions; never exported or imported                                      |
 | Messages an extension may read          | `extensions.chatMessages`           | 20                          | How many of the open chat's latest messages an extension allowed to read chats receives       |
-| Suggest replies automatically           | `extensions.autoSuggest`            | On                          | Asks the assistant bar for suggestions when a message arrives in the open chat                |
 | Blur when not in front                  | `privacy.blurWhenUnfocused`         | Off                         | The privacy screen covers WhatsApp while another window is in front                           |
 | Blur when you are away                  | `privacy.blurWhenIdle`              | Off                         | After five minutes without using the computer                                                 |
 | Show message text in notifications      | `privacy.notificationText`          | On                          | Off shows “New message”; the text never reaches the system                                    |
@@ -169,6 +174,9 @@ the extension's suggestion. On macOS, use
 | <kbd>Ctrl</kbd>+<kbd>M</kbd>                                                                            | Minimize the window                                         |
 | <kbd>Ctrl</kbd>+<kbd>W</kbd>                                                                            | Close the window                                            |
 | <kbd>Ctrl</kbd>+<kbd>J</kbd> (macOS: <kbd>⇧</kbd><kbd>⌘</kbd><kbd>J</kbd>)                              | Show downloads                                              |
+| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Y</kbd>                                                           | Suggest replies in the open chat                            |
+| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd>                                                           | Summarize the open chat                                     |
+| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>U</kbd>                                                           | Catch up on unread chats                                    |
 | <kbd>⌘</kbd><kbd>H</kbd> (macOS)                                                                        | Hide YapYap                                                 |
 | <kbd>Ctrl</kbd>+<kbd>Q</kbd> (not on Windows)                                                           | Quit YapYap                                                 |
 | <kbd>Alt</kbd>                                                                                          | Show a hidden menu bar (Windows and Linux)                  |

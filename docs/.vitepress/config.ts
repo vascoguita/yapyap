@@ -160,6 +160,7 @@ export default defineConfig({
             { text: '0014 Marketplace', link: '/adr/0014-extension-marketplace' },
             { text: '0015 Call recording', link: '/adr/0015-call-recording' },
             { text: '0016 Extensions', link: '/adr/0016-extensions-not-plugins' },
+            { text: '0017 Assistant built in', link: '/adr/0017-assistant-is-part-of-yapyap' },
           ],
         },
       ],
