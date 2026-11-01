@@ -91,7 +91,7 @@ describe('Settings', () => {
     const settings = api({
       get: vi.fn(() => Promise.resolve(snapshot({ values: withAssistant }))),
     });
-    settings.assistant.view = vi.fn(() => new Promise<never>(() => undefined));
+    vi.mocked(settings.assistant.view).mockReturnValue(new Promise<never>(() => undefined));
     render(<Settings api={settings} />);
     const nav = await screen.findByRole('navigation', { name: 'Settings sections' });
     // A value without a field here, such as general.unknown, adds no section.
