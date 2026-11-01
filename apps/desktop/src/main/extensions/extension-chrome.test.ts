@@ -87,6 +87,7 @@ function setup(root: string, developerMode = false, overrides: object = {}) {
       appVersion: '0.1.2',
       fetchIndex: vi.fn(() => Promise.resolve(undefined)),
       fetchArchive: vi.fn(() => Promise.resolve(undefined)),
+      now: () => new Date(0),
     },
     ...overrides,
   };
@@ -160,12 +161,13 @@ describe('createExtensionChrome', () => {
         },
       ],
     };
+    const NOW = new Date('2026-10-27T09:00:00.000Z');
     const bytes = new TextEncoder().encode(
       JSON.stringify({
         format: 1,
         serial: 1,
-        generated: new Date(Date.now() - 60_000).toISOString(),
-        expires: new Date(Date.now() + 86_400_000).toISOString(),
+        generated: '2026-10-27T08:59:00.000Z',
+        expires: '2026-10-28T09:00:00.000Z',
         extensions: [extension],
         revoked: [
           { id: 'org.example.bad', versions: '*', signer: extension.signer, reason: 'Gone.' },
@@ -184,6 +186,7 @@ describe('createExtensionChrome', () => {
         appVersion: '0.1.2',
         fetchIndex: (url: string) => Promise.resolve(url.endsWith('.sig') ? signature : bytes),
         fetchArchive: () => Promise.resolve(undefined),
+        now: () => NOW,
       },
     });
     const signer = extension.signer;
@@ -589,6 +592,7 @@ describe('installFlow', () => {
         appVersion: '0.1.2',
         fetchIndex: vi.fn(() => Promise.resolve(undefined)),
         fetchArchive: vi.fn(() => Promise.resolve(undefined)),
+        now: () => new Date(0),
       },
     };
     const started = vi.fn();

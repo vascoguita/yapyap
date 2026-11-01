@@ -1,8 +1,8 @@
 import { createPublicKey, generateKeyPairSync } from 'node:crypto';
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
+import { tempDir } from '../../../test/temp-dir.ts';
 import { fingerprint as keyFingerprint } from '../../../packages/extension-sign/src/keys.ts';
 import { verifyExtensionFolder } from '../../../packages/extension-sign/src/extension-folder.ts';
 import { builtFirstParty, signFirstParty } from './first-party.ts';
@@ -14,7 +14,7 @@ function testKey(): string {
 }
 
 function workspace(manifests: Readonly<Record<string, object | undefined>>): string {
-  const root = mkdtempSync(join(tmpdir(), 'yapyap-extensions-'));
+  const root = tempDir('yapyap-extensions-');
   for (const [name, manifest] of Object.entries(manifests)) {
     const dist = join(root, name, 'dist');
     mkdirSync(dist, { recursive: true });
@@ -45,7 +45,7 @@ describe('builtFirstParty', () => {
 describe('signFirstParty', () => {
   it('signs and packs each extension, printing only the key’s fingerprint', () => {
     const root = workspace({ 'call-recorder': OURS });
-    const out = mkdtempSync(join(tmpdir(), 'yapyap-out-'));
+    const out = tempDir('yapyap-out-');
     const key = testKey();
     const extensions = builtFirstParty(root, ['call-recorder']);
     const log = vi.fn();
@@ -64,7 +64,7 @@ describe('signFirstParty', () => {
 
   it('refuses a key that is not a trust anchor, since the extension could never install', () => {
     const root = workspace({ 'call-recorder': OURS });
-    const out = mkdtempSync(join(tmpdir(), 'yapyap-out-'));
+    const out = tempDir('yapyap-out-');
     expect(() =>
       signFirstParty(builtFirstParty(root, ['call-recorder']), testKey(), new Set(), out, vi.fn()),
     ).toThrow(/is not one of YapYap's trust anchors/);

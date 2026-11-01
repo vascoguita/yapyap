@@ -1,13 +1,13 @@
 import { createHash } from 'node:crypto';
-import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { mkdirSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { tempDir } from '../../../test/temp-dir.ts';
 import { constants } from 'node:fs';
 import { digestFiles, readFlags } from './files.ts';
 
 function extension(): string {
-  const root = mkdtempSync(join(tmpdir(), 'yapyap-extension-'));
+  const root = tempDir('yapyap-extension-');
   writeFileSync(join(root, 'manifest.json'), '{}');
   writeFileSync(join(root, 'main.js'), 'export {};');
   mkdirSync(join(root, 'assets', 'icons'), { recursive: true });

@@ -1,9 +1,9 @@
 import { generateKeyPairSync } from 'node:crypto';
-import { mkdtempSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { strFromU8, unzipSync } from 'fflate';
 import { describe, expect, it } from 'vitest';
+import { tempDir } from '../../../test/temp-dir.ts';
 import { runCli } from './cli.ts';
 
 // A throwaway key per test run, kept in memory only (ADR 0005): the CLI reads
@@ -11,7 +11,7 @@ import { runCli } from './cli.ts';
 const PEM = generateKeyPairSync('ed25519').privateKey.export({ format: 'pem', type: 'pkcs8' });
 
 function extension(): string {
-  const root = mkdtempSync(join(tmpdir(), 'yapyap-extension-'));
+  const root = tempDir('yapyap-extension-');
   writeFileSync(join(root, 'manifest.json'), '{"id":"org.example.hello"}');
   writeFileSync(join(root, 'main.js'), 'export {};');
   return root;

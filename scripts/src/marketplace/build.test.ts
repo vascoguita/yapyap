@@ -1,9 +1,9 @@
 import { createHash, generateKeyPairSync } from 'node:crypto';
-import { mkdtempSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { strToU8, zipSync } from 'fflate';
 import { describe, expect, it } from 'vitest';
+import { tempDir } from '../../../test/temp-dir.ts';
 import { verifyIndex } from '../../../packages/extension-sign/src/index-signature.ts';
 import {
   packExtensionFolder,
@@ -33,7 +33,7 @@ function testKey() {
 
 /** A signed archive of an extension with `manifest`, and the fingerprint that signed it. */
 function archive(manifest: object, key = testKey().pem) {
-  const folder = mkdtempSync(join(tmpdir(), 'yapyap-marketplace-'));
+  const folder = tempDir('yapyap-marketplace-');
   writeFileSync(join(folder, 'manifest.json'), JSON.stringify(manifest));
   writeFileSync(join(folder, 'main.js'), 'export default { activate() {} };');
   const signer = signExtensionFolder(folder, key);
