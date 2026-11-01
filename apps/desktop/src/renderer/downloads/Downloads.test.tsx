@@ -1,7 +1,8 @@
 /** @vitest-environment happy-dom */
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { ChromeApi, DownloadEntry } from '../../shared/chrome-api.ts';
+import { fakeChromeApi } from '../../../test/chrome-api.ts';
+import type { DownloadEntry } from '../../shared/chrome-api.ts';
 import { Downloads, REFRESH_MS, sizeOf } from './Downloads.tsx';
 
 const entry = (overrides: Partial<DownloadEntry>): DownloadEntry => ({
@@ -15,67 +16,13 @@ const entry = (overrides: Partial<DownloadEntry>): DownloadEntry => ({
 });
 
 function api(entries: readonly DownloadEntry[]) {
-  return {
-    about: { info: vi.fn(), copyTechnicalDetails: vi.fn() },
-    recovery: { problem: vi.fn(), retry: vi.fn(), clearCache: vi.fn(), copyDiagnostics: vi.fn() },
-    settings: {
-      get: vi.fn(),
-      set: vi.fn(),
-      restart: vi.fn(),
-      export: vi.fn(),
-      import: vi.fn(),
-      chooseFolder: vi.fn(),
-    },
-    assistant: {
-      view: vi.fn(),
-      saveKey: vi.fn(),
-      forgetKey: vi.fn(),
-      testKey: vi.fn(),
-      findServers: vi.fn(),
-      privateModel: vi.fn(),
-      forgetChat: vi.fn(),
-    },
-    chat: { openNumber: vi.fn() },
-    accounts: {
-      list: vi.fn(),
-      save: vi.fn(),
-      remove: vi.fn(),
-      permissions: vi.fn(),
-      forgetPermissions: vi.fn(),
-    },
-    sidebar: {
-      state: vi.fn(),
-      switchTo: vi.fn(),
-      setCompact: vi.fn(),
-      stopSharing: vi.fn(),
-      onState: vi.fn(),
-    },
-    quickPanel: { open: vi.fn(), setDoNotDisturb: vi.fn() },
-    recordPrompt: { state: vi.fn(), answer: vi.fn(), stop: vi.fn(), onState: vi.fn() },
-    recorder: { onCommand: vi.fn(), chunk: vi.fn(), ended: vi.fn(), failed: vi.fn() },
-    extensions: {
-      list: vi.fn(),
-      consent: vi.fn(),
-      answer: vi.fn(),
-      setGrant: vi.fn(),
-      setSetting: vi.fn(),
-      remove: vi.fn(),
-      marketplace: vi.fn(),
-      installListed: vi.fn(),
-      onChange: vi.fn(),
-    },
-    picker: { offer: vi.fn(), choose: vi.fn(), cancel: vi.fn() },
-    spelling: { languages: vi.fn(), choose: vi.fn() },
-    report: { diagnostics: vi.fn(), open: vi.fn() },
-    customCode: { get: vi.fn(), save: vi.fn(), preview: vi.fn() },
-    proxyLogin: { request: vi.fn(), answer: vi.fn() },
-    shortcuts: { list: vi.fn(), set: vi.fn() },
+  return fakeChromeApi({
     downloads: {
       list: vi.fn(() => Promise.resolve(entries)),
       act: vi.fn(() => Promise.resolve()),
       clear: vi.fn(() => Promise.resolve()),
     },
-  } satisfies ChromeApi;
+  });
 }
 
 const button = (name: string) => screen.getByRole('button', { name });

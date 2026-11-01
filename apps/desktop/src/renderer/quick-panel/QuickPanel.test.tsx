@@ -1,7 +1,8 @@
 /** @vitest-environment happy-dom */
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { ChromeApi, SidebarState } from '../../shared/chrome-api.ts';
+import { fakeChromeApi } from '../../../test/chrome-api.ts';
+import type { SidebarState } from '../../shared/chrome-api.ts';
 import { QuickPanel } from './QuickPanel.tsx';
 
 const STATE: SidebarState = {
@@ -31,7 +32,7 @@ const STATE: SidebarState = {
   doNotDisturb: false,
 };
 
-function setup(state: () => Promise<SidebarState | null> = () => Promise.resolve(STATE)) {
+function setup(state: () => Promise<SidebarState> = () => Promise.resolve(STATE)) {
   let push: ((next: SidebarState) => void) | undefined;
   const sidebar = {
     state: vi.fn(state),
@@ -44,7 +45,7 @@ function setup(state: () => Promise<SidebarState | null> = () => Promise.resolve
     open: vi.fn(() => Promise.resolve()),
     setDoNotDisturb: vi.fn(() => Promise.resolve()),
   };
-  render(<QuickPanel api={{ sidebar, quickPanel } as unknown as ChromeApi} />);
+  render(<QuickPanel api={fakeChromeApi({ sidebar, quickPanel })} />);
   return {
     sidebar,
     quickPanel,

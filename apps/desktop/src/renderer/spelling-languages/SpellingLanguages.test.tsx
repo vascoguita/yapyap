@@ -1,7 +1,8 @@
 /** @vitest-environment happy-dom */
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { ChromeApi, SpellingLanguages } from '../../shared/chrome-api.ts';
+import { fakeChromeApi } from '../../../test/chrome-api.ts';
+import type { SpellingLanguages } from '../../shared/chrome-api.ts';
 import { languageNames, SpellingLanguagesPage } from './SpellingLanguages.tsx';
 
 const AVAILABLE = [
@@ -31,63 +32,7 @@ function api(initial: Partial<SpellingLanguages>) {
     state = { ...state, chosen: languages, inUse: languages.length > 0 ? languages : ['en-GB'] };
     return Promise.resolve(state);
   });
-  return {
-    about: { info: vi.fn(), copyTechnicalDetails: vi.fn() },
-    recovery: { problem: vi.fn(), retry: vi.fn(), clearCache: vi.fn(), copyDiagnostics: vi.fn() },
-    settings: {
-      get: vi.fn(),
-      set: vi.fn(),
-      restart: vi.fn(),
-      export: vi.fn(),
-      import: vi.fn(),
-      chooseFolder: vi.fn(),
-    },
-    assistant: {
-      view: vi.fn(),
-      saveKey: vi.fn(),
-      forgetKey: vi.fn(),
-      testKey: vi.fn(),
-      findServers: vi.fn(),
-      privateModel: vi.fn(),
-      forgetChat: vi.fn(),
-    },
-    chat: { openNumber: vi.fn() },
-    accounts: {
-      list: vi.fn(),
-      save: vi.fn(),
-      remove: vi.fn(),
-      permissions: vi.fn(),
-      forgetPermissions: vi.fn(),
-    },
-    sidebar: {
-      state: vi.fn(),
-      switchTo: vi.fn(),
-      setCompact: vi.fn(),
-      stopSharing: vi.fn(),
-      onState: vi.fn(),
-    },
-    quickPanel: { open: vi.fn(), setDoNotDisturb: vi.fn() },
-    recordPrompt: { state: vi.fn(), answer: vi.fn(), stop: vi.fn(), onState: vi.fn() },
-    recorder: { onCommand: vi.fn(), chunk: vi.fn(), ended: vi.fn(), failed: vi.fn() },
-    extensions: {
-      list: vi.fn(),
-      consent: vi.fn(),
-      answer: vi.fn(),
-      setGrant: vi.fn(),
-      setSetting: vi.fn(),
-      remove: vi.fn(),
-      marketplace: vi.fn(),
-      installListed: vi.fn(),
-      onChange: vi.fn(),
-    },
-    picker: { offer: vi.fn(), choose: vi.fn(), cancel: vi.fn() },
-    customCode: { get: vi.fn(), save: vi.fn(), preview: vi.fn() },
-    proxyLogin: { request: vi.fn(), answer: vi.fn() },
-    report: { diagnostics: vi.fn(), open: vi.fn() },
-    shortcuts: { list: vi.fn(), set: vi.fn() },
-    downloads: { list: vi.fn(), act: vi.fn(), clear: vi.fn() },
-    spelling: { languages: vi.fn(() => Promise.resolve(state)), choose },
-  } satisfies ChromeApi;
+  return fakeChromeApi({ spelling: { languages: vi.fn(() => Promise.resolve(state)), choose } });
 }
 
 const box = (name: string) =>

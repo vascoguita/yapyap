@@ -1,7 +1,8 @@
 /** @vitest-environment happy-dom */
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { ChromeApi, MarketplaceEntry, MarketplaceView } from '../../shared/chrome-api.ts';
+import { fakeChromeApi } from '../../../test/chrome-api.ts';
+import type { MarketplaceEntry, MarketplaceView } from '../../shared/chrome-api.ts';
 import { Extensions } from './Extensions.tsx';
 
 const ENTRY: MarketplaceEntry = {
@@ -26,7 +27,7 @@ function setup(marketplace: () => Promise<MarketplaceView>, install = () => Prom
     installListed: vi.fn(install),
     onChange: vi.fn(),
   };
-  render(<Extensions api={{ extensions } as unknown as ChromeApi} />);
+  render(<Extensions api={fakeChromeApi({ extensions })} />);
   fireEvent.click(screen.getByRole('tab', { name: 'Marketplace' }));
   return extensions;
 }

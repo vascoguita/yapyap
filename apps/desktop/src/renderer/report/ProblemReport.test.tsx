@@ -1,7 +1,7 @@
 /** @vitest-environment happy-dom */
 import { cleanup, fireEvent, render, screen } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { ChromeApi } from '../../shared/chrome-api.ts';
+import { fakeChromeApi } from '../../../test/chrome-api.ts';
 import { ProblemReport } from './ProblemReport.tsx';
 
 function setup(open: () => Promise<void> = () => Promise.resolve()) {
@@ -9,7 +9,7 @@ function setup(open: () => Promise<void> = () => Promise.resolve()) {
     diagnostics: vi.fn(() => Promise.resolve('YapYap 0.1.0 (deb)')),
     open: vi.fn(open),
   };
-  render(<ProblemReport api={{ report } as unknown as ChromeApi} />);
+  render(<ProblemReport api={fakeChromeApi({ report })} />);
   return { report };
 }
 
@@ -69,7 +69,7 @@ describe('ProblemReport', () => {
 
   it('shows the form even when the diagnostics cannot be read', async () => {
     const report = { diagnostics: vi.fn(() => Promise.reject(new Error('gone'))), open: vi.fn() };
-    render(<ProblemReport api={{ report } as unknown as ChromeApi} />);
+    render(<ProblemReport api={fakeChromeApi({ report })} />);
     await vi.waitFor(() => {
       expect(report.diagnostics).toHaveBeenCalled();
     });

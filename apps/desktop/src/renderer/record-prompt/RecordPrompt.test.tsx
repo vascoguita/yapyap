@@ -1,7 +1,8 @@
 /** @vitest-environment happy-dom */
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { ChromeApi, RecordPromptState } from '../../shared/chrome-api.ts';
+import { fakeChromeApi } from '../../../test/chrome-api.ts';
+import type { RecordPromptState } from '../../shared/chrome-api.ts';
 import { elapsed, RecordPrompt } from './RecordPrompt.tsx';
 
 function setup(first: () => Promise<RecordPromptState>) {
@@ -14,7 +15,7 @@ function setup(first: () => Promise<RecordPromptState>) {
       push = listener;
     }),
   };
-  render(<RecordPrompt api={{ recordPrompt } as unknown as ChromeApi} />);
+  render(<RecordPrompt api={fakeChromeApi({ recordPrompt })} />);
   return {
     recordPrompt,
     push: (state: RecordPromptState) => {

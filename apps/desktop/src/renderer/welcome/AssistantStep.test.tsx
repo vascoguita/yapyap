@@ -1,7 +1,8 @@
 /** @vitest-environment happy-dom */
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { AssistantView, ChromeApi, FoundServer } from '../../shared/chrome-api.ts';
+import { fakeChromeApi } from '../../../test/chrome-api.ts';
+import type { AssistantView, FoundServer } from '../../shared/chrome-api.ts';
 import { AssistantStep } from './AssistantStep.tsx';
 
 const VIEW: AssistantView = {
@@ -27,7 +28,7 @@ function setup(servers: () => Promise<readonly FoundServer[]> = () => Promise.re
     saveKey: vi.fn(() => Promise.resolve(true)),
   };
   const onChange = vi.fn();
-  render(<AssistantStep api={{ assistant } as unknown as ChromeApi} onChange={onChange} />);
+  render(<AssistantStep api={fakeChromeApi({ assistant })} onChange={onChange} />);
   return { assistant, onChange };
 }
 

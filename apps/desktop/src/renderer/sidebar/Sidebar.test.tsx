@@ -1,7 +1,8 @@
 /** @vitest-environment happy-dom */
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { ChromeApi, SidebarState } from '../../shared/chrome-api.ts';
+import { fakeChromeApi } from '../../../test/chrome-api.ts';
+import type { SidebarState } from '../../shared/chrome-api.ts';
 import { Sidebar } from './Sidebar.tsx';
 
 const STATE: SidebarState = {
@@ -51,7 +52,7 @@ const STATE: SidebarState = {
   doNotDisturb: false,
 };
 
-function setup(state: () => Promise<SidebarState | null> = () => Promise.resolve(STATE)) {
+function setup(state: () => Promise<SidebarState> = () => Promise.resolve(STATE)) {
   let push: ((next: SidebarState) => void) | undefined;
   const sidebar = {
     state: vi.fn(state),
@@ -62,7 +63,7 @@ function setup(state: () => Promise<SidebarState | null> = () => Promise.resolve
       push = listener;
     }),
   };
-  render(<Sidebar api={{ sidebar } as unknown as ChromeApi} />);
+  render(<Sidebar api={fakeChromeApi({ sidebar })} />);
   return {
     sidebar,
     push: (next: SidebarState) => {
@@ -171,7 +172,7 @@ describe('Sidebar', () => {
     await act(() => Promise.resolve());
     expect(document.body.textContent).toBe('');
     cleanup();
-    setup(() => Promise.resolve(null));
+    setup(() => new Promise<never>(() => undefined));
     await act(() => Promise.resolve());
     expect(document.body.textContent).toBe('');
   });

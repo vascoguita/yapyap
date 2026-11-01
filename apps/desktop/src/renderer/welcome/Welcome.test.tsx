@@ -1,6 +1,7 @@
 /** @vitest-environment happy-dom */
 import { cleanup, fireEvent, render, screen } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { fakeChromeApi } from '../../../test/chrome-api.ts';
 import type { ChromeApi, SettingsSnapshot } from '../../shared/chrome-api.ts';
 import { Welcome } from './Welcome.tsx';
 
@@ -25,10 +26,10 @@ function setup(get: () => Promise<SettingsSnapshot> = () => Promise.resolve(SNAP
     ),
   };
   const assistant = {
-    view: vi.fn(() => new Promise(() => undefined)),
-    findServers: vi.fn(() => new Promise(() => undefined)),
+    view: vi.fn(() => new Promise<never>(() => undefined)),
+    findServers: vi.fn(() => new Promise<never>(() => undefined)),
   };
-  render(<Welcome api={{ settings, assistant } as unknown as ChromeApi} />);
+  render(<Welcome api={fakeChromeApi({ settings, assistant })} />);
   return { settings };
 }
 
