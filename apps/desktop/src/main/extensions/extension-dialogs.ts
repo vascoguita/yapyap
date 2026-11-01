@@ -3,6 +3,7 @@ import { dialog } from 'electron';
 import { open } from 'node:fs/promises';
 import { en } from '../../shared/messages/en.ts';
 import { PRODUCT_NAME } from '../identity.ts';
+import { confirm } from '../dialogs/confirm.ts';
 import type { ExtensionChromeDependencies } from './extension-chrome.ts';
 
 const FILTERS = [{ name: en.extensions.fileType, extensions: ['yapyap-extension'] }];
@@ -35,45 +36,30 @@ export const electronExtensionDialogs: Pick<
     void dialog.showMessageBox({ title: PRODUCT_NAME, type, message, detail });
   },
   // Deny is the default, so a stray Enter never lets an extension reach a new host.
-  askHost: async (extension, host) => {
-    const text = en.dialogs.extensionHost;
-    const { response } = await dialog.showMessageBox({
+  askHost: (extension, host) =>
+    confirm({
       type: 'question',
-      title: PRODUCT_NAME,
-      message: text.message({ extension, host }),
-      detail: text.detail,
-      buttons: [text.allow, text.deny],
-      defaultId: 1,
-      cancelId: 1,
-    });
-    return response === 0;
-  },
+      message: en.dialogs.extensionHost.message({ extension, host }),
+      detail: en.dialogs.extensionHost.detail,
+      yes: en.dialogs.extensionHost.allow,
+      no: en.dialogs.extensionHost.deny,
+    }),
   // A server on this computer may offer much more than its model, so Deny is the default here too.
-  askLocal: async (extension, server) => {
-    const text = en.dialogs.extensionLocalServer;
-    const { response } = await dialog.showMessageBox({
+  askLocal: (extension, server) =>
+    confirm({
       type: 'question',
-      title: PRODUCT_NAME,
-      message: text.message({ extension, server }),
-      detail: text.detail,
-      buttons: [text.allow, text.deny],
-      defaultId: 1,
-      cancelId: 1,
-    });
-    return response === 0;
-  },
+      message: en.dialogs.extensionLocalServer.message({ extension, server }),
+      detail: en.dialogs.extensionLocalServer.detail,
+      yes: en.dialogs.extensionLocalServer.allow,
+      no: en.dialogs.extensionLocalServer.deny,
+    }),
   // Removing deletes the extension's data, so Cancel is the default and Escape answer.
-  confirmRemove: async (extension) => {
-    const text = en.dialogs.removeExtension;
-    const { response } = await dialog.showMessageBox({
+  confirmRemove: (extension) =>
+    confirm({
       type: 'warning',
-      title: PRODUCT_NAME,
-      message: text.message({ extension }),
-      detail: text.detail,
-      buttons: [text.confirm, en.common.cancel],
-      defaultId: 1,
-      cancelId: 1,
-    });
-    return response === 0;
-  },
+      message: en.dialogs.removeExtension.message({ extension }),
+      detail: en.dialogs.removeExtension.detail,
+      yes: en.dialogs.removeExtension.confirm,
+      no: en.common.cancel,
+    }),
 };

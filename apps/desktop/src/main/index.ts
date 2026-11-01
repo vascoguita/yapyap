@@ -61,7 +61,6 @@ import { xdgAutostart } from './autostart/xdg-autostart.ts';
 import { CHROME_PARTITION, createChromeFeature } from './chrome/feature.ts';
 import { profileCrashFiles, readPreviousLog } from './crash/crash-files.ts';
 import { recordTrace } from './crash/trace.ts';
-import { reviewCrashWithDialog } from './crash-review-prompt.ts';
 import trayIcon from '../../build/icons/32x32.png?asset';
 import { PRODUCT_NAME } from './identity.ts';
 import { rewriteClientHints } from './identity/user-agent.ts';
@@ -69,7 +68,6 @@ import { callWindowAmong } from './recording/electron.ts';
 import { recordingsFolder } from './recording/library.ts';
 import { createLogger } from './logging/logger.ts';
 import { logProcessErrors } from './process-errors.ts';
-import { askToInstallUpdateWithDialog } from './update-prompt.ts';
 import { readInstallEvidence } from './updates/install-evidence.ts';
 import { releaseFetcher } from './updates/update-notice.ts';
 import { decideUpdatePolicy, settingsIgnoredBy } from './updates/update-policy.ts';
@@ -78,9 +76,13 @@ import { openSettings } from './settings/service.ts';
 import { electronCapture } from './permissions/electron-capture.ts';
 import { askMediaWithDialog } from './permissions/media-prompt.ts';
 import { sandboxDisabled } from './sandbox-check.ts';
-import { confirmResetWithDialog } from './session-reset-prompt.ts';
-import { confirmRemoveAccountWithDialog } from './account-removal-prompt.ts';
-import { explainUnsafeStartWithDialog } from './unsafe-start-prompt.ts';
+import {
+  askToInstallUpdateWithDialog,
+  confirmRemoveAccountWithDialog,
+  confirmResetWithDialog,
+  explainUnsafeStartWithDialog,
+  reviewCrashWithDialog,
+} from './dialogs/prompts.ts';
 import { startApp } from './start.ts';
 import { MARKETPLACE_INDEX_MAX_BYTES } from '@yapyap/extension-sdk';
 import { ARCHIVE_LIMITS, anchorFingerprints, TRUST_ANCHORS } from '@yapyap/extension-sign';
