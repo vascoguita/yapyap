@@ -267,3 +267,5 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   records use `writeTextAtomicallyAsync`.
 - Start-up tests (#546): `start.test.ts` reads the tray, account menu,
   sidebar and window listeners through named helpers.
+- Test fakes (#551): main-process tests share `fakeEmitter()`
+  (`apps/desktop/test/emitter.ts`) and `FAKE_FINGERPRINT`.

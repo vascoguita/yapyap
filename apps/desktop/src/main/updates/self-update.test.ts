@@ -1,20 +1,19 @@
 import { describe, expect, it, vi } from 'vitest';
+import { fakeEmitter } from '../../../test/emitter.ts';
 import { NOTICE_INTERVAL_MS } from './update-notice.ts';
 import { startSelfUpdates } from './self-update.ts';
 
 function fakeUpdater(check: () => Promise<unknown> = () => Promise.resolve()) {
-  const listeners = new Map<string, (value: never) => void>();
+  const { on, fire } = fakeEmitter();
   return {
     autoDownload: false,
     autoInstallOnAppQuit: true,
     allowPrerelease: true,
     allowDowngrade: true,
     checkForUpdates: vi.fn(check),
-    on: vi.fn((event: string, listener: (value: never) => void) => listeners.set(event, listener)),
+    on,
     quitAndInstall: vi.fn(),
-    emit: (event: string, value: unknown) => {
-      listeners.get(event)?.(value as never);
-    },
+    emit: fire,
   };
 }
 

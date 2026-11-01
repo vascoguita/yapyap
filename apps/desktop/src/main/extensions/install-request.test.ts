@@ -1,9 +1,8 @@
 import type { Manifest } from '@yapyap/extension-sdk';
 import { describe, expect, it } from 'vitest';
+import { FAKE_FINGERPRINT } from '../../../test/extensions.ts';
 import { testManifest } from '../../../test/extensions.ts';
 import { installRequest } from './install-request.ts';
-
-const FINGERPRINT = Array.from({ length: 32 }, () => 'ab').join(':');
 
 function manifest(overrides: Record<string, unknown> = {}): Manifest {
   return testManifest(overrides) as Manifest;
@@ -16,14 +15,14 @@ describe('installRequest', () => {
         capabilities: ['storage:local', 'composer:insert-draft'],
         network: { hosts: ['b.example.org', 'a.example.org'] },
       }),
-      { kind: 'signed', fingerprint: FINGERPRINT, firstParty: false },
+      { kind: 'signed', fingerprint: FAKE_FINGERPRINT, firstParty: false },
     );
     expect(request).toEqual({
       id: 'org.example.hello',
       name: 'Hello',
       version: '1.0.0',
       author: { name: 'Example Author', url: 'https://example.org/' },
-      fingerprint: FINGERPRINT,
+      fingerprint: FAKE_FINGERPRINT,
       firstParty: false,
       developer: false,
       capabilities: ['composer:insert-draft', 'storage:local'],
@@ -34,7 +33,7 @@ describe('installRequest', () => {
   it('marks an extension signed by YapYap as first-party', () => {
     const request = installRequest(manifest(), {
       kind: 'signed',
-      fingerprint: FINGERPRINT,
+      fingerprint: FAKE_FINGERPRINT,
       firstParty: true,
     });
     expect(request).toMatchObject({ firstParty: true, developer: false });

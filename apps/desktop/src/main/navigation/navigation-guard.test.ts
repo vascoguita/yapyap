@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { fakeEmitter } from '../../../test/emitter.ts';
 import {
   createNavigationGuard,
   TRANSIENT_POPUP_MS,
@@ -12,22 +13,16 @@ import {
 const HOME = 'https://web.whatsapp.com';
 const PREFERENCES = { sandbox: true };
 
-type Listener = (...args: never[]) => void;
-
 function setup(home: string | null = HOME) {
-  const handlers = new Map<string, Listener[]>();
+  const emitter = fakeEmitter();
   let openHandler: (details: { url: string }) => WindowOpenResponse = () => ({ action: 'deny' });
   const contents = {
-    on: vi.fn((event: string, listener: Listener) => {
-      handlers.set(event, [...(handlers.get(event) ?? []), listener]);
-    }),
+    on: emitter.on,
     setWindowOpenHandler: vi.fn((handler: typeof openHandler) => {
       openHandler = handler;
     }),
     loadURL: vi.fn(() => Promise.resolve()),
-    once: vi.fn((event: string, listener: Listener) => {
-      handlers.set(event, [...(handlers.get(event) ?? []), listener]);
-    }),
+    once: emitter.once,
   } satisfies NavigationContents;
   const scheduled: { callback: () => void; ms: number }[] = [];
   const deps = {
@@ -41,11 +36,6 @@ function setup(home: string | null = HOME) {
   } satisfies NavigationDependencies;
   const guard = createNavigationGuard(deps);
   guard(contents);
-  const fire = (event: string, ...args: unknown[]): void => {
-    for (const listener of handlers.get(event) ?? []) {
-      listener(...(args as never[]));
-    }
-  };
   const navigation = (url: string, isMainFrame = true) => ({
     url,
     isMainFrame,
@@ -55,7 +45,7 @@ function setup(home: string | null = HOME) {
     contents,
     deps,
     guard,
-    fire,
+    fire: emitter.fire,
     navigation,
     scheduled,
     open: (url: string) => openHandler({ url }),
@@ -192,12 +182,7 @@ describe('window.open', () => {
 describe('transient popups', () => {
   function popup(url = '') {
     let navigated: (event: { url: string }) => void = () => undefined;
-    const handlers = new Map<string, Listener[]>();
-    const emit = (event: string, arg: unknown): void => {
-      for (const listener of handlers.get(event) ?? []) {
-        listener(arg as never);
-      }
-    };
+    const { on, fire: emit } = fakeEmitter();
     let destroyed = false;
     const window = {
       webContents: {
@@ -206,9 +191,7 @@ describe('transient popups', () => {
             navigated = listener;
           }
         }),
-        on: vi.fn((event: string, listener: Listener) => {
-          handlers.set(event, [...(handlers.get(event) ?? []), listener]);
-        }),
+        on,
         getURL: vi.fn(() => url),
         // Enough of a web contents for the guard to watch the popup itself too.
         setWindowOpenHandler: vi.fn(),
