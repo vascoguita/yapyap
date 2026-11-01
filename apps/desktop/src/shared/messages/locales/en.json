@@ -684,7 +684,6 @@
     "version": "Version {{version}}",
     "trust": {
       "first-party": "By YapYap",
-      "reviewed": "Reviewed by YapYap",
       "third-party": "Third-party",
       "developer": "Not signed"
     },
@@ -710,13 +709,13 @@
       "key": "Signing key",
       "unsigned": "Not signed",
       "firstParty": "Signed by YapYap.",
-      "reviewed": "YapYap reviewed this version for the marketplace. A review looks for harmful or undeclared behavior; it is not a guarantee.",
       "asks": "It asks to:",
       "updateAsks": "This update asks for more than before:",
       "added": "New",
       "hosts": "Connect to:",
       "nothing": "It asks for nothing.",
       "risk": "YapYap has not reviewed this extension. Install it only if you trust its author: you install it at your own risk.",
+      "marketplaceRisk": "Third-party, not reviewed: the marketplace lists this extension, but YapYap has not reviewed it. It downloads from {{host}}, its author’s server, which sees your IP address. Install it only if you trust its author: you install it at your own risk.",
       "unsignedRisk": "Nobody signed this extension, so nothing shows who made it or that it is unchanged. Install it only if you wrote it yourself.",
       "acknowledge": "I understand that I install this extension at my own risk",
       "confirmInstall": "Install",
@@ -766,6 +765,7 @@
       "outdated": "The marketplace list is out of date, so nothing is shown. Try again later.",
       "retry": "Try Again",
       "empty": "No extensions match.",
+      "from": "Downloads from {{host}}",
       "by": "By {{name}}",
       "version": "Version {{version}}",
       "install": "Install",
@@ -776,9 +776,13 @@
       "incompatible": "Needs a newer YapYap",
       "whatsNew": "What’s new in {{version}}",
       "homepage": "Website",
-      "privacy": "YapYap downloads the marketplace list only while this tab is open, without saying who you are.",
+      "privacy": "YapYap downloads the marketplace list only while this tab is open, without saying who you are. For third-party extensions you installed, it also asks their authors’ servers for a newer version, and those servers see your IP address.",
       "mismatch": "The download does not match what the marketplace lists, so it was not installed.",
-      "unlisted": "The marketplace does not list this extension for this version of YapYap."
+      "unlisted": "The marketplace does not list this extension for this version of YapYap.",
+      "latestUnreachable": "The extension could not be downloaded from {{host}}. Check your connection and try again.",
+      "wrongKey": "The download from {{host}} is not this extension signed by the key the marketplace lists for it, so it was not installed.",
+      "pulledLatest": "The marketplace pulled the version {{host}} serves now, so it was not installed.",
+      "noUpdate": "{{host}} still serves version {{version}}, which is not newer than the one installed."
     }
   },
   "notifications": {

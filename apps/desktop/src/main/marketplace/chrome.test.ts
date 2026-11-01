@@ -5,6 +5,7 @@ import type { MarketplaceIndex } from '@yapyap/extension-sdk';
 import { signIndex } from '@yapyap/extension-sign';
 import { describe, expect, it, vi } from 'vitest';
 import { tempDir } from '../../../../../test/temp-dir.ts';
+import { signedArchive, testKey, testManifest, zipArchive } from '../../../test/extensions.ts';
 import type { ExtensionRecord, ExtensionRecords } from '../extensions/records.ts';
 import { linkInstaller, marketplaceHandlers, type MarketplaceDependencies } from './chrome.ts';
 
@@ -13,8 +14,20 @@ const SIGNER = Array.from({ length: 32 }, () => 'ab').join(':');
 const CALL = { sender: {} };
 const NOW = new Date('2026-10-27T09:00:00.000Z');
 
+const THIRD = {
+  id: 'org.example.third',
+  name: 'Third',
+  summary: 'Made elsewhere.',
+  author: { name: 'Someone' },
+  homepage: 'https://example.net',
+  license: 'MIT',
+  review: 'unreviewed' as const,
+  signer: SIGNER,
+  latest: 'https://downloads.example.net/third/latest.yapyap-extension',
+};
+
 const INDEX: MarketplaceIndex = {
-  format: 1,
+  format: 2,
   serial: 1_793_000_000,
   generated: '2026-10-27T08:59:00.000Z',
   expires: '2026-10-28T09:00:00.000Z',
@@ -26,7 +39,7 @@ const INDEX: MarketplaceIndex = {
       author: { name: 'Example' },
       homepage: 'https://example.org',
       license: 'MIT',
-      review: 'reviewed',
+      review: 'official',
       signer: SIGNER,
       versions: [
         {
@@ -71,12 +84,18 @@ function setup(
       indexUrl: 'https://packages.example/index.json',
       signatureUrl: 'https://packages.example/index.json.sig',
       archiveUrl: (id, version) => `https://packages.example/${id}-${version}`,
+      latestUrl: (latest) => latest,
+      secure: () => true,
       anchors: [key.publicKey.export({ format: 'pem', type: 'spki' })],
     },
     appVersion: '0.1.2',
     fetchIndex: vi.fn((url: string) => Promise.resolve(url.endsWith('.sig') ? signature : bytes)),
     fetchArchive: vi.fn(() => Promise.resolve(undefined)),
     now: () => NOW,
+    fetchLatest: {
+      head: vi.fn(() => Promise.resolve(undefined)),
+      download: vi.fn(() => Promise.resolve(undefined)),
+    },
     root,
     records: vi.fn(() => Promise.resolve(records)),
     pull: vi.fn(() => Promise.resolve()),
@@ -146,8 +165,27 @@ describe('marketplaceHandlers', () => {
     ]);
   });
 
+  it('looks for a newer release of installed unreviewed extensions only', async () => {
+    const t = setup(
+      {
+        ...INDEX,
+        extensions: [...INDEX.extensions, THIRD, { ...THIRD, id: 'org.example.fourth' }],
+      },
+      new Map([installed('org.example.third')]),
+    );
+    expect(await t.handler('extensions:marketplace').handle(CALL)).toMatchObject({
+      status: 'ready',
+      extensions: [
+        { id: 'org.example.hello', action: 'install' },
+        { id: 'org.example.third', source: 'downloads.example.net', action: 'installed' },
+        { id: 'org.example.fourth', action: 'install' },
+      ],
+    });
+    expect(t.deps.fetchLatest.download).toHaveBeenCalledExactlyOnceWith(THIRD.latest);
+  });
+
   it('says why there is no list', async () => {
-    const t = setup({ ...INDEX, format: 2 });
+    const t = setup({ ...INDEX, format: 1 });
     expect(await t.handler('extensions:marketplace').handle(CALL)).toEqual({
       status: 'invalid',
       extensions: [],
@@ -174,6 +212,36 @@ describe('marketplaceHandlers', () => {
     expect(t.deps.install.report).toHaveBeenCalledWith({
       kind: 'rejected',
       reason: 'The download does not match what the marketplace lists, so it was not installed.',
+    });
+  });
+});
+
+describe('installing an unreviewed extension', () => {
+  it('downloads its latest archive, and refuses what it cannot download', async () => {
+    const t = setup({ ...INDEX, extensions: [THIRD] }, new Map([installed('org.example.third')]));
+    await t.handler('extensions:install-listed').handle(CALL, 'org.example.third');
+    expect(t.deps.fetchLatest.download).toHaveBeenCalledWith(THIRD.latest);
+    expect(t.deps.install.report).toHaveBeenCalledWith({
+      kind: 'rejected',
+      reason:
+        'The extension could not be downloaded from downloads.example.net. Check your connection and try again.',
+    });
+  });
+
+  it('compares the latest version with the installed one', async () => {
+    const author = testKey();
+    const third = { ...THIRD, signer: author.fingerprint };
+    const bytes = zipArchive(signedArchive(author, testManifest({ id: third.id })));
+    const t = setup(
+      { ...INDEX, extensions: [third] },
+      new Map([installed(third.id, { fingerprint: author.fingerprint })]),
+    );
+    vi.mocked(t.deps.fetchLatest.download).mockResolvedValue({ bytes });
+    await t.handler('extensions:install-listed').handle(CALL, third.id);
+    expect(t.deps.install.report).toHaveBeenCalledWith({
+      kind: 'rejected',
+      reason:
+        'downloads.example.net still serves version 1.0.0, which is not newer than the one installed.',
     });
   });
 });

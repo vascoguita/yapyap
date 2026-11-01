@@ -30,6 +30,9 @@ const existing = saved === undefined ? undefined : readEntry(saved, basename(ent
 if (Array.isArray(existing)) {
   throw new TypeError(`${entryPath} is not a valid entry:\n${existing.join('\n')}`);
 }
+if (existing?.review === 'unreviewed') {
+  throw new TypeError(`${entryPath} is a third-party entry, not an official one.`);
+}
 const [signer = ''] = anchorFingerprints(TRUST_ANCHORS);
 const entry = withRelease(
   existing,

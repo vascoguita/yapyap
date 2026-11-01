@@ -1,19 +1,35 @@
 # Marketplace
 
-YapYap's marketplace lists YapYap's own extensions and third-party extensions the
-maintainer has reviewed. Users install them from the Extensions window, or
-from the website with **Install in YapYap**. The design is in
+YapYap's marketplace lists YapYap's own extensions and extensions by other
+authors. YapYap does not review other authors' extensions: you install them
+at your own risk. Users install from the Extensions window, or from the
+website with **Install in YapYap**. The design is in
 [ADR 0014](/adr/0014-extension-marketplace).
 
 ## Installing from the marketplace
 
 Open **Extensions…** and choose the **Marketplace** tab. YapYap downloads the
 list only then, checks that YapYap's own key signed it, and shows each
-extension with its author, what it asks for, and whether it is YapYap's own or
-a third-party extension YapYap reviewed. **Install** downloads that exact
-version, checks it against the list, and opens the usual consent window.
-A reviewed extension needs no acknowledgement of risk there, unlike an extension
-installed from a file.
+extension with its author and whether it is YapYap's own or **Third-party**. A third-party extension also shows the server it downloads
+from, which is its author's.
+
+**Install** downloads the extension and opens the usual consent window,
+which shows everything it asks to do:
+
+- For YapYap's own extensions, YapYap downloads the exact version the list
+  names and checks it against the list.
+- For a third-party extension, YapYap downloads its author's latest release
+  from the author's server, over HTTPS only. It installs it only if the
+  release is signed by the key the list names for that extension; anything
+  signed by another key is refused. The consent window names the author's
+  server, says that it sees your IP address, and keeps **Install** off until
+  you tick that you install the extension at your own risk.
+
+Each time you open the tab, YapYap also checks whether the third-party
+extensions you installed have a newer release. It first asks their authors'
+servers whether the file changed, without downloading it, and downloads it
+only if it did; it offers a newer version only if the same key signed it.
+Their servers see your IP address when it asks.
 
 ## Installing from the website
 
@@ -25,99 +41,73 @@ form, with a valid extension ID and nothing else: no address, file or
 version can be passed this way, and while one link is being handled, others
 are ignored.
 
-## How an extension is listed
+## Listing your extension
 
-Each listed extension has an entry in the YapYap repository, in
-`marketplace/extensions/<id>.json`:
+You list your extension once, with one pull request. After that, the
+marketplace always offers whatever your latest release is: release as often
+as you like, wherever you like, with no further pull requests.
+
+1. [Sign your extension](/extensions/#sign-it) with your own key, and keep
+   the key safe: every release must be signed by it, and YapYap refuses any
+   other.
+2. Publish the signed `.yapyap-extension` at an HTTPS address that always
+   serves your latest release. On GitHub, attach it to each release under the
+   same file name, and use
+   `https://github.com/<owner>/<repo>/releases/latest/download/<file>`. Any
+   other host works as long as the address stays the same and serves the
+   newest file.
+3. Open a pull request to the YapYap repository that adds
+   `marketplace/extensions/<id>.json`:
 
 ```json
 {
   "id": "org.example.translate",
+  "name": "Translate",
   "summary": "Translates your draft before you send it.",
+  "author": { "name": "Example", "url": "https://example.org" },
   "homepage": "https://example.org/translate",
   "license": "MIT",
-  "review": "reviewed",
+  "review": "unreviewed",
   "signer": "18:1e:…:d7",
+  "latest": "https://github.com/example/translate/releases/latest/download/org.example.translate.yapyap-extension",
   "repository": "https://github.com/example/translate",
-  "screenshots": [{ "file": "main.png", "caption": "Translating a draft" }],
-  "versions": [
-    {
-      "version": "1.0.0",
-      "tag": "v1.0.0",
-      "source": "https://github.com/vascoguita/yapyap/releases/download/extensions/org.example.translate-1.0.0.yapyap-extension",
-      "sha256": "sha256-…",
-      "minYapYap": "0.1.2",
-      "published": "2026-10-27T08:00:00.000Z",
-      "notes": "First release."
-    }
-  ]
+  "screenshots": [{ "file": "main.png", "caption": "Translating a draft" }]
 }
 ```
 
 - `signer` is the fingerprint of your signing key, as the consent window
-  and `yapyap-extension-sign verify` show it. Every version must be signed by
-  that key; a new key needs a new review.
+  and `yapyap-extension-sign verify` show it.
+- `latest` is a plain HTTPS address with no credentials, which YapYap
+  downloads with no cookies or other headers that say who the user is.
+- `name`, `summary` and `author` are shown in the marketplace before anyone
+  installs. The version, capabilities and hosts always come from your
+  archive's own manifest.
+- `repository` is optional: where your source code lives.
 - `screenshots` is optional: up to five PNG or WebP images of at most 1 MiB
   each, committed in `marketplace/screenshots/<id>/` with the entry, and a
-  caption for each. They are served beside the index and shown on the
+  caption for each. They are served beside the list and shown on the
   extension's page on the website, never loaded from your server.
-- `notes` is optional: what changed in that version, in plain text of up to
-  2,000 characters. YapYap shows it with an update, and the extension's page
-  on the website lists it beside each version.
-- `source` is always a release asset of the YapYap repository, named
-  `<id>-<version>.yapyap-extension`. Users never download from your server.
-- The extension's name, author, capabilities and hosts come from each
-  archive's own manifest, so the listing always matches the extension.
 
-CI downloads every listed archive and checks its hash, signature, signer,
-manifest and archive limits, and fails the pull request on any problem.
+CI checks the entry, then downloads what `latest` serves and checks that it
+is signed by `signer`'s key, has your extension's ID and a valid manifest,
+and fits the archive limits. A wrong archive, or an address that answers
+with an error such as `404`, fails the pull request. If your server does
+not answer at all, CI only warns, so try again if it was down.
 
-- `repository` and each version's `tag` say where the reviewed code lives.
-  A third-party extension must give both.
+## Your responsibilities
 
-## Submitting an extension
+YapYap lists your extension without reviewing it, and tells users so. You
+are responsible for what your releases do. Keep your signing key private:
+whoever holds it can ship an update to everyone who installed your
+extension. An update that asks for new capabilities or hosts waits until
+each user approves it.
 
-1. Publish your extension's signed `.yapyap-extension` as a release asset of your
-   own repository, built from a tag.
-2. Open a [extension submission](https://github.com/vascoguita/yapyap/issues/new?template=extension_submission.yml)
-   with its ID, version, summary, repository and tag, the archive's URL and
-   SHA-256, your key's fingerprint, its homepage and license, why it needs
-   each capability and host, and its privacy policy if it connects
-   anywhere.
-3. The maintainer reviews the archive's own files against the checklist
-   below. Ship readable JavaScript: no minified or obfuscated code.
-4. Once the review passes, the maintainer copies that exact archive to
-   YapYap's own hosting and opens the pull request that lists it, which CI
-   checks. A new version goes through the same steps.
+## Pulled extensions
 
-Third-party listings open once that hosting is set up
-([#419](https://github.com/vascoguita/yapyap/issues/419)); submissions are
-welcome before then.
-
-### The review checklist
-
-- Every capability and network host is needed for what the extension says it
-  does, and nothing is requested "just in case".
-- Network hosts belong to the service the extension describes, and a privacy
-  policy says what happens to data sent there.
-- The code is readable, matches the tag, and does nothing undeclared: no
-  `eval`, no code fetched at run time, no tracking.
-- The license allows redistribution, since YapYap hosts the archive.
-
-### What "reviewed" means
-
-A reviewed extension was read by YapYap's maintainer, who found nothing
-harmful or undeclared in that exact version. It is not a guarantee, a
-security audit, or an endorsement of the author's service. Every extension
-still runs in its sandbox, gets only what you allow, and can be removed at
-any time.
-
-## Updates and pulled versions
-
-A new version is listed the same way, and YapYap offers it in the
-Marketplace tab. If a listed extension misbehaves, report it privately as a
+If an extension misbehaves, report it privately as a
 [security advisory](https://github.com/vascoguita/yapyap/security/advisories/new).
 The maintainer can pull a version or a whole extension through
-`marketplace/revoked.json`: the index is signed again at once, and every
+`marketplace/revoked.json`: the list is signed again at once, and every
 YapYap that reads it stops matching copies and tells the user why, without
-deleting their data.
+deleting their data. A pulled third-party extension disappears from the
+marketplace, and a pulled version of one is never offered or installed.

@@ -17,7 +17,30 @@ import {
   sourcesOf,
   type IndexSources,
 } from './build.ts';
-import type { Entry } from './entries.ts';
+import type { MarketplaceIndex } from '../../../packages/sdk/src/marketplace.ts';
+import type { OfficialEntry, UnreviewedEntry } from './entries.ts';
+
+type EntryVersion = OfficialEntry['versions'][number];
+
+const ZEROS = Array.from({ length: 32 }, () => '00').join(':');
+
+/** The first listed extension's versions, when it is an official one. */
+const versionsOf = (index: MarketplaceIndex) => {
+  const [first] = index.extensions;
+  return first?.review === 'official' ? first.versions : [];
+};
+
+const UNREVIEWED: UnreviewedEntry = {
+  id: 'org.example.third',
+  name: 'Third',
+  summary: 'Made elsewhere.',
+  author: { name: 'Someone Else' },
+  homepage: 'https://example.net/third',
+  license: 'Apache-2.0',
+  review: 'unreviewed',
+  signer: Array.from({ length: 32 }, () => 'cd').join(':'),
+  latest: 'https://downloads.example.net/third/latest.yapyap-extension',
+};
 
 const RELEASES = 'https://github.com/vascoguita/yapyap/releases/download';
 const NOW = new Date('2026-10-27T09:00:00.000Z');
@@ -59,16 +82,16 @@ const source = (id: string, version: string) =>
 /** An entry for `built`, a version of the hello extension, with everything it needs to build. */
 function setup(
   manifest: { readonly id: string } & Record<string, unknown> = MANIFEST,
-  entryChange: Partial<Entry> = {},
+  entryChange: Partial<OfficialEntry> = {},
 ) {
   const built = archive(manifest);
   const at = source(manifest.id, '1.0.0');
-  const entry: Entry = {
+  const entry: OfficialEntry = {
     id: 'org.example.hello',
     summary: 'Says hello.',
     homepage: 'https://example.org/hello',
     license: 'MIT',
-    review: 'reviewed',
+    review: 'official',
     signer: built.signer,
     versions: [
       {
@@ -85,7 +108,7 @@ function setup(
     entries: [entry],
     revoked: [],
     archives: new Map([[at, built.bytes]]),
-    anchors: new Set(),
+    anchors: new Set([built.signer]),
     now: NOW,
   };
   return { built, entry, sources };
@@ -119,10 +142,10 @@ describe('buildIndex', () => {
       ...entry,
       versions: entry.versions.map((listed) => ({ ...listed, notes: 'First release.' })),
     };
-    expect(buildIndex({ ...sources, entries: [noted] }).extensions[0]?.versions[0]?.notes).toBe(
+    expect(versionsOf(buildIndex({ ...sources, entries: [noted] }))[0]?.notes).toBe(
       'First release.',
     );
-    expect(buildIndex(sources).extensions[0]?.versions[0]).not.toHaveProperty('notes');
+    expect(versionsOf(buildIndex(sources))[0]).not.toHaveProperty('notes');
   });
 
   it('lists each extension as its archive’s manifest describes it, with its hash and size', () => {
@@ -131,7 +154,7 @@ describe('buildIndex', () => {
       { id: 'org.example.bad', versions: '*' as const, signer: built.signer, reason: 'Gone.' },
     ];
     expect(buildIndex({ ...sources, revoked })).toEqual({
-      format: 1,
+      format: 2,
       serial: 1_793_091_600,
       generated: '2026-10-27T09:00:00.000Z',
       expires: '2026-11-26T09:00:00.000Z',
@@ -143,7 +166,7 @@ describe('buildIndex', () => {
           author: { name: 'Example' },
           homepage: 'https://example.org/hello',
           license: 'MIT',
-          review: 'reviewed',
+          review: 'official',
           signer: built.signer,
           versions: [
             {
@@ -168,13 +191,13 @@ describe('buildIndex', () => {
     const newer = archive({ ...MANIFEST, version: '1.1.0', network: undefined }, key);
     const { entry, sources } = setup();
     const versions = [
-      { ...entry.versions[0], sha256: older.sha256 } as Entry['versions'][number],
+      { ...entry.versions[0], sha256: older.sha256 } as EntryVersion,
       {
         ...entry.versions[0],
         version: '1.1.0',
         source: source('org.example.hello', '1.1.0'),
         sha256: newer.sha256,
-      } as Entry['versions'][number],
+      } as EntryVersion,
     ];
     const aardvark = setup(
       { ...MANIFEST, id: 'org.example.aardvark' },
@@ -182,6 +205,7 @@ describe('buildIndex', () => {
     );
     const index = buildIndex({
       ...sources,
+      anchors: new Set([older.signer, ...aardvark.sources.anchors]),
       entries: [{ ...entry, signer: older.signer, versions }, aardvark.entry],
       archives: new Map([
         [source('org.example.hello', '1.0.0'), older.bytes],
@@ -195,14 +219,17 @@ describe('buildIndex', () => {
     ]);
     const hello = index.extensions[1];
     expect(hello?.name).toBe('Hello');
-    expect(hello?.versions.map(({ hosts }) => hosts)).toEqual([['api.example.org'], []]);
+    expect(hello?.review === 'official' && hello.versions.map(({ hosts }) => hosts)).toEqual([
+      ['api.example.org'],
+      [],
+    ]);
   });
 
   it('lists an official extension only when a trust anchor signed it', () => {
     const anchor = testKey();
     const id = 'org.guita.yapyap.hello';
     const built = archive({ ...MANIFEST, id }, anchor.pem);
-    const entry: Entry = {
+    const entry: OfficialEntry = {
       ...setup().entry,
       id,
       review: 'official',
@@ -212,11 +239,12 @@ describe('buildIndex', () => {
           ...setup().entry.versions[0],
           source: source(id, '1.0.0'),
           sha256: built.sha256,
-        } as Entry['versions'][number],
+        } as EntryVersion,
       ],
     };
     const sources = {
       ...setup().sources,
+      anchors: new Set<string>(),
       entries: [entry],
       archives: new Map([[source(id, '1.0.0'), built.bytes]]),
     };
@@ -244,7 +272,8 @@ describe('buildIndex', () => {
       'an archive signed by another key',
       (t: ReturnType<typeof setup>) => ({
         ...t.sources,
-        entries: [{ ...t.entry, signer: Array.from({ length: 32 }, () => '00').join(':') }],
+        entries: [{ ...t.entry, signer: ZEROS }],
+        anchors: new Set([ZEROS]),
       }),
       'it is signed by',
     ],
@@ -254,14 +283,12 @@ describe('buildIndex', () => {
   });
 
   it('refuses an archive whose manifest names another extension or version, or breaks the schema', () => {
-    for (const manifest of [
-      { ...MANIFEST, id: 'org.example.other' },
-      { ...MANIFEST, version: '2.0.0' },
-    ]) {
-      expect(() => buildIndex(setup(manifest).sources)).toThrow(
-        'its manifest names another extension or version.',
-      );
-    }
+    expect(() => buildIndex(setup({ ...MANIFEST, id: 'org.example.other' }).sources)).toThrow(
+      'its manifest names another extension.',
+    );
+    expect(() => buildIndex(setup({ ...MANIFEST, version: '2.0.0' }).sources)).toThrow(
+      'its manifest names another version.',
+    );
     expect(() => buildIndex(setup({ ...MANIFEST, capabilities: ['send'] }).sources)).toThrow(
       'its manifest does not match the manifest schema.',
     );
@@ -275,7 +302,7 @@ describe('buildIndex', () => {
     });
     const sha256 = `sha256-${createHash('sha256').update(unsigned).digest('base64')}`;
     const entries = [
-      { ...t.entry, versions: [{ ...t.entry.versions[0], sha256 } as Entry['versions'][number]] },
+      { ...t.entry, versions: [{ ...t.entry.versions[0], sha256 } as EntryVersion] },
     ];
     expect(() =>
       buildIndex({
@@ -301,6 +328,40 @@ describe('buildIndex', () => {
     expect(() => buildIndex({ ...sources, revoked })).toThrow(
       'The built index does not match its schema.',
     );
+  });
+});
+
+describe('unreviewed extensions', () => {
+  it('lists them as their entry gives them, with screenshots, without downloading anything', () => {
+    const { sources } = setup();
+    const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    const shot = { file: 'main.png', caption: 'At work' };
+    const repository = 'https://example.net/third.git';
+    const index = buildIndex({
+      ...sources,
+      entries: [{ ...UNREVIEWED, repository, screenshots: [shot] }, UNREVIEWED],
+      archives: new Map(),
+      screenshots: () => png,
+    });
+    const entry = UNREVIEWED;
+    expect(index.extensions).toEqual([
+      {
+        ...entry,
+        repository,
+        screenshots: [
+          {
+            url: 'https://packages.guita.org/extensions/org.example.third/screenshots/main.png',
+            caption: 'At work',
+          },
+        ],
+      },
+      entry,
+    ]);
+  });
+
+  it('leaves them out of the archives YapYap hosts', () => {
+    expect(archiveRedirects([UNREVIEWED])).toBe('');
+    expect(sourcesOf([UNREVIEWED])).toEqual([]);
   });
 });
 

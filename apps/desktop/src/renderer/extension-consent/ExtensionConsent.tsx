@@ -5,9 +5,8 @@ import { en } from '../../shared/messages/en.ts';
 
 const text = en.extensions.consent;
 
-/** Extensions YapYap vouches for: its own, and the marketplace's reviewed ones (ADR 0014). */
-const vouched = (consent: Consent): boolean =>
-  consent.trust === 'first-party' || consent.trust === 'reviewed';
+/** The only extensions YapYap vouches for are its own (ADR 0004, ADR 0014). */
+const vouched = (consent: Consent): boolean => consent.trust === 'first-party';
 
 const asIs = (item: string): string => item;
 
@@ -21,13 +20,10 @@ function Signer({ consent }: { readonly consent: Consent }): JSX.Element {
     return <p class="signer">{text.firstParty}</p>;
   }
   return (
-    <>
-      <p class="signer">
-        <span>{text.key}</span>
-        <code>{consent.fingerprint ?? text.unsigned}</code>
-      </p>
-      {consent.trust === 'reviewed' ? <p class="reviewed">{text.reviewed}</p> : null}
-    </>
+    <p class="signer">
+      <span>{text.key}</span>
+      <code>{consent.fingerprint ?? text.unsigned}</code>
+    </p>
   );
 }
 
@@ -69,6 +65,14 @@ function Grants({ consent }: { readonly consent: Consent }): JSX.Element {
   );
 }
 
+/** What the user risks: a file nobody signed, an author's server, or an author YapYap does not know. */
+function riskOf(consent: Consent): string {
+  if (consent.trust === 'developer') {
+    return text.unsignedRisk;
+  }
+  return consent.source === null ? text.risk : text.marketplaceRisk({ host: consent.source });
+}
+
 /** The extension YapYap has not reviewed: the user must say they take the risk. */
 function Risk(props: {
   readonly consent: Consent;
@@ -77,7 +81,7 @@ function Risk(props: {
 }): JSX.Element {
   return (
     <section class="risk" role="note">
-      <p>{props.consent.trust === 'developer' ? text.unsignedRisk : text.risk}</p>
+      <p>{riskOf(props.consent)}</p>
       <label>
         <input
           type="checkbox"
@@ -98,7 +102,7 @@ function Actions(props: {
   readonly acknowledged: boolean;
 }): JSX.Element {
   const { api, consent, acknowledged } = props;
-  const reviewed = vouched(consent);
+  const vouches = vouched(consent);
   return (
     <div class="actions">
       <button
@@ -112,7 +116,7 @@ function Actions(props: {
       <button
         type="button"
         class="primary"
-        disabled={!reviewed && !acknowledged}
+        disabled={!vouches && !acknowledged}
         onClick={() => {
           void api.extensions.answer(true, acknowledged);
         }}

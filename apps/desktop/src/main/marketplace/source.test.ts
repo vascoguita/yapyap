@@ -18,6 +18,10 @@ describe('marketplaceSource', () => {
     expect(source.archiveUrl('org.example.hello', '1.0.0')).toBe(
       'https://packages.guita.org/extensions/org.example.hello/org.example.hello-1.0.0.yapyap-extension',
     );
+    const latest = 'https://downloads.example.org/hello/latest.yapyap-extension';
+    expect(source.latestUrl(latest)).toBe(latest);
+    expect(source.secure('https://cdn.example.org/hello.yapyap-extension')).toBe(true);
+    expect(source.secure('http://cdn.example.org/hello.yapyap-extension')).toBe(false);
   });
 
   it('lets an unpackaged build use a local test marketplace with its own key', () => {
@@ -30,6 +34,12 @@ describe('marketplaceSource', () => {
     expect(source.archiveUrl('org.example.hello', '1.0.0')).toBe(
       'http://127.0.0.1:4100/extensions/org.example.hello/org.example.hello-1.0.0.yapyap-extension',
     );
+    expect(
+      source.latestUrl('https://downloads.example.org:8443/hello/latest.yapyap-extension'),
+    ).toBe('http://127.0.0.1:4100/latest/downloads.example.org:8443/hello/latest.yapyap-extension');
+    expect(source.secure('http://127.0.0.1:4100/latest/x')).toBe(true);
+    expect(source.secure('https://cdn.example.org/x')).toBe(true);
+    expect(source.secure('http://127.0.0.1:4101/latest/x')).toBe(false);
   });
 
   it.each([

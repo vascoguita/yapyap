@@ -28,21 +28,20 @@ export function trustOf(record: Pick<InstallRequest, 'firstParty' | 'developer'>
 
 type Askable = Extract<InstallDecision, { kind: 'consent' | 'reapprove' }>;
 
-function consentOf(decision: Askable, reviewed: boolean): ExtensionConsent {
+function consentOf(decision: Askable, source: string | null): ExtensionConsent {
   const { request } = decision;
-  const trust = trustOf(request);
   return {
     id: request.id,
     name: request.name,
     version: request.version,
     author: { name: request.author.name, url: request.author.url ?? null },
     fingerprint: request.fingerprint ?? null,
-    // Only a third-party extension can be reviewed; YapYap's own stay first-party.
-    trust: reviewed && trust === 'third-party' ? 'reviewed' : trust,
+    trust: trustOf(request),
     update: decision.kind === 'reapprove',
     capabilities: request.capabilities,
     hosts: request.hosts,
     added: decision.kind === 'reapprove' ? decision.added : { capabilities: [], hosts: [] },
+    source,
   };
 }
 
@@ -50,27 +49,28 @@ function consentOf(decision: Askable, reviewed: boolean): ExtensionConsent {
 async function agreed(
   install: ApprovableInstall,
   deps: Pick<InstallFlowDependencies, 'ask'>,
-  reviewed: boolean,
+  source: string | null,
 ): Promise<boolean> {
   const { decision } = install;
-  return decision.kind === 'approved' || deps.ask(consentOf(decision, reviewed));
+  return decision.kind === 'approved' || deps.ask(consentOf(decision, source));
 }
 
 /**
  * Asks about a prepared install and commits it once the user agrees, or
- * reports why it cannot be installed. `reviewed` marks a third-party
- * extension the marketplace vouches for (ADR 0014).
+ * reports why it cannot be installed. `source` names the author's host a
+ * third-party extension from the marketplace was downloaded from (ADR 0014),
+ * which the consent window shows.
  */
 export async function finishInstall(
   prepared: PreparedInstall,
   deps: Pick<InstallFlowDependencies, 'commit' | 'ask' | 'report'>,
-  reviewed = false,
+  source: string | null = null,
 ): Promise<void> {
   if (!('archive' in prepared)) {
     deps.report({ kind: 'rejected', reason: prepared.decision.reason });
     return;
   }
-  if (await agreed(prepared, deps, reviewed)) {
+  if (await agreed(prepared, deps, source)) {
     await deps.commit(prepared);
     const { name, version } = prepared.decision.request;
     deps.report({ kind: 'installed', name, version });

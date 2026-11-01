@@ -43,6 +43,7 @@ Use pnpm (version pinned in `package.json`) on Node.js 24 LTS.
 | AUR PKGBUILD and .SRCINFO         | `node scripts/src/bin/aur.ts <version> <amd64 .deb> <arm64 .deb> <output dir>`                                   |
 | Sign, verify or pack an extension | `node packages/extension-sign/src/bin/yapyap-extension-sign.ts sign --key <pem> <folder>`                        |
 | Check the extension marketplace   | `node scripts/src/bin/marketplace-index.ts marketplace [site dir]` (signs with `EXTENSION_SIGNING_KEY` when set) |
+| Check third-party latest archives | `node scripts/src/bin/marketplace-latest.ts <entry file>...` (CI: entries a PR adds or changes)                  |
 | Sign first-party extensions (CI)  | `EXTENSION_SIGNING_KEY=… node scripts/src/bin/sign-extensions.ts` after building `extensions/`                   |
 | Test the apt/dnf/pacman repos     | `bash packaging/repository/test.sh` (needs podman or docker)                                                     |
 | Flatpak bundle (Linux)            | See the `flatpak` job in `.github/workflows/package.yml`; it runs in Flathub's container                         |

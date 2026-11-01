@@ -43,6 +43,7 @@ describe('installExtension', () => {
       author: { name: 'Example', url: null },
       fingerprint: 'ab:cd',
       trust: 'third-party',
+      source: null,
       update: false,
       capabilities: ['composer:insert-draft', 'storage:local'],
       hosts: ['api.example.com'],

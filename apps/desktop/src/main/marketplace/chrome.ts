@@ -7,8 +7,10 @@ import { writeTextAtomically } from '../atomic-write.ts';
 import { argumentsOf, noArguments } from '../ipc/arguments.ts';
 import type { ChromeHandler } from '../ipc/chrome.ts';
 import type { InstallFlowDependencies } from '../extensions/install-flow.ts';
+import type { LatestFetcher } from './fetch.ts';
 import { loadMarketplace, type Fetcher, type MarketplaceState } from './index-client.ts';
 import { installListed } from './install.ts';
+import { latestReleases, type LatestReleases, type Unreviewed } from './latest.ts';
 import { marketplaceEntries } from './listing.ts';
 import { pulledExtensions, type Pulled } from './revocations.ts';
 import type { ExtensionRecords } from '../extensions/records.ts';
@@ -29,6 +31,8 @@ export interface MarketplaceDependencies {
   readonly fetchArchive: Fetcher;
   /** The time, against which the index's dates are checked. */
   readonly now: () => Date;
+  /** Checks for and downloads unreviewed extensions' latest archives, over HTTPS only. */
+  readonly fetchLatest: LatestFetcher;
   /** Where extensions are installed; the serial is kept there. */
   readonly root: string;
   /** The installed extensions' records. */
@@ -68,6 +72,19 @@ function loader(deps: MarketplaceDependencies): () => Promise<MarketplaceState> 
 
 const isExtensionId = argumentsOf((id) => Value.Check(ManifestSchema.properties.id, id));
 
+function latestOf(deps: MarketplaceDependencies): LatestReleases {
+  return latestReleases({
+    root: deps.root,
+    fetcher: deps.fetchLatest,
+    latestUrl: deps.source.latestUrl,
+  });
+}
+
+const unreviewedIn = (state: Extract<MarketplaceState, { status: 'ready' }>): Unreviewed[] =>
+  state.index.extensions.filter(
+    (extension): extension is Unreviewed => extension.review === 'unreviewed',
+  );
+
 /**
  * The Extensions window's marketplace (ADR 0014): the list, downloaded only
  * when the window asks for it, and installing a listed extension by ID. The
@@ -75,6 +92,7 @@ const isExtensionId = argumentsOf((id) => Value.Check(ManifestSchema.properties.
  */
 export function marketplaceHandlers(deps: MarketplaceDependencies): ChromeHandler[] {
   const load = loader(deps);
+  const latest = latestOf(deps);
   return [
     {
       channel: CHROME_CHANNELS.extensionsMarketplace,
@@ -90,16 +108,17 @@ export function marketplaceHandlers(deps: MarketplaceDependencies): ChromeHandle
           await deps.pull(pulled);
         }
         const installed = new Map([...records].map(([id, record]) => [id, record.version]));
+        const versions = await latest.versions(unreviewedIn(state), records);
         return {
           status: 'ready',
-          extensions: marketplaceEntries(state.index, installed, deps.appVersion),
+          extensions: marketplaceEntries(state.index, installed, deps.appVersion, versions),
         };
       },
     },
     {
       channel: CHROME_CHANNELS.extensionsInstallListed,
       accepts: isExtensionId,
-      handle: (_call, id) => installer(deps, load)(id as string),
+      handle: (_call, id) => installer(deps, load, latest)(id as string),
     },
   ];
 }
@@ -107,6 +126,7 @@ export function marketplaceHandlers(deps: MarketplaceDependencies): ChromeHandle
 function installer(
   deps: MarketplaceDependencies,
   load: () => Promise<MarketplaceState>,
+  latest: LatestReleases,
 ): (id: string) => Promise<void> {
   return (id) =>
     installListed(
@@ -116,6 +136,11 @@ function installer(
         appVersion: deps.appVersion,
         download: deps.fetchArchive,
         archiveUrl: deps.source.archiveUrl,
+        latest: latest.download,
+        installed: async (listed) => {
+          const records = await deps.records();
+          return records.get(listed)?.version;
+        },
       },
       id,
     );
@@ -128,7 +153,7 @@ function installer(
  * of links opens at most one prompt.
  */
 export function linkInstaller(deps: MarketplaceDependencies): (id: string) => void {
-  const install = installer(deps, loader(deps));
+  const install = installer(deps, loader(deps), latestOf(deps));
   let busy = false;
   return (id) => {
     if (busy) {

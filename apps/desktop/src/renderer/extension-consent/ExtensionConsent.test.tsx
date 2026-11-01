@@ -12,6 +12,7 @@ const CONSENT: Consent = {
   author: { name: 'Example Ltd', url: 'https://example.com' },
   fingerprint: 'ab:cd:ef',
   trust: 'third-party',
+  source: null,
   update: false,
   capabilities: ['composer:insert-draft', 'custom:unknown'],
   hosts: ['api.example.com'],
@@ -82,13 +83,16 @@ describe('ExtensionConsent', () => {
     expect(t.extensions.answer).toHaveBeenCalledWith(true, false);
   });
 
-  it('shows the key of an extension the marketplace reviewed, and needs no acknowledgement', async () => {
-    const t = setup(() => Promise.resolve({ ...CONSENT, trust: 'reviewed' }));
-    await screen.findByText(/YapYap reviewed this version for the marketplace/);
+  it('names the author’s host of a marketplace extension nobody reviewed, and needs the acknowledgement', async () => {
+    const t = setup(() => Promise.resolve({ ...CONSENT, source: 'downloads.example.org' }));
+    await screen.findByText(
+      /^Third-party, not reviewed: .* It downloads from downloads\.example\.org, its author’s server, which sees your IP address\./,
+    );
     expect(screen.getByText('ab:cd:ef')).toBeTruthy();
-    expect(screen.queryByRole('checkbox')).toBeNull();
+    expect(button('Install').disabled).toBe(true);
+    fireEvent.click(screen.getByRole('checkbox'));
     fireEvent.click(button('Install'));
-    expect(t.extensions.answer).toHaveBeenCalledWith(true, false);
+    expect(t.extensions.answer).toHaveBeenCalledWith(true, true);
   });
 
   it('marks what an update adds, and can be cancelled', async () => {

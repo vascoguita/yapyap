@@ -8,12 +8,13 @@ on:
   workflow_call:
   workflow_dispatch:
   # The extension index expires 30 days after it is signed (ADR 0014), so it is
-  # signed again every week, and as soon as the marketplace entries change.
+  # signed again every week, and as soon as the marketplace entries, or the
+  # way the index is built, change.
   schedule:
     - cron: '17 4 * * 1'
   push:
     branches: [master]
-    paths: [marketplace/**]
+    paths: [marketplace/**, scripts/src/marketplace/**, scripts/src/bin/marketplace-index.ts]
 
 permissions:
   contents: read

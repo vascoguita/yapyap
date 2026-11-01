@@ -17,14 +17,14 @@ const version = (number: string, published = '2026-10-20T08:00:00.000Z') => ({
   published,
 });
 
-const EXTENSION: MarketplaceIndex['extensions'][number] = {
+const EXTENSION: Extract<MarketplaceIndex['extensions'][number], { review: 'official' }> = {
   id: 'org.example.hello',
   name: 'Hello',
   summary: 'Says hello.',
   author: { name: 'Example', url: 'https://example.org' },
   homepage: 'https://example.org/hello',
   license: 'MIT',
-  review: 'reviewed',
+  review: 'official',
   signer: SIGNER,
   versions: [
     version('1.0.0'),
@@ -34,7 +34,7 @@ const EXTENSION: MarketplaceIndex['extensions'][number] = {
 };
 
 const INDEX: MarketplaceIndex = {
-  format: 1,
+  format: 2,
   serial: 1,
   generated: '2026-10-27T08:00:00.000Z',
   expires: '2026-11-20T08:00:00.000Z',
@@ -64,7 +64,7 @@ describe('verifiedIndex', () => {
       },
     ],
     ['not JSON', () => signed('{')],
-    ['not an index', () => signed({ ...INDEX, format: 2 })],
+    ['not an index', () => signed({ ...INDEX, format: 1 })],
     ['expired', () => signed({ ...INDEX, expires: '2026-10-27T09:00:00.000Z' })],
   ])('lists nothing from an index %s', (_case, files) => {
     const { bytes, signature } = files();
@@ -99,7 +99,9 @@ describe('siteExtensions', () => {
         author: { name: 'Example', url: 'https://example.org' },
         homepage: 'https://example.org/hello',
         license: 'MIT',
-        review: 'reviewed',
+        review: 'official',
+        source: null,
+        repository: null,
         asks: ['can composer:insert-draft', 'can local-network'],
         hosts: ['api.example.org'],
         screenshots: [],
@@ -116,6 +118,57 @@ describe('siteExtensions', () => {
         installLink: 'yapyap://extensions/install/org.example.hello',
       },
     ]);
+  });
+
+  it('shows an unreviewed extension with its download host, and nothing it cannot know yet', () => {
+    const unreviewed = {
+      id: 'org.example.third',
+      name: 'Third',
+      summary: 'Made elsewhere.',
+      author: { name: 'Someone' },
+      homepage: 'https://example.net',
+      license: 'MIT',
+      review: 'unreviewed' as const,
+      signer: SIGNER,
+      latest: 'https://downloads.example.net/third/latest.yapyap-extension',
+    };
+    const repository = 'https://git.example.net/third';
+    const [listed] = siteExtensions(
+      { ...INDEX, extensions: [{ ...unreviewed, repository }] },
+      describeCapability,
+    );
+    expect(listed).toEqual({
+      ...unreviewed,
+      latest: undefined,
+      signer: undefined,
+      author: { name: 'Someone', url: null },
+      source: 'downloads.example.net',
+      repository,
+      asks: [],
+      hosts: [],
+      screenshots: [],
+      versions: [],
+      installLink: 'yapyap://extensions/install/org.example.third',
+    });
+    expect(
+      siteExtensions({ ...INDEX, extensions: [unreviewed] }, describeCapability)[0]?.repository,
+    ).toBeNull();
+    const pulled = { id: unreviewed.id, signer: SIGNER, reason: 'Gone.' };
+    for (const [versions, shown] of [
+      ['*', 0],
+      [['1.0.0'], 1],
+    ] as const) {
+      expect(
+        siteExtensions(
+          {
+            ...INDEX,
+            extensions: [unreviewed],
+            revoked: [{ ...pulled, versions: versions as never }],
+          },
+          describeCapability,
+        ),
+      ).toHaveLength(shown);
+    }
   });
 
   it('leaves out pulled versions, and extensions with none left', () => {

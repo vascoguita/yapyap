@@ -47,33 +47,65 @@ const MarketplaceVersion = Type.Object(
   { additionalProperties: false },
 );
 
-const MarketplaceExtension = Type.Object(
-  {
-    id: ExtensionId,
-    name: Name,
-    summary: Type.String({ minLength: 1, maxLength: 300 }),
-    author: Author,
-    homepage: Type.String({ pattern: '^https://', maxLength: 300 }),
-    license: Type.String({ pattern: '^[A-Za-z0-9.+() -]{1,100}$' }),
-    review: Type.Union([Type.Literal('official'), Type.Literal('reviewed')]),
-    signer: Fingerprint,
-    versions: Type.Array(MarketplaceVersion, { minItems: 1, maxItems: 50 }),
-    /** Pictures of the extension in use, served beside the index (#434). */
-    screenshots: Type.Optional(
-      Type.Array(
-        Type.Object(
-          {
-            url: Type.String({
-              pattern: String.raw`^https://packages\.guita\.org/extensions/`,
-              maxLength: 300,
-            }),
-            caption: Type.String({ minLength: 1, maxLength: 200 }),
-          },
-          { additionalProperties: false },
-        ),
-        { maxItems: 5 },
+const Https = Type.String({ pattern: '^https://', maxLength: 300 });
+
+/**
+ * A plain HTTPS address with a host and a path: no credentials, no fragment,
+ * no spaces. It always serves the author's latest archive (ADR 0014).
+ */
+const LatestUrl = Type.String({
+  pattern: String.raw`^https://[a-z0-9.-]+(?::[0-9]{1,5})?/[^\s#@]*$`,
+  maxLength: 400,
+});
+
+/** What every listed extension has, official or not. */
+const listed = {
+  id: ExtensionId,
+  name: Name,
+  summary: Type.String({ minLength: 1, maxLength: 300 }),
+  author: Author,
+  homepage: Https,
+  license: Type.String({ pattern: '^[A-Za-z0-9.+() -]{1,100}$' }),
+  signer: Fingerprint,
+  /** Pictures of the extension in use, served beside the index (#434). */
+  screenshots: Type.Optional(
+    Type.Array(
+      Type.Object(
+        {
+          url: Type.String({
+            pattern: String.raw`^https://packages\.guita\.org/extensions/`,
+            maxLength: 300,
+          }),
+          caption: Type.String({ minLength: 1, maxLength: 200 }),
+        },
+        { additionalProperties: false },
       ),
+      { maxItems: 5 },
     ),
+  ),
+};
+
+/** YapYap's own extension: each version pinned by its size and SHA-256, beside the index. */
+const OfficialExtension = Type.Object(
+  {
+    ...listed,
+    review: Type.Literal('official'),
+    versions: Type.Array(MarketplaceVersion, { minItems: 1, maxItems: 50 }),
+  },
+  { additionalProperties: false },
+);
+
+/**
+ * A third-party extension nobody reviewed: whatever its `latest` address
+ * serves, as long as `signer`'s key signed it for this ID (ADR 0014).
+ */
+const UnreviewedExtension = Type.Object(
+  {
+    ...listed,
+    review: Type.Literal('unreviewed'),
+    latest: LatestUrl,
+    /** Where the extension's source code lives. */
+    repository: Type.Optional(Https),
   },
   { additionalProperties: false },
 );
@@ -89,19 +121,23 @@ const Revocation = Type.Object(
 );
 
 /**
- * The extension marketplace's index (ADR 0014): the official and reviewed
- * extensions, each version's archive hash, and the versions pulled since.
+ * The extension marketplace's index (ADR 0014): the official extensions,
+ * each version's archive hash, the unreviewed third-party extensions, each
+ * with its latest-release address and its author's key, and the versions
+ * pulled since.
  * YapYap trusts it only with a valid signature from a first-party key, a
  * `serial` no lower than the last one it accepted, and an unexpired
  * `expires`.
  */
 export const MarketplaceIndexSchema = Type.Object(
   {
-    format: Type.Literal(1),
+    format: Type.Literal(2),
     serial: Type.Integer({ minimum: 1 }),
     generated: Time,
     expires: Time,
-    extensions: Type.Array(MarketplaceExtension, { maxItems: 1000 }),
+    extensions: Type.Array(Type.Union([OfficialExtension, UnreviewedExtension]), {
+      maxItems: 1000,
+    }),
     revoked: Type.Array(Revocation, { maxItems: 1000 }),
   },
   { additionalProperties: false },

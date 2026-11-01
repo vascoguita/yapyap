@@ -9,17 +9,22 @@ export interface Listing {
   readonly id: string;
   readonly name: string;
   readonly summary: string;
-  readonly review: 'official' | 'reviewed';
+  readonly review: 'official' | 'unreviewed';
   readonly capabilities: readonly string[];
   readonly hosts: readonly string[];
   readonly author?: string;
+  /** Signs an unreviewed extension's latest archive with a key other than the listed one. */
+  readonly wrongKey?: boolean;
 }
+
+/** Where unreviewed extensions' authors publish their latest archives, in the index. */
+export const AUTHOR_HOST = 'downloads.example.org';
 
 const HELLO: Listing = {
   id: 'org.example.hello',
   name: 'Hello',
   summary: 'Says hello in your drafts.',
-  review: 'reviewed',
+  review: 'unreviewed',
   capabilities: ['composer:insert-draft'],
   hosts: ['api.example.org'],
 };
@@ -29,50 +34,38 @@ export interface FakeMarketplace {
   readonly origin: string;
   readonly anchor: string;
   readonly server: Server;
+  /** Publishes a new latest archive of an unreviewed listing, as its author would. */
+  readonly release: (id: string, version: string) => void;
 }
 
-/** A local marketplace: a signed index listing `listings`, and each one's archive. */
-export async function fakeMarketplace(
-  listings: readonly Listing[] = [HELLO],
-): Promise<FakeMarketplace> {
-  const author = testKey();
+const sha256 = (bytes: Uint8Array): string =>
+  `sha256-${createHash('sha256').update(bytes).digest('base64')}`;
+
+/** An official listing: each version pinned beside the index. */
+function official(listing: Listing, archive: Uint8Array, signer: string, now: number) {
+  return {
+    review: 'official',
+    signer,
+    versions: [
+      {
+        version: '1.0.0',
+        size: archive.length,
+        sha256: sha256(archive),
+        capabilities: listing.capabilities,
+        hosts: listing.hosts,
+        minYapYap: '0.0.1',
+        published: new Date(now - 60_000).toISOString(),
+      },
+    ],
+  };
+}
+
+/** The index's bytes, its signature by a key made for the test, and that key, to trust. */
+function signedIndex(extensions: readonly object[], now: number) {
   const indexKey = generateKeyPairSync('ed25519');
-  const now = Date.now();
-  const files = new Map<string, Uint8Array>();
-  const extensions = listings.map((listing) => {
-    const manifest = testManifest({
-      id: listing.id,
-      name: listing.name,
-      capabilities: [...listing.capabilities],
-      network: { hosts: [...listing.hosts] },
-    });
-    const archive = zipArchive(signedArchive(author, manifest));
-    files.set(`/extensions/${listing.id}/${listing.id}-1.0.0.yapyap-extension`, archive);
-    return {
-      id: listing.id,
-      name: listing.name,
-      summary: listing.summary,
-      author: { name: listing.author ?? 'Example Author' },
-      homepage: 'https://example.org/hello',
-      license: 'MIT',
-      review: listing.review,
-      signer: author.fingerprint,
-      versions: [
-        {
-          version: '1.0.0',
-          size: archive.length,
-          sha256: `sha256-${createHash('sha256').update(archive).digest('base64')}`,
-          capabilities: listing.capabilities,
-          hosts: listing.hosts,
-          minYapYap: '0.0.1',
-          published: new Date(now - 60_000).toISOString(),
-        },
-      ],
-    };
-  });
   const index = new TextEncoder().encode(
     JSON.stringify({
-      format: 1,
+      format: 2,
       serial: Math.floor(now / 1000),
       generated: new Date(now - 60_000).toISOString(),
       expires: new Date(now + 86_400_000).toISOString(),
@@ -80,21 +73,78 @@ export async function fakeMarketplace(
       revoked: [],
     }),
   );
-  files.set('/extensions/index.json', index);
-  files.set(
-    '/extensions/index.json.sig',
-    new TextEncoder().encode(signIndex(index, indexKey.privateKey)),
-  );
+  return {
+    index,
+    signature: new TextEncoder().encode(signIndex(index, indexKey.privateKey)),
+    anchor: indexKey.publicKey.export({ format: 'pem', type: 'spki' }),
+  };
+}
+
+/**
+ * A local marketplace: a signed index listing `listings`, each official
+ * one's archive beside it, and each unreviewed one's latest archive on its
+ * author's host, which YapYap reaches under `/latest/<host>` in tests.
+ */
+export async function fakeMarketplace(
+  listings: readonly Listing[] = [HELLO],
+): Promise<FakeMarketplace> {
+  const author = testKey();
+  const stranger = testKey();
+  const now = Date.now();
+  const files = new Map<string, Uint8Array>();
+  const archiveOf = (listing: Listing, version: string) =>
+    zipArchive(
+      signedArchive(
+        listing.wrongKey === true ? stranger : author,
+        testManifest({
+          id: listing.id,
+          name: listing.name,
+          version,
+          capabilities: [...listing.capabilities],
+          network: { hosts: [...listing.hosts] },
+        }),
+      ),
+    );
+  const latestPath = (id: string) => `/latest/${AUTHOR_HOST}/${id}/latest.yapyap-extension`;
+  const extensions = listings.map((listing) => {
+    const archive = archiveOf(listing, '1.0.0');
+    const common = {
+      id: listing.id,
+      name: listing.name,
+      summary: listing.summary,
+      author: { name: listing.author ?? 'Example Author' },
+      homepage: 'https://example.org/hello',
+      license: 'MIT',
+    };
+    if (listing.review === 'unreviewed') {
+      files.set(latestPath(listing.id), archive);
+      const latest = `https://${AUTHOR_HOST}/${listing.id}/latest.yapyap-extension`;
+      return { ...common, review: 'unreviewed', signer: author.fingerprint, latest };
+    }
+    files.set(`/extensions/${listing.id}/${listing.id}-1.0.0.yapyap-extension`, archive);
+    return { ...common, ...official(listing, archive, author.fingerprint, now) };
+  });
+  const { index, signature, anchor } = signedIndex(extensions, now);
+  files.set('/extensions/index.json', index).set('/extensions/index.json.sig', signature);
   const server = createServer((request, response) => {
     const body = files.get(request.url ?? '');
-    response.writeHead(body === undefined ? 404 : 200).end(body);
+    // An ETag lets YapYap tell with HEAD that a latest archive did not change.
+    const headers = body === undefined ? {} : { ETag: `"${sha256(body)}"` };
+    response.writeHead(body === undefined ? 404 : 200, headers).end(body);
   });
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   const { port } = server.address() as AddressInfo;
+  const listed = new Map(listings.map((listing) => [listing.id, listing]));
   return {
     origin: `http://127.0.0.1:${String(port)}`,
-    anchor: indexKey.publicKey.export({ format: 'pem', type: 'spki' }),
+    anchor,
     server,
+    release: (id, version) => {
+      const listing = listed.get(id);
+      if (listing !== undefined) {
+        files.set(latestPath(id), archiveOf(listing, version));
+      }
+    },
   };
 }
 

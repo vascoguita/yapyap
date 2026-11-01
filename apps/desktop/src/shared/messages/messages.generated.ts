@@ -593,7 +593,6 @@ export interface Messages {
     readonly version: (params: { readonly version: string | number }) => string;
     readonly trust: {
       readonly 'first-party': string;
-      readonly reviewed: string;
       readonly 'third-party': string;
       readonly developer: string;
     };
@@ -625,13 +624,13 @@ export interface Messages {
       readonly key: string;
       readonly unsigned: string;
       readonly firstParty: string;
-      readonly reviewed: string;
       readonly asks: string;
       readonly updateAsks: string;
       readonly added: string;
       readonly hosts: string;
       readonly nothing: string;
       readonly risk: string;
+      readonly marketplaceRisk: (params: { readonly host: string | number }) => string;
       readonly unsignedRisk: string;
       readonly acknowledge: string;
       readonly confirmInstall: string;
@@ -681,6 +680,7 @@ export interface Messages {
       readonly outdated: string;
       readonly retry: string;
       readonly empty: string;
+      readonly from: (params: { readonly host: string | number }) => string;
       readonly by: (params: { readonly name: string | number }) => string;
       readonly version: (params: { readonly version: string | number }) => string;
       readonly install: string;
@@ -697,6 +697,13 @@ export interface Messages {
       readonly privacy: string;
       readonly mismatch: string;
       readonly unlisted: string;
+      readonly latestUnreachable: (params: { readonly host: string | number }) => string;
+      readonly wrongKey: (params: { readonly host: string | number }) => string;
+      readonly pulledLatest: (params: { readonly host: string | number }) => string;
+      readonly noUpdate: (params: {
+        readonly host: string | number;
+        readonly version: string | number;
+      }) => string;
     };
   };
   readonly notifications: {

@@ -82,12 +82,15 @@ function setup(root: string, developerMode = false, overrides: object = {}) {
         indexUrl: 'https://packages.example/extensions/index.json',
         signatureUrl: 'https://packages.example/extensions/index.json.sig',
         archiveUrl: (id: string, version: string) => `https://packages.example/${id}-${version}`,
+        latestUrl: (latest: string) => latest,
+        secure: () => true,
         anchors: [],
       },
       appVersion: '0.1.2',
       fetchIndex: vi.fn(() => Promise.resolve(undefined)),
       fetchArchive: vi.fn(() => Promise.resolve(undefined)),
       now: () => new Date(0),
+      fetchLatest: { head: vi.fn(), download: vi.fn() },
     },
     ...overrides,
   };
@@ -147,7 +150,7 @@ describe('createExtensionChrome', () => {
       author: { name: 'Example' },
       homepage: 'https://example.org',
       license: 'MIT',
-      review: 'reviewed',
+      review: 'official',
       signer: Array.from({ length: 32 }, () => 'ab').join(':'),
       versions: [
         {
@@ -164,7 +167,7 @@ describe('createExtensionChrome', () => {
     const NOW = new Date('2026-10-27T09:00:00.000Z');
     const bytes = new TextEncoder().encode(
       JSON.stringify({
-        format: 1,
+        format: 2,
         serial: 1,
         generated: '2026-10-27T08:59:00.000Z',
         expires: '2026-10-28T09:00:00.000Z',
@@ -181,12 +184,15 @@ describe('createExtensionChrome', () => {
           indexUrl: 'https://packages.example/index.json',
           signatureUrl: 'https://packages.example/index.json.sig',
           archiveUrl: () => 'https://packages.example/archive',
+          latestUrl: (latest: string) => latest,
+          secure: () => true,
           anchors: [key.publicKey.export({ format: 'pem', type: 'spki' })],
         },
         appVersion: '0.1.2',
         fetchIndex: (url: string) => Promise.resolve(url.endsWith('.sig') ? signature : bytes),
         fetchArchive: () => Promise.resolve(undefined),
         now: () => NOW,
+        fetchLatest: { head: vi.fn(), download: vi.fn() },
       },
     });
     const signer = extension.signer;
@@ -591,12 +597,15 @@ describe('installFlow', () => {
           indexUrl: 'https://packages.example/extensions/index.json',
           signatureUrl: 'https://packages.example/extensions/index.json.sig',
           archiveUrl: (id: string, version: string) => `https://packages.example/${id}-${version}`,
+          latestUrl: (latest: string) => latest,
+          secure: () => true,
           anchors: [],
         },
         appVersion: '0.1.2',
         fetchIndex: vi.fn(() => Promise.resolve(undefined)),
         fetchArchive: vi.fn(() => Promise.resolve(undefined)),
         now: () => new Date(0),
+        fetchLatest: { head: vi.fn(), download: vi.fn() },
       },
     };
     const started = vi.fn();

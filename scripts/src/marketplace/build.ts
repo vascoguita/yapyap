@@ -6,45 +6,60 @@ import {
 import { signIndex, verifyIndex } from '../../../packages/extension-sign/src/index-signature.ts';
 import { matchesIntegrity } from '../../../packages/extension-sign/src/integrity.ts';
 import { readPrivateKey } from '../../../packages/extension-sign/src/keys.ts';
-import { ManifestSchema } from '../../../packages/sdk/src/manifest.ts';
+import { ManifestSchema, type Manifest } from '../../../packages/sdk/src/manifest.ts';
 import {
   MARKETPLACE_MAX_VALIDITY_MS,
   marketplaceArchiveUrl,
   MarketplaceIndexSchema,
   type MarketplaceIndex,
 } from '../../../packages/sdk/src/marketplace.ts';
-import type { Entry, Revocations } from './entries.ts';
+import type { Entry, OfficialEntry, Revocations, UnreviewedEntry } from './entries.ts';
 import { screenshotsOf } from './screenshots.ts';
 
 type Listed = MarketplaceIndex['extensions'][number];
-type ListedVersion = Listed['versions'][number];
+type OfficialListing = Extract<Listed, { review: 'official' }>;
+type ListedVersion = OfficialListing['versions'][number];
 
 /** What an archive's manifest says, as far as the index repeats it. */
 interface Described {
   readonly name: string;
-  readonly author: Listed['author'];
+  readonly author: OfficialListing['author'];
   readonly version: ListedVersion;
 }
 
 /** A version's notes, when its entry has any; the index leaves the field out otherwise. */
-const notesOf = ({ notes }: Entry['versions'][number]): { notes?: string } =>
+type EntryVersion = OfficialEntry['versions'][number];
+
+const notesOf = ({ notes }: EntryVersion): { notes?: string } =>
   notes === undefined ? {} : { notes };
 
-/** Reads a version's manifest for the index, after its signature and identity check out. */
-function describe(entry: Entry, listed: Entry['versions'][number], bytes: Uint8Array): Described {
+/**
+ * An archive's manifest, once its files, its signature by `signer`'s key, its
+ * manifest and its ID check out; throws with what is wrong otherwise.
+ */
+export function checkedManifest(bytes: Uint8Array, id: string, signer: string): Manifest {
   const { manifest, files } = readExtensionArchive(bytes);
   const verification = verifyArchive({ manifest, files });
   if (!verification.valid) {
     throw new Error(verification.reason);
   }
-  if (verification.fingerprint !== entry.signer) {
+  if (verification.fingerprint !== signer) {
     throw new Error(`it is signed by ${verification.fingerprint}, not the listed key.`);
   }
   if (!Value.Check(ManifestSchema, manifest)) {
     throw new Error('its manifest does not match the manifest schema.');
   }
-  if (manifest.id !== entry.id || manifest.version !== listed.version) {
-    throw new Error('its manifest names another extension or version.');
+  if (manifest.id !== id) {
+    throw new Error('its manifest names another extension.');
+  }
+  return manifest;
+}
+
+/** Reads a version's manifest for the index, after its signature and identity check out. */
+function describe(entry: OfficialEntry, listed: EntryVersion, bytes: Uint8Array): Described {
+  const manifest = checkedManifest(bytes, entry.id, entry.signer);
+  if (manifest.version !== listed.version) {
+    throw new Error('its manifest names another version.');
   }
   return {
     name: manifest.name,
@@ -64,8 +79,8 @@ function describe(entry: Entry, listed: Entry['versions'][number], bytes: Uint8A
 
 /** One listed version, checked against the archive downloaded from its source. */
 function checkVersion(
-  entry: Entry,
-  listed: Entry['versions'][number],
+  entry: OfficialEntry,
+  listed: EntryVersion,
   bytes: Uint8Array | undefined,
   anchors: ReadonlySet<string>,
 ): Described {
@@ -75,18 +90,18 @@ function checkVersion(
   if (!matchesIntegrity(bytes, listed.sha256)) {
     throw new Error('its archive does not match the listed SHA-256.');
   }
-  if (entry.review === 'official' && !anchors.has(entry.signer)) {
+  if (!anchors.has(entry.signer)) {
     throw new Error('an official extension must be signed by a trust anchor.');
   }
   return describe(entry, listed, bytes);
 }
 
-/** An extension as the index lists it, named after its newest version's manifest. */
-function listExtension(
-  entry: Entry,
+/** An official extension as the index lists it, named after its newest version's manifest. */
+function listOfficial(
+  entry: OfficialEntry,
   archives: ReadonlyMap<string, Uint8Array>,
   anchors: ReadonlySet<string>,
-): Listed {
+): OfficialListing {
   const described = entry.versions.map((listed) => {
     try {
       return checkVersion(entry, listed, archives.get(listed.source), anchors);
@@ -111,6 +126,36 @@ function listExtension(
     author: newest.author,
     versions: described.map(({ version }) => version),
   };
+}
+
+/**
+ * A third-party extension as its entry gives it (ADR 0014). Its archive is
+ * never downloaded here: the index is signed again every week, and an
+ * author's server being down must not stop that.
+ */
+function listUnreviewed(entry: UnreviewedEntry): Listed {
+  return {
+    id: entry.id,
+    name: entry.name,
+    summary: entry.summary,
+    author: entry.author,
+    homepage: entry.homepage,
+    license: entry.license,
+    review: entry.review,
+    signer: entry.signer,
+    latest: entry.latest,
+    ...(entry.repository === undefined ? {} : { repository: entry.repository }),
+  };
+}
+
+function listExtension(
+  entry: Entry,
+  archives: ReadonlyMap<string, Uint8Array>,
+  anchors: ReadonlySet<string>,
+): Listed {
+  return entry.review === 'official'
+    ? listOfficial(entry, archives, anchors)
+    : listUnreviewed(entry);
 }
 
 /** The listed extension with its entry's screenshots, when it has any. */
@@ -140,7 +185,7 @@ export interface IndexSources {
 export function buildIndex(sources: IndexSources): MarketplaceIndex {
   const { entries, revoked, archives, anchors, now } = sources;
   const index: MarketplaceIndex = {
-    format: 1,
+    format: 2,
     serial: Math.floor(now.getTime() / 1000),
     generated: now.toISOString(),
     expires: new Date(now.getTime() + MARKETPLACE_MAX_VALIDITY_MS).toISOString(),
@@ -155,12 +200,15 @@ export function buildIndex(sources: IndexSources): MarketplaceIndex {
   return index;
 }
 
+const officialOf = (entries: readonly Entry[]): OfficialEntry[] =>
+  entries.filter((entry): entry is OfficialEntry => entry.review === 'official');
+
 /**
- * Cloudflare Pages redirects from each archive's marketplace address to
- * its release asset, as the package repositories do (ADR 0003).
+ * Cloudflare Pages redirects from each official archive's marketplace
+ * address to its release asset, as the package repositories do (ADR 0003).
  */
 export function archiveRedirects(entries: readonly Entry[]): string {
-  return entries
+  return officialOf(entries)
     .flatMap(({ id, versions }) =>
       versions.map(({ version, source }) => {
         const path = new URL(marketplaceArchiveUrl(id, version)).pathname;
@@ -170,9 +218,9 @@ export function archiveRedirects(entries: readonly Entry[]): string {
     .join('\n');
 }
 
-/** Every source to download, each once. */
+/** Every official source to download, each once. */
 export const sourcesOf = (entries: readonly Entry[]): string[] => [
-  ...new Set(entries.flatMap(({ versions }) => versions.map(({ source }) => source))),
+  ...new Set(officialOf(entries).flatMap(({ versions }) => versions.map(({ source }) => source))),
 ];
 
 /**

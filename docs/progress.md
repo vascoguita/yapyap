@@ -288,3 +288,17 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   aside like a damaged one; the read-only mode for a newer build's settings,
   the assistant extension's import and its one-time bar note are gone.
   From 1.0, settings migrations start again at version 1.
+- Third-party extensions without review (#419, ADR 0014 amendment, C46):
+  the maintainer does not review other authors' extensions, so
+  `index.json` (now `format: 2`, with no copy in the first format) lists
+  them as `unreviewed`, each with the HTTPS address of its author's latest
+  release, on any host, and the author's key fingerprint, but no versions
+  or hashes. The author adds the entry once by pull request; CI checks what
+  that address serves on that pull request only (`marketplace-latest.ts`,
+  through `publicGet`: public HTTPS hosts only, every redirect checked, the
+  download capped at the archive limit). YapYap installs the latest archive
+  only if the listed key signed it for the listed ID, names the author's
+  server in the consent window and needs the at-your-own-risk
+  acknowledgement. Updates are noticed with a `HEAD` request whose ETag and
+  Last-Modified are compared on the computer, never sent back. The review
+  checklist, the submission issue form and `reviewed` are gone.

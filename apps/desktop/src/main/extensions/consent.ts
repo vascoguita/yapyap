@@ -25,12 +25,12 @@ const answerArguments = (args: readonly unknown[]): boolean =>
   args.length === 2 && typeof args[0] === 'boolean' && typeof args[1] === 'boolean';
 
 /**
- * YapYap reviewed only its own extensions and the marketplace's reviewed ones
- * (ADR 0014), so any other extension installs only once the user says they
- * accept the risk, whatever the page shows.
+ * YapYap reviews only its own extensions (ADR 0004, ADR 0014), so any other
+ * extension, from a file or the marketplace, installs only once the user
+ * says they accept the risk, whatever the page shows.
  */
 function allowed(consent: ExtensionConsent, acknowledged: boolean): boolean {
-  return consent.trust === 'first-party' || consent.trust === 'reviewed' || acknowledged;
+  return consent.trust === 'first-party' || acknowledged;
 }
 
 function consentHandlers(owned: (call: ChromeCall) => ActivePrompt): ChromeHandler[] {

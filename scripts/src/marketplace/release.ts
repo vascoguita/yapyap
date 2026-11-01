@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { RELEASE_DOWNLOADS } from '../release/releases.ts';
-import type { Entry } from './entries.ts';
+import type { OfficialEntry } from './entries.ts';
 
 /** The marketplace's own limits on a version's notes (#434) and an extension's versions. */
 const MAX_NOTES = 2000;
@@ -61,12 +61,12 @@ export function plainNotes(changelog: string): string | undefined {
  * released for the first time gets an official entry from the defaults.
  */
 export function withRelease(
-  entry: Entry | undefined,
+  entry: OfficialEntry | undefined,
   release: Release,
   defaults: EntryDefaults,
-): Entry {
+): OfficialEntry {
   const notes = plainNotes(release.notes);
-  const listed: Entry['versions'][number] = {
+  const listed: OfficialEntry['versions'][number] = {
     version: release.version,
     tag: release.tag,
     source: `${RELEASE_DOWNLOADS}/${release.tag}/${release.file}`,
@@ -75,7 +75,7 @@ export function withRelease(
     published: release.published,
     ...(notes === undefined ? {} : { notes }),
   };
-  const base: Entry = entry ?? {
+  const base: OfficialEntry = entry ?? {
     id: release.id,
     ...defaults,
     review: 'official',

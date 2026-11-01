@@ -212,12 +212,13 @@ nothing else.
 
 The marketplace (ADR 0014) lists the extensions in `marketplace/extensions/`, one
 `<id>.json` per extension, and the pulled versions in `marketplace/revoked.json`.
-The package repositories workflow builds `extensions/index.json` from them,
-downloads and checks every archive, signs the index with
-`EXTENSION_SIGNING_KEY`, and deploys it to packages.guita.org every Monday and
-whenever `marketplace/` changes on `master`. The index expires 30 days after
-it is signed, so a stopped schedule takes the marketplace down within a
-month: re-run **Package repositories** by hand if it fails.
+The package repositories workflow builds `extensions/index.json` from them. It
+downloads and checks every official archive, signs the index with `EXTENSION_SIGNING_KEY`, and deploys it to
+packages.guita.org every Monday and whenever `marketplace/` changes on
+`master`. It never downloads third-party archives, so an author's server
+being down cannot stop it. The index expires 30 days after it is signed, so
+a stopped schedule takes the marketplace down within a month: re-run
+**Package repositories** by hand if it fails.
 
 Official extensions are released on their own (#474), so listing a new
 version takes no hand edits:
@@ -235,22 +236,18 @@ version takes no hand edits:
    deployed again with the version in it. CI checks the entry, as
    `node scripts/src/bin/marketplace-index.ts marketplace` does locally.
 
-To list a reviewed third-party version from an extension submission issue:
-
-1. Download the archive, check its SHA-256 against the submission, and
-   verify it: `node packages/extension-sign/src/bin/yapyap-extension-sign.ts
-verify <file>` prints the signer, which must match the submission (and
-   the entry's `signer` for later versions).
-2. Review it against the checklist in
-   [the extension guide](https://yapyap.guita.org/extensions/marketplace#the-review-checklist):
-   unpack it and read every file, compare it with the tag in the
-   repository, and check each capability, host and the privacy policy.
-3. Upload the unchanged archive to the release that holds reviewed
-   archives. Where that is is still to be decided (#419), so no
-   third-party extension can be listed until then.
-4. Open a pull request adding or updating `marketplace/extensions/<id>.json`
-   with `review: "reviewed"`, the `repository`, and the version's `tag`,
-   with `source` pointing at that asset. Link the submission.
+Third-party extensions are not reviewed (#419). Their author opens one pull
+request adding `marketplace/extensions/<id>.json` with `review: "unreviewed"`,
+the `latest` address of their newest release and their key's `signer`
+fingerprint, as [the extension guide](https://yapyap.guita.org/extensions/marketplace#listing-your-extension)
+describes; after that they release on their own, and the marketplace offers
+each release signed by that key. CI checks the entry's shape and, on that
+pull request only, the archive `latest` serves, as
+`node scripts/src/bin/marketplace-latest.ts marketplace/extensions/<id>.json`
+does locally: a wrong archive or an error status fails, a server that does
+not answer only warns. Merge it once CI passes and the entry's own text
+pretends to be nobody else; the extension itself is not reviewed, and
+users are told so.
 
 To take an extension down, add the version, or `"*"` for all of them, to
 `revoked.json` with the signer's fingerprint and a reason the user will

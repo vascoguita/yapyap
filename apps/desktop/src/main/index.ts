@@ -85,7 +85,7 @@ import {
 import { startApp } from './start/start.ts';
 import { MARKETPLACE_INDEX_MAX_BYTES } from '@yapyap/extension-sdk';
 import { ARCHIVE_LIMITS, anchorFingerprints, TRUST_ANCHORS } from '@yapyap/extension-sign';
-import { cappedFetcher } from './marketplace/fetch.ts';
+import { cappedFetcher, guardedSession, latestFetcher } from './marketplace/fetch.ts';
 import { marketplaceSource } from './marketplace/source.ts';
 import { electronExtensionDialogs } from './extensions/extension-dialogs.ts';
 import { findLocalModels, loopbackRequest, modelServerPorts } from './assistant/local-servers.ts';
@@ -246,14 +246,20 @@ const assistantFetch = confinedFetch(
   assistantReach,
 );
 
+const MARKETPLACE = marketplaceSource(process.env, app.isPackaged, TRUST_ANCHORS);
+
 /**
  * A plain request for the marketplace (ADR 0014), on an in-memory session of
- * its own: no cookies, no cache and nothing that identifies the user.
+ * its own: no cookies, no cache and nothing that identifies the user, and no
+ * plain HTTP. Unreviewed extensions' authors' servers get the same, and no more.
  */
-const marketplaceRequest = (url: string) =>
-  session
-    .fromPartition('yapyap-marketplace')
-    .fetch(url, { credentials: 'omit', cache: 'no-store' });
+const marketplaceSession = guardedSession(
+  () => session.fromPartition('yapyap-marketplace'),
+  MARKETPLACE.secure,
+);
+const marketplaceRequest = (url: string, method: 'GET' | 'HEAD') =>
+  marketplaceSession().fetch(url, { method, credentials: 'omit', cache: 'no-store' });
+const marketplaceGet = (url: string) => marketplaceRequest(url, 'GET');
 
 const chrome = createChromeFeature({
   notify,
@@ -361,10 +367,11 @@ const chrome = createChromeFeature({
     root: join(app.getPath('userData'), 'extensions'),
     anchors: anchorFingerprints(TRUST_ANCHORS),
     marketplace: {
-      source: marketplaceSource(process.env, app.isPackaged, TRUST_ANCHORS),
+      source: MARKETPLACE,
       appVersion: app.getVersion(),
-      fetchIndex: cappedFetcher(marketplaceRequest, MARKETPLACE_INDEX_MAX_BYTES),
-      fetchArchive: cappedFetcher(marketplaceRequest, ARCHIVE_LIMITS.archiveBytes),
+      fetchIndex: cappedFetcher(marketplaceGet, MARKETPLACE_INDEX_MAX_BYTES),
+      fetchArchive: cappedFetcher(marketplaceGet, ARCHIVE_LIMITS.archiveBytes),
+      fetchLatest: latestFetcher(marketplaceRequest, ARCHIVE_LIMITS.archiveBytes),
       now: () => new Date(),
     },
     sessionOf: (partition) => session.fromPartition(partition),

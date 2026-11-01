@@ -8,7 +8,7 @@ const NOW = new Date('2026-10-27T09:00:00.000Z');
 const DAY = 86_400_000;
 
 const INDEX: MarketplaceIndex = {
-  format: 1,
+  format: 2,
   serial: 100,
   generated: '2026-10-27T08:00:00.000Z',
   expires: '2026-11-20T08:00:00.000Z',
@@ -69,7 +69,7 @@ describe('loadMarketplace', () => {
       () => ({ ...served(INDEX), bytes: encode(JSON.stringify(INDEX) + ' ') }),
     ],
     ['not JSON', () => served(new String('{'))],
-    ['not an index', () => served({ ...INDEX, format: 2 })],
+    ['not an index', () => served({ ...INDEX, format: 1 })],
     ['larger than 2 MiB', () => served({ ...INDEX, padding: 'x'.repeat(2 * 1024 * 1024) })],
   ])('refuses an index %s, and remembers nothing', async (_case, files) => {
     const t = setup(files());

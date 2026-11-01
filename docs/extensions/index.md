@@ -231,6 +231,11 @@ the user installs one. To update, raise `version`, sign with the same key
 and publish the new archive. An update that asks for new capabilities or
 hosts waits until the user approves them.
 
+To appear in YapYap's marketplace, open one pull request that lists the
+address of your latest release and your key's fingerprint; the marketplace
+then offers each new release on its own. See
+[listing your extension](/extensions/marketplace#listing-your-extension).
+
 ## Threat model
 
 YapYap assumes an extension may be buggy, compromised or hostile, and holds the

@@ -178,7 +178,7 @@ const LISTINGS: readonly Listing[] = [
     id: 'org.example.translate',
     name: 'Translate',
     summary: 'Translates your draft into the language of the chat before you send it.',
-    review: 'reviewed',
+    review: 'unreviewed',
     capabilities: ['composer:read-draft', 'composer:insert-draft'],
     hosts: ['api.example.org'],
   },

@@ -181,7 +181,7 @@ const faqs: readonly { readonly question: string; readonly answer: string }[] = 
         </p>
         <ul>
           <li>
-            A marketplace of official and reviewed extensions, installed in one click
+            A marketplace of official and third-party extensions, installed in one click
             <span class="planned">Coming soon</span>
           </li>
           <li>

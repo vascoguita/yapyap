@@ -124,10 +124,9 @@ export interface SidebarState {
 
 /**
  * Who vouches for an extension: YapYap's own key, another author's key the user
- * pins on first install, that key reviewed by YapYap for the marketplace
- * (ADR 0014), or nobody (Developer Mode only).
+ * pins on first install, or nobody (Developer Mode only).
  */
-export type ExtensionTrust = 'first-party' | 'reviewed' | 'third-party' | 'developer';
+export type ExtensionTrust = 'first-party' | 'third-party' | 'developer';
 
 /** Grants an extension asks for: capabilities, and network hosts one by one. */
 interface ExtensionGrants {
@@ -144,6 +143,11 @@ export interface ExtensionConsent extends ExtensionGrants {
   /** The signing key's fingerprint; null for an unsigned extension. */
   readonly fingerprint: string | null;
   readonly trust: ExtensionTrust;
+  /**
+   * The host a third-party extension from the marketplace downloads from, its
+   * author's own (ADR 0014); null for one from a file or YapYap's own host.
+   */
+  readonly source: string | null;
   /** An update to an installed extension, which asks only because it wants more. */
   readonly update: boolean;
   /** On an update, what it asks for that was not granted before. */
@@ -157,10 +161,16 @@ export interface MarketplaceEntry {
   readonly summary: string;
   readonly author: { readonly name: string; readonly url: string | null };
   readonly homepage: string;
-  /** YapYap's own extension, or a third-party extension the maintainer reviewed. */
-  readonly review: 'official' | 'reviewed';
-  /** The newest version this YapYap runs, or the newest listed when none does. */
-  readonly version: string;
+  /** YapYap's own extension, or a third-party extension nobody reviewed. */
+  readonly review: 'official' | 'unreviewed';
+  /** The host an unreviewed extension downloads from; null for an official one. */
+  readonly source: string | null;
+  /**
+   * The newest version this YapYap runs, or the newest listed when none does.
+   * Null for an unreviewed extension until YapYap has looked at its latest
+   * archive, which it does only for an installed one, to offer its update.
+   */
+  readonly version: string | null;
   readonly capabilities: readonly string[];
   readonly hosts: readonly string[];
   /** What changed in `version`, as the marketplace lists it; null when it says nothing. */
