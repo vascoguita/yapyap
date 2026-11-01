@@ -154,3 +154,6 @@ their reasons belong in the ADRs (`docs/adr/`), and released changes in
   gone (C42 and C43 in ADR 0008).
 - Progress page (#508): this page now holds the current state, conventions
   and condensed notes; git history keeps the long notes.
+- Versions in the docs (#511): README, the guide and CONTRIBUTING no longer
+  name versions that go stale, and ADR 0002 keeps the toolchain choices and
+  reasons without copying the pins from the manifests.
