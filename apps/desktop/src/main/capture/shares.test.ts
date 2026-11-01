@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { ViewInfo } from '../views.ts';
+import type { ViewInfo } from '../security/views.ts';
 import { trackShares } from './shares.ts';
 
 const ORIGIN = 'https://web.whatsapp.com';

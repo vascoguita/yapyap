@@ -1,12 +1,12 @@
-import { en } from '../shared/messages/en.ts';
+import { en } from '../../shared/messages/en.ts';
 
 export const TROUBLESHOOTING_URL = 'https://yapyap.guita.org/guide/troubleshooting#sandbox';
 
 /**
- * Also logged, and the log mirrors to stderr, so it reaches people who start
- * YapYap from a terminal.
+ * Logged as well as shown, and the log mirrors to stderr, so it reaches
+ * people who start YapYap from a terminal.
  */
-export const UNSAFE_START_MESSAGE = en.dialogs.unsafeStart.detail;
+const UNSAFE_START_MESSAGE = en.dialogs.unsafeStart.detail;
 
 export interface SandboxSwitches {
   hasSwitch(name: string): boolean;
@@ -27,7 +27,7 @@ export function sandboxDisabled(
 export interface UnsafeStartDependencies {
   readonly whenReady: () => Promise<unknown>;
   /** Explains the problem; true when the user asks for the troubleshooting guide. */
-  readonly explain: (message: string) => Promise<boolean>;
+  readonly explain: () => Promise<boolean>;
   readonly openExternal: (url: string) => Promise<unknown>;
   readonly logError: (message: string) => void;
   readonly quit: () => void;
@@ -40,7 +40,7 @@ export interface UnsafeStartDependencies {
 export async function refuseUnsafeStart(deps: UnsafeStartDependencies): Promise<void> {
   deps.logError(UNSAFE_START_MESSAGE);
   await deps.whenReady();
-  if (await deps.explain(UNSAFE_START_MESSAGE)) {
+  if (await deps.explain()) {
     await deps.openExternal(TROUBLESHOOTING_URL).catch(() => undefined);
   }
   deps.quit();

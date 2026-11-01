@@ -1,5 +1,5 @@
 import type { WebFrameMain } from 'electron';
-import type { ViewRegistry } from '../views.ts';
+import type { ViewRegistry } from '../security/views.ts';
 import type { CallTarget } from './recorder.ts';
 
 /** A web contents, as finding a call window needs it. */

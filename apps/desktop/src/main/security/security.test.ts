@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fakeEmitter } from '../../test/emitter.ts';
-import { TRANSIENT_POPUP_MS } from './navigation/navigation-guard.ts';
+import { fakeEmitter } from '../../../test/emitter.ts';
+import { TRANSIENT_POPUP_MS } from '../navigation/navigation-guard.ts';
 import { installSecurity, type GuardedContents } from './security.ts';
-import { rendererPreferences } from './web-preferences.ts';
+import { rendererPreferences } from '../window/web-preferences.ts';
 
 type Listener = (...args: never[]) => void;
 

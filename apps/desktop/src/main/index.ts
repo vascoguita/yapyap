@@ -61,7 +61,7 @@ import { CHROME_PARTITION, createChromeFeature } from './chrome/feature.ts';
 import { profileCrashFiles, readPreviousLog } from './crash/crash-files.ts';
 import { recordTrace } from './crash/trace.ts';
 import trayIcon from '../../build/icons/32x32.png?asset';
-import { PRODUCT_NAME } from './identity.ts';
+import { PRODUCT_NAME } from './identity/product.ts';
 import { rewriteClientHints } from './identity/user-agent.ts';
 import { callWindowAmong } from './recording/electron.ts';
 import { recordingsFolder } from './recording/library.ts';
@@ -74,7 +74,7 @@ import { chooseFolder, electronSettingsFiles } from './settings/transfer-dialogs
 import { openSettings } from './settings/service.ts';
 import { electronCapture } from './permissions/electron-capture.ts';
 import { askMediaWithDialog } from './permissions/media-prompt.ts';
-import { sandboxDisabled } from './sandbox-check.ts';
+import { sandboxDisabled } from './security/sandbox-check.ts';
 import {
   askToInstallUpdateWithDialog,
   confirmRemoveAccountWithDialog,
@@ -82,7 +82,7 @@ import {
   explainUnsafeStartWithDialog,
   reviewCrashWithDialog,
 } from './dialogs/prompts.ts';
-import { startApp } from './start.ts';
+import { startApp } from './start/start.ts';
 import { MARKETPLACE_INDEX_MAX_BYTES } from '@yapyap/extension-sdk';
 import { ARCHIVE_LIMITS, anchorFingerprints, TRUST_ANCHORS } from '@yapyap/extension-sign';
 import { cappedFetcher } from './marketplace/fetch.ts';
@@ -106,7 +106,7 @@ import {
   createMainWindow,
   createSecureWindow,
   createSidebarView,
-} from './windows.ts';
+} from './window/windows.ts';
 
 const PICKER_THUMBNAIL = { width: 320, height: 180 };
 

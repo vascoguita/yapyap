@@ -1,9 +1,9 @@
 import { ENGINE_CHANNELS, ENGINE_ORIGIN, type EngineCommand } from '../../../shared/engine-api.ts';
 import type { ChromeWindowPort } from '../../chrome/window-opener.ts';
-import { PRODUCT_NAME } from '../../identity.ts';
-import type { ViewRegistry } from '../../views.ts';
-import type { RendererOptions } from '../../web-preferences.ts';
-import type { WindowOptions } from '../../windows.ts';
+import { PRODUCT_NAME } from '../../identity/product.ts';
+import type { ViewRegistry } from '../../security/views.ts';
+import type { RendererOptions } from '../../window/web-preferences.ts';
+import type { WindowOptions } from '../../window/windows.ts';
 import type { EngineWindow } from './engine-host.ts';
 
 /** The engine page's own in-memory session: it shares no storage with anything (ADR 0017). */

@@ -1,5 +1,5 @@
 import { dialog, type BrowserWindow } from 'electron';
-import { PRODUCT_NAME } from '../identity.ts';
+import { PRODUCT_NAME } from '../identity/product.ts';
 
 /** A question with two answers, asked in a native message box. */
 export interface Question {

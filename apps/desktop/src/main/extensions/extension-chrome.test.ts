@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { RPC_OPTIONS } from './rpc.ts';
 import { defaultSettings } from '../settings/decode.ts';
-import type { ViewRegistry } from '../views.ts';
+import type { ViewRegistry } from '../security/views.ts';
 import { readFileSync, writeFileSync } from 'node:fs';
 import {
   createExtensionChrome,

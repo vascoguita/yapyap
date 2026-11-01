@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, type Mock } from 'vitest';
-import type { ViewInfo } from '../views.ts';
+import type { ViewInfo } from '../security/views.ts';
 import { createRecovery, type Overlay } from './controller.ts';
 
 const ORIGIN = 'https://web.whatsapp.com';

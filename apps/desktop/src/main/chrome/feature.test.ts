@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { RPC_OPTIONS } from '../extensions/rpc.ts';
 import { defaultSettings } from '../settings/decode.ts';
 import type { Settings } from '../settings/schema.ts';
-import type { ViewInfo } from '../views.ts';
+import type { ViewInfo } from '../security/views.ts';
 import { CATALOG } from '../assistant/private/catalog.ts';
 import {
   CHROME_PARTITION,

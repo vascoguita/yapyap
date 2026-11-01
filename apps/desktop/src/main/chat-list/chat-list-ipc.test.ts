@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { ViewInfo } from '../views.ts';
+import type { ViewInfo } from '../security/views.ts';
 import { listenToChatList } from './chat-list-ipc.ts';
 
 const ORIGIN = 'https://web.whatsapp.com';

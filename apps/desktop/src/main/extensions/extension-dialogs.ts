@@ -2,7 +2,7 @@ import { ARCHIVE_LIMITS } from '@yapyap/extension-sign';
 import { dialog } from 'electron';
 import { open } from 'node:fs/promises';
 import { en } from '../../shared/messages/en.ts';
-import { PRODUCT_NAME } from '../identity.ts';
+import { PRODUCT_NAME } from '../identity/product.ts';
 import { confirm } from '../dialogs/confirm.ts';
 import type { ExtensionChromeDependencies } from './extension-chrome.ts';
 

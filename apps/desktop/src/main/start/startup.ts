@@ -1,20 +1,20 @@
-import { APP_ID, PRODUCT_NAME } from './identity.ts';
-import { guardGpu, type Graphics, type GraphicsReason } from './recovery/gpu-safe-mode.ts';
-import { applyResourceLimits } from './reliability/resource-limits.ts';
-import { watchForReleases } from './updates/update-notice.ts';
-import { startSelfUpdates } from './updates/self-update.ts';
-import { chooseDisplayBackend, type DisplayBackend } from './display/backend.ts';
-import { trackCrashes } from './crash/crash-reports.ts';
-import { installSecurity, type SecurityDependencies } from './security.ts';
-import type { MainWindowOptions } from './windows.ts';
-import { refuseUnsafeStart } from './sandbox-check.ts';
-import { manageMainWindow, restoreWindowState } from './window/main-window.ts';
-import { resolveWhatsAppOrigin } from './whatsapp-origin.ts';
-import { en } from '../shared/messages/en.ts';
-import { followGlobalShortcuts, toggleWindow } from './shortcuts/global-shortcuts.ts';
-import { createProxyLogin } from './network/proxy-login.ts';
-import { useCameraPortal } from './permissions/camera-portal.ts';
-import type { StartDependencies, WindowPort } from './start.ts';
+import { APP_ID, PRODUCT_NAME } from '../identity/product.ts';
+import { guardGpu, type Graphics, type GraphicsReason } from '../recovery/gpu-safe-mode.ts';
+import { applyResourceLimits } from '../reliability/resource-limits.ts';
+import { watchForReleases } from '../updates/update-notice.ts';
+import { startSelfUpdates } from '../updates/self-update.ts';
+import { chooseDisplayBackend, type DisplayBackend } from '../display/backend.ts';
+import { trackCrashes } from '../crash/crash-reports.ts';
+import { installSecurity, type SecurityDependencies } from '../security/security.ts';
+import type { MainWindowOptions } from '../window/windows.ts';
+import { refuseUnsafeStart } from '../security/sandbox-check.ts';
+import { manageMainWindow, restoreWindowState } from '../window/main-window.ts';
+import { resolveWhatsAppOrigin } from '../whatsapp-origin.ts';
+import { en } from '../../shared/messages/en.ts';
+import { followGlobalShortcuts, toggleWindow } from '../shortcuts/global-shortcuts.ts';
+import { createProxyLogin } from '../network/proxy-login.ts';
+import { useCameraPortal } from '../permissions/camera-portal.ts';
+import type { StartDependencies, WindowPort } from './types.ts';
 
 /** Starts without hardware acceleration, for when graphics problems stop YapYap from starting. */
 const SAFE_MODE_FLAG = '--safe-mode';

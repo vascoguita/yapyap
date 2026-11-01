@@ -1,6 +1,6 @@
 import type { RecoveryProblem } from '../../shared/chrome-api.ts';
 import { CHROME_ORIGIN, CHROME_VIEW } from '../chrome/assets.ts';
-import type { ViewRegistry } from '../views.ts';
+import type { ViewRegistry } from '../security/views.ts';
 import { describeFailure, type Failure } from './failure.ts';
 
 /** A chrome view laid over a window's content; `remove` also closes it. */

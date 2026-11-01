@@ -1,6 +1,6 @@
 import type { WebFrameMain } from 'electron';
 import { describe, expect, it, vi } from 'vitest';
-import type { ViewRegistry } from '../views.ts';
+import type { ViewRegistry } from '../security/views.ts';
 import { recordingWindows } from './windows.ts';
 
 function fakeWindow(load: () => Promise<unknown> = () => Promise.resolve()) {

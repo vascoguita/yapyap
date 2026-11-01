@@ -1,6 +1,6 @@
 import type { MenuItemConstructorOptions } from 'electron';
 import type { ZoomStep } from './appearance/zoom.ts';
-import { PRODUCT_NAME } from './identity.ts';
+import { PRODUCT_NAME } from './identity/product.ts';
 import type { AccountSummary } from '../shared/chrome-api.ts';
 import { en } from '../shared/messages/en.ts';
 import type { ExtensionCommand, ExtensionPanel } from './extensions/runtime.ts';

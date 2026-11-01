@@ -1,17 +1,17 @@
-import { partitionOf, type Account } from './accounts/accounts.ts';
-import { guardDownloads } from './downloads/downloads.ts';
-import { followProxySetting, launchProxyOf, type ProxyController } from './network/proxy.ts';
-import type { PermissionMemory } from './permissions/session-guard.ts';
-import { secureSession } from './security.ts';
-import { attachContextMenu } from './spelling/context-menu.ts';
-import { extensionMenuItems } from './extensions/extension-menu-items.ts';
-import type { SpellingSession } from './spelling/spelling.ts';
-import type { AccountContents, AccountWiring, StartDependencies, WindowPort } from './start.ts';
-
-/** A session's own word list, which spelling suggestions leave alone. */
-export interface DictionarySession extends SpellingSession {
-  addWordToSpellCheckerDictionary(word: string): boolean;
-}
+import { partitionOf, type Account } from '../accounts/accounts.ts';
+import { guardDownloads } from '../downloads/downloads.ts';
+import { followProxySetting, launchProxyOf, type ProxyController } from '../network/proxy.ts';
+import type { PermissionMemory } from '../permissions/session-guard.ts';
+import { secureSession } from '../security/security.ts';
+import { attachContextMenu } from '../spelling/context-menu.ts';
+import { extensionMenuItems } from '../extensions/extension-menu-items.ts';
+import type {
+  AccountContents,
+  AccountWiring,
+  DictionarySession,
+  StartDependencies,
+  WindowPort,
+} from './types.ts';
 
 /**
  * Each account's session gets YapYap's guards, download handling, spelling

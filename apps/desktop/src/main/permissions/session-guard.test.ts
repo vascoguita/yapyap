@@ -1,6 +1,6 @@
 import type { WebFrameMain } from 'electron';
 import { describe, expect, it, vi } from 'vitest';
-import type { ViewInfo } from '../views.ts';
+import type { ViewInfo } from '../security/views.ts';
 import {
   guardSession,
   type CaptureChoice,

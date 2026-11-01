@@ -1,4 +1,4 @@
-import type { Zone } from '../views.ts';
+import type { Zone } from '../security/views.ts';
 
 export type Decision = 'allow' | 'ask' | 'deny';
 

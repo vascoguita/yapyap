@@ -6,7 +6,7 @@ import {
   type BrowserWindowConstructorOptions,
   type WebContents,
 } from 'electron';
-import type { Overlay } from './recovery/controller.ts';
+import type { Overlay } from '../recovery/controller.ts';
 import { rendererPreferences, type RendererOptions } from './web-preferences.ts';
 
 export type WindowOptions = Omit<BrowserWindowConstructorOptions, 'webPreferences'>;

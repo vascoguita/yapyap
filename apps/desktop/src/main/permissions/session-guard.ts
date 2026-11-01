@@ -1,6 +1,6 @@
 import type { WebFrameMain } from 'electron';
 import { classifyLink, isSameOrigin } from '../navigation/link-policy.ts';
-import type { ViewInfo, ViewRegistry } from '../views.ts';
+import type { ViewInfo, ViewRegistry } from '../security/views.ts';
 import { decidePermission } from './permission-policy.ts';
 
 export type MediaType = 'audio' | 'video';

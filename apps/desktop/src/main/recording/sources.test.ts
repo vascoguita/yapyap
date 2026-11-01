@@ -3,7 +3,7 @@ import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { ViewRegistry } from '../views.ts';
+import type { ViewRegistry } from '../security/views.ts';
 import {
   callRecording,
   lateRecordingGate,

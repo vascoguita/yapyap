@@ -274,3 +274,8 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   sidebar and window listeners through named helpers.
 - Test fakes (#551): main-process tests share `fakeEmitter()`
   (`apps/desktop/test/emitter.ts`) and `FAKE_FINGERPRINT`.
+- Main-process layout (#554): start-up lives in `main/start/` (port types in
+  `types.ts`, so nothing imports `start.ts` back), product constants in
+  `identity/product.ts`, window plumbing in `window/`, security plumbing
+  and `views.ts` in `security/`; chrome handler modules are named after
+  their feature, and the unsafe-start prompt reads its own text.

@@ -1,7 +1,7 @@
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { ElectronApplication } from '@playwright/test';
-import { SHOW_FALLBACK_MS } from '../src/main/show-when-ready.ts';
+import { SHOW_FALLBACK_MS } from '../src/main/window/show-when-ready.ts';
 import {
   closeApp,
   expect,

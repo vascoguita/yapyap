@@ -7,7 +7,7 @@ import {
   type ChromeWindowDependencies,
   type ChromeWindowPort,
 } from '../chrome/window-opener.ts';
-import type { WindowOptions } from '../windows.ts';
+import type { WindowOptions } from '../window/windows.ts';
 import type { RecordingWindow } from './chrome.ts';
 import type { CallTarget } from './recorder.ts';
 

@@ -1,5 +1,5 @@
 import { isSameOrigin } from '../navigation/link-policy.ts';
-import type { ViewRegistry } from '../views.ts';
+import type { ViewRegistry } from '../security/views.ts';
 import type { PayloadCheck } from './arguments.ts';
 
 export interface WhatsAppEvent<Sender extends object> {

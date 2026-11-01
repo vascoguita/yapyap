@@ -1,6 +1,6 @@
-import { showWhenReady } from '../show-when-ready.ts';
-import type { ViewRegistry } from '../views.ts';
-import type { WindowOptions } from '../windows.ts';
+import { showWhenReady } from '../window/show-when-ready.ts';
+import type { ViewRegistry } from '../security/views.ts';
+import type { WindowOptions } from '../window/windows.ts';
 import { CHROME_ORIGIN, CHROME_VIEW } from './assets.ts';
 
 export interface ChromeWindowPort {

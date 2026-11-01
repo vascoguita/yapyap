@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 import { ManifestSchema, type Manifest } from '@yapyap/extension-sdk';
 import { Value } from 'typebox/value';
-import type { ViewRegistry } from '../views.ts';
+import type { ViewRegistry } from '../security/views.ts';
 import { en } from '../../shared/messages/en.ts';
 import { PANEL_PAGE_PATH } from '../../shared/extension-rpc.ts';
 import {
