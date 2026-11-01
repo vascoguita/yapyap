@@ -56,6 +56,7 @@ YapYap is young and not yet at 1.0. Follow what comes next on the
   private model that runs on your computer, a model server you already
   run, or Claude or OpenAI with your own key. It reads a chat only once you
   allow it there, shows exactly what it sends, and never sends a message
+  on its own.
 - Multiple accounts with fully isolated sessions
 - Native notifications, tray or menu bar with unread counts, and do-not-disturb
 - Recovery tools that fix a stuck session without logging you out
@@ -84,8 +85,8 @@ Sponsorships pay for what building YapYap costs:
 
 - **Development tools:** a Claude subscription for AI-assisted development.
   A higher plan means fewer pauses when the usage limit runs out.
-- **Code signing:** certificates for macOS and Windows, so YapYap installs
-  without security warnings.
+- **Code signing:** a Windows certificate, so YapYap installs there without
+  a security warning, as it already does on macOS.
 
 ## Supporters
 

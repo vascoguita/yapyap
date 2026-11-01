@@ -76,7 +76,7 @@ YapYap is available in these formats:
 | Arch Linux     | The pacman repository            | Through pacman                           |
 | Windows        | Installer (x64, arm64)           | Built-in updater                         |
 | Windows        | Portable (x64, arm64)            | Notifies you of new versions             |
-| macOS          | Universal DMG                    | Notifies you of new versions             |
+| macOS          | Universal DMG                    | Built-in updater                         |
 
 Releases are published on
 [GitHub](https://github.com/vascoguita/yapyap/releases).
@@ -86,35 +86,20 @@ On Arch Linux, use the [pacman repository](#linux-repositories), or download
 folder, and run `makepkg -si` there. YapYap will be published to the AUR as
 `yapyap-bin` once AUR account registration reopens.
 
-## First launch on macOS and Windows {#unsigned}
+## First launch on Windows {#unsigned}
 
-YapYap's macOS and Windows builds are not code-signed yet: signing
-certificates cost money every year, and YapYap is free. Your system warns
-you the first time you open it. Before you allow it, you can
+YapYap's macOS builds are signed with a Developer ID and notarized by
+Apple, so they open normally and update themselves. Its Windows builds are
+not code-signed yet: a signing certificate costs money every year, and
+YapYap is free. Windows warns you the first time you open it. Before you
+allow it, you can
 [check that your download is genuine](#verify-a-download).
 [Sponsoring YapYap](https://github.com/sponsors/vascoguita) helps pay for
 signing.
 
-**macOS.** macOS says it cannot verify that YapYap is free of malware.
-
-1. Drag YapYap from the DMG to Applications and open it once. Close the
-   warning.
-2. Open **System Settings → Privacy & Security**, scroll down to the message
-   about YapYap, and click **Open Anyway**. Confirm with your password.
-
-From then on YapYap opens normally. If you prefer the terminal, this does the
-same:
-
-```sh
-xattr -dr com.apple.quarantine /Applications/YapYap.app
-```
-
-Unsigned macOS builds can't update themselves, so YapYap tells you when a new
-version is out instead.
-
-**Windows.** SmartScreen shows "Windows protected your PC". Click
-**More info**, then **Run anyway**. YapYap still updates itself, and checks
-each update's hash before installing it.
+SmartScreen shows "Windows protected your PC". Click **More info**, then
+**Run anyway**. YapYap still updates itself, and checks each update's hash
+before installing it.
 
 Linux packages need none of this.
 

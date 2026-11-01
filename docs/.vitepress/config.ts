@@ -101,11 +101,11 @@ export default defineConfig({
           text: 'User guide',
           items: [
             { text: 'Get started', link: '/guide/get-started' },
+            { text: 'AI assistant', link: '/guide/ai-assistant' },
             { text: 'User guide', link: '/guide/' },
             { text: 'Install', link: '/guide/install' },
             { text: 'Troubleshooting', link: '/guide/troubleshooting' },
             { text: 'Reference', link: '/guide/reference' },
-            { text: 'AI assistant', link: '/guide/ai-assistant' },
             { text: 'Call recorder', link: '/guide/call-recorder' },
             { text: 'FAQ', link: '/guide/faq' },
           ],
