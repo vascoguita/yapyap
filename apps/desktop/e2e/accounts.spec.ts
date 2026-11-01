@@ -27,6 +27,13 @@ test('keeps the account’s WhatsApp session in its own partition across restart
     await page.evaluate(() => {
       localStorage.setItem('yapyap-e2e', 'kept');
     });
+    // Chromium writes local storage to disk a moment later, and a quick quit on
+    // Windows lost the write; flushing is the event the restart depends on.
+    await (
+      await whatsAppContents(first)
+    ).evaluate((contents) => {
+      contents.session.flushStorageData();
+    });
   } finally {
     await closeApp(first);
   }
