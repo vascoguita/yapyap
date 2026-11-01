@@ -233,6 +233,9 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   `vitest.projects.ts`). The desktop app and the call recorder keep one
   worker per file. Provider retry tests use fake timers.
 
+- Chrome styles (#534): each window's main action is a filled primary
+  button, every text box and list shares one style, and empty live regions
+  take no room.
 - E2E helpers (#540): specs reach WhatsApp's web contents with
   `whatsAppContents`, wait for test extensions with `extensionTitle` and
   `EXTENSION_START_TIMEOUT`, and write settings with `seedSettings`, at the
@@ -265,6 +268,3 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
 - State files (#527): every small state file is a `TextFile` from
   `textFileAt` (`main/atomic-write.ts`), written atomically; the extension
   records use `writeTextAtomicallyAsync`.
-- Chrome styles (#534): each window's main action is a filled primary
-  button, every text box and list shares one style, and empty live regions
-  take no room.
