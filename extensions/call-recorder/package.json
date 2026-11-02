@@ -1,6 +1,6 @@
 {
   "name": "@yapyap/extension-call-recorder",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Records WhatsApp calls through YapYap, after your click and consent",
   "license": "MIT",
