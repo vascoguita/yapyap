@@ -1,6 +1,6 @@
 {
   "name": "@yapyap/extension-sign",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Ed25519 signing, verification and trust decisions for YapYap extensions",
   "keywords": [
     "yapyap",
