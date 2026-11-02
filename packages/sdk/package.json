@@ -1,6 +1,6 @@
 {
   "name": "@yapyap/extension-sdk",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Typed SDK for building YapYap extensions",
   "keywords": [
     "yapyap",
