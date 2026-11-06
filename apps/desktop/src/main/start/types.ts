@@ -1,3 +1,4 @@
+import type { Terminal } from '../headless/headless.ts';
 import type { AccountAvatars, AvatarPage } from '../accounts/avatars.ts';
 import type { ChromeFeature, ChromeRuntime, WhatsAppContents } from '../chrome/feature.ts';
 import type { SidebarPort } from '../accounts/sidebar-handlers.ts';
@@ -104,6 +105,8 @@ export interface AppPort {
   ): unknown;
   requestSingleInstanceLock(): boolean;
   quit(): void;
+  /** Ends at once, before Chromium starts on a display that is not there. */
+  exit(code: number): void;
 }
 
 /** An account's WhatsApp, in its own view and partition (ADR 0001). */
@@ -197,8 +200,10 @@ export interface StartDependencies<Window extends WindowPort> {
   readonly capture: (pickInApp: PickInApp, wayland: boolean) => DisplayCapturePort;
   readonly chrome: ChromeFeature;
   readonly env: Environment;
-  /** The command line, for `--safe-mode`. */
+  /** The command line, for `--safe-mode` and `--headless`. */
   readonly argv: readonly string[];
+  /** Where headless mode shows what the user must see, such as a login code (ADR 0021). */
+  readonly terminal: Terminal;
   readonly openExternal: (url: string) => Promise<unknown>;
   readonly isOnline: () => boolean;
   readonly onResume: (listener: () => void) => void;

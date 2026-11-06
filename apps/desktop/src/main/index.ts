@@ -87,6 +87,7 @@ import { assistantMayReach, confinedFetch, guardedAssistantSession } from './ass
 import { translationLanguages } from './assistant/rewrites.ts';
 import { agentTokens } from './agents/tokens.ts';
 import { listenForAgents } from './agents/listener.ts';
+import { headlessRequested, headlessSay, type Terminal } from './headless/headless.ts';
 import { trayImage } from './tray/tray-icon.ts';
 import {
   createAccountHost,
@@ -131,6 +132,17 @@ logProcessErrors(process, (message) => {
 const warn = (message: string): void => {
   logger.log('warn', message);
 };
+
+const headless = headlessRequested(process.argv);
+
+const terminal: Terminal = {
+  isTTY: process.stdout.isTTY,
+  write: (text) => {
+    process.stdout.write(text);
+  },
+};
+
+const sayHeadless = headlessSay(headless, terminal);
 
 const notify = (body: string): void => {
   new Notification({ title: PRODUCT_NAME, body }).show();
@@ -327,6 +339,10 @@ const chrome = createChromeFeature({
     serve: (port, answer) => listenForAgents(port, answer, warn),
     now: Date.now,
     version: app.getVersion(),
+    alwaysOn: headless,
+    onListening: (address) => {
+      sayHeadless(en.headless.agents({ address }));
+    },
   },
 });
 
@@ -373,6 +389,7 @@ void startAppReporting(
     platform: process.platform,
     env: process.env,
     argv: process.argv,
+    terminal,
     openExternal: (url) => shell.openExternal(url),
     isOnline: () => net.isOnline(),
     avatarImage: (bytes) => shrinkAvatar(nativeImage.createFromBuffer(Buffer.from(bytes))),
