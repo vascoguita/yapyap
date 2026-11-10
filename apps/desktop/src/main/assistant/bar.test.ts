@@ -134,9 +134,16 @@ describe('createAssistantBar', () => {
       options: [
         { value: 'auto', label: 'Auto (recommended): Haiku' },
         { value: 'claude-opus', label: 'Opus' },
-        { value: 'claude-haiku', label: 'Haiku' },
       ],
     });
+    t.settings()['model'] = 'claude-haiku';
+    await t.bar.refresh();
+    expect(t.last().choice?.current).toBe('claude-haiku');
+    expect(t.last().choice?.options.map(({ value }) => value)).toEqual([
+      'auto',
+      'claude-opus',
+      'claude-haiku',
+    ]);
     t.setSetup({ ...READY, auto: undefined });
     t.settings()['model'] = 'claude-opus';
     await t.bar.refresh();

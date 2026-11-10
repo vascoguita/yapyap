@@ -462,6 +462,9 @@ export function assistantSuggestion(
  * The bar's own styles, inside its shadow root. They follow the system's
  * light or dark scheme, as WhatsApp does by default, and use logical
  * properties only, so it mirrors for right-to-left languages (ADR 0012).
+ * The model list's options get the bar's own colors: with the list's
+ * background transparent, Chromium draws its open list on white whatever
+ * the scheme, under text that is light in the dark scheme.
  */
 const BAR_STYLE = `
 :host { display: block; color-scheme: light dark; }
@@ -511,6 +514,7 @@ svg { inline-size: 14px; block-size: 14px; fill: currentColor; }
   max-inline-size: 40%; padding: 2px 8px; border: 1px solid var(--border); border-radius: 999px;
   background: transparent; color: var(--text); font: inherit;
 }
+.choice option { background: var(--surface); color: var(--text); }
 .input {
   box-sizing: border-box; inline-size: 100%; padding: 5px 12px; border: 1px solid var(--border);
   border-radius: 999px; background: transparent; color: var(--text); font: inherit;

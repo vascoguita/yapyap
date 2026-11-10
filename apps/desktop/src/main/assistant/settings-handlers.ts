@@ -93,7 +93,7 @@ async function viewOf(deps: AssistantSettingsDependencies): Promise<AssistantVie
       actions: actionsOf(model),
     },
     models: setup.models,
-    auto: setup.auto?.label ?? null,
+    auto: setup.auto === undefined ? null : { id: setup.auto.id, label: setup.auto.label },
     chats: await chatsOf(deps),
   };
 }

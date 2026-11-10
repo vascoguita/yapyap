@@ -121,7 +121,7 @@ describe('assistantHandlers', () => {
       keys: { anthropic: true, openai: false },
       privateModel: { size: '1.1 GB', status: 'Not downloaded yet.', actions: ['download'] },
       models: READY.models,
-      auto: 'Haiku',
+      auto: { id: 'claude-haiku', label: 'Haiku' },
       chats: [
         {
           account: ACCOUNT,
