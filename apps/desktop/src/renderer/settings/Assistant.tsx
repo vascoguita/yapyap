@@ -10,6 +10,7 @@ import type {
 } from '../../shared/api/chrome-api.ts';
 import { localServerOf } from '../../shared/local-server.ts';
 import { en } from '../../shared/messages/en.ts';
+import { modelsBesideAuto } from '../../shared/model-choices.ts';
 import { fieldsOf, type Change } from './Field.tsx';
 
 const text = en.assistant.settings;
@@ -370,7 +371,8 @@ function ModelChoice(props: {
   const { snapshot, view, onChange } = props;
   const picked = String(snapshot.values['assistant.model']);
   const listed = view.models.some(({ id }) => id === picked);
-  const auto = view.auto === null ? text.model.auto : text.model.autoNamed({ model: view.auto });
+  const auto =
+    view.auto === null ? text.model.auto : text.model.autoNamed({ model: view.auto.label });
   return (
     <div class="key">
       <label for="assistant-model">{en.settings.fields.assistant.model.label}</label>
@@ -383,7 +385,7 @@ function ModelChoice(props: {
         }}
       >
         <option value="auto">{auto}</option>
-        {view.models.map(({ id, label }) => (
+        {modelsBesideAuto(view.models, view.auto, picked).map(({ id, label }) => (
           <option key={id} value={id}>
             {label}
           </option>
