@@ -287,3 +287,68 @@ test('takes suggestions away when another chat opens', async ({ app, window }) =
   await expect.poll(() => barNames(app), { timeout: 10_000 }).not.toContain('Can we do 9?');
   expect(await barNames(app)).toContain('Suggest replies');
 });
+
+test('keeps the chat’s last message in view as the bar opens and grows', async ({
+  app,
+  window,
+}) => {
+  await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
+  await readyClaude(app, CLAUDE_ANSWER);
+  await expect.poll(() => barNames(app)).toContain('Suggest replies');
+  // A chat long enough to scroll, read to its end, as WhatsApp opens one.
+  await window.evaluate(() => {
+    const main = document.querySelector<HTMLElement>('#main');
+    const list = document.querySelector('[data-testid="conversation-panel-body"]');
+    main?.style.setProperty('block-size', '360px');
+    for (let index = 0; index < 30; index += 1) {
+      const row = document.createElement('div');
+      row.setAttribute('role', 'row');
+      row.textContent = `Message ${String(index)}`;
+      list?.append(row);
+    }
+    list?.scrollTo({ top: list.scrollHeight });
+  });
+  const lastMessageInView = (): Promise<boolean> =>
+    window.evaluate(() => {
+      const list = document.querySelector('[data-testid="conversation-panel-body"]');
+      const last = list?.lastElementChild;
+      return (
+        list !== null &&
+        last !== null &&
+        last !== undefined &&
+        last.getBoundingClientRect().bottom <= list.getBoundingClientRect().bottom + 1
+      );
+    });
+  const barBack = (): Promise<boolean> =>
+    window.evaluate(
+      () =>
+        document
+          .querySelector('#main footer')
+          ?.previousElementSibling?.matches('div:not([data-testid])') === true,
+    );
+  expect(await lastMessageInView()).toBe(true);
+  // A virtual display without a window manager focuses nothing on its own.
+  const main = await mainWindow(app);
+  await expect(async () => {
+    expect(
+      await main.evaluate((owner) => {
+        owner.focus();
+        return owner.isFocused();
+      }),
+    ).toBe(true);
+  }).toPass();
+  // WhatsApp draws the chat again without the bar, which comes back within a second.
+  await window.evaluate(() => {
+    document.querySelector('#main footer')?.previousElementSibling?.remove();
+  });
+  await expect(async () => {
+    expect(await barBack()).toBe(true);
+  }).toPass();
+  expect(await lastMessageInView()).toBe(true);
+  // Opening the ways to rewrite makes the bar taller.
+  await clickInBar(app, window, 'Rewrite my draft');
+  await expect(async () => {
+    expect(await barNames(app)).toContain('Shorter');
+  }).toPass();
+  expect(await lastMessageInView()).toBe(true);
+});

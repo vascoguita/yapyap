@@ -8,6 +8,7 @@ import {
   buildAssistantBar,
   fillAssistantButtons,
   fillAssistantOptions,
+  holdAssistantBarRoom,
   labelAssistantBar,
   renderAssistantBar,
   updateAssistantBar,
@@ -52,6 +53,8 @@ const CONTENT: BarContent = {
 
 const PLACES = {
   footer: '#main footer',
+  conversation: '#main',
+  message: '#main [data-id]',
   store: 'bar',
   bridge: 'bridge',
   style: '.bar { display: flex; }',
@@ -60,6 +63,7 @@ const PLACES = {
 
 const KIT = {
   align: alignAssistantBar,
+  room: holdAssistantBarRoom,
   build: buildAssistantBar,
   wire: wireAssistantBar,
   fields: wireAssistantFields,
@@ -290,6 +294,109 @@ describe('renderAssistantBar', () => {
   });
 });
 
+/** WhatsApp's chat as it scrolls: its messages in a box of their own, above the message box. */
+function scrollingChat(): HTMLElement {
+  document.body.innerHTML =
+    '<div id="main"><div style="overflow-y: auto"><div><div data-id="3EB0F1">Hi</div></div></div><footer></footer></div>';
+  const list = document.querySelector<HTMLElement>('#main > div');
+  if (list === null) {
+    throw new Error('No message list.');
+  }
+  list.scrollTop = 400;
+  return list;
+}
+
+/**
+ * Gives the bar a height once it is in the page, as its open parts would:
+ * 90 px, 60 more with a result and 40 more with the ways to rewrite. The
+ * test DOM lays nothing out.
+ */
+function barHeights(): void {
+  vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (
+    this: HTMLElement,
+  ) {
+    if (!this.isConnected || this.getAttribute('class') !== 'bar') {
+      return 0;
+    }
+    const open = (name: string) => this.querySelector<HTMLElement>(name)?.hidden === false;
+    return 90 + (open('.result') ? 60 : 0) + (open('.rewrites') ? 40 : 0);
+  });
+}
+
+describe('holdAssistantBarRoom', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  type Bar = Parameters<typeof holdAssistantBarRoom>[2];
+  const bar = (height: number) =>
+    ({ offsetHeight: height, ownerDocument: document }) as unknown as Bar;
+
+  it('scrolls the chat’s messages by as much as the bar grew, and back as it shrank', () => {
+    const list = scrollingChat();
+    const grows = bar(40);
+    holdAssistantBarRoom({ getComputedStyle }, PLACES, grows, () => {
+      Object.assign(grows, { offsetHeight: 160 });
+    });
+    expect(list.scrollTop).toBe(520);
+    holdAssistantBarRoom({ getComputedStyle }, PLACES, grows, () => {
+      Object.assign(grows, { offsetHeight: 100 });
+    });
+    expect(list.scrollTop).toBe(460);
+  });
+
+  it('scrolls nothing when the bar kept its height, or outside the open chat', () => {
+    const list = scrollingChat();
+    const change = vi.fn();
+    holdAssistantBarRoom({ getComputedStyle }, PLACES, bar(40), change);
+    expect(change).toHaveBeenCalledOnce();
+    expect(list.scrollTop).toBe(400);
+    // A page that scrolls around a chat whose messages do not is not the message list.
+    list.style.overflowY = 'visible';
+    document.body.style.overflowY = 'auto';
+    document.body.scrollTop = 10;
+    const grows = bar(0);
+    holdAssistantBarRoom({ getComputedStyle }, PLACES, grows, () => {
+      Object.assign(grows, { offsetHeight: 80 });
+    });
+    expect([list.scrollTop, document.body.scrollTop]).toEqual([400, 10]);
+  });
+
+  it('scrolls nothing in a chat with no messages', () => {
+    document.body.innerHTML = '<div id="main" style="overflow-y: auto"><footer></footer></div>';
+    const grows = bar(0);
+    expect(() => {
+      holdAssistantBarRoom({ getComputedStyle }, PLACES, grows, () => {
+        Object.assign(grows, { offsetHeight: 80 });
+      });
+    }).not.toThrow();
+  });
+
+  it('keeps the last message in view as the bar opens, grows and opens its ways to rewrite', () => {
+    barHeights();
+    const t = setup();
+    const list = scrollingChat();
+    expect(t.render()).toBe('placed');
+    expect(list.scrollTop).toBe(490);
+    // Rendering the same content again scrolls nothing.
+    expect(t.render()).toBe('kept');
+    expect(list.scrollTop).toBe(490);
+    const summary = { ...CONTENT, result: 'A summary' };
+    t.render(summary);
+    expect(list.scrollTop).toBe(550);
+    const click = () => {
+      t.stored().parts.rewrite.dispatchEvent(trusted(new MouseEvent('click', { bubbles: true })));
+    };
+    click();
+    expect(t.stored().parts.rewrites.hidden).toBe(false);
+    expect(list.scrollTop).toBe(590);
+    click();
+    expect(list.scrollTop).toBe(550);
+    t.render(CONTENT);
+    expect(list.scrollTop).toBe(490);
+  });
+});
+
 describe('the bar’s controls', () => {
   it('act on the user’s clicks only, never on clicks a page script made up', () => {
     const t = setup();
@@ -433,9 +540,11 @@ describe('assistantBarRender', () => {
   it('sends the bar’s helpers, its place and its own styles along with the content', () => {
     const code = assistantBarRender(CONTENT);
     expect(code).toMatch(
-      /\{ align: [\s\S]+, build: [\s\S]+, wire: [\s\S]+, fields: [\s\S]+, label: [\s\S]+, buttons: [\s\S]+, update: [\s\S]+, options: [\s\S]+, suggestion: [\s\S]+ \}\)$/,
+      /\{ align: [\s\S]+, room: [\s\S]+, build: [\s\S]+, wire: [\s\S]+, fields: [\s\S]+, label: [\s\S]+, buttons: [\s\S]+, update: [\s\S]+, options: [\s\S]+, suggestion: [\s\S]+ \}\)$/,
     );
     expect(code).toContain('"store":"yapyapAssistantBarView"');
+    expect(code).toContain(`"conversation":${JSON.stringify(LANDMARKS.conversation)}`);
+    expect(code).toContain(`"message":${JSON.stringify(LANDMARKS.message)}`);
     expect(code).toContain(':host { display: block; color-scheme: light dark; }');
     expect(code).toContain(JSON.stringify(CONTENT));
   });
