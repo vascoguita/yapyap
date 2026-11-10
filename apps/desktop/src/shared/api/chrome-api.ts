@@ -61,7 +61,7 @@ export interface AssistantView {
   };
   /** What the provider in use lists, and the model Auto picks; empty until it is set up. */
   readonly models: readonly { readonly id: string; readonly label: string }[];
-  readonly auto: string | null;
+  readonly auto: { readonly id: string; readonly label: string } | null;
   /** The chats the assistant may read, by account; a name YapYap could not keep safely is null. */
   readonly chats: readonly {
     readonly account: string;

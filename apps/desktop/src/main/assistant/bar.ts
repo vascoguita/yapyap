@@ -2,6 +2,7 @@ import type { ReadChat } from '../../adapter/active-chat.ts';
 import type { UnreadSummaryChat } from '../../adapter/unread-summary.ts';
 import type { AssistantBarState, BarButtonId } from '../../shared/api/assistant-bar-api.ts';
 import { en } from '../../shared/messages/en.ts';
+import { modelsBesideAuto } from '../../shared/model-choices.ts';
 import type { SettingsService } from '../settings/service.ts';
 import { problemWords, privateWords, setupWords, type Fix, type Words } from './bar-words.ts';
 import { CATCH_UP_INSTRUCTIONS, digestOf } from './catch-up.ts';
@@ -127,7 +128,7 @@ function say(
   update(bar, { status, buttons, suggestions: [], result: null, working: false, ...extra });
 }
 
-/** The model chip: Auto, which names the model it picks, then every model the provider lists. */
+/** The model chip: Auto, which names the model it picks, then the provider's other models. */
 function choiceOf(setup: Setup, picked: string): AssistantBarState['choice'] {
   if (setup.models.length === 0) {
     return undefined;
@@ -137,12 +138,13 @@ function choiceOf(setup: Setup, picked: string): AssistantBarState['choice'] {
       ? text.settings.model.auto
       : text.settings.model.autoNamed({ model: setup.auto.label });
   const listed = setup.models.some(({ id }) => id === picked);
+  const models = modelsBesideAuto(setup.models, setup.auto ?? null, picked);
   return {
     label: text.bar.model,
     current: listed ? picked : 'auto',
     options: [
       { value: 'auto', label: auto },
-      ...setup.models.map(({ id, label }) => ({ value: id, label })),
+      ...models.map(({ id, label }) => ({ value: id, label })),
     ],
   };
 }

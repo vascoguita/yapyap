@@ -15,7 +15,7 @@ const VIEW: AssistantView = {
     { id: 'claude-opus', label: 'Opus' },
     { id: 'claude-haiku', label: 'Haiku' },
   ],
-  auto: 'Haiku',
+  auto: { id: 'claude-haiku', label: 'Haiku' },
   chats: [
     {
       account: 'a',
@@ -88,6 +88,7 @@ describe('AssistantSection', () => {
     expect(screen.getByText(/downloads once \(1\.1 GB\)/)).toBeTruthy();
     expect(screen.getByLabelText('Model')).toHaveProperty('value', 'claude-opus');
     expect(screen.getByRole('option', { name: 'Auto (recommended): Haiku' })).toBeTruthy();
+    expect(screen.queryByRole('option', { name: 'Haiku' })).toBeNull();
     expect(screen.getByText('Home: Ana')).toBeTruthy();
     expect(screen.getByText('Home: A chat allowed before (its name was not kept)')).toBeTruthy();
     expect(screen.getByText('Right now, it goes to Anthropic, at api.anthropic.com.')).toBeTruthy();
@@ -95,8 +96,8 @@ describe('AssistantSection', () => {
       expect(screen.getByRole('checkbox', { name })).toBeTruthy();
     }
     expect(screen.getByRole('group', { name: 'Messages the assistant reads' })).toBeTruthy();
-    fireEvent.change(screen.getByLabelText('Model'), { target: { value: 'claude-haiku' } });
-    expect(t.onChange).toHaveBeenCalledWith('assistant.model', 'claude-haiku');
+    fireEvent.change(screen.getByLabelText('Model'), { target: { value: 'auto' } });
+    expect(t.onChange).toHaveBeenCalledWith('assistant.model', 'auto');
   });
 
   it('switches where the assistant thinks, and says what is missing', async () => {
