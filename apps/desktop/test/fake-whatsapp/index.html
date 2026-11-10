@@ -20,7 +20,8 @@
       }
       /* As WhatsApp lays out the open chat: a flex column ordered with
          \`order\`, under a wallpaper that covers it, with the messages and the
-         message box raised above it (#466). */
+         message box raised above it (#466). The messages scroll in a box of
+         their own, which keeps its scroll position as it gets shorter (#607). */
       #main {
         position: relative;
         display: flex;
@@ -34,10 +35,13 @@
         position: relative;
         z-index: 1000;
       }
-      #main > [role='row'] {
+      #main > [data-testid='conversation-panel-body'] {
         order: 2;
         position: relative;
         z-index: 1;
+        flex: 1 1 auto;
+        min-block-size: 0;
+        overflow-y: auto;
       }
       #main > footer {
         order: 3;
@@ -90,29 +94,31 @@
             <div id="main">
               <div data-testid="wallpaper"></div>
               <header><span dir="auto">Test Chat One</span></header>
-              <!-- As WhatsApp marks messages today: a bare ID, and only the account's
+              <div data-testid="conversation-panel-body">
+                <!-- As WhatsApp marks messages today: a bare ID, and only the account's
                  own messages with a tail and a clickable delivery status (#410). -->
-              <div role="row" data-testid="message">
-                <div data-testid="conv-msg-3EB0F1" data-id="3EB0F1">
-                  <!-- A quote names its sender in any chat; only groups name it outside one (#410). -->
-                  <div data-testid="quoted-message">
-                    <span data-testid="author">Test Chat One</span>
+                <div role="row" data-testid="message">
+                  <div data-testid="conv-msg-3EB0F1" data-id="3EB0F1">
+                    <!-- A quote names its sender in any chat; only groups name it outside one (#410). -->
+                    <div data-testid="quoted-message">
+                      <span data-testid="author">Test Chat One</span>
+                    </div>
+                    <div data-pre-plain-text="[19:58, 24/10/2026] Test Chat One: ">
+                      <span data-testid="selectable-text">Dinner tonight?</span>
+                      <span aria-hidden="true">19:58</span>
+                    </div>
+                    <div data-testid="msg-meta"><span>19:58</span></div>
                   </div>
-                  <div data-pre-plain-text="[19:58, 24/10/2026] Test Chat One: ">
-                    <span data-testid="selectable-text">Dinner tonight?</span>
-                    <span aria-hidden="true">19:58</span>
-                  </div>
-                  <div data-testid="msg-meta"><span>19:58</span></div>
                 </div>
-              </div>
-              <div role="row">
-                <div data-testid="conv-msg-3EB0F2" data-id="3EB0F2">
-                  <span data-testid="tail-out"></span>
-                  <div data-pre-plain-text="[20:01, 24/10/2026] You: ">
-                    <span data-testid="selectable-text">See you at 8</span>
-                    <span aria-hidden="true">20:01</span>
+                <div role="row">
+                  <div data-testid="conv-msg-3EB0F2" data-id="3EB0F2">
+                    <span data-testid="tail-out"></span>
+                    <div data-pre-plain-text="[20:01, 24/10/2026] You: ">
+                      <span data-testid="selectable-text">See you at 8</span>
+                      <span aria-hidden="true">20:01</span>
+                    </div>
+                    <div data-testid="msg-meta" role="button"><span>20:01</span></div>
                   </div>
-                  <div data-testid="msg-meta" role="button"><span>20:01</span></div>
                 </div>
               </div>
               <footer>

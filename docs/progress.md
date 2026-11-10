@@ -402,3 +402,8 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   `scripts/`, `apps/desktop/e2e/`, and `src/main/`, `adapter/`,
   `preload/` and `renderer/`). Sessions read the progress status and
   only the ADRs for the area they change.
+- Assistant bar room (#607): when the bar opens, changes or opens its ways
+  to rewrite, the chat's message list scrolls by as much as the bar grew,
+  so the bar no longer covers the last message. The list is the nearest
+  scrolling box around a message inside the open chat; the fake page's
+  messages now scroll in a body of their own, as WhatsApp's do.

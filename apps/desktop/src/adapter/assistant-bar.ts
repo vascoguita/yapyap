@@ -50,6 +50,9 @@ export interface BarContent {
 interface BarPlaces {
   /** The open chat's message box row, which the bar sits right above. */
   readonly footer: string;
+  /** The open chat and a message in it, to find the list the bar takes room from. */
+  readonly conversation: string;
+  readonly message: string;
   /** The adapter world's global that holds the bar between renders. */
   readonly store: string;
   /** The adapter world's global the WhatsApp preload exposes for the bar's actions. */
@@ -64,6 +67,10 @@ interface BarNode {
   hidden: boolean;
   disabled: boolean;
   value: string;
+  scrollTop: number;
+  readonly offsetHeight: number;
+  readonly parentElement: BarNode | null;
+  readonly ownerDocument: BarDocument;
   readonly previousElementSibling: unknown;
   readonly style: { order: string; position: string; zIndex: string };
   readonly dataset: Record<string, string | undefined>;
@@ -123,6 +130,7 @@ type Scope = Record<string, unknown>;
 /** The bar's helpers, passed in because each runs as its own source text. */
 export interface BarKit {
   readonly align: (scope: Scope, host: BarNode, footer: BarNode) => void;
+  readonly room: (scope: Scope, places: BarPlaces, bar: BarNode, change: () => void) => void;
   readonly build: (doc: BarDocument, scope: Scope, places: BarPlaces, kit: BarKit) => BarStore;
   readonly wire: (
     shadow: BarNode,
@@ -182,15 +190,21 @@ export function renderAssistantBar(
   const store = kept ?? kit.build(doc, scope, places, kit);
   scope[places.store] = store;
   const placed = footer.previousElementSibling !== store.host;
-  if (placed) {
-    footer.before(store.host);
+  const key = JSON.stringify(content);
+  // Measuring forces a layout, and the bar renders about once a second, so
+  // only a render that places or changes the bar, which alone moves its height, measures it.
+  if (placed || store.key !== key) {
+    kit.room(scope, places, store.parts.bar, () => {
+      if (placed) {
+        footer.before(store.host);
+      }
+      if (store.key !== key) {
+        store.key = key;
+        kit.update(doc, store.parts, content, kit);
+      }
+    });
   }
   kit.align(scope, store.host, footer);
-  const key = JSON.stringify(content);
-  if (store.key !== key) {
-    store.key = key;
-    kit.update(doc, store.parts, content, kit);
-  }
   return placed ? 'placed' : 'kept';
 }
 
@@ -209,6 +223,35 @@ export function alignAssistantBar(scope: Scope, host: BarNode, footer: BarNode):
   host.style.order = order;
   host.style.position = 'relative';
   host.style.zIndex = zIndex;
+}
+
+/**
+ * Makes `change` to the bar and keeps the chat's newest messages in view.
+ * The bar takes its room from the message list, which keeps its scroll
+ * position as it gets shorter, so the bar would cover the last message and
+ * the user would have to scroll down to it (#607). The list scrolls by as
+ * much as the bar grew, or back by as much as it shrank. The list is the
+ * nearest scrolling box around a message, inside the open chat.
+ */
+export function holdAssistantBarRoom(
+  scope: Scope,
+  places: BarPlaces,
+  bar: BarNode,
+  change: () => void,
+): void {
+  const before = bar.offsetHeight;
+  change();
+  const grown = bar.offsetHeight - before;
+  const computed = scope['getComputedStyle'] as (node: BarNode) => { readonly overflowY: string };
+  let node =
+    grown === 0 ? null : (bar.ownerDocument.querySelector(places.message) as BarNode | null);
+  while (node !== null && node.closest(places.conversation) !== null) {
+    if (['auto', 'scroll'].includes(computed.call(scope, node).overflowY)) {
+      node.scrollTop += grown;
+      return;
+    }
+    node = node.parentElement;
+  }
 }
 
 /**
@@ -295,7 +338,9 @@ export function wireAssistantBar(
     }
     const action = String(control.dataset['action']);
     if (action === 'rewrites') {
-      parts.rewrites.hidden = !parts.rewrites.hidden;
+      kit.room(scope, places, parts.bar, () => {
+        parts.rewrites.hidden = !parts.rewrites.hidden;
+      });
       return;
     }
     parts.rewrites.hidden ||= action === 'rewrite';
@@ -522,6 +567,8 @@ export const MAX_PROMPT = 2000;
 
 const PLACES: BarPlaces = {
   footer: LANDMARKS.composerFooter,
+  conversation: LANDMARKS.conversation,
+  message: LANDMARKS.message,
   store: 'yapyapAssistantBarView',
   bridge: ASSISTANT_BAR_BRIDGE,
   style: BAR_STYLE,
@@ -532,6 +579,7 @@ const PLACES: BarPlaces = {
 export function assistantBarRender(content: BarContent): string {
   const kit = [
     `align: ${alignAssistantBar.toString()}`,
+    `room: ${holdAssistantBarRoom.toString()}`,
     `build: ${buildAssistantBar.toString()}`,
     `wire: ${wireAssistantBar.toString()}`,
     `fields: ${wireAssistantFields.toString()}`,
