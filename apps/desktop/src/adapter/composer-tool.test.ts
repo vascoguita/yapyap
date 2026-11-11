@@ -6,6 +6,7 @@ import {
   composerToolIcon,
   composerToolItem,
   composerToolRender,
+  composerToolShine,
   findComposerSlot,
   paintComposerTool,
   renderComposerTool,
@@ -36,7 +37,12 @@ const PLACES = {
   store: 'tool',
   bridge: 'bridge',
   style: '.tool { display: flex; }',
-  icons: { sparkle: 'M1 1z', caret: 'M2 2z', check: 'M3 3z' },
+  icons: {
+    modes: { polish: 'M4 4z', elaborate: 'M5 5z' },
+    sparkle: 'M1 1z',
+    caret: 'M2 2z',
+    check: 'M3 3z',
+  },
 };
 
 const KIT = {
@@ -47,6 +53,7 @@ const KIT = {
   update: updateComposerTool,
   item: composerToolItem,
   icon: composerToolIcon,
+  shine: composerToolShine,
 };
 
 /** WhatsApp's message box as it lays it out: attach, the field in its own box, then the microphone. */
@@ -111,7 +118,11 @@ describe('renderComposerTool', () => {
     expect(parts.apply.getAttribute('aria-label')).toBe('Polish');
     expect(parts.apply.getAttribute('title')).toBe('Polish: Polish it.');
     expect(parts.apply.type).toBe('button');
-    expect(parts.apply.querySelector('path')?.getAttribute('d')).toBe('M1 1z');
+    // The button shows the selected way: its own icon, in the edge's gradient, and its name.
+    const mode = parts.apply.querySelector('svg');
+    expect(mode?.getAttribute('class')).toBe('mode');
+    expect(mode?.querySelector('path')?.getAttribute('d')).toBe('M4 4z');
+    expect(parts.apply.querySelector('.label')?.textContent).toBe('Polish');
     expect(parts.more.getAttribute('aria-label')).toBe('More ways to rewrite');
     expect(parts.more.getAttribute('title')).toBe('More ways to rewrite');
     expect(parts.more.getAttribute('aria-haspopup')).toBe('menu');
@@ -119,6 +130,25 @@ describe('renderComposerTool', () => {
     expect(parts.more.querySelector('path')?.getAttribute('d')).toBe('M2 2z');
     expect(parts.menu.getAttribute('role')).toBe('menu');
     expect(parts.menu.hidden).toBe(true);
+  });
+
+  it('paints the ways’ icons with the gradient of its edge, kept in its own shadow root', () => {
+    const t = setup();
+    t.render();
+    const shine = t.shadow().querySelector('.defs linearGradient');
+    expect(shine?.getAttribute('id')).toBe('shine');
+    expect([shine?.getAttribute('x2'), shine?.getAttribute('y2')]).toEqual(['1', '1']);
+    expect(t.shadow().querySelector('.defs')?.getAttribute('aria-hidden')).toBe('true');
+    expect(
+      [...(shine?.querySelectorAll('stop') ?? [])].map((stop) => [
+        stop.getAttribute('offset'),
+        stop.getAttribute('stop-color'),
+      ]),
+    ).toEqual([
+      ['0', '#25d366'],
+      ['0.5', '#53bdeb'],
+      ['1', '#a78bfa'],
+    ]);
   });
 
   it('lists every way with what it does, and ticks the selected one', () => {
@@ -139,19 +169,33 @@ describe('renderComposerTool', () => {
       ['menuitemradio', 'true', 'polish', 'Polish', 'Polish it.', 'button'],
       ['menuitemradio', 'false', 'elaborate', 'Elaborate', 'Elaborate it.', 'button'],
     ]);
-    const check = t.items()[0]?.querySelector('svg');
-    expect(check?.getAttribute('class')).toBe('check');
-    expect(check?.namespaceURI).toBe('http://www.w3.org/2000/svg');
-    expect(check?.getAttribute('viewBox')).toBe('0 0 24 24');
-    expect(check?.getAttribute('aria-hidden')).toBe('true');
-    expect(check?.querySelector('path')?.getAttribute('d')).toBe('M3 3z');
   });
 
-  it('writes the ways as text, never as markup', () => {
+  it('shows each way’s icon, and a tick, in the list', () => {
     const t = setup();
-    t.render({ ...CONTENT, options: [option('polish', '<b>Polish</b>')] });
-    expect(t.items()[0]?.querySelector('.name')?.textContent).toBe('<b>Polish</b>');
-    expect(t.items()[0]?.querySelector('b')).toBeNull();
+    t.render();
+    /** An icon as the list draws it: its class, kind, box, whether it is hidden from readers, and shape. */
+    const icon = (node: Element | undefined) => [
+      node?.getAttribute('class'),
+      node?.namespaceURI,
+      node?.getAttribute('viewBox'),
+      node?.getAttribute('aria-hidden'),
+      node?.querySelector('path')?.getAttribute('d'),
+    ];
+    const svg = 'http://www.w3.org/2000/svg';
+    const [polish, elaborate] = t.items().map((item) => [...item.children]);
+    expect(icon(polish?.[0])).toEqual(['mode', svg, '0 0 24 24', 'true', 'M4 4z']);
+    expect(icon(elaborate?.[0])).toEqual(['mode', svg, '0 0 24 24', 'true', 'M5 5z']);
+    expect(icon(polish?.[3])).toEqual(['check', svg, '0 0 24 24', 'true', 'M3 3z']);
+  });
+
+  it('writes the ways as text, never as markup, with the sparkles for a way without an icon', () => {
+    const t = setup();
+    t.render({ ...CONTENT, current: 'louder', options: [option('louder', '<b>Louder</b>')] });
+    expect(t.items()[0]?.querySelector('.name')?.textContent).toBe('<b>Louder</b>');
+    expect(t.kept().parts.apply.querySelector('.label')?.textContent).toBe('<b>Louder</b>');
+    expect(t.shadow().querySelector('b')).toBeNull();
+    expect(t.items()[0]?.querySelector('.mode path')?.getAttribute('d')).toBe('M1 1z');
   });
 
   it('takes WhatsApp’s colors from the message box, render after render', () => {
@@ -176,11 +220,16 @@ describe('renderComposerTool', () => {
     expect(tool.getAttribute('aria-busy')).toBe('true');
     expect([apply.disabled, more.disabled]).toEqual([true, true]);
     expect(apply.getAttribute('aria-label')).toBe('Elaborate');
+    expect(apply.querySelector('.label')?.textContent).toBe('Elaborate');
+    expect(apply.querySelector('.mode path')?.getAttribute('d')).toBe('M5 5z');
     expect(t.items().map((item) => item.getAttribute('aria-checked'))).toEqual(['false', 'true']);
     t.render({ ...CONTENT, current: 'louder' });
     expect([apply.disabled, more.disabled]).toEqual([true, false]);
     expect(apply.getAttribute('aria-label')).toBe('Rewrite with AI');
     expect(apply.getAttribute('title')).toBe('Rewrite with AI');
+    // A way without an icon of its own, or none selected, shows the sparkles.
+    expect(apply.querySelector('.label')?.textContent).toBe('Rewrite with AI');
+    expect(apply.querySelector('.mode path')?.getAttribute('d')).toBe('M1 1z');
     expect(tool.getAttribute('aria-busy')).toBe('false');
   });
 
@@ -249,7 +298,9 @@ describe('the button’s controls', () => {
     click(more);
     expect(menu.hidden).toBe(false);
     expect(more.getAttribute('aria-expanded')).toBe('true');
-    expect(t.shadow().activeElement).toBe(t.items()[0]);
+    // The list takes the focus, so it closes once the focus leaves it.
+    expect(t.shadow().activeElement).toBe(menu);
+    expect(menu.getAttribute('tabindex')).toBe('-1');
     click(more);
     expect(menu.hidden).toBe(true);
     expect(more.getAttribute('aria-expanded')).toBe('false');

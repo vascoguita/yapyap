@@ -163,7 +163,8 @@ still should.
   click of its **Send**.
 - 2026-11-11 (#609, the maintainer's decision): a rewrite button joins
   WhatsApp's message box, right before its microphone or Send, as the
-  bar's companion. It renders with the bar, in one call into the adapter's
+  bar's companion. It is one chip that shows the selected way's icon and
+  name, with the arrow to the other ways inside the same edge. It renders with the bar, in one call into the adapter's
   isolated world, in its own closed shadow root, takes WhatsApp's colors
   from the message box, and acts only on trusted clicks through the bar's
   bridge, on a fixed channel that takes one of its four ways (Polish,

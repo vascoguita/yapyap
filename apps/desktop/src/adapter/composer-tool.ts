@@ -33,7 +33,13 @@ interface ToolPlaces {
   readonly bridge: string;
   readonly style: string;
   /** The icons' SVG paths, which the source text cannot reach as module constants. */
-  readonly icons: { readonly sparkle: string; readonly caret: string; readonly check: string };
+  readonly icons: {
+    /** Each way's own icon, by its value; the sparkles stand for a way without one. */
+    readonly modes: Readonly<Record<string, string>>;
+    readonly sparkle: string;
+    readonly caret: string;
+    readonly check: string;
+  };
 }
 
 /** The few DOM features the button uses; the main process compiles this without DOM types. */
@@ -117,7 +123,8 @@ export interface ToolKit {
     option: ToolOption,
     kit: ToolKit,
   ) => ToolNode;
-  readonly icon: (doc: ToolDocument, path: string) => ToolNode;
+  readonly icon: (doc: ToolDocument, path: string, name?: string) => ToolNode;
+  readonly shine: (doc: ToolDocument) => ToolNode;
 }
 
 /** Where a render left the button. */
@@ -212,6 +219,7 @@ export function buildComposerTool(
     return node;
   };
   make('style', 'style', shadow).textContent = places.style;
+  shadow.append(kit.shine(doc));
   const tool = make('div', 'tool', shadow);
   tool.setAttribute('role', 'group');
   const parts: ToolParts = {
@@ -220,11 +228,11 @@ export function buildComposerTool(
     more: make('button', 'more', tool, 'more'),
     menu: make('div', 'menu', tool),
   };
-  parts.apply.append(kit.icon(doc, places.icons.sparkle));
   parts.more.append(kit.icon(doc, places.icons.caret));
   parts.more.setAttribute('aria-haspopup', 'menu');
   parts.more.setAttribute('aria-expanded', 'false');
   parts.menu.setAttribute('role', 'menu');
+  parts.menu.setAttribute('tabindex', '-1');
   parts.menu.hidden = true;
   const store: ToolStore = { host, parts, places, current: '', key: null };
   kit.wire(store, scope);
@@ -246,7 +254,7 @@ export function wireComposerTool(store: ToolStore, scope: Scope): void {
     menu.hidden = !shown;
     more.setAttribute('aria-expanded', String(shown));
     if (shown) {
-      menu.querySelector('[aria-checked="true"]')?.focus();
+      menu.focus();
     }
   };
   const polish = (value: string): void => {
@@ -281,7 +289,10 @@ export function wireComposerTool(store: ToolStore, scope: Scope): void {
   });
 }
 
-/** Shows new content: the selected way on the button, and every way in the list, as text only. */
+/**
+ * Shows new content, as text only: the selected way's icon and name on the
+ * button, so the user sees how it will rewrite, and every way in the list.
+ */
 export function updateComposerTool(
   doc: ToolDocument,
   store: ToolStore,
@@ -289,20 +300,28 @@ export function updateComposerTool(
   kit: ToolKit,
 ): void {
   const { apply, more, menu, tool } = store.parts;
-  const current = content.options.find(({ value }) => value === content.current);
-  store.current = current?.value ?? '';
-  tool.setAttribute('aria-label', content.labels.label);
+  const { label } = content.labels;
+  const found = content.options.find(({ value }) => value === content.current);
+  // With no way selected, the button names the assistant and does nothing.
+  const shown = found ?? { value: '', label, tip: label };
+  store.current = shown.value;
+  const name = doc.createElement('span');
+  name.setAttribute('class', 'label');
+  name.textContent = shown.label;
+  const { modes, sparkle } = store.places.icons;
+  apply.replaceChildren(kit.icon(doc, modes[shown.value] ?? sparkle, 'mode'), name);
+  tool.setAttribute('aria-label', label);
   tool.setAttribute('aria-busy', String(content.working));
-  apply.setAttribute('aria-label', current?.label ?? content.labels.label);
-  apply.setAttribute('title', current?.tip ?? content.labels.label);
-  apply.disabled = content.working || current === undefined;
+  apply.setAttribute('aria-label', shown.label);
+  apply.setAttribute('title', shown.tip);
+  apply.disabled = content.working || found === undefined;
   more.setAttribute('aria-label', content.labels.more);
   more.setAttribute('title', content.labels.more);
   more.disabled = content.working;
   menu.replaceChildren(...content.options.map((option) => kit.item(doc, store, option, kit)));
 }
 
-/** One way in the list: its name, what it does, and a tick when it is the selected one. */
+/** One way in the list: its icon, its name, what it does, and a tick when it is the selected one. */
 export function composerToolItem(
   doc: ToolDocument,
   store: ToolStore,
@@ -316,24 +335,31 @@ export function composerToolItem(
   item.setAttribute('aria-checked', String(value === store.current));
   item.dataset['action'] = 'pick';
   item.dataset['value'] = value;
-  const check = kit.icon(doc, store.places.icons.check);
-  check.setAttribute('class', 'check');
+  const { modes, sparkle, check } = store.places.icons;
   const name = doc.createElement('span');
   name.setAttribute('class', 'name');
   name.textContent = label;
   const about = doc.createElement('span');
   about.setAttribute('class', 'hint');
   about.textContent = hint;
-  item.append(check, name, about);
+  item.append(
+    kit.icon(doc, modes[value] ?? sparkle, 'mode'),
+    name,
+    about,
+    kit.icon(doc, check, 'check'),
+  );
   return item;
 }
 
-/** A 24 px icon drawn in the text's color, as WhatsApp draws its own. */
-export function composerToolIcon(doc: ToolDocument, path: string): ToolNode {
+/** A 24 px icon, drawn in the text's color as WhatsApp draws its own unless its class says otherwise. */
+export function composerToolIcon(doc: ToolDocument, path: string, name?: string): ToolNode {
   const svgNs = 'http://www.w3.org/2000/svg';
   const icon = doc.createElementNS(svgNs, 'svg');
   icon.setAttribute('viewBox', '0 0 24 24');
   icon.setAttribute('aria-hidden', 'true');
+  if (name !== undefined) {
+    icon.setAttribute('class', name);
+  }
   const shape = doc.createElementNS(svgNs, 'path');
   shape.setAttribute('d', path);
   icon.append(shape);
@@ -341,80 +367,119 @@ export function composerToolIcon(doc: ToolDocument, path: string): ToolNode {
 }
 
 /**
- * The button's own styles, inside its shadow root. It takes WhatsApp's
- * colors from the message box, so it matches either theme, and copies its
- * 40 px round buttons. A gradient edge that slowly turns marks it as the
- * assistant, and turns faster while it works. The edge turns by rotating
- * the round ring itself: Chromium ignores `@property` in a shadow root, so
- * the gradient's angle cannot be animated there. It holds still for people
- * who ask for less motion. Logical properties only, so it mirrors for
- * right-to-left languages (ADR 0012).
+ * The gradient the ways' icons are painted with, the colors of the
+ * button's edge. Its ID is the shadow root's own, so the page cannot clash
+ * with it.
+ */
+export function composerToolShine(doc: ToolDocument): ToolNode {
+  const svgNs = 'http://www.w3.org/2000/svg';
+  const holder = doc.createElementNS(svgNs, 'svg');
+  holder.setAttribute('class', 'defs');
+  holder.setAttribute('aria-hidden', 'true');
+  const gradient = doc.createElementNS(svgNs, 'linearGradient');
+  gradient.setAttribute('id', 'shine');
+  gradient.setAttribute('x2', '1');
+  gradient.setAttribute('y2', '1');
+  for (const [offset, color] of [
+    ['0', '#25d366'],
+    ['0.5', '#53bdeb'],
+    ['1', '#a78bfa'],
+  ]) {
+    const stop = doc.createElementNS(svgNs, 'stop');
+    stop.setAttribute('offset', String(offset));
+    stop.setAttribute('stop-color', String(color));
+    gradient.append(stop);
+  }
+  holder.append(gradient);
+  return holder;
+}
+
+/**
+ * The button's own styles, inside its shadow root. It is one chip in
+ * WhatsApp's message box: the selected way's icon and name, then the arrow
+ * that opens the other ways, inside one gradient edge, so the arrow reads
+ * as part of the assistant. It takes WhatsApp's colors from the message
+ * box, so it matches either theme, and its font. A sheen runs along the
+ * edge, faster while the assistant works. It moves the gradient rather
+ * than turn it, since Chromium ignores `@property` in a shadow root; the
+ * gradient repeats once across twice the chip's width, so each pass joins
+ * the next. It holds still for people who ask for less motion. Logical
+ * properties only, so it mirrors for right-to-left languages (ADR 0012).
  */
 const TOOL_STYLE = `
 :host { display: flex; flex: none; align-items: center; color: var(--wa-text, inherit); }
-@keyframes turn { to { transform: rotate(1turn); } }
+@keyframes sheen { from { background-position: 0 0, 0 0; } to { background-position: 0 0, 100% 0; } }
+@keyframes breathe { to { opacity: 0.45; } }
+.defs { position: absolute; inline-size: 0; block-size: 0; }
 .tool {
-  --shine: conic-gradient(#25d366, #53bdeb, #a78bfa, #ff9ad5, #25d366);
-  position: relative; display: flex; align-items: center;
+  --shine: linear-gradient(90deg, #25d366, #53bdeb, #a78bfa, #ff9ad5, #25d366, #53bdeb, #a78bfa,
+    #ff9ad5, #25d366);
+  --hover: color-mix(in srgb, currentColor 8%, transparent);
+  position: relative; display: flex; align-items: stretch; box-sizing: border-box;
+  block-size: 36px; margin-inline: 2px 4px; border: 1.5px solid transparent; border-radius: 18px;
+  background: linear-gradient(var(--wa-surface, Canvas), var(--wa-surface, Canvas)) padding-box,
+    var(--shine) border-box;
+  background-size: 100% 100%, 200% 100%;
+  box-shadow: 0 0 12px -5px #53bdeb; animation: sheen 8s linear infinite;
+  transition: box-shadow 0.2s;
 }
+.tool:hover { box-shadow: 0 0 14px -3px #53bdeb; }
+.tool[aria-busy='true'] { animation-duration: 1.5s; box-shadow: 0 0 16px -2px #a78bfa; }
 button {
-  display: grid; place-items: center; padding: 0; border: 0; background: transparent;
+  display: flex; align-items: center; padding: 0; border: 0; background: transparent;
   color: inherit; font: inherit; cursor: pointer;
 }
 button:disabled { cursor: default; }
-button:focus-visible { outline: 2px solid #25d366; outline-offset: 1px; }
+button:focus-visible { outline: 2px solid #25d366; outline-offset: -2px; }
 svg { inline-size: 24px; block-size: 24px; fill: currentColor; }
+.mode { fill: url(#shine); }
 .apply {
-  position: relative; inline-size: 40px; block-size: 40px; border-radius: 9999px;
-  isolation: isolate;
+  gap: 6px; padding-inline: 9px 8px; border-start-start-radius: 16px;
+  border-end-start-radius: 16px; font-size: 14px; font-weight: 500; white-space: nowrap;
 }
-.apply::before, .apply::after {
-  position: absolute; inset: 4px; z-index: -1; border-radius: inherit; content: '';
-  background: var(--shine); animation: turn 6s linear infinite;
-}
-.apply::before {
-  padding: 1.5px;
-  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
-}
-.apply::after { opacity: 0.18; filter: blur(6px); transition: opacity 0.2s; }
-.apply:hover:not(:disabled)::after { opacity: 0.4; }
-.tool[aria-busy='true'] .apply::before, .tool[aria-busy='true'] .apply::after {
-  animation-duration: 1.2s;
-}
-.tool[aria-busy='true'] .apply::after { opacity: 0.5; }
-.apply:disabled svg { opacity: 0.6; }
+.apply .mode { inline-size: 20px; block-size: 20px; }
+.tool[aria-busy='true'] .apply .mode { animation: breathe 0.6s ease-in-out infinite alternate; }
+.apply:disabled .label { opacity: 0.6; }
 .more {
-  inline-size: 20px; block-size: 40px; margin-inline-start: -2px; border-radius: 9999px;
-  opacity: 0.7;
+  padding-inline: 3px 5px; border-inline-start: 1px solid var(--hover);
+  border-start-end-radius: 16px; border-end-end-radius: 16px;
 }
-.more:hover:not(:disabled) { opacity: 1; }
-.more svg { inline-size: 18px; block-size: 18px; }
+.more svg { inline-size: 18px; block-size: 18px; opacity: 0.8; }
+.apply:hover:not(:disabled), .more:hover:not(:disabled), .more[aria-expanded='true'] {
+  background: var(--hover);
+}
 .menu {
-  position: absolute; inset-block-end: calc(100% + 14px); inset-inline-end: -8px; z-index: 10;
+  position: absolute; inset-block-end: calc(100% + 12px); inset-inline-end: -4px; z-index: 10;
   display: flex; flex-direction: column; gap: 2px; box-sizing: border-box;
-  inline-size: max-content; max-inline-size: min(340px, 80vw); padding: 6px;
+  inline-size: max-content; max-inline-size: min(360px, 80vw); padding: 6px;
   border: 1px solid transparent; border-radius: 16px;
   background: linear-gradient(var(--wa-surface, Canvas), var(--wa-surface, Canvas)) padding-box,
-    var(--shine) border-box;
+    linear-gradient(135deg, #25d366, #53bdeb, #a78bfa, #ff9ad5) border-box;
   box-shadow: 0 2px 5px rgb(11 20 26 / 26%), 0 8px 24px rgb(11 20 26 / 16%);
 }
+.menu:focus { outline: none; }
 .menu[hidden] { display: none; }
 .item {
-  display: grid; grid-template-columns: 20px 1fr; gap: 2px 10px; place-items: center start;
-  padding-block: 8px; padding-inline: 8px 12px; border-radius: 10px; text-align: start;
+  display: grid; grid-template-columns: 24px 1fr 20px; gap: 2px 12px; align-items: center;
+  padding-block: 8px; padding-inline: 10px; border-radius: 10px; text-align: start;
 }
-.item:hover, .item:focus-visible { background: color-mix(in srgb, currentColor 9%, transparent); }
-.item:focus-visible { outline-offset: -2px; }
+.item:hover, .item:focus-visible { background: var(--hover); }
+.item .mode { grid-row: 1 / span 2; grid-column: 1; }
+.name { grid-column: 2; font-size: 14.5px; font-weight: 500; }
+.hint { grid-column: 2; font-size: 12.5px; line-height: 1.35; opacity: 0.7; }
 .check {
-  grid-row: span 2; inline-size: 20px; block-size: 20px; fill: #25d366; visibility: hidden;
+  grid-row: 1 / span 2; grid-column: 3; inline-size: 20px; block-size: 20px; fill: #25d366;
+  visibility: hidden;
 }
 .item[aria-checked='true'] .check { visibility: visible; }
-.name { font-size: 14.5px; font-weight: 500; }
-.hint { font-size: 12.5px; line-height: 1.35; opacity: 0.7; }
 @media (prefers-reduced-motion: reduce) {
-  .apply::before, .apply::after { animation: none; }
+  .tool, .tool[aria-busy='true'] .apply .mode { animation: none; }
 }
 `;
+
+/** Sparkles: a large four-pointed star and a small one, the assistant's own mark. */
+const SPARKLE =
+  'M10.5 3.5l1.7 4.8 4.8 1.7-4.8 1.7-1.7 4.8-1.7-4.8L4 10l4.8-1.7zM17.5 14l.9 2.6 2.6.9-2.6.9-.9 2.6-.9-2.6-2.6-.9 2.6-.9z';
 
 const PLACES: ToolPlaces = {
   field: LANDMARKS.composer,
@@ -423,9 +488,18 @@ const PLACES: ToolPlaces = {
   bridge: ASSISTANT_BAR_BRIDGE,
   style: TOOL_STYLE,
   icons: {
-    // Sparkles: a large four-pointed star and a small one.
-    sparkle:
-      'M10.5 3.5l1.7 4.8 4.8 1.7-4.8 1.7-1.7 4.8-1.7-4.8L4 10l4.8-1.7zM17.5 14l.9 2.6 2.6.9-2.6.9-.9 2.6-.9-2.6-2.6-.9 2.6-.9z',
+    modes: {
+      // Sparkles, for a draft made to shine.
+      polish: SPARKLE,
+      // Lines that get shorter.
+      shorten: 'M4 5h16v2H4zm0 6h11v2H4zm0 6h6v2H4z',
+      // Lines with a plus: more of them.
+      elaborate: 'M4 5h16v2H4zm0 6h16v2H4zm0 6h8v2H4zm13-2h2v3h3v2h-3v3h-2v-3h-3v-2h3z',
+      // A briefcase, for a professional tone.
+      formalize:
+        'M10 3h4a2 2 0 0 1 2 2v2h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h3V5a2 2 0 0 1 2-2zm0 2v2h4V5zM5 12v6h14v-6z',
+    },
+    sparkle: SPARKLE,
     // A chevron pointing up, since the list opens upwards, above the message box.
     caret: 'M7.4 15.4 12 10.8l4.6 4.6 1.4-1.4-6-6-6 6z',
     check: 'M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z',
@@ -442,6 +516,7 @@ export function composerToolRender(content: ToolContent): string {
     `update: ${updateComposerTool.toString()}`,
     `item: ${composerToolItem.toString()}`,
     `icon: ${composerToolIcon.toString()}`,
+    `shine: ${composerToolShine.toString()}`,
   ].join(', ');
   return `(${renderComposerTool.toString()})(document, globalThis, ${JSON.stringify(content)}, ${JSON.stringify(PLACES)}, { ${kit} })`;
 }

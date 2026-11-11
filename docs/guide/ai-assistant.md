@@ -136,15 +136,17 @@ Open a chat. The bar sits right above the message box:
 
 ### Rewrite from the message box
 
-The sparkle button inside the message box, just left of the microphone,
-rewrites your draft right where it is:
+The assistant's button sits inside the message box, just left of the
+microphone. It shows the way it rewrites, such as **Polish**, with its
+icon, and rewrites your draft right where it is:
 
-- Click it to **Polish** your draft: it cleans up grammar, flow and tone,
-  keeping your message as it is.
-- The arrow next to it opens the other ways: **Shorten** condenses your
-  message, **Elaborate** adds detail, context or polite phrasing, and
-  **Formalize** makes the tone more professional. The way you pick
-  rewrites your draft at once, and the button keeps it for next time.
+- Click it to rewrite your draft that way. **Polish** cleans up grammar,
+  flow and tone, keeping your message as it is.
+- Its arrow opens the other ways, each with its icon: **Shorten**
+  condenses your message, **Elaborate** adds detail, context or polite
+  phrasing, and **Formalize** makes the tone more professional. The way
+  you pick rewrites your draft at once, and the button shows and keeps it
+  for next time.
 
 Nothing is sent: press Enter to send the rewrite, as usual. **Undo** in
 the bar puts your own draft back. If you change your draft while the

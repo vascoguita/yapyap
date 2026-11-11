@@ -411,10 +411,14 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   colors, since Chromium drew it on white under light text in the dark
   scheme. The bar and Settings list the model Auto names only as Auto,
   unless it is the saved choice (`src/shared/model-choices.ts`).
-- Rewrite from the message box (#609): a sparkle button before
-  WhatsApp's microphone or Send rewrites the draft in place, Polish by
-  default, with Shorten, Elaborate and Formalize in a list that opens
-  upwards; the bar offers Undo. The bar's Rewrite uses the same styles
+- Rewrite from the message box (#609): a chip before WhatsApp's
+  microphone or Send shows the selected way's icon and name and rewrites
+  the draft in place, Polish by default, with Shorten, Elaborate and
+  Formalize in a list that opens upwards; the bar offers Undo. Replacing
+  a draft now selects it once WhatsApp's editor has put back its own
+  caret, which it does as the message box takes the focus; selecting at
+  once left the new text after the draft. The fake message box does the
+  same, so E2E tests catch it. The bar's Rewrite uses the same styles
   (More formal and Shorter become Formalize and Shorten). The button
   (`src/adapter/composer-tool.ts`) renders with the bar in one call, and
   the fake page's message box mirrors WhatsApp's row.
