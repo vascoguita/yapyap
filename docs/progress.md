@@ -422,3 +422,8 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   (More formal and Shorter become Formalize and Shorten). The button
   (`src/adapter/composer-tool.ts`) renders with the bar in one call, and
   the fake page's message box mirrors WhatsApp's row.
+- undici advisories (#611): the lockfile moves undici from 7.30.1 to
+  7.30.2, which fixes six new low-severity advisories that failed SonarQube
+  Cloud's dependency gate on master. It is optional for `@electron/get`
+  and `openai`, and GitHub's advisory database does not list them yet, so
+  `pnpm audit` did not report them.
