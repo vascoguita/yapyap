@@ -35,7 +35,16 @@ const isButton = (id: unknown): boolean => (BAR_BUTTON_IDS as readonly unknown[]
 
 type BarActions = Pick<
   AssistantBar,
-  'suggest' | 'summarize' | 'rewrite' | 'catchUp' | 'prompt' | 'use' | 'send' | 'choose' | 'button'
+  | 'suggest'
+  | 'summarize'
+  | 'rewrite'
+  | 'polish'
+  | 'catchUp'
+  | 'prompt'
+  | 'use'
+  | 'send'
+  | 'choose'
+  | 'button'
 >;
 
 /**
@@ -72,6 +81,7 @@ export function listenToAssistantBar(
     on(channels.suggest, noArguments, bar.suggest),
     on(channels.summarize, noArguments, bar.summarize),
     on(channels.rewrite, argumentsOf(isChoice), bar.rewrite),
+    on(channels.polish, argumentsOf(isChoice), bar.polish),
     on(channels.catchUp, noArguments, bar.catchUp),
     on(channels.prompt, argumentsOf(isPrompt), (text: string) => bar.prompt(text.trim())),
     on(channels.use, argumentsOf(isIndex), bar.use),

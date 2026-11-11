@@ -186,6 +186,52 @@ async function playClaude(app: ElectronApplication, ...answers: readonly string[
 export const claudeRequests = (app: ElectronApplication): Promise<string[]> =>
   app.evaluate(() => (globalThis as { claudeRequests?: string[] }).claudeRequests ?? []);
 
+/**
+ * Runs in the adapter's isolated world, where YapYap keeps the message box's
+ * rewrite button (#609): its controls that show, named as the user hears them.
+ */
+function readToolControls(): BarControl[] | null {
+  const kept = (
+    globalThis as { yapyapComposerToolView?: { host: HTMLElement; parts: { tool: HTMLElement } } }
+  ).yapyapComposerToolView;
+  if (kept?.host.isConnected !== true) {
+    return null;
+  }
+  return [...kept.parts.tool.querySelectorAll<HTMLButtonElement>('button')]
+    .filter((control) => control.getClientRects().length > 0)
+    .map((control) => {
+      const box = control.getBoundingClientRect();
+      return {
+        name:
+          control.getAttribute('aria-label') ?? control.querySelector('.name')?.textContent ?? '',
+        disabled: control.disabled,
+        x: box.x + box.width / 2,
+        y: box.y + box.height / 2,
+      };
+    });
+}
+
+/**
+ * Clicks a control of the message box's rewrite button, or a way in its
+ * list, as the user would, with the mouse: it ignores clicks page scripts make up.
+ */
+export async function clickInTool(
+  app: ElectronApplication,
+  page: Page,
+  name: string,
+): Promise<void> {
+  let control: BarControl | undefined;
+  await expect(async () => {
+    const controls = ((await inBarWorld(app, readToolControls)) ?? []) as BarControl[];
+    control = controls.find((each) => each.name === name && !each.disabled);
+    expect(control, `the rewrite button’s ${name}`).toBeDefined();
+  }).toPass();
+  if (control === undefined) {
+    throw new Error(`The rewrite button has no ${name}.`);
+  }
+  await page.mouse.click(control.x, control.y);
+}
+
 /** Three suggested replies. */
 export const CLAUDE_ANSWER = claudeAnswer('Yes, 8 works!\nCan we do 9?\nSee you there');
 

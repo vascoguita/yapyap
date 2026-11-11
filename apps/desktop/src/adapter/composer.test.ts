@@ -1,6 +1,6 @@
 /** @vitest-environment happy-dom */
 import { runInNewContext } from 'node:vm';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   FOCUS_COMPOSER,
   focusComposer,
@@ -73,24 +73,36 @@ describe('parseDraft', () => {
 });
 
 describe('selectComposer', () => {
-  it('focuses the message box and selects all of the draft in it', () => {
+  it('focuses the message box, then selects all of the draft once the editor settled', async () => {
     document.body.innerHTML =
       '<div id="main"><footer><div contenteditable="true">see you <b>soon</b></div></footer></div>';
-    expect(selectComposer(document, LANDMARKS.composer)).toBe(true);
-    expect(document.activeElement).toBe(document.querySelector('[contenteditable]'));
+    const box = document.querySelector('[contenteditable]');
+    // WhatsApp's editor puts its caret back as the box takes the focus.
+    box?.addEventListener('focus', () => {
+      document.getSelection()?.collapse(box, box.childNodes.length);
+    });
+    const scope = { setTimeout: vi.fn(setTimeout) };
+    const selected = selectComposer(document, scope, LANDMARKS.composer, 30);
+    expect(document.activeElement).toBe(box);
+    expect(document.getSelection()?.toString()).toBe('');
+    expect(scope.setTimeout).toHaveBeenCalledWith(expect.any(Function), 30);
+    expect(await selected).toBe(true);
     expect(document.getSelection()?.toString()).toBe('see you soon');
   });
 
-  it('reports a page without one, and copes without a selection', () => {
-    expect(selectComposer(document, LANDMARKS.composer)).toBe(false);
+  it('reports a missing message box, and copes with a page without a selection', async () => {
+    document.body.innerHTML = '';
+    expect(await selectComposer(document, { setTimeout }, LANDMARKS.composer, 0)).toBe(false);
     const box = { focus: () => undefined };
-    expect(selectComposer({ querySelector: () => box, getSelection: () => null }, 'x')).toBe(true);
+    const page = { querySelector: () => box, getSelection: () => null };
+    expect(await selectComposer(page, { setTimeout }, 'x', 0)).toBe(true);
   });
 
-  it.skipIf(SELECT_COMPOSER.includes('stryMutAct'))('runs as standalone source text', () => {
+  it.skipIf(SELECT_COMPOSER.includes('stryMutAct'))('runs as standalone source text', async () => {
     document.body.innerHTML =
       '<div id="main"><footer><div contenteditable="true">Hi</div></footer></div>';
-    expect(runInNewContext(SELECT_COMPOSER, { document })).toBe(true);
+    expect(SELECT_COMPOSER).toMatch(/, 30\)$/);
+    expect(await runInNewContext(SELECT_COMPOSER, { document, setTimeout, Promise })).toBe(true);
     expect(document.getSelection()?.toString()).toBe('Hi');
   });
 });

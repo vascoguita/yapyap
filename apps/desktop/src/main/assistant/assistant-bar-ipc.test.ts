@@ -15,6 +15,7 @@ function setup() {
     suggest: vi.fn(() => Promise.resolve()),
     summarize: vi.fn(() => Promise.resolve()),
     rewrite: vi.fn(() => Promise.resolve()),
+    polish: vi.fn(() => Promise.resolve()),
     catchUp: vi.fn(() => Promise.resolve()),
     prompt: vi.fn(() => Promise.resolve()),
     use: vi.fn(() => Promise.resolve()),
@@ -61,6 +62,7 @@ describe('listenToAssistantBar', () => {
     await t.hear('suggest', t.fromBar);
     await t.hear('summarize', t.fromBar);
     await t.hear('rewrite', t.fromBar, 'translate:pt');
+    await t.hear('polish', t.fromBar, 'shorten');
     await t.hear('catch-up', t.fromBar);
     await t.hear('prompt', t.fromBar, '  say I am late ');
     await t.hear('use', t.fromBar, 0);
@@ -73,6 +75,7 @@ describe('listenToAssistantBar', () => {
     expect(t.bar.summarize).toHaveBeenCalledOnce();
     expect(t.bar.catchUp).toHaveBeenCalledOnce();
     expect(t.bar.rewrite).toHaveBeenCalledExactlyOnceWith('translate:pt');
+    expect(t.bar.polish).toHaveBeenCalledExactlyOnceWith('shorten');
     expect(t.bar.button).toHaveBeenCalledExactlyOnceWith('what-sent');
     expect(t.openSettings).toHaveBeenCalledOnce();
     expect(t.bar.prompt).toHaveBeenCalledExactlyOnceWith('say I am late');

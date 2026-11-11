@@ -8,6 +8,7 @@ import {
   claudeAnswer,
   claudeRequests,
   clickInBar,
+  clickInTool,
   fakeModelServer,
   openAssistantSettings,
   quietPort,
@@ -106,6 +107,43 @@ test('rewrites the draft in the picked style, and puts the rewrite in its place 
   expect(asked[0]).toContain('running late');
   await clickInBar(app, window, 'Use');
   await expect(composer).toHaveText('I am running a little late, sorry!');
+});
+
+test('rewrites the draft in place from the message box, and puts it back on Undo', async ({
+  app,
+  window,
+}) => {
+  await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
+  const composer = window.getByTestId('composer');
+  await composer.click();
+  await window.keyboard.type('running late');
+  await readyClaude(
+    app,
+    claudeAnswer('“I am running a little late, sorry!”'),
+    claudeAnswer('I am running late, but I will be there in ten minutes.'),
+  );
+  await clickInTool(app, window, 'Polish');
+  // Rewriting reads the draft only once the user allowed the assistant here.
+  await clickInBar(app, window, 'Allow here');
+  await expect(composer).toHaveText('I am running a little late, sorry!');
+  await barSays(app, 'Your draft was rewritten. Press Enter to send it, as usual.');
+  const asked = await claudeRequests(app);
+  expect(asked[0]).toContain('spelling, grammar and flow');
+  expect(asked[0]).toContain('running late');
+  await clickInBar(app, window, 'Undo');
+  await expect(composer).toHaveText('running late');
+  // The list opens upwards, and the way picked rewrites at once and stays selected.
+  await clickInTool(app, window, 'More ways to rewrite');
+  await clickInTool(app, window, 'Elaborate');
+  await expect(composer).toHaveText('I am running late, but I will be there in ten minutes.');
+  expect((await claudeRequests(app))[1]).toContain('more detail, context');
+  // The button itself now rewrites in that way.
+  await clickInTool(app, window, 'Elaborate');
+  await expect(async () => {
+    expect((await claudeRequests(app))[2]).toContain('more detail, context');
+  }).toPass();
+  // Nothing was sent: the user still presses Enter.
+  await expect(window.getByTestId('sent')).toHaveCount(0);
 });
 
 test('catches up on the unread chats after showing exactly what is sent, opening none', async ({
@@ -348,7 +386,7 @@ test('keeps the chat’s last message in view as the bar opens and grows', async
   // Opening the ways to rewrite makes the bar taller.
   await clickInBar(app, window, 'Rewrite my draft');
   await expect(async () => {
-    expect(await barNames(app)).toContain('Shorter');
+    expect(await barNames(app)).toContain('Shorten');
   }).toPass();
   expect(await lastMessageInView()).toBe(true);
 });

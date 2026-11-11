@@ -1,7 +1,22 @@
 import { en } from '../../shared/messages/en.ts';
 
-/** How the user wants their draft rewritten (#105). */
-type RewriteStyle = 'friendlier' | 'formal' | 'shorter' | 'translate';
+/** The ways the message box's rewrite button offers, Polish first (#609). */
+export const POLISH_STYLES = ['polish', 'shorten', 'elaborate', 'formalize'] as const;
+
+type PolishStyle = (typeof POLISH_STYLES)[number];
+
+/** How the user wants their draft rewritten (#105): the button's ways, and more in the bar. */
+type RewriteStyle = PolishStyle | 'friendlier' | 'translate';
+
+/** Every way to rewrite but translating, in the order the bar lists them. */
+const STYLES = [...POLISH_STYLES, 'friendlier'] as const;
+
+const isStyle = (value: string): value is (typeof STYLES)[number] =>
+  (STYLES as readonly string[]).includes(value);
+
+/** Whether `value` is one of the message box button's ways. */
+export const isPolishStyle = (value: string): value is PolishStyle =>
+  (POLISH_STYLES as readonly string[]).includes(value);
 
 /** A rewrite the bar offers: a style, and for a translation, the language's English name. */
 export interface Rewrite {
@@ -10,9 +25,13 @@ export interface Rewrite {
 }
 
 const ASKS: Readonly<Record<RewriteStyle, (language: string) => string>> = {
+  polish: () =>
+    'so its spelling, grammar and flow are right and it reads clearly, keeping its voice and core message',
+  shorten: () => 'so it is more concise and to the point',
+  elaborate: () =>
+    'so it expands on its points with more detail, context or polite phrasing, adding no facts it does not give',
+  formalize: () => 'so its tone is more professional and formal',
   friendlier: () => 'so it sounds warmer and friendlier',
-  formal: () => 'so it sounds more formal and polite',
-  shorter: () => 'so it is shorter and to the point',
   translate: (language) => `translated into ${language}`,
 };
 
@@ -21,6 +40,7 @@ export function rewriteInstructions({ style, language }: Rewrite): string {
   return [
     `Rewrite the WhatsApp message the user drafted ${ASKS[style](language)}.`,
     'Keep its meaning, and anything it names, such as times and places.',
+    ...(style === 'translate' ? [] : ['Write it in the language the draft is in.']),
     'Answer with the rewritten message only, with no quotes or other text.',
   ].join(' ');
 }
@@ -65,17 +85,12 @@ export function rewriteOptions(
       ? []
       : [{ value: `${TRANSLATE}${code}`, label: en.assistant.bar.translate({ language }) }];
   });
-  return [
-    { value: 'friendlier', label: styles.friendlier },
-    { value: 'formal', label: styles.formal },
-    { value: 'shorter', label: styles.shorter },
-    ...translations,
-  ];
+  return [...STYLES.map((value) => ({ value, label: styles[value] })), ...translations];
 }
 
 /** The rewrite an offered value names, or undefined for anything the bar did not offer. */
 export function rewriteOf(value: string, languages: readonly string[]): Rewrite | undefined {
-  if (value === 'friendlier' || value === 'formal' || value === 'shorter') {
+  if (isStyle(value)) {
     return { style: value, language: '' };
   }
   const code = value.startsWith(TRANSLATE) ? value.slice(TRANSLATE.length) : '';

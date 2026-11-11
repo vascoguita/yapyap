@@ -119,10 +119,13 @@ const ids = (state: AssistantBarState) => state.buttons.map(({ id }) => id);
 describe('createAssistantBar', () => {
   it('offers the rewrites and names the model in use, and shows as the settings say', async () => {
     const t = harness();
+    expect(t.last().polish).toBe('polish');
     expect(t.last().rewrites.map(({ value }) => value)).toEqual([
+      'polish',
+      'shorten',
+      'elaborate',
+      'formalize',
       'friendlier',
-      'formal',
-      'shorter',
       'translate:pt',
       'translate:en',
     ]);
@@ -246,14 +249,14 @@ describe('createAssistantBar', () => {
     expect(t.deps.accounts.replaceDraft).toHaveBeenCalledWith('Running a little late, sorry!');
     expect(t.last().result).toBeNull();
     vi.mocked(t.deps.accounts.readDraft).mockResolvedValueOnce('  ');
-    await t.bar.rewrite('shorter');
+    await t.bar.rewrite('shorten');
     expect(t.last().status).toBe('Type a draft in the message box first.');
   });
 
   it('keeps a rewrite on screen when its chat is gone or the draft cannot be replaced', async () => {
     const t = harness('Shorter');
     t.allow();
-    await t.bar.rewrite('shorter');
+    await t.bar.rewrite('shorten');
     vi.mocked(t.deps.accounts.replaceDraft).mockResolvedValueOnce(false);
     await t.bar.button('use');
     expect(t.last().result).toBe('Shorter');
@@ -264,15 +267,95 @@ describe('createAssistantBar', () => {
 
   it('shows what is sent for a rewrite, or that there is no draft yet', async () => {
     const t = harness();
-    await t.bar.rewrite('formal');
+    await t.bar.rewrite('formalize');
     await t.bar.button('what-sent');
-    expect(t.last().result).toContain('more formal and polite');
+    expect(t.last().result).toContain('more professional and formal');
     expect(t.last().result).toContain('running late');
-    await t.bar.rewrite('formal');
+    await t.bar.rewrite('formalize');
     vi.mocked(t.deps.accounts.readDraft).mockResolvedValueOnce(null);
     await t.bar.button('what-sent');
     expect(t.last().status).toBe('Type a draft in the message box first.');
     expect(t.last().result).toBeNull();
+  });
+
+  it('rewrites the draft in place from the message box, and puts it back on Undo', async () => {
+    const t = harness('“Running a little late, sorry!”');
+    t.allow();
+    await t.bar.polish('polish');
+    expect(vi.mocked(t.deps.core.ask).mock.calls[0]?.[1]).toContain('spelling, grammar and flow');
+    expect(vi.mocked(t.deps.core.ask).mock.calls[0]?.[2]).toBe('running late');
+    expect(t.deps.accounts.replaceDraft).toHaveBeenLastCalledWith('Running a little late, sorry!');
+    expect(t.last().status).toBe('Your draft was rewritten. Press Enter to send it, as usual.');
+    expect(t.last().result).toBeNull();
+    expect(ids(t.last())).toEqual(['undo', 'close']);
+    await t.bar.button('undo');
+    expect(t.deps.accounts.replaceDraft).toHaveBeenLastCalledWith('running late');
+    expect(t.last().status).toBe('');
+    expect(t.deps.accounts.pressEnter).not.toHaveBeenCalled();
+  });
+
+  it('keeps the way picked in the message box, and takes only the button’s ways', async () => {
+    const t = harness('Running late');
+    t.allow();
+    await t.bar.polish('elaborate');
+    expect(t.last().polish).toBe('elaborate');
+    expect(vi.mocked(t.deps.core.ask).mock.calls[0]?.[1]).toContain('more detail, context');
+    for (const value of ['friendlier', 'translate:pt', 'louder']) {
+      await t.bar.polish(value);
+    }
+    expect(t.deps.core.ask).toHaveBeenCalledOnce();
+    expect(t.last().polish).toBe('elaborate');
+  });
+
+  it('asks to be allowed in the chat before rewriting in place, then rewrites', async () => {
+    const t = harness('Running late, sorry');
+    await t.bar.polish('shorten');
+    expect(ids(t.last())).toEqual(['allow', 'what-sent']);
+    expect(t.deps.core.ask).not.toHaveBeenCalled();
+    await t.bar.button('allow');
+    expect(t.deps.accounts.replaceDraft).toHaveBeenCalledWith('Running late, sorry');
+  });
+
+  it('leaves a draft the user changed meanwhile, and shows the rewrite to use instead', async () => {
+    const t = harness('Running late, sorry');
+    t.allow();
+    vi.mocked(t.deps.accounts.readDraft)
+      .mockResolvedValueOnce('running late')
+      .mockResolvedValueOnce('running late, 10 min');
+    await t.bar.polish('polish');
+    expect(t.deps.accounts.replaceDraft).not.toHaveBeenCalled();
+    expect(t.last().status).toBe(
+      'You changed your draft while the assistant worked, so it is shown here instead.',
+    );
+    expect(t.last().result).toBe('Running late, sorry');
+    expect(ids(t.last())).toEqual(['use', 'copy', 'close']);
+  });
+
+  it('shows the rewrite when the draft cannot be replaced, or its chat is gone', async () => {
+    const t = harness('Running late, sorry');
+    t.allow();
+    vi.mocked(t.deps.accounts.replaceDraft).mockResolvedValueOnce(false);
+    await t.bar.polish('formalize');
+    expect(t.last().status).toBe('');
+    expect(t.last().result).toBe('Running late, sorry');
+    vi.mocked(t.deps.accounts.readActiveChat)
+      .mockResolvedValueOnce(CHAT)
+      .mockResolvedValueOnce({ ...CHAT, name: 'Bo' });
+    await t.bar.polish('formalize');
+    expect(t.last().status).toBe('You opened another chat, so this is gone. Ask again here.');
+    expect(t.deps.accounts.replaceDraft).toHaveBeenCalledOnce();
+  });
+
+  it('leaves the draft alone when the model rewrote it to nothing, or failed', async () => {
+    const t = harness(' “” ');
+    t.allow();
+    await t.bar.polish('polish');
+    expect(t.deps.accounts.replaceDraft).not.toHaveBeenCalled();
+    expect(t.last().status).toBe('The model had nothing to suggest. Try again.');
+    vi.mocked(t.deps.core.ask).mockRejectedValueOnce(new ProviderError('network'));
+    await t.bar.polish('polish');
+    expect(t.deps.accounts.replaceDraft).not.toHaveBeenCalled();
+    expect(t.last().working).toBe(false);
   });
 
   it('puts a suggestion in the message box, or sends it on its own button', async () => {

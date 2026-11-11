@@ -128,11 +128,31 @@ Open a chat. The bar sits right above the message box:
 - **Summarize**: a few short points about the chat, for you alone. **Copy**
   copies them; **Close** hides them.
 - **Rewrite**: type a draft in the message box, then pick a style:
-  **Friendlier**, **More formal**, **Shorter**, or **Translate to** one of
-  your system's languages or English. **Use** puts the rewrite in place of
-  your draft.
+  **Polish**, **Shorten**, **Elaborate**, **Formalize**, **Friendlier**,
+  or **Translate to** one of your system's languages or English. **Use**
+  puts the rewrite in place of your draft.
 - **Catch up**: what is waiting in your unread chats. See below.
 - The gear opens Settings, at the assistant.
+
+### Rewrite from the message box
+
+The assistant's button sits inside the message box, just left of the
+microphone. It shows the way it rewrites, such as **Polish**, with its
+icon, and rewrites your draft right where it is:
+
+- Click it to rewrite your draft that way. **Polish** cleans up grammar,
+  flow and tone, keeping your message as it is.
+- Its arrow opens the other ways, each with its icon: **Shorten**
+  condenses your message, **Elaborate** adds detail, context or polite
+  phrasing, and **Formalize** makes the tone more professional. The way
+  you pick rewrites your draft at once, and the button shows and keeps it
+  for next time.
+
+Nothing is sent: press Enter to send the rewrite, as usual. **Undo** in
+the bar puts your own draft back. If you change your draft while the
+assistant works, your draft stays, and the rewrite shows in the bar
+instead, with **Use**. It asks to be allowed in the chat first, like the
+bar, and sends only your draft. The rewrite keeps your draft's language.
 
 When something is missing, such as a key or the private model's download,
 the bar says so with a button that fixes it: **Set up…**, **Paste a

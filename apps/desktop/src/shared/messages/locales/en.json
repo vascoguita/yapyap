@@ -548,9 +548,17 @@
       "rewrite": "Rewrite",
       "rewriteLabel": "Rewrite my draft",
       "styles": {
-        "friendlier": "Friendlier",
-        "formal": "More formal",
-        "shorter": "Shorter"
+        "polish": "Polish",
+        "shorten": "Shorten",
+        "elaborate": "Elaborate",
+        "formalize": "Formalize",
+        "friendlier": "Friendlier"
+      },
+      "styleHints": {
+        "polish": "Cleans up grammar, flow and tone, keeping your message as it is.",
+        "shorten": "Condenses your message, so it is concise and to the point.",
+        "elaborate": "Expands on your points with more detail, context or polite phrasing.",
+        "formalize": "Makes the tone more professional."
       },
       "translate": "Translate to {{language}}",
       "catchUp": "Catch up",
@@ -564,6 +572,7 @@
       "copy": "Copy",
       "close": "Close",
       "useRewrite": "Use",
+      "undo": "Undo",
       "allow": "Allow here",
       "whatSent": "What is sent?",
       "send": "Send",
@@ -591,7 +600,9 @@
       "noModel": "{{provider}} listed no model. Check its key, or that it runs.",
       "localServer": "The model server on this computer does not answer. Start it, then try again.",
       "openChat": "Open any chat to use the assistant: it sits right above the message box.",
-      "off": "The assistant is off. Turn it on in Settings, under Assistant."
+      "off": "The assistant is off. Turn it on in Settings, under Assistant.",
+      "rewritten": "Your draft was rewritten. Press Enter to send it, as usual.",
+      "draftChanged": "You changed your draft while the assistant worked, so it is shown here instead."
     },
     "problems": {
       "auth": "{{provider}} did not accept your key.",
@@ -617,6 +628,11 @@
       "later": "Later",
       "laterHint": "You can set it up any time in Settings, under Assistant.",
       "done": "Done. You can change this in Settings, under Assistant."
+    },
+    "composer": {
+      "label": "Rewrite with AI",
+      "tip": "{{style}}: {{hint}}",
+      "more": "More ways to rewrite"
     }
   },
   "agents": {

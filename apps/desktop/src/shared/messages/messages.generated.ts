@@ -463,9 +463,17 @@ export interface Messages {
       readonly rewrite: string;
       readonly rewriteLabel: string;
       readonly styles: {
+        readonly polish: string;
+        readonly shorten: string;
+        readonly elaborate: string;
+        readonly formalize: string;
         readonly friendlier: string;
-        readonly formal: string;
-        readonly shorter: string;
+      };
+      readonly styleHints: {
+        readonly polish: string;
+        readonly shorten: string;
+        readonly elaborate: string;
+        readonly formalize: string;
       };
       readonly translate: (params: { readonly language: string | number }) => string;
       readonly catchUp: string;
@@ -479,6 +487,7 @@ export interface Messages {
       readonly copy: string;
       readonly close: string;
       readonly useRewrite: string;
+      readonly undo: string;
       readonly allow: string;
       readonly whatSent: string;
       readonly send: string;
@@ -507,6 +516,8 @@ export interface Messages {
       readonly localServer: string;
       readonly openChat: string;
       readonly off: string;
+      readonly rewritten: string;
+      readonly draftChanged: string;
     };
     readonly problems: {
       readonly auth: (params: { readonly provider: string | number }) => string;
@@ -532,6 +543,14 @@ export interface Messages {
       readonly later: string;
       readonly laterHint: string;
       readonly done: string;
+    };
+    readonly composer: {
+      readonly label: string;
+      readonly tip: (params: {
+        readonly hint: string | number;
+        readonly style: string | number;
+      }) => string;
+      readonly more: string;
     };
   };
   readonly agents: {

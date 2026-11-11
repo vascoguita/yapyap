@@ -71,6 +71,7 @@ export function createAssistantBarBridge(ipc: Pick<PreloadIpc, 'send'>): Assista
     suggest: send(channels.suggest),
     summarize: send(channels.summarize),
     rewrite: send(channels.rewrite),
+    polish: send(channels.polish),
     catchUp: send(channels.catchUp),
     prompt: send(channels.prompt),
     use: send(channels.use),
