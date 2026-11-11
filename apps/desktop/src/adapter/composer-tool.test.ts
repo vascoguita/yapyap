@@ -132,11 +132,29 @@ describe('renderComposerTool', () => {
     expect(parts.menu.hidden).toBe(true);
   });
 
+  it('gives every part the class its styles use, and button attributes to buttons only', () => {
+    const t = setup();
+    t.render();
+    const { tool, apply, more, menu } = t.kept().parts;
+    expect(t.shadow().querySelector('style')?.getAttribute('class')).toBe('style');
+    expect([tool, apply, more, menu].map((part) => part.getAttribute('class'))).toEqual([
+      'tool',
+      'apply',
+      'more',
+      'menu',
+    ]);
+    expect([apply.dataset['action'], more.dataset['action']]).toEqual(['apply', 'more']);
+    expect([menu.hasAttribute('type'), menu.hasAttribute('data-action')]).toEqual([false, false]);
+    // The arrow is drawn in the text's color, unlike the ways' icons.
+    expect(more.querySelector('svg')?.hasAttribute('class')).toBe(false);
+  });
+
   it('paints the ways’ icons with the gradient of its edge, kept in its own shadow root', () => {
     const t = setup();
     t.render();
     const shine = t.shadow().querySelector('.defs linearGradient');
     expect(shine?.getAttribute('id')).toBe('shine');
+    expect(shine?.namespaceURI).toBe('http://www.w3.org/2000/svg');
     expect([shine?.getAttribute('x2'), shine?.getAttribute('y2')]).toEqual(['1', '1']);
     expect(t.shadow().querySelector('.defs')?.getAttribute('aria-hidden')).toBe('true');
     expect(
@@ -213,8 +231,14 @@ describe('renderComposerTool', () => {
     const t = setup();
     t.render();
     const items = t.items();
+    const before = vi.spyOn(Element.prototype, 'before');
     t.render();
-    expect(t.items()).toEqual(items);
+    // The same button stays where it is, and its list is not drawn again.
+    expect(before).not.toHaveBeenCalled();
+    before.mockRestore();
+    t.items().forEach((item, index) => {
+      expect(item).toBe(items[index]);
+    });
     t.render({ ...CONTENT, working: true, current: 'elaborate' });
     const { tool, apply, more } = t.kept().parts;
     expect(tool.getAttribute('aria-busy')).toBe('true');
@@ -267,6 +291,11 @@ describe('renderComposerTool', () => {
     );
     // The field sits right in the footer, with no row of its own.
     away('<div contenteditable="true"></div>');
+    // The row the field's box sits in is outside WhatsApp's footer.
+    document.body.innerHTML =
+      '<div id="main"><footer><div contenteditable="true"></div></footer><div>Other</div></div>';
+    const scope: Record<string, unknown> = { getComputedStyle };
+    expect(renderComposerTool(document, scope, CONTENT, PLACES, KIT)).toBe('away');
     expect(setup().render({ ...CONTENT, visible: false })).toBe('away');
   });
 });
@@ -324,6 +353,8 @@ describe('the button’s controls', () => {
     escape();
     expect(t.shadow().activeElement).not.toBe(more);
     click(more);
+    tool.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true }));
+    expect(menu.hidden).toBe(false);
     escape();
     expect(menu.hidden).toBe(true);
     expect(t.shadow().activeElement).toBe(more);
@@ -333,6 +364,12 @@ describe('the button’s controls', () => {
     expect(menu.hidden).toBe(false);
     t.items()[0]?.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
     expect(menu.hidden).toBe(true);
+    // Closing it on the arrow, as from the keyboard, leaves the focus on the arrow.
+    click(more);
+    more.focus();
+    click(more);
+    expect(menu.hidden).toBe(true);
+    expect(t.shadow().activeElement).toBe(more);
   });
 
   it('keep the focus in the message box, and keys in the list from WhatsApp’s shortcuts', () => {
@@ -364,13 +401,20 @@ describe('composerToolRender', () => {
   it('sends the button’s helpers, its place, icons and styles along with the content', () => {
     const code = composerToolRender(CONTENT);
     expect(code).toMatch(
-      /\{ slot: [\s\S]+, paint: [\s\S]+, build: [\s\S]+, wire: [\s\S]+, update: [\s\S]+, item: [\s\S]+, icon: [\s\S]+ \}\)$/,
+      /\{ slot: [\s\S]+, paint: [\s\S]+, build: [\s\S]+, wire: [\s\S]+, update: [\s\S]+, item: [\s\S]+, icon: [\s\S]+, shine: function composerToolShine[\s\S]+ \}\)$/,
     );
     expect(code).toContain(`"field":${JSON.stringify(LANDMARKS.composer)}`);
     expect(code).toContain(`"footer":${JSON.stringify(LANDMARKS.composerFooter)}`);
     expect(code).toContain('"store":"yapyapComposerToolView"');
     expect(code).toContain('"bridge":"yapyapAssistantBar"');
     expect(code).toContain('"sparkle":"M10.5 3.5');
+    // Each way has its own icon; the arrow and the tick are drawn too.
+    expect(code).toContain('"polish":"M10.5 3.5');
+    expect(code).toContain('"shorten":"M4 5h16v2H4zm0 6h11');
+    expect(code).toContain('"elaborate":"M4 5h16v2H4zm0 6h16');
+    expect(code).toContain('"formalize":"M10 3h4');
+    expect(code).toContain('"caret":"M7.4 15.4');
+    expect(code).toContain('"check":"M9 16.2');
     expect(code).toContain(':host { display: flex;');
     expect(code).toContain('prefers-reduced-motion');
     expect(code).toContain(JSON.stringify(CONTENT));

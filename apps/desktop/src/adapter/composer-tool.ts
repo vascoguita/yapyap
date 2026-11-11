@@ -178,11 +178,12 @@ export function findComposerSlot(doc: ToolDocument, places: ToolPlaces): ToolSpo
   const parentOf = (node: ToolNode | null): ToolNode | null => node?.parentElement ?? null;
   const box = parentOf(doc.querySelector(places.field) as ToolNode | null);
   const row = parentOf(box);
-  const slot = row?.lastElementChild ?? null;
-  if (row === null || slot === null || slot === box || row.closest(places.footer) === null) {
+  const inFooter = row?.closest(places.footer) ?? null;
+  if (row === null || inFooter === null || row.lastElementChild === box) {
     return null;
   }
-  return { row, slot };
+  // The row holds the field's box, so it always has a last part.
+  return { row, slot: row.lastElementChild } as ToolSpot;
 }
 
 /** Gives the button WhatsApp's own colors, read anew in case the user switches its theme. */
@@ -266,13 +267,11 @@ export function wireComposerTool(store: ToolStore, scope: Scope): void {
   });
   tool.addEventListener('click', (event) => {
     const control = event.isTrusted ? (event.target as ToolNode).closest('[data-action]') : null;
-    const action = control?.dataset['action'];
-    if (action === 'more') {
+    if (control?.dataset['action'] === 'more') {
       open(menu.hidden);
-    } else if (action === 'apply') {
-      polish(store.current);
-    } else if (action === 'pick') {
-      polish(String(control?.dataset['value']));
+    } else if (control !== null) {
+      // A way in the list names itself; the button rewrites in the selected way.
+      polish(control.dataset['value'] ?? store.current);
     }
   });
   tool.addEventListener('keydown', (event) => {
