@@ -9,7 +9,8 @@ const STATE: AssistantBarState = {
   result: null,
   buttons: [],
   choice: undefined,
-  rewrites: [{ value: 'shorter', label: 'Shorter' }],
+  rewrites: [{ value: 'shorten', label: 'Shorten' }],
+  polish: 'shorten',
 };
 
 function fakePage() {
@@ -20,12 +21,17 @@ function fakePage() {
   };
 }
 
-/** The content a render sent, read back from its code. */
-function contentOf(page: ReturnType<typeof fakePage>, call = -1): unknown {
+/** The code a render ran in the page's adapter world. */
+function codeOf(page: ReturnType<typeof fakePage>, call = -1): string {
   const [world, scripts] = page.executeJavaScriptInIsolatedWorld.mock.calls.at(call) ?? [];
   expect(world).toBe(1000);
-  const json = /\(document, globalThis, (\{.*?\}), \{"footer"/.exec(scripts?.[0]?.code ?? '')?.[1];
-  return JSON.parse(json ?? 'null');
+  return scripts?.[0]?.code ?? '';
+}
+
+/** The content a render sent, read back from its code: the bar's, or the rewrite button's. */
+function contentOf(page: ReturnType<typeof fakePage>, call = -1, of = 'footer'): unknown {
+  const pattern = new RegExp(String.raw`\(document, globalThis, (\{.*?\}), \{"${of}"`);
+  return JSON.parse(pattern.exec(codeOf(page, call))?.[1] ?? 'null');
 }
 
 function setup() {
@@ -84,7 +90,7 @@ describe('inPageAssistantBar', () => {
       result: null,
       buttons: [],
       choice: null,
-      rewrites: [{ value: 'shorter', label: 'Shorter' }],
+      rewrites: [{ value: 'shorten', label: 'Shorten' }],
     });
     const choice = { label: 'Model', current: 'm', options: [{ value: 'm', label: 'M' }] };
     const buttons = [{ id: 'copy', label: 'Copy', primary: false }] as const;
@@ -100,6 +106,50 @@ describe('inPageAssistantBar', () => {
     );
     t.view.show(false);
     expect(contentOf(t.page())).toEqual(expect.objectContaining({ visible: false }));
+  });
+
+  it('renders the message box’s rewrite button with the bar, in the user’s words', () => {
+    const t = setup();
+    t.view.show(true);
+    const code = codeOf(t.page());
+    expect(code.startsWith('(() => { const where = (')).toBe(true);
+    expect(code).toMatch(
+      /; try \{ \(function renderComposerTool[\s\S]+\} catch \{[^}]*\} return where; \}\)\(\)$/,
+    );
+    expect(contentOf(t.page(), -1, 'field')).toEqual({
+      visible: true,
+      working: true,
+      current: 'shorten',
+      options: [
+        {
+          value: 'polish',
+          label: 'Polish',
+          hint: 'Cleans up grammar, flow and tone, keeping your message as it is.',
+          tip: 'Polish: Cleans up grammar, flow and tone, keeping your message as it is.',
+        },
+        {
+          value: 'shorten',
+          label: 'Shorten',
+          hint: 'Condenses your message, so it is concise and to the point.',
+          tip: 'Shorten: Condenses your message, so it is concise and to the point.',
+        },
+        {
+          value: 'elaborate',
+          label: 'Elaborate',
+          hint: 'Expands on your points with more detail, context or polite phrasing.',
+          tip: 'Elaborate: Expands on your points with more detail, context or polite phrasing.',
+        },
+        {
+          value: 'formalize',
+          label: 'Formalize',
+          hint: 'Makes the tone more professional.',
+          tip: 'Formalize: Makes the tone more professional.',
+        },
+      ],
+      labels: { label: 'Rewrite with AI', more: 'More ways to rewrite' },
+    });
+    t.view.show(false);
+    expect(contentOf(t.page(), -1, 'field')).toEqual(expect.objectContaining({ visible: false }));
   });
 
   it('takes the bar out of a page whose account is no longer on screen', () => {

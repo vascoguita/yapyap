@@ -13,10 +13,11 @@ interface BarOption {
 /**
  * A button the bar shows under its status line, for what the assistant
  * asks or offers now: allowing it in this chat, seeing what is sent,
- * sending a catch-up, copying or using a result, closing it, or a
- * one-click fix of the setup.
+ * sending a catch-up, copying or using a result, putting back the draft
+ * a rewrite replaced, closing it, or a one-click fix of the setup.
  */
-export type BarButtonId = 'allow' | 'what-sent' | 'send' | 'copy' | 'use' | 'close' | 'fix';
+export type BarButtonId =
+  'allow' | 'what-sent' | 'send' | 'copy' | 'use' | 'undo' | 'close' | 'fix';
 
 export const BAR_BUTTON_IDS: readonly BarButtonId[] = [
   'allow',
@@ -24,6 +25,7 @@ export const BAR_BUTTON_IDS: readonly BarButtonId[] = [
   'send',
   'copy',
   'use',
+  'undo',
   'close',
   'fix',
 ];
@@ -50,6 +52,8 @@ export interface AssistantBarState {
   readonly choice: BarChoice | undefined;
   /** How a draft can be rewritten: the styles, and the languages to translate it to. */
   readonly rewrites: readonly BarOption[];
+  /** The way the message box's rewrite button rewrites in place, the last one the user picked. */
+  readonly polish: string;
 }
 
 /**
@@ -63,6 +67,7 @@ export const ASSISTANT_BAR_CHANNELS = {
   suggest: 'whatsapp:assistant-bar-suggest',
   summarize: 'whatsapp:assistant-bar-summarize',
   rewrite: 'whatsapp:assistant-bar-rewrite',
+  polish: 'whatsapp:assistant-bar-polish',
   catchUp: 'whatsapp:assistant-bar-catch-up',
   prompt: 'whatsapp:assistant-bar-prompt',
   use: 'whatsapp:assistant-bar-use',
@@ -81,6 +86,8 @@ export interface AssistantBarBridge {
   readonly summarize: () => void;
   /** Rewrites the draft in one of the offered ways. */
   readonly rewrite: (value: string) => void;
+  /** Rewrites the draft in place, from the message box's button, in one of its ways. */
+  readonly polish: (value: string) => void;
   readonly catchUp: () => void;
   /** Writes the message the user described. */
   readonly prompt: (text: string) => void;

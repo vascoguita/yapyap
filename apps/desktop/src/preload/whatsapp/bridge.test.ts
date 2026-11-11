@@ -67,7 +67,8 @@ describe('createAssistantBarBridge', () => {
     const bridge = createAssistantBarBridge(ipc);
     bridge.suggest();
     bridge.summarize();
-    bridge.rewrite('shorter');
+    bridge.rewrite('shorten');
+    bridge.polish('polish');
     bridge.catchUp();
     bridge.prompt('Say hi');
     bridge.use(1);
@@ -78,7 +79,8 @@ describe('createAssistantBarBridge', () => {
     expect(ipc.send.mock.calls).toEqual([
       ['whatsapp:assistant-bar-suggest'],
       ['whatsapp:assistant-bar-summarize'],
-      ['whatsapp:assistant-bar-rewrite', 'shorter'],
+      ['whatsapp:assistant-bar-rewrite', 'shorten'],
+      ['whatsapp:assistant-bar-polish', 'polish'],
       ['whatsapp:assistant-bar-catch-up'],
       ['whatsapp:assistant-bar-prompt', 'Say hi'],
       ['whatsapp:assistant-bar-use', 1],

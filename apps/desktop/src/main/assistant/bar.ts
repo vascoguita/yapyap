@@ -20,6 +20,8 @@ import {
 } from './replies.ts';
 import {
   cleanRewrite,
+  isPolishStyle,
+  POLISH_STYLES,
   rewriteInstructions,
   rewriteOf,
   rewriteOptions,
@@ -63,7 +65,8 @@ type ChatRequest =
   | { readonly kind: 'suggest' }
   | { readonly kind: 'prompt'; readonly text: string }
   | { readonly kind: 'summarize' }
-  | { readonly kind: 'rewrite'; readonly rewrite: Rewrite };
+  /** A rewrite of the draft; one asked for in the message box replaces the draft in place (#609). */
+  | { readonly kind: 'rewrite'; readonly rewrite: Rewrite; readonly inPlace: boolean };
 
 /** What the bar holds between clicks. */
 interface BarContext {
@@ -73,7 +76,7 @@ interface BarContext {
   chat: string | null;
   /** The request waiting for the user to allow the assistant in its chat, whose buttons show only then. */
   pending: ChatRequest;
-  /** The text the Copy or Use button acts on. */
+  /** The text the Copy, Use or Undo button acts on. */
   kept: string;
   /** Exactly what Send sends to catch the user up, once they saw it; its button shows only then. */
   catchUp: string;
@@ -98,6 +101,7 @@ const EMPTY: AssistantBarState = {
   buttons: [],
   choice: undefined,
   rewrites: [],
+  polish: POLISH_STYLES[0],
 };
 
 const button = (id: BarButtonId, label: string, primary = false) => ({ id, label, primary });
@@ -214,13 +218,7 @@ function answered(bar: BarContext, request: ChatRequest, answer: string): void {
     return;
   }
   if (request.kind === 'rewrite') {
-    bar.kept = cleanRewrite(answer);
-    const use = button('use', text.bar.useRewrite, true);
-    say(
-      bar,
-      { status: '' },
-      { result: bar.kept, buttons: [use, button('copy', text.bar.copy), close] },
-    );
+    offerRewrite(bar, cleanRewrite(answer), '');
     return;
   }
   const found = request.kind === 'suggest' ? suggestionsIn(answer) : [cleanRewrite(answer)];
@@ -228,6 +226,39 @@ function answered(bar: BarContext, request: ChatRequest, answer: string): void {
     .filter((item) => item !== '')
     .map((item) => item.slice(0, MAX_SUGGESTION));
   say(bar, { status: suggestions.length === 0 ? text.status.nothing : '' }, { suggestions });
+}
+
+/** Shows a rewrite to read, with Use to put it in place of the draft. */
+function offerRewrite(bar: BarContext, rewritten: string, status: string): void {
+  bar.kept = rewritten;
+  const use = button('use', text.bar.useRewrite, true);
+  say(bar, { status }, { result: rewritten, buttons: [use, button('copy', text.bar.copy), close] });
+}
+
+/**
+ * Puts the rewrite of `draft` in its place, and keeps `draft` for Undo.
+ * A draft the user changed while the model answered is theirs, so it is
+ * left as it is, and the rewrite shows in the bar instead (#609).
+ */
+async function rewriteInPlace(bar: BarContext, answer: string, draft: string): Promise<void> {
+  const rewritten = cleanRewrite(answer);
+  if (rewritten === '') {
+    say(bar, { status: text.status.nothing });
+    return;
+  }
+  if ((await sameChat(bar)) === undefined) {
+    return;
+  }
+  if ((await bar.deps.accounts.readDraft()) !== draft) {
+    offerRewrite(bar, rewritten, text.status.draftChanged);
+    return;
+  }
+  if (!(await bar.deps.accounts.replaceDraft(rewritten))) {
+    offerRewrite(bar, rewritten, '');
+    return;
+  }
+  bar.kept = draft;
+  say(bar, { status: text.status.rewritten }, { buttons: [button('undo', text.bar.undo), close] });
 }
 
 /** Asks the model about `chat`, which the user allowed, and shows the answer. */
@@ -238,10 +269,17 @@ async function run(bar: BarContext, setup: Setup, request: ChatRequest, chat: Re
     return;
   }
   update(bar, THINKING);
+  let answer: string;
   try {
-    answered(bar, request, await bar.deps.core.ask(setup, sent.instructions, sent.text));
+    answer = await bar.deps.core.ask(setup, sent.instructions, sent.text);
   } catch (error) {
     await failed(bar, setup, error);
+    return;
+  }
+  if (request.kind === 'rewrite' && request.inPlace) {
+    await rewriteInPlace(bar, answer, sent.text);
+  } else {
+    answered(bar, request, answer);
   }
 }
 
@@ -364,7 +402,7 @@ async function sendCatchUp(bar: BarContext): Promise<void> {
   }
 }
 
-/** Puts the kept rewrite in place of the draft, if its chat is still open. */
+/** Puts the kept text in place of the draft, if its chat is still open: a rewrite, or the draft Undo restores. */
 async function useRewrite(bar: BarContext): Promise<void> {
   if ((await sameChat(bar)) !== undefined && (await bar.deps.accounts.replaceDraft(bar.kept))) {
     say(bar, { status: '' });
@@ -390,6 +428,7 @@ const BUTTONS: Readonly<Record<BarButtonId, (bar: BarContext) => unknown>> = {
     update(bar, { status: text.status.copied });
   },
   use: useRewrite,
+  undo: useRewrite,
   close: (bar) => {
     say(bar, { status: '' });
   },
@@ -453,6 +492,8 @@ export interface AssistantBar {
   readonly prompt: (text: string) => Promise<void>;
   readonly summarize: () => Promise<void>;
   readonly rewrite: (value: string) => Promise<void>;
+  /** Rewrites the draft in place in one of the message box button's ways, and keeps that way. */
+  readonly polish: (value: string) => Promise<void>;
   readonly catchUp: () => Promise<void>;
   readonly use: (index: number) => Promise<void>;
   readonly send: (index: number) => Promise<void>;
@@ -472,8 +513,18 @@ const chatRequest = (bar: BarContext, request: ChatRequest): Promise<void> =>
 async function rewriteDraft(bar: BarContext, value: string): Promise<void> {
   const rewrite = rewriteOf(value, bar.deps.languages);
   if (rewrite !== undefined) {
-    await chatRequest(bar, { kind: 'rewrite', rewrite });
+    await chatRequest(bar, { kind: 'rewrite', rewrite, inPlace: false });
   }
+}
+
+/** Rewrites the draft in place in one of the button's ways, which it then offers first. */
+async function polishDraft(bar: BarContext, value: string): Promise<void> {
+  if (!isPolishStyle(value)) {
+    return;
+  }
+  update(bar, { polish: value });
+  const rewrite = { style: value, language: '' };
+  await chatRequest(bar, { kind: 'rewrite', rewrite, inPlace: true });
 }
 
 /** Sends a suggestion on the user's click: in the message box, then Enter, as the user would. */
@@ -587,6 +638,7 @@ export function createAssistantBar(deps: BarDependencies): AssistantBar {
     prompt: (typed) => chatRequest(bar, { kind: 'prompt', text: typed }),
     summarize: () => chatRequest(bar, { kind: 'summarize' }),
     rewrite: (value) => rewriteDraft(bar, value),
+    polish: (value) => polishDraft(bar, value),
     catchUp: () => once(bar, () => catchUp(bar)),
     use: async (index) => {
       await pick(bar, index);

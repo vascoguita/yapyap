@@ -161,3 +161,15 @@ still should.
   events, writes the assistant's text only as text, asks before a chat's
   messages are first read, and sends a suggestion only on the user's
   click of its **Send**.
+- 2026-11-11 (#609, the maintainer's decision): a rewrite button joins
+  WhatsApp's message box, right before its microphone or Send, as the
+  bar's companion. It renders with the bar, in one call into the adapter's
+  isolated world, in its own closed shadow root, takes WhatsApp's colors
+  from the message box, and acts only on trusted clicks through the bar's
+  bridge, on a fixed channel that takes one of its four ways (Polish,
+  Shorten, Elaborate, Formalize). Unlike the bar's Rewrite, it puts the
+  rewrite in place of the draft without a **Use** step, and the bar then
+  offers **Undo**. It still asks before the chat is first read, sends only
+  the draft, never sends a message, and leaves a draft the user changed
+  while the model worked as it is. The message box's layout was mapped on
+  the maintainer's own session, structure only, with nothing sent.

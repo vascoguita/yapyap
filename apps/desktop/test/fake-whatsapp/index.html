@@ -48,6 +48,18 @@
         position: relative;
         z-index: 2;
       }
+      [data-testid='compose-row'] {
+        display: flex;
+        align-items: center;
+        min-block-size: 52px;
+        border-radius: 26px;
+        background: #fff;
+        color: #111b21;
+      }
+      [data-testid='compose-field'] {
+        flex: 1 1 0;
+        min-inline-size: 0;
+      }
     </style>
   </head>
   <body>
@@ -122,11 +134,20 @@
                 </div>
               </div>
               <footer>
-                <div
-                  data-testid="composer"
-                  contenteditable="true"
-                  aria-label="Type a message"
-                ></div>
+                <!-- As WhatsApp lays out its message box: one row of attach, the
+                     field in a box of its own, then the microphone, which Send
+                     takes the place of (#609). -->
+                <div data-testid="compose-row">
+                  <div><button type="button" aria-label="Attach">+</button></div>
+                  <div data-testid="compose-field">
+                    <div
+                      data-testid="composer"
+                      contenteditable="true"
+                      aria-label="Type a message"
+                    ></div>
+                  </div>
+                  <div><button type="button" aria-label="Voice message">●</button></div>
+                </div>
               </footer>
             </div>
           </div>

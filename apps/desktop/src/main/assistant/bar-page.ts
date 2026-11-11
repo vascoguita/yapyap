@@ -3,9 +3,11 @@ import {
   type BarContent,
   type BarPlacement,
 } from '../../adapter/assistant-bar.ts';
+import { composerToolRender, type ToolContent } from '../../adapter/composer-tool.ts';
 import { runInAdapterWorld, type AdapterPage } from '../../adapter/world.ts';
 import type { AssistantBarState } from '../../shared/api/assistant-bar-api.ts';
 import { en } from '../../shared/messages/en.ts';
+import { POLISH_STYLES } from './rewrites.ts';
 
 /** Where the bar shows and sends its state, once the main window has accounts. */
 export interface AssistantBarView {
@@ -65,10 +67,40 @@ function contentOf(state: AssistantBarState, visible: boolean): BarContent {
   };
 }
 
-/** A page that went away, or one between loads, simply has no bar until the next render. */
-async function renderIn(page: AdapterPage, content: BarContent): Promise<BarPlacement> {
+/** The message box's rewrite button (#609): its ways in the user's words, and the selected one. */
+function toolContentOf(state: AssistantBarState, visible: boolean): ToolContent {
+  const text = en.assistant;
+  return {
+    visible,
+    working: state.working,
+    current: state.polish,
+    options: POLISH_STYLES.map((value) => {
+      const label = text.bar.styles[value];
+      const hint = text.bar.styleHints[value];
+      return { value, label, hint, tip: text.composer.tip({ style: label, hint }) };
+    }),
+    labels: { label: text.composer.label, more: text.composer.more },
+  };
+}
+
+/**
+ * The bar and the message box's rewrite button, rendered in one call into
+ * the page. The bar goes first and tells where it is; the button is extra,
+ * so a page that cannot take it still gets the bar.
+ */
+const renderCode = (state: AssistantBarState, visible: boolean): string =>
+  `(() => { const where = ${assistantBarRender(contentOf(state, visible))}; ` +
+  `try { ${composerToolRender(toolContentOf(state, visible))}; } catch { /* The bar still shows. */ } ` +
+  'return where; })()';
+
+/** A page that went away, or one between loads, simply has neither until the next render. */
+async function renderIn(
+  page: AdapterPage,
+  state: AssistantBarState,
+  visible: boolean,
+): Promise<BarPlacement> {
   try {
-    const where = await runInAdapterWorld(page, assistantBarRender(content));
+    const where = await runInAdapterWorld(page, renderCode(state, visible));
     return where === 'kept' || where === 'placed' ? where : 'away';
   } catch {
     // Nothing to do: the next render tries again, and the page's text is never logged.
@@ -93,10 +125,10 @@ export function inPageAssistantBar(
   const render = (): void => {
     const page = port.activePage();
     if (last !== undefined && last !== page) {
-      void renderIn(last, contentOf(state(), false));
+      void renderIn(last, state(), false);
     }
     last = page;
-    void renderIn(page, contentOf(state(), visible)).then((where) => {
+    void renderIn(page, state(), visible).then((where) => {
       if (where === 'placed') {
         port.redrawn();
       }
@@ -115,6 +147,6 @@ export function inPageAssistantBar(
       render();
     },
     publish: render,
-    onPage: async () => (await renderIn(port.activePage(), contentOf(state(), visible))) !== 'away',
+    onPage: async () => (await renderIn(port.activePage(), state(), visible)) !== 'away',
   };
 }
