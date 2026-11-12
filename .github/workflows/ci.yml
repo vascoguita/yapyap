@@ -175,8 +175,11 @@ jobs:
         if: runner.os == 'Linux'
         # The display check again, on a headless Weston, so the Wayland
         # backend is tested on a real compositor too (#41). The build from the
-        # previous step is reused.
+        # previous step is reused. The runner image's package index goes stale
+        # as Ubuntu replaces packages on its mirrors, so it is refreshed first
+        # (#614).
         run: |
+          sudo apt-get update
           sudo apt-get install -y --no-install-recommends weston
           export XDG_RUNTIME_DIR="$(mktemp -d)"
           weston --backend=headless --renderer=pixman --socket=wayland-yapyap --idle-time=0 &
