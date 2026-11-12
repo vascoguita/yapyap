@@ -427,3 +427,6 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   Cloud's dependency gate on master. It is optional for `@electron/get`
   and `openai`, and GitHub's advisory database does not list them yet, so
   `pnpm audit` did not report them.
+- Wayland E2E install (#614): the step refreshes apt's package index
+  before installing Weston, as the other workflows do, since the runner
+  image's index goes stale when Ubuntu replaces a package on its mirrors.
