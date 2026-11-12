@@ -14,6 +14,7 @@ import { en } from '../../shared/messages/en.ts';
 import { followGlobalShortcuts, toggleWindow } from '../shortcuts/global-shortcuts.ts';
 import { createProxyLogin } from '../network/proxy-login.ts';
 import { useCameraPortal } from '../permissions/camera-portal.ts';
+import { headlessCanStart, headlessRequested, useHeadlessDisplay } from '../headless/headless.ts';
 import type { ChromeRuntime } from '../chrome/feature.ts';
 import type { StartDependencies, WindowPort } from './types.ts';
 import type { Environment } from '../support/environment.ts';
@@ -70,6 +71,12 @@ export function beforeReady<Window extends WindowPort>(
 export function applyDisplayBackend<Window extends WindowPort>(
   deps: StartDependencies<Window>,
 ): DisplayBackend {
+  const headless = headlessRequested(deps.argv)
+    ? useHeadlessDisplay(deps.app.commandLine, deps.argv)
+    : undefined;
+  if (headless !== undefined) {
+    return headless;
+  }
   const display = chooseDisplayBackend({
     platform: deps.platform,
     setting: deps.settings.current().reliability.displayBackend,
@@ -188,17 +195,36 @@ export function openMainWindow<Window extends WindowPort>(deps: StartDependencie
   return window;
 }
 
-/** Never runs unsandboxed: explains why YapYap will not start, then quits. */
-export function refuseWithoutSandbox<Window extends WindowPort>(
+/**
+ * Never runs unsandboxed: explains why YapYap will not start, then quits.
+ * Headless, the logged reason is all there is, since nobody sees a dialog.
+ */
+function refuseWithoutSandbox<Window extends WindowPort>(
   deps: StartDependencies<Window>,
 ): Promise<void> {
   return refuseUnsafeStart({
     whenReady: () => deps.app.whenReady(),
-    explain: deps.explainUnsafeStart,
+    explain: headlessRequested(deps.argv) ? () => Promise.resolve(false) : deps.explainUnsafeStart,
     openExternal: deps.openExternal,
     logError: deps.logError,
     quit: () => {
       deps.app.quit();
     },
   });
+}
+
+/**
+ * Why YapYap must not start, as the work of saying so, or nothing when it may.
+ * A headless start with no display to run on ends at once, saying how to
+ * start it, before Chromium looks for one and crashes (ADR 0021).
+ */
+export function refusal<Window extends WindowPort>(
+  deps: StartDependencies<Window>,
+): Promise<void> | undefined {
+  if (headlessRequested(deps.argv) && !headlessCanStart(deps.argv, deps.platform, deps.env)) {
+    deps.logError(en.headless.needsBackend);
+    deps.app.exit(1);
+    return Promise.resolve();
+  }
+  return deps.sandboxDisabled ? refuseWithoutSandbox(deps) : undefined;
 }

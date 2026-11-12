@@ -374,6 +374,12 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
 - Install page button (#579): the download button carries its own styles,
   so it shows as a button on the install page too, not only on the home
   page.
+- Headless mode (#587, ADR 0021, C48 in ADR 0008): `--headless` runs with
+  no window, tray, welcome, update check or crash review, and keeps the MCP
+  server on for the run. On Linux with no display it needs
+  `--ozone-platform=headless` on the command line, and adds `--disable-gpu`. The `login-code.ts` probe reads the logged-out page's QR code as
+  modules, which `headless/pairing.ts` draws in the terminal, and only
+  there.
 - Dev chrome pages (#588): `pnpm dev` watch-builds the renderer into
   `out/renderer`, which `app://chrome/` serves, and starts Electron only
   after the first build, so the dev app never shows stale chrome pages.

@@ -67,3 +67,11 @@ These add to the repository's root `CLAUDE.md`, which applies here too.
   touches WhatsApp. The `agents` settings section is local like
   `assistant`, tokens live in `agent-tokens.json` as hashes, and their
   chat names in `secrets.json`.
+- `--headless` (ADR 0021) runs with no window, tray or dialog: anything
+  that shows one checks `headlessRequested(deps.argv)` first. Chromium's
+  headless backend works only from the real command line
+  (`--ozone-platform=headless`): appended with `appendSwitch`, Ubuntu's
+  Chromium has already looked for X11 and crashes. YapYap then appends
+  `--disable-gpu`; never turn on unsafe SwiftShader instead. The login QR
+  code goes only to a terminal (`Terminal.isTTY`), never to the log. E2E
+  tests start it with `spawnHeadless`, which drops the display.

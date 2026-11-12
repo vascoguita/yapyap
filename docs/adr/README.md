@@ -26,5 +26,6 @@ ADR that supersedes the old one.
 | [0018](0018-no-extensions.md)                         | No extensions, marketplace or call recording       | Accepted           |
 | [0019](0019-mcp-server.md)                            | An MCP server for AI agents                        | Accepted           |
 | [0020](0020-renovate.md)                              | Renovate keeps pinned versions current             | Accepted           |
+| [0021](0021-headless-mode.md)                         | Headless mode                                      | Accepted           |
 
 New ADRs copy [`template.md`](template.md) and take the next free number.
