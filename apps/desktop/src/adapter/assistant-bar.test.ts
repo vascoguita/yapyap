@@ -395,16 +395,44 @@ describe('alignAssistantBar', () => {
   });
 });
 
+/**
+ * Lays `list` out as a browser would, which the test DOM does not: 1000 px
+ * of messages in a box 600 px tall less the bar's height, which never
+ * scrolls past the end of the chat, so a box that grows pulls a list
+ * scrolled to its end back by itself.
+ */
+function layOut(list: HTMLElement, barHeight: () => number): void {
+  let top = 0;
+  const end = (): number => Math.max(0, 1000 - (600 - barHeight()));
+  Object.defineProperties(list, {
+    scrollHeight: { get: () => 1000 },
+    clientHeight: { get: () => 600 - barHeight() },
+    scrollTop: {
+      get: () => {
+        top = Math.min(top, end());
+        return top;
+      },
+      set: (value: number) => {
+        top = Math.max(0, Math.min(value, end()));
+      },
+    },
+  });
+}
+
 /** WhatsApp's chat as it scrolls: its messages in a box of their own, above the message box. */
-function scrollingChat(): HTMLElement {
+function scrollingChat(barHeight: () => number): HTMLElement {
   document.body.innerHTML = `<div id="main"><div style="overflow-y: auto"><div><div data-id="3EB0F1">Hi</div></div></div>${FOOTER}</div>`;
   const list = document.querySelector<HTMLElement>('#main > div');
   if (list === null) {
     throw new Error('No message list.');
   }
-  list.scrollTop = 400;
+  layOut(list, barHeight);
   return list;
 }
+
+/** How far a list is from the end of its chat; 0 shows the last message. */
+const fromEnd = (list: HTMLElement): number =>
+  list.scrollHeight - list.scrollTop - list.clientHeight;
 
 /**
  * Gives the bar a height once it shows, as its rows would: 50 px for each
@@ -428,79 +456,97 @@ function barHeights() {
 
 describe('holdAssistantBarRoom', () => {
   type Bar = Parameters<typeof holdAssistantBarRoom>[2];
-  const bar = (height: number) =>
-    ({ offsetHeight: height, ownerDocument: document }) as unknown as Bar;
+  /** A bar `height` tall, which the list's layout reads. */
+  function bar(height: number) {
+    const node = { offsetHeight: height, ownerDocument: document } as unknown as Bar;
+    const resize = (next: number) => () => {
+      Object.assign(node, { offsetHeight: next });
+    };
+    return { node, height: () => node.offsetHeight, resize };
+  }
 
-  it('scrolls the chat’s messages by as much as the bar grew, and back as it shrank', () => {
-    const list = scrollingChat();
-    const grows = bar(40);
-    holdAssistantBarRoom({ getComputedStyle }, PLACES, grows, () => {
-      Object.assign(grows, { offsetHeight: 160 });
-    });
-    expect(list.scrollTop).toBe(520);
-    holdAssistantBarRoom({ getComputedStyle }, PLACES, grows, () => {
-      Object.assign(grows, { offsetHeight: 100 });
-    });
-    expect(list.scrollTop).toBe(460);
+  it('keeps a chat read to its end at its end, as the bar grows and as it shrinks', () => {
+    const b = bar(0);
+    const list = scrollingChat(b.height);
+    list.scrollTop = 1000;
+    expect(list.scrollTop).toBe(400);
+    holdAssistantBarRoom({ getComputedStyle }, PLACES, b.node, b.resize(100));
+    expect([list.scrollTop, fromEnd(list)]).toEqual([500, 0]);
+    // The list grows back as the bar goes, as when a suggestion is picked (#616).
+    holdAssistantBarRoom({ getComputedStyle }, PLACES, b.node, b.resize(0));
+    expect([list.scrollTop, fromEnd(list)]).toEqual([400, 0]);
   });
 
-  it('scrolls nothing when the bar kept its height, or outside the open chat', () => {
-    const list = scrollingChat();
-    const change = vi.fn();
-    holdAssistantBarRoom({ getComputedStyle }, PLACES, bar(40), change);
-    expect(change).toHaveBeenCalledOnce();
-    expect(list.scrollTop).toBe(400);
+  it('keeps a chat scrolled back through its history where the user left it', () => {
+    const b = bar(0);
+    const list = scrollingChat(b.height);
+    list.scrollTop = 100;
+    expect(fromEnd(list)).toBe(300);
+    holdAssistantBarRoom({ getComputedStyle }, PLACES, b.node, b.resize(150));
+    expect([list.scrollTop, fromEnd(list)]).toEqual([250, 300]);
+    holdAssistantBarRoom({ getComputedStyle }, PLACES, b.node, b.resize(50));
+    expect([list.scrollTop, fromEnd(list)]).toEqual([150, 300]);
+  });
+
+  it('scrolls nothing outside the open chat', () => {
+    const b = bar(0);
+    const list = scrollingChat(b.height);
+    list.scrollTop = 200;
     // A page that scrolls around a chat whose messages do not is not the message list.
     list.style.overflowY = 'visible';
     document.body.style.overflowY = 'auto';
     document.body.scrollTop = 10;
-    const grows = bar(0);
-    holdAssistantBarRoom({ getComputedStyle }, PLACES, grows, () => {
-      Object.assign(grows, { offsetHeight: 80 });
-    });
-    expect([list.scrollTop, document.body.scrollTop]).toEqual([400, 10]);
+    const change = vi.fn(b.resize(80));
+    holdAssistantBarRoom({ getComputedStyle }, PLACES, b.node, change);
+    expect(change).toHaveBeenCalledOnce();
+    expect([list.scrollTop, document.body.scrollTop]).toEqual([200, 10]);
   });
 
-  it('scrolls a list that scrolls always, as well as one that scrolls when it must', () => {
-    const list = scrollingChat();
+  it('follows a list that scrolls always, as well as one that scrolls when it must', () => {
+    const b = bar(0);
+    const list = scrollingChat(b.height);
     list.style.overflowY = 'scroll';
-    const grows = bar(0);
-    holdAssistantBarRoom({ getComputedStyle }, PLACES, grows, () => {
-      Object.assign(grows, { offsetHeight: 30 });
-    });
-    expect(list.scrollTop).toBe(430);
+    list.scrollTop = 400;
+    holdAssistantBarRoom({ getComputedStyle }, PLACES, b.node, b.resize(30));
+    expect(fromEnd(list)).toBe(0);
   });
 
-  it('scrolls nothing in a chat with no messages', () => {
+  it('makes the change in a chat with no messages', () => {
     document.body.innerHTML = '<div id="main" style="overflow-y: auto"><footer></footer></div>';
-    const grows = bar(0);
-    expect(() => {
-      holdAssistantBarRoom({ getComputedStyle }, PLACES, grows, () => {
-        Object.assign(grows, { offsetHeight: 80 });
-      });
-    }).not.toThrow();
+    const b = bar(0);
+    const change = vi.fn(b.resize(80));
+    holdAssistantBarRoom({ getComputedStyle }, PLACES, b.node, change);
+    expect(change).toHaveBeenCalledOnce();
   });
 
   it('keeps the last message in view as the bar shows, grows, hides and shows again', () => {
     const measured = barHeights();
     const t = setup();
-    const list = scrollingChat();
+    // Before the first render, there is no bar yet.
+    const list = scrollingChat(
+      () => (t.scope['bar'] as Stored | undefined)?.parts.bar.offsetHeight ?? 0,
+    );
+    list.scrollTop = 1000;
     expect(t.render()).toBe('placed');
+    expect(fromEnd(list)).toBe(0);
     expect(list.scrollTop).toBe(450);
     // Rendering the same content again scrolls nothing.
     expect(t.render()).toBe('kept');
     expect(list.scrollTop).toBe(450);
     t.render({ ...CONTENT, notice: { text: 'Try again.', button: null } });
-    expect(list.scrollTop).toBe(500);
+    expect([list.scrollTop, fromEnd(list)]).toEqual([500, 0]);
     type('Hi');
-    expect(list.scrollTop).toBe(450);
+    expect([list.scrollTop, fromEnd(list)]).toEqual([450, 0]);
     // Typing more changes nothing that shows, so nothing is measured or scrolled.
     measured.mockClear();
     type('Hi there');
     expect(measured).not.toHaveBeenCalled();
     expect(list.scrollTop).toBe(450);
     type('');
-    expect(list.scrollTop).toBe(500);
+    expect([list.scrollTop, fromEnd(list)]).toEqual([500, 0]);
+    // Picking a suggestion takes the row away, and the last message stays in view (#616).
+    t.render({ ...CONTENT, suggestions: [], notice: null });
+    expect(fromEnd(list)).toBe(0);
   });
 });
 

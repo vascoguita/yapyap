@@ -44,6 +44,8 @@ interface BarNode {
   textContent: string | null;
   hidden: boolean;
   scrollTop: number;
+  readonly scrollHeight: number;
+  readonly clientHeight: number;
   readonly offsetHeight: number;
   readonly parentElement: BarNode | null;
   readonly ownerDocument: BarDocument;
@@ -189,13 +191,15 @@ export function alignAssistantBar(scope: Scope, host: BarNode, footer: BarNode):
 }
 
 /**
- * Makes `change` to the bar and keeps the chat's newest messages in view.
- * The bar takes its room from the message list, which keeps its scroll
- * position as it gets shorter, so the bar would cover the last message and
- * the user would have to scroll down to it (#607). The list scrolls by as
- * much as the bar grew, or back by as much as it shrank. The list is the
- * nearest scrolling box around a message, inside the open chat. Measuring
- * forces a layout, so it measures only around a change.
+ * Makes `change` to the bar and keeps the chat where the user left it. The
+ * bar takes its room from the message list, so the list gets shorter as the
+ * bar grows and taller as it shrinks (#607). The list keeps its distance
+ * from the end of the chat, so a chat read to its last message still shows
+ * it, whichever way the bar changed. Browsers already pull a list scrolled
+ * to its end back as it grows, so moving it by the bar's change in height
+ * would move it twice (#616). The list is the nearest scrolling box around a
+ * message, inside the open chat. Measuring forces a layout, so it measures
+ * only around a change.
  */
 export function holdAssistantBarRoom(
   scope: Scope,
@@ -203,19 +207,22 @@ export function holdAssistantBarRoom(
   bar: BarNode,
   change: () => void,
 ): void {
-  const before = bar.offsetHeight;
-  change();
-  const grown = bar.offsetHeight - before;
   const computed = scope['getComputedStyle'] as (node: BarNode) => { readonly overflowY: string };
-  let node =
-    grown === 0 ? null : (bar.ownerDocument.querySelector(places.message) as BarNode | null);
-  while (node !== null && node.closest(places.conversation) !== null) {
-    if (['auto', 'scroll'].includes(computed.call(scope, node).overflowY)) {
-      node.scrollTop += grown;
-      return;
-    }
-    node = node.parentElement;
+  const inChat = (node: BarNode | null): node is BarNode =>
+    node !== null && node.closest(places.conversation) !== null;
+  const scrolls = (node: BarNode): boolean =>
+    ['auto', 'scroll'].includes(computed.call(scope, node).overflowY);
+  let list = bar.ownerDocument.querySelector(places.message) as BarNode | null;
+  while (inChat(list) && !scrolls(list)) {
+    list = list.parentElement;
   }
+  if (!inChat(list)) {
+    change();
+    return;
+  }
+  const fromEnd = list.scrollHeight - list.scrollTop - list.clientHeight;
+  change();
+  list.scrollTop = list.scrollHeight - list.clientHeight - fromEnd;
 }
 
 /**

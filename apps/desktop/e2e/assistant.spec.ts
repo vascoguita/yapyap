@@ -378,4 +378,11 @@ test('keeps the chat’s last message in view as suggestions come and the bar co
     expect(await barNames(app)).toContain('Can we do 9?');
   }).toPass();
   expect(await lastMessageInView()).toBe(true);
+  // Picking a suggestion takes the row away, and the chat stays at its last message (#616).
+  await clickInBar(app, window, 'Can we do 9?');
+  await expect(window.getByTestId('composer')).toHaveText('Can we do 9?');
+  await expect(async () => {
+    expect(await barNames(app)).toEqual([]);
+  }).toPass();
+  expect(await lastMessageInView()).toBe(true);
 });
