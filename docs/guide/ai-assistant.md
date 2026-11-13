@@ -1,16 +1,15 @@
 # AI assistant
 
-YapYap's assistant helps you write, right above the message box. It
-suggests replies, writes the message you describe, rewrites your draft in
-another tone or language, sums up a long chat, and catches you up on your
-unread chats.
+YapYap's assistant helps you write, in the message box itself. It
+suggests short replies when someone writes to you, and rewrites what you
+type in the tone you choose.
 
 You stay in charge of every message:
 
-- It reads a chat only after you allow it there, and you can see exactly
-  what it sends first.
-- It never sends a message. It puts drafts in the message box, and you
-  send them, or click a suggestion's send button yourself.
+- It works only in the chats you choose in Settings, or in every chat if
+  you say so.
+- It never sends a message. It only puts text in the message box, and you
+  send it, as usual.
 - YapYap logs none of it.
 
 The assistant is part of YapYap. There is nothing to install.
@@ -113,107 +112,79 @@ offers, with **Auto (recommended)** first, the default:
 - With the private model, it uses that model.
 
 When your provider releases a newer model, Auto moves to it by itself. The
-same list sits in the bar, beside **Assistant**.
+rewrite button's menu names the model in use, under **Assistant
+settings**, which opens this list.
 
 ## In the chat
 
-Open a chat. The bar sits right above the message box:
+### Choose the chats it works in
 
-- **Suggest replies**: three short replies to choose from. Click one to
-  put it in the message box, where you can edit it, or click its send
-  button to send it as it is.
-- **Write a message**: type what you want to say, such as "I'll be ten
-  minutes late", and press Enter. The assistant writes it in the chat's
-  language and tone.
-- **Summarize**: a few short points about the chat, for you alone. **Copy**
-  copies them; **Close** hides them.
-- **Rewrite**: type a draft in the message box, then pick a style:
-  **Polish**, **Shorten**, **Elaborate**, **Formalize**, **Friendlier**,
-  or **Translate to** one of your system's languages or English. **Use**
-  puts the rewrite in place of your draft.
-- **Catch up**: what is waiting in your unread chats. See below.
-- The gear opens Settings, at the assistant.
+**Settings → Assistant → Chats the assistant works in**:
 
-### Rewrite from the message box
+- **Only the chats listed below**, the default. Open a chat in WhatsApp,
+  then click **Add the Chat Open in WhatsApp**. **Remove** takes one back.
+  Settings lists them by account.
+- **All chats**: the assistant works in every chat.
 
-The assistant's button sits inside the message box, just left of the
-microphone. It shows the way it rewrites, such as **Polish**, with its
-icon, and rewrites your draft right where it is:
+Nothing of a chat is read for the assistant outside these chats.
+**Messages the assistant reads** sets how many of a chat's latest
+messages it reads to suggest replies: 5, 10 or 20.
 
-- Click it to rewrite your draft that way. **Polish** cleans up grammar,
-  flow and tone, keeping your message as it is.
-- Its arrow opens the other ways, each with its icon: **Shorten**
-  condenses your message, **Elaborate** adds detail, context or polite
-  phrasing, and **Formalize** makes the tone more professional. The way
-  you pick rewrites your draft at once, and the button shows and keeps it
-  for next time.
+### Suggested replies
 
-Nothing is sent: press Enter to send the rewrite, as usual. **Undo** in
-the bar puts your own draft back. If you change your draft while the
-assistant works, your draft stays, and the rewrite shows in the bar
-instead, with **Use**. It asks to be allowed in the chat first, like the
-bar, and sends only your draft. The rewrite keeps your draft's language.
+When the last message in the open chat is someone else's, up to three
+short replies appear right above the message box, in the chat's
+language:
+
+- Click one to put it in the message box, where you can edit it before
+  you send it. A suggestion never sends itself.
+- They go as soon as you start typing your own reply, and come back if
+  you clear it.
+- **×** dismisses them until the next message arrives.
+- A chat that needs no reply, such as one that ends in a link or a
+  sticker, gets none.
+
+The assistant asks for suggestions once a message settles in, so a burst
+of messages asks once, and only while YapYap's window is in front. Each
+time, it reads the chat's latest messages. Turn off **Suggest replies** in
+Settings to stop them.
+
+### Rewrite what you type
+
+Once you type in the message box, the assistant's button appears inside
+it, just left of the microphone. It shows the way it rewrites, such as
+**Polish**, and rewrites your text right where it is:
+
+- Click it to rewrite your text that way.
+- Its arrow opens the menu, upwards: **Polish** fixes grammar and flow and
+  keeps your meaning, **Shorten** says the same in fewer words,
+  **Elaborate** adds detail or polite phrasing, **Soften** makes the tone
+  gentler and friendlier, and **Formalize** makes it more professional.
+  The way you pick rewrites your text at once, and the button keeps it
+  until YapYap restarts. The arrow keys move through the menu, and Esc
+  closes it.
+- **Assistant settings**, at the bottom of the menu, names the model in
+  use and opens Settings at the assistant.
+
+Nothing is sent: press Enter to send the rewrite, as usual. A slim line
+above the message box says what was done, such as "Softened. Edit it or
+send as is.", with **Undo** to put your own text back. It goes once you
+send, undo or open another chat. If you change your text while the
+assistant works, your text stays as it is. A rewrite sends only your
+text, never the chat, and keeps its language.
 
 When something is missing, such as a key or the private model's download,
-the bar says so with a button that fixes it: **Set up…**, **Paste a
-key…**, **Resume download** or **Try the smaller model**.
+or the assistant is off in the chat, the same line says so with a button
+that fixes it: **Set up…**, **Paste a key…**, **Open settings**, **Resume
+download** or **Try the smaller model**.
 
-### Allow the assistant in a chat
-
-The first time you ask for anything in a chat, the bar asks: **Allow the
-assistant to read this chat?**
-
-- **What is sent?** shows the exact text first: the instructions, and the
-  chat's latest messages marked **Me** or **Them**, or your draft.
-- **Allow here** allows it in that chat only, and answers.
-
-Nothing of the chat is read for the assistant before. **Settings →
-Assistant → Messages the assistant reads** sets how many of the latest
-messages it reads: 5, 10 or 20. Settings lists the chats you allowed, by
-account, with **Remove** to take one back.
-
-### Catch up on unread chats
-
-**Catch up** sums up what is waiting for you, without opening a chat.
-
-1. The assistant reads WhatsApp's chat list, never a chat itself: opening
-   a chat would mark it read and tell the people who wrote that you saw
-   their messages.
-2. The bar shows exactly what will be sent: each unread chat's name, how
-   many messages are unread, and its latest message, as the chat list
-   previews it. A photo or voice message shows as "(no text)".
-3. **Send** sends it, this once, and the summary appears in the bar.
-
-The summary covers only the **latest** message of each chat. The preview
-lists every unread chat, including chats where the assistant is off, and
-**Send** allows the assistant in none of them. If a chat in the list
-should not go to your provider, choose **Close** instead, or use the
-private model or a server on your computer.
-
-### Suggestions as messages arrive
-
-When a message arrives in the chat you have open, the assistant suggests
-replies on its own, so they are ready when you look. It does this only in
-chats you allowed, and only while YapYap's window is in front. Turn off
-**Suggest replies as messages arrive** in Settings to ask only when you
-choose.
-
-## Shortcuts
-
-| Action                   | Keys                     |
-| ------------------------ | ------------------------ |
-| Suggest replies          | Ctrl+Shift+Y (⌘+Shift+Y) |
-| Summarize this chat      | Ctrl+Shift+L (⌘+Shift+L) |
-| Catch up on unread chats | Ctrl+Shift+U (⌘+Shift+U) |
-
-The same actions are in the **Assistant** menu. Change the keys in
-**Keyboard Shortcuts…**. They answer in the bar, so open a chat first;
-with none open, a notification says so.
+The **Assistant** menu opens the assistant's settings.
 
 ## Privacy
 
-- The assistant reads a chat only once you allowed it there, and only when
-  you ask, or when a message arrives in a chat you allowed.
+- The assistant reads a chat only in the chats you chose, or in every chat
+  if you chose **All chats**, to suggest replies when someone else wrote
+  last. A rewrite sends only what you typed.
 - **Settings → Assistant → Privacy** says where what you ask about goes
   right now: nowhere off your computer with the private model or a server
   on your computer, or to Anthropic or OpenAI with them.

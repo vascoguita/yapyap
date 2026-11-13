@@ -58,12 +58,12 @@ to delete it.
 
 ## Does the AI assistant read my chats? {#assistant-privacy}
 
-Only chats you allow it in: the first time you ask for something in a chat,
-it shows exactly what it would send and waits for **Allow here**. **Catch up**
-reads only the chat list's previews, shows them, and sends them once when you
-click **Send**. With the private model or a model server on your computer,
-nothing leaves your computer; with Claude or OpenAI, that text goes to the
-service you chose, with your own key. See the
+Only the chats you choose in **Settings → Assistant**, or every chat if you
+choose **All chats**. There, it reads a chat's latest messages to suggest
+replies when someone else wrote last; a rewrite sends only what you typed.
+With the private model or a model server on your computer, nothing leaves
+your computer; with Claude or OpenAI, that text goes to the service you
+chose, with your own key. See the
 [AI assistant guide](/guide/ai-assistant).
 
 ## Something is broken. What should I try first?

@@ -22,9 +22,9 @@
 [![Lines of code](https://sonarcloud.io/api/project_badges/measure?project=vascoguita_yapyap&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=vascoguita_yapyap)
 
 A fast, private desktop client for WhatsApp Web, for Linux, Windows and
-macOS, with a built-in AI assistant that helps you write: reply ideas,
-summaries, rewrites and catch-ups, right above the message box, with a
-private model on your computer or the AI service you choose.
+macOS, with a built-in AI assistant that helps you write: reply ideas and
+rewrites, right in the message box, with a private model on your computer
+or the AI service you choose.
 
 <p align="center"><img src="docs/public/screenshots/main.webp" alt="YapYap's main window: the Personal and Work accounts in a sidebar, beside WhatsApp with an open chat" width="800"></p>
 
@@ -50,13 +50,12 @@ YapYap is young and not yet at 1.0. Follow what comes next on the
 
 ## Highlights
 
-- A built-in AI assistant above the message box: it suggests replies,
-  writes the message you describe, rewrites your draft in another tone or
-  language, sums up a chat, and catches you up on unread chats. Use a
-  private model that runs on your computer, a model server you already
-  run, or Claude or OpenAI with your own key. It reads a chat only once you
-  allow it there, shows exactly what it sends, and never sends a message
-  on its own.
+- A built-in AI assistant in the message box: it suggests short replies
+  when someone writes to you, and rewrites what you type to polish,
+  shorten, elaborate, soften or formalize it. Use a private model that
+  runs on your computer, a model server you already run, or Claude or
+  OpenAI with your own key. It works only in the chats you choose, and
+  never sends a message on its own.
 - An opt-in MCP server: AI agents on your computer can read chats, write
   drafts and, only if you allow it, send messages, as far as the token you
   give each one allows
