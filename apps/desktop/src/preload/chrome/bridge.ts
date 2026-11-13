@@ -50,6 +50,7 @@ function assistantBridge(invoke: Invoke): ChromeApi['assistant'] {
     forgetChat: async (account, id) => {
       await invoke(CHROME_CHANNELS.assistantForgetChat, account, id);
     },
+    allowOpenChat: () => invoke(CHROME_CHANNELS.assistantAllowOpenChat) as Promise<boolean>,
   };
 }
 

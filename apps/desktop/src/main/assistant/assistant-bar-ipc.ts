@@ -1,4 +1,3 @@
-import { MAX_PROMPT } from '../../adapter/assistant-bar.ts';
 import { ASSISTANT_BAR_CHANNELS, BAR_BUTTON_IDS } from '../../shared/api/assistant-bar-api.ts';
 import { argumentsOf, noArguments, type PayloadCheck } from '../ipc/arguments.ts';
 import {
@@ -8,8 +7,9 @@ import {
   type WhatsAppSenders,
 } from '../ipc/whatsapp.ts';
 import type { AssistantBar } from './bar.ts';
+import { POLISH_STYLES } from './rewrites.ts';
 
-/** More suggestions than the bar ever shows. */
+/** More suggestions than the assistant ever shows. */
 const MAX_SUGGESTIONS = 5;
 
 export interface BarIpcDependencies extends WhatsAppSenders {
@@ -22,33 +22,14 @@ export interface BarIpcDependencies extends WhatsAppSenders {
 const isIndex = (index: unknown): boolean =>
   Number.isInteger(index) && Number(index) >= 0 && Number(index) < MAX_SUGGESTIONS;
 
-const isPrompt = (text: unknown): boolean =>
-  typeof text === 'string' && text.trim() !== '' && text.length <= MAX_PROMPT;
-
-/** The bar's lists offer at most this long a value; the bar then checks it was offered. */
-const MAX_CHOICE = 200;
-
-const isChoice = (value: unknown): boolean =>
-  typeof value === 'string' && value !== '' && value.length <= MAX_CHOICE;
+const isStyle = (value: unknown): boolean => (POLISH_STYLES as readonly unknown[]).includes(value);
 
 const isButton = (id: unknown): boolean => (BAR_BUTTON_IDS as readonly unknown[]).includes(id);
 
-type BarActions = Pick<
-  AssistantBar,
-  | 'suggest'
-  | 'summarize'
-  | 'rewrite'
-  | 'polish'
-  | 'catchUp'
-  | 'prompt'
-  | 'use'
-  | 'send'
-  | 'choose'
-  | 'button'
->;
+type BarActions = Pick<AssistantBar, 'polish' | 'use' | 'dismiss' | 'button'>;
 
 /**
- * Hears the bar's clicks from WhatsApp's page (ADR 0013). Only the active
+ * Hears the assistant's clicks from WhatsApp's page (ADR 0013). Only the active
  * account's WhatsApp view is heard, and only with the arguments each action
  * takes; anything else is dropped and logged without its content.
  */
@@ -78,15 +59,9 @@ export function listenToAssistantBar(
   });
   const channels = ASSISTANT_BAR_CHANNELS;
   registerWhatsAppListeners(ipc, deps, [
-    on(channels.suggest, noArguments, bar.suggest),
-    on(channels.summarize, noArguments, bar.summarize),
-    on(channels.rewrite, argumentsOf(isChoice), bar.rewrite),
-    on(channels.polish, argumentsOf(isChoice), bar.polish),
-    on(channels.catchUp, noArguments, bar.catchUp),
-    on(channels.prompt, argumentsOf(isPrompt), (text: string) => bar.prompt(text.trim())),
+    on(channels.polish, argumentsOf(isStyle), bar.polish),
     on(channels.use, argumentsOf(isIndex), bar.use),
-    on(channels.send, argumentsOf(isIndex), bar.send),
-    on(channels.choose, argumentsOf(isChoice), bar.choose),
+    on(channels.dismiss, noArguments, bar.dismiss),
     on(channels.button, argumentsOf(isButton), bar.button),
     on(channels.settings, noArguments, deps.openSettings),
   ]);

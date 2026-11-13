@@ -34,6 +34,7 @@ const SNAPSHOT: SettingsSnapshot = {
     'assistant.provider': 'auto',
     'assistant.model': 'claude-opus',
     'assistant.autoSuggest': true,
+    'assistant.chats': 'chosen',
     'assistant.messages': '10',
     'assistant.localServer': '',
   },
@@ -56,6 +57,7 @@ function setup(view: AssistantView = VIEW, snapshot: SettingsSnapshot = SNAPSHOT
     ),
     privateModel: vi.fn(() => Promise.resolve()),
     forgetChat: vi.fn(() => Promise.resolve()),
+    allowOpenChat: vi.fn(() => Promise.resolve(true)),
   };
   const onChange = vi.fn();
   const api = fakeChromeApi({ assistant });
@@ -92,10 +94,15 @@ describe('AssistantSection', () => {
     expect(screen.getByText('Home: Ana')).toBeTruthy();
     expect(screen.getByText('Home: A chat allowed before (its name was not kept)')).toBeTruthy();
     expect(screen.getByText('Right now, it goes to Anthropic, at api.anthropic.com.')).toBeTruthy();
-    for (const name of ['Show the assistant in chats', 'Suggest replies as messages arrive']) {
+    for (const name of ['Show the assistant in chats', 'Suggest replies']) {
       expect(screen.getByRole('checkbox', { name })).toBeTruthy();
     }
     expect(screen.getByRole('group', { name: 'Messages the assistant reads' })).toBeTruthy();
+    expect(screen.getByRole('group', { name: 'Chats the assistant works in' })).toBeTruthy();
+    expect(screen.getByRole('radio', { name: 'Only the chats listed below' })).toHaveProperty(
+      'checked',
+      true,
+    );
     fireEvent.change(screen.getByLabelText('Model'), { target: { value: 'auto' } });
     expect(t.onChange).toHaveBeenCalledWith('assistant.model', 'auto');
   });
@@ -220,6 +227,28 @@ describe('AssistantSection', () => {
     cleanup();
     setup({ ...VIEW, chats: [] });
     expect(await screen.findByText('None yet.')).toBeTruthy();
+  });
+
+  it('adds the chat open in WhatsApp, and says when none is open', async () => {
+    const t = setup();
+    const add = await screen.findByRole('button', { name: 'Add the Chat Open in WhatsApp' });
+    fireEvent.click(add);
+    await waitFor(() => {
+      expect(t.assistant.view).toHaveBeenCalledTimes(2);
+    });
+    expect(t.assistant.allowOpenChat).toHaveBeenCalledOnce();
+    expect(screen.queryByText('Open a chat in WhatsApp first.')).toBeNull();
+    t.assistant.allowOpenChat.mockResolvedValueOnce(false);
+    fireEvent.click(add);
+    expect(await screen.findByText('Open a chat in WhatsApp first.')).toBeTruthy();
+  });
+
+  it('lists no chats while the assistant works in every chat', async () => {
+    setup(VIEW, { ...SNAPSHOT, values: { ...SNAPSHOT.values, 'assistant.chats': 'all' } });
+    expect(await screen.findByText('In use')).toBeTruthy();
+    expect(screen.getByRole('radio', { name: 'All chats' })).toHaveProperty('checked', true);
+    expect(screen.queryByText('Home: Ana')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Add the Chat Open in WhatsApp' })).toBeNull();
   });
 
   it('keeps loading while the view cannot be read', async () => {

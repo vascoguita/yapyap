@@ -159,6 +159,8 @@ export interface ChromeApi {
     readonly findServers: () => Promise<readonly FoundServer[]>;
     readonly privateModel: (action: PrivateModelAction) => Promise<void>;
     readonly forgetChat: (account: string, id: string) => Promise<void>;
+    /** Lets the assistant work in the chat open on screen; false when no chat is open. */
+    readonly allowOpenChat: () => Promise<boolean>;
   };
   /** Settings › Agents: the MCP server's tokens and what agents did (ADR 0019). */
   readonly agents: {
@@ -391,6 +393,7 @@ export const CHROME_CHANNELS = {
   assistantFindServers: 'assistant:find-servers',
   assistantPrivateModel: 'assistant:private-model',
   assistantForgetChat: 'assistant:forget-chat',
+  assistantAllowOpenChat: 'assistant:allow-open-chat',
   agentsView: 'agents:view',
   agentsCreate: 'agents:create',
   agentsRevoke: 'agents:revoke',

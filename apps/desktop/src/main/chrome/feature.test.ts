@@ -117,7 +117,6 @@ function setup() {
         forget: vi.fn(),
         canKeep: () => Promise.resolve(true),
       },
-      languages: ['en'],
       findServers: () => Promise.resolve([]),
       listenToEngine: vi.fn(),
       now: () => 0,
@@ -439,6 +438,7 @@ describe('createChromeFeature', () => {
         'assistant.provider': 'auto',
         'assistant.model': 'auto',
         'assistant.autoSuggest': true,
+        'assistant.chats': 'chosen',
         'assistant.messages': '10',
         'assistant.localServer': '',
         'agents.enabled': false,
@@ -615,10 +615,8 @@ describe('createChromeFeature', () => {
       activeContents: () => contents,
       insertDraft: vi.fn(() => Promise.resolve(true)),
       readActiveChat: vi.fn(() => Promise.resolve(null)),
-      readUnreadSummary: vi.fn(() => Promise.resolve([])),
       replaceDraft: vi.fn(() => Promise.resolve(true)),
       readDraft: vi.fn(() => Promise.resolve(null)),
-      pressEnter: vi.fn(() => Promise.resolve(false)),
       agentPage: vi.fn(() => undefined),
       switchTo: vi.fn(),
       add: vi.fn(),
@@ -679,10 +677,8 @@ describe('createChromeFeature', () => {
       activeContents: () => ({}),
       insertDraft: vi.fn(() => Promise.resolve(true)),
       readActiveChat: vi.fn(() => Promise.resolve(null)),
-      readUnreadSummary: vi.fn(() => Promise.resolve([])),
       replaceDraft: vi.fn(() => Promise.resolve(true)),
       readDraft: vi.fn(() => Promise.resolve(null)),
-      pressEnter: vi.fn(() => Promise.resolve(false)),
       agentPage: vi.fn(() => undefined),
       switchTo: vi.fn(),
       add: vi.fn(),
@@ -795,7 +791,7 @@ describe('createChromeFeature', () => {
   it('gives the assistant bar its view, shown as the settings say, and serves the engine page', async () => {
     const t = setup();
     const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
-    const view = { show: vi.fn(), publish: vi.fn(), onPage: vi.fn(() => Promise.resolve(true)) };
+    const view = { show: vi.fn(), publish: vi.fn() };
     const create = vi.fn((bar: { state: () => { suggestions: readonly string[] } }) => {
       expect(bar.state()).toEqual(expect.objectContaining({ suggestions: [] }));
       return view;
@@ -811,29 +807,14 @@ describe('createChromeFeature', () => {
     await expect(t.call('assistant:view')).resolves.toMatchObject({ inUse: null });
   });
 
-  it('runs the assistant’s actions from its menu, and says when one fails', async () => {
+  it('opens the assistant’s settings from its menu', () => {
     const t = setup();
-    const warn = vi.fn();
-    const runtime = t.feature.afterReady(t.views, warn, 'hardware accelerated');
-    runtime.attachAssistantBar(() => ({
-      show: vi.fn(),
-      publish: vi.fn(),
-      onPage: () => Promise.resolve(true),
-    }));
-    await vi.waitFor(() => {
-      expect(t.deps.assistant.keys.get).toBeDefined();
-    });
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
     const menu = t.menu().find((entry) => entry.label === 'A&ssistant');
     const submenu = (menu?.submenu ?? []) as { label?: string; click?: () => void }[];
-    t.deps.assistant.keys.get = () => Promise.reject(new Error('locked'));
-    for (const item of submenu) {
-      item.click?.();
-    }
-    await vi.waitFor(() => {
-      expect(t.window.loadURL).toHaveBeenCalledWith('app://chrome/settings.html');
-      expect(warn).toHaveBeenCalledWith('An assistant action failed.');
-    });
+    expect(submenu.map(({ label }) => label)).toEqual(['Assistant Settings…']);
+    submenu[0]?.click?.();
+    expect(t.window.loadURL).toHaveBeenCalledWith('app://chrome/settings.html');
   });
 
   it('opens the Accounts window from the Account menu, listing the current accounts', () => {
@@ -860,10 +841,8 @@ describe('createChromeFeature', () => {
       activeContents: () => ({}),
       insertDraft: vi.fn(() => Promise.resolve(true)),
       readActiveChat: vi.fn(() => Promise.resolve(null)),
-      readUnreadSummary: vi.fn(() => Promise.resolve([])),
       replaceDraft: vi.fn(() => Promise.resolve(true)),
       readDraft: vi.fn(() => Promise.resolve(null)),
-      pressEnter: vi.fn(() => Promise.resolve(false)),
       agentPage: vi.fn(() => undefined),
       switchTo: vi.fn(),
       add: vi.fn(),
@@ -905,10 +884,8 @@ describe('createChromeFeature', () => {
       activeContents: () => ({}),
       insertDraft: vi.fn(() => Promise.resolve(true)),
       readActiveChat: vi.fn(() => Promise.resolve(null)),
-      readUnreadSummary: vi.fn(() => Promise.resolve([])),
       replaceDraft: vi.fn(() => Promise.resolve(true)),
       readDraft: vi.fn(() => Promise.resolve(null)),
-      pressEnter: vi.fn(() => Promise.resolve(false)),
       agentPage: vi.fn(() => undefined),
       switchTo: vi.fn(),
       add: vi.fn(),
@@ -935,10 +912,8 @@ describe('createChromeFeature', () => {
       activeContents: () => ({}),
       insertDraft: vi.fn(() => Promise.resolve(true)),
       readActiveChat: vi.fn(() => Promise.resolve(null)),
-      readUnreadSummary: vi.fn(() => Promise.resolve([])),
       replaceDraft: vi.fn(() => Promise.resolve(true)),
       readDraft: vi.fn(() => Promise.resolve(null)),
-      pressEnter: vi.fn(() => Promise.resolve(false)),
       agentPage: vi.fn(() => undefined),
       switchTo: vi.fn(),
       add: vi.fn(),
@@ -1007,7 +982,7 @@ describe('createChromeFeature', () => {
     await new Promise((resolve) => setTimeout(resolve));
     expect(t.deps.writeClipboard).toHaveBeenLastCalledWith(
       expect.stringMatching(
-        /^YapYap 0\.1\.0 \(deb\)\n[\s\S]*\nGPU gpu_compositing=enabled, rasterization=unknown, video_decode=unknown, webgl=enabled_on\nUpdates system \(deb\)\nWhatsApp page unavailable \(landmarks v9\)\n\nRecent log:\n2026-10-21T12:00:00\.000Z warn Something happened$/,
+        /^YapYap 0\.1\.0 \(deb\)\n[\s\S]*\nGPU gpu_compositing=enabled, rasterization=unknown, video_decode=unknown, webgl=enabled_on\nUpdates system \(deb\)\nWhatsApp page unavailable \(landmarks v10\)\n\nRecent log:\n2026-10-21T12:00:00\.000Z warn Something happened$/,
       ),
     );
   });
@@ -1037,7 +1012,7 @@ describe('createChromeFeature', () => {
     await new Promise((resolve) => setTimeout(resolve));
     expect(t.deps.writeClipboard).toHaveBeenLastCalledWith(
       expect.stringContaining(
-        '\nWhatsApp view=chats, chat_open=true (landmarks v9)\n\nRecent log:',
+        '\nWhatsApp view=chats, chat_open=true (landmarks v10)\n\nRecent log:',
       ),
     );
     expect(t.deps.notify).toHaveBeenLastCalledWith(en.recovery.diagnosticsCopied);

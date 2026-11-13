@@ -3,115 +3,101 @@ import { runInNewContext } from 'node:vm';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   alignAssistantBar,
+  assistantBarIcon,
+  assistantBarNode,
   assistantBarRender,
-  assistantSuggestion,
+  assistantBarRows,
   buildAssistantBar,
-  fillAssistantButtons,
-  fillAssistantOptions,
   holdAssistantBarRoom,
-  labelAssistantBar,
+  noticeAssistantBar,
   renderAssistantBar,
+  showAssistantBar,
   updateAssistantBar,
   wireAssistantBar,
-  wireAssistantFields,
   type BarContent,
   type BarPlacement,
 } from './assistant-bar.ts';
+import { ASSISTANT_ICONS } from './assistant-look.ts';
 import { LANDMARKS } from './page-state.ts';
 
 const LABELS = {
   label: 'AI assistant',
-  name: 'Assistant',
-  suggest: 'Suggest replies',
-  summarize: 'Summarize',
-  rewrite: 'Rewrite',
-  rewriteLabel: 'Rewrite my draft',
-  catchUp: 'Catch up',
-  catchUpLabel: 'Catch up on unread chats',
-  settings: 'Assistant settings',
-  model: 'Model',
-  use: 'Put in the message box',
-  sendLabel: 'Send this suggestion now',
-  write: 'Write a message',
-  writePlaceholder: 'Say what you want to write',
+  suggestions: 'Suggested replies',
+  use: 'Puts this reply in the message box.',
+  dismiss: 'Dismiss suggestions',
+  close: 'Close',
 };
 
 const CONTENT: BarContent = {
   visible: true,
   labels: LABELS,
-  status: '',
-  working: false,
   suggestions: ['On my way', '<b>Soon</b>'],
-  result: null,
-  buttons: [],
-  choice: null,
-  rewrites: [
-    { value: 'shorter', label: 'Shorter' },
-    { value: 'translate:pt', label: 'Translate to Portuguese' },
-  ],
+  notice: null,
+};
+
+const UNDO: BarContent = {
+  ...CONTENT,
+  suggestions: [],
+  notice: { text: 'Softened. Edit it or send as is.', button: { id: 'undo', label: 'Undo' } },
 };
 
 const PLACES = {
   footer: '#main footer',
+  field: '#main footer [contenteditable="true"]',
   conversation: '#main',
   message: '#main [data-id]',
   store: 'bar',
   bridge: 'bridge',
   style: '.bar { display: flex; }',
-  maxPrompt: 2000,
+  icons: { sparkle: 'M1 1z', close: 'M2 2z' },
 };
 
 const KIT = {
   align: alignAssistantBar,
   room: holdAssistantBarRoom,
   build: buildAssistantBar,
+  rows: assistantBarRows,
+  node: assistantBarNode,
+  show: showAssistantBar,
   wire: wireAssistantBar,
-  fields: wireAssistantFields,
-  label: labelAssistantBar,
-  buttons: fillAssistantButtons,
   update: updateAssistantBar,
-  options: fillAssistantOptions,
-  suggestion: assistantSuggestion,
+  notice: noticeAssistantBar,
+  icon: assistantBarIcon,
 };
 
 interface Stored {
   host: HTMLElement;
+  key: string | null;
   parts: {
-    input: HTMLInputElement;
-    suggest: HTMLButtonElement;
-    choice: HTMLSelectElement;
-    rewrite: HTMLButtonElement;
-    rewrites: HTMLElement;
-    result: HTMLElement;
-    buttons: HTMLElement;
-    status: HTMLElement;
+    bar: HTMLElement;
+    notice: HTMLElement;
+    text: HTMLElement;
+    action: HTMLButtonElement;
+    close: HTMLButtonElement;
+    chips: HTMLElement;
+    list: HTMLElement;
+    dismiss: HTMLButtonElement;
   };
 }
 
+/** WhatsApp's message box, which orders the chat's parts with flexbox `order` and raises itself (#466). */
+const FOOTER =
+  '<footer style="order: 3; z-index: 2; color: rgb(17, 27, 33)"><div contenteditable="true"></div></footer>';
+
 /** A chat with its message box, the scope the adapter world would be, and the bar's bridge. */
 function setup() {
-  // WhatsApp orders the chat's parts with flexbox `order` and raises its message box (#466).
-  document.body.innerHTML =
-    '<div id="main"><div role="row">Hi</div><footer style="order: 3; z-index: 2"><div contenteditable="true"></div></footer></div>';
-  const bridge = {
-    suggest: vi.fn(),
-    summarize: vi.fn(),
-    rewrite: vi.fn(),
-    catchUp: vi.fn(),
-    prompt: vi.fn(),
-    use: vi.fn(),
-    send: vi.fn(),
-    choose: vi.fn(),
-    button: vi.fn(),
-    settings: vi.fn(),
-  };
+  document.body.innerHTML = `<div id="main"><div role="row">Hi</div>${FOOTER}</div>`;
+  const bridge = { use: vi.fn(), dismiss: vi.fn(), button: vi.fn() };
   const scope: Record<string, unknown> = { bridge, getComputedStyle };
   const render = (content: BarContent = CONTENT): BarPlacement =>
     renderAssistantBar(document, scope, content, PLACES, KIT);
   const stored = (): Stored => scope['bar'] as Stored;
   // The test reaches into the closed shadow root through the parts the adapter keeps.
-  const shadow = (): ShadowRoot => stored().parts.input.getRootNode() as ShadowRoot;
-  return { bridge, scope, render, stored, shadow };
+  const shadow = (): ShadowRoot => stored().parts.bar.getRootNode() as ShadowRoot;
+  const chips = (): HTMLButtonElement[] => [
+    ...stored().parts.list.querySelectorAll<HTMLButtonElement>('.chip'),
+  ];
+  return { bridge, scope, render, stored, shadow, chips };
 }
 
 /** An event as the user's own input makes it; page scripts can only make untrusted ones. */
@@ -120,10 +106,26 @@ function trusted<T extends Event>(event: T): T {
   return event;
 }
 
+const click = (target: Element): void => {
+  target.dispatchEvent(trusted(new MouseEvent('click', { bubbles: true })));
+};
+
 const footer = (): Element | null => document.querySelector('#main footer');
+const field = (): HTMLElement | null => document.querySelector('[contenteditable]');
+
+/** Types in WhatsApp's message box, as the user does: its text changes, then an input event. */
+function type(text: string): void {
+  const box = field();
+  if (box === null) {
+    throw new Error('No message box.');
+  }
+  box.textContent = text;
+  box.dispatchEvent(new InputEvent('input', { bubbles: true }));
+}
 
 afterEach(() => {
   document.body.innerHTML = '';
+  vi.restoreAllMocks();
 });
 
 describe('renderAssistantBar', () => {
@@ -137,147 +139,219 @@ describe('renderAssistantBar', () => {
     const shadow = t.shadow();
     expect(shadow.querySelector('style')?.textContent).toBe('.bar { display: flex; }');
     expect(shadow.querySelector('.bar')?.getAttribute('aria-label')).toBe('AI assistant');
-    expect(shadow.querySelector('.name')?.textContent).toBe('Assistant');
-    expect(t.stored().parts.input.getAttribute('maxlength')).toBe('2000');
-    expect(t.stored().parts.input.placeholder).toBe('Say what you want to write');
-    expect(t.stored().parts.result.hidden).toBe(true);
-    expect(t.stored().parts.choice.hidden).toBe(true);
-    const actions = [...shadow.querySelectorAll('[data-action]')].map((node) => [
-      node.getAttribute('data-action'),
-      node.textContent,
-    ]);
-    expect(actions.slice(0, 5)).toEqual([
-      ['suggest', 'Suggest replies'],
-      ['summarize', 'Summarize'],
-      ['rewrites', 'Rewrite'],
-      ['catchUp', 'Catch up'],
-      ['settings', '⚙'],
-    ]);
-    const gear = shadow.querySelector('.gear');
-    expect(gear?.getAttribute('aria-label')).toBe('Assistant settings');
-    expect(shadow.querySelector('.bar > .row')).not.toBeNull();
-    expect(t.stored().parts.input.getAttribute('type')).toBe('text');
+    expect(t.stored().parts.chips.getAttribute('aria-label')).toBe('Suggested replies');
+    expect(t.stored().parts.notice.getAttribute('role')).toBe('status');
   });
 
-  it('gives every part the class its styles use, and names the parts that need a name', () => {
+  it('gives every part the class its styles use', () => {
     const t = setup();
     t.render();
     const { parts } = t.stored();
-    const classes = Object.fromEntries(
-      Object.entries(parts).map(([part, node]) => [part, node.getAttribute('class')]),
-    );
-    expect(classes).toEqual({
-      bar: 'bar',
-      name: 'name',
-      choice: 'choice',
-      suggest: 'button primary',
-      summarize: 'button',
-      rewrite: 'button',
-      catchUp: 'button',
-      settings: 'button gear',
-      rewrites: 'row rewrites',
-      status: 'status',
-      buttons: 'buttons',
-      result: 'result',
-      list: 'suggestions',
-      input: 'input',
-    });
-    expect(t.shadow().querySelector('style')?.getAttribute('class')).toBe('style');
-    expect(t.shadow().querySelectorAll('.bar > .row:not(.line, .rewrites)')).toHaveLength(1);
-    expect(parts.status.parentElement?.getAttribute('class')).toBe('row line');
-    expect(parts.result.getAttribute('tabindex')).toBe('0');
-    expect(parts.input.getAttribute('aria-label')).toBe('Write a message');
-    const icon = t.shadow().querySelector('.send svg');
-    expect(icon?.namespaceURI).toBe('http://www.w3.org/2000/svg');
-    expect(icon?.getAttribute('viewBox')).toBe('0 0 16 16');
-    expect(icon?.getAttribute('aria-hidden')).toBe('true');
+    const classes = Object.entries(parts).map(([part, node]) => [part, node.getAttribute('class')]);
+    expect(classes).toEqual([
+      ['bar', 'bar'],
+      ['notice', 'row notice'],
+      ['text', 'text'],
+      ['action', 'action'],
+      ['close', 'icon'],
+      ['chips', 'row chips'],
+      ['list', 'list'],
+      ['dismiss', 'icon'],
+    ]);
+    expect(parts.list.tagName).toBe('UL');
   });
 
-  it('takes the message box’s place in WhatsApp’s layout, above its wallpaper, render after render', () => {
+  it('gives buttons their action and button attributes, and nothing else either', () => {
+    const t = setup();
+    t.render();
+    const { parts } = t.stored();
+    expect(parts.action.dataset['action']).toBe('button');
+    expect(parts.close.dataset).toMatchObject({ action: 'button', id: 'close' });
+    expect(parts.dismiss.dataset['action']).toBe('dismiss');
+    for (const button of [parts.action, parts.close, parts.dismiss]) {
+      expect(button.getAttribute('type')).toBe('button');
+    }
+    expect(parts.text.hasAttribute('type')).toBe(false);
+    expect(parts.text.dataset['action']).toBeUndefined();
+  });
+
+  it('starts each row with the sparkle, and draws a cross to close or dismiss', () => {
+    const t = setup();
+    t.render();
+    const { parts } = t.stored();
+    const drawn = (svg: Element | null) => [
+      svg?.getAttribute('class'),
+      svg?.getAttribute('aria-hidden'),
+      svg?.querySelector('path')?.getAttribute('d'),
+    ];
+    for (const row of [parts.notice, parts.chips]) {
+      expect(drawn(row.firstElementChild)).toEqual(['mark', 'true', 'M1 1z']);
+    }
+    for (const button of [parts.close, parts.dismiss]) {
+      expect(drawn(button.querySelector('svg'))).toEqual(['cross', 'true', 'M2 2z']);
+    }
+  });
+
+  it('names the controls that show only an icon', () => {
+    const t = setup();
+    t.render();
+    const { close, dismiss } = t.stored().parts;
+    expect(dismiss.getAttribute('aria-label')).toBe('Dismiss suggestions');
+    expect(dismiss.getAttribute('title')).toBe('Dismiss suggestions');
+    expect(close.getAttribute('aria-label')).toBe('Close');
+    expect(close.getAttribute('title')).toBe('Close');
+  });
+
+  it('takes the message box’s place in WhatsApp’s layout, and its theme, render after render', () => {
     const t = setup();
     t.render();
     const { host } = t.stored();
-    expect([host.style.order, host.style.position, host.style.zIndex]).toEqual([
-      '3',
-      'relative',
-      '2',
-    ]);
-    footer()?.setAttribute('style', 'order: 7; z-index: 5');
+    expect(host.style.order).toBe('3');
+    expect(host.style.position).toBe('relative');
+    expect(host.style.zIndex).toBe('2');
+    expect(host.dataset['theme']).toBe('light');
+    footer()?.setAttribute('style', 'order: 5; z-index: 4; color: rgb(233, 237, 239)');
     t.render();
-    expect([host.style.order, host.style.zIndex]).toEqual(['7', '5']);
-  });
-
-  it('leaves a bar already right above the message box where it is', () => {
-    const t = setup();
-    t.render();
-    const box = footer();
-    if (box === null) {
-      throw new Error('No footer.');
-    }
-    const before = vi.spyOn(box, 'before');
-    t.render({ ...CONTENT, status: 'Thinking…' });
-    expect(before).not.toHaveBeenCalled();
+    expect(host.style.order).toBe('5');
+    expect(host.style.zIndex).toBe('4');
+    expect(host.dataset['theme']).toBe('dark');
   });
 
   it('writes the assistant’s text as text, never as markup', () => {
     const t = setup();
+    t.render();
+    expect(t.chips().map((chip) => chip.textContent)).toEqual(['On my way', '<b>Soon</b>']);
+    expect(t.shadow().querySelector('b')).toBeNull();
     t.render({
       ...CONTENT,
-      status: '<i>busy</i>',
-      result: '<u>Summary</u>\n- line',
-      buttons: [
-        { id: 'copy', label: '<s>Copy</s>', primary: false },
-        { id: 'close', label: 'Close', primary: true },
-      ],
+      notice: { text: '<i>Hi</i>', button: { id: 'fix', label: '<u>Fix</u>' } },
     });
-    const shadow = t.shadow();
-    const uses = [...shadow.querySelectorAll('.use')].map((use) => use.textContent);
-    expect(uses).toEqual(['On my way', '<b>Soon</b>']);
-    expect(shadow.querySelector('b, i, u, s')).toBeNull();
-    expect(t.stored().parts.status.textContent).toBe('<i>busy</i>');
-    expect(t.stored().parts.result.textContent).toBe('<u>Summary</u>\n- line');
-    expect(t.stored().parts.result.hidden).toBe(false);
-    const buttons = [...t.stored().parts.buttons.children].map((node) => [
-      node.className,
-      node.getAttribute('data-id'),
-      node.textContent,
+    expect(t.stored().parts.text.textContent).toBe('<i>Hi</i>');
+    expect(t.stored().parts.action.textContent).toBe('<u>Fix</u>');
+    expect(t.shadow().querySelector('i, u')).toBeNull();
+  });
+
+  it('makes each suggestion a chip that names it, and how it is used', () => {
+    const t = setup();
+    t.render();
+    const described = t.chips().map((chip) => ({
+      tag: chip.tagName,
+      item: chip.parentElement?.tagName,
+      class: chip.getAttribute('class'),
+      type: chip.getAttribute('type'),
+      title: chip.getAttribute('title'),
+      action: chip.dataset['action'],
+      index: chip.dataset['index'],
+    }));
+    const chip = { tag: 'BUTTON', item: 'LI', class: 'chip', type: 'button', action: 'use' };
+    expect(described).toEqual([
+      { ...chip, title: 'On my way\nPuts this reply in the message box.', index: '0' },
+      { ...chip, title: '<b>Soon</b>\nPuts this reply in the message box.', index: '1' },
     ]);
-    expect(buttons).toEqual([
-      ['button', 'copy', '<s>Copy</s>'],
-      ['button primary', 'close', 'Close'],
-    ]);
-    const send = shadow.querySelector('.send');
-    expect(send?.getAttribute('aria-label')).toBe('Send this suggestion now');
-    expect(send?.getAttribute('data-index')).toBe('0');
-    expect(send?.querySelector('svg path')?.getAttribute('d')).toBe('M2 8l12-6-4 12-2-5z');
+  });
+
+  it('shows a notice with Undo, and no close beside it', () => {
+    const t = setup();
+    t.render(UNDO);
+    const { notice, text, action, close, chips } = t.stored().parts;
+    expect(notice.hidden).toBe(false);
+    expect(text.textContent).toBe('Softened. Edit it or send as is.');
+    expect(action.hidden).toBe(false);
+    expect(action.textContent).toBe('Undo');
+    expect(action.dataset['id']).toBe('undo');
+    expect(close.hidden).toBe(true);
+    expect(chips.hidden).toBe(true);
+  });
+
+  it('shows close beside any other notice, with or without a button', () => {
+    const t = setup();
+    t.render({ ...UNDO, notice: { text: 'Paste your key.', button: { id: 'fix', label: 'Fix' } } });
+    const { notice, text, action, close } = t.stored().parts;
+    expect(action.dataset['id']).toBe('fix');
+    expect(close.hidden).toBe(false);
+    t.render({ ...UNDO, notice: { text: 'Try again.', button: null } });
+    expect(action.hidden).toBe(true);
+    expect(action.textContent).toBe('');
+    expect(action.dataset['id']).toBe('');
+    expect(close.hidden).toBe(false);
+    t.render({ ...UNDO, notice: null });
+    expect(notice.hidden).toBe(true);
+    expect(text.textContent).toBe('');
+    expect(action.hidden).toBe(true);
+  });
+
+  it('shows nothing at all with neither suggestions nor a notice', () => {
+    const t = setup();
+    t.render({ ...CONTENT, suggestions: [] });
+    expect(t.stored().host.style.display).toBe('none');
+    expect(t.stored().parts.chips.hidden).toBe(true);
+    t.render(UNDO);
+    expect(t.stored().host.style.display).toBe('');
+    t.render();
+    expect(t.stored().host.style.display).toBe('');
+    expect(t.stored().parts.chips.hidden).toBe(false);
+  });
+
+  it('hides the suggestions while the user types, and shows them again once the box is empty', () => {
+    const t = setup();
+    t.render();
+    const { host, parts } = t.stored();
+    type('Hello');
+    expect(parts.chips.hidden).toBe(true);
+    expect(host.style.display).toBe('none');
+    type('  ');
+    expect(parts.chips.hidden).toBe(false);
+    expect(host.style.display).toBe('');
+    // A draft already there when the bar renders hides them too, and a notice still shows.
+    field()?.replaceChildren('Hi');
+    t.render({ ...UNDO, suggestions: ['Sure'] });
+    expect(parts.chips.hidden).toBe(true);
+    expect(parts.notice.hidden).toBe(false);
+    expect(host.style.display).toBe('');
+  });
+
+  it('shows the suggestions over a message box it cannot find the field of', () => {
+    const t = setup();
+    field()?.remove();
+    t.render();
+    expect(t.stored().parts.chips.hidden).toBe(false);
+  });
+
+  it('listens to the page’s typing only once, however often it renders', () => {
+    const listen = vi.spyOn(document, 'addEventListener');
+    const t = setup();
+    t.render();
+    t.render(UNDO);
+    expect(listen).toHaveBeenCalledOnce();
+    expect(listen).toHaveBeenCalledWith('input', expect.any(Function), true);
   });
 
   it('changes nothing when nothing changed, and updates in place when something did', () => {
     const t = setup();
     t.render();
-    const { host } = t.stored();
-    const list = t.shadow().querySelector('.suggestions');
-    const first = list?.firstElementChild;
+    const { host, parts } = t.stored();
+    const first = t.chips()[0];
     t.render();
-    expect(list?.firstElementChild).toBe(first);
-    t.render({ ...CONTENT, suggestions: [], working: true, status: 'Thinking…' });
+    expect(t.chips()[0]).toBe(first);
+    expect(t.stored().key).toBe(JSON.stringify(CONTENT));
+    t.render({ ...CONTENT, suggestions: ['Later'] });
     expect(t.stored().host).toBe(host);
-    expect(list?.children).toHaveLength(0);
-    expect(t.stored().parts.suggest.disabled).toBe(true);
-    expect(t.stored().parts.input.disabled).toBe(true);
-    expect(t.stored().parts.rewrite.disabled).toBe(true);
+    expect(t.stored().parts.list).toBe(parts.list);
+    expect(t.chips().map((chip) => chip.textContent)).toEqual(['Later']);
   });
 
   it('puts the same bar back when WhatsApp redraws the chat, and above the new message box', () => {
     const t = setup();
     t.render();
     const { host } = t.stored();
-    t.stored().parts.input.value = 'half typed';
-    document.querySelector('#main')?.replaceChildren();
-    document.querySelector('#main')?.insertAdjacentHTML('beforeend', '<footer></footer>');
+    const main = document.querySelector('#main');
+    if (main !== null) {
+      main.innerHTML = `<div role="row">Hi</div>${FOOTER}`;
+    }
+    expect(host.isConnected).toBe(false);
     expect(t.render()).toBe('placed');
+    expect(t.stored().host).toBe(host);
     expect(footer()?.previousElementSibling).toBe(host);
-    expect(t.stored().parts.input.value).toBe('half typed');
   });
 
   it('takes the bar away when it is hidden or no chat is open, and reports it', () => {
@@ -294,10 +368,36 @@ describe('renderAssistantBar', () => {
   });
 });
 
+describe('alignAssistantBar', () => {
+  it('reads a dark theme from light text, and a light one from dark text or a color it cannot read', () => {
+    const host = document.createElement('div');
+    const align = (color: string) => {
+      const computed = () => ({ order: '1', zIndex: '1', color });
+      alignAssistantBar({ getComputedStyle: computed }, host as never, host as never);
+      return host.dataset['theme'];
+    };
+    expect(align('rgb(233, 237, 239)')).toBe('dark');
+    expect(align('rgba(250, 250, 250, 0.9)')).toBe('dark');
+    expect(align('rgb(17, 27, 33)')).toBe('light');
+    // Just at the middle grey still reads as dark text.
+    expect(align('rgb(128, 128, 128)')).toBe('light');
+    expect(align('rgb(129, 129, 129)')).toBe('dark');
+    // Green weighs most, then red, then blue.
+    expect(align('rgb(0, 220, 0)')).toBe('dark');
+    expect(align('rgb(255, 0, 0)')).toBe('light');
+    expect(align('rgb(0, 0, 255)')).toBe('light');
+    expect(align('rgb(100, 100, 255)')).toBe('light');
+    expect(align('rgb(120, 140, 255)')).toBe('dark');
+    expect(align('rgb(255, 140, 40)')).toBe('dark');
+    expect(align('')).toBe('light');
+    expect(align('rgb(250)')).toBe('light');
+    expect(align('rgb(250, 250)')).toBe('dark');
+  });
+});
+
 /** WhatsApp's chat as it scrolls: its messages in a box of their own, above the message box. */
 function scrollingChat(): HTMLElement {
-  document.body.innerHTML =
-    '<div id="main"><div style="overflow-y: auto"><div><div data-id="3EB0F1">Hi</div></div></div><footer></footer></div>';
+  document.body.innerHTML = `<div id="main"><div style="overflow-y: auto"><div><div data-id="3EB0F1">Hi</div></div></div>${FOOTER}</div>`;
   const list = document.querySelector<HTMLElement>('#main > div');
   if (list === null) {
     throw new Error('No message list.');
@@ -307,27 +407,26 @@ function scrollingChat(): HTMLElement {
 }
 
 /**
- * Gives the bar a height once it is in the page, as its open parts would:
- * 90 px, 60 more with a result and 40 more with the ways to rewrite. The
- * test DOM lays nothing out.
+ * Gives the bar a height once it shows, as its rows would: 50 px for each
+ * row that shows. The test DOM lays nothing out.
  */
-function barHeights(): void {
-  vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (
+function barHeights() {
+  return vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (
     this: HTMLElement,
   ) {
-    if (!this.isConnected || this.getAttribute('class') !== 'bar') {
+    const host = (this.getRootNode() as ShadowRoot).host as HTMLElement | undefined;
+    if (this.getAttribute('class') !== 'bar' || host?.isConnected !== true) {
       return 0;
     }
-    const open = (name: string) => this.querySelector<HTMLElement>(name)?.hidden === false;
-    return 90 + (open('.result') ? 60 : 0) + (open('.rewrites') ? 40 : 0);
+    if (host.style.display === 'none') {
+      return 0;
+    }
+    const rows = [...this.querySelectorAll<HTMLElement>('.row')];
+    return rows.filter((row) => !row.hidden).length * 50;
   });
 }
 
 describe('holdAssistantBarRoom', () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
   type Bar = Parameters<typeof holdAssistantBarRoom>[2];
   const bar = (height: number) =>
     ({ offsetHeight: height, ownerDocument: document }) as unknown as Bar;
@@ -362,6 +461,16 @@ describe('holdAssistantBarRoom', () => {
     expect([list.scrollTop, document.body.scrollTop]).toEqual([400, 10]);
   });
 
+  it('scrolls a list that scrolls always, as well as one that scrolls when it must', () => {
+    const list = scrollingChat();
+    list.style.overflowY = 'scroll';
+    const grows = bar(0);
+    holdAssistantBarRoom({ getComputedStyle }, PLACES, grows, () => {
+      Object.assign(grows, { offsetHeight: 30 });
+    });
+    expect(list.scrollTop).toBe(430);
+  });
+
   it('scrolls nothing in a chat with no messages', () => {
     document.body.innerHTML = '<div id="main" style="overflow-y: auto"><footer></footer></div>';
     const grows = bar(0);
@@ -372,180 +481,104 @@ describe('holdAssistantBarRoom', () => {
     }).not.toThrow();
   });
 
-  it('keeps the last message in view as the bar opens, grows and opens its ways to rewrite', () => {
-    barHeights();
+  it('keeps the last message in view as the bar shows, grows, hides and shows again', () => {
+    const measured = barHeights();
     const t = setup();
     const list = scrollingChat();
     expect(t.render()).toBe('placed');
-    expect(list.scrollTop).toBe(490);
+    expect(list.scrollTop).toBe(450);
     // Rendering the same content again scrolls nothing.
     expect(t.render()).toBe('kept');
-    expect(list.scrollTop).toBe(490);
-    const summary = { ...CONTENT, result: 'A summary' };
-    t.render(summary);
-    expect(list.scrollTop).toBe(550);
-    const click = () => {
-      t.stored().parts.rewrite.dispatchEvent(trusted(new MouseEvent('click', { bubbles: true })));
-    };
-    click();
-    expect(t.stored().parts.rewrites.hidden).toBe(false);
-    expect(list.scrollTop).toBe(590);
-    click();
-    expect(list.scrollTop).toBe(550);
-    t.render(CONTENT);
-    expect(list.scrollTop).toBe(490);
+    expect(list.scrollTop).toBe(450);
+    t.render({ ...CONTENT, notice: { text: 'Try again.', button: null } });
+    expect(list.scrollTop).toBe(500);
+    type('Hi');
+    expect(list.scrollTop).toBe(450);
+    // Typing more changes nothing that shows, so nothing is measured or scrolled.
+    measured.mockClear();
+    type('Hi there');
+    expect(measured).not.toHaveBeenCalled();
+    expect(list.scrollTop).toBe(450);
+    type('');
+    expect(list.scrollTop).toBe(500);
   });
 });
 
 describe('the bar’s controls', () => {
   it('act on the user’s clicks only, never on clicks a page script made up', () => {
     const t = setup();
-    t.render({ ...CONTENT, buttons: [{ id: 'allow', label: 'Allow here', primary: true }] });
-    const shadow = t.shadow();
-    const click = (selector: string, event = trusted(new MouseEvent('click', { bubbles: true }))) =>
-      shadow.querySelector(selector)?.dispatchEvent(event);
-    click('.primary', new MouseEvent('click', { bubbles: true }));
-    shadow.querySelector<HTMLElement>('.send')?.click();
-    expect(Object.values(t.bridge).flatMap((act) => act.mock.calls)).toEqual([]);
-    click('[data-action="suggest"]');
-    click('[data-action="summarize"]');
-    click('[data-action="catchUp"]');
-    click('[data-action="settings"]');
-    click('[data-id="allow"]');
-    click('.use');
-    click('li:nth-child(2) .send path');
-    click('.suggestions');
-    expect(t.bridge.suggest.mock.calls).toEqual([[]]);
-    expect(t.bridge.summarize.mock.calls).toEqual([[]]);
-    expect(t.bridge.catchUp.mock.calls).toEqual([[]]);
-    expect(t.bridge.settings.mock.calls).toEqual([[]]);
-    expect(t.bridge.button.mock.calls).toEqual([['allow']]);
-    expect(t.bridge.use).toHaveBeenCalledExactlyOnceWith(0);
-    expect(t.bridge.send).toHaveBeenCalledExactlyOnceWith(1);
-  });
-
-  it('shows the models only once there are some, and passes on only the user’s pick', () => {
-    const t = setup();
     t.render();
-    const { choice } = t.stored().parts;
-    const options = [
-      { value: 'auto', label: 'Auto <i>' },
-      { value: 'smart', label: 'Smart' },
-    ];
-    t.render({ ...CONTENT, choice: { current: 'smart', options } });
-    expect(choice.hidden).toBe(false);
-    expect(choice.getAttribute('aria-label')).toBe('Model');
-    expect([...choice.options].map((option) => [option.value, option.textContent])).toEqual([
-      ['auto', 'Auto <i>'],
-      ['smart', 'Smart'],
-    ]);
-    expect(choice.value).toBe('smart');
-    choice.value = 'auto';
-    choice.dispatchEvent(new Event('change', { bubbles: true }));
-    expect(t.bridge.choose).not.toHaveBeenCalled();
-    choice.dispatchEvent(trusted(new Event('change', { bubbles: true })));
-    expect(t.bridge.choose).toHaveBeenCalledExactlyOnceWith('auto');
-    t.render({ ...CONTENT, working: true, choice: { current: 'auto', options } });
-    expect(choice.disabled).toBe(true);
-  });
-
-  it('opens the ways to rewrite in the bar, and rewrites in the one the user picks', () => {
-    const t = setup();
-    t.render();
-    const { rewrite, rewrites } = t.stored().parts;
-    const click = (target: Element) => {
-      target.dispatchEvent(trusted(new MouseEvent('click', { bubbles: true })));
-    };
-    expect(rewrite.getAttribute('aria-label')).toBe('Rewrite my draft');
-    expect(rewrites.hidden).toBe(true);
-    expect([...rewrites.children].map((button) => button.textContent)).toEqual([
-      'Shorter',
-      'Translate to Portuguese',
-    ]);
-    click(rewrite);
-    expect(rewrites.hidden).toBe(false);
-    click(rewrite);
-    expect(rewrites.hidden).toBe(true);
-    click(rewrite);
-    const [shorter] = [...rewrites.children];
-    if (shorter === undefined) {
-      throw new Error('No Shorter.');
+    const [, second] = t.chips();
+    second?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    t.stored().parts.dismiss.click();
+    expect(t.bridge.use).not.toHaveBeenCalled();
+    expect(t.bridge.dismiss).not.toHaveBeenCalled();
+    if (second !== undefined) {
+      click(second);
     }
-    click(shorter);
-    expect(t.bridge.rewrite.mock.calls).toEqual([['shorter']]);
-    expect(rewrites.hidden).toBe(true);
-    // Updating the bar keeps the list closed as it was.
-    t.render({ ...CONTENT, status: 'Thinking…' });
-    expect(rewrites.hidden).toBe(true);
+    expect(t.bridge.use).toHaveBeenCalledExactlyOnceWith(1);
+    click(t.stored().parts.dismiss);
+    expect(t.bridge.dismiss).toHaveBeenCalledOnce();
+    expect(t.bridge.dismiss.mock.calls[0]).toEqual([]);
   });
 
-  it('asks with what the user typed on Enter, then clears the field', () => {
+  it('pass on the notice’s button and close by their IDs', () => {
     const t = setup();
-    t.render();
-    const { input } = t.stored().parts;
-    const press = (key: string, init: KeyboardEventInit = {}) => {
-      const event = trusted(
-        new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...init }),
-      );
-      input.dispatchEvent(event);
-      return event;
-    };
-    input.value = '   ';
-    press('Enter');
-    input.value = 'say I am late';
-    press('a');
-    press('Enter', { isComposing: true });
-    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-    expect(t.bridge.prompt).not.toHaveBeenCalled();
-    expect(press('Enter').defaultPrevented).toBe(true);
-    expect(t.bridge.prompt).toHaveBeenCalledExactlyOnceWith('say I am late');
-    expect(input.value).toBe('');
+    t.render(UNDO);
+    click(t.stored().parts.action);
+    expect(t.bridge.button).toHaveBeenLastCalledWith('undo');
+    click(t.stored().parts.close);
+    expect(t.bridge.button).toHaveBeenLastCalledWith('close');
+    expect(t.bridge.button).toHaveBeenCalledTimes(2);
   });
 
-  it('keeps typing in the bar from reaching WhatsApp’s own keyboard handlers', () => {
+  it('do nothing on a click beside the controls', () => {
+    const t = setup();
+    t.render(UNDO);
+    click(t.stored().parts.text);
+    click(t.stored().parts.bar);
+    expect(t.bridge.button).not.toHaveBeenCalled();
+    expect(t.bridge.use).not.toHaveBeenCalled();
+    expect(t.bridge.dismiss).not.toHaveBeenCalled();
+  });
+
+  it('keep keys pressed on the bar from reaching WhatsApp’s own keyboard handlers', () => {
     const t = setup();
     t.render();
     const heard = vi.fn();
-    for (const type of [
-      'keydown',
-      'keyup',
-      'keypress',
-      'beforeinput',
-      'input',
-      'paste',
-      'cut',
-      'copy',
-    ]) {
-      document.addEventListener(type, heard);
-      t.stored().parts.input.dispatchEvent(new Event(type, { bubbles: true, composed: true }));
-    }
+    document.addEventListener('keydown', heard);
+    t.chips()[0]?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     expect(heard).not.toHaveBeenCalled();
+    document.removeEventListener('keydown', heard);
   });
 
-  it('does nothing while the preload has not given the bar its bridge', () => {
+  it('do nothing while the preload has not given the bar its bridge', () => {
     const t = setup();
     delete t.scope['bridge'];
-    t.render();
-    const use = t.shadow().querySelector('.use');
-    use?.dispatchEvent(trusted(new MouseEvent('click', { bubbles: true })));
-    const { input } = t.stored().parts;
-    input.value = 'Say hi';
-    input.dispatchEvent(trusted(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })));
-    expect(t.bridge.use).not.toHaveBeenCalled();
-    expect(t.bridge.prompt).not.toHaveBeenCalled();
+    t.render(UNDO);
+    expect(() => {
+      click(t.stored().parts.action);
+    }).not.toThrow();
   });
 });
 
 describe('assistantBarRender', () => {
-  it('sends the bar’s helpers, its place and its own styles along with the content', () => {
+  it('sends the bar’s helpers, its place, icons and its own styles along with the content', () => {
     const code = assistantBarRender(CONTENT);
     expect(code).toMatch(
-      /\{ align: [\s\S]+, room: [\s\S]+, build: [\s\S]+, wire: [\s\S]+, fields: [\s\S]+, label: [\s\S]+, buttons: [\s\S]+, update: [\s\S]+, options: [\s\S]+, suggestion: [\s\S]+ \}\)$/,
+      /\{ align: [\s\S]+, room: [\s\S]+, build: [\s\S]+, rows: [\s\S]+, node: [\s\S]+, show: [\s\S]+, wire: [\s\S]+, update: [\s\S]+, notice: [\s\S]+, icon: [\s\S]+ \}\)$/,
     );
     expect(code).toContain('"store":"yapyapAssistantBarView"');
+    expect(code).toContain('"bridge":"yapyapAssistantBar"');
+    expect(code).toContain(`"field":${JSON.stringify(LANDMARKS.composer)}`);
     expect(code).toContain(`"conversation":${JSON.stringify(LANDMARKS.conversation)}`);
     expect(code).toContain(`"message":${JSON.stringify(LANDMARKS.message)}`);
-    expect(code).toContain(':host { display: block; color-scheme: light dark; }');
+    expect(code).toContain(`"sparkle":${JSON.stringify(ASSISTANT_ICONS.sparkle)}`);
+    expect(code).toContain(`"close":${JSON.stringify(ASSISTANT_ICONS.close)}`);
+    // The assistant's own accent, in both of WhatsApp's themes, then the bar's styles.
+    expect(code).toContain('--ai: #4f46e5');
+    expect(code).toContain(":host([data-theme='dark'])");
+    expect(code).toContain(':host { display: block; }');
     expect(code).toContain(JSON.stringify(CONTENT));
   });
 
@@ -554,7 +587,7 @@ describe('assistantBarRender', () => {
   it.skipIf(assistantBarRender(CONTENT).includes('stryMutAct'))(
     'runs as standalone source text, keeping the bar in the world it runs in',
     () => {
-      document.body.innerHTML = '<div id="main"><footer></footer></div>';
+      document.body.innerHTML = `<div id="main">${FOOTER}</div>`;
       const code = assistantBarRender(CONTENT);
       expect(code).toContain(JSON.stringify(LANDMARKS.composerFooter));
       // Only the page's document and the window's own functions are in scope, as in the adapter's isolated world.

@@ -2,7 +2,7 @@
  * Bump whenever a landmark below changes, so diagnostics show which table a
  * report came from.
  */
-export const LANDMARKS_VERSION = 9;
+export const LANDMARKS_VERSION = 10;
 
 /**
  * Structural landmarks of WhatsApp Web: element ids and attributes that have
@@ -27,6 +27,8 @@ export const LANDMARKS = {
   composer: '#main footer [contenteditable="true"]',
   /** The row around the open conversation's message box, which the assistant bar sits above (#466). */
   composerFooter: '#main footer',
+  /** The open chat's header, which the rewrite menu stays below (#616). */
+  conversationHeader: '#main header',
   /** The open chat's name in its header (#100); older pages named it only by direction (#410). */
   chatName:
     '#main header [data-testid="conversation-info-header-chat-title"], #main header span[dir="auto"]',

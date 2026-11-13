@@ -84,7 +84,6 @@ import { diskModelFiles } from './assistant/private/files.ts';
 import { ENGINE_PARTITION } from './assistant/private/engine-window.ts';
 import { engineListener } from './assistant/private/engine-host.ts';
 import { assistantMayReach, confinedFetch, guardedAssistantSession } from './assistant/net.ts';
-import { translationLanguages } from './assistant/rewrites.ts';
 import { agentTokens } from './agents/tokens.ts';
 import { listenForAgents } from './agents/listener.ts';
 import { trayImage } from './tray/tray-icon.ts';
@@ -290,7 +289,6 @@ const chrome = createChromeFeature({
     files: diskModelFiles(join(USER_DATA, 'models')),
     state: assistantStore,
     chats: assistantChats,
-    languages: translationLanguages(app.getPreferredSystemLanguages()),
     // YapYap looks only on the user's click, at a few fixed ports on loopback (#456).
     findServers: () =>
       findLocalModels({

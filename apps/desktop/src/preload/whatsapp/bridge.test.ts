@@ -62,31 +62,19 @@ describe('createShareBridge', () => {
 });
 
 describe('createAssistantBarBridge', () => {
-  it('sends each of the bar’s actions on its own fixed channel', () => {
+  it('sends each of the assistant’s actions on its own fixed channel', () => {
     const ipc = { send: vi.fn() };
     const bridge = createAssistantBarBridge(ipc);
-    bridge.suggest();
-    bridge.summarize();
-    bridge.rewrite('shorten');
-    bridge.polish('polish');
-    bridge.catchUp();
-    bridge.prompt('Say hi');
+    bridge.polish('soften');
     bridge.use(1);
-    bridge.send(2);
-    bridge.choose('claude-haiku-5-5');
-    bridge.button('allow');
+    bridge.dismiss();
+    bridge.button('undo');
     bridge.settings();
     expect(ipc.send.mock.calls).toEqual([
-      ['whatsapp:assistant-bar-suggest'],
-      ['whatsapp:assistant-bar-summarize'],
-      ['whatsapp:assistant-bar-rewrite', 'shorten'],
-      ['whatsapp:assistant-bar-polish', 'polish'],
-      ['whatsapp:assistant-bar-catch-up'],
-      ['whatsapp:assistant-bar-prompt', 'Say hi'],
+      ['whatsapp:assistant-bar-polish', 'soften'],
       ['whatsapp:assistant-bar-use', 1],
-      ['whatsapp:assistant-bar-send', 2],
-      ['whatsapp:assistant-bar-choose', 'claude-haiku-5-5'],
-      ['whatsapp:assistant-bar-button', 'allow'],
+      ['whatsapp:assistant-bar-dismiss'],
+      ['whatsapp:assistant-bar-button', 'undo'],
       ['whatsapp:assistant-bar-settings'],
     ]);
   });

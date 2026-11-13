@@ -1,6 +1,4 @@
 import type { ReadChat } from '../../adapter/active-chat.ts';
-import type { UnreadSummaryChat } from '../../adapter/unread-summary.ts';
-import { en } from '../../shared/messages/en.ts';
 import type { ChromeHandler } from '../ipc/chrome.ts';
 import type { SettingsService } from '../settings/service.ts';
 import type { AssistantBarView } from './bar-page.ts';
@@ -25,10 +23,8 @@ export interface AssistantAccounts {
     readonly active: boolean;
   }[];
   readonly readActiveChat: (messages: number) => Promise<ReadChat | null>;
-  readonly readUnreadSummary: () => Promise<readonly UnreadSummaryChat[]>;
   readonly readDraft: () => Promise<string | null>;
   readonly replaceDraft: (text: string) => Promise<boolean>;
-  readonly pressEnter: () => Promise<boolean>;
 }
 
 /** What the assistant is made of, which `index.ts` puts together from Electron. */
@@ -41,8 +37,6 @@ export interface AssistantSources {
   readonly state: AssistantState;
   readonly chats: AllowedChats;
   readonly keys: AssistantKeys;
-  /** The system's languages, to offer translating to. */
-  readonly languages: readonly string[];
   readonly findServers: () => Promise<readonly LocalServer[]>;
   /** Passes the engine page's events on, as they come over IPC. */
   readonly listenToEngine: (hear: EngineHost['hear']) => void;
@@ -57,20 +51,15 @@ export interface AssistantChromeDependencies {
   /** The accounts once they are open. */
   readonly accounts: () => AssistantAccounts | undefined;
   readonly openSettings: () => void;
-  readonly writeClipboard: (text: string) => unknown;
-  /** A system notification, for what the user should know when the bar cannot show it. */
-  readonly notify: (message: string) => void;
   readonly warn: (message: string) => void;
 }
 
 export interface AssistantChrome {
   readonly handlers: readonly ChromeHandler[];
-  /** Gives the bar its view in the active account's WhatsApp, made from the bar (ADR 0013). */
+  /** Gives the assistant its view in the active account's WhatsApp, made from it (ADR 0013). */
   readonly attachBar: (create: (bar: AssistantBar) => AssistantBarView) => void;
   /** Shows the setup anew, as when the account on screen changes. */
   readonly refreshBar: () => void;
-  /** The menu's and shortcuts' actions, which the bar answers. */
-  readonly actions: Pick<AssistantBar, 'suggest' | 'summarize' | 'catchUp'>;
   /** The downloaded private model's file, for the engine page. */
   readonly modelFile: () => string | undefined;
 }
@@ -80,11 +69,18 @@ export function barAccounts(current: () => AssistantAccounts | undefined): BarAc
   return {
     active: () => current()?.entries.find((entry) => entry.active)?.id ?? '',
     readActiveChat: (messages) => current()?.readActiveChat(messages) ?? Promise.resolve(null),
-    readUnreadSummary: () => current()?.readUnreadSummary() ?? Promise.resolve([]),
     readDraft: () => current()?.readDraft() ?? Promise.resolve(null),
     replaceDraft: (text) => current()?.replaceDraft(text) ?? Promise.resolve(false),
-    pressEnter: () => current()?.pressEnter() ?? Promise.resolve(false),
   };
+}
+
+/** The account on screen and the name of its open chat, for Settings to allow it; null with none open. */
+async function openChatOf(
+  accounts: BarAccounts,
+): Promise<{ readonly account: string; readonly name: string } | null> {
+  const account = accounts.active();
+  const chat = account === '' ? null : await accounts.readActiveChat(1);
+  return chat === null ? null : { account, name: chat.name };
 }
 
 /** Runs `run` after `ms`; returns how to call it off. */
@@ -114,34 +110,10 @@ function barOf(
     privateModels: models,
     accounts: barAccounts(deps.accounts),
     openSettings: deps.openSettings,
-    writeClipboard: deps.writeClipboard,
+    after: later,
     show: (visible) => view.current?.show(visible),
     publish: (state) => view.current?.publish(state),
   });
-}
-
-/**
- * Runs a menu or shortcut action in the bar, which sits above the message
- * box: with no chat open, or the assistant turned off, there is nowhere to
- * show it, so a notice says what to do instead of nothing happening.
- */
-function menuActions(
-  deps: AssistantChromeDependencies,
-  bar: AssistantBar,
-  view: ViewSlot,
-): AssistantChrome['actions'] {
-  const run = (action: () => Promise<void>) => async (): Promise<void> => {
-    if (!deps.settings.current().assistant.enabled) {
-      deps.notify(en.assistant.status.off);
-      return;
-    }
-    if ((await view.current?.onPage()) !== true) {
-      deps.notify(en.assistant.status.openChat);
-      return;
-    }
-    await action();
-  };
-  return { suggest: run(bar.suggest), summarize: run(bar.summarize), catchUp: run(bar.catchUp) };
 }
 
 /** Shows the setup anew in the bar, saying in the log when it cannot. */
@@ -187,6 +159,7 @@ export function createAssistantChrome(deps: AssistantChromeDependencies): Assist
     core,
     privateModels: models,
     accounts: () => deps.accounts()?.entries ?? [],
+    openChat: () => openChatOf(barAccounts(deps.accounts)),
     changed: refresh,
   });
   return {
@@ -196,7 +169,6 @@ export function createAssistantChrome(deps: AssistantChromeDependencies): Assist
       refresh();
     },
     refreshBar: refresh,
-    actions: menuActions(deps, bar, view),
     modelFile: models.file,
   };
 }

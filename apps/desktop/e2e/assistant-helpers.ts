@@ -3,7 +3,7 @@ import type { AddressInfo } from 'node:net';
 import type { ElectronApplication, Page } from '@playwright/test';
 import { ADAPTER_WORLD_ID } from '../src/adapter/world.ts';
 import { chromePage, clickMenu } from './chrome-helpers.ts';
-import { expect, whatsAppContents } from './fixtures.ts';
+import { expect, mainWindow, whatsAppContents } from './fixtures.ts';
 
 /** A control of the assistant bar, and where on the page the user would click it. */
 interface BarControl {
@@ -15,12 +15,17 @@ interface BarControl {
 
 interface KeptBar {
   readonly host: HTMLElement;
-  readonly parts: { readonly input: HTMLElement };
+  readonly parts: {
+    readonly bar: HTMLElement;
+    readonly text: HTMLElement;
+    readonly notice: HTMLElement;
+  };
 }
 
 /**
  * Runs in the adapter's isolated world, where YapYap keeps the bar: its
  * shadow root is closed, so nothing else, Playwright included, can look in.
+ * A suggestion is named by its text, an icon button by its label.
  */
 function readBarControls(): BarControl[] | null {
   const kept = (globalThis as { yapyapAssistantBarView?: KeptBar }).yapyapAssistantBarView;
@@ -28,15 +33,11 @@ function readBarControls(): BarControl[] | null {
     return null;
   }
   kept.host.scrollIntoView({ block: 'center' });
-  const root = kept.parts.input.getRootNode() as ShadowRoot;
+  const root = kept.parts.bar.getRootNode() as ShadowRoot;
   return (
-    [
-      ...root.querySelectorAll<HTMLButtonElement | HTMLInputElement | HTMLSelectElement>(
-        'button, input, select',
-      ),
-    ]
-      // Controls inside a closed part of the bar take no room, and cannot be clicked.
-      .filter((control) => !control.hidden && control.getClientRects().length > 0)
+    [...root.querySelectorAll<HTMLButtonElement>('button')]
+      // Controls in a hidden row take no room, and cannot be clicked.
+      .filter((control) => control.getClientRects().length > 0)
       .map((control) => {
         const box = control.getBoundingClientRect();
         return {
@@ -49,18 +50,11 @@ function readBarControls(): BarControl[] | null {
   );
 }
 
-/** Runs in the adapter's isolated world, as {@link readBarControls} does: the bar's status line. */
-function readBarStatus(): string | null {
-  const kept = (globalThis as { yapyapAssistantBarView?: { parts: { status: HTMLElement } } })
-    .yapyapAssistantBarView;
-  return kept?.parts.status.textContent ?? null;
-}
-
-/** Runs in the adapter's isolated world: the longer text the bar shows, or null for none. */
-function readBarResult(): string | null {
-  const kept = (globalThis as { yapyapAssistantBarView?: { parts: { result: HTMLElement } } })
-    .yapyapAssistantBarView;
-  return kept === undefined || kept.parts.result.hidden ? null : kept.parts.result.textContent;
+/** Runs in the adapter's isolated world, as {@link readBarControls} does: the notice, while it shows. */
+function readBarNotice(): string | null {
+  const kept = (globalThis as { yapyapAssistantBarView?: KeptBar }).yapyapAssistantBarView;
+  const shown = kept?.host.isConnected === true && kept.parts.notice.getClientRects().length > 0;
+  return shown ? kept.parts.text.textContent : null;
 }
 
 /** Runs `read` in the adapter's isolated world of WhatsApp's page, where the bar lives. */
@@ -71,19 +65,13 @@ const inBarWorld = async (app: ElectronApplication, read: () => unknown): Promis
     { code: `(${read.toString()})()`, world: ADAPTER_WORLD_ID },
   );
 
-/** The assistant bar's longer text, such as a summary or what is sent, or null while it shows none. */
-export const assistantBarResult = async (app: ElectronApplication): Promise<string | null> => {
-  const result = await inBarWorld(app, readBarResult);
-  return typeof result === 'string' ? result : null;
+/** The notice above the message box in the active account's WhatsApp, or null while none shows. */
+export const barNotice = async (app: ElectronApplication): Promise<string | null> => {
+  const notice = await inBarWorld(app, readBarNotice);
+  return typeof notice === 'string' ? notice : null;
 };
 
-/** The assistant bar's status line in the active account's WhatsApp, or null while it is not there. */
-const assistantBarStatus = async (app: ElectronApplication): Promise<string | null> => {
-  const status = await inBarWorld(app, readBarStatus);
-  return typeof status === 'string' ? status : null;
-};
-
-/** The assistant bar's controls in the active account's WhatsApp, or null while it is not there. */
+/** The assistant bar's controls that show in the active account's WhatsApp, or null while it is not there. */
 const assistantBarControls = async (app: ElectronApplication): Promise<BarControl[] | null> =>
   ((await inBarWorld(app, readBarControls)) ?? null) as BarControl[] | null;
 
@@ -96,12 +84,13 @@ export async function clickInBar(
   page: Page,
   name: string,
 ): Promise<void> {
-  const find = async (): Promise<BarControl | undefined> =>
-    (await assistantBarControls(app))?.find(
-      (control) => control.name === name && !control.disabled,
+  let control: BarControl | undefined;
+  await expect(async () => {
+    control = (await assistantBarControls(app))?.find(
+      (each) => each.name === name && !each.disabled,
     );
-  await expect.poll(find, { message: `the bar’s ${name}` }).toBeDefined();
-  const control = await find();
+    expect(control, `the bar’s ${name}`).toBeDefined();
+  }).toPass();
   if (control === undefined) {
     throw new Error(`The bar has no ${name}.`);
   }
@@ -203,7 +192,9 @@ function readToolControls(): BarControl[] | null {
       const box = control.getBoundingClientRect();
       return {
         name:
-          control.getAttribute('aria-label') ?? control.querySelector('.name')?.textContent ?? '',
+          control.getAttribute('aria-label') ??
+          control.querySelector('.name')?.textContent ??
+          control.textContent,
         disabled: control.disabled,
         x: box.x + box.width / 2,
         y: box.y + box.height / 2,
@@ -274,18 +265,68 @@ export async function readyClaude(
   return settings;
 }
 
-/** The bar's status line, once it says something matching `pattern`. */
-export async function barSays(
-  app: ElectronApplication,
-  pattern: RegExp | string,
-  timeout = 20_000,
-): Promise<void> {
-  await expect.poll(() => assistantBarStatus(app), { timeout }).toMatch(pattern);
+/** The names of the bar's controls that show: the suggestions, and the notice's buttons. */
+export const barNames = async (app: ElectronApplication): Promise<string[]> =>
+  (await assistantBarControls(app))?.map(({ name }) => name) ?? [];
+
+/** The names of the rewrite button's controls that show; none while it is away. */
+export const toolNames = async (app: ElectronApplication): Promise<string[]> =>
+  (((await inBarWorld(app, readToolControls)) ?? []) as BarControl[]).map(({ name }) => name);
+
+/**
+ * Focuses YapYap's main window, as the user's click would: a virtual
+ * display without a window manager focuses nothing on its own, and the
+ * assistant follows the open chat only while the window is on screen.
+ */
+export async function focusMain(app: ElectronApplication): Promise<void> {
+  const main = await mainWindow(app);
+  await expect(async () => {
+    expect(
+      await main.evaluate((owner) => {
+        owner.focus();
+        return owner.isFocused();
+      }),
+    ).toBe(true);
+  }).toPass();
 }
 
-/** The names of the bar's controls that show. */
-export const barNames = async (app: ElectronApplication): Promise<string[] | undefined> =>
-  (await assistantBarControls(app))?.map(({ name }) => name);
+/** A message from someone else arrives in the open chat of the fake WhatsApp page. */
+export async function messageArrives(page: Page, id: string, text: string): Promise<void> {
+  await page.evaluate(
+    ({ id, text }) => {
+      const row = document.createElement('div');
+      row.setAttribute('role', 'row');
+      const message = document.createElement('div');
+      message.dataset['id'] = id;
+      // As WhatsApp marks a message's text for copying, which is where the chat reader finds it.
+      const copyable = document.createElement('div');
+      copyable.dataset['prePlainText'] = '[20:05, 24/10/2026] Test Chat One: ';
+      const body = document.createElement('span');
+      body.dataset['testid'] = 'selectable-text';
+      body.textContent = text;
+      copyable.append(body);
+      message.append(copyable);
+      row.append(message);
+      const rows = document.querySelectorAll('#main [role="row"]');
+      rows[rows.length - 1]?.after(row);
+    },
+    { id, text },
+  );
+}
+
+/**
+ * Lets the assistant work in every chat, as the user can in Settings ›
+ * Assistant, then closes Settings unless the test still needs it: without
+ * a window manager, the main window keeps the focus only once it is the
+ * one window left.
+ */
+export async function allowAllChats(settings: Page, close = true): Promise<void> {
+  await settings.getByRole('radio', { name: 'All chats' }).check();
+  await expect(settings.getByRole('radio', { name: 'All chats' })).toBeChecked();
+  if (close) {
+    await settings.close();
+  }
+}
 
 /** A model server on this computer, as the E2E tests run it. */
 export interface FakeModelServer {

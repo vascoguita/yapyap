@@ -27,7 +27,6 @@ function actions(accounts: AccountSummary[] = []) {
     openDownloads: vi.fn(),
     openReport: vi.fn(),
     recordTrace: vi.fn(),
-    assistant: { suggest: vi.fn(), summarize: vi.fn(), catchUp: vi.fn() },
   };
 }
 
@@ -170,24 +169,10 @@ describe('buildMenuTemplate', () => {
     expect(template[1]).toEqual(ACCOUNT(a));
   });
 
-  it('gives the assistant a menu of its own, with its actions’ keys and its settings', () => {
+  it('gives the assistant a menu of its own, which opens its settings', () => {
     const a = actions();
     const menu = buildMenuTemplate('linux', a).find((entry) => entry.label === 'A&ssistant');
-    expect(items(menu)).toEqual([
-      { label: 'Suggest Replies', accelerator: 'CmdOrCtrl+Shift+Y', click: a.assistant.suggest },
-      {
-        label: 'Summarize This Chat',
-        accelerator: 'CmdOrCtrl+Shift+L',
-        click: a.assistant.summarize,
-      },
-      {
-        label: 'Catch Up on Unread Chats',
-        accelerator: 'CmdOrCtrl+Shift+U',
-        click: a.assistant.catchUp,
-      },
-      { type: 'separator' },
-      { label: 'Assistant Settings…', click: a.openSettings },
-    ]);
+    expect(items(menu)).toEqual([{ label: 'Assistant Settings…', click: a.openSettings }]);
   });
 
   it('turns do not disturb on and off, and mutes or unmutes the account on screen', () => {

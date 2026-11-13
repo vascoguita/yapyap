@@ -1,55 +1,33 @@
 import { ASSISTANT_BAR_BRIDGE } from '../shared/api/assistant-bar-api.ts';
+import { ASSISTANT_ICONS, ASSISTANT_THEME } from './assistant-look.ts';
 import { LANDMARKS } from './page-state.ts';
 
 /** YapYap's own words on the bar, in the user's language. */
-export interface BarLabels {
+interface BarLabels {
   readonly label: string;
-  readonly name: string;
-  readonly suggest: string;
-  readonly summarize: string;
-  readonly rewrite: string;
-  readonly rewriteLabel: string;
-  readonly catchUp: string;
-  readonly catchUpLabel: string;
-  readonly settings: string;
-  readonly model: string;
+  readonly suggestions: string;
   readonly use: string;
-  readonly sendLabel: string;
-  readonly write: string;
-  readonly writePlaceholder: string;
-}
-
-interface BarOption {
-  readonly value: string;
-  readonly label: string;
+  readonly dismiss: string;
+  readonly close: string;
 }
 
 /** Everything the bar shows, as plain JSON: YapYap's labels and the assistant's text. */
 export interface BarContent {
   readonly visible: boolean;
   readonly labels: BarLabels;
-  readonly status: string;
-  readonly working: boolean;
   readonly suggestions: readonly string[];
-  /** A longer text, such as a summary or exactly what is sent; null for none. */
-  readonly result: string | null;
-  readonly buttons: readonly {
-    readonly id: string;
-    readonly label: string;
-    readonly primary: boolean;
-  }[];
-  /** The model in use and the others to switch to, or null before the assistant is set up. */
-  readonly choice: {
-    readonly current: string;
-    readonly options: readonly BarOption[];
+  /** What a rewrite did, or what keeps the assistant from answering, with its one button. */
+  readonly notice: {
+    readonly text: string;
+    readonly button: { readonly id: string; readonly label: string } | null;
   } | null;
-  readonly rewrites: readonly BarOption[];
 }
 
 /** Where the bar goes and what it keeps, fixed for every render. */
 interface BarPlaces {
-  /** The open chat's message box row, which the bar sits right above. */
+  /** The open chat's message box row, which the bar sits right above, and the box itself. */
   readonly footer: string;
+  readonly field: string;
   /** The open chat and a message in it, to find the list the bar takes room from. */
   readonly conversation: string;
   readonly message: string;
@@ -58,21 +36,19 @@ interface BarPlaces {
   /** The adapter world's global the WhatsApp preload exposes for the bar's actions. */
   readonly bridge: string;
   readonly style: string;
-  readonly maxPrompt: number;
+  readonly icons: { readonly sparkle: string; readonly close: string };
 }
 
 /** The few DOM features the bar uses; the main process compiles this without DOM types. */
 interface BarNode {
   textContent: string | null;
   hidden: boolean;
-  disabled: boolean;
-  value: string;
   scrollTop: number;
   readonly offsetHeight: number;
   readonly parentElement: BarNode | null;
   readonly ownerDocument: BarDocument;
   readonly previousElementSibling: unknown;
-  readonly style: { order: string; position: string; zIndex: string };
+  readonly style: { order: string; position: string; zIndex: string; display: string };
   readonly dataset: Record<string, string | undefined>;
   setAttribute(name: string, value: string): void;
   append(...nodes: BarNode[]): void;
@@ -86,36 +62,27 @@ interface BarNode {
 
 interface BarEvent {
   readonly isTrusted: boolean;
-  readonly isComposing?: boolean;
-  readonly key?: string;
   readonly target: unknown;
   stopPropagation(): void;
-  preventDefault(): void;
 }
 
 interface BarDocument {
   querySelector(selectors: string): unknown;
   createElement(tag: string): BarNode;
   createElementNS(namespace: string, tag: string): BarNode;
+  addEventListener(type: string, listener: () => void, capture: boolean): void;
 }
 
 /** The parts of the bar that change with its content. */
 interface BarParts {
   readonly bar: BarNode;
-  readonly name: BarNode;
-  readonly choice: BarNode;
-  readonly suggest: BarNode;
-  readonly summarize: BarNode;
-  readonly rewrite: BarNode;
-  /** The ways to rewrite the draft, shown once the rewrite button is pressed. */
-  readonly rewrites: BarNode;
-  readonly catchUp: BarNode;
-  readonly settings: BarNode;
-  readonly status: BarNode;
-  readonly buttons: BarNode;
-  readonly result: BarNode;
+  readonly notice: BarNode;
+  readonly text: BarNode;
+  readonly action: BarNode;
+  readonly close: BarNode;
+  readonly chips: BarNode;
   readonly list: BarNode;
-  readonly input: BarNode;
+  readonly dismiss: BarNode;
 }
 
 /** The bar between renders: its host in WhatsApp's page, and what it last showed. */
@@ -123,6 +90,8 @@ interface BarStore {
   readonly host: BarNode;
   readonly parts: BarParts;
   key: string | null;
+  /** Shows the suggestions only while the message box is empty, and the bar only with something in it. */
+  readonly sync: () => void;
 }
 
 type Scope = Record<string, unknown>;
@@ -132,47 +101,38 @@ export interface BarKit {
   readonly align: (scope: Scope, host: BarNode, footer: BarNode) => void;
   readonly room: (scope: Scope, places: BarPlaces, bar: BarNode, change: () => void) => void;
   readonly build: (doc: BarDocument, scope: Scope, places: BarPlaces, kit: BarKit) => BarStore;
-  readonly wire: (
-    shadow: BarNode,
-    parts: BarParts,
+  readonly rows: (doc: BarDocument, bar: BarNode, places: BarPlaces, kit: BarKit) => BarParts;
+  readonly node: (
+    doc: BarDocument,
+    tag: string,
+    name: string,
+    parent: BarNode,
+    action?: string,
+  ) => BarNode;
+  readonly show: (
+    doc: BarDocument,
     scope: Scope,
     places: BarPlaces,
+    store: Pick<BarStore, 'host' | 'parts'>,
     kit: BarKit,
   ) => void;
-  readonly fields: (parts: BarParts, scope: Scope, places: BarPlaces) => void;
-  readonly label: (parts: BarParts, labels: BarLabels) => void;
-  readonly buttons: (
-    doc: BarDocument,
-    holder: BarNode,
-    buttons: BarContent['buttons'],
-    action: string,
-  ) => void;
-  readonly update: (doc: BarDocument, parts: BarParts, content: BarContent, kit: BarKit) => void;
-  readonly options: (
-    doc: BarDocument,
-    select: BarNode,
-    options: readonly BarOption[],
-    current: string,
-  ) => void;
-  readonly suggestion: (
-    doc: BarDocument,
-    text: string,
-    index: number,
-    labels: BarLabels,
-  ) => BarNode;
+  readonly wire: (shadow: BarNode, scope: Scope, places: BarPlaces) => void;
+  readonly update: (doc: BarDocument, parts: BarParts, content: BarContent) => void;
+  readonly notice: (parts: BarParts, notice: BarContent['notice']) => void;
+  readonly icon: (doc: BarDocument, path: string, name: string) => BarNode;
 }
 
 /** Where a render left the bar. */
 export type BarPlacement = 'away' | 'kept' | 'placed';
 
 /**
- * Keeps the assistant bar right above the open chat's message box, so the
- * conversation moves up to make room (ADR 0013). Runs in the adapter's
+ * Keeps the assistant's bar right above the open chat's message box, so
+ * the conversation moves up to make room (ADR 0013). Runs in the adapter's
  * isolated world as source text, so it uses only its arguments. WhatsApp
  * drops the bar when it redraws a chat, so every render puts the same bar
- * back; it changes the bar only when its content changed. It reports only
- * where the bar is: away, kept where it was, or placed anew, which a chat
- * WhatsApp drew again, such as another one, makes it.
+ * back; it changes the bar only when its content changed. The page tells
+ * it when the user types, so suggestions go as soon as the user writes
+ * their own. It reports only where the bar is.
  */
 export function renderAssistantBar(
   doc: BarDocument,
@@ -191,19 +151,17 @@ export function renderAssistantBar(
   scope[places.store] = store;
   const placed = footer.previousElementSibling !== store.host;
   const key = JSON.stringify(content);
-  // Measuring forces a layout, and the bar renders about once a second, so
-  // only a render that places or changes the bar, which alone moves its height, measures it.
-  if (placed || store.key !== key) {
+  if (placed) {
+    footer.before(store.host);
+  }
+  if (store.key !== key) {
+    store.key = key;
     kit.room(scope, places, store.parts.bar, () => {
-      if (placed) {
-        footer.before(store.host);
-      }
-      if (store.key !== key) {
-        store.key = key;
-        kit.update(doc, store.parts, content, kit);
-      }
+      kit.update(doc, store.parts, content);
+      kit.notice(store.parts, content.notice);
     });
   }
+  store.sync();
   kit.align(scope, store.host, footer);
   return placed ? 'placed' : 'kept';
 }
@@ -213,16 +171,21 @@ export function renderAssistantBar(
  * orders the open chat's parts with flexbox `order` and lays a positioned
  * wallpaper over the chat, so the bar takes the message box's order and
  * stacking, read anew on every render in case WhatsApp changes them (#466).
+ * It follows WhatsApp's own theme, which can differ from the system's:
+ * light text in the message box means its dark theme.
  */
 export function alignAssistantBar(scope: Scope, host: BarNode, footer: BarNode): void {
   const computed = scope['getComputedStyle'] as (node: BarNode) => {
     readonly order: string;
     readonly zIndex: string;
+    readonly color: string;
   };
-  const { order, zIndex } = computed.call(scope, footer);
+  const { order, zIndex, color } = computed.call(scope, footer);
   host.style.order = order;
   host.style.position = 'relative';
   host.style.zIndex = zIndex;
+  const [red = 0, green = 0, blue = 0] = (color.match(/\d+(?:\.\d+)?/g) ?? []).map(Number);
+  host.dataset['theme'] = 0.299 * red + 0.587 * green + 0.114 * blue > 128 ? 'dark' : 'light';
 }
 
 /**
@@ -231,7 +194,8 @@ export function alignAssistantBar(scope: Scope, host: BarNode, footer: BarNode):
  * position as it gets shorter, so the bar would cover the last message and
  * the user would have to scroll down to it (#607). The list scrolls by as
  * much as the bar grew, or back by as much as it shrank. The list is the
- * nearest scrolling box around a message, inside the open chat.
+ * nearest scrolling box around a message, inside the open chat. Measuring
+ * forces a layout, so it measures only around a change.
  */
 export function holdAssistantBarRoom(
   scope: Scope,
@@ -256,7 +220,11 @@ export function holdAssistantBarRoom(
 
 /**
  * Builds the bar in a closed shadow root: WhatsApp's scripts cannot reach
- * into it to read what the assistant wrote, and its styles cannot restyle it.
+ * into it to read what the assistant wrote, and its styles cannot restyle
+ * it. One row says what a rewrite did, with Undo; the other holds the
+ * suggestions, which show only while the message box is empty. The page
+ * tells the bar when the user types, once, as the bar is built once per
+ * world; nothing about the draft leaves the page.
  */
 export function buildAssistantBar(
   doc: BarDocument,
@@ -266,37 +234,101 @@ export function buildAssistantBar(
 ): BarStore {
   const host = doc.createElement('div');
   const shadow = host.attachShadow({ mode: 'closed' });
-  const make = (tag: string, name: string, parent: BarNode, action?: string): BarNode => {
-    const node = doc.createElement(tag);
-    node.setAttribute('class', name);
-    if (action !== undefined) {
-      node.dataset['action'] = action;
-    }
-    parent.append(node);
-    return node;
+  kit.node(doc, 'style', 'style', shadow).textContent = places.style;
+  const bar = kit.node(doc, 'section', 'bar', shadow);
+  const parts = kit.rows(doc, bar, places, kit);
+  const { notice, chips } = parts;
+  // Nothing shows until the first render says what to, so the room it takes is measured from none.
+  notice.hidden = true;
+  chips.hidden = true;
+  host.style.display = 'none';
+  kit.wire(shadow, scope, places);
+  const store: BarStore = {
+    host,
+    parts,
+    key: null,
+    sync: () => {
+      kit.show(doc, scope, places, store, kit);
+    },
   };
-  make('style', 'style', shadow).textContent = places.style;
-  const bar = make('section', 'bar', shadow);
-  const top = make('div', 'row', bar);
-  const line = make('div', 'row line', bar);
+  doc.addEventListener('input', store.sync, true);
+  return store;
+}
+
+/**
+ * The bar's two rows, each starting with the sparkle: the notice, with its
+ * text, its button and close, and the suggestions, with dismiss.
+ */
+export function assistantBarRows(
+  doc: BarDocument,
+  bar: BarNode,
+  places: BarPlaces,
+  kit: BarKit,
+): BarParts {
+  const make = (tag: string, name: string, parent: BarNode, action?: string): BarNode =>
+    kit.node(doc, tag, name, parent, action);
+  const notice = make('div', 'row notice', bar);
+  notice.setAttribute('role', 'status');
+  notice.append(kit.icon(doc, places.icons.sparkle, 'mark'));
+  const chips = make('div', 'row chips', bar);
+  chips.append(kit.icon(doc, places.icons.sparkle, 'mark'));
   const parts: BarParts = {
     bar,
-    name: make('span', 'name', top),
-    choice: make('select', 'choice', top),
-    suggest: make('button', 'button primary', top, 'suggest'),
-    summarize: make('button', 'button', top, 'summarize'),
-    rewrite: make('button', 'button', top, 'rewrites'),
-    catchUp: make('button', 'button', top, 'catchUp'),
-    settings: make('button', 'button gear', top, 'settings'),
-    rewrites: make('div', 'row rewrites', bar),
-    status: make('output', 'status', line),
-    buttons: make('span', 'buttons', line),
-    result: make('div', 'result', bar),
-    list: make('ul', 'suggestions', bar),
-    input: make('input', 'input', bar),
+    notice,
+    text: make('span', 'text', notice),
+    action: make('button', 'action', notice, 'button'),
+    close: make('button', 'icon', notice, 'button'),
+    chips,
+    list: make('ul', 'list', chips),
+    dismiss: make('button', 'icon', chips, 'dismiss'),
   };
-  kit.wire(shadow, parts, scope, places, kit);
-  return { host, parts, key: null };
+  parts.close.dataset['id'] = 'close';
+  parts.close.append(kit.icon(doc, places.icons.close, 'cross'));
+  parts.dismiss.append(kit.icon(doc, places.icons.close, 'cross'));
+  return parts;
+}
+
+/** One part of the bar, with the class its styles use; a button names its action. */
+export function assistantBarNode(
+  doc: BarDocument,
+  tag: string,
+  name: string,
+  parent: BarNode,
+  action?: string,
+): BarNode {
+  const node = doc.createElement(tag);
+  node.setAttribute('class', name);
+  if (action !== undefined) {
+    node.dataset['action'] = action;
+    node.setAttribute('type', 'button');
+  }
+  parent.append(node);
+  return node;
+}
+
+/**
+ * Shows the suggestions only while the message box is empty, and the bar
+ * only with something in it. Measuring forces a layout, and the bar
+ * renders about once a second, so only a change in what shows, which alone
+ * moves its height, measures it.
+ */
+export function showAssistantBar(
+  doc: BarDocument,
+  scope: Scope,
+  places: BarPlaces,
+  { host, parts }: Pick<BarStore, 'host' | 'parts'>,
+  kit: BarKit,
+): void {
+  const field = doc.querySelector(places.field) as BarNode | null;
+  const typed = (field?.textContent ?? '').trim() !== '';
+  const noChips = typed || parts.list.textContent === '';
+  const display = noChips && parts.notice.hidden ? 'none' : '';
+  if (parts.chips.hidden !== noChips || host.style.display !== display) {
+    kit.room(scope, places, parts.bar, () => {
+      parts.chips.hidden = noChips;
+      host.style.display = display;
+    });
+  }
 }
 
 /** The bridge's actions, as the adapter world has them once the preload ran. */
@@ -304,25 +336,21 @@ type Actions = Record<string, ((value?: unknown) => void) | undefined>;
 
 /**
  * Acts on the user's clicks, never on clicks a page script made up, and
- * keeps typing in the bar from reaching WhatsApp's own keyboard shortcuts.
- * The rewrite button only opens or closes the ways to rewrite, in the bar.
+ * keeps keys pressed on the bar from reaching WhatsApp's own shortcuts.
  */
-export function wireAssistantBar(
-  shadow: BarNode,
-  parts: BarParts,
-  scope: Scope,
-  places: BarPlaces,
-  kit: BarKit,
-): void {
+export function wireAssistantBar(shadow: BarNode, scope: Scope, places: BarPlaces): void {
   const bridge = (): Actions => (scope[places.bridge] ?? {}) as Actions;
-  const typing = ['keydown', 'keypress', 'keyup', 'beforeinput', 'input', 'paste', 'cut', 'copy'];
-  for (const type of typing) {
-    shadow.addEventListener(type, (event) => {
-      event.stopPropagation();
-    });
-  }
-  // A suggestion is named by its index, a button by its ID; the rest take nothing.
-  const run = (act: Actions[string], { index, id }: BarNode['dataset']): void => {
+  shadow.addEventListener('keydown', (event) => {
+    event.stopPropagation();
+  });
+  shadow.addEventListener('click', (event) => {
+    const control = event.isTrusted ? (event.target as BarNode).closest('[data-action]') : null;
+    if (control === null) {
+      return;
+    }
+    const { action, index, id } = control.dataset;
+    // A suggestion is named by its index, the notice's button by its ID; dismissing takes nothing.
+    const act = bridge()[String(action)];
     if (index !== undefined) {
       act?.(Number(index));
     } else if (id === undefined) {
@@ -330,253 +358,117 @@ export function wireAssistantBar(
     } else {
       act?.(id);
     }
-  };
-  shadow.addEventListener('click', (event) => {
-    const control = event.isTrusted ? (event.target as BarNode).closest('[data-action]') : null;
-    if (control === null) {
-      return;
-    }
-    const action = String(control.dataset['action']);
-    if (action === 'rewrites') {
-      kit.room(scope, places, parts.bar, () => {
-        parts.rewrites.hidden = !parts.rewrites.hidden;
-      });
-      return;
-    }
-    parts.rewrites.hidden ||= action === 'rewrite';
-    run(bridge()[action], control.dataset);
-  });
-  kit.fields(parts, scope, places);
-}
-
-/** Acts on the user's picks in the lists and on Enter in the field, never on made-up events. */
-export function wireAssistantFields(parts: BarParts, scope: Scope, places: BarPlaces): void {
-  const { input, choice } = parts;
-  const bridge = (): Actions => (scope[places.bridge] ?? {}) as Actions;
-  const picked = (select: BarNode, action: string) => (event: BarEvent) => {
-    if (event.isTrusted && select.value !== '') {
-      bridge()[action]?.(select.value);
-    }
-  };
-  choice.addEventListener('change', picked(choice, 'choose'));
-  parts.rewrites.hidden = true;
-  input.setAttribute('type', 'text');
-  input.setAttribute('maxlength', String(places.maxPrompt));
-  input.addEventListener('keydown', (event) => {
-    const text = input.value;
-    if (!event.isTrusted || event.isComposing === true || event.key !== 'Enter') {
-      return;
-    }
-    event.preventDefault();
-    if (text.trim() !== '') {
-      input.value = '';
-      bridge()['prompt']?.(text);
-    }
   });
 }
 
 /** Shows new content, writing the assistant's text only as text, never as markup. */
-export function updateAssistantBar(
-  doc: BarDocument,
-  parts: BarParts,
-  content: BarContent,
-  kit: BarKit,
-): void {
-  const { labels, working } = content;
-  kit.label(parts, labels);
-  parts.status.textContent = content.status;
-  parts.result.textContent = content.result ?? '';
-  parts.result.hidden = content.result === null;
-  for (const control of [
-    parts.suggest,
-    parts.summarize,
-    parts.catchUp,
-    parts.rewrite,
-    parts.input,
-  ]) {
-    control.disabled = working;
-  }
-  kit.buttons(doc, parts.buttons, content.buttons, 'button');
-  const rewrites = content.rewrites.map(({ value, label }) => ({
-    label,
-    id: value,
-    primary: false,
-  }));
-  kit.buttons(doc, parts.rewrites, rewrites, 'rewrite');
+export function updateAssistantBar(doc: BarDocument, parts: BarParts, content: BarContent): void {
+  const { labels } = content;
+  const label = 'aria-label';
+  parts.bar.setAttribute(label, labels.label);
+  parts.chips.setAttribute(label, labels.suggestions);
+  parts.dismiss.setAttribute(label, labels.dismiss);
+  parts.dismiss.setAttribute('title', labels.dismiss);
+  parts.close.setAttribute(label, labels.close);
+  parts.close.setAttribute('title', labels.close);
   parts.list.replaceChildren(
-    ...content.suggestions.map((text, index) => kit.suggestion(doc, text, index, labels)),
-  );
-  parts.choice.hidden = content.choice === null;
-  parts.choice.disabled = working;
-  kit.options(doc, parts.choice, content.choice?.options ?? [], content.choice?.current ?? '');
-}
-
-/** YapYap's own words on the bar's controls, in the user's language. */
-export function labelAssistantBar(parts: BarParts, labels: BarLabels): void {
-  const name = 'aria-label';
-  parts.bar.setAttribute(name, labels.label);
-  parts.name.textContent = labels.name;
-  parts.suggest.textContent = labels.suggest;
-  parts.summarize.textContent = labels.summarize;
-  parts.catchUp.textContent = labels.catchUp;
-  parts.catchUp.setAttribute('title', labels.catchUpLabel);
-  parts.settings.setAttribute(name, labels.settings);
-  parts.settings.setAttribute('title', labels.settings);
-  parts.settings.textContent = '⚙';
-  parts.result.setAttribute('tabindex', '0');
-  parts.input.setAttribute(name, labels.write);
-  parts.input.setAttribute('placeholder', labels.writePlaceholder);
-  parts.rewrite.textContent = labels.rewrite;
-  parts.rewrite.setAttribute(name, labels.rewriteLabel);
-  parts.choice.setAttribute(name, labels.model);
-}
-
-/** The buttons under the status line, each naming its action by its ID. */
-export function fillAssistantButtons(
-  doc: BarDocument,
-  holder: BarNode,
-  buttons: BarContent['buttons'],
-  action: string,
-): void {
-  holder.replaceChildren(
-    ...buttons.map(({ id, label, primary }) => {
-      const node = doc.createElement('button');
-      node.setAttribute('class', primary ? 'button primary' : 'button');
-      node.dataset['action'] = action;
-      node.dataset['id'] = id;
-      node.textContent = label;
-      return node;
+    ...content.suggestions.map((text, index) => {
+      const item = doc.createElement('li');
+      const chip = doc.createElement('button');
+      chip.setAttribute('class', 'chip');
+      chip.setAttribute('type', 'button');
+      chip.setAttribute('title', `${text}\n${labels.use}`);
+      chip.dataset['action'] = 'use';
+      chip.dataset['index'] = String(index);
+      chip.textContent = text;
+      item.append(chip);
+      return item;
     }),
   );
 }
 
-/** Fills a list with `options`, as text, and selects `current`. */
-export function fillAssistantOptions(
-  doc: BarDocument,
-  select: BarNode,
-  options: readonly BarOption[],
-  current: string,
-): void {
-  select.replaceChildren(
-    ...options.map((option) => {
-      const node = doc.createElement('option');
-      node.setAttribute('value', option.value);
-      node.textContent = option.label;
-      return node;
-    }),
-  );
-  select.value = current;
+/** Shows what a rewrite did, or what keeps the assistant from answering, with its one button. */
+export function noticeAssistantBar(parts: BarParts, notice: BarContent['notice']): void {
+  const { text, button } = notice ?? { text: '', button: null };
+  parts.notice.hidden = notice === null;
+  parts.text.textContent = text;
+  parts.action.hidden = button === null;
+  parts.action.textContent = button?.label ?? '';
+  parts.action.dataset['id'] = button?.id ?? '';
+  // Undo answers the rewrite the notice is about, which goes once the user sends or undoes it.
+  parts.close.hidden = button?.id === 'undo';
 }
 
-/** One suggestion: its text puts it in the message box; the arrow sends it, on this click only. */
-export function assistantSuggestion(
-  doc: BarDocument,
-  text: string,
-  index: number,
-  labels: BarLabels,
-): BarNode {
-  const item = doc.createElement('li');
-  const use = doc.createElement('button');
-  const send = doc.createElement('button');
-  for (const [button, action] of [
-    [use, 'use'],
-    [send, 'send'],
-  ] as const) {
-    button.setAttribute('class', `button ${action}`);
-    button.dataset['action'] = action;
-    button.dataset['index'] = String(index);
-  }
-  use.textContent = text;
-  use.setAttribute('title', labels.use);
-  send.setAttribute('aria-label', labels.sendLabel);
-  send.setAttribute('title', labels.sendLabel);
-  // A paper plane, drawn rather than written, so it reads in every language.
-  const svg = 'http://www.w3.org/2000/svg';
-  const icon = doc.createElementNS(svg, 'svg');
-  const path = doc.createElementNS(svg, 'path');
-  icon.setAttribute('viewBox', '0 0 16 16');
+/** A stroke icon on a 24 px grid, hidden from screen readers: the controls are labelled. */
+export function assistantBarIcon(doc: BarDocument, path: string, name: string): BarNode {
+  const svgNs = 'http://www.w3.org/2000/svg';
+  const icon = doc.createElementNS(svgNs, 'svg');
+  icon.setAttribute('viewBox', '0 0 24 24');
   icon.setAttribute('aria-hidden', 'true');
-  path.setAttribute('d', 'M2 8l12-6-4 12-2-5z');
-  icon.append(path);
-  send.append(icon);
-  item.append(use, send);
-  return item;
+  icon.setAttribute('class', name);
+  const shape = doc.createElementNS(svgNs, 'path');
+  shape.setAttribute('d', path);
+  icon.append(shape);
+  return icon;
 }
 
 /**
- * The bar's own styles, inside its shadow root. They follow the system's
- * light or dark scheme, as WhatsApp does by default, and use logical
+ * The bar's own styles, inside its shadow root: one slim row at a time,
+ * the sparkle in the assistant's own accent (`ASSISTANT_THEME`), then the
+ * notice's text and button, or the suggestions as chips that scroll
+ * sideways rather than wrap, so the bar stays one row at any width. Logical
  * properties only, so it mirrors for right-to-left languages (ADR 0012).
- * The model list's options get the bar's own colors: with the list's
- * background transparent, Chromium draws its open list on white whatever
- * the scheme, under text that is light in the dark scheme.
  */
-const BAR_STYLE = `
-:host { display: block; color-scheme: light dark; }
+const BAR_STYLE = `${ASSISTANT_THEME}
+:host { display: block; }
 [hidden] { display: none !important; }
 .bar {
-  --text: light-dark(#111b21, #e9edef); --muted: light-dark(#667781, #8696a0);
-  --accent: light-dark(#008069, #00a884); --border: light-dark(#d1d7db, #374248);
-  --surface: light-dark(#f0f2f5, #202c33);
-  display: flex; flex-direction: column; gap: 6px; box-sizing: border-box;
-  padding: 8px 12px; border-block-start: 1px solid var(--border); background: var(--surface);
-  color: var(--text); font-family: inherit; font-size: 0.9rem;
+  display: flex; flex-direction: column; box-sizing: border-box; padding-block: 6px;
+  padding-inline: 16px 8px; border-block-start: 1px solid var(--area-border);
+  background: var(--area); color: var(--text); font-family: inherit; font-size: 14px;
 }
-.row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-inline-size: 0; }
-.line { flex-wrap: nowrap; min-block-size: 26px; }
-.name { font-weight: 600; }
-.status { flex: 1; margin: 0; overflow: hidden; color: var(--muted); text-overflow: ellipsis; }
-.buttons { display: flex; flex: none; gap: 6px; }
-.button {
-  padding: 3px 12px; border: 1px solid var(--border); border-radius: 999px; background: transparent;
-  color: var(--text); font: inherit; cursor: pointer;
+.row { display: flex; align-items: center; gap: 10px; min-block-size: 44px; min-inline-size: 0; }
+svg {
+  flex: none; inline-size: 22px; block-size: 22px; fill: none; stroke: currentColor;
+  stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
 }
-.button.primary { border-color: var(--accent); background: var(--accent); color: var(--surface); }
-.gear { margin-inline-start: auto; padding-inline: 8px; }
-.button:disabled, .input:disabled, .choice:disabled { opacity: 0.6; cursor: default; }
-.button:focus-visible, .input:focus-visible, .choice:focus-visible, .result:focus-visible {
-  outline: 2px solid var(--accent); outline-offset: 2px;
+.mark { color: var(--ai); }
+.text { flex: 1; min-inline-size: 0; padding-block: 4px; overflow-wrap: anywhere; }
+button { font: inherit; cursor: pointer; }
+button:focus-visible { outline: 2px solid var(--ai); outline-offset: 2px; }
+.action {
+  flex: none; min-block-size: 40px; padding-inline: 16px; border: 1px solid var(--ai-border);
+  border-radius: 20px; background: var(--chip); color: var(--ai); font-weight: 600;
 }
-.result {
-  max-block-size: 160px; overflow-y: auto; padding: 6px 10px; border: 1px solid var(--border);
-  border-radius: 8px; white-space: pre-wrap; overflow-wrap: anywhere;
+.action:hover { background: var(--ai-tint); }
+.icon {
+  display: grid; flex: none; place-items: center; inline-size: 44px; block-size: 44px;
+  margin-inline-start: auto; padding: 0; border: 0; border-radius: 50%; background: transparent;
+  color: var(--muted);
 }
-.suggestions {
-  display: flex; gap: 8px; margin: 0; padding: 0; overflow-x: auto; list-style: none;
+.icon:hover { background: var(--hover); }
+.list {
+  display: flex; flex: 1; gap: 8px; min-inline-size: 0; margin: 0; padding-block: 2px;
+  padding-inline: 0; overflow-x: auto; list-style: none; scrollbar-width: thin;
 }
-.suggestions:empty { display: none; }
-li { display: flex; flex: none; max-inline-size: 60%; }
-.use {
-  overflow: hidden; border-start-end-radius: 0; border-end-end-radius: 0; text-overflow: ellipsis;
-  white-space: nowrap;
+li { display: flex; flex: none; max-inline-size: 75%; }
+.chip {
+  min-block-size: 40px; max-inline-size: 100%; padding-inline: 16px; overflow: hidden;
+  border: 1px solid var(--chip-border); border-radius: 20px; background: var(--chip);
+  color: var(--text); font-size: 14px; text-overflow: ellipsis; white-space: nowrap;
 }
-.send {
-  display: grid; place-items: center; padding: 3px 10px; border-inline-start: 0;
-  border-start-start-radius: 0; border-end-start-radius: 0; color: var(--accent);
-}
-svg { inline-size: 14px; block-size: 14px; fill: currentColor; }
-.choice {
-  max-inline-size: 40%; padding: 2px 8px; border: 1px solid var(--border); border-radius: 999px;
-  background: transparent; color: var(--text); font: inherit;
-}
-.choice option { background: var(--surface); color: var(--text); }
-.input {
-  box-sizing: border-box; inline-size: 100%; padding: 5px 12px; border: 1px solid var(--border);
-  border-radius: 999px; background: transparent; color: var(--text); font: inherit;
-}
+.chip:hover { border-color: var(--ai-border); background: var(--ai-tint); }
 `;
-
-/** Longest request a user can type in the bar; the main process checks it again. */
-export const MAX_PROMPT = 2000;
 
 const PLACES: BarPlaces = {
   footer: LANDMARKS.composerFooter,
+  field: LANDMARKS.composer,
   conversation: LANDMARKS.conversation,
   message: LANDMARKS.message,
   store: 'yapyapAssistantBarView',
   bridge: ASSISTANT_BAR_BRIDGE,
   style: BAR_STYLE,
-  maxPrompt: MAX_PROMPT,
+  icons: { sparkle: ASSISTANT_ICONS.sparkle, close: ASSISTANT_ICONS.close },
 };
 
 /** The render as code for `executeJavaScriptInIsolatedWorld`, with the content as JSON. */
@@ -585,13 +477,13 @@ export function assistantBarRender(content: BarContent): string {
     `align: ${alignAssistantBar.toString()}`,
     `room: ${holdAssistantBarRoom.toString()}`,
     `build: ${buildAssistantBar.toString()}`,
+    `rows: ${assistantBarRows.toString()}`,
+    `node: ${assistantBarNode.toString()}`,
+    `show: ${showAssistantBar.toString()}`,
     `wire: ${wireAssistantBar.toString()}`,
-    `fields: ${wireAssistantFields.toString()}`,
-    `label: ${labelAssistantBar.toString()}`,
-    `buttons: ${fillAssistantButtons.toString()}`,
     `update: ${updateAssistantBar.toString()}`,
-    `options: ${fillAssistantOptions.toString()}`,
-    `suggestion: ${assistantSuggestion.toString()}`,
+    `notice: ${noticeAssistantBar.toString()}`,
+    `icon: ${assistantBarIcon.toString()}`,
   ].join(', ');
   return `(${renderAssistantBar.toString()})(document, globalThis, ${JSON.stringify(content)}, ${JSON.stringify(PLACES)}, { ${kit} })`;
 }

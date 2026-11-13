@@ -132,7 +132,7 @@
       "assistant": {
         "enabled": {
           "label": "Show the assistant in chats",
-          "description": "Shows the assistant bar right above the message box. Nothing is read or sent until you ask, and never without your click."
+          "description": "Shows Polish in the message box while you type, and reply suggestions right above it. It never sends a message: you send what it writes."
         },
         "provider": {
           "label": "Where the assistant thinks",
@@ -150,12 +150,20 @@
           "description": "Auto picks a quick, inexpensive model from what the provider lists, and follows its newer models."
         },
         "autoSuggest": {
-          "label": "Suggest replies as messages arrive",
-          "description": "When a message arrives in the chat you have open, the assistant suggests replies on its own, but only in chats you allowed it to read."
+          "label": "Suggest replies",
+          "description": "When the last message in the open chat is someone else’s, the assistant suggests short replies above the message box. Each time, it reads the chat’s latest messages."
+        },
+        "chats": {
+          "label": "Chats the assistant works in",
+          "description": "It suggests replies, and rewrites what you type, only in these chats.",
+          "options": {
+            "all": "All chats",
+            "chosen": "Only the chats listed below"
+          }
         },
         "messages": {
           "label": "Messages the assistant reads",
-          "description": "How many of the open chat’s latest messages it reads when you ask it about the chat.",
+          "description": "How many of the open chat’s latest messages it reads to suggest replies.",
           "options": {
             "5": "5",
             "10": "10",
@@ -451,7 +459,7 @@
       "local": "The model server on this computer"
     },
     "settings": {
-      "intro": "Suggests replies, summarizes chats, rewrites what you type and catches you up on unread chats. It never sends a message: it only puts drafts in the message box, for you to send.",
+      "intro": "Suggests replies to the messages you get and rewrites what you type, in the tone you choose. It never sends a message: it only puts text in the message box, for you to send.",
       "where": "Where the assistant thinks",
       "whereHint": "Choose one. Automatic uses the first that is set up.",
       "inUse": "In use",
@@ -521,7 +529,7 @@
       "behavior": "Behavior",
       "privacy": {
         "title": "Privacy",
-        "what": "When you ask, the assistant reads the open chat’s latest messages, or your draft, and sends them with its instructions to the place you chose above. Catching up sends each unread chat’s name, count and latest message, after you see them. Nothing is sent without your click, and YapYap logs none of it.",
+        "what": "To suggest replies, the assistant reads the open chat’s latest messages and sends them, with its instructions, to the place you chose above. To rewrite, it sends only what you typed. YapYap logs none of it.",
         "where": {
           "built-in": "Right now, everything stays on this computer.",
           "local": "Right now, it goes to the model server on this computer.",
@@ -529,53 +537,44 @@
           "openai": "Right now, it goes to OpenAI, at api.openai.com.",
           "none": "Right now, it goes nowhere: the assistant is not set up yet."
         },
-        "chats": "Chats the assistant may read",
-        "chatsHint": "The assistant asks in each chat before it reads it the first time.",
         "noChats": "None yet.",
         "unnamed": "A chat allowed before (its name was not kept)",
         "remove": "Remove",
         "removeLabel": "Stop reading {{chat}}",
-        "chat": "{{account}}: {{chat}}"
+        "chat": "{{account}}: {{chat}}",
+        "addOpenChat": "Add the Chat Open in WhatsApp",
+        "noOpenChat": "Open a chat in WhatsApp first."
       },
-      "shortcuts": "Keyboard shortcuts for the assistant are in Keyboard Shortcuts.",
       "unavailable": "The assistant’s settings could not be read. Try again in a moment."
     },
     "bar": {
       "label": "AI assistant",
-      "name": "Assistant",
-      "suggest": "Suggest replies",
-      "summarize": "Summarize",
-      "rewrite": "Rewrite",
-      "rewriteLabel": "Rewrite my draft",
+      "suggestions": "Suggested replies",
+      "use": "Puts this reply in the message box, for you to edit or send.",
+      "dismiss": "Dismiss suggestions",
+      "close": "Close",
+      "undo": "Undo",
       "styles": {
         "polish": "Polish",
         "shorten": "Shorten",
         "elaborate": "Elaborate",
-        "formalize": "Formalize",
-        "friendlier": "Friendlier"
+        "soften": "Soften",
+        "formalize": "Formalize"
       },
       "styleHints": {
-        "polish": "Cleans up grammar, flow and tone, keeping your message as it is.",
-        "shorten": "Condenses your message, so it is concise and to the point.",
-        "elaborate": "Expands on your points with more detail, context or polite phrasing.",
-        "formalize": "Makes the tone more professional."
+        "polish": "Fix grammar and flow, keep your meaning",
+        "shorten": "Same message, fewer words",
+        "elaborate": "Add detail or polite phrasing",
+        "soften": "Gentler, friendlier tone",
+        "formalize": "More professional tone"
       },
-      "translate": "Translate to {{language}}",
-      "catchUp": "Catch up",
-      "catchUpLabel": "Catch up on unread chats",
-      "write": "Write a message",
-      "writePlaceholder": "Say what you want to write, such as “I’ll be ten minutes late”",
-      "use": "Put in the message box",
-      "sendLabel": "Send this suggestion now",
-      "model": "Model",
-      "settings": "Assistant settings",
-      "copy": "Copy",
-      "close": "Close",
-      "useRewrite": "Use",
-      "undo": "Undo",
-      "allow": "Allow here",
-      "whatSent": "What is sent?",
-      "send": "Send",
+      "done": {
+        "polish": "Polished. Edit it or send as is.",
+        "shorten": "Shortened. Edit it or send as is.",
+        "elaborate": "Elaborated. Edit it or send as is.",
+        "soften": "Softened. Edit it or send as is.",
+        "formalize": "Formalized. Edit it or send as is."
+      },
       "setUp": "Set up…",
       "pasteKey": "Paste a key…",
       "resume": "Resume download",
@@ -583,26 +582,14 @@
       "openSettings": "Open settings"
     },
     "status": {
-      "noChat": "Open a chat first.",
-      "chatChanged": "You opened another chat, so this is gone. Ask again here.",
-      "thinking": "Thinking…",
-      "copied": "Copied.",
-      "consent": "Allow the assistant to read this chat? It sends the latest messages to {{provider}} when you ask.",
-      "consentPrivate": "Allow the assistant to read this chat? Its messages stay on this computer.",
-      "preview": "This is exactly what is sent:",
-      "catchUp": "This is exactly what is sent. It covers only the latest message of each unread chat, including chats where the assistant is off. No chat is opened or marked as read.",
-      "nothing": "The model had nothing to suggest. Try again.",
-      "emptyDraft": "Type a draft in the message box first.",
-      "noUnread": "No chat has unread messages.",
       "setUp": "Set up the assistant to start: choose where it thinks.",
       "key": "Paste your API key for {{provider}} to start.",
       "download": "Download the private model to start.",
       "noModel": "{{provider}} listed no model. Check its key, or that it runs.",
       "localServer": "The model server on this computer does not answer. Start it, then try again.",
-      "openChat": "Open any chat to use the assistant: it sits right above the message box.",
-      "off": "The assistant is off. Turn it on in Settings, under Assistant.",
-      "rewritten": "Your draft was rewritten. Press Enter to send it, as usual.",
-      "draftChanged": "You changed your draft while the assistant worked, so it is shown here instead."
+      "nothing": "The assistant had nothing to write. Try again.",
+      "draftChanged": "You changed your message while the assistant worked, so it was left as it is.",
+      "notAllowed": "The assistant is off in this chat. Turn it on in Settings, under Assistant."
     },
     "problems": {
       "auth": "{{provider}} did not accept your key.",
@@ -631,8 +618,10 @@
     },
     "composer": {
       "label": "Rewrite with AI",
-      "tip": "{{style}}: {{hint}}",
-      "more": "More ways to rewrite"
+      "more": "Choose how to rewrite",
+      "settings": "Assistant settings",
+      "model": "Model: {{model}}",
+      "noModel": "not set up yet"
     }
   },
   "agents": {
@@ -813,10 +802,7 @@
       "downloads": "Show downloads",
       "toggleWindow": "Show or hide YapYap, from any app",
       "hide": "Hide YapYap",
-      "quit": "Quit YapYap",
-      "assistantSuggest": "Suggest replies in the open chat",
-      "assistantSummarize": "Summarize the open chat",
-      "assistantCatchUp": "Catch up on unread chats"
+      "quit": "Quit YapYap"
     }
   },
   "spellingLanguages": {
@@ -893,9 +879,6 @@
     "window": "&Window",
     "reportProblem": "Report a Problem…",
     "assistant": "A&ssistant",
-    "assistantSuggest": "Suggest Replies",
-    "assistantSummarize": "Summarize This Chat",
-    "assistantCatchUp": "Catch Up on Unread Chats",
     "assistantSettings": "Assistant Settings…"
   },
   "windows": {

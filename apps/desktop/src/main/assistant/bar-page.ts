@@ -1,36 +1,29 @@
-import {
-  assistantBarRender,
-  type BarContent,
-  type BarPlacement,
-} from '../../adapter/assistant-bar.ts';
+import { assistantBarRender, type BarContent } from '../../adapter/assistant-bar.ts';
 import { composerToolRender, type ToolContent } from '../../adapter/composer-tool.ts';
 import { runInAdapterWorld, type AdapterPage } from '../../adapter/world.ts';
 import type { AssistantBarState } from '../../shared/api/assistant-bar-api.ts';
 import { en } from '../../shared/messages/en.ts';
 import { POLISH_STYLES } from './rewrites.ts';
 
-/** Where the bar shows and sends its state, once the main window has accounts. */
+/** Where the assistant shows and sends its state, once the main window has accounts. */
 export interface AssistantBarView {
   readonly show: (visible: boolean) => void;
   readonly publish: (state: AssistantBarState) => void;
-  /** Puts the bar in the active page now; false when it has no place there, as with no chat open. */
-  readonly onPage: () => Promise<boolean>;
 }
 
 /**
- * How often the bar is put back while it shows. WhatsApp drops it whenever
- * it redraws a chat, and the adapter adds no observers to its page, so a
- * cheap render that changes nothing when nothing changed stands in for one.
+ * How often the assistant is put back while it shows. WhatsApp drops it
+ * whenever it redraws a chat, and the adapter adds no observers to its
+ * page, so a cheap render that changes nothing when nothing changed stands
+ * in for one.
  */
 const RENDER_EVERY_MS = 1000;
 
 export interface InPageBarPort {
   /** The WhatsApp page of the account on screen. */
   readonly activePage: () => AdapterPage;
-  /** Whether the main window is visible and focused, the only time the bar needs putting back. */
+  /** Whether the main window is visible and focused, the only time the assistant needs putting back. */
   readonly onScreen: () => boolean;
-  /** WhatsApp drew the active page's chat again, which it does for another chat. */
-  readonly redrawn: () => void;
 }
 
 /** The bar's labels in the user's words, and the state as plain JSON. */
@@ -40,30 +33,13 @@ function contentOf(state: AssistantBarState, visible: boolean): BarContent {
     visible,
     labels: {
       label: text.label,
-      name: text.name,
-      suggest: text.suggest,
-      summarize: text.summarize,
-      rewrite: text.rewrite,
-      rewriteLabel: text.rewriteLabel,
-      catchUp: text.catchUp,
-      catchUpLabel: text.catchUpLabel,
-      settings: text.settings,
-      model: text.model,
+      suggestions: text.suggestions,
       use: text.use,
-      sendLabel: text.sendLabel,
-      write: text.write,
-      writePlaceholder: text.writePlaceholder,
+      dismiss: text.dismiss,
+      close: text.close,
     },
-    status: state.status,
-    working: state.working,
     suggestions: state.suggestions,
-    result: state.result,
-    buttons: state.buttons,
-    choice:
-      state.choice === undefined
-        ? null
-        : { current: state.choice.current, options: state.choice.options },
-    rewrites: state.rewrites,
+    notice: state.notice,
   };
 }
 
@@ -74,43 +50,41 @@ function toolContentOf(state: AssistantBarState, visible: boolean): ToolContent 
     visible,
     working: state.working,
     current: state.polish,
-    options: POLISH_STYLES.map((value) => {
-      const label = text.bar.styles[value];
-      const hint = text.bar.styleHints[value];
-      return { value, label, hint, tip: text.composer.tip({ style: label, hint }) };
-    }),
-    labels: { label: text.composer.label, more: text.composer.more },
+    options: POLISH_STYLES.map((value) => ({
+      value,
+      label: text.bar.styles[value],
+      hint: text.bar.styleHints[value],
+    })),
+    labels: {
+      label: text.composer.label,
+      more: text.composer.more,
+      settings: text.composer.settings,
+      model: text.composer.model({ model: state.model }),
+    },
   };
 }
 
 /**
  * The bar and the message box's rewrite button, rendered in one call into
- * the page. The bar goes first and tells where it is; the button is extra,
- * so a page that cannot take it still gets the bar.
+ * the page. Each is on its own, so a page that cannot take one still gets
+ * the other.
  */
 const renderCode = (state: AssistantBarState, visible: boolean): string =>
-  `(() => { const where = ${assistantBarRender(contentOf(state, visible))}; ` +
-  `try { ${composerToolRender(toolContentOf(state, visible))}; } catch { /* The bar still shows. */ } ` +
-  'return where; })()';
+  `(() => { try { ${assistantBarRender(contentOf(state, visible))}; } catch { /* The button still shows. */ } ` +
+  `try { ${composerToolRender(toolContentOf(state, visible))}; } catch { /* The bar still shows. */ } })()`;
 
 /** A page that went away, or one between loads, simply has neither until the next render. */
-async function renderIn(
-  page: AdapterPage,
-  state: AssistantBarState,
-  visible: boolean,
-): Promise<BarPlacement> {
+async function renderIn(page: AdapterPage, state: AssistantBarState, visible: boolean) {
   try {
-    const where = await runInAdapterWorld(page, renderCode(state, visible));
-    return where === 'kept' || where === 'placed' ? where : 'away';
+    await runInAdapterWorld(page, renderCode(state, visible));
   } catch {
     // Nothing to do: the next render tries again, and the page's text is never logged.
-    return 'away';
   }
 }
 
 /**
- * The assistant bar inside the active account's WhatsApp page, right above
- * the message box (ADR 0013). It renders the bar's current state there
+ * The assistant inside the active account's WhatsApp page, in and right
+ * above the message box (ADR 0013). It renders the current state there
  * whenever it changes or the account on screen does, takes it out of the
  * page of an account no longer on screen, and puts it back about once a
  * second while it shows and the window is on screen.
@@ -128,11 +102,7 @@ export function inPageAssistantBar(
       void renderIn(last, state(), false);
     }
     last = page;
-    void renderIn(page, state(), visible).then((where) => {
-      if (where === 'placed') {
-        port.redrawn();
-      }
-    });
+    void renderIn(page, state(), visible);
   };
   const tick = (): void => {
     if (port.onScreen()) {
@@ -147,6 +117,5 @@ export function inPageAssistantBar(
       render();
     },
     publish: render,
-    onPage: async () => (await renderIn(port.activePage(), state(), visible)) !== 'away',
   };
 }

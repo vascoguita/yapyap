@@ -3,7 +3,7 @@ import { accountAvatars, type AccountAvatars } from '../accounts/avatars.ts';
 import type { AccountSummary } from '../../shared/api/chrome-api.ts';
 import type { AccountMenu, ChromeRuntime } from '../chrome/feature.ts';
 import { listenToAssistantBar } from '../assistant/assistant-bar-ipc.ts';
-import { suggestAsMessagesArrive } from '../assistant/auto-suggest.ts';
+import { followOpenChat } from '../assistant/auto-suggest.ts';
 import { inPageAssistantBar } from '../assistant/bar-page.ts';
 import { listenToChatList } from '../chat-list/chat-list-ipc.ts';
 import { inPageChatList, type InPageChatList } from '../chat-list/chat-list-page.ts';
@@ -37,12 +37,11 @@ import {
 import {
   draftReply,
   insertDraft,
-  pressEnter,
   readDraft,
   replaceDraft,
   supportsInlineReply,
 } from '../notifications/reply.ts';
-import { readOpenChat, readUnreadChats } from '../assistant/chat-reading.ts';
+import { readOpenChat } from '../assistant/chat-reading.ts';
 import { agentPageOf } from '../agents/agent-page.ts';
 import {
   bringToFront,
@@ -280,10 +279,8 @@ function accountMenu(
     activeContents: () => running.active().page.contents,
     insertDraft: (text) => insertDraft(running.active().page.contents, text),
     readActiveChat: (messages) => readOpenChat(running.active().page.contents, messages),
-    readUnreadSummary: () => readUnreadChats(running.active().page.contents),
     replaceDraft: (text) => replaceDraft(running.active().page.contents, text),
     readDraft: () => readDraft(running.active().page.contents),
-    pressEnter: () => pressEnter(running.active().page.contents),
     agentPage: (id) => {
       const page = pageOf(running, id);
       return page && agentPageOf(page.contents, origin);
@@ -562,7 +559,7 @@ type BarWiring<Window extends WindowPort> = Pick<
   'deps' | 'chrome' | 'window' | 'security' | 'origin'
 >;
 
-/** The assistant bar in the active account's WhatsApp, heard from there alone (ADR 0013). */
+/** The assistant in the active account's WhatsApp, heard from there alone (ADR 0013). */
 function attachAssistantBar<Window extends WindowPort>(
   { deps, chrome, window, security, origin }: BarWiring<Window>,
   running: RunningAccounts<OpenedAccount>,
@@ -577,20 +574,15 @@ function attachAssistantBar<Window extends WindowPort>(
       warn: deps.warn,
     });
     const onScreen = (): boolean => window.isVisible() && window.isFocused();
-    suggestAsMessagesArrive({
+    followOpenChat({
       activePage,
-      active: () => {
-        const { enabled, autoSuggest } = deps.settings.current().assistant;
-        return enabled && autoSuggest && !bar.state().working && onScreen();
-      },
-      suggest: () => bar.suggestOnArrival(),
+      active: () => deps.settings.current().assistant.enabled && onScreen(),
+      opened: bar.opened,
+      arrived: bar.arrived,
+      sent: bar.sent,
       every: setInterval,
     });
-    return inPageAssistantBar(bar.state, {
-      activePage,
-      onScreen,
-      redrawn: () => void bar.chatRedrawn(),
-    });
+    return inPageAssistantBar(bar.state, { activePage, onScreen });
   });
 }
 

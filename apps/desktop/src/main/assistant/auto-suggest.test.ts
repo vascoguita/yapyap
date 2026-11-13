@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { LOOK_EVERY_MS, suggestAsMessagesArrive } from './auto-suggest.ts';
+import { followOpenChat, LOOK_EVERY_MS } from './auto-suggest.ts';
 
 /** A page whose probe answers with what `answer` says now. */
 function fakePage(first: unknown) {
@@ -14,19 +14,21 @@ function fakePage(first: unknown) {
   };
 }
 
-function setup(first: unknown = 'aaaaaaaa:00000001') {
+function setup(first: unknown = 'aaaaaaaa:00000001:-:i') {
   let page = fakePage(first);
   let active = true;
   let tick = (): void => undefined;
   const deps = {
     activePage: () => page,
     active: () => active,
-    suggest: vi.fn(),
+    opened: vi.fn(),
+    arrived: vi.fn(),
+    sent: vi.fn(),
     every: vi.fn((callback: () => void) => {
       tick = callback;
     }),
   };
-  suggestAsMessagesArrive(deps);
+  followOpenChat(deps);
   return {
     deps,
     page: () => page,
@@ -37,6 +39,7 @@ function setup(first: unknown = 'aaaaaaaa:00000001') {
       active = value;
     },
     look: async () => {
+      page.executeJavaScriptInIsolatedWorld.mockClear();
       tick();
       await vi.waitFor(() => {
         expect(page.executeJavaScriptInIsolatedWorld).toHaveBeenCalled();
@@ -46,63 +49,80 @@ function setup(first: unknown = 'aaaaaaaa:00000001') {
   };
 }
 
-describe('suggestAsMessagesArrive', () => {
-  it('looks every second and a half, and suggests when a message arrives in the same chat', async () => {
+describe('followOpenChat', () => {
+  it('looks every second and a half, and tells when a message arrives in the same chat', async () => {
     const t = setup();
     expect(t.deps.every).toHaveBeenCalledWith(expect.any(Function), LOOK_EVERY_MS);
     await t.look();
-    expect(t.deps.suggest).not.toHaveBeenCalled();
+    expect(t.deps.opened).toHaveBeenCalledWith('aaaaaaaa:00000001');
     await t.look();
-    expect(t.deps.suggest).not.toHaveBeenCalled();
-    t.page().set('aaaaaaaa:00000002');
+    expect(t.deps.arrived).not.toHaveBeenCalled();
+    t.page().set('aaaaaaaa:00000002:-:i');
     await t.look();
-    expect(t.deps.suggest).toHaveBeenCalledOnce();
+    expect(t.deps.arrived).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000002');
+    expect(t.deps.opened).toHaveBeenCalledOnce();
+    expect(t.deps.sent).not.toHaveBeenCalled();
   });
 
-  it('only notes what is there on opening another chat or account, or when no one else wrote', async () => {
+  it('tells when the user sends a message, and asks nothing of a chat whose last message is theirs', async () => {
+    const t = setup('aaaaaaaa:00000001:-:i');
+    await t.look();
+    t.page().set('aaaaaaaa:00000001:0000000f:o');
+    await t.look();
+    expect(t.deps.sent).toHaveBeenCalledOnce();
+    t.page().set('aaaaaaaa:00000001:0000000e:o');
+    await t.look();
+    expect(t.deps.sent).toHaveBeenCalledTimes(2);
+    expect(t.deps.arrived).not.toHaveBeenCalled();
+    // A message that arrived but is not the last, as when the user answered at once, asks nothing.
+    t.page().set('aaaaaaaa:00000002:0000000d:o');
+    await t.look();
+    expect(t.deps.arrived).not.toHaveBeenCalled();
+  });
+
+  it('tells another chat or account opened, naming its message only when it is theirs and last', async () => {
     const t = setup();
     await t.look();
-    t.page().set('bbbbbbbb:00000003');
+    t.page().set('bbbbbbbb:-:00000003:o');
     await t.look();
+    expect(t.deps.opened).toHaveBeenLastCalledWith(null);
     t.page().set(null);
     await t.look();
-    t.page().set('bbbbbbbb:00000004');
+    expect(t.deps.opened).toHaveBeenCalledTimes(3);
     await t.look();
-    const other = fakePage('bbbbbbbb:00000005');
+    expect(t.deps.opened).toHaveBeenCalledTimes(3);
+    const other = fakePage('bbbbbbbb:00000005:-:i');
     t.switchPage(other);
     await t.look();
-    expect(t.deps.suggest).not.toHaveBeenCalled();
+    expect(t.deps.opened).toHaveBeenLastCalledWith('bbbbbbbb:00000005');
+    t.page().set('bbbbbbbb:-:-:-');
+    await t.look();
+    expect(t.deps.arrived).not.toHaveBeenCalled();
+    expect(t.deps.sent).not.toHaveBeenCalled();
   });
 
-  it('does not look while it may not, and starts afresh after', async () => {
+  it('does not look while it may not, and tells what changed meanwhile once it may', async () => {
     const t = setup();
     await t.look();
     t.setActive(false);
-    t.page().set('aaaaaaaa:00000002');
+    t.page().set('aaaaaaaa:00000002:-:i');
     t.page().executeJavaScriptInIsolatedWorld.mockClear();
-    await new Promise((resolve) => setTimeout(resolve, 0));
     t.deps.every.mock.calls[0]?.[0]();
     expect(t.page().executeJavaScriptInIsolatedWorld).not.toHaveBeenCalled();
     t.setActive(true);
     await t.look();
-    expect(t.deps.suggest).not.toHaveBeenCalled();
+    expect(t.deps.arrived).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000002');
   });
 
-  it('suggests nothing when it became inactive while it looked, or the page answered nonsense', async () => {
+  it('tells nothing when the page answered nonsense or failed', async () => {
     const t = setup();
     await t.look();
-    t.page().set('aaaaaaaa:00000002');
-    t.page().executeJavaScriptInIsolatedWorld.mockImplementationOnce(() => {
-      t.setActive(false);
-      return Promise.resolve('aaaaaaaa:00000002');
-    });
-    await t.look();
-    t.setActive(true);
     t.page().set('nonsense');
     await t.look();
     t.page().set(new Error('loading'));
     await t.look();
-    expect(t.deps.suggest).not.toHaveBeenCalled();
+    expect(t.deps.opened).toHaveBeenCalledOnce();
+    expect(t.deps.arrived).not.toHaveBeenCalled();
   });
 
   it('looks once at a time', async () => {
@@ -118,7 +138,7 @@ describe('suggestAsMessagesArrive', () => {
     tick?.();
     tick?.();
     expect(t.page().executeJavaScriptInIsolatedWorld).toHaveBeenCalledOnce();
-    finish('aaaaaaaa:00000001');
+    finish('aaaaaaaa:00000001:-:i');
     // Once that look ends, the next tick looks again.
     await vi.waitFor(() => {
       tick?.();

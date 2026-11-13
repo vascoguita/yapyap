@@ -165,6 +165,8 @@ export const SettingsSchema = Type.Object(
         model: Type.String({ default: 'auto', minLength: 1, maxLength: 200 }),
         // Suggest replies when a message arrives in the open chat, as the maintainer chose (#468).
         autoSuggest: Type.Boolean({ default: true }),
+        // The chats the assistant works in: every one, or only those the user lists (#107).
+        chats: Type.Union([Type.Literal('all'), Type.Literal('chosen')], { default: 'chosen' }),
         // How many of the open chat's latest messages the assistant sends.
         messages: Type.Union([Type.Literal('5'), Type.Literal('10'), Type.Literal('20')], {
           default: '10',

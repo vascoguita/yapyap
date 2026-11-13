@@ -42,6 +42,7 @@ const DEFAULTS = {
     provider: 'auto',
     model: 'auto',
     autoSuggest: true,
+    chats: 'chosen',
     messages: '10',
     localServer: '',
   },

@@ -18,7 +18,8 @@ describe('transcriptOf', () => {
 
 describe('requestFor', () => {
   it('asks for three replies, one per line, with the transcript as the user’s turn', () => {
-    expect(INSTRUCTIONS).toContain('Suggest 3 short, different replies');
+    expect(INSTRUCTIONS).toContain('Suggest up to 3 short, different replies');
+    expect(INSTRUCTIONS).toContain('answer only NONE');
     expect(INSTRUCTIONS).toContain('one reply per line');
     expect(requestFor(INSTRUCTIONS, 'Chat: x')).toEqual({
       instructions: INSTRUCTIONS,
@@ -42,5 +43,11 @@ describe('suggestionsIn', () => {
       'On my way',
     ]);
     expect(suggestionsIn('\n  \n')).toEqual([]);
+  });
+
+  it('takes no reply from a model that found none to make', () => {
+    expect(suggestionsIn('NONE')).toEqual([]);
+    expect(suggestionsIn(' “None” ')).toEqual([]);
+    expect(suggestionsIn('None of that\nNONE')).toEqual(['None of that']);
   });
 });

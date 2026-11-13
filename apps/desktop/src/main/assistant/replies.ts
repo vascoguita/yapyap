@@ -5,32 +5,26 @@ import { cleanRewrite } from './rewrites.ts';
 /** How many replies the assistant offers to choose from. */
 const SUGGESTIONS = 3;
 
+/** The model's answer when no reply makes sense. */
+const NONE = 'NONE';
+
+/**
+ * What the model is asked for reply suggestions. A chat that calls for no
+ * reply, such as one that ends in a link or a sticker, gets none, so no
+ * row shows.
+ */
 export const INSTRUCTIONS = [
   'You help someone reply in a WhatsApp chat.',
-  `Suggest ${String(SUGGESTIONS)} short, different replies they could send next,`,
+  `Suggest up to ${String(SUGGESTIONS)} short, different replies they could send next,`,
   'in the language and tone of the chat.',
   'Write one reply per line, with no numbering, quotes or other text.',
-].join(' ');
-
-/** What the model is asked when the user says, in the assistant bar, what to write (ADR 0013). */
-export const COMPOSE_INSTRUCTIONS = [
-  'You help someone write a message in a WhatsApp chat.',
-  'After the chat comes what they want to say.',
-  'Write that one message, in the language and tone of the chat, ready to send as it is.',
-  'Answer with the message only, with no quotes or other text.',
-].join(' ');
-
-/** What the model is asked for a summary of the chat (#106), shown before it is sent. */
-export const SUMMARY_INSTRUCTIONS = [
-  'Summarize this WhatsApp chat for the person reading it, in a few short bullet points:',
-  'what was said, and anything they are asked to answer or do.',
-  'Write in the language of the chat, and add nothing that is not in it.',
+  `If no reply makes sense, such as after a link or a sticker, answer only ${NONE}.`,
 ].join(' ');
 
 /**
  * The chat as the model reads it: the last `context` messages, each marked
  * as the user's or the other side's. This text, with the instructions, is
- * exactly what the bar shows when asked what is sent (#107).
+ * exactly what is sent (#107).
  */
 export function transcriptOf(chat: ReadChat, context: number): string {
   const lines = chat.messages
@@ -39,7 +33,7 @@ export function transcriptOf(chat: ReadChat, context: number): string {
   return [`Chat: ${chat.name}`, ...lines].join('\n');
 }
 
-/** The request for exactly what the bar shows: the instructions, and the text as the user's turn. */
+/** The request: the instructions, and the text as the user's turn. */
 export function requestFor(
   instructions: string,
   text: string,
@@ -68,6 +62,6 @@ export function suggestionsIn(answer: string): string[] {
   return answer
     .split('\n')
     .map(clean)
-    .filter((line) => line !== '')
+    .filter((line) => line !== '' && line.toUpperCase() !== NONE)
     .slice(0, SUGGESTIONS);
 }

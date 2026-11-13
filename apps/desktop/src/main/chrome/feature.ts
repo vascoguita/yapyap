@@ -11,7 +11,6 @@ import {
 import { readPageState } from '../about/page-state.ts';
 import type { AdapterPage } from '../../adapter/world.ts';
 import type { ReadChat } from '../../adapter/active-chat.ts';
-import type { UnreadSummaryChat } from '../../adapter/unread-summary.ts';
 import { newChatHandlers, type ChatTarget } from '../navigation/new-chat-handlers.ts';
 import { folderChoiceHandlers } from '../settings/folder-choice.ts';
 import { shortcutHandlers } from '../shortcuts/shortcuts-handlers.ts';
@@ -312,7 +311,7 @@ export interface ChromeRuntime {
   readonly attachSidebar: (
     create: (renderer: RendererOptions) => SidebarPort,
   ) => (source: SidebarSource) => void;
-  /** Gives the assistant bar its view in the active account's WhatsApp (ADR 0013). */
+  /** Gives the assistant its view in the active account's WhatsApp (ADR 0013). */
   readonly attachAssistantBar: AssistantChrome['attachBar'];
 }
 
@@ -324,14 +323,10 @@ export interface AccountMenu extends AccountManager {
   readonly insertDraft: (text: string) => Promise<boolean>;
   /** The active account's open chat, with its last `messages` messages; null when none is open. */
   readonly readActiveChat: (messages: number) => Promise<ReadChat | null>;
-  /** The active account's unread chats, from its chat list. */
-  readonly readUnreadSummary: () => Promise<readonly UnreadSummaryChat[]>;
   /** Replaces the active account's draft; false when no chat is open. */
   readonly replaceDraft: (text: string) => Promise<boolean>;
   /** The active account's draft; null when no chat is open. */
   readonly readDraft: () => Promise<string | null>;
-  /** Presses Enter in the active account's message box, for the assistant bar's Send (ADR 0013). */
-  readonly pressEnter: () => Promise<boolean>;
   /** An account's WhatsApp as AI agents reach it (ADR 0019); undefined while it is off. */
   readonly agentPage: (id: string) => AgentPage | undefined;
   readonly switchTo: (id: string) => void;
@@ -594,22 +589,16 @@ function menuAccounts(
   };
 }
 
-type MenuAssistant = Pick<AssistantChrome, 'actions' | 'refreshBar'>;
+type MenuAssistant = Pick<AssistantChrome, 'refreshBar'>;
 
 /** The menu's actions for the accounts as they are. */
 function menuActionsOf(
   deps: ChromeDependencies,
   slots: Pick<ChromeSlots, 'recoveries' | 'pages'>,
   openers: ChromeOpeners,
-  assistant: MenuAssistant,
   warn: (message: string) => void,
 ): (menu: AccountMenu | undefined) => MenuActions {
   const copyDiagnostics = diagnosticsCopier(deps, slots.pages, warn);
-  const act = (run: () => Promise<void>) => () => {
-    run().catch(() => {
-      warn('An assistant action failed.');
-    });
-  };
   return (menu) => ({
     ...menuAccounts(menu),
     ...openers,
@@ -620,11 +609,6 @@ function menuActionsOf(
     },
     copyDiagnostics,
     recordTrace: deps.recordTrace,
-    assistant: {
-      suggest: act(assistant.actions.suggest),
-      summarize: act(assistant.actions.summarize),
-      catchUp: act(assistant.actions.catchUp),
-    },
   });
 }
 
@@ -652,7 +636,7 @@ function accountMenuSetter(
   assistant: MenuAssistant,
   warn: (message: string) => void,
 ): (menu: AccountMenu) => void {
-  const actions = menuActionsOf(deps, slots, openers, assistant, warn);
+  const actions = menuActionsOf(deps, slots, openers, warn);
   const set = (menu: AccountMenu | undefined): void => {
     deps.setMenu(
       buildMenuTemplate(deps.platform, actions(menu), deps.settings.current().shortcuts.custom),
@@ -771,8 +755,6 @@ function assistantOf(
       warn: windows.warn,
     }),
     accounts: () => accounts.current,
-    writeClipboard: deps.writeClipboard,
-    notify: deps.notify,
     warn: windows.warn,
   });
   assistant.engineProtocol().handle(

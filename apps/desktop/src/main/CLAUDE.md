@@ -54,10 +54,10 @@ These add to the repository's root `CLAUDE.md`, which applies here too.
   or imported (`LOCAL_SECTIONS` in `settings/transfer.ts`). The
   assistant's state that is no preference lives in `assistant.json` and
   `assistant-chats.json`, its keys and chat names in `secrets.json`.
-- The assistant never sends a message: it puts drafts in the message box.
-  Only the user's click on a suggestion's send button sends, after the bar
-  checks the chat is unchanged. Its UI text, including the bar's, lives in
-  `en.json` under `assistant`.
+- The assistant never sends a message: it only puts text in the message
+  box, and works only in the chats `assistant.chats` lets it (#616). Its UI
+  text, including the bar's and the rewrite button's, lives in `en.json`
+  under `assistant`.
 - YapYap listens on no port but the MCP server's (ADR 0019):
   `src/main/agents/listener.ts`, on `127.0.0.1`, only while **Let AI
   agents connect** is on. `no-endpoint.test.ts` fails if any other file

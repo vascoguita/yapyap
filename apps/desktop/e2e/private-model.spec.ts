@@ -3,7 +3,13 @@ import { readdir, readFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { join } from 'node:path';
-import { barNames, barSays, clickInBar, openAssistantSettings } from './assistant-helpers.ts';
+import {
+  allowAllChats,
+  barNotice,
+  clickInTool,
+  focusMain,
+  openAssistantSettings,
+} from './assistant-helpers.ts';
 import { closeApp, expect, launchApp, test, whatsAppPage } from './fixtures.ts';
 
 /** A tiny MIT-licensed GGUF model (see `test/models/LICENSE-stories260K.txt`). */
@@ -90,15 +96,15 @@ test('downloads, verifies and runs the private model in its own engine window, r
     // What came before the break is kept, and only the rest is asked for.
     expect(server.ranges).toEqual(['', expect.stringMatching(/^bytes=[1-9]\d*-$/)]);
     expect(await readdir(join(profile, 'models'))).toEqual([`${sha256}.gguf`]);
-    await clickInBar(app, window, 'Suggest replies');
-    await barSays(app, /Its messages stay on this computer\.$/);
-    await clickInBar(app, window, 'Allow here');
+    await allowAllChats(settings, false);
+    await focusMain(app);
+    await window.getByTestId('composer').click();
+    await window.keyboard.type('running late');
+    await clickInTool(app, window, 'Polish');
     // The tiny model writes nonsense, but writes it: the engine ran in its window.
-    await expect
-      .poll(async () => (await barNames(app))?.includes('Send this suggestion now') ?? false, {
-        timeout: 90_000,
-      })
-      .toBe(true);
+    await expect(async () => {
+      expect(await barNotice(app)).toMatch(/^(Polished\.|The assistant had nothing to write\.)/);
+    }).toPass({ timeout: 90_000 });
     expect(await engines()).toBe(1);
     await place.getByRole('button', { name: 'Remove' }).click();
     await expect(place.getByText('Not downloaded yet.')).toBeVisible();
