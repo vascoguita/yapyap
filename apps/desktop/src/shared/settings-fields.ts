@@ -88,6 +88,11 @@ export const SETTING_FIELDS: readonly SettingField[] = [
   },
   { ...described('assistant', 'autoSuggest'), restart: false },
   {
+    ...described('assistant', 'chats'),
+    restart: false,
+    options: choices(text.assistant.chats.options),
+  },
+  {
     ...described('assistant', 'messages'),
     restart: false,
     options: choices(text.assistant.messages.options),

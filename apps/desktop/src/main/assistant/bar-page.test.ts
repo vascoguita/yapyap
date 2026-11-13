@@ -3,21 +3,18 @@ import type { AssistantBarState } from '../../shared/api/assistant-bar-api.ts';
 import { inPageAssistantBar } from './bar-page.ts';
 
 const STATE: AssistantBarState = {
-  status: 'Thinking…',
   working: true,
   suggestions: ['On my way'],
-  result: null,
-  buttons: [],
-  choice: undefined,
-  rewrites: [{ value: 'shorten', label: 'Shorten' }],
-  polish: 'shorten',
+  notice: null,
+  polish: 'soften',
+  model: 'Haiku',
 };
 
 function fakePage() {
   return {
     executeJavaScriptInIsolatedWorld: vi.fn<
       (world: number, scripts: { code: string }[]) => Promise<unknown>
-    >(() => Promise.resolve('kept')),
+    >(() => Promise.resolve(undefined)),
   };
 }
 
@@ -37,13 +34,11 @@ function contentOf(page: ReturnType<typeof fakePage>, call = -1, of = 'footer'):
 function setup() {
   let active = fakePage();
   const onScreen = vi.fn(() => true);
-  const redrawn = vi.fn();
   let state = STATE;
-  const view = inPageAssistantBar(() => state, { activePage: () => active, onScreen, redrawn });
+  const view = inPageAssistantBar(() => state, { activePage: () => active, onScreen });
   return {
     view,
     onScreen,
-    redrawn,
     page: () => active,
     switchTo: (page: ReturnType<typeof fakePage>) => {
       active = page;
@@ -63,96 +58,62 @@ describe('inPageAssistantBar', () => {
     vi.useRealTimers();
   });
 
-  it('renders the state in the active page’s adapter world, in the user’s words', () => {
+  it('renders the suggestions and the notice in the active page’s adapter world, in the user’s words', () => {
     const t = setup();
     t.view.show(true);
     expect(contentOf(t.page())).toEqual({
       visible: true,
       labels: {
         label: 'AI assistant',
-        name: 'Assistant',
-        suggest: 'Suggest replies',
-        summarize: 'Summarize',
-        rewrite: 'Rewrite',
-        rewriteLabel: 'Rewrite my draft',
-        catchUp: 'Catch up',
-        catchUpLabel: 'Catch up on unread chats',
-        settings: 'Assistant settings',
-        model: 'Model',
-        use: 'Put in the message box',
-        sendLabel: 'Send this suggestion now',
-        write: 'Write a message',
-        writePlaceholder: 'Say what you want to write, such as “I’ll be ten minutes late”',
+        suggestions: 'Suggested replies',
+        use: 'Puts this reply in the message box, for you to edit or send.',
+        dismiss: 'Dismiss suggestions',
+        close: 'Close',
       },
-      status: 'Thinking…',
-      working: true,
       suggestions: ['On my way'],
-      result: null,
-      buttons: [],
-      choice: null,
-      rewrites: [{ value: 'shorten', label: 'Shorten' }],
+      notice: null,
     });
-    const choice = { label: 'Model', current: 'm', options: [{ value: 'm', label: 'M' }] };
-    const buttons = [{ id: 'copy', label: 'Copy', primary: false }] as const;
-    t.setState({ ...STATE, result: 'Summary', buttons, working: false, choice });
+    const notice = {
+      text: 'Softened. Edit it or send as is.',
+      button: { id: 'undo', label: 'Undo' },
+    } as const;
+    t.setState({ ...STATE, notice });
     t.view.publish(STATE);
-    expect(contentOf(t.page())).toEqual(
-      expect.objectContaining({
-        result: 'Summary',
-        buttons,
-        working: false,
-        choice: { current: 'm', options: choice.options },
-      }),
-    );
+    expect(contentOf(t.page())).toEqual(expect.objectContaining({ notice }));
     t.view.show(false);
     expect(contentOf(t.page())).toEqual(expect.objectContaining({ visible: false }));
   });
 
-  it('renders the message box’s rewrite button with the bar, in the user’s words', () => {
+  it('renders the message box’s rewrite button with the bar, each on its own', () => {
     const t = setup();
     t.view.show(true);
     const code = codeOf(t.page());
-    expect(code.startsWith('(() => { const where = (')).toBe(true);
     expect(code).toMatch(
-      /; try \{ \(function renderComposerTool[\s\S]+\} catch \{[^}]*\} return where; \}\)\(\)$/,
+      /^\(\(\) => \{ try \{ \(function renderAssistantBar[\s\S]+\} catch \{[^}]*\} try \{ \(function renderComposerTool[\s\S]+\} catch \{[^}]*\} \}\)\(\)$/,
     );
     expect(contentOf(t.page(), -1, 'field')).toEqual({
       visible: true,
       working: true,
-      current: 'shorten',
+      current: 'soften',
       options: [
-        {
-          value: 'polish',
-          label: 'Polish',
-          hint: 'Cleans up grammar, flow and tone, keeping your message as it is.',
-          tip: 'Polish: Cleans up grammar, flow and tone, keeping your message as it is.',
-        },
-        {
-          value: 'shorten',
-          label: 'Shorten',
-          hint: 'Condenses your message, so it is concise and to the point.',
-          tip: 'Shorten: Condenses your message, so it is concise and to the point.',
-        },
-        {
-          value: 'elaborate',
-          label: 'Elaborate',
-          hint: 'Expands on your points with more detail, context or polite phrasing.',
-          tip: 'Elaborate: Expands on your points with more detail, context or polite phrasing.',
-        },
-        {
-          value: 'formalize',
-          label: 'Formalize',
-          hint: 'Makes the tone more professional.',
-          tip: 'Formalize: Makes the tone more professional.',
-        },
+        { value: 'polish', label: 'Polish', hint: 'Fix grammar and flow, keep your meaning' },
+        { value: 'shorten', label: 'Shorten', hint: 'Same message, fewer words' },
+        { value: 'elaborate', label: 'Elaborate', hint: 'Add detail or polite phrasing' },
+        { value: 'soften', label: 'Soften', hint: 'Gentler, friendlier tone' },
+        { value: 'formalize', label: 'Formalize', hint: 'More professional tone' },
       ],
-      labels: { label: 'Rewrite with AI', more: 'More ways to rewrite' },
+      labels: {
+        label: 'Rewrite with AI',
+        more: 'Choose how to rewrite',
+        settings: 'Assistant settings',
+        model: 'Model: Haiku',
+      },
     });
     t.view.show(false);
     expect(contentOf(t.page(), -1, 'field')).toEqual(expect.objectContaining({ visible: false }));
   });
 
-  it('takes the bar out of a page whose account is no longer on screen', () => {
+  it('takes the assistant out of a page whose account is no longer on screen', () => {
     const t = setup();
     const first = t.page();
     t.view.show(true);
@@ -165,7 +126,7 @@ describe('inPageAssistantBar', () => {
     expect(first.executeJavaScriptInIsolatedWorld).toHaveBeenCalledTimes(2);
   });
 
-  it('puts the bar back every second while it shows and the window is on screen', () => {
+  it('puts the assistant back every second while it shows and the window is on screen', () => {
     const t = setup();
     t.view.show(true);
     t.view.show(true);
@@ -190,31 +151,5 @@ describe('inPageAssistantBar', () => {
     t.view.show(true);
     await vi.runOnlyPendingTimersAsync();
     expect(t.page().executeJavaScriptInIsolatedWorld).toHaveBeenCalledTimes(3);
-  });
-
-  it('says when WhatsApp drew the chat again, so the bar had to be placed anew', async () => {
-    const t = setup();
-    t.page().executeJavaScriptInIsolatedWorld.mockResolvedValueOnce('placed');
-    t.view.show(true);
-    await vi.waitFor(() => {
-      expect(t.redrawn).toHaveBeenCalledTimes(1);
-    });
-    t.page().executeJavaScriptInIsolatedWorld.mockResolvedValueOnce('away');
-    vi.advanceTimersByTime(1000);
-    vi.advanceTimersByTime(1000);
-    await vi.runOnlyPendingTimersAsync();
-    expect(t.redrawn).toHaveBeenCalledTimes(1);
-  });
-
-  it('says whether the bar has a place in the active page now', async () => {
-    const t = setup();
-    t.page().executeJavaScriptInIsolatedWorld.mockResolvedValueOnce('away');
-    expect(await t.view.onPage()).toBe(false);
-    t.page().executeJavaScriptInIsolatedWorld.mockResolvedValueOnce('placed');
-    expect(await t.view.onPage()).toBe(true);
-    t.page().executeJavaScriptInIsolatedWorld.mockResolvedValueOnce(true);
-    expect(await t.view.onPage()).toBe(false);
-    t.page().executeJavaScriptInIsolatedWorld.mockRejectedValueOnce(new Error('loading'));
-    expect(await t.view.onPage()).toBe(false);
   });
 });

@@ -1,64 +1,86 @@
 import { runInAdapterWorld, type AdapterPage } from '../../adapter/world.ts';
-import { NEWEST_INCOMING, parseIncoming, type Incoming } from '../../adapter/incoming.ts';
+import { NEWEST_MESSAGES, parseNewest, type Newest } from '../../adapter/incoming.ts';
 
-/** How often the open chat is looked at while suggestions may come on their own. */
+/** How often the open chat is looked at while the assistant shows. */
 export const LOOK_EVERY_MS = 1500;
 
-export interface AutoSuggestDependencies {
+export interface ChatWatchDependencies {
   /** The WhatsApp page of the account on screen. */
   readonly activePage: () => AdapterPage;
-  /**
-   * Whether to look now: the setting is on, the bar shows and is not
-   * already waiting for suggestions, and YapYap's window is on screen.
-   */
+  /** Whether to look now: the assistant is on and YapYap's window is on screen. */
   readonly active: () => boolean;
-  /** Asks the assistant for suggestions, as Suggest replies does. */
-  readonly suggest: () => unknown;
+  /** Another chat is open, with its newest message from someone else if that is its last. */
+  readonly opened: (message: string | null) => unknown;
+  /** A message from someone else arrived in the open chat. */
+  readonly arrived: (message: string) => unknown;
+  /** The user sent a message in the open chat. */
+  readonly sent: () => unknown;
   readonly every: (callback: () => void, ms: number) => unknown;
 }
 
-/** What was last seen: on which page, in which chat, the newest message from someone else. */
-interface Seen extends Incoming {
+/** What was last seen: on which page, and there, the open chat's newest messages, or no chat. */
+interface Seen {
   readonly page: AdapterPage;
+  readonly newest: Newest | null;
 }
 
-/** A new message from someone else, in the chat and on the page already looked at. */
-const arrived = (before: Seen | undefined, now: Seen): boolean =>
-  before?.page === now.page &&
-  before.chat === now.chat &&
-  now.message !== null &&
-  before.message !== now.message;
+/** Someone else's newest message, named by its chat and itself, while it is the chat's last. */
+const answerable = (newest: Newest | null): string | null =>
+  newest?.theirsLast === true && newest.theirs !== null ? `${newest.chat}:${newest.theirs}` : null;
+
+/** Someone else's newest message, while it is the chat's last, if it is new since `was`. */
+const newMessage = (was: Newest, now: Newest): string | null =>
+  now.theirs === was.theirs ? null : answerable(now);
+
+/** Tells what changed in the chat that stayed open: the user sent a message, or one arrived. */
+function inSameChat(was: Newest, now: Newest, deps: ChatWatchDependencies): void {
+  if (now.mine !== null && now.mine !== was.mine) {
+    deps.sent();
+  }
+  const message = newMessage(was, now);
+  if (message !== null) {
+    deps.arrived(message);
+  }
+}
+
+/** Whether the same chat is open as at the last look, or still none; never at the first look. */
+const sameChat = (was: Newest | null | undefined, now: Newest | null): boolean =>
+  was !== undefined && was?.chat === now?.chat;
+
+/** Tells what changed between two looks at the same page. */
+function compare(before: Seen | undefined, now: Seen, deps: ChatWatchDependencies): void {
+  const was = before?.page === now.page ? before.newest : undefined;
+  const { newest } = now;
+  if (!sameChat(was, newest)) {
+    deps.opened(answerable(newest));
+  } else if (was && newest) {
+    inSameChat(was, newest, deps);
+  }
+}
 
 /**
- * Asks for suggestions when a message arrives in the open chat (#468):
- * about every second and a half while it may, it asks the page for a hash
- * of the newest message from someone else, and suggests when that changes
- * in the same chat. Opening another chat or account, or coming back to
- * YapYap, only notes what is there. The adapter adds no observers, so a
- * cheap look stands in for one, and it never sees page text.
+ * Follows the open chat while the assistant shows (#468): about every
+ * second and a half, it asks the page for hashes of the open chat and its
+ * newest messages, and tells when another chat opens, a message arrives,
+ * or the user sends one. The adapter adds no observers, so a cheap look
+ * stands in for one, and it never sees page text.
  */
-export function suggestAsMessagesArrive(deps: AutoSuggestDependencies): void {
+export function followOpenChat(deps: ChatWatchDependencies): void {
   let seen: Seen | undefined;
   let looking = false;
   const look = async (): Promise<void> => {
     const page = deps.activePage();
-    const found = parseIncoming(await runInAdapterWorld(page, NEWEST_INCOMING));
-    if (found === undefined) {
+    const newest = parseNewest(await runInAdapterWorld(page, NEWEST_MESSAGES));
+    if (newest === undefined) {
       return;
     }
-    const now = { page, ...found };
-    const fresh = arrived(seen, now);
+    const now = { page, newest };
+    const before = seen;
     seen = now;
-    if (fresh && deps.active()) {
-      deps.suggest();
-    }
+    compare(before, now, deps);
   };
   deps.every(() => {
-    if (!deps.active()) {
-      seen = undefined;
-      return;
-    }
-    if (looking) {
+    if (looking || !deps.active()) {
       return;
     }
     looking = true;

@@ -16,6 +16,7 @@ const SETTINGS = {
     provider: 'auto',
     model: 'auto',
     autoSuggest: true,
+    chats: 'chosen',
     messages: '10',
     localServer: '',
   },
@@ -27,10 +28,8 @@ const ACCOUNTS: AssistantAccounts = {
     { id: 'b', name: 'Work', active: true },
   ],
   readActiveChat: vi.fn(() => Promise.resolve(null)),
-  readUnreadSummary: vi.fn(() => Promise.resolve([])),
   readDraft: vi.fn(() => Promise.resolve('draft')),
   replaceDraft: vi.fn(() => Promise.resolve(true)),
-  pressEnter: vi.fn(() => Promise.resolve(true)),
 };
 
 function files(): ModelFiles {
@@ -50,9 +49,9 @@ function files(): ModelFiles {
   };
 }
 
-function harness(open = true) {
+function harness(open: AssistantAccounts | undefined = ACCOUNTS) {
   let settings = SETTINGS;
-  const accounts = open ? ACCOUNTS : undefined;
+  const accounts = open;
   const settingsListeners: (() => void)[] = [];
   let hear: ((sender: object, url: string, payload: unknown) => void) | undefined;
   const deps: AssistantChromeDependencies = {
@@ -67,7 +66,7 @@ function harness(open = true) {
       },
       chats: {
         isAllowed: () => false,
-        allow: vi.fn(),
+        allow: vi.fn(() => Promise.resolve()),
         forget: vi.fn(),
         forgetAccount: vi.fn(),
         list: () => Promise.resolve([]),
@@ -78,7 +77,6 @@ function harness(open = true) {
         forget: vi.fn(),
         canKeep: () => Promise.resolve(true),
       },
-      languages: ['en'],
       findServers: () => Promise.resolve([]),
       listenToEngine: (listener) => {
         hear = listener;
@@ -97,8 +95,6 @@ function harness(open = true) {
     openEngine: vi.fn(),
     accounts: () => accounts,
     openSettings: vi.fn(),
-    writeClipboard: vi.fn(),
-    notify: vi.fn(),
     warn: vi.fn(),
   };
   const chrome = createAssistantChrome(deps);
@@ -130,15 +126,13 @@ describe('createAssistantChrome', () => {
     vi.useRealTimers();
   });
 
-  it('shows the bar once it has a view, as the settings change, and says what is missing', async () => {
+  it('shows the assistant once it has a view, as the settings change, and names the model', async () => {
     const t = harness();
-    const view = { show: vi.fn(), publish: vi.fn(), onPage: vi.fn(() => Promise.resolve(true)) };
+    const view = { show: vi.fn(), publish: vi.fn() };
     t.chrome.attachBar(() => view);
     await vi.waitFor(() => {
       expect(view.publish).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          status: 'Set up the assistant to start: choose where it thinks.',
-        }),
+        expect.objectContaining({ model: 'not set up yet', notice: null }),
       );
     });
     expect(view.show).toHaveBeenCalledWith(true);
@@ -155,7 +149,7 @@ describe('createAssistantChrome', () => {
     const t = harness();
     const channels = t.chrome.handlers.map(({ channel }) => channel);
     expect(channels).toContain('assistant:view');
-    const view = { show: vi.fn(), publish: vi.fn(), onPage: vi.fn(() => Promise.resolve(true)) };
+    const view = { show: vi.fn(), publish: vi.fn() };
     t.chrome.attachBar(() => view);
     const remove = t.chrome.handlers.find(({ channel }) => channel === 'assistant:private-model');
     await remove?.handle({ sender: {} }, 'remove');
@@ -166,35 +160,30 @@ describe('createAssistantChrome', () => {
     await expect(viewHandler?.handle({ sender: {} })).resolves.toMatchObject({ inUse: null });
   });
 
-  it('acts before the bar has a view or there are accounts, which then shows nothing', async () => {
-    const t = harness(false);
+  it('acts before the assistant has a view or there are accounts', async () => {
+    const t = harness(undefined);
     const viewHandler = t.chrome.handlers.find(({ channel }) => channel === 'assistant:view');
     await expect(viewHandler?.handle({ sender: {} })).resolves.toMatchObject({ chats: [] });
-    await t.chrome.actions.suggest();
-    await t.chrome.actions.catchUp();
-    expect(t.deps.notify).toHaveBeenCalledWith(
-      'Open any chat to use the assistant: it sits right above the message box.',
-    );
+    t.chrome.refreshBar();
+    await vi.waitFor(() => {
+      expect(t.deps.warn).not.toHaveBeenCalled();
+    });
   });
 
-  it('runs a menu action in the bar only where it shows, and says what to do otherwise', async () => {
-    const t = harness();
-    const view = { show: vi.fn(), publish: vi.fn(), onPage: vi.fn(() => Promise.resolve(false)) };
-    t.chrome.attachBar(() => view);
-    await t.chrome.actions.summarize();
-    expect(t.deps.notify).toHaveBeenLastCalledWith(
-      'Open any chat to use the assistant: it sits right above the message box.',
-    );
-    view.onPage.mockResolvedValue(true);
-    view.publish.mockClear();
-    await t.chrome.actions.catchUp();
-    expect(view.publish).toHaveBeenCalled();
-    expect(t.deps.notify).toHaveBeenCalledOnce();
-    t.setEnabled(false);
-    await t.chrome.actions.suggest();
-    expect(t.deps.notify).toHaveBeenLastCalledWith(
-      'The assistant is off. Turn it on in Settings, under Assistant.',
-    );
+  it('lets the assistant work in the chat open on screen, from Settings', async () => {
+    const allowOpen = (t: ReturnType<typeof harness>) =>
+      t.chrome.handlers
+        .find(({ channel }) => channel === 'assistant:allow-open-chat')
+        ?.handle({ sender: {} });
+    const none = harness();
+    await expect(allowOpen(none)).resolves.toBe(false);
+    const nobody = harness({ ...ACCOUNTS, entries: [] });
+    await expect(allowOpen(nobody)).resolves.toBe(false);
+    expect(nobody.deps.sources.chats.allow).not.toHaveBeenCalled();
+    const chat = { name: 'Ana', group: false, messages: [] };
+    const open = harness({ ...ACCOUNTS, readActiveChat: () => Promise.resolve(chat) });
+    await expect(allowOpen(open)).resolves.toBe(true);
+    expect(open.deps.sources.chats.allow).toHaveBeenCalledExactlyOnceWith('b', 'Ana');
   });
 
   it('says when the bar cannot show the setup', async () => {
@@ -206,7 +195,7 @@ describe('createAssistantChrome', () => {
     });
     t.modelsChanged();
     await vi.waitFor(() => {
-      expect(vi.mocked(t.deps.warn).mock.calls.length).toBeGreaterThanOrEqual(3);
+      expect(vi.mocked(t.deps.warn).mock.calls.length).toBeGreaterThanOrEqual(2);
     });
   });
 });
@@ -230,17 +219,13 @@ describe('barAccounts', () => {
     expect(open.active()).toBe('b');
     expect(await open.readActiveChat(5)).toBeNull();
     expect(ACCOUNTS.readActiveChat).toHaveBeenCalledWith(5);
-    expect(await open.readUnreadSummary()).toEqual([]);
     expect(await open.readDraft()).toBe('draft');
     expect(await open.replaceDraft('x')).toBe(true);
-    expect(await open.pressEnter()).toBe(true);
     const none = barAccounts(() => undefined);
     expect(none.active()).toBe('');
     expect(await none.readActiveChat(5)).toBeNull();
-    expect(await none.readUnreadSummary()).toEqual([]);
     expect(await none.readDraft()).toBeNull();
     expect(await none.replaceDraft('x')).toBe(false);
-    expect(await none.pressEnter()).toBe(false);
     const nobody = barAccounts(() => ({ ...ACCOUNTS, entries: [] }));
     expect(nobody.active()).toBe('');
   });

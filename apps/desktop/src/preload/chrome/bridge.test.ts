@@ -43,6 +43,7 @@ describe('createChromeBridge', () => {
     expect(await api.assistant.findServers()).toBe('ignored');
     await api.assistant.privateModel('download');
     await api.assistant.forgetChat('a', 'b');
+    await api.assistant.allowOpenChat();
     const spec = {
       name: 'Agent',
       scopes: ['chat:read-active'],
@@ -114,6 +115,7 @@ describe('createChromeBridge', () => {
       ['assistant:find-servers'],
       ['assistant:private-model', 'download'],
       ['assistant:forget-chat', 'a', 'b'],
+      ['assistant:allow-open-chat'],
       ['agents:view'],
       ['agents:create', spec],
       ['agents:revoke', '0123456789abcdef'],

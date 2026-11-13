@@ -71,6 +71,7 @@ describe('Settings', () => {
       'assistant.enabled': true,
       'assistant.provider': 'auto',
       'assistant.autoSuggest': true,
+      'assistant.chats': 'chosen',
       [HARDWARE]: true,
     };
     const settings = api({ get: vi.fn(() => Promise.resolve(snapshot({ values }))) });

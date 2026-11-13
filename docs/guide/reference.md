@@ -24,10 +24,11 @@ the [profile folder](#files).
 | Hide the menu bar                         | `appearance.autoHideMenuBar`        | Off                   | Windows and Linux; <kbd>Alt</kbd> shows it                                                         |
 | Interface scale                           | `appearance.zoom`                   | 100%                  | 50% to 200% in Settings; the View menu goes in 5% steps up to 300%                                 |
 | Zoom with a pinch, or Ctrl and the wheel  | `appearance.pinchZoom`              | On                    | Off ignores pinches and Ctrl with the wheel; the View menu still zooms                             |
-| Show the assistant in chats               | `assistant.enabled`                 | On                    | Off hides the assistant's bar                                                                      |
+| Show the assistant in chats               | `assistant.enabled`                 | On                    | Off hides the rewrite button and the suggestions                                                   |
 | Where the assistant thinks                | `assistant.provider`                | Automatic             | `auto`, `built-in`, `anthropic`, `openai` or `local`; see [AI assistant](/guide/ai-assistant)      |
 | Model                                     | `assistant.model`                   | Auto                  | `auto`, or a model's ID from the provider's list                                                   |
-| Suggest replies as messages arrive        | `assistant.autoSuggest`             | On                    | Only in chats you allowed the assistant in                                                         |
+| Suggest replies                           | `assistant.autoSuggest`             | On                    | When someone else wrote last, in the chats the assistant works in                                  |
+| Chats the assistant works in              | `assistant.chats`                   | Only the chats listed | `chosen` (those listed in Settings) or `all`                                                       |
 | Messages the assistant reads              | `assistant.messages`                | 10                    | `5`, `10` or `20` of the open chat's latest messages                                               |
 | Model server address                      | `assistant.localServer`             | Empty                 | A `/v1` address on this computer; the assistant section is never exported or imported              |
 | Let AI agents connect                     | `agents.enabled`                    | Off                   | Runs the MCP server on `127.0.0.1`; see [AI agents](/guide/ai-agents); never exported or imported  |
@@ -169,9 +170,6 @@ names other keys.
 | <kbd>Ctrl</kbd>+<kbd>M</kbd>                                                                            | Minimize the window                                         |
 | <kbd>Ctrl</kbd>+<kbd>W</kbd>                                                                            | Close the window                                            |
 | <kbd>Ctrl</kbd>+<kbd>J</kbd> (macOS: <kbd>⇧</kbd><kbd>⌘</kbd><kbd>J</kbd>)                              | Show downloads                                              |
-| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Y</kbd>                                                           | Suggest replies in the open chat                            |
-| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd>                                                           | Summarize the open chat                                     |
-| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>U</kbd>                                                           | Catch up on unread chats                                    |
 | <kbd>⌘</kbd><kbd>H</kbd> (macOS)                                                                        | Hide YapYap                                                 |
 | <kbd>Ctrl</kbd>+<kbd>Q</kbd> (not on Windows)                                                           | Quit YapYap                                                 |
 | <kbd>Alt</kbd>                                                                                          | Show a hidden menu bar (Windows and Linux)                  |

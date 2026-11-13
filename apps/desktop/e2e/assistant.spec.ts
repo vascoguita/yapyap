@@ -1,22 +1,25 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
-  assistantBarResult,
+  allowAllChats,
   barNames,
-  barSays,
+  barNotice,
   CLAUDE_ANSWER,
   claudeAnswer,
   claudeRequests,
   clickInBar,
   clickInTool,
   fakeModelServer,
+  focusMain,
+  messageArrives,
   openAssistantSettings,
   quietPort,
   readyClaude,
   standInKeyring,
+  toolNames,
 } from './assistant-helpers.ts';
-import { chromePage, clickMenu } from './chrome-helpers.ts';
-import { closeApp, expect, launchApp, mainWindow, test, whatsAppPage } from './fixtures.ts';
+import { chromePage } from './chrome-helpers.ts';
+import { closeApp, expect, launchApp, test, whatsAppPage } from './fixtures.ts';
 
 test('sets Claude up in Settings › Assistant, with the key encrypted, tested and in use', async ({
   app,
@@ -40,179 +43,182 @@ test('sets Claude up in Settings › Assistant, with the key encrypted, tested a
   await expect(settings.getByText('No key saved.').first()).toBeVisible();
 });
 
-test('suggests replies only in a chat the user allowed, after showing what is sent', async ({
+test('suggests replies when a message arrives, only in a chat the user added in Settings', async ({
   app,
   window,
 }) => {
   await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
-  await readyClaude(app, CLAUDE_ANSWER);
-  await clickInBar(app, window, 'Suggest replies');
-  await barSays(app, /^Allow the assistant to read this chat\?/);
+  await (await readyClaude(app, CLAUDE_ANSWER)).close();
+  await focusMain(app);
+  // The chat is not listed yet, so nothing of it is read.
+  await messageArrives(window, '3EB0F7', 'Are we still on?');
+  await window.waitForTimeout(3000);
   expect(await claudeRequests(app)).toEqual([]);
-  await clickInBar(app, window, 'What is sent?');
-  await expect.poll(() => assistantBarResult(app)).toContain('Them: Dinner tonight?');
-  expect(await assistantBarResult(app)).toContain('Me: See you at 8');
-  // WhatsApp's page cannot read what the bar shows.
-  expect(await window.evaluate(() => document.body.innerText)).not.toContain('Them: Dinner');
-  await clickInBar(app, window, 'Allow here');
-  await expect.poll(() => barNames(app)).toContain('Can we do 9?');
-  await clickInBar(app, window, 'Can we do 9?');
-  await expect(window.getByTestId('composer')).toHaveText('Can we do 9?');
+  expect(await barNames(app)).toEqual([]);
+  const settings = await openAssistantSettings(app);
+  await settings.getByRole('button', { name: 'Add the Chat Open in WhatsApp' }).click();
+  await expect(settings.getByText(/: Test Chat One$/)).toBeVisible();
+  await settings.close();
+  await focusMain(app);
+  await messageArrives(window, '3EB0F8', 'Dinner at 8 still?');
+  await expect(async () => {
+    expect(await barNames(app)).toContain('Can we do 9?');
+  }).toPass({ timeout: 15_000 });
   const asked = await claudeRequests(app);
   expect(asked).toHaveLength(1);
-  expect(asked[0]).toContain('Them: Dinner tonight?');
+  expect(asked[0]).toContain('Them: Dinner at 8 still?');
   expect(asked[0]).toContain('"model":"claude-haiku-5-5"');
-  // Nothing was sent to the chat; only the user's click on Send sends.
+  // WhatsApp's page cannot read the suggestions.
+  expect(await window.evaluate(() => document.body.innerText)).not.toContain('Can we do 9?');
+  // A suggestion fills the message box, and never sends.
+  await clickInBar(app, window, 'Can we do 9?');
+  await expect(window.getByTestId('composer')).toHaveText('Can we do 9?');
+  await expect(async () => {
+    expect(await barNames(app)).not.toContain('Yes, 8 works!');
+  }).toPass();
   await expect(window.getByTestId('sent')).toHaveCount(0);
-  await clickInBar(app, window, 'Suggest replies');
-  await expect.poll(() => barNames(app)).toContain('See you there');
-  await clickInBar(app, window, 'Send this suggestion now');
-  await expect(window.getByTestId('sent')).toHaveCount(1);
 });
 
-test('summarizes the chat in the bar, copies the summary, and leaves the message box alone', async ({
+test('hides suggestions while the user types, and after Dismiss until the next message', async ({
   app,
   window,
 }) => {
   await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
-  await readyClaude(app, claudeAnswer('- Dinner tonight at 8.'));
-  await clickInBar(app, window, 'Summarize');
-  await clickInBar(app, window, 'Allow here');
-  await expect.poll(() => assistantBarResult(app)).toBe('- Dinner tonight at 8.');
-  await clickInBar(app, window, 'Copy');
-  await expect
-    .poll(() => app.evaluate(({ clipboard }) => clipboard.readText()))
-    .toBe('- Dinner tonight at 8.');
-  await clickInBar(app, window, 'Close');
-  await expect.poll(() => assistantBarResult(app)).toBeNull();
-  await expect(window.getByTestId('composer')).toHaveText('');
-  expect((await claudeRequests(app))[0]).toContain('Summarize this WhatsApp chat');
-});
-
-test('rewrites the draft in the picked style, and puts the rewrite in its place on Use', async ({
-  app,
-  window,
-}) => {
-  await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
+  const settings = await readyClaude(app, CLAUDE_ANSWER, claudeAnswer('Still on!'));
+  await allowAllChats(settings);
+  await focusMain(app);
+  await messageArrives(window, '3EB0F7', 'Are we still on?');
+  await expect(async () => {
+    expect(await barNames(app)).toContain('See you there');
+  }).toPass({ timeout: 15_000 });
   const composer = window.getByTestId('composer');
   await composer.click();
-  await window.keyboard.type('running late');
-  await readyClaude(app, claudeAnswer('“I am running a little late, sorry!”'));
-  await clickInBar(app, window, 'Rewrite my draft');
-  await clickInBar(app, window, 'Friendlier');
-  await clickInBar(app, window, 'Allow here');
-  await expect.poll(() => assistantBarResult(app)).toBe('I am running a little late, sorry!');
-  const asked = await claudeRequests(app);
-  expect(asked[0]).toContain('warmer and friendlier');
-  expect(asked[0]).toContain('running late');
-  await clickInBar(app, window, 'Use');
-  await expect(composer).toHaveText('I am running a little late, sorry!');
+  await window.keyboard.type('Sure');
+  await expect(async () => {
+    expect(await barNames(app)).toEqual([]);
+  }).toPass();
+  for (let index = 0; index < 4; index += 1) {
+    await window.keyboard.press('Backspace');
+  }
+  await expect(async () => {
+    expect(await barNames(app)).toContain('See you there');
+  }).toPass();
+  await clickInBar(app, window, 'Dismiss suggestions');
+  await expect(async () => {
+    expect(await barNames(app)).toEqual([]);
+  }).toPass();
+  await messageArrives(window, '3EB0F8', 'Hello?');
+  await expect(async () => {
+    expect(await barNames(app)).toContain('Still on!');
+  }).toPass({ timeout: 15_000 });
+  expect(await claudeRequests(app)).toHaveLength(2);
 });
 
-test('rewrites the draft in place from the message box, and puts it back on Undo', async ({
+test('rewrites the draft in place from the message box, puts it back on Undo, and never sends', async ({
   app,
   window,
 }) => {
   await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
-  const composer = window.getByTestId('composer');
-  await composer.click();
-  await window.keyboard.type('running late');
-  await readyClaude(
+  const settings = await readyClaude(
     app,
     claudeAnswer('“I am running a little late, sorry!”'),
-    claudeAnswer('I am running late, but I will be there in ten minutes.'),
+    claudeAnswer('So sorry, I am running a bit late!'),
   );
+  await allowAllChats(settings);
+  await focusMain(app);
+  // With nothing typed, the message box shows no assistant.
+  await expect(async () => {
+    expect(await toolNames(app)).toEqual([]);
+  }).toPass();
+  const composer = window.getByTestId('composer');
+  await composer.click();
+  await window.keyboard.type('running late');
   await clickInTool(app, window, 'Polish');
-  // Rewriting reads the draft only once the user allowed the assistant here.
-  await clickInBar(app, window, 'Allow here');
   await expect(composer).toHaveText('I am running a little late, sorry!');
-  await barSays(app, 'Your draft was rewritten. Press Enter to send it, as usual.');
+  await expect(async () => {
+    expect(await barNotice(app)).toBe('Polished. Edit it or send as is.');
+  }).toPass();
   const asked = await claudeRequests(app);
   expect(asked[0]).toContain('spelling, grammar and flow');
   expect(asked[0]).toContain('running late');
   await clickInBar(app, window, 'Undo');
   await expect(composer).toHaveText('running late');
-  // The list opens upwards, and the way picked rewrites at once and stays selected.
-  await clickInTool(app, window, 'More ways to rewrite');
-  await clickInTool(app, window, 'Elaborate');
-  await expect(composer).toHaveText('I am running late, but I will be there in ten minutes.');
-  expect((await claudeRequests(app))[1]).toContain('more detail, context');
-  // The button itself now rewrites in that way.
-  await clickInTool(app, window, 'Elaborate');
   await expect(async () => {
-    expect((await claudeRequests(app))[2]).toContain('more detail, context');
+    expect(await barNotice(app)).toBeNull();
   }).toPass();
-  // Nothing was sent: the user still presses Enter.
+  // The menu has five ways and the settings, and the way picked rewrites at once.
+  await clickInTool(app, window, 'Choose how to rewrite');
+  await expect(async () => {
+    expect(await toolNames(app)).toEqual([
+      'Polish',
+      'Choose how to rewrite',
+      'Polish',
+      'Shorten',
+      'Elaborate',
+      'Soften',
+      'Formalize',
+      'Assistant settings',
+    ]);
+  }).toPass();
+  await clickInTool(app, window, 'Soften');
+  await expect(composer).toHaveText('So sorry, I am running a bit late!');
+  expect((await claudeRequests(app))[1]).toContain('gentler and friendlier');
+  await expect(async () => {
+    expect(await barNotice(app)).toBe('Softened. Edit it or send as is.');
+    // The button itself now rewrites in that way.
+    expect((await toolNames(app))[0]).toBe('Soften');
+  }).toPass();
+  // Nothing was sent: the user presses Enter, and the notice goes with the draft.
   await expect(window.getByTestId('sent')).toHaveCount(0);
+  await composer.click();
+  await window.keyboard.press('Enter');
+  await expect(window.getByTestId('sent')).toHaveCount(1);
+  await expect(async () => {
+    expect(await barNotice(app)).toBeNull();
+    expect(await toolNames(app)).toEqual([]);
+  }).toPass({ timeout: 10_000 });
 });
 
-test('catches up on the unread chats after showing exactly what is sent, opening none', async ({
+test('says the assistant is off in a chat the user did not add, and opens its settings', async ({
   app,
   window,
 }) => {
   await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
-  await readyClaude(app, claudeAnswer('- Test Chat Two asks if you are coming tomorrow.'));
-  await clickInBar(app, window, 'Catch up');
-  const entry = 'Chat: Test Chat Two\nUnread: 2\nLatest message: Are you coming tomorrow?';
-  await expect.poll(() => assistantBarResult(app)).toContain(entry);
-  await barSays(app, /No chat is opened or marked as read\.$/);
+  const settings = await readyClaude(app, CLAUDE_ANSWER);
+  await settings.close();
+  await focusMain(app);
+  await window.getByTestId('composer').click();
+  await window.keyboard.type('running late');
+  await clickInTool(app, window, 'Polish');
+  await expect(async () => {
+    expect(await barNotice(app)).toBe(
+      'The assistant is off in this chat. Turn it on in Settings, under Assistant.',
+    );
+  }).toPass();
   expect(await claudeRequests(app)).toEqual([]);
-  await clickInBar(app, window, 'Send');
-  await expect
-    .poll(() => assistantBarResult(app))
-    .toBe('- Test Chat Two asks if you are coming tomorrow.');
-  const requests = await claudeRequests(app);
-  expect(requests).toHaveLength(1);
-  expect(requests[0]).toContain(JSON.stringify(entry).slice(1, -1));
-  await expect(window.locator('#main > header')).toHaveText('Test Chat One');
-  await expect(window.getByTestId('icon-unread-count')).toHaveText('2');
+  await clickInBar(app, window, 'Open settings');
+  await expect(
+    (await chromePage(app, '/settings.html')).getByRole('region', { name: 'Assistant' }),
+  ).toBeVisible();
 });
 
-test('suggests replies on its own when a message arrives in an allowed chat', async ({
-  app,
-  window,
-}) => {
-  await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
-  await readyClaude(app, CLAUDE_ANSWER, claudeAnswer('Still on!'));
-  await clickInBar(app, window, 'Suggest replies');
-  await clickInBar(app, window, 'Allow here');
-  await expect.poll(() => barNames(app)).toContain('Can we do 9?');
-  // A virtual display without a window manager focuses nothing on its own.
-  const main = await mainWindow(app);
-  await expect
-    .poll(() =>
-      main.evaluate((owner) => {
-        owner.focus();
-        return owner.isFocused();
-      }),
-    )
-    .toBe(true);
-  // What is already there when the assistant first looks asks for nothing.
-  await window.waitForTimeout(2000);
-  expect(await claudeRequests(app)).toHaveLength(1);
-  await window.evaluate(() => {
-    const row = document.createElement('div');
-    row.setAttribute('role', 'row');
-    row.innerHTML =
-      '<div data-id="3EB0F9"><span data-testid="selectable-text">Still on?</span></div>';
-    const rows = document.querySelectorAll('#main [role="row"]');
-    rows[rows.length - 1]?.after(row);
-  });
-  await expect.poll(() => barNames(app), { timeout: 15_000 }).toContain('Still on!');
-  expect(await claudeRequests(app)).toHaveLength(2);
-});
-
-test('runs the assistant from its menu, and opens its settings from the bar', async ({
+test('says what is missing before the assistant is set up, and opens its settings from the menu', async ({
   app,
   window,
 }) => {
   await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
   await standInKeyring(app);
-  await barSays(app, 'Set up the assistant to start: choose where it thinks.');
-  await clickMenu(app, 'Suggest Replies');
-  await barSays(app, 'Set up the assistant to start: choose where it thinks.');
-  await clickInBar(app, window, 'Assistant settings');
-  await openAssistantSettings(app);
+  await window.getByTestId('composer').click();
+  await window.keyboard.type('running late');
+  await clickInTool(app, window, 'Polish');
+  await expect(async () => {
+    expect(await barNotice(app)).toBe('Set up the assistant to start: choose where it thinks.');
+  }).toPass();
+  await clickInTool(app, window, 'Choose how to rewrite');
+  await clickInTool(app, window, 'Assistant settings');
+  await expect(
+    (await chromePage(app, '/settings.html')).getByRole('region', { name: 'Assistant' }),
+  ).toBeVisible();
 });
 
 test('finds the model server on this computer, and suggests replies with it', async ({
@@ -234,12 +240,14 @@ test('finds the model server on this computer, and suggests replies with it', as
     await expect(
       settings.getByText('Right now, it goes to the model server on this computer.'),
     ).toBeVisible();
-    await clickInBar(app, window, 'Suggest replies');
-    await barSays(app, /Its messages stay on this computer\.$/);
-    await clickInBar(app, window, 'Allow here');
-    await expect.poll(() => barNames(app)).toContain('Can we do 9?');
+    await allowAllChats(settings);
+    await focusMain(app);
+    await messageArrives(window, '3EB0F7', 'Are we still on?');
+    await expect(async () => {
+      expect(await barNames(app)).toContain('Can we do 9?');
+    }).toPass({ timeout: 15_000 });
     expect(server.chats).toHaveLength(1);
-    expect(server.chats[0]).toContain('Them: Dinner tonight?');
+    expect(server.chats[0]).toContain('Them: Are we still on?');
     expect(server.chats[0]).toContain('"model":"tiny-e2e"');
   } finally {
     await closeApp(app);
@@ -298,21 +306,14 @@ test('opens the page to get a key in the default browser', async ({ app }) => {
 
 test('takes suggestions away when another chat opens', async ({ app, window }) => {
   await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
-  await readyClaude(app, CLAUDE_ANSWER);
-  await clickInBar(app, window, 'Suggest replies');
-  await clickInBar(app, window, 'Allow here');
-  await expect.poll(() => barNames(app)).toContain('Can we do 9?');
-  // A virtual display without a window manager focuses nothing on its own.
-  const main = await mainWindow(app);
-  await expect
-    .poll(() =>
-      main.evaluate((owner) => {
-        owner.focus();
-        return owner.isFocused();
-      }),
-    )
-    .toBe(true);
-  // WhatsApp draws the conversation anew for another chat, dropping the bar.
+  const settings = await readyClaude(app, CLAUDE_ANSWER);
+  await allowAllChats(settings);
+  await focusMain(app);
+  await messageArrives(window, '3EB0F7', 'Are we still on?');
+  await expect(async () => {
+    expect(await barNames(app)).toContain('Can we do 9?');
+  }).toPass({ timeout: 15_000 });
+  // WhatsApp draws the conversation anew for another chat, whose last message is the user's.
   await window.evaluate(() => {
     const parts = [
       ...document.querySelectorAll(
@@ -322,17 +323,18 @@ test('takes suggestions away when another chat opens', async ({ app, window }) =
     parts.find((part) => part.matches('header'))?.replaceChildren('Test Chat Three');
     document.querySelector('#main')?.replaceChildren(...parts);
   });
-  await expect.poll(() => barNames(app), { timeout: 10_000 }).not.toContain('Can we do 9?');
-  expect(await barNames(app)).toContain('Suggest replies');
+  await expect(async () => {
+    expect(await barNames(app)).toEqual([]);
+  }).toPass({ timeout: 10_000 });
 });
 
-test('keeps the chat’s last message in view as the bar opens and grows', async ({
+test('keeps the chat’s last message in view as suggestions come and the bar comes back', async ({
   app,
   window,
 }) => {
   await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
-  await readyClaude(app, CLAUDE_ANSWER);
-  await expect.poll(() => barNames(app)).toContain('Suggest replies');
+  const settings = await readyClaude(app, CLAUDE_ANSWER);
+  await allowAllChats(settings);
   // A chat long enough to scroll, read to its end, as WhatsApp opens one.
   await window.evaluate(() => {
     const main = document.querySelector<HTMLElement>('#main');
@@ -357,36 +359,30 @@ test('keeps the chat’s last message in view as the bar opens and grows', async
         last.getBoundingClientRect().bottom <= list.getBoundingClientRect().bottom + 1
       );
     });
-  const barBack = (): Promise<boolean> =>
-    window.evaluate(
-      () =>
-        document
-          .querySelector('#main footer')
-          ?.previousElementSibling?.matches('div:not([data-testid])') === true,
-    );
   expect(await lastMessageInView()).toBe(true);
-  // A virtual display without a window manager focuses nothing on its own.
-  const main = await mainWindow(app);
+  await focusMain(app);
+  await messageArrives(window, '3EB0F7', 'Are we still on?');
+  await window.evaluate(() => {
+    const list = document.querySelector('[data-testid="conversation-panel-body"]');
+    list?.scrollTo({ top: list.scrollHeight });
+  });
   await expect(async () => {
-    expect(
-      await main.evaluate((owner) => {
-        owner.focus();
-        return owner.isFocused();
-      }),
-    ).toBe(true);
-  }).toPass();
+    expect(await barNames(app)).toContain('Can we do 9?');
+  }).toPass({ timeout: 15_000 });
+  expect(await lastMessageInView()).toBe(true);
   // WhatsApp draws the chat again without the bar, which comes back within a second.
   await window.evaluate(() => {
     document.querySelector('#main footer')?.previousElementSibling?.remove();
   });
   await expect(async () => {
-    expect(await barBack()).toBe(true);
+    expect(await barNames(app)).toContain('Can we do 9?');
   }).toPass();
   expect(await lastMessageInView()).toBe(true);
-  // Opening the ways to rewrite makes the bar taller.
-  await clickInBar(app, window, 'Rewrite my draft');
+  // Picking a suggestion takes the row away, and the chat stays at its last message (#616).
+  await clickInBar(app, window, 'Can we do 9?');
+  await expect(window.getByTestId('composer')).toHaveText('Can we do 9?');
   await expect(async () => {
-    expect(await barNames(app)).toContain('Shorten');
+    expect(await barNames(app)).toEqual([]);
   }).toPass();
   expect(await lastMessageInView()).toBe(true);
 });

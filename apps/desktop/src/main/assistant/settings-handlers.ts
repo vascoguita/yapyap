@@ -20,9 +20,11 @@ export interface AssistantSettingsDependencies {
   readonly core: Pick<AssistantCore, 'setup'>;
   readonly keys: AssistantKeys;
   readonly privateModels: PrivateModels;
-  readonly chats: Pick<AllowedChats, 'list' | 'forget'>;
+  readonly chats: Pick<AllowedChats, 'list' | 'forget' | 'allow'>;
   /** Every account, to name the ones with allowed chats. */
   readonly accounts: () => readonly { readonly id: string; readonly name: string }[];
+  /** The account on screen and its open chat's name; null while no chat is open. */
+  readonly openChat: () => Promise<{ readonly account: string; readonly name: string } | null>;
   readonly findServers: () => Promise<readonly LocalServer[]>;
   /** The assistant's confined `fetch` (ADR 0017). */
   readonly fetch: typeof globalThis.fetch;
@@ -161,7 +163,8 @@ function setupHandlers(deps: AssistantSettingsDependencies): ChromeHandler[] {
 /**
  * Settings › Assistant's operations (ADR 0017). Each checks its payload:
  * a key only as a short pasted text for a known provider, which is never
- * logged or sent back; a chat only by its fingerprint.
+ * logged or sent back; a chat only by its fingerprint, or as the one open
+ * on screen, which the user can see.
  */
 export function assistantHandlers(deps: AssistantSettingsDependencies): ChromeHandler[] {
   return [
@@ -182,6 +185,17 @@ export function assistantHandlers(deps: AssistantSettingsDependencies): ChromeHa
       accepts: argumentsOf(isString, isChatId),
       handle: (_call, account, id) => {
         deps.chats.forget(account as string, id as string);
+      },
+    },
+    {
+      channel: CHROME_CHANNELS.assistantAllowOpenChat,
+      accepts: noArguments,
+      handle: async () => {
+        const open = await deps.openChat();
+        if (open !== null) {
+          await deps.chats.allow(open.account, open.name);
+        }
+        return open !== null;
       },
     },
   ];

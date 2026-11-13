@@ -120,3 +120,13 @@ could ask for too.
   hosts, and the engine window reaches no network at all.
 - The assistant ships with YapYap releases, no longer on its own.
 - People who used the extension set the assistant up again.
+
+## Amendments
+
+- 2026-11-13 (#616, the maintainer's decision): the assistant's actions
+  shrink to suggesting replies and rewriting the draft, both in the
+  message box (see ADR 0013's amendment). Writing a described message,
+  summarizing, catching up, translating and the friendlier rewrite are
+  gone, with their prompts; Soften joins the rewrite's ways. Consent to
+  read a chat moves to Settings › Assistant, as a list of chats or all
+  chats, and the assistant sends no message in any way.

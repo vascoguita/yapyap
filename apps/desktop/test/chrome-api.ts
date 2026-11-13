@@ -25,6 +25,7 @@ function blank() {
       findServers: vi.fn(),
       privateModel: vi.fn(),
       forgetChat: vi.fn(),
+      allowOpenChat: vi.fn(),
     },
     agents: {
       view: vi.fn(),

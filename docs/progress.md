@@ -435,3 +435,11 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
 - Wayland E2E install (#614): the step refreshes apt's package index
   before installing Weston, as the other workflows do, since the runner
   image's index goes stale when Ubuntu replaces a package on its mirrors.
+- Assistant in the message box (#616): the bar's actions, model list,
+  described-message field, Summarize, Catch up, Rewrite, translations and
+  each suggestion's Send are gone. The rewrite button shows only with a
+  draft, offers Soften too, and names the model above its settings item;
+  a slim notice offers Undo. Suggestions come on their own when someone
+  else wrote last, only fill the message box, and hide while the user
+  types. Consent moves to `assistant.chats` (listed chats or all) with
+  **Add the Chat Open in WhatsApp**. See ADR 0013's amendment and C48.

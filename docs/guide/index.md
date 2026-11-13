@@ -32,12 +32,11 @@ you are done. Everything it asks is also in Settings.
 
 ## AI assistant
 
-YapYap's built-in assistant helps you write, right above the message box: it
-suggests replies, writes the message you describe, rewrites your draft,
-sums up a chat, and catches you up on unread chats. It runs a private model
-on your computer, a model server you already run, or Claude or OpenAI with
-your own key. It reads a chat only once you allow it there, and never sends
-a message on its own. The [AI assistant guide](/guide/ai-assistant) covers
+YapYap's built-in assistant helps you write, in the message box itself: it
+suggests short replies when someone writes to you, and rewrites what you
+type in the tone you choose. It runs a private model on your computer, a
+model server you already run, or Claude or OpenAI with your own key. It
+works only in the chats you choose, and never sends a message on its own. The [AI assistant guide](/guide/ai-assistant) covers
 setting it up and every choice.
 
 ## AI agents

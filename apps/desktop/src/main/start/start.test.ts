@@ -137,29 +137,21 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     }),
     assistantBar: {
       state: vi.fn(() => ({
-        status: '',
         working: false,
         suggestions: ['On my way'],
-        result: null,
-        buttons: [],
-        choice: undefined,
-        rewrites: [],
+        notice: null,
         polish: 'polish',
+        model: 'Haiku',
       })),
       refresh: vi.fn(() => Promise.resolve()),
-      suggest: vi.fn(() => Promise.resolve()),
-      suggestOnArrival: vi.fn(() => Promise.resolve()),
-      prompt: vi.fn(() => Promise.resolve()),
-      summarize: vi.fn(() => Promise.resolve()),
-      rewrite: vi.fn(() => Promise.resolve()),
       polish: vi.fn(() => Promise.resolve()),
-      catchUp: vi.fn(() => Promise.resolve()),
       use: vi.fn(() => Promise.resolve()),
-      send: vi.fn(() => Promise.resolve()),
-      choose: vi.fn(() => Promise.resolve()),
+      dismiss: vi.fn(),
       button: vi.fn(() => Promise.resolve()),
+      opened: vi.fn(),
+      arrived: vi.fn(),
+      sent: vi.fn(),
       privateModelChanged: vi.fn(() => Promise.resolve()),
-      chatRedrawn: vi.fn(() => Promise.resolve()),
     } satisfies AssistantBar,
     assistantBarView: undefined as AssistantBarView | undefined,
     attachAssistantBar: vi.fn((create: (bar: AssistantBar) => AssistantBarView) => {
@@ -894,18 +886,11 @@ describe('startApp', () => {
     const menu = accountMenu(f);
     f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValueOnce(null);
     await expect(menu.readActiveChat(5)).resolves.toBeNull();
-    f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValueOnce([]);
-    await expect(menu.readUnreadSummary()).resolves.toEqual([]);
     f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValueOnce('Draft');
     await expect(menu.readDraft()).resolves.toBe('Draft');
     f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValueOnce(true);
     await expect(menu.replaceDraft('New')).resolves.toBe(true);
     expect(f.web.contents.insertText).toHaveBeenLastCalledWith('New');
-    f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValueOnce(true);
-    await expect(menu.pressEnter()).resolves.toBe(true);
-    expect(f.web.contents.sendInputEvent).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'keyDown', keyCode: 'Enter' }),
-    );
   });
 
   it('gives agents each running account’s page, and none for another', async () => {
@@ -940,34 +925,29 @@ describe('startApp', () => {
     await startApp(f);
     const view = f.runtime.assistantBarView;
     f.web.contents.executeJavaScriptInIsolatedWorld.mockClear();
-    // WhatsApp drew the chat again, so the bar was placed anew.
-    f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValueOnce('placed');
     view?.show(true);
     expect(f.web.contents.executeJavaScriptInIsolatedWorld).toHaveBeenCalledWith(1000, [
       { code: expect.stringContaining('"visible":true') as unknown },
     ]);
-    await vi.waitFor(() => {
-      expect(f.runtime.assistantBar.chatRedrawn).toHaveBeenCalledOnce();
-    });
     view?.show(false);
     const fromPage = { sender: f.web.contents, senderFrame: { url: `${WHATSAPP_ORIGIN}/` } };
-    f.ipcListeners.get('whatsapp:assistant-bar-send')?.(fromPage, 1);
+    f.ipcListeners.get('whatsapp:assistant-bar-use')?.(fromPage, 1);
     await vi.waitFor(() => {
-      expect(f.runtime.assistantBar.send).toHaveBeenCalledExactlyOnceWith(1);
+      expect(f.runtime.assistantBar.use).toHaveBeenCalledExactlyOnceWith(1);
     });
-    f.ipcListeners.get('whatsapp:assistant-bar-send')?.({ ...fromPage, sender: {} }, 2);
-    expect(f.warn).toHaveBeenCalledWith('Ignored a message on whatsapp:assistant-bar-send.');
-    expect(f.runtime.assistantBar.send).toHaveBeenCalledOnce();
+    f.ipcListeners.get('whatsapp:assistant-bar-use')?.({ ...fromPage, sender: {} }, 2);
+    expect(f.warn).toHaveBeenCalledWith('Ignored a message on whatsapp:assistant-bar-use.');
+    expect(f.runtime.assistantBar.use).toHaveBeenCalledOnce();
   });
 
   it('puts the assistant bar back only while the window is on screen', async () => {
     vi.useFakeTimers();
     const f = fakes();
     const settings = defaultSettings();
-    // Only the bar's own drawing counts here, not the look for new messages.
+    // Only the bar's own drawing counts here, not the look at the open chat.
     f.settings.current = () => ({
       ...settings,
-      assistant: { ...settings.assistant, autoSuggest: false },
+      assistant: { ...settings.assistant, enabled: false },
     });
     await startApp(f);
     f.runtime.assistantBarView?.show(true);
@@ -990,21 +970,28 @@ describe('startApp', () => {
     vi.useRealTimers();
   });
 
-  it('suggests replies on its own when a message arrives, while the setting allows', async () => {
+  it('follows the open chat while the assistant is on and the window on screen', async () => {
     vi.useFakeTimers();
     const f = fakes();
     await startApp(f);
     f.window.isFocused.mockReturnValue(true);
     f.runtime.assistantBarView?.show(true);
-    f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValue('aaaaaaaa:00000001');
+    const bar = f.runtime.assistantBar;
+    f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValue('aaaaaaaa:00000001:-:i');
     await vi.advanceTimersByTimeAsync(1500);
-    f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValue('aaaaaaaa:00000002');
+    expect(bar.opened).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000001');
+    f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValue('aaaaaaaa:00000002:-:i');
     await vi.advanceTimersByTimeAsync(1500);
-    expect(f.runtime.assistantBar.suggestOnArrival).toHaveBeenCalledOnce();
+    expect(bar.arrived).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000002');
+    f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValue(
+      'aaaaaaaa:00000002:0000000f:o',
+    );
+    await vi.advanceTimersByTimeAsync(1500);
+    expect(bar.sent).toHaveBeenCalledOnce();
     f.window.isFocused.mockReturnValue(false);
-    f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValue('aaaaaaaa:00000003');
+    f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValue('aaaaaaaa:00000003:-:i');
     await vi.advanceTimersByTimeAsync(3000);
-    expect(f.runtime.assistantBar.suggestOnArrival).toHaveBeenCalledOnce();
+    expect(bar.arrived).toHaveBeenCalledOnce();
     f.runtime.assistantBarView?.show(false);
     vi.useRealTimers();
   });

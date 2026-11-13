@@ -1,6 +1,7 @@
 // Sends the composer's text on Enter, as WhatsApp does, adding it to the chat
-// as the account's own message (#407).
+// as the account's own message (#407), with an ID of its own as WhatsApp gives one.
 const composer = document.querySelector('[data-testid="composer"]');
+let sentCount = 0;
 
 // As WhatsApp's editor does, the message box puts its caret back after the
 // draft right after it takes the focus, so a selection made at that moment
@@ -19,7 +20,10 @@ composer.addEventListener('keydown', (event) => {
   const row = document.createElement('div');
   row.setAttribute('role', 'row');
   row.dataset.testid = 'sent';
-  row.innerHTML = '<span data-testid="tail-out"></span><span data-testid="selectable-text"></span>';
+  sentCount += 1;
+  row.innerHTML =
+    '<div><span data-testid="tail-out"></span><span data-testid="selectable-text"></span></div>';
+  row.firstElementChild.dataset.id = `3EB0S${String(sentCount)}`;
   row.querySelector('[data-testid="selectable-text"]').textContent = text;
   // After the last message, as WhatsApp keeps its messages apart from the
   // message box, with the assistant bar between them (#466).

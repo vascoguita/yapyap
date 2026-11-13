@@ -1,119 +1,84 @@
 import type { ReadChat } from '../../adapter/active-chat.ts';
-import type { UnreadSummaryChat } from '../../adapter/unread-summary.ts';
 import type { AssistantBarState, BarButtonId } from '../../shared/api/assistant-bar-api.ts';
 import { en } from '../../shared/messages/en.ts';
-import { modelsBesideAuto } from '../../shared/model-choices.ts';
 import type { SettingsService } from '../settings/service.ts';
 import { problemWords, privateWords, setupWords, type Fix, type Words } from './bar-words.ts';
-import { CATCH_UP_INSTRUCTIONS, digestOf } from './catch-up.ts';
 import type { AllowedChats } from './chats.ts';
 import type { AssistantCore } from './core.ts';
-import type { ProviderId } from './models.ts';
 import type { PrivateModels } from './private/private-model.ts';
 import { ProviderError } from './providers/provider.ts';
-import {
-  COMPOSE_INSTRUCTIONS,
-  INSTRUCTIONS,
-  SUMMARY_INSTRUCTIONS,
-  suggestionsIn,
-  transcriptOf,
-} from './replies.ts';
+import { INSTRUCTIONS, suggestionsIn, transcriptOf } from './replies.ts';
 import {
   cleanRewrite,
   isPolishStyle,
   POLISH_STYLES,
   rewriteInstructions,
-  rewriteOf,
-  rewriteOptions,
-  type Rewrite,
+  type PolishStyle,
 } from './rewrites.ts';
 import type { Setup } from './setup.ts';
 
-/** What the bar needs of the account on screen; nothing here sends a message on its own. */
+/** What the assistant needs of the account on screen; nothing here sends a message. */
 export interface BarAccounts {
   /** The account on screen; '' before there is one. */
   readonly active: () => string;
   /** Its open chat and last `messages` messages; null when no chat is open. */
   readonly readActiveChat: (messages: number) => Promise<ReadChat | null>;
-  /** Its chats with unread messages, from the chat list alone, so none is opened or marked read. */
-  readonly readUnreadSummary: () => Promise<readonly UnreadSummaryChat[]>;
   readonly readDraft: () => Promise<string | null>;
   /** Puts `text` in the open chat's message box in place of the draft; false when none is open. */
   readonly replaceDraft: (text: string) => Promise<boolean>;
-  /** Presses Enter in the message box, as the user would to send. */
-  readonly pressEnter: () => Promise<unknown>;
 }
 
 export interface BarDependencies {
   readonly core: AssistantCore;
-  readonly settings: Pick<SettingsService, 'current' | 'update'>;
-  readonly chats: Pick<AllowedChats, 'isAllowed' | 'allow'>;
+  readonly settings: Pick<SettingsService, 'current'>;
+  readonly chats: Pick<AllowedChats, 'isAllowed'>;
   readonly accounts: BarAccounts;
   readonly privateModels: Pick<PrivateModels, 'status' | 'download' | 'smaller' | 'outOfMemory'>;
-  /** The languages the bar offers to translate to. */
-  readonly languages: readonly string[];
   readonly openSettings: () => void;
-  readonly writeClipboard: (text: string) => unknown;
-  /** Shows the bar, or takes it away. */
+  /** Runs `run` after `ms`; returns how to call it off. */
+  readonly after: (ms: number, run: () => void) => () => void;
+  /** Shows the assistant in the page, or takes it away. */
   readonly show: (visible: boolean) => void;
-  /** Sends the bar's state to its page. */
+  /** Sends the state to the page. */
   readonly publish: (state: AssistantBarState) => void;
 }
 
-/** A request about the open chat. */
-type ChatRequest =
-  | { readonly kind: 'suggest' }
-  | { readonly kind: 'prompt'; readonly text: string }
-  | { readonly kind: 'summarize' }
-  /** A rewrite of the draft; one asked for in the message box replaces the draft in place (#609). */
-  | { readonly kind: 'rewrite'; readonly rewrite: Rewrite; readonly inPlace: boolean };
-
-/** What the bar holds between clicks. */
+/** What the assistant holds between clicks. */
 interface BarContext {
   readonly deps: BarDependencies;
   state: AssistantBarState;
-  /** The chat the shown suggestions or rewrite were made for, or the consent is asked in. */
+  /** The chat the shown suggestions or notice were made for. */
   chat: string | null;
-  /** The request waiting for the user to allow the assistant in its chat, whose buttons show only then. */
-  pending: ChatRequest;
-  /** The text the Copy, Use or Undo button acts on. */
+  /** The draft Undo puts back. */
   kept: string;
-  /** Exactly what Send sends to catch the user up, once they saw it; its button shows only then. */
-  catchUp: string;
-  /** What the fix button does, which shows only once there is one. */
+  /** What the notice's fix button does. */
   fix: Fix;
-  /** The bar shows what keeps the assistant from answering, which goes once it can. */
+  /** The notice says what keeps the assistant from answering, which goes once it can. */
   blocked: boolean;
-  /** A request runs; the next waits for it. */
+  /** A rewrite runs; another click waits for it. */
   busy: boolean;
-  /** WhatsApp drew the chat again while a request ran, so the chat is checked once it ends. */
-  redrawn: boolean;
+  /** The suggestions being made, called off when a newer message or another chat makes them stale. */
+  suggesting: AbortController | undefined;
+  /** Suggestions made for recent messages, by message, so a chat opened again shows the same ones. */
+  readonly made: Map<string, readonly string[]>;
 }
 
 const text = en.assistant;
 const MAX_SUGGESTION = 1000;
+/** As many messages' suggestions as are remembered; a chat further back asks again. */
+const MADE_KEPT = 20;
+/**
+ * How long a message must be the newest before suggestions are made for
+ * it, so a burst of messages, or chats opened one after another, asks once.
+ */
+export const SETTLE_MS = 600;
 
 const EMPTY: AssistantBarState = {
-  status: '',
   working: false,
   suggestions: [],
-  result: null,
-  buttons: [],
-  choice: undefined,
-  rewrites: [],
+  notice: null,
   polish: POLISH_STYLES[0],
-};
-
-const button = (id: BarButtonId, label: string, primary = false) => ({ id, label, primary });
-const close = button('close', text.bar.close);
-
-/** What the bar shows while the model answers. */
-const THINKING: Partial<AssistantBarState> = {
-  status: text.status.thinking,
-  working: true,
-  buttons: [],
-  result: null,
-  suggestions: [],
+  model: '',
 };
 
 function update(bar: BarContext, next: Partial<AssistantBarState>): void {
@@ -121,86 +86,45 @@ function update(bar: BarContext, next: Partial<AssistantBarState>): void {
   bar.deps.publish(bar.state);
 }
 
-/** Shows `words`, with its fix as a button, and nothing else. */
-function say(
-  bar: BarContext,
-  { status, fix }: Words,
-  extra: Partial<AssistantBarState> = {},
-): void {
+/** Shows `words` above the message box, with its fix as the notice's button. */
+function say(bar: BarContext, { status, fix }: Words): void {
   bar.fix = fix?.action ?? bar.fix;
-  const buttons = fix === undefined ? [] : [button('fix', fix.label, true)];
-  update(bar, { status, buttons, suggestions: [], result: null, working: false, ...extra });
+  const button = fix === undefined ? null : { id: 'fix' as const, label: fix.label };
+  update(bar, { notice: { text: status, button } });
 }
 
-/** The model chip: Auto, which names the model it picks, then the provider's other models. */
-function choiceOf(setup: Setup, picked: string): AssistantBarState['choice'] {
-  if (setup.models.length === 0) {
-    return undefined;
+/** The model in use, by name, or what keeps the assistant from having one. */
+function modelName(setup: Setup): string {
+  if (setup.missing !== '') {
+    return text.composer.noModel;
   }
-  const auto =
-    setup.auto === undefined
-      ? text.settings.model.auto
-      : text.settings.model.autoNamed({ model: setup.auto.label });
-  const listed = setup.models.some(({ id }) => id === picked);
-  const models = modelsBesideAuto(setup.models, setup.auto ?? null, picked);
-  return {
-    label: text.bar.model,
-    current: listed ? picked : 'auto',
-    options: [
-      { value: 'auto', label: auto },
-      ...models.map(({ id, label }) => ({ value: id, label })),
-    ],
-  };
+  return setup.models.find(({ id }) => id === setup.model)?.label ?? setup.model;
 }
 
-/** The setup, if the assistant can answer; else the bar says what is missing and how to fix it. */
+/** The setup, if the assistant can answer; else the notice says what is missing and how to fix it. */
 async function ready(bar: BarContext): Promise<Setup | undefined> {
   const setup = await bar.deps.core.setup();
-  const choice = choiceOf(setup, bar.deps.settings.current().assistant.model);
+  update(bar, { model: modelName(setup) });
   if (setup.missing !== '') {
     bar.blocked = true;
-    say(bar, setupWords(setup, await bar.deps.privateModels.status()), { choice });
+    say(bar, setupWords(setup, await bar.deps.privateModels.status()));
     return undefined;
   }
   if (bar.blocked) {
     bar.blocked = false;
-    say(bar, { status: '' }, { choice });
-  } else {
-    update(bar, { choice });
+    update(bar, { notice: null });
   }
   return setup;
 }
 
-const messages = (bar: BarContext): number =>
-  Number(bar.deps.settings.current().assistant.messages);
+const assistantSettings = (bar: BarContext) => bar.deps.settings.current().assistant;
 
-/** What `request` sends about `chat`: its instructions and its text, or why there is nothing. */
-async function material(
-  bar: BarContext,
-  request: ChatRequest,
-  chat: ReadChat,
-): Promise<{ readonly instructions: string; readonly text: string } | undefined> {
-  const transcript = transcriptOf(chat, messages(bar));
-  switch (request.kind) {
-    case 'suggest':
-      return { instructions: INSTRUCTIONS, text: transcript };
-    case 'prompt':
-      return {
-        instructions: COMPOSE_INSTRUCTIONS,
-        text: `${transcript}\n\nWhat I want to say: ${request.text}`,
-      };
-    case 'summarize':
-      return { instructions: SUMMARY_INSTRUCTIONS, text: transcript };
-    default: {
-      const draft = await bar.deps.accounts.readDraft();
-      return draft === null || draft.trim() === ''
-        ? undefined
-        : { instructions: rewriteInstructions(request.rewrite), text: draft };
-    }
-  }
-}
+/** Whether the user lets the assistant read `name`: every chat, or the ones they listed (#107). */
+const mayRead = (bar: BarContext, name: string): boolean =>
+  assistantSettings(bar).chats === 'all' ||
+  bar.deps.chats.isAllowed(bar.deps.accounts.active(), name);
 
-/** Explains a failed request; a private model short of memory offers the smaller one. */
+/** Explains a failed rewrite; a private model short of memory offers the smaller one. */
 async function failed(bar: BarContext, setup: Setup, error: unknown): Promise<void> {
   const kind = error instanceof ProviderError ? error.kind : 'failed';
   if (kind === 'out-of-memory') {
@@ -210,203 +134,107 @@ async function failed(bar: BarContext, setup: Setup, error: unknown): Promise<vo
   say(bar, problemWords(kind, setup.provider, smaller));
 }
 
-/** Shows what the model answered to `request`, as suggestions or a text to read or use. */
-function answered(bar: BarContext, request: ChatRequest, answer: string): void {
-  if (request.kind === 'summarize') {
-    bar.kept = answer.trim();
-    say(bar, { status: '' }, { result: bar.kept, buttons: [button('copy', text.bar.copy), close] });
-    return;
-  }
-  if (request.kind === 'rewrite') {
-    offerRewrite(bar, cleanRewrite(answer), '');
-    return;
-  }
-  const found = request.kind === 'suggest' ? suggestionsIn(answer) : [cleanRewrite(answer)];
-  const suggestions = found
-    .filter((item) => item !== '')
-    .map((item) => item.slice(0, MAX_SUGGESTION));
-  say(bar, { status: suggestions.length === 0 ? text.status.nothing : '' }, { suggestions });
-}
-
-/** Shows a rewrite to read, with Use to put it in place of the draft. */
-function offerRewrite(bar: BarContext, rewritten: string, status: string): void {
-  bar.kept = rewritten;
-  const use = button('use', text.bar.useRewrite, true);
-  say(bar, { status }, { result: rewritten, buttons: [use, button('copy', text.bar.copy), close] });
-}
-
 /**
  * Puts the rewrite of `draft` in its place, and keeps `draft` for Undo.
  * A draft the user changed while the model answered is theirs, so it is
- * left as it is, and the rewrite shows in the bar instead (#609).
+ * left as it is, and so is a chat the user left (#609).
  */
-async function rewriteInPlace(bar: BarContext, answer: string, draft: string): Promise<void> {
-  const rewritten = cleanRewrite(answer);
+async function putInPlace(
+  bar: BarContext,
+  style: PolishStyle,
+  rewritten: string,
+  { draft, chat }: { readonly draft: string; readonly chat: string },
+): Promise<void> {
   if (rewritten === '') {
     say(bar, { status: text.status.nothing });
     return;
   }
-  if ((await sameChat(bar)) === undefined) {
+  const open = await bar.deps.accounts.readActiveChat(1);
+  if (open?.name !== chat) {
     return;
   }
   if ((await bar.deps.accounts.readDraft()) !== draft) {
-    offerRewrite(bar, rewritten, text.status.draftChanged);
+    say(bar, { status: text.status.draftChanged });
     return;
   }
-  if (!(await bar.deps.accounts.replaceDraft(rewritten))) {
-    offerRewrite(bar, rewritten, '');
-    return;
-  }
-  bar.kept = draft;
-  say(bar, { status: text.status.rewritten }, { buttons: [button('undo', text.bar.undo), close] });
-}
-
-/** Asks the model about `chat`, which the user allowed, and shows the answer. */
-async function run(bar: BarContext, setup: Setup, request: ChatRequest, chat: ReadChat) {
-  const sent = await material(bar, request, chat);
-  if (sent === undefined) {
-    say(bar, { status: text.status.emptyDraft });
-    return;
-  }
-  update(bar, THINKING);
-  let answer: string;
-  try {
-    answer = await bar.deps.core.ask(setup, sent.instructions, sent.text);
-  } catch (error) {
-    await failed(bar, setup, error);
-    return;
-  }
-  if (request.kind === 'rewrite' && request.inPlace) {
-    await rewriteInPlace(bar, answer, sent.text);
-  } else {
-    answered(bar, request, answer);
+  if (await bar.deps.accounts.replaceDraft(rewritten)) {
+    bar.kept = draft;
+    bar.chat = chat;
+    const button = { id: 'undo' as const, label: text.bar.undo };
+    update(bar, { suggestions: [], notice: { text: text.bar.done[style], button } });
   }
 }
 
-/** Asks the user to allow the assistant in this chat, before anything of it is read for the model. */
-function askConsent(bar: BarContext, setup: Setup, request: ChatRequest): void {
-  bar.pending = request;
-  const status =
-    setup.provider === 'built-in' || setup.provider === 'local'
-      ? text.status.consentPrivate
-      : text.status.consent({ provider: text.providers[setup.provider as ProviderId] });
-  say(
-    bar,
-    { status },
-    {
-      buttons: [button('allow', text.bar.allow, true), button('what-sent', text.bar.whatSent)],
-    },
-  );
-}
-
-/**
- * Answers a request about the open chat. Nothing about a chat is read for
- * the model until the user allows the assistant there (#107).
- */
-async function aboutChat(bar: BarContext, request: ChatRequest): Promise<void> {
-  const setup = await ready(bar);
-  if (setup === undefined) {
-    return;
-  }
-  const chat = await bar.deps.accounts.readActiveChat(messages(bar));
-  bar.chat = chat?.name ?? null;
+/** The draft to rewrite in the open chat, if there is one and the assistant may work there. */
+async function draftToRewrite(
+  bar: BarContext,
+): Promise<{ readonly draft: string; readonly chat: string } | undefined> {
+  const chat = await bar.deps.accounts.readActiveChat(1);
   if (chat === null) {
-    say(bar, { status: text.status.noChat });
-    return;
-  }
-  const account = bar.deps.accounts.active();
-  if (!bar.deps.chats.isAllowed(account, chat.name)) {
-    askConsent(bar, setup, request);
-    return;
-  }
-  await run(bar, setup, request, chat);
-}
-
-/** The open chat, if it is still the one the bar's offer was made for. */
-async function sameChat(bar: BarContext): Promise<ReadChat | undefined> {
-  const chat = await bar.deps.accounts.readActiveChat(messages(bar));
-  if (chat?.name !== bar.chat) {
-    say(bar, { status: text.status.chatChanged });
     return undefined;
   }
-  return chat;
+  if (!mayRead(bar, chat.name)) {
+    bar.fix = 'settings';
+    update(bar, {
+      notice: { text: text.status.notAllowed, button: { id: 'fix', label: text.bar.openSettings } },
+    });
+    return undefined;
+  }
+  const draft = await bar.deps.accounts.readDraft();
+  return draft === null || draft.trim() === '' ? undefined : { draft, chat: chat.name };
 }
 
-/** Shows exactly what would be sent about the chat, before the user allows it. */
-async function whatSent(bar: BarContext): Promise<void> {
-  const chat = await sameChat(bar);
-  if (chat === undefined) {
-    return;
-  }
-  const sent = await material(bar, bar.pending, chat);
-  const result = sent === undefined ? null : `${sent.instructions}\n\n${sent.text}`;
-  update(bar, {
-    result,
-    status: sent === undefined ? text.status.emptyDraft : text.status.preview,
-    buttons: [button('allow', text.bar.allow, true), close],
-  });
-}
-
-/** Allows the assistant in the chat the consent was asked in, while it is still open, and answers. */
-async function allow(bar: BarContext): Promise<void> {
-  const request = bar.pending;
-  const chat = await sameChat(bar);
-  if (chat === undefined) {
-    return;
-  }
-  await bar.deps.chats.allow(bar.deps.accounts.active(), chat.name);
+/** Rewrites the draft in `style` and puts the rewrite in its place; it never sends it. */
+async function rewrite(bar: BarContext, style: PolishStyle): Promise<void> {
   const setup = await ready(bar);
-  if (setup !== undefined) {
-    await run(bar, setup, request, chat);
-  }
-}
-
-/**
- * Previews exactly what catching up sends (#106): each unread chat's
- * name, count and latest message, from the chat list alone. Send is the
- * user's consent for that one text, and allows the assistant in no chat.
- */
-async function catchUp(bar: BarContext): Promise<void> {
-  if ((await ready(bar)) === undefined) {
+  const found = setup === undefined ? undefined : await draftToRewrite(bar);
+  if (setup === undefined || found === undefined) {
     return;
   }
-  const digest = digestOf(await bar.deps.accounts.readUnreadSummary());
-  if (digest === '') {
-    say(bar, { status: text.status.noUnread });
-    return;
-  }
-  bar.catchUp = digest;
-  say(
-    bar,
-    { status: text.status.catchUp },
-    {
-      result: `${CATCH_UP_INSTRUCTIONS}\n\n${digest}`,
-      buttons: [button('send', text.bar.send, true), close],
-    },
-  );
-}
-
-/** Sends the catch-up the user saw, and only that, then shows what the model made of it. */
-async function sendCatchUp(bar: BarContext): Promise<void> {
-  const digest = bar.catchUp;
-  const setup = await ready(bar);
-  if (setup === undefined) {
-    return;
-  }
-  update(bar, THINKING);
+  update(bar, { working: true, notice: null });
+  let answer: string;
   try {
-    const answer = await bar.deps.core.ask(setup, CATCH_UP_INSTRUCTIONS, digest);
-    answered(bar, { kind: 'summarize' }, answer);
+    answer = await bar.deps.core.ask(setup, rewriteInstructions(style), found.draft);
   } catch (error) {
+    update(bar, { working: false });
     await failed(bar, setup, error);
+    return;
+  }
+  update(bar, { working: false });
+  await putInPlace(bar, style, cleanRewrite(answer), found);
+}
+
+/** Rewrites the draft in one of the button's ways, which it then keeps; one rewrite at a time. */
+async function polish(bar: BarContext, value: string): Promise<void> {
+  if (!isPolishStyle(value) || bar.busy) {
+    return;
+  }
+  update(bar, { polish: value });
+  bar.busy = true;
+  try {
+    await rewrite(bar, value);
+  } finally {
+    bar.busy = false;
   }
 }
 
-/** Puts the kept text in place of the draft, if its chat is still open: a rewrite, or the draft Undo restores. */
-async function useRewrite(bar: BarContext): Promise<void> {
-  if ((await sameChat(bar)) !== undefined && (await bar.deps.accounts.replaceDraft(bar.kept))) {
-    say(bar, { status: '' });
+/** Takes away what the assistant shows about its chat, and calls off suggestions being made. */
+function forget(bar: BarContext): void {
+  bar.suggesting?.abort();
+  bar.suggesting = undefined;
+  bar.chat = null;
+  bar.kept = '';
+  bar.blocked = false;
+  update(bar, { suggestions: [], notice: null });
+}
+
+/** Puts back the draft a rewrite replaced, while its chat is still open. */
+async function undo(bar: BarContext): Promise<void> {
+  const open = await bar.deps.accounts.readActiveChat(1);
+  if (open !== null && open.name === bar.chat) {
+    await bar.deps.accounts.replaceDraft(bar.kept);
   }
+  update(bar, { notice: null });
 }
 
 const FIXES: Readonly<Record<Fix, (deps: BarDependencies) => unknown>> = {
@@ -420,212 +248,197 @@ const FIXES: Readonly<Record<Fix, (deps: BarDependencies) => unknown>> = {
 };
 
 const BUTTONS: Readonly<Record<BarButtonId, (bar: BarContext) => unknown>> = {
-  allow,
-  'what-sent': whatSent,
-  send: sendCatchUp,
-  copy: (bar) => {
-    bar.deps.writeClipboard(bar.kept);
-    update(bar, { status: text.status.copied });
-  },
-  use: useRewrite,
-  undo: useRewrite,
-  close: (bar) => {
-    say(bar, { status: '' });
-  },
+  undo,
   fix: (bar) => FIXES[bar.fix](bar.deps),
+  close: (bar) => {
+    update(bar, { notice: null });
+  },
 };
 
-/** Puts the suggestion at `index` in the message box, if the chat it was made for is still open. */
-async function pick(bar: BarContext, index: number): Promise<boolean> {
+/** Presses the notice's button, or its close; any other is dropped. */
+async function press(bar: BarContext, id: BarButtonId): Promise<void> {
+  const shown = bar.state.notice;
+  if (shown !== null && (id === 'close' || shown.button?.id === id)) {
+    await BUTTONS[id](bar);
+  }
+}
+
+/** Puts the suggestion at `index` in the message box, if its chat is still open; it never sends it. */
+async function use(bar: BarContext, index: number): Promise<void> {
   const suggestion = bar.state.suggestions[index];
-  if (suggestion === undefined || (await sameChat(bar)) === undefined) {
-    return false;
-  }
-  return bar.deps.accounts.replaceDraft(suggestion);
-}
-
-/** Switches to an offered model, and asks again with it if suggestions were showing (#467). */
-async function choose(bar: BarContext, value: string): Promise<void> {
-  const offered = bar.state.choice?.options.some((option) => option.value === value) === true;
-  if (!offered) {
-    return;
-  }
-  bar.deps.settings.update((settings) => ({
-    ...settings,
-    assistant: { ...settings.assistant, model: value },
-  }));
-  if (bar.state.suggestions.length > 0) {
-    await aboutChat(bar, { kind: 'suggest' });
+  const open = suggestion === undefined ? null : await bar.deps.accounts.readActiveChat(1);
+  if (open !== null && open.name === bar.chat) {
+    update(bar, { suggestions: [] });
+    await bar.deps.accounts.replaceDraft(String(suggestion));
   }
 }
 
-/** Asks for suggestions when a message arrives, only where the assistant may already read the chat. */
-async function suggestOnArrival(bar: BarContext): Promise<void> {
+/** Keeps the suggestions made for `message`, forgetting the oldest beyond {@link MADE_KEPT}. */
+function remember(bar: BarContext, message: string, suggestions: readonly string[]): void {
+  bar.made.delete(message);
+  bar.made.set(message, suggestions);
+  for (const old of [...bar.made.keys()].slice(0, -MADE_KEPT)) {
+    bar.made.delete(old);
+  }
+}
+
+/** Hides the suggestions until another message arrives, even if this chat is opened again. */
+function dismiss(bar: BarContext, message: string | null): void {
+  if (message !== null) {
+    remember(bar, message, []);
+  }
+  update(bar, { suggestions: [] });
+}
+
+/** The open chat, if the user wants suggestions there and its last message is someone else's. */
+async function chatToAnswer(bar: BarContext): Promise<ReadChat | undefined> {
+  const chat = await bar.deps.accounts.readActiveChat(Number(assistantSettings(bar).messages));
+  const theirs = chat?.messages.at(-1)?.outgoing === false;
+  return chat !== null && theirs && mayRead(bar, chat.name) ? chat : undefined;
+}
+
+const isAborted = (signal: AbortSignal): boolean => signal.aborted;
+
+/** Asks for suggestions for the open chat; nothing shows if it fails or it went stale. */
+async function makeSuggestions(bar: BarContext, message: string, signal: AbortSignal) {
   const setup = await bar.deps.core.setup();
-  const chat = setup.missing === '' ? await bar.deps.accounts.readActiveChat(messages(bar)) : null;
-  const account = bar.deps.accounts.active();
-  if (chat === null || !bar.deps.chats.isAllowed(account, chat.name)) {
+  const chat = setup.missing === '' ? await chatToAnswer(bar) : undefined;
+  if (chat === undefined || signal.aborted) {
     return;
   }
+  const transcript = transcriptOf(chat, Number(assistantSettings(bar).messages));
+  const answer = await bar.deps.core.ask(setup, INSTRUCTIONS, transcript, signal);
+  // A newer message or another chat may have called the request off while the model answered.
+  if (isAborted(signal)) {
+    return;
+  }
+  const suggestions = suggestionsIn(answer).map((item) => item.slice(0, MAX_SUGGESTION));
+  remember(bar, message, suggestions);
   bar.chat = chat.name;
-  await run(bar, setup, { kind: 'suggest' }, chat);
+  update(bar, { suggestions });
 }
 
-/** Whether the bar shows nothing the user is reading or waiting for. */
-const idle = (bar: BarContext): boolean =>
-  !bar.busy && bar.state.result === null && bar.state.suggestions.length === 0;
-
-/** Shows how the setup stands. */
-async function refresh(bar: BarContext): Promise<void> {
-  if (idle(bar)) {
-    await ready(bar);
-  }
-}
-
-/** What the bar does with the user's clicks, and with messages as they arrive. */
-export interface AssistantBar {
-  readonly state: () => AssistantBarState;
-  /** Shows or hides the bar as the settings say, and how the setup stands. */
-  readonly refresh: () => Promise<void>;
-  readonly suggest: () => Promise<void>;
-  readonly suggestOnArrival: () => Promise<void>;
-  readonly prompt: (text: string) => Promise<void>;
-  readonly summarize: () => Promise<void>;
-  readonly rewrite: (value: string) => Promise<void>;
-  /** Rewrites the draft in place in one of the message box button's ways, and keeps that way. */
-  readonly polish: (value: string) => Promise<void>;
-  readonly catchUp: () => Promise<void>;
-  readonly use: (index: number) => Promise<void>;
-  readonly send: (index: number) => Promise<void>;
-  readonly choose: (value: string) => Promise<void>;
-  readonly button: (id: string) => Promise<void>;
-  /** The private model changed; its download's progress shows while the bar has nothing else to. */
-  readonly privateModelChanged: () => Promise<void>;
-  /** WhatsApp drew the open chat again, which it does when the user opens another. */
-  readonly chatRedrawn: () => Promise<void>;
-}
-
-/** Answers a request about the open chat, unless another request runs. */
-const chatRequest = (bar: BarContext, request: ChatRequest): Promise<void> =>
-  once(bar, () => aboutChat(bar, request));
-
-/** Rewrites the draft in one of the offered ways; anything else is dropped. */
-async function rewriteDraft(bar: BarContext, value: string): Promise<void> {
-  const rewrite = rewriteOf(value, bar.deps.languages);
-  if (rewrite !== undefined) {
-    await chatRequest(bar, { kind: 'rewrite', rewrite, inPlace: false });
-  }
-}
-
-/** Rewrites the draft in place in one of the button's ways, which it then offers first. */
-async function polishDraft(bar: BarContext, value: string): Promise<void> {
-  if (!isPolishStyle(value)) {
-    return;
-  }
-  update(bar, { polish: value });
-  const rewrite = { style: value, language: '' };
-  await chatRequest(bar, { kind: 'rewrite', rewrite, inPlace: true });
-}
-
-/** Sends a suggestion on the user's click: in the message box, then Enter, as the user would. */
-async function send(bar: BarContext, index: number): Promise<void> {
-  if (await pick(bar, index)) {
-    await bar.deps.accounts.pressEnter();
-    say(bar, { status: '' });
-  }
-}
-
-/** Presses one of the buttons the bar shows now; any other is dropped. */
-function press(bar: BarContext, id: string): Promise<void> {
-  const shown = bar.state.buttons.find((offered) => offered.id === id);
-  return shown === undefined
-    ? Promise.resolve()
-    : once(bar, () => Promise.resolve(BUTTONS[shown.id](bar)));
-}
-
-/** Runs `work` unless another request runs: one at a time, and a second click is dropped. */
-async function once(bar: BarContext, work: () => Promise<unknown>): Promise<void> {
-  if (bar.busy) {
-    return;
-  }
-  bar.busy = true;
-  try {
-    await work();
-  } finally {
-    bar.busy = false;
-  }
-  if (bar.redrawn) {
-    bar.redrawn = false;
-    await once(bar, () => forgetOtherChat(bar));
-  }
-}
-
-/** Whether the bar shows something made for, or asked about, its chat. */
-const aboutItsChat = (bar: BarContext): boolean =>
-  bar.chat !== null &&
-  (bar.state.suggestions.length > 0 || bar.state.result !== null || bar.state.buttons.length > 0);
+/** Waits until `message` settled as the newest; false if a newer one or another chat came first. */
+const settled = (bar: BarContext, signal: AbortSignal): Promise<boolean> =>
+  new Promise((done) => {
+    const cancel = bar.deps.after(SETTLE_MS, () => {
+      done(true);
+    });
+    signal.addEventListener('abort', () => {
+      cancel();
+      done(false);
+    });
+  });
 
 /**
- * Takes away what the bar shows for its chat once another chat is open, so
- * suggestions never sit above the wrong chat. The open chat is read only
- * then, and a chat that cannot be read leaves the bar as it is.
+ * Suggests replies to `message`, the open chat's newest, from someone
+ * else. Suggestions already made for it show again, and none show after
+ * the user dismissed them.
  */
-async function forgetOtherChat(bar: BarContext): Promise<void> {
-  if (!aboutItsChat(bar)) {
+async function suggest(bar: BarContext, message: string): Promise<void> {
+  bar.suggesting?.abort();
+  const known = assistantSettings(bar).autoSuggest ? bar.made.get(message) : [];
+  if (known !== undefined) {
+    update(bar, { suggestions: known });
     return;
   }
-  const chat = await bar.deps.accounts.readActiveChat(1).catch(() => undefined);
-  if (chat === undefined || chat?.name === bar.chat) {
-    return;
+  const controller = new AbortController();
+  bar.suggesting = controller;
+  update(bar, { suggestions: [] });
+  if (await settled(bar, controller.signal)) {
+    // A failed request shows nothing: suggestions come on their own, and a rewrite says what fails.
+    await makeSuggestions(bar, message, controller.signal).catch(() => undefined);
   }
-  bar.chat = null;
-  bar.kept = '';
-  say(bar, { status: '' });
-  await refresh(bar);
 }
 
-/** WhatsApp drew the chat again; a request that runs is let finish first. */
-function chatRedrawn(bar: BarContext): Promise<void> {
-  if (bar.busy) {
-    bar.redrawn = true;
-    return Promise.resolve();
-  }
-  return once(bar, () => forgetOtherChat(bar));
-}
-
-/** Download progress shows while the bar has nothing else to; a ready model clears it. */
+/** Download progress replaces a notice about the private model; a ready model takes it away. */
 async function followDownload(bar: BarContext): Promise<void> {
-  if (!idle(bar)) {
+  if (!bar.blocked) {
     return;
   }
   const status = await bar.deps.privateModels.status();
   if (status.phase.kind === 'ready' || status.phase.kind === 'none') {
-    await refresh(bar);
+    await ready(bar);
     return;
   }
-  bar.blocked = true;
   say(bar, privateWords(status));
 }
 
+/** Names the model in use; a notice about the setup shows how it stands now, or goes. */
+async function refresh(bar: BarContext): Promise<void> {
+  if (bar.blocked) {
+    await ready(bar);
+  } else {
+    update(bar, { model: modelName(await bar.deps.core.setup()) });
+  }
+}
+
+/** What the assistant does with the user's clicks, and with the open chat as it changes. */
+export interface AssistantBar {
+  readonly state: () => AssistantBarState;
+  /** Shows or hides the assistant as the settings say, with the model in use and how the setup stands. */
+  readonly refresh: () => Promise<void>;
+  /** Rewrites the draft in place in one of the rewrite button's ways, and keeps that way. */
+  readonly polish: (value: string) => Promise<void>;
+  readonly use: (index: number) => Promise<void>;
+  readonly dismiss: () => void;
+  readonly button: (id: BarButtonId) => Promise<void>;
+  /** Another chat is open, with `message` its newest from someone else if it is the last one. */
+  readonly opened: (message: string | null) => void;
+  /** A message from someone else arrived in the open chat, and is its last. */
+  readonly arrived: (message: string) => void;
+  /** The user sent a message in the open chat. */
+  readonly sent: () => void;
+  /** The private model changed; its download's progress shows while a notice is about it. */
+  readonly privateModelChanged: () => Promise<void>;
+}
+
+/** What the assistant does as the open chat changes, and with the suggestions' dismiss. */
+function followChat(
+  bar: BarContext,
+): Pick<AssistantBar, 'dismiss' | 'opened' | 'arrived' | 'sent'> {
+  // The open chat's newest message from someone else, while it is the last one.
+  let message: string | null = null;
+  return {
+    dismiss: () => {
+      dismiss(bar, message);
+    },
+    opened: (newest) => {
+      message = newest;
+      forget(bar);
+      if (newest !== null) {
+        void suggest(bar, newest);
+      }
+    },
+    arrived: (newest) => {
+      message = newest;
+      void suggest(bar, newest);
+    },
+    sent: () => {
+      message = null;
+      bar.suggesting?.abort();
+      update(bar, { suggestions: [], notice: null });
+    },
+  };
+}
+
 /**
- * The assistant bar above the open chat's message box (ADR 0013, ADR 0017):
- * YapYap's own assistant, which reads a chat only once the user allowed it
- * there, shows what it would send when asked, and acts only on the user's
- * clicks. It puts drafts in the message box; only the user's click on a
- * suggestion's Send sends one, after checking the chat is still the same.
+ * The assistant in the open chat's message box (ADR 0013, ADR 0017): the
+ * rewrite button, and the suggestions and notices right above the box. It
+ * reads a chat only where the user lets it, acts only on the user's
+ * clicks, and never sends a message: it only puts text in the message box.
  */
 export function createAssistantBar(deps: BarDependencies): AssistantBar {
   const bar: BarContext = {
     deps,
-    state: { ...EMPTY, rewrites: rewriteOptions(deps.languages) },
+    state: EMPTY,
     chat: null,
-    pending: { kind: 'suggest' },
     kept: '',
-    catchUp: '',
     fix: 'settings',
     blocked: false,
     busy: false,
-    redrawn: false,
+    suggesting: undefined,
+    made: new Map(),
   };
   return {
     state: () => bar.state,
@@ -633,20 +446,10 @@ export function createAssistantBar(deps: BarDependencies): AssistantBar {
       deps.show(deps.settings.current().assistant.enabled);
       await refresh(bar);
     },
-    suggest: () => chatRequest(bar, { kind: 'suggest' }),
-    suggestOnArrival: () => once(bar, () => suggestOnArrival(bar)),
-    prompt: (typed) => chatRequest(bar, { kind: 'prompt', text: typed }),
-    summarize: () => chatRequest(bar, { kind: 'summarize' }),
-    rewrite: (value) => rewriteDraft(bar, value),
-    polish: (value) => polishDraft(bar, value),
-    catchUp: () => once(bar, () => catchUp(bar)),
-    use: async (index) => {
-      await pick(bar, index);
-    },
-    send: (index) => send(bar, index),
-    choose: (value) => once(bar, () => choose(bar, value)),
+    polish: (value) => polish(bar, value),
+    use: (index) => use(bar, index),
     button: (id) => press(bar, id),
     privateModelChanged: () => followDownload(bar),
-    chatRedrawn: () => chatRedrawn(bar),
+    ...followChat(bar),
   };
 }

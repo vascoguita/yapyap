@@ -136,6 +136,11 @@ export interface Messages {
         };
         readonly model: { readonly label: string; readonly description: string };
         readonly autoSuggest: { readonly label: string; readonly description: string };
+        readonly chats: {
+          readonly label: string;
+          readonly description: string;
+          readonly options: { readonly all: string; readonly chosen: string };
+        };
         readonly messages: {
           readonly label: string;
           readonly description: string;
@@ -441,8 +446,6 @@ export interface Messages {
           readonly openai: string;
           readonly none: string;
         };
-        readonly chats: string;
-        readonly chatsHint: string;
         readonly noChats: string;
         readonly unnamed: string;
         readonly remove: string;
@@ -451,46 +454,39 @@ export interface Messages {
           readonly account: string | number;
           readonly chat: string | number;
         }) => string;
+        readonly addOpenChat: string;
+        readonly noOpenChat: string;
       };
-      readonly shortcuts: string;
       readonly unavailable: string;
     };
     readonly bar: {
       readonly label: string;
-      readonly name: string;
-      readonly suggest: string;
-      readonly summarize: string;
-      readonly rewrite: string;
-      readonly rewriteLabel: string;
+      readonly suggestions: string;
+      readonly use: string;
+      readonly dismiss: string;
+      readonly close: string;
+      readonly undo: string;
       readonly styles: {
         readonly polish: string;
         readonly shorten: string;
         readonly elaborate: string;
+        readonly soften: string;
         readonly formalize: string;
-        readonly friendlier: string;
       };
       readonly styleHints: {
         readonly polish: string;
         readonly shorten: string;
         readonly elaborate: string;
+        readonly soften: string;
         readonly formalize: string;
       };
-      readonly translate: (params: { readonly language: string | number }) => string;
-      readonly catchUp: string;
-      readonly catchUpLabel: string;
-      readonly write: string;
-      readonly writePlaceholder: string;
-      readonly use: string;
-      readonly sendLabel: string;
-      readonly model: string;
-      readonly settings: string;
-      readonly copy: string;
-      readonly close: string;
-      readonly useRewrite: string;
-      readonly undo: string;
-      readonly allow: string;
-      readonly whatSent: string;
-      readonly send: string;
+      readonly done: {
+        readonly polish: string;
+        readonly shorten: string;
+        readonly elaborate: string;
+        readonly soften: string;
+        readonly formalize: string;
+      };
       readonly setUp: string;
       readonly pasteKey: string;
       readonly resume: string;
@@ -498,26 +494,14 @@ export interface Messages {
       readonly openSettings: string;
     };
     readonly status: {
-      readonly noChat: string;
-      readonly chatChanged: string;
-      readonly thinking: string;
-      readonly copied: string;
-      readonly consent: (params: { readonly provider: string | number }) => string;
-      readonly consentPrivate: string;
-      readonly preview: string;
-      readonly catchUp: string;
-      readonly nothing: string;
-      readonly emptyDraft: string;
-      readonly noUnread: string;
       readonly setUp: string;
       readonly key: (params: { readonly provider: string | number }) => string;
       readonly download: string;
       readonly noModel: (params: { readonly provider: string | number }) => string;
       readonly localServer: string;
-      readonly openChat: string;
-      readonly off: string;
-      readonly rewritten: string;
+      readonly nothing: string;
       readonly draftChanged: string;
+      readonly notAllowed: string;
     };
     readonly problems: {
       readonly auth: (params: { readonly provider: string | number }) => string;
@@ -546,11 +530,10 @@ export interface Messages {
     };
     readonly composer: {
       readonly label: string;
-      readonly tip: (params: {
-        readonly hint: string | number;
-        readonly style: string | number;
-      }) => string;
       readonly more: string;
+      readonly settings: string;
+      readonly model: (params: { readonly model: string | number }) => string;
+      readonly noModel: string;
     };
   };
   readonly agents: {
@@ -746,9 +729,6 @@ export interface Messages {
       readonly toggleWindow: string;
       readonly hide: string;
       readonly quit: string;
-      readonly assistantSuggest: string;
-      readonly assistantSummarize: string;
-      readonly assistantCatchUp: string;
     };
   };
   readonly spellingLanguages: {
@@ -821,9 +801,6 @@ export interface Messages {
     readonly window: string;
     readonly reportProblem: string;
     readonly assistant: string;
-    readonly assistantSuggest: string;
-    readonly assistantSummarize: string;
-    readonly assistantCatchUp: string;
     readonly assistantSettings: string;
   };
   readonly windows: {

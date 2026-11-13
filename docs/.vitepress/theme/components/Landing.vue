@@ -119,15 +119,15 @@ const faqs: readonly { readonly question: string; readonly answer: string }[] = 
         <p class="kicker">AI assistant</p>
         <h2>An AI co-writer in every chat.</h2>
         <p>
-          Get reply ideas in a click. Turn a rushed draft into something friendlier, more formal or
-          shorter, or into another language. Catch up on a long group chat with a summary. Bring
-          Claude, OpenAI, or a model that runs on your own machine and never leaves it.
+          Get reply ideas as messages arrive, and put one in the message box with a click. Turn a
+          rushed draft into something polished, shorter, gentler or more formal. Bring Claude,
+          OpenAI, or a model that runs on your own machine and never leaves it.
         </p>
         <ul>
           <li>Built in: set it up once in Settings, no install</li>
           <li>Works with Claude, OpenAI, local models such as Ollama, or a private model</li>
-          <li>You see exactly what is shared, and nothing is sent without your click</li>
-          <li>Suggestions, summaries, rewrites and catch-ups right above the message box</li>
+          <li>Works only in the chats you choose, and never sends a message for you</li>
+          <li>Suggestions and rewrites right in the message box</li>
         </ul>
         <a class="more" href="/guide/ai-assistant">Meet the assistant</a>
       </div>

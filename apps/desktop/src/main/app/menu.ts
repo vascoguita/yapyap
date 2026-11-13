@@ -49,12 +49,6 @@ export interface MenuActions {
   readonly openReport: () => void;
   /** Help → Record a Performance Trace, for slow-downs a log cannot explain (#113). */
   readonly recordTrace: () => void;
-  /** The assistant's actions, which its bar in the open chat answers (ADR 0017). */
-  readonly assistant: {
-    readonly suggest: () => void;
-    readonly summarize: () => void;
-    readonly catchUp: () => void;
-  };
 }
 
 /** Zoom in YapYap's own 5% steps, kept per account. */
@@ -200,29 +194,14 @@ function accountMenu(actions: MenuActions, keys: Keys): MenuItemConstructorOptio
   };
 }
 
-/** The assistant's actions and its settings, which open at the assistant (ADR 0017). */
-function assistantMenu(actions: MenuActions, keys: Keys): MenuItemConstructorOptions {
+/**
+ * The assistant's settings, which open at the assistant (ADR 0017). The
+ * assistant itself works in the message box, so it needs no menu items.
+ */
+function assistantMenu(actions: MenuActions): MenuItemConstructorOptions {
   return {
     label: en.menu.assistant,
-    submenu: [
-      {
-        label: en.menu.assistantSuggest,
-        ...keyed('assistantSuggest', keys),
-        click: actions.assistant.suggest,
-      },
-      {
-        label: en.menu.assistantSummarize,
-        ...keyed('assistantSummarize', keys),
-        click: actions.assistant.summarize,
-      },
-      {
-        label: en.menu.assistantCatchUp,
-        ...keyed('assistantCatchUp', keys),
-        click: actions.assistant.catchUp,
-      },
-      { type: 'separator' },
-      { label: en.menu.assistantSettings, click: actions.openSettings },
-    ],
+    submenu: [{ label: en.menu.assistantSettings, click: actions.openSettings }],
   };
 }
 
@@ -266,7 +245,7 @@ export function buildMenuTemplate(
   const placed = placedItems(actions, keys);
   const menus: MenuItemConstructorOptions[] = [
     accountMenu(actions, keys),
-    assistantMenu(actions, keys),
+    assistantMenu(actions),
     editMenu(keys),
     viewMenu(actions, keys),
     windowMenu(actions, keys),

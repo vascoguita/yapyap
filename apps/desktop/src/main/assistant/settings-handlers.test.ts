@@ -67,7 +67,11 @@ function harness() {
           { account: 'empty', chats: [] },
         ]),
       forget: vi.fn(),
+      allow: vi.fn(() => Promise.resolve()),
     },
+    openChat: vi.fn(() =>
+      Promise.resolve<{ account: string; name: string } | null>({ account: ACCOUNT, name: 'Di' }),
+    ),
     accounts: () => [
       { id: ACCOUNT, name: 'Home' },
       { id: 'empty', name: 'Work' },
@@ -225,5 +229,15 @@ describe('assistantHandlers', () => {
     ]) {
       expect(forget.accepts(args)).toBe(false);
     }
+  });
+
+  it('lets the assistant work in the chat open on screen, and says when none is open', async () => {
+    const t = harness();
+    expect(t.handler('assistant:allow-open-chat').accepts(['Ana'])).toBe(false);
+    expect(await t.call('allow-open-chat')).toBe(true);
+    expect(t.deps.chats.allow).toHaveBeenCalledExactlyOnceWith(ACCOUNT, 'Di');
+    vi.mocked(t.deps.openChat).mockResolvedValueOnce(null);
+    expect(await t.call('allow-open-chat')).toBe(false);
+    expect(t.deps.chats.allow).toHaveBeenCalledOnce();
   });
 });

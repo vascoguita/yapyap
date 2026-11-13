@@ -57,7 +57,7 @@ export function createShareBridge(ipc: PreloadIpc): ShareBridge {
 }
 
 /**
- * The assistant bar's side of its user actions, on fixed channels
+ * The assistant's side of its user actions, on fixed channels
  * (ADR 0013). Only the adapter's isolated world gets it, never WhatsApp's.
  */
 export function createAssistantBarBridge(ipc: Pick<PreloadIpc, 'send'>): AssistantBarBridge {
@@ -68,15 +68,9 @@ export function createAssistantBarBridge(ipc: Pick<PreloadIpc, 'send'>): Assista
     };
   const channels = ASSISTANT_BAR_CHANNELS;
   return {
-    suggest: send(channels.suggest),
-    summarize: send(channels.summarize),
-    rewrite: send(channels.rewrite),
     polish: send(channels.polish),
-    catchUp: send(channels.catchUp),
-    prompt: send(channels.prompt),
     use: send(channels.use),
-    send: send(channels.send),
-    choose: send(channels.choose),
+    dismiss: send(channels.dismiss),
     button: send(channels.button),
     settings: send(channels.settings),
   };

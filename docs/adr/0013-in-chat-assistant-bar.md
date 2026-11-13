@@ -174,3 +174,37 @@ still should.
   the draft, never sends a message, and leaves a draft the user changed
   while the model worked as it is. The message box's layout was mapped on
   the maintainer's own session, structure only, with nothing sent.
+- 2026-11-13 (#616, the maintainer's decision): the assistant moves into
+  the message box, and the bar keeps only what answers it. The row of
+  actions, the model list, the gear, the **Write a message** field,
+  Summarize, Catch up, the bar's Rewrite and each suggestion's **Send**
+  are gone, with their channels; nothing of the assistant sends a message
+  any more. What stays:
+  - The rewrite button shows only while the message box holds a draft,
+    and offers five ways (Polish, Shorten, Elaborate, Soften, Formalize),
+    then **Assistant settings**, which names the model in use and opens
+    Settings. Its menu is a `menu` of `menuitemradio`s, moved through
+    with the arrow keys, and opens on the side of the button with room.
+  - The bar holds one slim row at a time: the notice of what a rewrite
+    did, with **Undo**, or what keeps the assistant from answering, with
+    its fix; and up to three suggestions, which only fill the message
+    box. Suggestions show only while the open chat's last message is
+    someone else's and the message box is empty, and **×** hides them
+    until the next message.
+  - Consent moves to Settings: the assistant works in every chat, or only
+    in the chats the user lists, which is the default; **Add the Chat
+    Open in WhatsApp** lists the open one. Nothing asks in the chat.
+  - Suggestions come on their own, for a new message from someone else
+    or a chat opened with one last, once it settled for 600 ms; a newer
+    one calls off the request, and suggestions made for a message show
+    again when its chat opens again. The look at the open chat also tells
+    when the user sent a message, which takes the notice and suggestions
+    away. Its hashes now cover the account's own newest message and whose
+    message is last, still with no ID, name or text leaving the page.
+  - To show and hide as the user types, the bar and the button each
+    listen, once per page, for `input` events in the adapter's isolated
+    world, and only check whether the message box is empty; nothing about
+    the draft leaves the page (C48 in ADR 0008).
+  - Both follow WhatsApp's own theme, read from the message box's text
+    color, and draw the assistant in its own indigo accent, apart from
+    WhatsApp's green.

@@ -434,20 +434,42 @@ function Chats(props: {
   );
 }
 
-function Privacy(props: {
-  readonly api: ChromeApi;
-  readonly view: AssistantView;
-  readonly reload: () => void;
-}) {
-  const { view } = props;
+/** Adds the chat open in WhatsApp to the list, saying so when none is open. */
+function AddOpenChat(props: { readonly api: ChromeApi; readonly reload: () => void }) {
+  const { api, reload } = props;
+  const [status, setStatus] = useState('');
+  return (
+    <p>
+      <button
+        type="button"
+        onClick={() => {
+          void api.assistant.allowOpenChat().then((added) => {
+            setStatus(added ? '' : text.privacy.noOpenChat);
+            reload();
+          });
+        }}
+      >
+        {text.privacy.addOpenChat}
+      </button>{' '}
+      <output>{status}</output>
+    </p>
+  );
+}
+
+function Privacy(props: PlaceProps) {
+  const { view, snapshot, onChange } = props;
   return (
     <>
       <h3>{text.privacy.title}</h3>
       <p class="hint">{text.privacy.what}</p>
       <p>{text.privacy.where[view.inUse ?? 'none']}</p>
-      <h4>{text.privacy.chats}</h4>
-      <p class="hint">{text.privacy.chatsHint}</p>
-      <Chats {...props} />
+      {fieldsOf(['assistant.chats'], snapshot, onChange)}
+      {snapshot.values['assistant.chats'] === 'all' ? null : (
+        <>
+          <Chats {...props} />
+          <AddOpenChat {...props} />
+        </>
+      )}
     </>
   );
 }
@@ -505,7 +527,6 @@ function AssistantDetails(props: PlaceProps) {
       <h3>{text.behavior}</h3>
       {fieldsOf(['assistant.autoSuggest', 'assistant.messages'], snapshot, onChange)}
       <Privacy {...props} />
-      <p class="hint">{text.shortcuts}</p>
     </>
   );
 }
