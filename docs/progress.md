@@ -447,3 +447,6 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   at the open chat as soon as it is on, even while YapYap's window has no
   focus, so a window that first gets focus in a chat no longer takes that
   chat for a new one and drops a rewrite's notice and Undo.
+- Ubuntu 26.04 runner (#619): the Linux memory-per-account budget moves
+  from 270 MB to 315 MB, 10% above its median on the new runner image,
+  whose shared Chromium processes hold more (ADR 0009).

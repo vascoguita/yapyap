@@ -78,6 +78,14 @@ timings in PRs would flap.
   | windows-latest | 183 MB      | 0.2%       | 230 MB, 2% |
   | macos-latest   | 199 MB      | 0.2–0.4%   | 250 MB, 2% |
 
+  **Recalibrated on 2026-11-14 (#619).** GitHub moved `ubuntu-latest`
+  from Ubuntu 24.04 to 26.04, and with no change to YapYap's
+  dependencies, Linux memory per account went from 267 MB to 287 MB.
+  Only Chromium's shared processes grew (the network service from 98 MB
+  to 121 MB, the browser process from 200 MB to 213 MB), while the
+  WhatsApp page shrank. The Linux budget now sits 10% above the new
+  median, as idle memory's did in #428: 315 MB.
+
 - **Active use (#109).** A third benchmark (`bench/activity.spec.ts`) runs
   fifteen rounds of everyday use on two accounts: showing each account,
   a notification from each, and opening and closing Settings. Over three
