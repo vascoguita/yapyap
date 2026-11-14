@@ -15,7 +15,6 @@ const DEFAULTS = {
   appearance: {
     theme: 'system',
     zoom: 1,
-    pinchZoom: true,
     autoHideMenuBar: false,
     compactSidebar: false,
     trayIcon: 'color',
@@ -88,7 +87,6 @@ describe('decodeSettings', () => {
       appearance: {
         theme: 'dark',
         zoom: 1.25,
-        pinchZoom: true,
         autoHideMenuBar: true,
         compactSidebar: true,
         trayIcon: 'auto',
@@ -101,6 +99,20 @@ describe('decodeSettings', () => {
     expect(decodeSettings('{"schemaVersion":1,"general":{"language":"pt"}}')).toEqual({
       kind: 'ok',
       settings: { ...DEFAULTS, general: { ...DEFAULTS.general, language: 'pt' } },
+      reset: [],
+    });
+  });
+
+  it('drops a setting YapYap no longer has without reporting a reset', () => {
+    const decoded = decodeSettings(
+      JSON.stringify({
+        ...DEFAULTS,
+        appearance: { ...DEFAULTS.appearance, theme: 'dark', pinchZoom: false },
+      }),
+    );
+    expect(decoded).toEqual({
+      kind: 'ok',
+      settings: { ...DEFAULTS, appearance: { ...DEFAULTS.appearance, theme: 'dark' } },
       reset: [],
     });
   });
@@ -139,7 +151,6 @@ describe('decodeSettings', () => {
           appearance: {
             theme,
             zoom: 1,
-            pinchZoom: true,
             autoHideMenuBar: false,
             compactSidebar: false,
             trayIcon: 'color',

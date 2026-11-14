@@ -23,7 +23,6 @@ the [profile folder](#files).
 | Compact account sidebar                   | `appearance.compactSidebar`         | Off                   | Avatars only; the sidebar shows with two or more accounts                                          |
 | Hide the menu bar                         | `appearance.autoHideMenuBar`        | Off                   | Windows and Linux; <kbd>Alt</kbd> shows it                                                         |
 | Interface scale                           | `appearance.zoom`                   | 100%                  | 50% to 200% in Settings; the View menu goes in 5% steps up to 300%                                 |
-| Zoom with a pinch, or Ctrl and the wheel  | `appearance.pinchZoom`              | On                    | Off ignores pinches and Ctrl with the wheel; the View menu still zooms                             |
 | Show the assistant in chats               | `assistant.enabled`                 | On                    | Off hides the rewrite button and the suggestions                                                   |
 | Provider                                  | `assistant.provider`                | Automatic             | `auto`, `built-in`, `anthropic`, `openai` or `local`; see [AI assistant](/guide/ai-assistant)      |
 | Model                                     | `assistant.model`                   | Auto                  | `auto`, or a model's ID from the provider's list                                                   |

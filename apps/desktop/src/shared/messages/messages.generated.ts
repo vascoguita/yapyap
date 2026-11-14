@@ -204,7 +204,6 @@ export interface Messages {
           };
         };
         readonly zoom: { readonly label: string; readonly description: string };
-        readonly pinchZoom: { readonly label: string; readonly description: string };
         readonly compactSidebar: { readonly label: string; readonly description: string };
       };
       readonly reliability: {

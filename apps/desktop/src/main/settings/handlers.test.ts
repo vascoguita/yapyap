@@ -12,7 +12,6 @@ const COMPACT = 'appearance.compactSidebar';
 const ZOOM = 'appearance.zoom';
 const DISK_CACHE = 'reliability.diskCacheMb';
 const JS_HEAP = 'reliability.jsHeapMb';
-const PINCH = 'appearance.pinchZoom';
 const TRAY_ICON = 'appearance.trayIcon';
 const ASK_WHERE = 'downloads.askWhere';
 const OPEN_DONE = 'downloads.openWhenDone';
@@ -131,7 +130,6 @@ describe('settingsHandlers', () => {
         [THEME]: 'system',
         [MENU_BAR]: false,
         [ZOOM]: 1,
-        [PINCH]: true,
         [COMPACT]: false,
         [TRAY_ICON]: 'color',
         [HARDWARE]: true,
@@ -205,7 +203,6 @@ describe('settingsHandlers', () => {
         [THEME]: 'system',
         [MENU_BAR]: false,
         [ZOOM]: 1,
-        [PINCH]: true,
         [COMPACT]: false,
         [TRAY_ICON]: 'color',
         [HARDWARE]: false,

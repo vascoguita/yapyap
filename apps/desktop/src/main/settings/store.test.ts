@@ -11,7 +11,6 @@ const custom = () => ({
   appearance: {
     theme: 'dark' as const,
     zoom: 1.5,
-    pinchZoom: true,
     autoHideMenuBar: false,
     compactSidebar: false,
     trayIcon: 'color' as const,
