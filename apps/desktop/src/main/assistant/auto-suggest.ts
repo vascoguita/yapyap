@@ -79,6 +79,7 @@ export function followOpenChat(deps: ChatWatchDependencies): void {
     if (newest === undefined) {
       return;
     }
+    console.error(`[dbg] ${new Date().toISOString().slice(17,23)} look first=${String(seen === undefined)} chat=${String(newest?.chat ?? null)} mine=${String(newest?.mine ?? null)}`);
     const now = { page, newest };
     const before = seen;
     seen = now;

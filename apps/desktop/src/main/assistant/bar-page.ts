@@ -76,7 +76,11 @@ const renderCode = (state: AssistantBarState, visible: boolean): string =>
 /** A page that went away, or one between loads, simply has neither until the next render. */
 async function renderIn(page: AdapterPage, state: AssistantBarState, visible: boolean) {
   try {
-    await runInAdapterWorld(page, renderCode(state, visible));
+    const seen = await runInAdapterWorld(
+      page,
+      `${renderCode(state, visible)}; (() => { const k = globalThis.yapyapAssistantBarView; return k === undefined ? 'nostore' : [k.host.isConnected, k.parts.notice.hidden, k.host.style.display, k.parts.text.textContent, k.parts.notice.getClientRects().length].join('|'); })()`,
+    );
+    console.error(`[dbg] ${new Date().toISOString().slice(17,23)} render visible=${String(visible)} notice=${String(state.notice?.text ?? null)} page=${String(seen)}`);
   } catch {
     // Nothing to do: the next render tries again, and the page's text is never logged.
   }

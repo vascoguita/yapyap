@@ -573,7 +573,15 @@ function attachAssistantBar<Window extends WindowPort>(
       views: security.views,
       warn: deps.warn,
     });
-    const onScreen = (): boolean => window.isVisible() && window.isFocused();
+    let wasOn: boolean | undefined;
+    const onScreen = (): boolean => {
+      const on = window.isVisible() && window.isFocused();
+      if (on !== wasOn) {
+        console.error(`[dbg] ${new Date().toISOString().slice(17,23)} onScreen=${String(on)}`);
+        wasOn = on;
+      }
+      return on;
+    };
     followOpenChat({
       activePage,
       enabled: () => deps.settings.current().assistant.enabled,

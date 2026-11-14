@@ -82,6 +82,9 @@ const EMPTY: AssistantBarState = {
 };
 
 function update(bar: BarContext, next: Partial<AssistantBarState>): void {
+  if ('notice' in next) {
+    console.error(`[dbg] ${new Date().toISOString().slice(17,23)} notice=${String(next.notice?.text ?? null)} from=${String(new Error().stack?.split('\n')[2]?.trim())}`);
+  }
   bar.state = { ...bar.state, ...next };
   bar.deps.publish(bar.state);
 }
