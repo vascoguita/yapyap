@@ -16,11 +16,14 @@ function fakePage(first: unknown) {
 
 function setup(first: unknown = 'aaaaaaaa:00000001:-:i') {
   let page = fakePage(first);
-  let active = true;
+  let enabled = true;
+  let onScreen = true;
   let tick = (): void => undefined;
   const deps = {
     activePage: () => page,
-    active: () => active,
+    enabled: () => enabled,
+    onScreen: () => onScreen,
+    found: vi.fn(),
     opened: vi.fn(),
     arrived: vi.fn(),
     sent: vi.fn(),
@@ -35,8 +38,17 @@ function setup(first: unknown = 'aaaaaaaa:00000001:-:i') {
     switchPage: (next: ReturnType<typeof fakePage>) => {
       page = next;
     },
-    setActive: (value: boolean) => {
-      active = value;
+    setEnabled: (value: boolean) => {
+      enabled = value;
+    },
+    setOnScreen: (value: boolean) => {
+      onScreen = value;
+    },
+    /** Ticks, and tells whether that looked at the page. */
+    looked: () => {
+      page.executeJavaScriptInIsolatedWorld.mockClear();
+      tick();
+      return page.executeJavaScriptInIsolatedWorld.mock.calls.length > 0;
     },
     look: async () => {
       page.executeJavaScriptInIsolatedWorld.mockClear();
@@ -54,13 +66,14 @@ describe('followOpenChat', () => {
     const t = setup();
     expect(t.deps.every).toHaveBeenCalledWith(expect.any(Function), LOOK_EVERY_MS);
     await t.look();
-    expect(t.deps.opened).toHaveBeenCalledWith('aaaaaaaa:00000001');
+    // The first look only finds the chat.
+    expect(t.deps.found).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000001');
     await t.look();
     expect(t.deps.arrived).not.toHaveBeenCalled();
     t.page().set('aaaaaaaa:00000002:-:i');
     await t.look();
     expect(t.deps.arrived).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000002');
-    expect(t.deps.opened).toHaveBeenCalledOnce();
+    expect(t.deps.opened).not.toHaveBeenCalled();
     expect(t.deps.sent).not.toHaveBeenCalled();
   });
 
@@ -88,9 +101,9 @@ describe('followOpenChat', () => {
     expect(t.deps.opened).toHaveBeenLastCalledWith(null);
     t.page().set(null);
     await t.look();
-    expect(t.deps.opened).toHaveBeenCalledTimes(3);
+    expect(t.deps.opened).toHaveBeenCalledTimes(2);
     await t.look();
-    expect(t.deps.opened).toHaveBeenCalledTimes(3);
+    expect(t.deps.opened).toHaveBeenCalledTimes(2);
     const other = fakePage('bbbbbbbb:00000005:-:i');
     t.switchPage(other);
     await t.look();
@@ -101,17 +114,44 @@ describe('followOpenChat', () => {
     expect(t.deps.sent).not.toHaveBeenCalled();
   });
 
-  it('does not look while it may not, and tells what changed meanwhile once it may', async () => {
+  it('does not look off screen once it has looked, and tells what changed meanwhile once on screen', async () => {
     const t = setup();
     await t.look();
-    t.setActive(false);
+    t.setOnScreen(false);
     t.page().set('aaaaaaaa:00000002:-:i');
-    t.page().executeJavaScriptInIsolatedWorld.mockClear();
-    t.deps.every.mock.calls[0]?.[0]();
-    expect(t.page().executeJavaScriptInIsolatedWorld).not.toHaveBeenCalled();
-    t.setActive(true);
+    expect(t.looked()).toBe(false);
+    t.setOnScreen(true);
     await t.look();
     expect(t.deps.arrived).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000002');
+  });
+
+  it('takes its first look off screen, so a chat the user is in when the window gets focus is not new', async () => {
+    const t = setup();
+    t.setOnScreen(false);
+    await t.look();
+    expect(t.deps.found).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000001');
+    expect(t.looked()).toBe(false);
+    t.setOnScreen(true);
+    await t.look();
+    expect(t.deps.found).toHaveBeenCalledOnce();
+    expect(t.deps.opened).not.toHaveBeenCalled();
+  });
+
+  it('keeps trying for its first look off screen while the page cannot answer', async () => {
+    const t = setup(new Error('loading'));
+    t.setOnScreen(false);
+    await t.look();
+    t.page().set('aaaaaaaa:00000001:-:i');
+    await t.look();
+    expect(t.deps.found).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000001');
+  });
+
+  it('looks at no chat while the assistant is off, on screen or not', () => {
+    const t = setup();
+    t.setEnabled(false);
+    expect(t.looked()).toBe(false);
+    t.setOnScreen(false);
+    expect(t.looked()).toBe(false);
   });
 
   it('tells nothing when the page answered nonsense or failed', async () => {
@@ -121,7 +161,8 @@ describe('followOpenChat', () => {
     await t.look();
     t.page().set(new Error('loading'));
     await t.look();
-    expect(t.deps.opened).toHaveBeenCalledOnce();
+    expect(t.deps.found).toHaveBeenCalledOnce();
+    expect(t.deps.opened).not.toHaveBeenCalled();
     expect(t.deps.arrived).not.toHaveBeenCalled();
   });
 

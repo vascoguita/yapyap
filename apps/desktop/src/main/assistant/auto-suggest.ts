@@ -7,8 +7,12 @@ export const LOOK_EVERY_MS = 1500;
 export interface ChatWatchDependencies {
   /** The WhatsApp page of the account on screen. */
   readonly activePage: () => AdapterPage;
-  /** Whether to look now: the assistant is on and YapYap's window is on screen. */
-  readonly active: () => boolean;
+  /** Whether the assistant is on; it looks at no chat while it is off. */
+  readonly enabled: () => boolean;
+  /** Whether YapYap's window is on screen, where the user can change the chat. */
+  readonly onScreen: () => boolean;
+  /** The first look found the open chat, with its newest message from someone else if that is its last. */
+  readonly found: (message: string | null) => unknown;
   /** Another chat is open, with its newest message from someone else if that is its last. */
   readonly opened: (message: string | null) => unknown;
   /** A message from someone else arrived in the open chat. */
@@ -47,11 +51,17 @@ function inSameChat(was: Newest, now: Newest, deps: ChatWatchDependencies): void
 const sameChat = (was: Newest | null | undefined, now: Newest | null): boolean =>
   was !== undefined && was?.chat === now?.chat;
 
-/** Tells what changed between two looks at the same page. */
+/**
+ * Tells what changed between two looks at the same page. The first look
+ * only finds the chat: the user may already have rewritten a draft there,
+ * and its notice and Undo stay.
+ */
 function compare(before: Seen | undefined, now: Seen, deps: ChatWatchDependencies): void {
   const was = before?.page === now.page ? before.newest : undefined;
   const { newest } = now;
-  if (!sameChat(was, newest)) {
+  if (before === undefined) {
+    deps.found(answerable(newest));
+  } else if (!sameChat(was, newest)) {
     deps.opened(answerable(newest));
   } else if (was && newest) {
     inSameChat(was, newest, deps);
@@ -63,7 +73,9 @@ function compare(before: Seen | undefined, now: Seen, deps: ChatWatchDependencie
  * second and a half, it asks the page for hashes of the open chat and its
  * newest messages, and tells when another chat opens, a message arrives,
  * or the user sends one. The adapter adds no observers, so a cheap look
- * stands in for one, and it never sees page text.
+ * stands in for one, and it never sees page text. Only the first look
+ * comes before the window is on screen, so what the user does once it
+ * gets focus is told against the chat they were in.
  */
 export function followOpenChat(deps: ChatWatchDependencies): void {
   let seen: Seen | undefined;
@@ -80,7 +92,7 @@ export function followOpenChat(deps: ChatWatchDependencies): void {
     compare(before, now, deps);
   };
   deps.every(() => {
-    if (looking || !deps.active()) {
+    if (looking || !deps.enabled() || (seen !== undefined && !deps.onScreen())) {
       return;
     }
     looking = true;

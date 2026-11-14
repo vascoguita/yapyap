@@ -3,7 +3,7 @@
     "coldStartMs": 2200,
     "idleMemoryMb": 630,
     "idleRenderers": 1,
-    "accountMemoryMb": 270,
+    "accountMemoryMb": 315,
     "hiddenCpuPercent": 2,
     "activityGrowthMb": 40,
     "activityMainCpuPercent": 70

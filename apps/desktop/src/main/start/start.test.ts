@@ -148,6 +148,7 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
       use: vi.fn(() => Promise.resolve()),
       dismiss: vi.fn(),
       button: vi.fn(() => Promise.resolve()),
+      found: vi.fn(),
       opened: vi.fn(),
       arrived: vi.fn(),
       sent: vi.fn(),
@@ -979,7 +980,7 @@ describe('startApp', () => {
     const bar = f.runtime.assistantBar;
     f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValue('aaaaaaaa:00000001:-:i');
     await vi.advanceTimersByTimeAsync(1500);
-    expect(bar.opened).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000001');
+    expect(bar.found).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000001');
     f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValue('aaaaaaaa:00000002:-:i');
     await vi.advanceTimersByTimeAsync(1500);
     expect(bar.arrived).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000002');
