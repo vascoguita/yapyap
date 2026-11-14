@@ -23,6 +23,7 @@ function setup(first: unknown = 'aaaaaaaa:00000001:-:i') {
     activePage: () => page,
     enabled: () => enabled,
     onScreen: () => onScreen,
+    found: vi.fn(),
     opened: vi.fn(),
     arrived: vi.fn(),
     sent: vi.fn(),
@@ -65,13 +66,14 @@ describe('followOpenChat', () => {
     const t = setup();
     expect(t.deps.every).toHaveBeenCalledWith(expect.any(Function), LOOK_EVERY_MS);
     await t.look();
-    expect(t.deps.opened).toHaveBeenCalledWith('aaaaaaaa:00000001');
+    // The first look only finds the chat.
+    expect(t.deps.found).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000001');
     await t.look();
     expect(t.deps.arrived).not.toHaveBeenCalled();
     t.page().set('aaaaaaaa:00000002:-:i');
     await t.look();
     expect(t.deps.arrived).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000002');
-    expect(t.deps.opened).toHaveBeenCalledOnce();
+    expect(t.deps.opened).not.toHaveBeenCalled();
     expect(t.deps.sent).not.toHaveBeenCalled();
   });
 
@@ -99,9 +101,9 @@ describe('followOpenChat', () => {
     expect(t.deps.opened).toHaveBeenLastCalledWith(null);
     t.page().set(null);
     await t.look();
-    expect(t.deps.opened).toHaveBeenCalledTimes(3);
+    expect(t.deps.opened).toHaveBeenCalledTimes(2);
     await t.look();
-    expect(t.deps.opened).toHaveBeenCalledTimes(3);
+    expect(t.deps.opened).toHaveBeenCalledTimes(2);
     const other = fakePage('bbbbbbbb:00000005:-:i');
     t.switchPage(other);
     await t.look();
@@ -127,11 +129,12 @@ describe('followOpenChat', () => {
     const t = setup();
     t.setOnScreen(false);
     await t.look();
-    expect(t.deps.opened).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000001');
+    expect(t.deps.found).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000001');
     expect(t.looked()).toBe(false);
     t.setOnScreen(true);
     await t.look();
-    expect(t.deps.opened).toHaveBeenCalledOnce();
+    expect(t.deps.found).toHaveBeenCalledOnce();
+    expect(t.deps.opened).not.toHaveBeenCalled();
   });
 
   it('keeps trying for its first look off screen while the page cannot answer', async () => {
@@ -140,7 +143,7 @@ describe('followOpenChat', () => {
     await t.look();
     t.page().set('aaaaaaaa:00000001:-:i');
     await t.look();
-    expect(t.deps.opened).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000001');
+    expect(t.deps.found).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000001');
   });
 
   it('looks at no chat while the assistant is off, on screen or not', () => {
@@ -158,7 +161,8 @@ describe('followOpenChat', () => {
     await t.look();
     t.page().set(new Error('loading'));
     await t.look();
-    expect(t.deps.opened).toHaveBeenCalledOnce();
+    expect(t.deps.found).toHaveBeenCalledOnce();
+    expect(t.deps.opened).not.toHaveBeenCalled();
     expect(t.deps.arrived).not.toHaveBeenCalled();
   });
 

@@ -578,6 +578,7 @@ function attachAssistantBar<Window extends WindowPort>(
       activePage,
       enabled: () => deps.settings.current().assistant.enabled,
       onScreen,
+      found: bar.found,
       opened: bar.opened,
       arrived: bar.arrived,
       sent: bar.sent,
