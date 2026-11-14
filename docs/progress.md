@@ -443,3 +443,7 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   else wrote last, only fill the message box, and hide while the user
   types. Consent moves to `assistant.chats` (listed chats or all) with
   **Add the Chat Open in WhatsApp**. See ADR 0013's amendment and C48.
+- First look at the open chat (#618): the assistant takes its first look
+  at the open chat as soon as it is on, even while YapYap's window has no
+  focus, so a window that first gets focus in a chat no longer takes that
+  chat for a new one and drops a rewrite's notice and Undo.

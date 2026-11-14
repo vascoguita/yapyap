@@ -576,7 +576,8 @@ function attachAssistantBar<Window extends WindowPort>(
     const onScreen = (): boolean => window.isVisible() && window.isFocused();
     followOpenChat({
       activePage,
-      active: () => deps.settings.current().assistant.enabled && onScreen(),
+      enabled: () => deps.settings.current().assistant.enabled,
+      onScreen,
       opened: bar.opened,
       arrived: bar.arrived,
       sent: bar.sent,
