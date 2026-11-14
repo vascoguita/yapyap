@@ -386,6 +386,8 @@ export interface AssistantBar {
   readonly use: (index: number) => Promise<void>;
   readonly dismiss: () => void;
   readonly button: (id: BarButtonId) => Promise<void>;
+  /** The open chat was first seen, with `message` its newest from someone else if it is the last one. */
+  readonly found: (message: string | null) => void;
   /** Another chat is open, with `message` its newest from someone else if it is the last one. */
   readonly opened: (message: string | null) => void;
   /** A message from someone else arrived in the open chat, and is its last. */
@@ -399,19 +401,24 @@ export interface AssistantBar {
 /** What the assistant does as the open chat changes, and with the suggestions' dismiss. */
 function followChat(
   bar: BarContext,
-): Pick<AssistantBar, 'dismiss' | 'opened' | 'arrived' | 'sent'> {
+): Pick<AssistantBar, 'dismiss' | 'found' | 'opened' | 'arrived' | 'sent'> {
   // The open chat's newest message from someone else, while it is the last one.
   let message: string | null = null;
+  // Nothing shown before the chat was first found is stale, so a rewrite's notice stays.
+  const found = (newest: string | null): void => {
+    message = newest;
+    if (newest !== null) {
+      void suggest(bar, newest);
+    }
+  };
   return {
     dismiss: () => {
       dismiss(bar, message);
     },
+    found,
     opened: (newest) => {
-      message = newest;
       forget(bar);
-      if (newest !== null) {
-        void suggest(bar, newest);
-      }
+      found(newest);
     },
     arrived: (newest) => {
       message = newest;

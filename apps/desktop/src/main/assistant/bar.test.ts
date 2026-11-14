@@ -153,6 +153,21 @@ describe('createAssistantBar: the rewrite button', () => {
     expect(t.last().notice).toBeNull();
   });
 
+  it('keeps the notice and Undo when the chat is first found, and drops them when another opens', async () => {
+    const t = harness('Running late, sorry!');
+    await t.bar.polish('polish');
+    // The first look at the chat came after the rewrite.
+    t.bar.found(null);
+    expect(t.last().notice?.button).toEqual({ id: 'undo', label: 'Undo' });
+    t.bar.found('m1');
+    await t.settle();
+    expect(t.last().suggestions).toHaveLength(1);
+    expect(t.last().notice?.button?.id).toBe('undo');
+    t.bar.opened(null);
+    expect(t.last().notice).toBeNull();
+    expect(t.last().suggestions).toEqual([]);
+  });
+
   it('takes the rewrite’s suggestions away, and Undo restores nothing in another chat', async () => {
     const t = harness('Shorter.');
     t.bar.arrived('m1');
