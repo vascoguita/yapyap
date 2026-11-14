@@ -32,14 +32,17 @@ export function changeZoom(settings: Pick<SettingsService, 'update'>, step: Zoom
 export interface ZoomableContents {
   setZoomFactor(factor: number): void;
   on(event: 'did-finish-load', listener: () => void): unknown;
-  /** Ctrl and the mouse wheel, which Chromium would otherwise zoom in its own steps. */
-  on(event: 'zoom-changed', listener: (event: unknown, direction: 'in' | 'out') => void): unknown;
 }
 
-/** Keeps the WhatsApp view at the stored zoom, through reloads and setting changes. */
+/**
+ * Keeps the WhatsApp view at the stored zoom, through reloads and setting
+ * changes. Only the View menu, its shortcuts and Settings change it: a pinch
+ * and Ctrl with the wheel do not zoom, as they never reliably did with the
+ * real WhatsApp (#624).
+ */
 export function followZoomSetting(
   contents: ZoomableContents,
-  settings: Pick<SettingsService, 'current' | 'onChange' | 'update'>,
+  settings: Pick<SettingsService, 'current' | 'onChange'>,
 ): void {
   const apply = (current: Settings): void => {
     contents.setZoomFactor(current.appearance.zoom);
@@ -47,11 +50,5 @@ export function followZoomSetting(
   followSettings(settings, apply);
   contents.on('did-finish-load', () => {
     apply(settings.current());
-  });
-  // A touchpad pinch arrives as this event too, so the switch can stop it (#81).
-  contents.on('zoom-changed', (_event, direction) => {
-    if (settings.current().appearance.pinchZoom) {
-      changeZoom(settings, direction);
-    }
   });
 }

@@ -258,10 +258,6 @@
           "label": "Interface scale",
           "description": "How large WhatsApp appears. View → Zoom In and Zoom Out go in finer steps, up to 300%."
         },
-        "pinchZoom": {
-          "label": "Zoom with a pinch, or Ctrl and the wheel",
-          "description": "Turn this off if you zoom by accident on a touchpad. The View menu and its shortcuts still zoom."
-        },
         "compactSidebar": {
           "label": "Compact account sidebar",
           "description": "Show only the color and initial of each account in the sidebar, which appears when several accounts run."

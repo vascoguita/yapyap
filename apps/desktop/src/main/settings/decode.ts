@@ -15,12 +15,18 @@ export function defaultSettings(): Settings {
   return Value.Default(SettingsSchema, { schemaVersion: SETTINGS_VERSION }) as Settings;
 }
 
+/**
+ * A key the schema does not have, such as a setting YapYap removed (#624).
+ * Repair drops it, but no value of the user's was reset, so nothing is said.
+ */
+const isUnknownKey = (error: { keyword: string; schemaPath: string }): boolean =>
+  error.keyword === 'additionalProperties' || error.schemaPath.endsWith('/additionalProperties');
+
 /** Fills missing values with defaults and resets only the values that are invalid. */
 function normalize(raw: Record<string, unknown>): { settings: Settings; reset: string[] } {
   const filled = Value.Default(SettingsSchema, structuredClone(raw));
-  const reset = [
-    ...new Set([...Value.Errors(SettingsSchema, filled)].map((error) => error.instancePath)),
-  ];
+  const errors = [...Value.Errors(SettingsSchema, filled)].filter((error) => !isUnknownKey(error));
+  const reset = [...new Set(errors.map((error) => error.instancePath))];
   return { settings: Value.Repair(SettingsSchema, filled), reset };
 }
 

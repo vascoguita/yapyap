@@ -135,7 +135,6 @@ export const SETTING_FIELDS: readonly SettingField[] = [
     })),
     unlisted: scaleLabel,
   },
-  { ...described('appearance', 'pinchZoom'), restart: false },
   { ...described('appearance', 'compactSidebar'), restart: false },
   {
     ...described('appearance', 'trayIcon'),

@@ -69,23 +69,8 @@ describe('followZoomSetting', () => {
     expect(t.contents.setZoomFactor).toHaveBeenCalledExactlyOnceWith(0.95);
   });
 
-  it('turns Ctrl and the mouse wheel into 5% steps', () => {
+  it('leaves a pinch or Ctrl and the wheel alone', () => {
     const t = setup();
-    t.listeners.get('zoom-changed')?.(...([{}, 'in'] as never[]));
-    expect(t.settings.current().appearance.zoom).toBe(1.05);
-    t.listeners.get('zoom-changed')?.(...([{}, 'out'] as never[]));
-    expect(t.settings.current().appearance.zoom).toBe(1);
-  });
-
-  it('ignores a pinch or the wheel when pinch zoom is off, which the menu still zooms', () => {
-    const t = setup();
-    t.settings.update((current) => ({
-      ...current,
-      appearance: { ...current.appearance, pinchZoom: false },
-    }));
-    t.listeners.get('zoom-changed')?.(...([{}, 'in'] as never[]));
-    expect(t.settings.current().appearance.zoom).toBe(1);
-    changeZoom(t.settings, 'in');
-    expect(t.settings.current().appearance.zoom).toBe(1.05);
+    expect(t.listeners.has('zoom-changed')).toBe(false);
   });
 });

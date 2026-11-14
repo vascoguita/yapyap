@@ -464,3 +464,9 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   only its switch while off. A page in the address's fragment opens
   Settings there: the Assistant menu and the assistant's buttons open
   `settings.html#assistant`. Buttons keep title case (#528).
+- No wheel or pinch zoom (#624): **Zoom with a pinch, or Ctrl and the
+  wheel** (`appearance.pinchZoom`) is gone, with the `zoom-changed`
+  handler behind it, as neither zoomed with the real WhatsApp on Linux.
+  The View menu, its shortcuts and **Interface scale** are the ways to
+  zoom. Loading settings drops a key the schema no longer has without
+  calling it a reset, so no notice follows a removed setting.

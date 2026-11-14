@@ -56,7 +56,7 @@ const PAGES: readonly SettingsPage[] = [
     title: text.pages.appearance,
     icon: 'appearance',
     groups: [
-      group('look', groups.look, ['appearance.theme', 'appearance.zoom', 'appearance.pinchZoom']),
+      group('look', groups.look, ['appearance.theme', 'appearance.zoom']),
       group('window', groups.window, [
         'appearance.autoHideMenuBar',
         'appearance.compactSidebar',
