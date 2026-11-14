@@ -15,6 +15,7 @@ function actions(accounts: AccountSummary[] = []) {
     setMuted: vi.fn(),
     openAbout: vi.fn(),
     openSettings: vi.fn(),
+    openAssistantSettings: vi.fn(),
     openCustomCode: vi.fn(),
     openNewChat: vi.fn(),
     clearCache: vi.fn(),
@@ -172,7 +173,7 @@ describe('buildMenuTemplate', () => {
   it('gives the assistant a menu of its own, which opens its settings', () => {
     const a = actions();
     const menu = buildMenuTemplate('linux', a).find((entry) => entry.label === 'A&ssistant');
-    expect(items(menu)).toEqual([{ label: 'Assistant Settings…', click: a.openSettings }]);
+    expect(items(menu)).toEqual([{ label: 'Assistant Settings…', click: a.openAssistantSettings }]);
   });
 
   it('turns do not disturb on and off, and mutes or unmutes the account on screen', () => {

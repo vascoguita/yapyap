@@ -1,7 +1,7 @@
 import type { ElectronApplication, Page } from '@playwright/test';
 import { mkdir, readdir, readFile, realpath, symlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { openFromMenu } from './chrome-helpers.ts';
+import { openFromMenu, showSettingsPage } from './chrome-helpers.ts';
 import { closeApp, expect, launchApp, seedSettings, test, whatsAppPage } from './fixtures.ts';
 
 /** Points YapYap's downloads folder into the test profile. */
@@ -141,8 +141,10 @@ test('saves into the folder chosen in Settings', async ({ app, window, profile }
   }, chosen);
   await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
   const settings = await openFromMenu(app, 'Settings…', 'settings.html');
-  await settings.getByRole('button', { name: 'Choose… Save files to' }).click();
-  await expect(settings.getByText(chosen)).toBeVisible();
+  await showSettingsPage(settings, 'Downloads');
+  await settings.getByRole('button', { name: 'Change… Save files to' }).click();
+  // A long path shows shortened, and whole in its tooltip.
+  await expect(settings.getByTitle(chosen)).toBeVisible();
   await download(window, 'Ticket.pdf');
   await expect.poll(() => readdir(chosen)).toEqual(['Ticket.pdf']);
 });

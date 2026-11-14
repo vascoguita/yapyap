@@ -18,18 +18,18 @@ the [profile folder](#files).
 | Close to the tray                         | `general.closeToTray`               | Off                   | Windows and Linux; macOS always keeps running                                                      |
 | Check spelling                            | `spelling.enabled`                  | Off                   | Downloads a dictionary from Google on Windows and Linux; see [Spelling](/guide/#spelling)          |
 | Spelling languages                        | `spelling.languages`                | Empty                 | Right-click → Languages…; up to ten, such as `en-GB`; empty means the system's language            |
-| Theme                                     | `appearance.theme`                  | Same as the system    | `system`, `light` or `dark`                                                                        |
+| Theme                                     | `appearance.theme`                  | System                | `system`, `light` or `dark`                                                                        |
 | Tray icon                                 | `appearance.trayIcon`               | App icon              | `color`, `auto`, `light` or `dark`; one-color icons are templates on macOS                         |
 | Compact account sidebar                   | `appearance.compactSidebar`         | Off                   | Avatars only; the sidebar shows with two or more accounts                                          |
 | Hide the menu bar                         | `appearance.autoHideMenuBar`        | Off                   | Windows and Linux; <kbd>Alt</kbd> shows it                                                         |
 | Interface scale                           | `appearance.zoom`                   | 100%                  | 50% to 200% in Settings; the View menu goes in 5% steps up to 300%                                 |
 | Zoom with a pinch, or Ctrl and the wheel  | `appearance.pinchZoom`              | On                    | Off ignores pinches and Ctrl with the wheel; the View menu still zooms                             |
 | Show the assistant in chats               | `assistant.enabled`                 | On                    | Off hides the rewrite button and the suggestions                                                   |
-| Where the assistant thinks                | `assistant.provider`                | Automatic             | `auto`, `built-in`, `anthropic`, `openai` or `local`; see [AI assistant](/guide/ai-assistant)      |
+| Provider                                  | `assistant.provider`                | Automatic             | `auto`, `built-in`, `anthropic`, `openai` or `local`; see [AI assistant](/guide/ai-assistant)      |
 | Model                                     | `assistant.model`                   | Auto                  | `auto`, or a model's ID from the provider's list                                                   |
 | Suggest replies                           | `assistant.autoSuggest`             | On                    | When someone else wrote last, in the chats the assistant works in                                  |
-| Chats the assistant works in              | `assistant.chats`                   | Only the chats listed | `chosen` (those listed in Settings) or `all`                                                       |
-| Messages the assistant reads              | `assistant.messages`                | 10                    | `5`, `10` or `20` of the open chat's latest messages                                               |
+| Where the assistant works                 | `assistant.chats`                   | Only chosen chats     | `chosen` (those listed in Settings) or `all`                                                       |
+| Messages it reads                         | `assistant.messages`                | 10                    | `5`, `10` or `20` of the open chat's latest messages                                               |
 | Model server address                      | `assistant.localServer`             | Empty                 | A `/v1` address on this computer; the assistant section is never exported or imported              |
 | Let AI agents connect                     | `agents.enabled`                    | Off                   | Runs the MCP server on `127.0.0.1`; see [AI agents](/guide/ai-agents); never exported or imported  |
 | Agents' port                              | `agents.port`                       | 0                     | File only; 0 until the server first starts, then the port it got; **Pick Another Port** changes it |
@@ -45,10 +45,10 @@ the [profile folder](#files).
 | Blur WhatsApp when YapYap is not in front | `privacy.blurWhenUnfocused`         | Off                   | The privacy screen covers WhatsApp while another window is in front                                |
 | Blur WhatsApp when you are away           | `privacy.blurWhenIdle`              | Off                   | After five minutes without using the computer                                                      |
 | Show message text in notifications        | `privacy.notificationText`          | On                    | Off shows “New message”; the text never reaches the system                                         |
-| Proxy                                     | `network.proxyMode`                 | Same as the system    | `system`, `direct` or `manual`; see [Proxy](/guide/#proxy)                                         |
+| Proxy                                     | `network.proxyMode`                 | System                | `system`, `direct` or `manual`; see [Proxy](/guide/#proxy)                                         |
 | Proxy address                             | `network.proxyServer`               | Empty                 | With `manual`: `http://`, `https://` or `socks5://`, a host and a port                             |
 | Ask where to save each file               | `downloads.askWhere`                | Off                   | Off saves to the Downloads folder; on starts the dialog in the last folder chosen                  |
-| Save files to                             | `downloads.folder`                  | Your Downloads folder | Set with Choose… in Settings; a folder that is gone means Downloads again                          |
+| Save files to                             | `downloads.folder`                  | Your Downloads folder | Set with Change… in Settings; a folder that is gone means Downloads again                          |
 | Open files when they finish downloading   | `downloads.openWhenDone`            | Off                   | PDFs, pictures, sound, video and text only; nothing that could run                                 |
 
 The file also has entries for features that are not built yet. YapYap

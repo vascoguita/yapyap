@@ -68,7 +68,7 @@ YapYap's settings.
 
 ## Theme
 
-Choose **Light**, **Dark** or **Same as the system** under Settings →
+Choose **System**, **Light** or **Dark** under Settings →
 Appearance. The change applies at once to YapYap's windows, their title bars
 and WhatsApp itself, as long as WhatsApp's own theme (in WhatsApp's
 settings) is left at **System default**. Animations are turned off when your
@@ -78,7 +78,7 @@ system asks for reduced motion.
 
 If the window flickers, stays blank or video calls show artifacts, turn off
 **Use hardware acceleration** or **Use hardware video decoding** in
-Settings → Reliability, then restart.
+Settings → Advanced, then restart.
 
 If YapYap cannot even show its window, start it in **safe mode**, which
 turns off hardware acceleration for that launch only:
@@ -94,7 +94,7 @@ Details** in About includes the graphics mode, so bug reports show it.
 
 On Linux, YapYap runs natively on Wayland when your desktop uses it, and on
 X11 otherwise. If the window is blank, blurry or in the wrong place, try the
-other one with **Display backend** in Settings → Reliability, then restart.
+other one with **Display backend** in Settings → Advanced, then restart.
 If YapYap does not start at all, run `yapyap --ozone-platform=x11` (or
 `=wayland`) once; the command line always wins over the setting. YapYap
 ignores a setting whose display server is missing and uses the automatic
@@ -143,11 +143,11 @@ notification never leaves your computer.
 On macOS and Windows you can reply from a notification: YapYap opens the
 chat and puts your reply in the message box, where you check it and press
 <kbd>Enter</kbd> to send it. On Linux, clicking a notification opens the
-chat. Under Settings → Privacy you can hide who wrote and what they wrote, for example
+chat. Under Settings → Notifications & privacy you can hide who wrote and what they wrote, for example
 when others can see your screen; hidden text never reaches the system's
 notifications at all.
 
-**Do Not Disturb**, in the tray menu, the Account menu or Settings → General,
+**Do Not Disturb**, in the tray menu, the Account menu or Settings → Notifications & privacy,
 stops all notifications and silences the sounds of accounts that are not on
 screen, such as message tones and ringtones. To silence one account, use
 **Mute This Account** in the Account menu or turn on **Mute this account** in
@@ -287,7 +287,7 @@ at login, and the setting changes only if you agree.
 The privacy screen blurs WhatsApp so people nearby cannot read your chats.
 Turn it on and off from the tray menu, or with **View → Privacy Screen**
 (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd>, <kbd>⌘</kbd> on macOS).
-While it is on, nothing behind it can be clicked. Under Settings → Privacy
+While it is on, nothing behind it can be clicked. Under Settings → Notifications & privacy
 it can also come on by itself: whenever another window is in front of
 YapYap, until you click YapYap again, or after five minutes away from your
 computer, until you are back.
@@ -358,7 +358,7 @@ Right-click in WhatsApp's message box for **Cut**, **Copy**, **Paste** and
 **Select All**; right-click selected text elsewhere to copy it. Spell
 checking is off at first, because on Windows and Linux it needs a dictionary
 downloaded from Google (see [Privacy](/privacy)). Turn it on under
-Settings → Spelling, or by ticking **Check Spelling** in the right-click menu,
+Settings → General, or by ticking **Check Spelling** in the right-click menu,
 which opens Settings. It checks your system's language, unless you pick
 others: with spell checking on, **Languages…** in the right-click menu lists
 every language YapYap has a dictionary for, searchable by its own name, its
@@ -376,7 +376,7 @@ cleaned up so they are safe on every system: folder parts and characters
 Windows does not allow are removed, and a file is never replaced. A second
 `photo.jpg` is saved as `photo (1).jpg`.
 
-Under Settings → Downloads, **Save files to** → **Choose…** picks another
+Under Settings → Downloads, **Save files to** → **Change…** picks another
 folder for them; if it goes away, files go to Downloads again.
 **Ask where to save each file** shows the save
 dialog for every download instead, starting in the folder you last chose.

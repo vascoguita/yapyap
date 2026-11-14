@@ -198,10 +198,10 @@ const SETTINGS_PAGE: ChromePage = {
   path: 'settings.html',
   window: {
     title: en.windows.settings,
-    width: 640,
-    height: 680,
-    minWidth: 420,
-    minHeight: 360,
+    width: 820,
+    height: 640,
+    minWidth: 600,
+    minHeight: 480,
   },
 };
 
@@ -302,6 +302,8 @@ export interface ChromeRuntime {
   /** Lists the accounts in the Account menu, whose actions apply to the active one. */
   readonly setAccountMenu: (menu: AccountMenu) => void;
   readonly openSettings: () => void;
+  /** Settings at its Assistant page, for the assistant's own buttons. */
+  readonly openAssistantSettings: () => void;
   /** The first launch's welcome (#84). */
   readonly openWelcome: () => void;
   readonly openSpellingLanguages: () => void;
@@ -534,12 +536,24 @@ function chromeWindows(
   return { createWindow: (options) => deps.createWindow(options, renderer), views, warn };
 }
 
+/**
+ * Opens a window at its page's start. Menus call their items' handlers with
+ * the item, which must never reach the opener as a place in the page.
+ */
+function plainOpener(windows: ChromeWindowDependencies, page: ChromePage): () => void {
+  const open = chromeWindowOpener(windows, page);
+  return () => {
+    open();
+  };
+}
+
 /** YapYap's own windows, one each: opening one again focuses it. */
 type ChromeOpeners = Pick<
   MenuActions,
   | 'openAccounts'
   | 'openAbout'
   | 'openSettings'
+  | 'openAssistantSettings'
   | 'openNewChat'
   | 'openShortcuts'
   | 'openCustomCode'
@@ -549,11 +563,12 @@ type ChromeOpeners = Pick<
 
 function chromeOpeners(
   windows: ChromeWindowDependencies,
-  { openSettings }: { openSettings: () => void },
+  standby: Pick<ChromeOpeners, 'openSettings' | 'openAssistantSettings'>,
 ): ChromeOpeners {
-  const opener = (page: ChromePage) => chromeWindowOpener(windows, page);
+  const opener = (page: ChromePage): (() => void) => plainOpener(windows, page);
   return {
-    openSettings,
+    openSettings: standby.openSettings,
+    openAssistantSettings: standby.openAssistantSettings,
     openAccounts: opener(ACCOUNTS_PAGE),
     openAbout: opener(ABOUT_PAGE),
     openNewChat: opener(NEW_CHAT_PAGE),
@@ -811,12 +826,20 @@ function standbyWindows(
   assistant: AssistantChrome;
   /** One Settings window, which the menu and the assistant's bar both open. */
   openSettings: () => void;
+  /** The same window, at its Assistant page. */
+  openAssistantSettings: () => void;
   proxyLogin: ProxyLoginPrompt;
 } {
   const settingsOpener = chromeWindowOpener(windows, SETTINGS_PAGE);
+  const openAssistantSettings = (): void => {
+    settingsOpener('assistant');
+  };
   return {
-    openSettings: settingsOpener,
-    assistant: assistantOf(deps, windows, accounts, settingsOpener),
+    openSettings: () => {
+      settingsOpener();
+    },
+    openAssistantSettings,
+    assistant: assistantOf(deps, windows, accounts, openAssistantSettings),
     proxyLogin: createProxyLoginPrompt(() => openPromptWindow(windows, PROXY_LOGIN_PAGE)),
   };
 }
@@ -862,8 +885,9 @@ function startChrome(
     },
     setAccountMenu: accountMenuSetter(withGraphics, slots, openers, standby.assistant, warn),
     openSettings: openers.openSettings,
-    openWelcome: chromeWindowOpener(windows, WELCOME_PAGE),
-    openSpellingLanguages: chromeWindowOpener(windows, SPELLING_LANGUAGES_PAGE),
+    openAssistantSettings: openers.openAssistantSettings,
+    openWelcome: plainOpener(windows, WELCOME_PAGE),
+    openSpellingLanguages: plainOpener(windows, SPELLING_LANGUAGES_PAGE),
     askProxyLogin: standby.proxyLogin.ask,
     attachSidebar: (create) => attachSidebar(create(renderer), views, sidebar, warn),
     attachAssistantBar: standby.assistant.attachBar,

@@ -147,13 +147,9 @@ test('Settings window', async ({ profile }) => {
   ]);
   try {
     await clickMenu(app, 'Settings…');
-    // The assistant, first in Settings, has a picture of its own; this one shows the rest.
+    // The assistant has a picture of its own; this one shows the page Settings opens at.
     const settings = await chromePage(app, '/settings.html');
-    const general = settings.getByRole('heading', { name: 'General', exact: true });
-    await general.evaluate((heading) => {
-      window.scrollTo(0, heading.getBoundingClientRect().top + window.scrollY - 24);
-    });
-    await expect(general).toBeInViewport();
+    await expect(settings.getByRole('heading', { level: 1, name: 'General' })).toBeVisible();
     await captureWindow(app, '/settings.html', 'settings', ['png']);
   } finally {
     await closeApp(app);
@@ -187,11 +183,11 @@ test('AI assistant settings', async ({ profile }) => {
   ]);
   try {
     const settings = await readyClaude(app, CLAUDE_ANSWER);
-    await expect(settings.getByText('In use')).toBeVisible();
+    await expect(settings.getByText('Ready. Using Claude (Anthropic).')).toBeVisible();
     // Saving the key scrolled to it and kept focus on its button; the shot starts at the top.
     await settings.evaluate(() => {
       (document.activeElement as HTMLElement | null)?.blur();
-      window.scrollTo(0, 0);
+      document.querySelector('main')?.scrollTo(0, 0);
     });
     await captureWindow(app, '/settings.html', 'assistant', ['png', 'webp']);
   } finally {

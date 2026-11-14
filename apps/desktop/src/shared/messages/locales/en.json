@@ -82,27 +82,48 @@
     "unavailable": "Settings are unavailable.",
     "restartNeeded": "Restart YapYap to apply your changes.",
     "restartNow": "Restart Now",
-    "restartNote": "Takes effect after a restart.",
+    "restartTag": "Needs restart",
     "saveFailed": "Could not save that setting.",
+    "saved": "Saved",
     "scale": "{{percent}}%",
     "proxyPlaceholder": "socks5://127.0.0.1:1080",
     "defaultFolder": "Your Downloads folder",
-    "chooseFolder": "Choose…",
+    "chooseFolder": "Change…",
     "useDefaultFolder": "Use Downloads Folder",
-    "sections": {
+    "pages": {
+      "general": "General",
+      "appearance": "Appearance",
+      "notifications": "Notifications & privacy",
+      "downloads": "Downloads",
       "assistant": "Assistant",
       "agents": "Agents",
-      "general": "General",
-      "spelling": "Spelling",
-      "appearance": "Appearance",
-      "reliability": "Reliability",
-      "downloads": "Downloads",
-      "privacy": "Privacy",
-      "network": "Network"
+      "network": "Network",
+      "advanced": "Advanced",
+      "backup": "Backup"
+    },
+    "advancedIntro": "Change these only if you have a problem. Most need a restart.",
+    "groups": {
+      "startup": "Startup",
+      "writing": "Writing",
+      "updates": "Updates",
+      "look": "Look",
+      "window": "Window",
+      "notifications": "Notifications",
+      "screenPrivacy": "Screen privacy",
+      "crashReports": "Crash reports",
+      "savingFiles": "Saving files",
+      "afterDownloading": "After downloading",
+      "proxy": "Proxy",
+      "rendering": "Rendering",
+      "memory": "Memory and storage",
+      "settingsFile": "Settings file"
     },
     "backup": {
       "title": "Backup",
-      "hint": "Save your settings to a file, or bring them over from another computer. The file never includes your WhatsApp login or chats.",
+      "exportLabel": "Back up your settings",
+      "exportHint": "Save your settings to a file. It never includes your WhatsApp login or chats.",
+      "importLabel": "Restore settings",
+      "importHint": "Bring your settings over from another computer.",
       "export": "Export Settings…",
       "import": "Import Settings…",
       "failed": "Something went wrong. Try again.",
@@ -132,17 +153,17 @@
       "assistant": {
         "enabled": {
           "label": "Show the assistant in chats",
-          "description": "Shows Polish in the message box while you type, and reply suggestions right above it. It never sends a message: you send what it writes."
+          "description": "Shows Polish in the message box while you type, and reply suggestions right above it."
         },
         "provider": {
-          "label": "Where the assistant thinks",
-          "description": "Automatic uses the first one that is set up: the private model, then a model server on this computer, then Claude, then OpenAI.",
+          "label": "Provider",
+          "description": "Where the assistant runs.",
           "options": {
             "auto": "Automatic",
-            "built-in": "Private, on this computer",
+            "built-in": "On this computer (private)",
             "anthropic": "Claude (Anthropic)",
             "openai": "OpenAI",
-            "local": "A model server on this computer"
+            "local": "Model server on this computer"
           }
         },
         "model": {
@@ -151,18 +172,18 @@
         },
         "autoSuggest": {
           "label": "Suggest replies",
-          "description": "When the last message in the open chat is someone else’s, the assistant suggests short replies above the message box. Each time, it reads the chat’s latest messages."
+          "description": "When the last message in the open chat is someone else’s, the assistant suggests short replies above the message box."
         },
         "chats": {
-          "label": "Chats the assistant works in",
+          "label": "Where the assistant works",
           "description": "It suggests replies, and rewrites what you type, only in these chats.",
           "options": {
             "all": "All chats",
-            "chosen": "Only the chats listed below"
+            "chosen": "Only chosen chats"
           }
         },
         "messages": {
-          "label": "Messages the assistant reads",
+          "label": "Messages it reads",
           "description": "How many of the open chat’s latest messages it reads to suggest replies.",
           "options": {
             "5": "5",
@@ -214,7 +235,7 @@
           "label": "Theme",
           "description": "Applies to YapYap and to WhatsApp, as long as WhatsApp’s own theme is set to System default.",
           "options": {
-            "system": "Same as the system",
+            "system": "System",
             "light": "Light",
             "dark": "Dark"
           }
@@ -257,7 +278,7 @@
           "options": {
             "auto": "Automatic",
             "wayland": "Wayland",
-            "x11": "X11 (XWayland)"
+            "x11": "X11"
           }
         },
         "diskCacheMb": {
@@ -322,14 +343,14 @@
           "label": "Proxy",
           "description": "How YapYap connects. If a proxy cannot be used, YapYap stops connecting rather than going around it.",
           "options": {
-            "system": "Use the system’s settings",
-            "direct": "No proxy",
-            "manual": "This proxy"
+            "system": "System",
+            "direct": "None",
+            "manual": "Custom"
           }
         },
         "proxyServer": {
           "label": "Proxy address",
-          "description": "Used when Proxy is set to “This proxy”: http://, https:// or socks5://, a host and a port. Press Enter to save it."
+          "description": "Use http://, https:// or socks5://, a host and a port. Saved when you leave the field."
         }
       },
       "downloads": {
@@ -460,13 +481,32 @@
     },
     "settings": {
       "intro": "Suggests replies to the messages you get and rewrites what you type, in the tone you choose. It never sends a message: it only puts text in the message box, for you to send.",
-      "where": "Where the assistant thinks",
-      "whereHint": "Choose one. Automatic uses the first that is set up.",
-      "inUse": "In use",
-      "automatic": "Automatic: use the first that is set up",
+      "where": "Provider",
+      "whereHint": "Where the assistant runs.",
+      "automatic": "Automatic",
+      "automaticHint": "Uses the first provider that is set up.",
+      "notSetUp": "Not set up yet. Choose a provider below.",
+      "ready": "Ready. Using {{provider}}.",
+      "pills": {
+        "ready": "Ready",
+        "nothingSetUp": "Nothing set up",
+        "notDownloaded": "Not downloaded",
+        "downloading": "Downloading",
+        "paused": "Paused",
+        "tooLarge": "Too large",
+        "needsKey": "Needs key",
+        "keySaved": "Key saved",
+        "notSetUp": "Not set up",
+        "addressSaved": "Address saved"
+      },
+      "groups": {
+        "inChats": "In chats",
+        "replies": "Suggested replies",
+        "chats": "Chats"
+      },
       "private": {
-        "title": "Private, on this computer",
-        "description": "A small AI model that runs on this computer, so your messages never leave it. It downloads once ({{size}}) and answers more slowly than the services.",
+        "title": "On this computer (private)",
+        "description": "A small model of {{size}}. Your messages never leave this computer, but it answers more slowly than the services.",
         "download": "Download",
         "pause": "Pause",
         "resume": "Resume",
@@ -484,30 +524,33 @@
       },
       "anthropic": {
         "title": "Claude (Anthropic)",
-        "description": "Sends what you ask about to Anthropic, with your own API key.",
+        "description": "Uses your own API key.",
+        "company": "Anthropic",
         "getKey": "Get a key from Anthropic"
       },
       "openai": {
         "title": "OpenAI",
-        "description": "Sends what you ask about to OpenAI, with your own API key.",
+        "description": "Uses your own API key.",
+        "company": "OpenAI",
         "getKey": "Get a key from OpenAI"
       },
       "key": {
-        "label": "API key for {{provider}}",
+        "label": "API key",
         "placeholder": "Paste your key",
         "save": "Save Key",
-        "forget": "Forget Key",
+        "forget": "Remove",
+        "replace": "Replace",
+        "cancel": "Cancel",
         "test": "Test",
         "saved": "A key is saved, encrypted by your system.",
-        "none": "No key saved.",
         "testing": "Testing…",
         "works": "The key works.",
         "cannotKeep": "This system cannot keep the key safely, so it was not saved. Set up your system’s keyring, then try again.",
         "empty": "Paste a key first."
       },
       "local": {
-        "title": "A model server on this computer",
-        "description": "Uses a model you already run, with Ollama, LM Studio, llama.cpp or another server that speaks OpenAI’s API. Nothing leaves this computer.",
+        "title": "Model server on this computer",
+        "description": "Ollama, LM Studio, llama.cpp, or any server that speaks OpenAI’s API.",
         "find": "Find",
         "finding": "Looking…",
         "none": "No model server answers on this computer. Start one, such as Ollama, then try again.",
@@ -523,27 +566,22 @@
       "model": {
         "auto": "Auto (recommended)",
         "autoNamed": "Auto (recommended): {{model}}",
-        "notReady": "Set up where the assistant thinks first.",
         "none": "The provider listed no model. Check its key, or that the server runs."
       },
-      "behavior": "Behavior",
       "privacy": {
-        "title": "Privacy",
-        "what": "To suggest replies, the assistant reads the open chat’s latest messages and sends them, with its instructions, to the place you chose above. To rewrite, it sends only what you typed. YapYap logs none of it.",
-        "where": {
-          "built-in": "Right now, everything stays on this computer.",
-          "local": "Right now, it goes to the model server on this computer.",
-          "anthropic": "Right now, it goes to Anthropic, at api.anthropic.com.",
-          "openai": "Right now, it goes to OpenAI, at api.openai.com.",
-          "none": "Right now, it goes nowhere: the assistant is not set up yet."
-        },
-        "noChats": "None yet.",
+        "noChats": "No chats yet.",
+        "listed": "Chats you add show up here.",
         "unnamed": "A chat allowed before (its name was not kept)",
         "remove": "Remove",
         "removeLabel": "Stop reading {{chat}}",
         "chat": "{{account}}: {{chat}}",
-        "addOpenChat": "Add the Chat Open in WhatsApp",
-        "noOpenChat": "Open a chat in WhatsApp first."
+        "addOpenChat": "Add Open Chat",
+        "noOpenChat": "Open a chat in WhatsApp first.",
+        "sent": {
+          "none": "Nothing is sent anywhere until you set up a provider.",
+          "here": "Everything stays on this computer.",
+          "away": "Sends the last {{messages}} messages of the open chat, plus its instructions, to {{company}}. When rewriting, it sends only what you typed. YapYap logs none of it."
+        }
       },
       "unavailable": "The assistant’s settings could not be read. Try again in a moment."
     },
@@ -626,9 +664,11 @@
   },
   "agents": {
     "intro": "AI agents such as Claude Code connect to YapYap over MCP. Each agent needs a token, which says exactly what it may do, in which accounts and chats, and for how long.",
-    "address": "Agents connect at",
+    "access": "Access",
+    "address": "Address",
+    "addressHint": "Agents connect here with a token. Only this computer can reach it.",
     "copy": "Copy",
-    "off": "Turn on “Let AI agents connect” to give agents an address.",
+    "off": "Turn this on to give agents an address.",
     "portTaken": "Another program uses port {{port}}, so agents can’t connect. Pick another port.",
     "newPort": "Pick Another Port",
     "sent": "{{token}} sent a message to {{chat}}.",
@@ -645,7 +685,7 @@
     "tokens": {
       "title": "Tokens",
       "none": "No tokens yet.",
-      "create": "Create a Token…",
+      "create": "Create Token…",
       "revoke": "Revoke",
       "remove": "Remove {{item}}",
       "removeMark": "×",

@@ -3,20 +3,20 @@ import { en } from './messages/en.ts';
 /** A value the settings window can show and change. */
 export type SettingValue = boolean | string | number;
 
-/** A settings file section, in the order the settings window lists them. */
+/** The settings file's sections; the window groups their fields into its own pages. */
 export const SETTINGS_SECTIONS = [
-  { id: 'assistant', title: en.settings.sections.assistant },
-  { id: 'agents', title: en.settings.sections.agents },
-  { id: 'general', title: en.settings.sections.general },
-  { id: 'spelling', title: en.settings.sections.spelling },
-  { id: 'appearance', title: en.settings.sections.appearance },
-  { id: 'reliability', title: en.settings.sections.reliability },
-  { id: 'downloads', title: en.settings.sections.downloads },
-  { id: 'privacy', title: en.settings.sections.privacy },
-  { id: 'network', title: en.settings.sections.network },
+  'assistant',
+  'agents',
+  'general',
+  'spelling',
+  'appearance',
+  'reliability',
+  'downloads',
+  'privacy',
+  'network',
 ] as const;
 
-type SettingsSection = (typeof SETTINGS_SECTIONS)[number]['id'];
+type SettingsSection = (typeof SETTINGS_SECTIONS)[number];
 
 export interface SettingField {
   /** `section.key` in the settings file. */
@@ -27,6 +27,10 @@ export interface SettingField {
   readonly restart: boolean;
   /** One of several values; without options, the setting is an on/off switch. */
   readonly options?: readonly { readonly value: string | number; readonly label: string }[];
+  /** Few, short options, shown side by side beside the label; others are a list to pick from. */
+  readonly segmented?: boolean;
+  /** Names a stored value that is not among the options, such as a zoom the View menu set. */
+  readonly unlisted?: (value: SettingValue) => string;
   /** A line of text, such as an address, instead of a switch or a choice. */
   readonly text?: { readonly placeholder: string };
   /** A folder, picked in the system's folder dialog; empty is the default folder, named here. */
@@ -70,6 +74,9 @@ const INTERFACE_SCALES = [
   { factor: 2 },
 ].map(({ factor }) => factor);
 
+const scaleLabel = (value: SettingValue): string =>
+  en.settings.scale({ percent: Math.round(Number(value) * 100) });
+
 /**
  * What the settings window shows. A setting appears here only once YapYap
  * acts on it, so the window never offers a switch that does nothing.
@@ -90,11 +97,13 @@ export const SETTING_FIELDS: readonly SettingField[] = [
   {
     ...described('assistant', 'chats'),
     restart: false,
+    segmented: true,
     options: choices(text.assistant.chats.options),
   },
   {
     ...described('assistant', 'messages'),
     restart: false,
+    segmented: true,
     options: choices(text.assistant.messages.options),
   },
   {
@@ -113,6 +122,7 @@ export const SETTING_FIELDS: readonly SettingField[] = [
   {
     ...described('appearance', 'theme'),
     restart: false,
+    segmented: true,
     options: choices(text.appearance.theme.options),
   },
   { ...described('appearance', 'autoHideMenuBar'), restart: false, platforms: ['linux', 'win32'] },
@@ -121,8 +131,9 @@ export const SETTING_FIELDS: readonly SettingField[] = [
     restart: false,
     options: INTERFACE_SCALES.map((value) => ({
       value,
-      label: en.settings.scale({ percent: Math.round(value * 100) }),
+      label: scaleLabel(value),
     })),
+    unlisted: scaleLabel,
   },
   { ...described('appearance', 'pinchZoom'), restart: false },
   { ...described('appearance', 'compactSidebar'), restart: false },
@@ -135,6 +146,7 @@ export const SETTING_FIELDS: readonly SettingField[] = [
   {
     ...described('reliability', 'displayBackend'),
     restart: true,
+    segmented: true,
     options: choices(text.reliability.displayBackend.options),
     platforms: ['linux'],
   },
@@ -169,6 +181,7 @@ export const SETTING_FIELDS: readonly SettingField[] = [
   {
     ...described('network', 'proxyMode'),
     restart: false,
+    segmented: true,
     options: choices(text.network.proxyMode.options),
   },
   {

@@ -65,7 +65,7 @@ describe('AssistantStep', () => {
     const t = setup(() => Promise.reject(new Error('busy')));
     fireEvent.click(await screen.findByRole('button', { name: 'Use Claude with My API Key' }));
     expect(t.onChange).toHaveBeenCalledWith('assistant.provider', 'anthropic');
-    fireEvent.input(screen.getByLabelText('API key for Claude (Anthropic)'), {
+    fireEvent.input(screen.getByLabelText('API key'), {
       target: { value: 'sk-ant' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Save Key' }));
@@ -73,9 +73,10 @@ describe('AssistantStep', () => {
       expect(t.assistant.saveKey).toHaveBeenCalledWith('anthropic', 'sk-ant');
     });
     fireEvent.click(screen.getByRole('button', { name: 'Use OpenAI with My API Key' }));
-    expect(screen.getByLabelText('API key for OpenAI')).toBeTruthy();
+    expect(screen.getByLabelText('API key')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Get a key from OpenAI' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Later' }));
-    expect(screen.queryByLabelText('API key for OpenAI')).toBeNull();
+    expect(screen.queryByLabelText('API key')).toBeNull();
     expect(t.onChange).toHaveBeenCalledTimes(2);
   });
 });

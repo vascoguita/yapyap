@@ -26,11 +26,9 @@ test('sets Claude up in Settings › Assistant, with the key encrypted, tested a
   profile,
 }) => {
   const settings = await readyClaude(app, CLAUDE_ANSWER);
-  // The assistant comes first in Settings.
-  const first = settings.locator('main section').first();
-  await expect(first).toHaveAttribute('aria-labelledby', 'assistant-title');
-  await expect(settings.getByText('In use')).toBeVisible();
-  await expect(settings.getByLabel('API key for Claude (Anthropic)')).toHaveValue('');
+  await expect(settings.getByText('Ready. Using Claude (Anthropic).')).toBeVisible();
+  // The key never comes back to the page: only that one is saved.
+  await expect(settings.getByLabel('API key', { exact: true })).toHaveText(/•+/);
   const kept = await readFile(join(profile, 'secrets.json'), 'utf8');
   expect(kept).not.toContain('sk-ant-e2e-key');
   await settings.getByRole('button', { name: 'Test' }).click();
@@ -39,8 +37,9 @@ test('sets Claude up in Settings › Assistant, with the key encrypted, tested a
   await expect(
     settings.getByRole('option', { name: 'Auto (recommended): Claude Haiku 5.5' }),
   ).toBeAttached();
-  await settings.getByRole('button', { name: 'Forget Key' }).click();
-  await expect(settings.getByText('No key saved.').first()).toBeVisible();
+  await settings.getByRole('button', { name: 'Remove' }).click();
+  await expect(settings.locator('#provider-anthropic-pill')).toHaveText('Needs key');
+  await expect(settings.getByLabel('API key', { exact: true })).toHaveValue('');
 });
 
 test('suggests replies when a message arrives, only in a chat the user added in Settings', async ({
@@ -56,7 +55,7 @@ test('suggests replies when a message arrives, only in a chat the user added in 
   expect(await claudeRequests(app)).toEqual([]);
   expect(await barNames(app)).toEqual([]);
   const settings = await openAssistantSettings(app);
-  await settings.getByRole('button', { name: 'Add the Chat Open in WhatsApp' }).click();
+  await settings.getByRole('button', { name: 'Add Open Chat' }).click();
   await expect(settings.getByText(/: Test Chat One$/)).toBeVisible();
   await settings.close();
   await focusMain(app);
@@ -198,7 +197,7 @@ test('says the assistant is off in a chat the user did not add, and opens its se
   expect(await claudeRequests(app)).toEqual([]);
   await clickInBar(app, window, 'Open settings');
   await expect(
-    (await chromePage(app, '/settings.html')).getByRole('region', { name: 'Assistant' }),
+    (await chromePage(app, '/settings.html')).getByRole('heading', { level: 1, name: 'Assistant' }),
   ).toBeVisible();
 });
 
@@ -217,7 +216,7 @@ test('says what is missing before the assistant is set up, and opens its setting
   await clickInTool(app, window, 'Choose how to rewrite');
   await clickInTool(app, window, 'Assistant settings');
   await expect(
-    (await chromePage(app, '/settings.html')).getByRole('region', { name: 'Assistant' }),
+    (await chromePage(app, '/settings.html')).getByRole('heading', { level: 1, name: 'Assistant' }),
   ).toBeVisible();
 });
 
@@ -233,13 +232,12 @@ test('finds the model server on this computer, and suggests replies with it', as
     const window = await whatsAppPage(app);
     await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
     const settings = await openAssistantSettings(app);
+    await settings.getByRole('radio', { name: 'Model server on this computer' }).check();
     await settings.getByRole('button', { name: 'Find' }).click();
     await expect(settings.getByText(`localhost:${String(server.port)}: tiny-e2e`)).toBeVisible();
     await settings.getByRole('button', { name: 'Use', exact: true }).click();
-    await expect(settings.getByText('In use')).toBeVisible();
-    await expect(
-      settings.getByText('Right now, it goes to the model server on this computer.'),
-    ).toBeVisible();
+    await expect(settings.getByText('Ready. Using Model server on this computer.')).toBeVisible();
+    await expect(settings.getByText('Everything stays on this computer.')).toBeVisible();
     await allowAllChats(settings);
     await focusMain(app);
     await messageArrives(window, '3EB0F7', 'Are we still on?');
@@ -278,7 +276,7 @@ test('offers the model server it finds in the Welcome, and uses it on one click'
     await expect(welcome.getByText(/^Done\./)).toBeVisible();
     const settings = await openAssistantSettings(app);
     await expect(
-      settings.getByRole('radio', { name: /A model server on this computer/ }),
+      settings.getByRole('radio', { name: 'Model server on this computer' }),
     ).toBeChecked();
   } finally {
     await closeApp(app);
@@ -296,6 +294,7 @@ test('opens the page to get a key in the default browser', async ({ app }) => {
     };
   });
   const settings = await openAssistantSettings(app);
+  await settings.getByRole('radio', { name: 'Claude (Anthropic)' }).check();
   await settings.getByRole('link', { name: 'Get a key from Anthropic' }).click();
   await expect
     .poll(() =>

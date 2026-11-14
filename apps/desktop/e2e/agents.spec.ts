@@ -1,25 +1,26 @@
 import type { ElectronApplication, Page } from '@playwright/test';
 import { standInKeyring } from './assistant-helpers.ts';
-import { chromePage, clickMenu } from './chrome-helpers.ts';
+import { chromePage, clickMenu, showSettingsPage } from './chrome-helpers.ts';
 import { expect, test } from './fixtures.ts';
 
 /** Opens Settings › Agents and turns the MCP server on; returns the page and its address. */
 async function turnOnAgents(
   app: ElectronApplication,
 ): Promise<{ settings: Page; address: string }> {
-  await clickMenu(app, 'Assistant Settings…');
+  await clickMenu(app, 'Settings…');
   const settings = await chromePage(app, '/settings.html');
-  const agents = settings.getByRole('region', { name: 'Agents' });
-  await agents.getByRole('checkbox', { name: 'Let AI agents connect' }).check();
-  const shown = agents.locator('.address code');
+  await showSettingsPage(settings, 'Agents');
+  const agents = settings.getByRole('main');
+  await agents.getByRole('switch', { name: 'Let AI agents connect' }).check();
+  const shown = agents.locator('code.address');
   await expect(shown).toHaveText(/^http:\/\/127\.0\.0\.1:\d+\/mcp$/);
   return { settings, address: await shown.innerText() };
 }
 
 /** Creates a token that may send to `chat` alone, as a user would in Settings. */
 async function sendingToken(settings: Page, chat: string, phone = ''): Promise<string> {
-  const agents = settings.getByRole('region', { name: 'Agents' });
-  await agents.getByRole('button', { name: 'Create a Token…' }).click();
+  const agents = settings.getByRole('main');
+  await agents.getByRole('button', { name: 'Create Token…' }).click();
   await agents.getByRole('textbox', { name: /^Name/ }).fill('E2E agent');
   await agents.getByRole('checkbox', { name: 'Send messages, without asking you' }).check();
   await expect(agents.getByText(/can be tricked by a message someone sends you/)).toBeVisible();
@@ -102,7 +103,7 @@ test('lets an agent with a token send to the one chat it lists, and nothing else
   await expect(window.getByText('Should not arrive')).toHaveCount(0);
 
   // The activity shows the calls, never what was sent.
-  const agents = settings.getByRole('region', { name: 'Agents' });
+  const agents = settings.getByRole('main');
   await expect(agents.getByText(/E2E agent · send_message in .*: ok/)).toBeVisible();
   await expect(agents.getByText('Sent by an agent')).toHaveCount(0);
 });
@@ -167,10 +168,7 @@ test('turns away browser pages and wrong tokens, and stops listening when turned
   const wrong = await callTool(address, `${token.slice(0, -1)}${other}`, 'list_accounts');
   expect(wrong.status).toBe(401);
 
-  await settings
-    .getByRole('region', { name: 'Agents' })
-    .getByRole('checkbox', { name: 'Let AI agents connect' })
-    .uncheck();
+  await settings.getByRole('main').getByRole('switch', { name: 'Let AI agents connect' }).uncheck();
   await expect
     .poll(() =>
       callTool(address, token, 'list_accounts').then(

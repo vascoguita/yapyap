@@ -1,10 +1,9 @@
 /** @vitest-environment happy-dom */
-import { cleanup, fireEvent, render, screen } from '@testing-library/preact';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fakeChromeApi } from '../../../test/chrome-api.ts';
 import type { ChromeApi, SettingsSnapshot } from '../../shared/api/chrome-api.ts';
-import type { SettingValue } from '../../shared/settings-fields.ts';
-import { Field } from './Field.tsx';
+import { SETTING_FIELDS, type SettingValue } from '../../shared/settings-fields.ts';
 import { Settings } from './Settings.tsx';
 
 const HARDWARE = 'reliability.hardwareAcceleration';
@@ -17,14 +16,14 @@ const snapshot = (overrides: Partial<SettingsSnapshot> = {}): SettingsSnapshot =
   ...overrides,
 });
 
-function api(overrides: Partial<ChromeApi['settings']> = {}) {
+function api(overrides: Partial<ChromeApi['settings']> = {}, first = snapshot()) {
   return fakeChromeApi({
     settings: {
-      get: vi.fn(() => Promise.resolve(snapshot())),
+      get: vi.fn(() => Promise.resolve(first)),
       set: vi.fn((id: string, value: SettingValue) =>
         Promise.resolve(
           snapshot({
-            values: { ...snapshot().values, [id]: value },
+            values: { ...first.values, [id]: value },
             restartPending: id === HARDWARE && value === false,
           }),
         ),
@@ -42,96 +41,190 @@ function api(overrides: Partial<ChromeApi['settings']> = {}) {
   });
 }
 
+const nav = () => screen.getByRole('navigation', { name: 'Settings sections' });
+
+const open = async (page: string): Promise<void> => {
+  const list = await screen.findByRole('navigation', { name: 'Settings sections' });
+  fireEvent.click(within(list).getByRole('button', { name: page }));
+};
+
 const toggle = () =>
-  screen.findByRole<HTMLInputElement>('checkbox', { name: 'Use hardware acceleration' });
+  screen.findByRole<HTMLInputElement>('switch', { name: 'Use hardware acceleration' });
+
+const title = () => screen.getByRole('heading', { level: 1 }).textContent;
+
+/** Each test starts with no page in the address, as a window opened from the menu does. */
+const forgetPage = (): void => {
+  window.history.replaceState(null, '', window.location.pathname);
+};
 
 describe('Settings', () => {
   afterEach(() => {
     cleanup();
+    forgetPage();
   });
 
-  it('lists the settings by section, each explained', async () => {
+  it('lists the pages this platform has, and opens the first', async () => {
     render(<Settings api={api()} />);
     expect(screen.getByText('Loading…')).toBeTruthy();
     expect(screen.getByRole('main').getAttribute('aria-busy')).toBe('true');
-    const box = await toggle();
-    expect(box.checked).toBe(true);
-    expect(box.disabled).toBe(false);
-    expect(screen.getByRole('region', { name: 'Reliability' })).toBeTruthy();
-    expect(screen.queryByRole('region', { name: 'General' })).toBeNull();
-    expect(box.getAttribute('aria-describedby')).toBe(`${HARDWARE}-hint`);
-    expect(document.getElementById(`${HARDWARE}-hint`)?.textContent).toMatch(
-      /flickers or stays blank\. Takes effect after a restart\.$/,
-    );
-    expect(screen.queryByRole('button', { name: 'Restart Now' })).toBeNull();
+    const list = await screen.findByRole('navigation', { name: 'Settings sections' });
+    // General has no setting in this snapshot, so the first page with one opens.
+    expect(
+      within(list)
+        .getAllByRole('button')
+        .map((button) => button.textContent),
+    ).toEqual(['Appearance', 'Advanced', 'Backup']);
+    expect(title()).toBe('Appearance');
+    const current = within(list).getByRole('button', { name: 'Appearance' });
+    expect(current.getAttribute('aria-current')).toBe('page');
+    expect(
+      within(list).getByRole('button', { name: 'Advanced' }).getAttribute('aria-current'),
+    ).toBeNull();
+    expect(screen.queryByRole('switch', { name: 'Use hardware acceleration' })).toBeNull();
   });
 
-  it('puts the assistant first, in a section of its own', async () => {
+  it('opens General first, with every page beside it, the advanced ones apart', async () => {
     const values = {
+      'general.autostart': false,
       'assistant.enabled': true,
-      'assistant.provider': 'auto',
-      'assistant.autoSuggest': true,
-      'assistant.chats': 'chosen',
+      'agents.enabled': false,
+      'privacy.crashReports': 'off',
+      'downloads.askWhere': false,
+      'network.proxyMode': 'system',
+      [THEME]: 'system',
       [HARDWARE]: true,
     };
-    const settings = api({ get: vi.fn(() => Promise.resolve(snapshot({ values }))) });
-    vi.mocked(settings.assistant.view).mockReturnValue(new Promise<never>(() => undefined));
+    const settings = api({}, snapshot({ values }));
     render(<Settings api={settings} />);
-    const section = await screen.findByRole('region', { name: 'Assistant' });
-    expect(document.querySelector('main section')).toBe(section);
-    expect(screen.getByRole('checkbox', { name: 'Show the assistant in chats' })).toBeTruthy();
-    expect(screen.getAllByRole('region', { name: 'Assistant' })).toHaveLength(1);
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Show the assistant in chats' }));
-    expect(settings.settings.set).toHaveBeenCalledWith('assistant.enabled', false);
+    await screen.findByRole('switch', { name: 'Start at login' });
+    expect(title()).toBe('General');
+    expect(
+      within(nav())
+        .getAllByRole('button')
+        .map((button) => button.textContent),
+    ).toEqual([
+      'General',
+      'Appearance',
+      'Notifications & privacy',
+      'Downloads',
+      'Assistant',
+      'Agents',
+      'Network',
+      'Advanced',
+      'Backup',
+    ]);
+    expect(nav().querySelector('li.apart')?.textContent).toBe('Advanced');
+    expect(screen.getByRole('group', { name: 'Startup' })).toBeTruthy();
+    // A group with no setting on this platform is left out.
+    expect(screen.queryByRole('group', { name: 'Writing' })).toBeNull();
   });
 
-  it('puts the agents right after the assistant, in a section of their own', async () => {
-    const values = { 'assistant.enabled': true, 'agents.enabled': false, [HARDWARE]: true };
-    const settings = api({ get: vi.fn(() => Promise.resolve(snapshot({ values }))) });
+  it('opens at the page the address names, and follows the address after', async () => {
+    window.history.replaceState(null, '', '#advanced');
+    render(<Settings api={api()} />);
+    expect(await toggle()).toBeTruthy();
+    expect(title()).toBe('Advanced');
+    window.history.replaceState(null, '', '#appearance');
+    window.dispatchEvent(new Event('hashchange'));
+    await vi.waitFor(() => {
+      expect(title()).toBe('Appearance');
+    });
+    await open('Backup');
+    expect(window.location.hash).toBe('#backup');
+  });
+
+  it('puts every setting on one of its pages', async () => {
+    const values = Object.fromEntries(
+      SETTING_FIELDS.map(({ id }) => [id, id === 'network.proxyMode' ? 'manual' : ''] as const),
+    );
+    const settings = api({}, snapshot({ values }));
     vi.mocked(settings.assistant.view).mockReturnValue(new Promise<never>(() => undefined));
     vi.mocked(settings.agents.view).mockReturnValue(new Promise<never>(() => undefined));
     render(<Settings api={settings} />);
-    const section = await screen.findByRole('region', { name: 'Agents' });
-    expect(document.querySelectorAll('main section')[1]).toBe(section);
-    expect(screen.getAllByRole('region', { name: 'Agents' })).toHaveLength(1);
-    const nav = screen.getByRole('navigation', { name: 'Settings sections' });
-    expect([...nav.querySelectorAll('a')].map((link) => link.textContent).slice(0, 2)).toEqual([
-      'Assistant',
-      'Agents',
-    ]);
-  });
-
-  it('lists the sections it shows at the top, each a jump to its heading', async () => {
-    const withAssistant = { 'assistant.enabled': true, [HARDWARE]: true, 'general.unknown': 1 };
-    const settings = api({
-      get: vi.fn(() => Promise.resolve(snapshot({ values: withAssistant }))),
-    });
-    vi.mocked(settings.assistant.view).mockReturnValue(new Promise<never>(() => undefined));
-    render(<Settings api={settings} />);
-    const nav = await screen.findByRole('navigation', { name: 'Settings sections' });
-    // A value without a field here, such as general.unknown, adds no section.
-    const links = [...nav.querySelectorAll('a')].map((link) => [
-      link.textContent,
-      link.getAttribute('href'),
-    ]);
-    expect(links).toEqual([
-      ['Assistant', '#assistant-title'],
-      ['Reliability', '#reliability-title'],
-      ['Backup', '#backup-title'],
-    ]);
-    for (const [, href] of links) {
-      expect(document.getElementById(String(href).slice(1))).not.toBeNull();
+    const list = await screen.findByRole('navigation', { name: 'Settings sections' });
+    const seen = new Set<string>();
+    for (const button of within(list).getAllByRole('button')) {
+      fireEvent.click(button);
+      for (const { id } of SETTING_FIELDS) {
+        if (document.getElementById(`${id}-hint`) !== null) {
+          seen.add(id);
+        }
+      }
     }
-    cleanup();
-    render(<Settings api={api()} />);
-    const without = await screen.findByRole('navigation', { name: 'Settings sections' });
-    expect(without.textContent).toBe('AppearanceReliabilityBackup');
+    // The rest of the assistant's settings show once its view is read; see Assistant.test.tsx.
+    const own = SETTING_FIELDS.map(({ id }) => id).filter(
+      (id) => id.startsWith('assistant.') && id !== 'assistant.enabled',
+    );
+    expect(SETTING_FIELDS.map(({ id }) => id).filter((id) => !seen.has(id))).toEqual(own);
   });
 
-  it('saves a change and offers a restart when it needs one', async () => {
+  it('shows Backup when this platform has no other page', async () => {
+    render(<Settings api={api({}, snapshot({ values: {} }))} />);
+    const list = await screen.findByRole('navigation', { name: 'Settings sections' });
+    expect(
+      within(list)
+        .getAllByRole('button')
+        .map((button) => button.textContent),
+    ).toEqual(['Backup']);
+    expect(title()).toBe('Backup');
+  });
+
+  it('shows one page at a time, its intro under its title', async () => {
+    render(<Settings api={api()} />);
+    await open('Advanced');
+    expect(title()).toBe('Advanced');
+    expect(
+      screen.getByText('Change these only if you have a problem. Most need a restart.'),
+    ).toBeTruthy();
+    expect(await toggle()).toBeTruthy();
+    expect(screen.queryByRole('radiogroup', { name: 'Theme' })).toBeNull();
+    await open('Appearance');
+    expect(screen.getByRole('radiogroup', { name: 'Theme' })).toBeTruthy();
+    expect(screen.queryByRole('switch', { name: 'Use hardware acceleration' })).toBeNull();
+  });
+
+  it('moves between pages with Up and Down, stopping at either end', async () => {
+    render(<Settings api={api()} />);
+    const list = await screen.findByRole('navigation', { name: 'Settings sections' });
+    const first = within(list).getByRole('button', { name: 'Appearance' });
+    fireEvent.keyDown(first, { key: 'ArrowUp' });
+    expect(title()).toBe('Appearance');
+    fireEvent.keyDown(first, { key: 'ArrowDown' });
+    expect(title()).toBe('Advanced');
+    expect(document.activeElement?.textContent).toBe('Advanced');
+    fireEvent.keyDown(first, { key: 'Tab' });
+    expect(title()).toBe('Advanced');
+    fireEvent.keyDown(first, { key: 'ArrowDown' });
+    expect(title()).toBe('Backup');
+    fireEvent.keyDown(first, { key: 'ArrowDown' });
+    expect(title()).toBe('Backup');
+    fireEvent.keyDown(first, { key: 'ArrowUp' });
+    expect(title()).toBe('Advanced');
+  });
+
+  it('also lists the pages to pick from, for a narrow window', async () => {
+    render(<Settings api={api()} />);
+    await screen.findByRole('navigation', { name: 'Settings sections' });
+    const pick = screen.getByRole<HTMLSelectElement>('combobox', { name: 'Settings sections' });
+    expect(pick.value).toBe('appearance');
+    fireEvent.change(pick, { target: { value: 'backup' } });
+    expect(title()).toBe('Backup');
+  });
+
+  it('saves a switch at once, and offers a restart for a change that needs one', async () => {
     const t = api();
     render(<Settings api={t} />);
-    fireEvent.click(await toggle());
+    await open('Advanced');
+    const box = await toggle();
+    expect(box.checked).toBe(true);
+    expect(box.getAttribute('aria-describedby')).toBe(`${HARDWARE}-tag ${HARDWARE}-hint`);
+    expect(document.getElementById(`${HARDWARE}-tag`)?.textContent).toBe('Needs restart');
+    expect(document.getElementById(`${HARDWARE}-hint`)?.textContent).toMatch(
+      /flickers or stays blank\.$/,
+    );
+    expect(screen.queryByRole('button', { name: 'Restart Now' })).toBeNull();
+    fireEvent.click(box);
     expect(t.settings.set).toHaveBeenCalledExactlyOnceWith(HARDWARE, false);
     const restart = await screen.findByRole('button', { name: 'Restart Now' });
     expect(screen.getByText('Restart YapYap to apply your changes.')).toBeTruthy();
@@ -146,6 +239,7 @@ describe('Settings', () => {
       .mockRejectedValueOnce(new Error('rejected'))
       .mockResolvedValueOnce(snapshot({ restartPending: true }));
     render(<Settings api={api({ set })} />);
+    await open('Advanced');
     fireEvent.click(await toggle());
     expect(await screen.findByText('Could not save that setting.')).toBeTruthy();
     fireEvent.click(await toggle());
@@ -153,9 +247,10 @@ describe('Settings', () => {
     expect(screen.getByRole('alert').textContent).toBe('');
   });
 
-  it('shows unchecked switches for settings that are off', async () => {
+  it('shows switches that are off as off', async () => {
     const off = snapshot({ values: { [THEME]: 'dark', [HARDWARE]: false } });
-    render(<Settings api={api({ get: () => Promise.resolve(off) })} />);
+    render(<Settings api={api({}, off)} />);
+    await open('Advanced');
     expect((await toggle()).checked).toBe(false);
   });
 
@@ -164,14 +259,13 @@ describe('Settings', () => {
     expect(await screen.findByText('Settings are unavailable.')).toBeTruthy();
   });
 
-  it('offers the theme as a group of choices that applies without a restart', async () => {
+  it('offers the theme as side-by-side choices that apply without a restart', async () => {
     const t = api();
     render(<Settings api={t} />);
-    const group = await screen.findByRole('group', { name: 'Theme' });
+    const group = await screen.findByRole('radiogroup', { name: 'Theme' });
     expect(group.getAttribute('aria-describedby')).toBe(`${THEME}-hint`);
     expect(document.getElementById(`${THEME}-hint`)?.textContent).toMatch(/System default\.$/);
-    const system = screen.getByRole<HTMLInputElement>('radio', { name: 'Same as the system' });
-    expect(system.checked).toBe(true);
+    expect(screen.getByRole<HTMLInputElement>('radio', { name: 'System' }).checked).toBe(true);
     fireEvent.click(screen.getByRole('radio', { name: 'Dark' }));
     expect(t.settings.set).toHaveBeenCalledExactlyOnceWith(THEME, 'dark');
     await vi.waitFor(() => {
@@ -180,46 +274,90 @@ describe('Settings', () => {
     expect(screen.queryByRole('button', { name: 'Restart Now' })).toBeNull();
   });
 
-  it('adds no restart hint to a setting that applies at once', () => {
-    const field = {
-      id: 'general.example',
-      label: 'Example',
-      description: 'Applies at once.',
-      restart: false,
-    } as const;
-    render(<Field field={field} snapshot={snapshot()} onChange={vi.fn()} />);
-    expect(document.getElementById('general.example-hint')?.textContent).toBe('Applies at once.');
+  it('offers many options as a list, naming a value the list lacks', async () => {
+    const t = api({}, snapshot({ values: { 'appearance.zoom': 1.2 } }));
+    render(<Settings api={t} />);
+    const scale = await screen.findByRole<HTMLSelectElement>('combobox', {
+      name: 'Interface scale',
+    });
+    expect(scale.getAttribute('aria-describedby')).toBe('appearance.zoom-hint');
+    // The View menu zooms in finer steps than the list offers.
+    expect(scale.value).toBe('1.2');
+    expect(scale.selectedOptions[0]?.textContent).toBe('120%');
+    fireEvent.change(scale, { target: { value: '1.5' } });
+    expect(t.settings.set).toHaveBeenCalledExactlyOnceWith('appearance.zoom', 1.5);
+    await vi.waitFor(() => {
+      expect(scale.querySelector('option[value="1.2"]')).toBeNull();
+    });
+    expect(scale.value).toBe('1.5');
+    // A value the list never had changes nothing.
+    fireEvent.change(scale, { target: { value: '7' } });
+    expect(t.settings.set).toHaveBeenCalledOnce();
   });
 
-  it('explains under a setting why its change did not take effect', () => {
-    const field = {
-      id: 'general.example',
-      label: 'Example',
-      description: 'Does something.',
-      restart: false,
-    } as const;
-    render(
-      <Field
-        field={field}
-        snapshot={snapshot({ problems: { 'general.example': 'The system refused.' } })}
-        onChange={vi.fn()}
-      />,
-    );
-    expect(document.getElementById('general.example-hint')?.textContent).toBe(
-      'Does something.The system refused.',
-    );
+  it('lists only the options for a value it knows, of a field that names none', async () => {
+    const t = api({}, snapshot({ values: { 'privacy.crashReports': 'gone' } }));
+    render(<Settings api={t} />);
+    const reports = await screen.findByRole<HTMLSelectElement>('combobox', {
+      name: 'Crash reports',
+    });
+    expect([...reports.options].map((option) => option.value)).toEqual(['off', 'local', 'ask']);
+  });
+
+  it('shows the proxy address only for a proxy of the user’s own', async () => {
+    const values = { 'network.proxyMode': 'system', 'network.proxyServer': '' };
+    const t = api({}, snapshot({ values }));
+    render(<Settings api={t} />);
+    await screen.findByRole('radiogroup', { name: 'Proxy' });
+    expect(screen.queryByLabelText('Proxy address')).toBeNull();
+    fireEvent.click(screen.getByRole('radio', { name: 'Custom' }));
+    expect(await screen.findByLabelText('Proxy address')).toBeTruthy();
+  });
+
+  it('fades the folder while YapYap asks where to save each file', async () => {
+    const values = { 'downloads.askWhere': true, 'downloads.folder': '' };
+    render(<Settings api={api({}, snapshot({ values }))} />);
+    const change = await screen.findByRole('button', { name: 'Change… Save files to' });
+    expect(change.closest('.row')?.classList.contains('dimmed')).toBe(true);
+    fireEvent.click(screen.getByRole('switch', { name: 'Ask where to save each file' }));
+    await vi.waitFor(() => {
+      expect(change.closest('.row')?.classList.contains('dimmed')).toBe(false);
+    });
+  });
+
+  it('asks main for the folder, then shows what was saved', async () => {
+    const withFolder = snapshot({ values: { 'downloads.folder': '' } });
+    const yapyap = api({}, withFolder);
+    render(<Settings api={yapyap} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Change… Save files to' }));
+    expect(yapyap.settings.chooseFolder).toHaveBeenCalledExactlyOnceWith('downloads.folder');
+    await vi.waitFor(() => {
+      expect(yapyap.settings.get).toHaveBeenCalledTimes(2);
+    });
+  });
+});
+
+describe('Settings › Backup', () => {
+  afterEach(() => {
+    cleanup();
+    forgetPage();
   });
 
   it('exports the settings and says how it went', async () => {
     const t = api();
     render(<Settings api={t} />);
-    fireEvent.click(await screen.findByRole('button', { name: 'Export Settings…' }));
+    await open('Backup');
+    const exportButton = screen.getByRole('button', { name: 'Export Settings…' });
+    expect(
+      document.getElementById(String(exportButton.getAttribute('aria-describedby'))),
+    ).toBeTruthy();
+    expect(screen.getByRole('group', { name: 'Settings file' }).textContent).toContain(
+      'never includes your WhatsApp login or chats',
+    );
+    fireEvent.click(exportButton);
     expect(await screen.findByText('Settings exported.')).toBeTruthy();
     expect(t.settings.export).toHaveBeenCalledOnce();
     expect(t.settings.get).toHaveBeenCalledOnce();
-    expect(screen.getByRole('region', { name: 'Backup' }).textContent).toContain(
-      'never includes your WhatsApp login or chats',
-    );
   });
 
   it('shows the imported settings once an import is done', async () => {
@@ -227,15 +365,15 @@ describe('Settings', () => {
       .fn<ChromeApi['settings']['get']>()
       .mockResolvedValueOnce(snapshot())
       .mockResolvedValueOnce(snapshot({ values: { [THEME]: 'system', [HARDWARE]: false } }));
-    const t = api({ get });
-    render(<Settings api={t} />);
-    expect((await toggle()).checked).toBe(true);
+    render(<Settings api={api({ get })} />);
+    await open('Backup');
     fireEvent.click(screen.getByRole('button', { name: 'Import Settings…' }));
     expect(await screen.findByText('Settings imported.')).toBeTruthy();
-    await vi.waitFor(async () => {
-      expect((await toggle()).checked).toBe(false);
+    await vi.waitFor(() => {
+      expect(get).toHaveBeenCalledTimes(2);
     });
-    expect(get).toHaveBeenCalledTimes(2);
+    await open('Advanced');
+    expect((await toggle()).checked).toBe(false);
   });
 
   it('keeps the settings when an import is cancelled or rejected', async () => {
@@ -250,7 +388,8 @@ describe('Settings', () => {
         .mockRejectedValueOnce(new Error('ipc')),
     });
     render(<Settings api={t} />);
-    const button = await screen.findByRole('button', { name: 'Import Settings…' });
+    await open('Backup');
+    const button = screen.getByRole('button', { name: 'Import Settings…' });
     fireEvent.click(button);
     await vi.waitFor(() => {
       expect(t.settings.import).toHaveBeenCalledOnce();
@@ -263,102 +402,23 @@ describe('Settings', () => {
   });
 });
 
-describe('a text setting', () => {
+describe('Settings › Assistant and Agents', () => {
   afterEach(() => {
     cleanup();
+    forgetPage();
   });
 
-  const field = {
-    id: 'network.proxyServer' as const,
-    label: 'Proxy address',
-    description: 'A proxy.',
-    restart: false,
-    text: { placeholder: 'socks5://127.0.0.1:1080' },
-  };
-
-  it('saves on Enter or when focus leaves, trimmed, and only when it changed', () => {
-    const onChange = vi.fn();
-    render(
-      <Field
-        field={field}
-        snapshot={snapshot({ values: { 'network.proxyServer': '' } })}
-        onChange={onChange}
-      />,
-    );
-    const input = screen.getByLabelText<HTMLInputElement>('Proxy address');
-    expect(input.placeholder).toBe('socks5://127.0.0.1:1080');
-    fireEvent.keyDown(input, { key: 'a' });
-    fireEvent.blur(input);
-    expect(onChange).not.toHaveBeenCalled();
-    input.value = ' socks5://10.0.0.2:1080 ';
-    fireEvent.keyDown(input, { key: 'Enter' });
-    expect(onChange).toHaveBeenCalledWith('network.proxyServer', 'socks5://10.0.0.2:1080');
-    input.value = 'http://p:8080';
-    fireEvent.blur(input);
-    expect(onChange).toHaveBeenLastCalledWith('network.proxyServer', 'http://p:8080');
-  });
-
-  it('starts empty for a value it does not have', () => {
-    render(<Field field={field} snapshot={snapshot()} onChange={vi.fn()} />);
-    expect(screen.getByLabelText<HTMLInputElement>('Proxy address').value).toBe('');
-  });
-});
-
-describe('a folder setting', () => {
-  afterEach(() => {
-    cleanup();
-  });
-
-  const field = {
-    id: 'downloads.folder' as const,
-    label: 'Save files to',
-    description: 'Where files go.',
-    restart: false,
-    folder: { defaultName: 'Your Downloads folder', useDefault: 'Use Downloads Folder' },
-  };
-
-  it('shows the Downloads folder until another is chosen, and goes back to it', () => {
-    const onChange = vi.fn();
-    const onChooseFolder = vi.fn();
-    const { rerender } = render(
-      <Field
-        field={field}
-        snapshot={snapshot()}
-        onChange={onChange}
-        onChooseFolder={onChooseFolder}
-      />,
-    );
-    expect(screen.getByText('Your Downloads folder')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Use Downloads Folder' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Choose… Save files to' }));
-    expect(onChooseFolder).toHaveBeenCalledExactlyOnceWith('downloads.folder');
-    rerender(
-      <Field
-        field={field}
-        snapshot={snapshot({ values: { 'downloads.folder': '/home/someone/Saved' } })}
-        onChange={onChange}
-        onChooseFolder={onChooseFolder}
-      />,
-    );
-    expect(screen.getByText('/home/someone/Saved')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Use Downloads Folder' }));
-    expect(onChange).toHaveBeenCalledExactlyOnceWith('downloads.folder', '');
-  });
-
-  it('chooses nothing where no folder dialog is offered', () => {
-    render(<Field field={field} snapshot={snapshot()} onChange={vi.fn()} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Choose… Save files to' }));
-    expect(screen.getByText('Your Downloads folder')).toBeTruthy();
-  });
-
-  it('asks main for the folder, then shows what was saved', async () => {
-    const withFolder = snapshot({ values: { ...snapshot().values, 'downloads.folder': '' } });
-    const yapyap = api({ get: vi.fn(() => Promise.resolve(withFolder)) });
-    render(<Settings api={yapyap} />);
-    fireEvent.click(await screen.findByRole('button', { name: 'Choose… Save files to' }));
-    expect(yapyap.settings.chooseFolder).toHaveBeenCalledExactlyOnceWith('downloads.folder');
-    await vi.waitFor(() => {
-      expect(yapyap.settings.get).toHaveBeenCalledTimes(2);
-    });
+  it('shows each in a page of its own, when this build has it', async () => {
+    const values = { 'assistant.enabled': true, 'agents.enabled': false, [HARDWARE]: true };
+    const settings = api({}, snapshot({ values }));
+    vi.mocked(settings.assistant.view).mockReturnValue(new Promise<never>(() => undefined));
+    vi.mocked(settings.agents.view).mockReturnValue(new Promise<never>(() => undefined));
+    render(<Settings api={settings} />);
+    await open('Assistant');
+    expect(screen.getByText(/never sends a message/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('switch', { name: 'Show the assistant in chats' }));
+    expect(settings.settings.set).toHaveBeenCalledWith('assistant.enabled', false);
+    await open('Agents');
+    expect(screen.getByRole('switch', { name: 'Let AI agents connect' })).toBeTruthy();
   });
 });

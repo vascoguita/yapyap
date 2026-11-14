@@ -34,6 +34,8 @@ export interface MenuActions {
   readonly setMuted: (muted: boolean) => void;
   readonly openAbout: () => void;
   readonly openSettings: () => void;
+  /** Settings, at its Assistant page. */
+  readonly openAssistantSettings: () => void;
   readonly openCustomCode: () => void;
   readonly openNewChat: () => void;
   readonly clearCache: () => void;
@@ -201,7 +203,7 @@ function accountMenu(actions: MenuActions, keys: Keys): MenuItemConstructorOptio
 function assistantMenu(actions: MenuActions): MenuItemConstructorOptions {
   return {
     label: en.menu.assistant,
-    submenu: [{ label: en.menu.assistantSettings, click: actions.openSettings }],
+    submenu: [{ label: en.menu.assistantSettings, click: actions.openAssistantSettings }],
   };
 }
 

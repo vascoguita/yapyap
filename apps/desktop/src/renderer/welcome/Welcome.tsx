@@ -36,9 +36,11 @@ function Group(props: {
     <section>
       <h2>{group.title}</h2>
       {'note' in group ? <p class="hint">{group.note}</p> : null}
-      {fields.map((field) => (
-        <Field key={field.id} field={field} snapshot={snapshot} onChange={props.onChange} />
-      ))}
+      <div class="group">
+        {fields.map((field) => (
+          <Field key={field.id} field={field} snapshot={snapshot} onChange={props.onChange} />
+        ))}
+      </div>
     </section>
   );
 }

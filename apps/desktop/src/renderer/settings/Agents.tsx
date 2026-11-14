@@ -4,7 +4,7 @@ import type { AgentsView, AgentTokenView } from '../../shared/api/agents-api.ts'
 import type { ChromeApi, SettingsSnapshot } from '../../shared/api/chrome-api.ts';
 import { en } from '../../shared/messages/en.ts';
 import { AgentTokenForm, chatLabel, CreatedToken, type Created } from './AgentTokenForm.tsx';
-import { fieldsOf, type Change } from './Field.tsx';
+import { fieldsOf, Group, type Change } from './Field.tsx';
 
 const text = en.agents;
 
@@ -32,34 +32,41 @@ function useAgentsView(api: ChromeApi, on: boolean): readonly [AgentsView | null
 
 const when = (time: number): string => new Date(time).toLocaleString();
 
-function Address(props: {
-  readonly api: ChromeApi;
-  readonly view: AgentsView;
-  readonly on: boolean;
-}) {
-  const { api, view, on } = props;
+/** Where agents connect, once the server listens; or why it cannot, with a way out. */
+function Address(props: { readonly api: ChromeApi; readonly view: AgentsView }) {
+  const { api, view } = props;
   if (view.address !== null) {
     const address = view.address;
     return (
-      <p class="address">
-        {text.address} <code>{address}</code>{' '}
-        <button type="button" onClick={() => void api.agents.copy(address)}>
-          {text.copy}
-        </button>
-      </p>
+      <div class="row">
+        <div class="row-text">
+          <span class="row-label">{text.address}</span>
+          <p class="hint">{text.addressHint}</p>
+        </div>
+        <div class="row-control">
+          <code class="address">{address}</code>
+          <button type="button" onClick={() => void api.agents.copy(address)}>
+            {text.copy}
+          </button>
+        </div>
+      </div>
     );
   }
   if (view.problem !== '') {
     return (
-      <p class="notice">
-        <output>{view.problem}</output>{' '}
+      <div class="row">
+        <output class="row-text problem">{view.problem}</output>
         <button type="button" onClick={() => void api.agents.newPort()}>
           {text.newPort}
         </button>
-      </p>
+      </div>
     );
   }
-  return on ? <p aria-busy="true">{en.common.loading}</p> : <p class="hint">{text.off}</p>;
+  return (
+    <p class="row hint" aria-busy="true">
+      {en.common.loading}
+    </p>
+  );
 }
 
 /** What a token's limits allow, in words. */
@@ -154,49 +161,49 @@ function Token(props: TokenProps): JSX.Element {
   const { api, token, reload } = props;
   const now = Date.now();
   return (
-    <li class="token">
-      <h4>{token.name}</h4>
-      <TokenScopes {...props} />
-      <p class="hint">
-        {limitsOf(token)} · {expiryOf(token, now)} ·{' '}
-        {token.lastUsed === null
-          ? text.tokens.neverUsed
-          : text.tokens.lastUsed({ date: when(token.lastUsed) })}
-      </p>
-      <button type="button" onClick={() => void api.agents.revoke(token.id).then(reload)}>
-        {text.tokens.revoke}
-      </button>
+    <li class="row token">
+      <div class="row-text">
+        <h3 class="row-label">{token.name}</h3>
+        <p class="hint">
+          {limitsOf(token)} · {expiryOf(token, now)} ·{' '}
+          {token.lastUsed === null
+            ? text.tokens.neverUsed
+            : text.tokens.lastUsed({ date: when(token.lastUsed) })}
+        </p>
+        <TokenScopes {...props} />
+      </div>
+      <div class="row-control">
+        <button type="button" onClick={() => void api.agents.revoke(token.id).then(reload)}>
+          {text.tokens.revoke}
+        </button>
+      </div>
     </li>
   );
 }
 
 function Activity({ view }: { readonly view: AgentsView }): JSX.Element {
+  const title = text.activity.title;
   return (
-    <>
-      <h3>{text.activity.title}</h3>
-      <p class="hint">{text.activity.note}</p>
+    <div class="group-section">
+      <h2 class="group-title">{title}</h2>
       {view.activity.length === 0 ? (
-        <p>{text.activity.none}</p>
+        <p class="group-note">{text.activity.none}</p>
       ) : (
-        <ul class="activity">
+        <ul class="group activity" aria-label={title}>
           {view.activity.map((entry, index) => (
-            <li key={`${String(entry.time)}-${String(index)}`}>
+            <li class="row" key={`${String(entry.time)}-${String(index)}`}>
               {text.activity.entry({ ...entry, time: when(entry.time) })}
             </li>
           ))}
         </ul>
       )}
-    </>
+      <p class="group-note">{text.activity.note}</p>
+    </div>
   );
 }
 
-/** Creating a token, then showing it once. */
-function NewToken(props: {
-  readonly api: ChromeApi;
-  readonly view: AgentsView;
-  readonly reload: () => void;
-}): JSX.Element {
-  const { api, view, reload } = props;
+/** Whether the form for a new token shows, and the token it just made, shown once. */
+function useNewToken(reload: () => void) {
   const [creating, setCreating] = useState(false);
   const [created, setCreated] = useState<Created | null>(null);
   const show = useCallback(
@@ -213,49 +220,63 @@ function NewToken(props: {
   const done = useCallback((): void => {
     setCreated(null);
   }, []);
-  return (
-    <>
-      {created === null ? null : <CreatedToken api={api} created={created} onDone={done} />}
-      {creating ? (
-        <AgentTokenForm api={api} accounts={view.accounts} onCreated={show} onCancel={cancel} />
-      ) : (
-        <button
-          type="button"
-          onClick={() => {
-            setCreating(true);
-          }}
-        >
-          {text.tokens.create}
-        </button>
-      )}
-    </>
-  );
+  return { creating, setCreating, created, show, cancel, done };
 }
 
+/** Creating a token, then showing it once; the list of tokens, each with Revoke. */
 function Tokens(props: {
   readonly api: ChromeApi;
   readonly view: AgentsView;
   readonly reload: () => void;
-}) {
+}): JSX.Element {
   const { api, view, reload } = props;
+  const { creating, setCreating, created, show, cancel, done } = useNewToken(reload);
   return (
-    <>
-      <h3>{text.tokens.title}</h3>
-      {view.tokens.length === 0 ? <p>{text.tokens.none}</p> : null}
-      <ul class="tokens">
-        {view.tokens.map((token) => (
-          <Token key={token.id} api={api} token={token} accounts={view.accounts} reload={reload} />
-        ))}
-      </ul>
-      <NewToken {...props} />
-    </>
+    <div class="group-section">
+      <div class="group-head">
+        <h2 class="group-title">{text.tokens.title}</h2>
+        {creating ? null : (
+          <button
+            type="button"
+            onClick={() => {
+              setCreating(true);
+            }}
+          >
+            {text.tokens.create}
+          </button>
+        )}
+      </div>
+      {created === null ? null : <CreatedToken api={api} created={created} onDone={done} />}
+      {creating ? (
+        <AgentTokenForm api={api} accounts={view.accounts} onCreated={show} onCancel={cancel} />
+      ) : null}
+      <TokenList {...props} />
+    </div>
+  );
+}
+
+function TokenList(props: {
+  readonly api: ChromeApi;
+  readonly view: AgentsView;
+  readonly reload: () => void;
+}): JSX.Element {
+  const { api, view, reload } = props;
+  if (view.tokens.length === 0) {
+    return <p class="group-note">{text.tokens.none}</p>;
+  }
+  return (
+    <ul class="group tokens" aria-label={text.tokens.title}>
+      {view.tokens.map((token) => (
+        <Token key={token.id} api={api} token={token} accounts={view.accounts} reload={reload} />
+      ))}
+    </ul>
   );
 }
 
 /**
  * Settings › Agents (ADR 0019): the switch for the MCP server, where agents
  * connect, the tokens that let them in, and what they did since YapYap
- * started.
+ * started. While agents may not connect, only the switch shows.
  */
 export function AgentsSection(props: {
   readonly api: ChromeApi;
@@ -266,19 +287,33 @@ export function AgentsSection(props: {
   const on = snapshot.values['agents.enabled'] === true;
   const [view, reload] = useAgentsView(api, on);
   return (
-    <section aria-labelledby="agents-title" class="agents" aria-busy={view === null}>
-      <h2 id="agents-title">{en.settings.sections.agents}</h2>
-      <p class="hint">{text.intro}</p>
-      {fieldsOf(['agents.enabled'], snapshot, onChange)}
-      {view === null ? (
-        <p>{en.common.loading}</p>
-      ) : (
-        <>
-          <Address api={api} view={view} on={on} />
-          <Tokens api={api} view={view} reload={reload} />
-          <Activity view={view} />
-        </>
-      )}
-    </section>
+    <div class="agents" aria-busy={on && view === null}>
+      <Group id="agents-access" title={text.access}>
+        {fieldsOf(['agents.enabled'], snapshot, onChange)}
+        {on && view !== null ? <Address api={api} view={view} /> : null}
+      </Group>
+      <AgentsDetails api={api} view={view} on={on} reload={reload} />
+    </div>
+  );
+}
+
+function AgentsDetails(props: {
+  readonly api: ChromeApi;
+  readonly view: AgentsView | null;
+  readonly on: boolean;
+  readonly reload: () => void;
+}): JSX.Element {
+  const { api, view, on, reload } = props;
+  if (!on) {
+    return <p class="group-note">{text.off}</p>;
+  }
+  if (view === null) {
+    return <p>{en.common.loading}</p>;
+  }
+  return (
+    <>
+      <Tokens api={api} view={view} reload={reload} />
+      <Activity view={view} />
+    </>
   );
 }

@@ -18,7 +18,7 @@ browser. YapYap does not read, copy or upload them.
 - **No hidden downloads.** Chromium normally fetches a spelling dictionary
   from Google whenever a window opens, which tells Google your language and
   your IP address. YapYap stops that, so spell checking is off until you
-  turn it on under Settings → Spelling. Then, on Windows and Linux,
+  turn it on under Settings → General. Then, on Windows and Linux,
   Chromium downloads the dictionary for your language from Google once;
   macOS uses its own spell checker and downloads nothing. Words you add to
   the dictionary stay in YapYap's data folder.
@@ -48,7 +48,7 @@ browser. YapYap does not read, copy or upload them.
 - **Chats stay unread while YapYap is hidden.** When YapYap is hidden or
   minimized, WhatsApp sees its page as hidden and does not mark new messages
   in the open chat as read. Turn off **Keep chats unread while YapYap is
-  hidden** in Settings → Privacy if you prefer the open chat to keep reading.
+  hidden** in Settings → Notifications & privacy if you prefer the open chat to keep reading.
 - **AI agents connect only if you let them.** YapYap listens for no
   connection unless you turn on **Let AI agents connect** in Settings →
   Agents. Then it listens on `127.0.0.1` alone, so only programs on your
@@ -58,7 +58,7 @@ browser. YapYap does not read, copy or upload them.
   chats it lists as fingerprints, and what agents did until it quits,
   never what they read or wrote. See [AI agents](guide/ai-agents.md).
 - **Crash reports are opt-in.** They are off unless you turn on **Crash
-  reports** in Settings → Privacy. Then, after YapYap closes unexpectedly, it
+  reports** in Settings → Notifications & privacy. Then, after YapYap closes unexpectedly, it
   saves a plain-text report in its data folder (`crash-report.txt`): the
   version, operating system and graphics details, and the end of the
   previous session's log, which is already redacted, under a short

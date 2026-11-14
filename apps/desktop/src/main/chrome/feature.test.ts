@@ -173,10 +173,11 @@ function setup() {
       },
       ...args,
     );
+  // Electron hands a menu item's handler the item itself, which must not reach the window.
   const click = (menuIndex: number) => (): void => {
     const submenu = menu.at(menuIndex)?.submenu;
     const item = Array.isArray(submenu) ? submenu[0] : undefined;
-    (item?.click as (() => void) | undefined)?.();
+    (item?.click as ((clicked: unknown) => void) | undefined)?.(item);
   };
   return {
     deps,
@@ -297,7 +298,7 @@ describe('createChromeFeature', () => {
         .menu()
         .flatMap((menu) => (Array.isArray(menu.submenu) ? menu.submenu : []))
         .find((entry) => entry.label === label);
-      (item?.click as (() => void) | undefined)?.();
+      (item?.click as ((clicked: unknown) => void) | undefined)?.(item);
     };
     const lastOptions = (): unknown =>
       (t.deps.createWindow.mock.lastCall as unknown[] | undefined)?.[0];
@@ -354,7 +355,8 @@ describe('createChromeFeature', () => {
       maximizable: false,
       show: false,
     });
-    runtime.openSpellingLanguages();
+    (runtime.openSpellingLanguages as (clicked: unknown) => void)({ label: 'Languages…' });
+    expect(t.window.loadURL).toHaveBeenLastCalledWith('app://chrome/spelling-languages.html');
     expect(lastOptions()).toEqual({
       autoHideMenuBar: true,
       title: 'Spelling Languages',
@@ -423,10 +425,10 @@ describe('createChromeFeature', () => {
       {
         autoHideMenuBar: true,
         title: 'YapYap Settings',
-        width: 640,
-        height: 680,
-        minWidth: 420,
-        minHeight: 360,
+        width: 820,
+        height: 640,
+        minWidth: 600,
+        minHeight: 480,
         show: false,
       },
       { preload: '/app/preload/chrome.cjs', partition: CHROME_PARTITION },
@@ -814,7 +816,7 @@ describe('createChromeFeature', () => {
     const submenu = (menu?.submenu ?? []) as { label?: string; click?: () => void }[];
     expect(submenu.map(({ label }) => label)).toEqual(['Assistant Settings…']);
     submenu[0]?.click?.();
-    expect(t.window.loadURL).toHaveBeenCalledWith('app://chrome/settings.html');
+    expect(t.window.loadURL).toHaveBeenCalledWith('app://chrome/settings.html#assistant');
   });
 
   it('opens the Accounts window from the Account menu, listing the current accounts', () => {

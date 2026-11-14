@@ -16,7 +16,7 @@ test('offers editing on a right click in the message box, and leads to Settings 
   await clickLastItem(app);
   const settings = await opened;
   await settings.waitForURL('app://chrome/settings.html');
-  await expect(settings.getByRole('checkbox', { name: 'Check spelling' })).not.toBeChecked();
+  await expect(settings.getByRole('switch', { name: 'Check spelling' })).not.toBeChecked();
 });
 
 // macOS selects the word under the pointer on a right click, so Copy is offered there.

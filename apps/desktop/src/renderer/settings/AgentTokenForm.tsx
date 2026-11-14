@@ -523,7 +523,7 @@ export function AgentTokenForm({ api, accounts, onCreated, onCancel }: FormProps
         create();
       }}
     >
-      <h4 id="token-form-title">{text.form.title}</h4>
+      <h3 id="token-form-title">{text.form.title}</h3>
       <NameField spec={spec} onChange={update} />
       <Reach api={api} accounts={accounts} spec={spec} onChange={update} />
       <Limits spec={spec} onChange={update} />
@@ -559,7 +559,7 @@ export function CreatedToken(props: {
   );
   return (
     <section class="notice" aria-labelledby="created-title">
-      <h4 id="created-title">{text.created.title}</h4>
+      <h3 id="created-title">{text.created.title}</h3>
       <p>{text.created.once}</p>
       {copyable(created.token)}
       <p>{text.created.claudeCode}</p>

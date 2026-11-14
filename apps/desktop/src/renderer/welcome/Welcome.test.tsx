@@ -46,7 +46,7 @@ describe('Welcome', () => {
         .getByRole('link', { name: 'New to YapYap? Read the six-step guide' })
         .getAttribute('href'),
     ).toBe('https://yapyap.guita.org/guide/get-started');
-    expect(screen.getByRole('group', { name: 'Theme' })).toBeTruthy();
+    expect(screen.getByRole('radiogroup', { name: 'Theme' })).toBeTruthy();
     expect(screen.getByLabelText('Start at login')).toBeTruthy();
     // Close to the tray is not in the snapshot, as on macOS.
     expect(screen.queryByLabelText('Close to the tray')).toBeNull();

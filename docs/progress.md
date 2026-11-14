@@ -452,3 +452,15 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
 - Ubuntu 26.04 runner (#619): the Linux memory-per-account budget moves
   from 270 MB to 315 MB, 10% above its median on the new runner image,
   whose shared Chromium processes hold more (ADR 0009).
+- Settings redesign (#622): Settings lists its pages beside the one it
+  shows (General, Appearance, Notifications & privacy, Downloads,
+  Assistant, Agents, Network, then Advanced and Backup), as a list above
+  the page below 680 px. Pages group settings as people look for them,
+  in `renderer/settings/pages.ts`; the settings file keeps its sections.
+  Settings are rows in cards, with switches, side-by-side choices for
+  fields marked `segmented`, and lists for the rest. A "Needs restart"
+  tag and a restart bar replace the per-setting sentence. Assistant
+  shows one status line and opens only the chosen provider; Agents shows
+  only its switch while off. A page in the address's fragment opens
+  Settings there: the Assistant menu and the assistant's buttons open
+  `settings.html#assistant`. Buttons keep title case (#528).

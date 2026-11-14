@@ -241,11 +241,11 @@ export async function standInKeyring(app: ElectronApplication): Promise<void> {
   });
 }
 
-/** Opens Settings from the Assistant menu; the assistant is its first section. */
+/** Opens Settings from the Assistant menu, which opens it at its Assistant page. */
 export async function openAssistantSettings(app: ElectronApplication): Promise<Page> {
   await clickMenu(app, 'Assistant Settings…');
   const settings = await chromePage(app, '/settings.html');
-  await expect(settings.getByRole('region', { name: 'Assistant' })).toBeVisible();
+  await expect(settings.getByRole('heading', { level: 1, name: 'Assistant' })).toBeVisible();
   return settings;
 }
 
@@ -257,11 +257,11 @@ export async function readyClaude(
   await standInKeyring(app);
   await playClaude(app, ...answers);
   const settings = await openAssistantSettings(app);
-  await settings.getByLabel('API key for Claude (Anthropic)').fill('sk-ant-e2e-key');
-  await settings.getByRole('button', { name: 'Save Key' }).first().click();
-  await expect(
-    settings.getByText('A key is saved, encrypted by your system.').first(),
-  ).toBeVisible();
+  // Only the chosen provider shows its key field.
+  await settings.getByRole('radio', { name: 'Claude (Anthropic)' }).check();
+  await settings.getByLabel('API key', { exact: true }).fill('sk-ant-e2e-key');
+  await settings.getByRole('button', { name: 'Save Key' }).click();
+  await expect(settings.locator('#provider-anthropic-pill')).toHaveText('Key saved');
   return settings;
 }
 
