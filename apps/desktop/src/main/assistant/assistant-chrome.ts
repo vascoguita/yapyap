@@ -8,12 +8,7 @@ import { assistantCore, type AssistantCore } from './core.ts';
 import type { AssistantKeys } from './keys.ts';
 import type { LocalServer } from './local-servers.ts';
 import { keptModels } from './models.ts';
-import type { Catalog, Hardware } from './private/catalog.ts';
-import { createEngineHost, type EngineHost, type EngineWindow } from './private/engine-host.ts';
-import type { ModelFiles } from './private/files.ts';
-import { privateModels, type PrivateModels } from './private/private-model.ts';
 import { assistantHandlers } from './settings-handlers.ts';
-import type { AssistantState } from './state.ts';
 
 /** The accounts as the assistant reaches them: the one on screen, and its open chat. */
 export interface AssistantAccounts {
@@ -31,23 +26,14 @@ export interface AssistantAccounts {
 export interface AssistantSources {
   /** The assistant's confined `fetch` (ADR 0017). */
   readonly fetch: typeof globalThis.fetch;
-  readonly catalog: Catalog;
-  readonly hardware: () => Hardware;
-  readonly files: ModelFiles;
-  readonly state: AssistantState;
   readonly chats: AllowedChats;
   readonly keys: AssistantKeys;
   readonly findServers: () => Promise<readonly LocalServer[]>;
-  /** Passes the engine page's events on, as they come over IPC. */
-  readonly listenToEngine: (hear: EngineHost['hear']) => void;
-  readonly now: () => number;
 }
 
 export interface AssistantChromeDependencies {
   readonly sources: AssistantSources;
   readonly settings: SettingsService;
-  /** Opens the hidden engine window, registered with the views (ADR 0017). */
-  readonly openEngine: () => EngineWindow;
   /** The accounts once they are open. */
   readonly accounts: () => AssistantAccounts | undefined;
   readonly openSettings: () => void;
@@ -60,8 +46,6 @@ export interface AssistantChrome {
   readonly attachBar: (create: (bar: AssistantBar) => AssistantBarView) => void;
   /** Shows the setup anew, as when the account on screen changes. */
   readonly refreshBar: () => void;
-  /** The downloaded private model's file, for the engine page. */
-  readonly modelFile: () => string | undefined;
 }
 
 /** The account on screen, as the bar reaches it; before there are accounts, there is no chat. */
@@ -100,14 +84,12 @@ interface ViewSlot {
 function barOf(
   deps: AssistantChromeDependencies,
   core: AssistantCore,
-  models: PrivateModels,
   view: ViewSlot,
 ): AssistantBar {
   return createAssistantBar({
     ...deps.sources,
     core,
     settings: deps.settings,
-    privateModels: models,
     accounts: barAccounts(deps.accounts),
     openSettings: deps.openSettings,
     after: later,
@@ -117,47 +99,30 @@ function barOf(
 }
 
 /** Shows the setup anew in the bar, saying in the log when it cannot. */
-function followers(deps: AssistantChromeDependencies, bar: AssistantBar) {
-  const failed = (): void => {
-    deps.warn('The assistant bar could not show the setup.');
-  };
-  return {
-    refresh: (): void => {
-      bar.refresh().catch(failed);
-    },
-    modelChanged: (): void => {
-      bar.privateModelChanged().catch(failed);
-    },
+function refresher(deps: AssistantChromeDependencies, bar: AssistantBar): () => void {
+  return () => {
+    bar.refresh().catch(() => {
+      deps.warn('The assistant bar could not show the setup.');
+    });
   };
 }
 
 /**
- * The AI assistant, part of YapYap (ADR 0017): the private model and its
- * engine window, the setup, the bar in WhatsApp's page, and Settings ›
- * Assistant's operations. The bar shows the setup anew whenever the
- * settings, the keys or the private model change.
+ * The AI assistant, part of YapYap (ADR 0017): the setup, the bar in
+ * WhatsApp's page, and Settings › Assistant's operations. The bar shows
+ * the setup anew whenever the settings or the keys change.
  */
 export function createAssistantChrome(deps: AssistantChromeDependencies): AssistantChrome {
   const { sources, settings } = deps;
-  const engine = createEngineHost({ open: deps.openEngine, after: later, warn: deps.warn });
-  sources.listenToEngine(engine.hear);
-  const models = privateModels({ ...sources, closeEngine: engine.close });
-  const core = assistantCore({
-    ...sources,
-    settings,
-    privateModels: models,
-    engine,
-    list: keptModels(),
-  });
+  const core = assistantCore({ ...sources, settings, list: keptModels() });
   const view: ViewSlot = {};
-  const bar = barOf(deps, core, models, view);
-  const { refresh, modelChanged } = followers(deps, bar);
+  const bar = barOf(deps, core, view);
+  const refresh = refresher(deps, bar);
   settings.onChange(refresh);
-  models.onChange(modelChanged);
   const handlers = assistantHandlers({
     ...sources,
     core,
-    privateModels: models,
+    settings,
     accounts: () => deps.accounts()?.entries ?? [],
     openChat: () => openChatOf(barAccounts(deps.accounts)),
     changed: refresh,
@@ -169,6 +134,5 @@ export function createAssistantChrome(deps: AssistantChromeDependencies): Assist
       refresh();
     },
     refreshBar: refresh,
-    modelFile: models.file,
   };
 }

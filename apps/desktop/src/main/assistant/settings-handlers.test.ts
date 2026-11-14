@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { ChromeHandler } from '../ipc/chrome.ts';
 import { chatId } from './chats.ts';
-import type { PrivateModelStatus } from './private/private-model.ts';
 import { assistantHandlers, type AssistantSettingsDependencies } from './settings-handlers.ts';
 import type { Setup } from './setup.ts';
 
@@ -17,16 +16,10 @@ const READY: Setup = {
   endpoint: '',
 };
 
-const MODEL: PrivateModelStatus = {
-  model: { id: 'q', name: 'Q', url: 'https://huggingface.co/q', size: 1_117_320_736, sha256: 'a' },
-  phase: { kind: 'none' },
-  smaller: true,
-  used: 0,
-};
+const SERVER = 'https://models.example/v1';
 
 function harness() {
   let setup = READY;
-  let model = MODEL;
   const kept = new Map<string, string>([['anthropic', 'sk']]);
   const deps: AssistantSettingsDependencies = {
     core: { setup: () => Promise.resolve(setup) },
@@ -42,17 +35,7 @@ function harness() {
       }),
       canKeep: () => Promise.resolve(true),
     },
-    privateModels: {
-      status: () => Promise.resolve(model),
-      ready: vi.fn(),
-      file: vi.fn(),
-      download: vi.fn(),
-      pause: vi.fn(),
-      smaller: vi.fn(() => Promise.resolve()),
-      remove: vi.fn(() => Promise.resolve()),
-      outOfMemory: vi.fn(),
-      onChange: vi.fn(),
-    },
+    settings: { current: () => ({ assistant: { server: SERVER } }) as never },
     chats: {
       list: () =>
         Promise.resolve([
@@ -81,7 +64,7 @@ function harness() {
         { server: 'localhost:11434', endpoint: 'http://localhost:11434/v1', models: ['m'] },
       ]),
     ),
-    fetch: vi.fn(() =>
+    fetch: vi.fn<typeof globalThis.fetch>(() =>
       Promise.resolve(
         new Response(JSON.stringify({ data: [], has_more: false, first_id: null, last_id: null }), {
           headers: { 'content-type': 'application/json' },
@@ -110,9 +93,6 @@ function harness() {
     setSetup: (next: Setup) => {
       setup = next;
     },
-    setModel: (next: PrivateModelStatus) => {
-      model = next;
-    },
   };
 }
 
@@ -122,8 +102,7 @@ describe('assistantHandlers', () => {
     expect(await t.call('view')).toEqual({
       inUse: 'anthropic',
       status: '',
-      keys: { anthropic: true, openai: false },
-      privateModel: { size: '1.1 GB', status: 'Not downloaded yet.', actions: ['download'] },
+      keys: { anthropic: true, openai: false, server: false },
       models: READY.models,
       auto: { id: 'claude-haiku', label: 'Haiku' },
       chats: [
@@ -140,39 +119,11 @@ describe('assistantHandlers', () => {
     t.setSetup({ ...READY, provider: undefined, missing: 'setup', models: [], auto: undefined });
     expect(await t.call('view')).toMatchObject({
       inUse: null,
-      status: 'Set up the assistant to start: choose where it thinks.',
+      status: 'Set up the assistant to start: choose a provider.',
       auto: null,
     });
     t.setSetup({ ...READY, missing: 'off' });
     expect(await t.call('view')).toMatchObject({ status: '' });
-  });
-
-  it('says how the private model stands, and what can be done with it', async () => {
-    const t = harness();
-    const cases: [PrivateModelStatus['phase'], boolean, string, string[]][] = [
-      [
-        { kind: 'downloading', done: 558_660_368 },
-        true,
-        'Downloading: 50% (560 MB of 1.1 GB)',
-        ['pause'],
-      ],
-      [{ kind: 'paused', problem: '', done: 0 }, true, 'Paused at 0%.', ['resume', 'remove']],
-      [{ kind: 'damaged' }, true, 'The download was damaged', ['download']],
-      [{ kind: 'out-of-memory' }, true, 'This computer doesn’t', ['smaller', 'remove']],
-      [{ kind: 'out-of-memory' }, false, 'This computer doesn’t', ['remove']],
-    ];
-    for (const [phase, smaller, status, actions] of cases) {
-      t.setModel({ ...MODEL, phase, smaller });
-      const view = (await t.call('view')) as {
-        privateModel: { status: string; actions: string[] };
-      };
-      expect(view.privateModel.status.startsWith(status)).toBe(true);
-      expect(view.privateModel.actions).toEqual(actions);
-    }
-    t.setModel({ ...MODEL, phase: { kind: 'ready' }, used: 491_400_032 });
-    expect(await t.call('view')).toMatchObject({
-      privateModel: { status: 'Ready. It takes 490 MB on this computer.', actions: ['remove'] },
-    });
   });
 
   it('keeps and forgets keys, and tells the bar', async () => {
@@ -201,17 +152,13 @@ describe('assistantHandlers', () => {
     expect(t.handler('assistant:test-key').accepts(['local'])).toBe(false);
   });
 
-  it('runs the private model’s actions, and nothing else', async () => {
+  it('keeps a model server’s key, and tests it at the server’s own address', async () => {
     const t = harness();
-    for (const action of ['download', 'resume', 'pause', 'remove', 'smaller']) {
-      await t.call('private-model', action);
-    }
-    const models = t.deps.privateModels;
-    expect(models.download).toHaveBeenCalledTimes(2);
-    expect(models.pause).toHaveBeenCalledOnce();
-    expect(models.remove).toHaveBeenCalledOnce();
-    expect(models.smaller).toHaveBeenCalledOnce();
-    expect(t.handler('assistant:private-model').accepts(['delete-everything'])).toBe(false);
+    expect(await t.call('save-key', 'server', 'sk-cloud')).toBe(true);
+    expect(await t.call('view')).toMatchObject({ keys: { server: true } });
+    vi.mocked(t.deps.fetch).mockClear();
+    expect(await t.call('test-key', 'server')).toBe('');
+    expect(vi.mocked(t.deps.fetch).mock.calls[0]?.[0]).toBe(`${SERVER}/models`);
   });
 
   it('finds model servers, and forgets a chat by its fingerprint alone', async () => {

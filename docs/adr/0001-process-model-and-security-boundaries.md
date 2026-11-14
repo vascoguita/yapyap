@@ -293,6 +293,12 @@ back from every build and asserts them.
   not navigate away nor call the chrome API. The `app` scheme gained
   `supportFetchAPI` for it; chrome pages still allow no `connect-src`.
   The `extension` scheme lost it.
+- 2026-11-14 (#627): the private model is gone, and with it the engine
+  window, the `yapyap-engine` partition, `app://engine` and its CSP. The
+  `app` scheme no longer has `supportFetchAPI`. The `yapyap-assistant`
+  guard allows only `api.anthropic.com` and `api.openai.com` over HTTPS,
+  plus the origin of the model server the user chose, which may be plain
+  `http://` only on this computer or the home network.
 
 ## Never without the sandbox
 

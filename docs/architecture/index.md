@@ -6,32 +6,31 @@ system; every web page runs in a sandboxed, context-isolated renderer with
 no Node.js access, and talks to the main process only through narrow,
 checked channels.
 
-| Zone         | Runs                                                                 | Trust                         |
-| ------------ | -------------------------------------------------------------------- | ----------------------------- |
-| Main process | App logic, settings, IPC validation, AI assistant, MCP server        | Trusted                       |
-| App chrome   | YapYap's own UI, served from a custom `app://` protocol              | Trusted code, untrusted input |
-| WhatsApp     | One sandboxed renderer per account, with its own persistent session  | Untrusted (remote)            |
-| Engine       | A hidden, sandboxed renderer for the private model, while it is used | Trusted code, no network      |
+| Zone         | Runs                                                                | Trust                         |
+| ------------ | ------------------------------------------------------------------- | ----------------------------- |
+| Main process | App logic, settings, IPC validation, AI assistant, MCP server       | Trusted                       |
+| App chrome   | YapYap's own UI, served from a custom `app://` protocol             | Trusted code, untrusted input |
+| WhatsApp     | One sandboxed renderer per account, with its own persistent session | Untrusted (remote)            |
 
 ## Processes and trust zones
 
 <figure class="diagram">
-<svg viewBox="0 0 760 440" role="img" aria-labelledby="zones-title zones-desc">
+<svg viewBox="0 0 550 440" role="img" aria-labelledby="zones-title zones-desc">
 <title id="zones-title">YapYap's processes and trust zones</title>
-<desc id="zones-desc">The trusted main process sits between three kinds of sandboxed renderer: WhatsApp accounts, YapYap's own chrome and the private model's engine. Each reaches the main process through its own checked channel. WhatsApp views reach only web.whatsapp.com, the engine reaches no network, and the main process alone reaches GitHub for updates and the AI provider you chose.</desc>
+<desc id="zones-desc">The trusted main process sits between two kinds of sandboxed renderer: WhatsApp accounts and YapYap's own chrome. Each reaches the main process through its own checked channel. WhatsApp views reach only web.whatsapp.com, and the main process alone reaches GitHub for updates and the AI provider or model server you chose.</desc>
 <defs>
 <marker id="zones-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="arrowhead" d="M0,0 L10,5 L0,10 z"/></marker>
 </defs>
 <rect class="box untrusted" x="20" y="20" width="220" height="50" rx="8"/>
 <text class="title" x="130" y="42" text-anchor="middle">web.whatsapp.com</text>
 <text class="note" x="130" y="59" text-anchor="middle">the internet</text>
-<rect class="box untrusted" x="270" y="20" width="220" height="50" rx="8"/>
-<text class="title" x="380" y="42" text-anchor="middle">Updates and AI providers</text>
-<text class="note" x="380" y="59" text-anchor="middle">GitHub, the provider you chose</text>
-<rect class="box trusted" x="140" y="130" width="480" height="80" rx="8"/>
-<text class="title" x="380" y="158" text-anchor="middle">Main process (Node.js): trusted</text>
-<text x="380" y="179" text-anchor="middle">settings · accounts · IPC checks · permissions · network filters</text>
-<text x="380" y="197" text-anchor="middle">AI assistant · MCP server · secrets · updates</text>
+<rect class="box untrusted" x="310" y="20" width="220" height="50" rx="8"/>
+<text class="title" x="420" y="42" text-anchor="middle">Updates and AI providers</text>
+<text class="note" x="420" y="59" text-anchor="middle">GitHub, the provider you chose</text>
+<rect class="box trusted" x="100" y="130" width="430" height="80" rx="8"/>
+<text class="title" x="315" y="158" text-anchor="middle">Main process (Node.js): trusted</text>
+<text x="315" y="179" text-anchor="middle">settings · accounts · IPC checks · permissions · network filters</text>
+<text x="315" y="197" text-anchor="middle">AI assistant · MCP server · secrets · updates</text>
 <rect class="box untrusted" x="20" y="290" width="220" height="130" rx="8"/>
 <text class="title" x="130" y="314" text-anchor="middle">WhatsApp accounts</text>
 <text x="130" y="336" text-anchor="middle">one view per account</text>
@@ -39,31 +38,21 @@ checked channels.
 <text x="130" y="372" text-anchor="middle">notification shim preload</text>
 <text x="130" y="390" text-anchor="middle">adapter in an isolated world</text>
 <text class="note" x="130" y="410" text-anchor="middle">untrusted, remote</text>
-<rect class="box trusted" x="270" y="290" width="220" height="130" rx="8"/>
-<text class="title" x="380" y="314" text-anchor="middle">App chrome</text>
-<text x="380" y="336" text-anchor="middle">app://chrome/, in memory</text>
-<text x="380" y="354" text-anchor="middle">sidebar, settings, dialogs</text>
-<text x="380" y="372" text-anchor="middle">typed preload bridge</text>
-<text x="380" y="390" text-anchor="middle">strict CSP, no remote code</text>
-<text class="note" x="380" y="410" text-anchor="middle">trusted code, untrusted input</text>
-<rect class="box trusted" x="520" y="290" width="220" height="130" rx="8"/>
-<text class="title" x="630" y="314" text-anchor="middle">Private model engine</text>
-<text x="630" y="336" text-anchor="middle">one hidden page, while used</text>
-<text x="630" y="354" text-anchor="middle">app://engine, own session</text>
-<text x="630" y="372" text-anchor="middle">CSP of its own</text>
-<text x="630" y="390" text-anchor="middle">reaches no network</text>
-<text class="note" x="630" y="410" text-anchor="middle">trusted code, no network</text>
+<rect class="box trusted" x="310" y="290" width="220" height="130" rx="8"/>
+<text class="title" x="420" y="314" text-anchor="middle">App chrome</text>
+<text x="420" y="336" text-anchor="middle">app://chrome/, in memory</text>
+<text x="420" y="354" text-anchor="middle">sidebar, settings, dialogs</text>
+<text x="420" y="372" text-anchor="middle">typed preload bridge</text>
+<text x="420" y="390" text-anchor="middle">strict CSP, no remote code</text>
+<text class="note" x="420" y="410" text-anchor="middle">trusted code, untrusted input</text>
 <path class="edge" d="M60,286 L60,74" marker-end="url(#zones-arrow)"/>
 <text class="label" x="68" y="235">HTTPS</text>
-<path class="edge" d="M380,126 L380,74" marker-end="url(#zones-arrow)"/>
+<path class="edge" d="M420,126 L420,74" marker-end="url(#zones-arrow)"/>
 <path class="edge" d="M180,214 L180,286" marker-start="url(#zones-arrow)" marker-end="url(#zones-arrow)"/>
 <text class="label" x="188" y="246">notification</text>
 <text class="label" x="188" y="260">bridge, probes</text>
-<path class="edge" d="M380,214 L380,286" marker-start="url(#zones-arrow)" marker-end="url(#zones-arrow)"/>
-<text class="label" x="388" y="253">checked IPC</text>
-<path class="edge" d="M580,214 L580,286" marker-start="url(#zones-arrow)" marker-end="url(#zones-arrow)"/>
-<text class="label" x="588" y="246">engine channel,</text>
-<text class="label" x="588" y="260">checked</text>
+<path class="edge" d="M420,214 L420,286" marker-start="url(#zones-arrow)" marker-end="url(#zones-arrow)"/>
+<text class="label" x="428" y="253">checked IPC</text>
 </svg>
 <figcaption>Solid outlines are trusted code; dashed outlines are untrusted content.</figcaption>
 </figure>
@@ -83,10 +72,6 @@ checked channels.
   in-memory partition under a strict CSP. Its typed preload bridge can
   only invoke named operations, and the main process checks each call's
   sender and payload before acting.
-- **The private model's engine** runs in a hidden, sandboxed page on a
-  session of its own, served from `app://engine` under a CSP of its own. It
-  opens only when the assistant first needs it, closes when idle, and
-  reaches no network ([ADR 0017](/adr/0017-assistant-is-part-of-yapyap)).
 - **The main process** owns everything that touches the system: files,
   settings, secrets (through the system keychain), notifications, the tray,
   permissions and updates. It denies every permission by default
@@ -127,9 +112,8 @@ The assistant is part of YapYap ([ADR 0017](/adr/0017-assistant-is-part-of-yapya
    you to allow it there, and shows exactly what is sent when you ask.
 3. The main process sends it to the provider you chose, with your API key
    from the system keychain, through a session of its own that reaches
-   only the providers, Hugging Face and the model server on this computer
-   you chose. With the private model, a hidden, sandboxed engine window
-   that reaches no network runs it instead.
+   only `api.anthropic.com` and `api.openai.com` over HTTPS, and the model
+   server you chose ([ADR 0017](/adr/0017-assistant-is-part-of-yapyap)).
 4. The suggestions appear in the bar as plain text. You click one to put
    it in the message box, and send it yourself.
 

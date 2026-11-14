@@ -272,9 +272,6 @@ importers:
       '@testing-library/preact':
         specifier: 3.2.6
         version: 3.2.6(preact@11.1.0)
-      '@wllama/wllama':
-        specifier: 3.8.1
-        version: 3.8.1
       axe-core:
         specifier: 4.14.0
         version: 4.14.0
@@ -2103,9 +2100,6 @@ packages:
 
   '@vueuse/shared@12.8.2':
     resolution: {integrity: sha512-dznP38YzxZoNloI0qpEfpkms8knDtaoQ6Y/sfS0L7Yki4zh40LFHEhur0odJC6xTHG5dxWVPiUWBXn+wCG2s5w==}
-
-  '@wllama/wllama@3.8.1':
-    resolution: {integrity: sha512-Pl7BEJhPU8OHnV/yhn3DFZYhLLOdSHh+4TND79WCftHnlUAdQPAsyc/CfIOY+4mVxvf5VW3Xw3Uf7BBfotS1gw==}
 
   '@xmldom/xmldom@0.8.15':
     resolution: {integrity: sha512-/5NV/vDALVFDXgLmfsy9TRCBlKwO2LNBFzpzvb9iIj+jR+eSc6DLYYvVOdivT/jm7MtU6TebYuRmzEOI7w40UA==}
@@ -5899,8 +5893,6 @@ snapshots:
       vue: 3.5.44(typescript@6.0.3)
     transitivePeerDependencies:
       - typescript
-
-  '@wllama/wllama@3.8.1': {}
 
   '@xmldom/xmldom@0.8.15': {}
 

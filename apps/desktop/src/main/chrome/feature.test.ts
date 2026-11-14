@@ -5,7 +5,6 @@ import { en } from '../../shared/messages/en.ts';
 import { defaultSettings } from '../settings/decode.ts';
 import type { Settings } from '../settings/schema.ts';
 import type { ViewInfo } from '../security/views.ts';
-import { CATALOG } from '../assistant/private/catalog.ts';
 import {
   CHROME_PARTITION,
   createChromeFeature,
@@ -32,15 +31,6 @@ function setup() {
   };
   let handler: ((request: { url: string }) => Promise<Response>) | undefined;
   let menu: MenuItemConstructorOptions[] = [];
-  const engineProtocol = {
-    handle:
-      vi.fn<
-        (
-          scheme: string,
-          serve: (request: { url: string; headers: Headers }) => Promise<Response>,
-        ) => void
-      >(),
-  };
   const deps = {
     registerSchemesAsPrivileged: vi.fn(),
     chromeProtocol: vi.fn(() => ({
@@ -84,26 +74,6 @@ function setup() {
     hiddenSettings: [],
     assistant: {
       fetch: vi.fn(),
-      catalog: CATALOG,
-      hardware: () => ({ memory: 16 * 1024 ** 3, cores: 8 }),
-      files: {
-        path: () => '/models/m.gguf',
-        saved: () => Promise.resolve(0),
-        read: async function* () {
-          yield* [] as Uint8Array[];
-          await Promise.resolve();
-        },
-        append: vi.fn(),
-        finish: vi.fn(),
-        discard: vi.fn(),
-        clear: vi.fn(),
-        used: () => Promise.resolve(0),
-        free: () => Promise.resolve(undefined),
-      },
-      state: {
-        privateModel: () => undefined,
-        setPrivateModel: vi.fn(),
-      },
       chats: {
         isAllowed: () => false,
         allow: vi.fn(),
@@ -118,10 +88,6 @@ function setup() {
         canKeep: () => Promise.resolve(true),
       },
       findServers: () => Promise.resolve([]),
-      listenToEngine: vi.fn(),
-      now: () => 0,
-      enginePreload: '/app/preload/engine.cjs',
-      engineProtocol: () => engineProtocol,
     },
     spelling: { available: () => ['en-GB', 'pt-PT'], system: () => ['en-GB'] },
     chooseFolder: vi.fn(() => Promise.resolve<string | undefined>(undefined)),
@@ -196,7 +162,6 @@ function setup() {
     },
     handler: () => handler,
     menu: () => menu,
-    engineProtocol,
   };
 }
 
@@ -205,7 +170,7 @@ describe('createChromeFeature', () => {
     const t = setup();
     t.feature.beforeReady();
     expect(t.deps.registerSchemesAsPrivileged).toHaveBeenCalledExactlyOnceWith([
-      { scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true } },
+      { scheme: 'app', privileges: { standard: true, secure: true } },
     ]);
   });
 
@@ -437,12 +402,12 @@ describe('createChromeFeature', () => {
     expect(t.call('settings:get')).toEqual({
       values: {
         'assistant.enabled': true,
-        'assistant.provider': 'auto',
+        'assistant.provider': 'none',
         'assistant.model': 'auto',
         'assistant.autoSuggest': true,
         'assistant.chats': 'chosen',
         'assistant.messages': '10',
-        'assistant.localServer': '',
+        'assistant.server': '',
         'agents.enabled': false,
         'appearance.theme': 'system',
         'appearance.autoHideMenuBar': false,
@@ -789,7 +754,7 @@ describe('createChromeFeature', () => {
     expect(t.call('sidebar:state', port.webContents)).toBe(state);
   });
 
-  it('gives the assistant bar its view, shown as the settings say, and serves the engine page', async () => {
+  it('gives the assistant bar its view, shown as the settings say', async () => {
     const t = setup();
     const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
     const view = { show: vi.fn(), publish: vi.fn() };
@@ -800,10 +765,6 @@ describe('createChromeFeature', () => {
     runtime.attachAssistantBar(create);
     expect(create).toHaveBeenCalledOnce();
     expect(view.show).toHaveBeenLastCalledWith(true);
-    expect(t.engineProtocol.handle).toHaveBeenCalledWith('app', expect.any(Function));
-    const serve = t.engineProtocol.handle.mock.calls[0]?.[1];
-    const page = await serve?.({ url: 'app://engine/model.gguf', headers: new Headers() });
-    expect(page?.status).toBe(404);
     t.clickAbout();
     await expect(t.call('assistant:view')).resolves.toMatchObject({ inUse: null });
   });

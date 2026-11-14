@@ -28,11 +28,8 @@ export interface RecoveryProblem {
   readonly description: string;
 }
 
-/** A service the user brings an API key for. */
-export type KeyedProvider = 'anthropic' | 'openai';
-
-/** What the user can do with the private model now. */
-export type PrivateModelAction = 'download' | 'pause' | 'resume' | 'remove' | 'smaller';
+/** Who takes an API key: the services, and a model server, for which it is optional. */
+export type KeyedProvider = 'anthropic' | 'openai' | 'server';
 
 /** A model server found on this computer, as Settings lists it. */
 export interface FoundServer {
@@ -42,23 +39,17 @@ export interface FoundServer {
 }
 
 /**
- * Settings › Assistant (ADR 0017): who answers, how each place it can
- * think stands, the provider's models, and the chats it may read. The
+ * Settings › Assistant (ADR 0017): who answers, which keys are saved, the
+ * provider's models, and the chats it may read. The
  * preferences themselves are settings fields; this is the rest.
  */
 export interface AssistantView {
   /** Who answers now, or null while nothing is set up. */
-  readonly inUse: 'built-in' | 'anthropic' | 'openai' | 'local' | null;
+  readonly inUse: 'anthropic' | 'openai' | 'server' | null;
   /** What keeps the assistant from answering, in the user's words; empty once nothing does. */
   readonly status: string;
   /** Whether a key is saved, by provider; never the key itself. */
   readonly keys: Readonly<Record<KeyedProvider, boolean>>;
-  readonly privateModel: {
-    /** Its download size, as people read it. */
-    readonly size: string;
-    readonly status: string;
-    readonly actions: readonly PrivateModelAction[];
-  };
   /** What the provider in use lists, and the model Auto picks; empty until it is set up. */
   readonly models: readonly { readonly id: string; readonly label: string }[];
   readonly auto: { readonly id: string; readonly label: string } | null;
@@ -157,7 +148,6 @@ export interface ChromeApi {
     readonly testKey: (provider: KeyedProvider) => Promise<string>;
     /** Looks for model servers on this computer, at the usual addresses. */
     readonly findServers: () => Promise<readonly FoundServer[]>;
-    readonly privateModel: (action: PrivateModelAction) => Promise<void>;
     readonly forgetChat: (account: string, id: string) => Promise<void>;
     /** Lets the assistant work in the chat open on screen; false when no chat is open. */
     readonly allowOpenChat: () => Promise<boolean>;
@@ -391,7 +381,6 @@ export const CHROME_CHANNELS = {
   assistantForgetKey: 'assistant:forget-key',
   assistantTestKey: 'assistant:test-key',
   assistantFindServers: 'assistant:find-servers',
-  assistantPrivateModel: 'assistant:private-model',
   assistantForgetChat: 'assistant:forget-chat',
   assistantAllowOpenChat: 'assistant:allow-open-chat',
   agentsView: 'agents:view',

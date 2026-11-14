@@ -5,10 +5,9 @@ import type {
   ChromeApi,
   FoundServer,
   KeyedProvider,
-  PrivateModelAction,
   SettingsSnapshot,
 } from '../../shared/api/chrome-api.ts';
-import { localServerOf } from '../../shared/local-server.ts';
+import { isModelServer, isOnThisComputer, modelServerOf } from '../../shared/model-server.ts';
 import { en } from '../../shared/messages/en.ts';
 import { modelsBesideAuto } from '../../shared/model-choices.ts';
 import { fieldsOf, Group, Pill, type Change, type Tone } from './Field.tsx';
@@ -19,32 +18,19 @@ const pills = text.pills;
 
 const PROVIDER = 'assistant.provider';
 
-/** Where to get a key, which opens in the user's browser. */
-const KEY_PAGES: Readonly<Record<KeyedProvider, string>> = {
-  anthropic: 'https://console.anthropic.com/settings/keys',
-  openai: 'https://platform.openai.com/api-keys',
+/** Where to get a key for a service, which opens in the user's browser; a server says itself. */
+const KEY_PAGES: Readonly<Partial<Record<KeyedProvider, { url: string; label: string }>>> = {
+  anthropic: { url: 'https://console.anthropic.com/settings/keys', label: text.anthropic.getKey },
+  openai: { url: 'https://platform.openai.com/api-keys', label: text.openai.getKey },
 };
 
-/** How often the view is read again while the private model downloads. */
-const FOLLOW_MS = 1000;
-
-/** The assistant's view, read again on request and while the private model downloads. */
+/** The assistant's view, read again on request. */
 export function useAssistantView(api: ChromeApi): readonly [AssistantView | null, () => void] {
   const [view, setView] = useState<AssistantView | null>(null);
   const load = (): void => {
     api.assistant.view().then(setView, () => undefined);
   };
   useEffect(load, [api]);
-  const downloading = view?.privateModel.actions.includes('pause') === true;
-  useEffect(() => {
-    if (!downloading) {
-      return undefined;
-    }
-    const timer = setInterval(load, FOLLOW_MS);
-    return () => {
-      clearInterval(timer);
-    };
-  }, [downloading]);
   return [view, load];
 }
 
@@ -127,10 +113,11 @@ export function KeyField(props: KeyProps): JSX.Element {
   const { key, setKey, status, save, test, forget } = useKey(props, stopReplacing);
   const id = `assistant-key-${provider}`;
   const editing = !saved || replacing;
+  const page = KEY_PAGES[provider];
   return (
     <div class="key">
       <label id={`${id}-label`} for={id}>
-        {text.key.label}
+        {page === undefined ? text.server.keyLabel : text.key.label}
       </label>
       <div class="line">
         {editing ? <KeyInput id={id} value={key} onInput={setKey} /> : <SavedKey id={id} />}
@@ -143,9 +130,13 @@ export function KeyField(props: KeyProps): JSX.Element {
           onReplace={setReplacing}
         />
       </div>
-      <a href={KEY_PAGES[provider]} target="_blank" rel="noreferrer">
-        {text[provider].getKey}
-      </a>
+      {page === undefined ? (
+        <p class="hint">{text.server.keyHint}</p>
+      ) : (
+        <a href={page.url} target="_blank" rel="noreferrer">
+          {page.label}
+        </a>
+      )}
       <output aria-live="polite">{status}</output>
     </div>
   );
@@ -204,14 +195,6 @@ function KeyActions(props: KeyActionProps): JSX.Element {
     </>
   );
 }
-
-const ACTION_LABELS: Readonly<Record<PrivateModelAction, string>> = {
-  download: text.private.download,
-  pause: text.private.pause,
-  resume: text.private.resume,
-  remove: text.private.remove,
-  smaller: text.private.smaller,
-};
 
 interface PlaceProps {
   readonly api: ChromeApi;
@@ -289,53 +272,9 @@ function Place(
   );
 }
 
-/** How far the private model is, from what can be done with it next. */
-function privatePill(actions: readonly PrivateModelAction[]): PillOf {
-  if (actions.includes('pause')) {
-    return { tone: 'accent', label: pills.downloading };
-  }
-  if (actions.includes('resume')) {
-    return { tone: 'neutral', label: pills.paused };
-  }
-  if (actions.includes('smaller')) {
-    return { tone: 'warning', label: pills.tooLarge };
-  }
-  return actions.includes('download')
-    ? { tone: 'neutral', label: pills.notDownloaded }
-    : { tone: 'success', label: pills.ready };
-}
-
-function PrivatePlace(props: PlaceProps): JSX.Element {
-  const { api, view, reload } = props;
-  const model = view.privateModel;
-  return (
-    <Place
-      {...props}
-      value="built-in"
-      title={text.private.title}
-      description={text.private.description({ size: model.size })}
-      pill={privatePill(model.actions)}
-    >
-      <output aria-live="polite">{model.status}</output>
-      <div class="actions">
-        {model.actions.map((action) => (
-          <button
-            key={action}
-            type="button"
-            onClick={() => {
-              void api.assistant.privateModel(action).then(reload);
-            }}
-          >
-            {ACTION_LABELS[action]}
-          </button>
-        ))}
-      </div>
-      {props.model}
-    </Place>
-  );
-}
-
-function KeyedPlace(props: PlaceProps & { readonly provider: KeyedProvider }): JSX.Element {
+function KeyedPlace(
+  props: PlaceProps & { readonly provider: 'anthropic' | 'openai' },
+): JSX.Element {
   const { api, view, provider, reload } = props;
   const saved = view.keys[provider];
   return (
@@ -356,10 +295,10 @@ function KeyedPlace(props: PlaceProps & { readonly provider: KeyedProvider }): J
   );
 }
 
-/** Switches to a server on this computer: its address, then the provider. */
+/** Switches to a model server: its address, then the provider. */
 const chooseServer = (onChange: Change, endpoint: string): void => {
-  onChange('assistant.localServer', endpoint);
-  onChange(PROVIDER, 'local');
+  onChange('assistant.server', endpoint);
+  onChange(PROVIDER, 'server');
 };
 
 function ServerList(props: {
@@ -371,16 +310,16 @@ function ServerList(props: {
     return null;
   }
   if (servers.length === 0) {
-    return <p class="hint">{text.local.none}</p>;
+    return <p class="hint">{text.server.none}</p>;
   }
   return (
     <ul class="servers">
       {servers.map(({ server, endpoint, models }) => (
         <li key={endpoint}>
           <span>
-            {text.local.found({
+            {text.server.found({
               server,
-              models: models.length === 0 ? text.local.noModels : models.join(', '),
+              models: models.length === 0 ? text.server.noModels : models.join(', '),
             })}
           </span>
           <button
@@ -389,7 +328,7 @@ function ServerList(props: {
               chooseServer(onChange, endpoint);
             }}
           >
-            {text.local.use}
+            {text.server.use}
           </button>
         </li>
       ))}
@@ -397,18 +336,19 @@ function ServerList(props: {
   );
 }
 
-function LocalAddress(props: { readonly onChange: Change }): JSX.Element {
+/** The server's address, typed: on this computer, the home network or the internet (#627). */
+function ServerAddress(props: { readonly onChange: Change }): JSX.Element {
   const [typed, setTyped] = useState('');
   const [problem, setProblem] = useState('');
   return (
     <div class="key">
-      <label for="assistant-address">{text.local.address}</label>
+      <label for="assistant-address">{text.server.address}</label>
       <div class="line">
         <input
           id="assistant-address"
           type="text"
           spellcheck={false}
-          placeholder={text.local.addressPlaceholder}
+          placeholder={text.server.addressPlaceholder}
           value={typed}
           onInput={(event) => {
             setTyped(event.currentTarget.value);
@@ -417,14 +357,14 @@ function LocalAddress(props: { readonly onChange: Change }): JSX.Element {
         <button
           type="button"
           onClick={() => {
-            const endpoint = localServerOf(typed);
-            setProblem(endpoint === undefined ? text.local.badAddress : '');
+            const endpoint = modelServerOf(typed);
+            setProblem(endpoint === undefined ? text.server.badAddress : '');
             if (endpoint !== undefined) {
               chooseServer(props.onChange, endpoint);
             }
           }}
         >
-          {text.local.saveAddress}
+          {text.server.saveAddress}
         </button>
       </div>
       <output aria-live="polite">{problem}</output>
@@ -450,7 +390,7 @@ function FindServers(props: PlaceProps): JSX.Element {
             });
           }}
         >
-          {finding ? text.local.finding : text.local.find}
+          {finding ? text.server.finding : text.server.find}
         </button>
       </div>
       <ServerList servers={servers} onChange={onChange} />
@@ -458,62 +398,50 @@ function FindServers(props: PlaceProps): JSX.Element {
   );
 }
 
-function LocalPlace(props: PlaceProps): JSX.Element {
-  const current = String(props.snapshot.values['assistant.localServer']);
+function ServerPlace(props: PlaceProps): JSX.Element {
+  const { api, view, reload } = props;
+  const current = String(props.snapshot.values['assistant.server']);
   return (
     <Place
       {...props}
-      value="local"
-      title={text.local.title}
-      description={text.local.description}
+      value="server"
+      title={text.server.title}
+      description={text.server.description}
       pill={
         current === ''
           ? { tone: 'neutral', label: pills.notSetUp }
           : { tone: 'success', label: pills.addressSaved }
       }
     >
-      {current === '' ? null : <p>{text.local.current({ server: current })}</p>}
+      {current === '' ? null : <p>{text.server.current({ server: current })}</p>}
       <FindServers {...props} />
-      <LocalAddress onChange={props.onChange} />
+      <ServerAddress onChange={props.onChange} />
+      <KeyField api={api} provider="server" saved={view.keys.server} onSaved={reload} />
       {props.model}
     </Place>
   );
 }
 
-function AutomaticPlace(props: PlaceProps): JSX.Element {
-  const ready = props.view.inUse !== null;
-  return (
-    <Place
-      {...props}
-      value="auto"
-      title={text.automatic}
-      description={text.automaticHint}
-      pill={
-        ready
-          ? { tone: 'success', label: pills.ready }
-          : { tone: 'neutral', label: pills.nothingSetUp }
-      }
-    >
-      {props.model ?? undefined}
-    </Place>
-  );
+/** Who gets what is sent: the company, or the server's address, which the user named. */
+function recipientOf(inUse: NonNullable<AssistantView['inUse']>, server: string): string {
+  return inUse === 'server' ? new URL(server).host : text[inUse].company;
 }
 
 /** Who gets the open chat's messages, in one sentence that follows the provider. */
 function privacyNote(view: AssistantView, snapshot: SettingsSnapshot): string {
   const sent = text.privacy.sent;
-  switch (view.inUse) {
-    case null:
-      return sent.none;
-    case 'anthropic':
-    case 'openai':
-      return sent.away({
-        messages: String(snapshot.values['assistant.messages']),
-        company: text[view.inUse].company,
-      });
-    default:
-      return sent.here;
+  const server = String(snapshot.values['assistant.server']);
+  // A server chosen before it has an address sends nothing yet.
+  if (view.inUse === null || (view.inUse === 'server' && !isModelServer(server))) {
+    return sent.none;
   }
+  if (view.inUse === 'server' && isOnThisComputer(server)) {
+    return sent.here;
+  }
+  return sent.away({
+    messages: String(snapshot.values['assistant.messages']),
+    company: recipientOf(view.inUse, server),
+  });
 }
 
 function Places(props: PlaceProps): JSX.Element {
@@ -524,11 +452,9 @@ function Places(props: PlaceProps): JSX.Element {
       </h2>
       <p class="group-hint">{text.whereHint}</p>
       <fieldset class="group providers" aria-labelledby="provider-group">
-        <AutomaticPlace {...props} />
-        <PrivatePlace {...props} />
         <KeyedPlace {...props} provider="anthropic" />
         <KeyedPlace {...props} provider="openai" />
-        <LocalPlace {...props} />
+        <ServerPlace {...props} />
       </fieldset>
       <p class="group-note with-icon">
         <Icon name="lock" />

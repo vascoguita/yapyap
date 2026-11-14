@@ -1,12 +1,11 @@
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 import type { KeyedProvider } from '../../shared/api/chrome-api.ts';
-import { en } from '../../shared/messages/en.ts';
 import { kindOf } from './providers/errors.ts';
 import { REQUEST_TIMEOUT_MS, type ProviderErrorKind } from './providers/provider.ts';
 
-/** Who answers: the private model on this computer, a service, or a model server on this computer. */
-export type ProviderId = 'built-in' | 'anthropic' | 'openai' | 'local';
+/** Who answers: a service YapYap knows, or a model server the user names (#627). */
+export type ProviderId = 'anthropic' | 'openai' | 'server';
 
 /** A model the user can switch to, under a name people can read. */
 export interface ModelOption {
@@ -20,12 +19,10 @@ export const MAX_MODELS = 20;
 /** What a provider's list depends on. */
 export interface ListTarget {
   readonly provider: ProviderId;
-  /** The user's key; empty for a provider that needs none. */
+  /** The user's key; empty for a server that needs none. */
   readonly key: string;
-  /** The model server on this computer, for `local`. */
+  /** The model server's address, for `server`. */
   readonly endpoint: string;
-  /** The downloaded private model, for `built-in`. */
-  readonly privateModel: { readonly id: string; readonly name: string } | undefined;
 }
 
 /**
@@ -34,7 +31,7 @@ export interface ListTarget {
  */
 const NOT_CHAT = /embed|whisper|tts|dall-e|image|audio|realtime|transcribe|moderation|search/i;
 
-/** Local servers mostly take any key or none; the SDK still needs one to send. */
+/** Servers at home mostly take any key or none; the SDK still needs one to send. */
 export const NO_KEY = 'no-key';
 
 const common = (apiKey: string, fetch: typeof globalThis.fetch) => ({
@@ -54,9 +51,13 @@ async function claudeModels(key: string, fetch: typeof globalThis.fetch): Promis
 /**
  * Ollama, Alpaca's server among them, reports each model's size, which the
  * OpenAI-style list leaves out; smaller models answer faster. Other servers
- * have no such list, so their own order stands.
+ * have no such list, so their own order stands. Only a server at home, on
+ * plain http, is asked, so no cloud service gets a request it never offered.
  */
 async function sizesOf(endpoint: string, fetch: typeof globalThis.fetch) {
+  if (new URL(endpoint).protocol !== 'http:') {
+    return new Map<string, number>();
+  }
   try {
     const response = await fetch(`${new URL(endpoint).origin}/api/tags`);
     const body = (await response.json()) as { models?: { name?: unknown; size?: unknown }[] };
@@ -75,25 +76,25 @@ const bySize =
   (a: ModelOption, b: ModelOption): number =>
     (sizes.get(a.id) ?? Infinity) - (sizes.get(b.id) ?? Infinity);
 
-/** What OpenAI or a server on this computer lists, such as the models Ollama has installed. */
+/** What OpenAI or a model server lists, such as the models Ollama has installed. */
 async function servedModels(
   target: ListTarget,
   fetch: typeof globalThis.fetch,
 ): Promise<ModelOption[]> {
-  const local = target.provider === 'local';
-  // The SDK refuses an empty key, which a server on this computer never needs.
+  const server = target.provider === 'server';
+  // The SDK refuses an empty key, which a server at home rarely needs.
   const client = new OpenAI({
     ...common(target.key || NO_KEY, fetch),
-    ...(local ? { baseURL: target.endpoint } : {}),
+    ...(server ? { baseURL: target.endpoint } : {}),
   });
   const page = await client.models.list();
   // Newest first, as Anthropic lists Claude's, so the first fitting model is the newest.
   const options = [...page.data]
     .sort((a, b) => b.created - a.created)
     .map((model) => model.id)
-    .filter((id) => local || !NOT_CHAT.test(id))
+    .filter((id) => server || !NOT_CHAT.test(id))
     .map((id) => ({ id, label: id }));
-  return local ? options.sort(bySize(await sizesOf(target.endpoint, fetch))) : options;
+  return server ? options.sort(bySize(await sizesOf(target.endpoint, fetch))) : options;
 }
 
 /**
@@ -104,14 +105,13 @@ async function servedModels(
 const QUICK: Readonly<Record<ProviderId, RegExp | undefined>> = {
   anthropic: /haiku/i,
   openai: /mini/i,
-  local: undefined,
-  'built-in': undefined,
+  server: undefined,
 };
 
 /**
  * The model Auto uses (#467): the newest of the provider's quick tier, the
- * newest model when there is no such tier, or, on a server on this
- * computer, the smallest installed model, which answers fastest. It
+ * newest model when there is no such tier, or, on a model server, the
+ * smallest model Ollama reports, else the first listed. It
  * follows what the provider lists, so a newer model takes over on its own.
  */
 export function autoModel(
@@ -125,7 +125,7 @@ export function autoModel(
 }
 
 /**
- * The models a provider lists, newest or, on this computer, smallest first;
+ * The models a provider lists, newest or, on a server at home, smallest first;
  * none when it cannot list them, such as with a wrong key or a server that
  * is not running.
  */
@@ -133,12 +133,6 @@ export async function modelsOf(
   target: ListTarget,
   fetch: typeof globalThis.fetch,
 ): Promise<ModelOption[]> {
-  if (target.provider === 'built-in') {
-    const model = target.privateModel;
-    return model === undefined
-      ? []
-      : [{ id: model.id, label: en.assistant.privateModel({ name: model.name }) }];
-  }
   try {
     const listed =
       target.provider === 'anthropic'
@@ -158,11 +152,12 @@ export async function keyProblem(
   provider: KeyedProvider,
   key: string,
   fetch: typeof globalThis.fetch,
+  endpoint = '',
 ): Promise<ProviderErrorKind | ''> {
   try {
     await (provider === 'anthropic'
       ? claudeModels(key, fetch)
-      : servedModels({ provider, key, endpoint: '', privateModel: undefined }, fetch));
+      : servedModels({ provider, key, endpoint }, fetch));
     return '';
   } catch (error) {
     return kindOf(error, provider === 'anthropic' ? Anthropic : OpenAI);

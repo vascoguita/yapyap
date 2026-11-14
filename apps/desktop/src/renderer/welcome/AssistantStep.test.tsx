@@ -8,8 +8,7 @@ import { AssistantStep } from './AssistantStep.tsx';
 const VIEW: AssistantView = {
   inUse: null,
   status: '',
-  keys: { anthropic: false, openai: false },
-  privateModel: { size: '1.1 GB', status: '', actions: ['download'] },
+  keys: { anthropic: false, openai: false, server: false },
   models: [],
   auto: null,
   chats: [],
@@ -24,7 +23,6 @@ function setup(servers: () => Promise<readonly FoundServer[]> = () => Promise.re
   const assistant = {
     view: vi.fn(() => Promise.resolve(VIEW)),
     findServers: vi.fn(servers),
-    privateModel: vi.fn(() => Promise.resolve()),
     saveKey: vi.fn(() => Promise.resolve(true)),
   };
   const onChange = vi.fn();
@@ -45,20 +43,17 @@ describe('AssistantStep', () => {
       }),
     );
     expect(t.onChange.mock.calls).toEqual([
-      ['assistant.localServer', 'http://localhost:11434/v1'],
-      ['assistant.provider', 'local'],
+      ['assistant.server', 'http://localhost:11434/v1'],
+      ['assistant.provider', 'server'],
     ]);
     expect(screen.getByText(/^Done\./)).toBeTruthy();
   });
 
-  it('downloads the private model, with its size', async () => {
-    const t = setup(() => Promise.resolve([]));
-    fireEvent.click(
-      await screen.findByRole('button', { name: 'Download a Private Model (1.1 GB)' }),
-    );
-    expect(t.assistant.privateModel).toHaveBeenCalledWith('download');
-    expect(t.onChange).toHaveBeenCalledWith('assistant.provider', 'built-in');
-    expect(screen.queryByRole('button', { name: /model server/ })).toBeNull();
+  it('offers no server when none serves a model on this computer', async () => {
+    setup(() => Promise.resolve([]));
+    expect(await screen.findByRole('button', { name: 'Use Claude with My API Key' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Model Server/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Private/ })).toBeNull();
   });
 
   it('asks for a key for Claude or OpenAI, and leaves everything as it is for later', async () => {

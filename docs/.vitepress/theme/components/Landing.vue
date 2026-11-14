@@ -125,7 +125,7 @@ const faqs: readonly { readonly question: string; readonly answer: string }[] = 
         </p>
         <ul>
           <li>Built in: set it up once in Settings, no install</li>
-          <li>Works with Claude, OpenAI, local models such as Ollama, or a private model</li>
+          <li>Works with Claude, OpenAI, or your own model server, such as Ollama</li>
           <li>Works only in the chats you choose, and never sends a message for you</li>
           <li>Suggestions and rewrites right in the message box</li>
         </ul>
@@ -136,7 +136,7 @@ const faqs: readonly { readonly question: string; readonly answer: string }[] = 
         :src="shot('assistant')"
         width="1280"
         height="1360"
-        alt="Settings for the AI assistant: where it thinks, set to Automatic with Claude in use, and a private model ready to download."
+        alt="Settings for the AI assistant, ready with Claude, its key saved, and the model server as another option."
       />
     </section>
 

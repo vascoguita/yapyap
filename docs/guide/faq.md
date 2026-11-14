@@ -61,9 +61,9 @@ to delete it.
 Only the chats you choose in **Settings → Assistant**, or every chat if you
 choose **All chats**. There, it reads a chat's latest messages to suggest
 replies when someone else wrote last; a rewrite sends only what you typed.
-With the private model or a model server on your computer, nothing leaves
-your computer; with Claude or OpenAI, that text goes to the service you
-chose, with your own key. See the
+With a model server on your computer, nothing leaves your computer; with
+Claude, OpenAI or a server elsewhere, that text goes to the service or
+server you chose. Nothing is sent before you choose one. See the
 [AI assistant guide](/guide/ai-assistant).
 
 ## Something is broken. What should I try first?

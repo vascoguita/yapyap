@@ -34,8 +34,8 @@ you are done. Everything it asks is also in Settings.
 
 YapYap's built-in assistant helps you write, in the message box itself: it
 suggests short replies when someone writes to you, and rewrites what you
-type in the tone you choose. It runs a private model on your computer, a
-model server you already run, or Claude or OpenAI with your own key. It
+type in the tone you choose. It uses Claude or OpenAI with your own key,
+or a model server you run, such as Ollama on your computer. It
 works only in the chats you choose, and never sends a message on its own. The [AI assistant guide](/guide/ai-assistant) covers
 setting it up and every choice.
 

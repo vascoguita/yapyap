@@ -159,11 +159,10 @@
           "label": "Provider",
           "description": "Where the assistant runs.",
           "options": {
-            "auto": "Automatic",
-            "built-in": "On this computer (private)",
+            "none": "None",
             "anthropic": "Claude (Anthropic)",
             "openai": "OpenAI",
-            "local": "Model server on this computer"
+            "server": "Model server"
           }
         },
         "model": {
@@ -191,9 +190,9 @@
             "20": "20"
           }
         },
-        "localServer": {
+        "server": {
           "label": "Model server address",
-          "description": "A server on this computer that speaks OpenAI’s API, such as Ollama’s."
+          "description": "A server that speaks OpenAI’s API, on this computer, your home network or the internet."
         }
       },
       "agents": {
@@ -462,34 +461,18 @@
     "doNotDisturb": "Do not disturb"
   },
   "assistant": {
-    "privateModel": "Private model ({{name}})",
-    "providers": {
-      "built-in": "the private model on this computer",
-      "anthropic": "Claude (Anthropic)",
-      "openai": "OpenAI",
-      "local": "the model server on this computer"
-    },
     "providerTitles": {
-      "built-in": "The private model on this computer",
       "anthropic": "Claude (Anthropic)",
       "openai": "OpenAI",
-      "local": "The model server on this computer"
+      "server": "Your model server"
     },
     "settings": {
       "intro": "Suggests replies to the messages you get and rewrites what you type, in the tone you choose. It never sends a message: it only puts text in the message box, for you to send.",
       "where": "Provider",
       "whereHint": "Where the assistant runs.",
-      "automatic": "Automatic",
-      "automaticHint": "Uses the first provider that is set up.",
       "notSetUp": "Not set up yet. Choose a provider below.",
       "ready": "Ready. Using {{provider}}.",
       "pills": {
-        "ready": "Ready",
-        "nothingSetUp": "Nothing set up",
-        "notDownloaded": "Not downloaded",
-        "downloading": "Downloading",
-        "paused": "Paused",
-        "tooLarge": "Too large",
         "needsKey": "Needs key",
         "keySaved": "Key saved",
         "notSetUp": "Not set up",
@@ -499,24 +482,6 @@
         "inChats": "In chats",
         "replies": "Suggested replies",
         "chats": "Chats"
-      },
-      "private": {
-        "title": "On this computer (private)",
-        "description": "A small model of {{size}}. Your messages never leave this computer, but it answers more slowly than the services.",
-        "download": "Download",
-        "pause": "Pause",
-        "resume": "Resume",
-        "remove": "Remove",
-        "smaller": "Use the Smaller Model",
-        "none": "Not downloaded yet.",
-        "downloading": "Downloading: {{percent}}% ({{done}} of {{size}})",
-        "paused": "Paused at {{percent}}%.",
-        "failed": "The download stopped at {{percent}}%. Check your connection, then resume.",
-        "diskFull": "Not enough disk space: free up {{size}}, then resume.",
-        "damaged": "The download was damaged, so it was deleted. Download it again.",
-        "ready": "Ready. It takes {{size}} on this computer.",
-        "outOfMemory": "This computer doesn’t have enough memory for this model.",
-        "outOfMemorySmall": "This computer doesn’t have enough memory for the private model. Close other apps, then try again."
       },
       "anthropic": {
         "title": "Claude (Anthropic)",
@@ -544,20 +509,22 @@
         "cannotKeep": "This system cannot keep the key safely, so it was not saved. Set up your system’s keyring, then try again.",
         "empty": "Paste a key first."
       },
-      "local": {
-        "title": "Model server on this computer",
-        "description": "Ollama, LM Studio, llama.cpp, or any server that speaks OpenAI’s API.",
-        "find": "Find",
+      "server": {
+        "title": "Model server",
+        "description": "Ollama or LM Studio on this or another computer, or any service that speaks OpenAI’s API.",
+        "find": "Find on This Computer",
         "finding": "Looking…",
         "none": "No model server answers on this computer. Start one, such as Ollama, then try again.",
         "found": "{{server}}: {{models}}",
         "use": "Use",
         "noModels": "no models yet",
-        "address": "Or type its address",
-        "addressPlaceholder": "http://localhost:11434/v1",
+        "address": "Address",
+        "addressPlaceholder": "http://192.168.1.10:11434 or https://example.com/v1",
         "saveAddress": "Use This Address",
-        "badAddress": "Type an address on this computer, such as http://localhost:11434/v1.",
-        "current": "Using {{server}}."
+        "badAddress": "Type a server address, such as http://localhost:11434 or https://example.com/v1. Plain http:// works only on this computer and your home network.",
+        "current": "Using {{server}}.",
+        "keyLabel": "API key (optional)",
+        "keyHint": "Only if the server asks for one, as cloud services do."
       },
       "model": {
         "auto": "Auto (recommended)",
@@ -611,16 +578,14 @@
       },
       "setUp": "Set up…",
       "pasteKey": "Paste a key…",
-      "resume": "Resume download",
-      "smaller": "Try the smaller model",
       "openSettings": "Open settings"
     },
     "status": {
-      "setUp": "Set up the assistant to start: choose where it thinks.",
+      "setUp": "Set up the assistant to start: choose a provider.",
+      "address": "Type your model server’s address in Settings to start.",
       "key": "Paste your API key for {{provider}} to start.",
-      "download": "Download the private model to start.",
       "noModel": "{{provider}} listed no model. Check its key, or that it runs.",
-      "localServer": "The model server on this computer does not answer. Start it, then try again.",
+      "server": "Your model server does not answer. Check its address, and that it runs, then try again.",
       "nothing": "The assistant had nothing to write. Try again.",
       "draftChanged": "You changed your message while the assistant worked, so it was left as it is.",
       "notAllowed": "The assistant is off in this chat. Turn it on in Settings, under Assistant."
@@ -633,16 +598,13 @@
       "refused": "The model declined to answer.",
       "badRequest": "{{provider}} did not accept the request. Try another model.",
       "cancelled": "Stopped.",
-      "outOfMemory": "This computer doesn’t have enough memory for this model.",
       "failed": "Something went wrong. Try again."
     },
     "welcome": {
       "title": "Your AI assistant",
-      "intro": "The assistant suggests replies, summarizes chats and rewrites what you type, right above the message box. It never sends anything without your click. Where should it think?",
+      "intro": "The assistant suggests replies and rewrites what you type, in the message box. It never sends anything without your click. Where should it run?",
       "local": "Use the Model Server on This Computer ({{server}})",
       "localHint": "Private and quick: your messages stay on this computer.",
-      "private": "Download a Private Model ({{size}})",
-      "privateHint": "Private: your messages never leave this computer. Slower than the services.",
       "anthropic": "Use Claude with My API Key",
       "openai": "Use OpenAI with My API Key",
       "keyHint": "Quick and capable. What you ask about goes to the service.",

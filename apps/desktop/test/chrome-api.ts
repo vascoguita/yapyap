@@ -23,7 +23,6 @@ function blank() {
       forgetKey: vi.fn(),
       testKey: vi.fn(),
       findServers: vi.fn(),
-      privateModel: vi.fn(),
       forgetChat: vi.fn(),
       allowOpenChat: vi.fn(),
     },

@@ -7,25 +7,20 @@ import {
   type ConfinementSources,
 } from './net.ts';
 
-const sources = (localServer = '', testModel?: string): ConfinementSources => ({
-  localServer: () => localServer,
-  testModel,
-});
+const sources = (server = ''): ConfinementSources => ({ server: () => server });
 
 describe('assistantMayReach', () => {
-  it('reaches the providers and Hugging Face over HTTPS only', () => {
+  it('reaches the services over HTTPS only', () => {
     for (const address of [
       'https://api.anthropic.com/v1/messages',
       'https://api.openai.com/v1/chat/completions',
-      'https://huggingface.co/Qwen/x/resolve/abc/model.gguf',
-      'https://cas-bridge.xethub.hf.co/x',
     ]) {
       expect(assistantMayReach(address, sources())).toBe(true);
     }
     for (const address of [
       'http://api.anthropic.com/v1/messages',
       'https://api.anthropic.com.example.org/',
-      'https://hf.co.example.org/',
+      'https://huggingface.co/Qwen/x/resolve/abc/model.gguf',
       'https://example.org/',
       'not an address',
     ]) {
@@ -33,22 +28,21 @@ describe('assistantMayReach', () => {
     }
   });
 
-  it('reaches only the model server on this computer the user chose', () => {
-    const chosen = sources('http://localhost:11434/v1');
-    expect(assistantMayReach('http://localhost:11434/v1/chat/completions', chosen)).toBe(true);
-    expect(assistantMayReach('http://localhost:11434/api/tags', chosen)).toBe(true);
-    expect(assistantMayReach('http://localhost:631/', chosen)).toBe(false);
-    expect(assistantMayReach('http://127.0.0.1:11434/v1', chosen)).toBe(false);
+  it('reaches only the model server the user chose, at its origin', () => {
+    const home = sources('http://192.168.1.20:11434/v1');
+    expect(assistantMayReach('http://192.168.1.20:11434/v1/chat/completions', home)).toBe(true);
+    expect(assistantMayReach('http://192.168.1.20:11434/api/tags', home)).toBe(true);
+    expect(assistantMayReach('http://192.168.1.20:631/', home)).toBe(false);
+    expect(assistantMayReach('http://192.168.1.21:11434/v1', home)).toBe(false);
     expect(assistantMayReach('http://localhost:11434/v1', sources())).toBe(false);
-    expect(
-      assistantMayReach('http://evil.example:11434/v1', sources('http://evil.example:11434/v1')),
-    ).toBe(false);
+    const cloud = sources('https://openrouter.ai/api/v1');
+    expect(assistantMayReach('https://openrouter.ai/api/v1/models', cloud)).toBe(true);
+    expect(assistantMayReach('http://openrouter.ai/api/v1/models', cloud)).toBe(false);
   });
 
-  it('reaches a test model’s server when a test names one', () => {
-    const test = sources('', 'http://127.0.0.1:4000/tiny.gguf');
-    expect(assistantMayReach('http://127.0.0.1:4000/tiny.gguf', test)).toBe(true);
-    expect(assistantMayReach('http://127.0.0.1:4001/tiny.gguf', test)).toBe(false);
+  it('never reaches a server a settings file names that the settings may not hold', () => {
+    const plain = sources('http://evil.example:11434/v1');
+    expect(assistantMayReach('http://evil.example:11434/v1', plain)).toBe(false);
   });
 });
 

@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from 'vitest';
 import type { ReadChat } from '../../adapter/active-chat.ts';
 import type { AssistantBarState } from '../../shared/api/assistant-bar-api.ts';
 import { createAssistantBar, SETTLE_MS, type BarDependencies } from './bar.ts';
-import type { PrivateModelStatus } from './private/private-model.ts';
 import { ProviderError } from './providers/provider.ts';
 import { INSTRUCTIONS } from './replies.ts';
 import { rewriteInstructions } from './rewrites.ts';
@@ -31,21 +30,14 @@ const READY: Setup = {
   endpoint: '',
 };
 
-const PRIVATE: PrivateModelStatus = {
-  model: { id: 'qwen', name: 'Qwen', url: 'https://huggingface.co/q', size: 1000, sha256: 'a' },
-  phase: { kind: 'none' },
-  smaller: true,
-  used: 0,
-};
-
 const SETTINGS = {
   enabled: true,
-  provider: 'auto',
+  provider: 'anthropic',
   model: 'auto',
   autoSuggest: true,
   chats: 'chosen',
   messages: '10',
-  localServer: '',
+  server: '',
 } as const;
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -55,7 +47,6 @@ function harness(answer = 'Yes, 9 works!\nCan we do 8?') {
   let setup: Setup = READY;
   let chat: ReadChat | null = CHAT;
   let draft: string | null = 'running late sry';
-  let model: PrivateModelStatus = PRIVATE;
   let assistant: Record<string, unknown> = { ...SETTINGS };
   const allowed = new Set<string>(['account/Ana']);
   const states: AssistantBarState[] = [];
@@ -75,12 +66,6 @@ function harness(answer = 'Yes, 9 works!\nCan we do 8?') {
         draft = text;
         return Promise.resolve(true);
       }),
-    },
-    privateModels: {
-      status: () => Promise.resolve(model),
-      download: vi.fn(),
-      smaller: vi.fn(() => Promise.resolve()),
-      outOfMemory: vi.fn(),
     },
     openSettings: vi.fn(),
     after: vi.fn((ms: number, run: () => void) => {
@@ -118,9 +103,6 @@ function harness(answer = 'Yes, 9 works!\nCan we do 8?') {
     },
     setDraft: (next: string | null) => {
       draft = next;
-    },
-    setModel: (next: PrivateModelStatus) => {
-      model = next;
     },
     set: (next: Record<string, unknown>) => {
       assistant = { ...assistant, ...next };
@@ -298,7 +280,7 @@ describe('createAssistantBar: the rewrite button', () => {
     expect(u.last().notice).toBeNull();
   });
 
-  it('explains a failed rewrite, offering the smaller private model when memory ran out', async () => {
+  it('explains a failed rewrite, offering Settings when the key is refused', async () => {
     const t = harness();
     vi.mocked(t.deps.core.ask).mockRejectedValueOnce(new ProviderError('auth'));
     await t.bar.polish('polish');
@@ -308,12 +290,6 @@ describe('createAssistantBar: the rewrite button', () => {
     });
     await t.bar.button('fix');
     expect(t.deps.openSettings).toHaveBeenCalledOnce();
-    vi.mocked(t.deps.core.ask).mockRejectedValueOnce(new ProviderError('out-of-memory'));
-    await t.bar.polish('polish');
-    expect(t.deps.privateModels.outOfMemory).toHaveBeenCalledOnce();
-    expect(t.last().notice?.button).toEqual({ id: 'fix', label: 'Try the smaller model' });
-    await t.bar.button('fix');
-    expect(t.deps.privateModels.smaller).toHaveBeenCalledOnce();
     vi.mocked(t.deps.core.ask).mockRejectedValueOnce(new Error('odd'));
     await t.bar.polish('polish');
     expect(t.last().notice?.button).toBeNull();
@@ -326,22 +302,16 @@ describe('createAssistantBar: the rewrite button', () => {
     expect(t.deps.core.ask).not.toHaveBeenCalled();
     expect(t.last().model).toBe('not set up yet');
     expect(t.last().notice?.button).toEqual({ id: 'fix', label: 'Paste a key…' });
-    t.setSetup({ ...READY, missing: 'download', provider: 'built-in' });
-    t.setModel({ ...PRIVATE, phase: { kind: 'paused', done: 500, problem: '' } });
-    await t.bar.refresh();
-    expect(t.last().notice?.button).toEqual({ id: 'fix', label: 'Resume download' });
     await t.bar.button('fix');
-    expect(t.deps.privateModels.download).toHaveBeenCalledOnce();
-    t.setModel({ ...PRIVATE, phase: { kind: 'downloading', done: 600 } });
-    await t.bar.privateModelChanged();
-    expect(t.last().notice?.text).toContain('60%');
+    expect(t.deps.openSettings).toHaveBeenCalledOnce();
+    t.setSetup({ ...READY, missing: 'model', provider: 'server', models: [] });
+    await t.bar.refresh();
+    expect(t.last().notice?.text).toContain('Your model server does not answer');
     t.setSetup(READY);
-    t.setModel({ ...PRIVATE, phase: { kind: 'ready' } });
-    await t.bar.privateModelChanged();
+    await t.bar.refresh();
     expect(t.last().notice).toBeNull();
     expect(t.last().model).toBe('Haiku');
     // Once nothing keeps it, the model changes alone.
-    await t.bar.privateModelChanged();
     t.setSetup({ ...READY, model: 'claude-opus' });
     await t.bar.refresh();
     expect(t.last().model).toBe('Opus');

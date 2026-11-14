@@ -29,7 +29,6 @@ export type ProviderErrorKind =
   | 'refused'
   | 'bad-request'
   | 'cancelled'
-  | 'out-of-memory'
   | 'failed';
 
 /**

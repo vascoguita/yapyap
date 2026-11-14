@@ -9,8 +9,7 @@ import { AssistantSection } from './Assistant.tsx';
 const VIEW: AssistantView = {
   inUse: 'anthropic',
   status: '',
-  keys: { anthropic: true, openai: false },
-  privateModel: { size: '1.1 GB', status: 'Not downloaded yet.', actions: ['download'] },
+  keys: { anthropic: true, openai: false, server: false },
   models: [
     { id: 'claude-opus', label: 'Opus' },
     { id: 'claude-haiku', label: 'Haiku' },
@@ -31,12 +30,12 @@ const VIEW: AssistantView = {
 const SNAPSHOT: SettingsSnapshot = {
   values: {
     'assistant.enabled': true,
-    'assistant.provider': 'auto',
+    'assistant.provider': 'anthropic',
     'assistant.model': 'claude-opus',
     'assistant.autoSuggest': true,
     'assistant.chats': 'chosen',
     'assistant.messages': '10',
-    'assistant.localServer': '',
+    'assistant.server': '',
   },
   restartPending: false,
   problems: {},
@@ -46,6 +45,8 @@ const choosing = (provider: string, more: SettingsSnapshot['values'] = {}): Sett
   ...SNAPSHOT,
   values: { ...SNAPSHOT.values, 'assistant.provider': provider, ...more },
 });
+
+const HOME = 'http://192.168.1.20:11434/v1';
 
 function setup(view: AssistantView = VIEW, snapshot: SettingsSnapshot = SNAPSHOT) {
   let current = view;
@@ -60,7 +61,6 @@ function setup(view: AssistantView = VIEW, snapshot: SettingsSnapshot = SNAPSHOT
         { server: 'localhost:1234', endpoint: 'http://localhost:1234/v1', models: [] },
       ]),
     ),
-    privateModel: vi.fn(() => Promise.resolve()),
     forgetChat: vi.fn(() => Promise.resolve()),
     allowOpenChat: vi.fn(() => Promise.resolve(true)),
   };
@@ -121,7 +121,7 @@ describe('AssistantSection', () => {
     expect(t.onChange).toHaveBeenCalledWith('assistant.messages', '20');
   });
 
-  it('lists every provider with its status, and opens only the chosen one', async () => {
+  it('lists the providers with their status, and opens only the chosen one', async () => {
     const t = setup();
     await screen.findByText('Ready. Using Claude (Anthropic).');
     const list = screen.getByRole('group', { name: 'Provider' });
@@ -129,20 +129,21 @@ describe('AssistantSection', () => {
       within(list)
         .getAllByRole('radio')
         .map((radio) => radio.getAttribute('value')),
-    ).toEqual(['auto', 'built-in', 'anthropic', 'openai', 'local']);
-    expect(screen.getByRole('radio', { name: 'Automatic' })).toHaveProperty('checked', true);
-    expect(pillOf('Automatic')).toBe('Ready');
-    expect(pillOf('On this computer (private)')).toBe('Not downloaded');
+    ).toEqual(['anthropic', 'openai', 'server']);
+    expect(screen.getByRole('radio', { name: 'Claude (Anthropic)' })).toHaveProperty(
+      'checked',
+      true,
+    );
     expect(pillOf('Claude (Anthropic)')).toBe('Key saved');
     expect(pillOf('OpenAI')).toBe('Needs key');
-    expect(pillOf('Model server on this computer')).toBe('Not set up');
-    expect(screen.getByText(/A small model of 1\.1 GB/)).toBeTruthy();
+    expect(pillOf('Model server')).toBe('Not set up');
     const radio = screen.getByRole('radio', { name: 'OpenAI' });
     expect(radio.getAttribute('aria-describedby')).toBe(
       'provider-openai-hint provider-openai-pill',
     );
-    // Only Automatic is chosen, so only its model list shows; no key field does.
-    expect(screen.queryByLabelText('API key')).toBeNull();
+    // Only Claude is chosen, so only its key and model list show.
+    expect(screen.getAllByLabelText('API key')).toHaveLength(1);
+    expect(screen.queryByRole('button', { name: 'Find on This Computer' })).toBeNull();
     expect(screen.getByLabelText('Model')).toHaveProperty('value', 'claude-opus');
     fireEvent.click(radio);
     expect(t.onChange).toHaveBeenCalledWith('assistant.provider', 'openai');
@@ -157,18 +158,25 @@ describe('AssistantSection', () => {
     fireEvent.change(model, { target: { value: 'auto' } });
     expect(t.onChange).toHaveBeenCalledWith('assistant.model', 'auto');
     cleanup();
-    setup({ ...VIEW, auto: null }, choosing('auto', { 'assistant.model': 'gone' }));
+    setup({ ...VIEW, auto: null }, choosing('anthropic', { 'assistant.model': 'gone' }));
     expect(await screen.findByLabelText('Model')).toHaveProperty('value', 'auto');
     expect(screen.getByRole('option', { name: 'Auto (recommended)' })).toBeTruthy();
   });
 
-  it('says it is not set up, keeping the model list until a provider answers', async () => {
-    setup({ ...VIEW, inUse: null, status: 'Set up the assistant.', models: [], auto: null });
+  it('chooses no provider until the user does, and sends nothing before', async () => {
+    setup(
+      { ...VIEW, inUse: null, status: 'Set up the assistant.', models: [], auto: null },
+      choosing('none'),
+    );
     expect(await screen.findByText('Not set up yet. Choose a provider below.')).toBeTruthy();
     expect(screen.queryByText('Set up the assistant.')).toBeNull();
-    expect(pillOf('Automatic')).toBe('Nothing set up');
+    const list = screen.getByRole('group', { name: 'Provider' });
+    for (const radio of within(list).getAllByRole<HTMLInputElement>('radio')) {
+      expect(radio.checked).toBe(false);
+    }
     expect(screen.getByText('Nothing is sent anywhere until you set up a provider.')).toBeTruthy();
     expect(screen.queryByLabelText('Model')).toBeNull();
+    expect(screen.queryByLabelText('API key')).toBeNull();
   });
 
   it('says what the chosen provider still needs', async () => {
@@ -182,7 +190,7 @@ describe('AssistantSection', () => {
   });
 
   it('saves a key, which it never shows, then tests, replaces and removes it', async () => {
-    const t = setup({ ...VIEW, keys: { anthropic: false, openai: false } }, choosing('anthropic'));
+    const t = setup({ ...VIEW, keys: { anthropic: false, openai: false, server: false } });
     const key = await screen.findByLabelText('API key');
     expect(
       screen.getByRole('link', { name: 'Get a key from Anthropic' }).getAttribute('href'),
@@ -224,73 +232,66 @@ describe('AssistantSection', () => {
     expect(screen.getByRole('link', { name: 'Get a key from OpenAI' })).toBeTruthy();
   });
 
-  it('downloads the private model, and follows its download', async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    const t = setup({ ...VIEW, inUse: 'built-in' }, choosing('built-in'));
-    expect(await screen.findByText('Everything stays on this computer.')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Download' }));
-    expect(t.assistant.privateModel).toHaveBeenCalledWith('download');
-    t.setView({
-      ...VIEW,
-      privateModel: { ...VIEW.privateModel, status: 'Downloading: 5%', actions: ['pause'] },
-    });
-    expect(await screen.findByText('Downloading: 5%')).toBeTruthy();
-    expect(pillOf('On this computer (private)')).toBe('Downloading');
-    t.setView({
-      ...VIEW,
-      privateModel: {
-        ...VIEW.privateModel,
-        status: 'Paused at 9%.',
-        actions: ['resume', 'remove'],
-      },
-    });
-    await vi.advanceTimersByTimeAsync(1000);
-    expect(await screen.findByText('Paused at 9%.')).toBeTruthy();
-    expect(pillOf('On this computer (private)')).toBe('Paused');
-    const views = t.assistant.view.mock.calls.length;
-    await vi.advanceTimersByTimeAsync(3000);
-    expect(t.assistant.view.mock.calls).toHaveLength(views);
-    for (const name of ['Resume', 'Remove']) {
-      expect(screen.getByRole('button', { name })).toBeTruthy();
-    }
-  });
-
-  it('marks the private model ready, or too large for this computer', async () => {
-    const ready = { ...VIEW.privateModel, actions: ['remove' as const] };
-    setup({ ...VIEW, inUse: 'built-in', privateModel: ready }, choosing('built-in'));
-    await screen.findByText('Ready. Using On this computer (private).');
-    expect(pillOf('On this computer (private)')).toBe('Ready');
-    cleanup();
-    const large = { ...VIEW.privateModel, actions: ['smaller' as const, 'remove' as const] };
-    setup({ ...VIEW, privateModel: large });
-    await screen.findByText('Ready. Using Claude (Anthropic).');
-    expect(pillOf('On this computer (private)')).toBe('Too large');
-  });
-
   it('finds model servers on this computer, and uses one or a typed address', async () => {
-    const server = { 'assistant.localServer': 'http://localhost:8080/v1' };
-    const t = setup({ ...VIEW, inUse: 'local' }, choosing('local', server));
+    const server = { 'assistant.server': 'http://localhost:8080/v1' };
+    const t = setup({ ...VIEW, inUse: 'server' }, choosing('server', server));
     expect(await screen.findByText('Using http://localhost:8080/v1.')).toBeTruthy();
-    expect(pillOf('Model server on this computer')).toBe('Address saved');
+    expect(pillOf('Model server')).toBe('Address saved');
     expect(screen.getByText('Everything stays on this computer.')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Find' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Find on This Computer' }));
     expect(await screen.findByText('localhost:11434: tiny')).toBeTruthy();
     expect(screen.getByText('localhost:1234: no models yet')).toBeTruthy();
     fireEvent.click(nth(screen.getAllByRole('button', { name: 'Use' }), 0));
     expect(t.onChange.mock.calls).toEqual([
-      ['assistant.localServer', 'http://localhost:11434/v1'],
-      ['assistant.provider', 'local'],
+      ['assistant.server', 'http://localhost:11434/v1'],
+      ['assistant.provider', 'server'],
     ]);
-    const address = screen.getByLabelText('Or type its address');
-    fireEvent.input(address, { target: { value: 'example.org:80' } });
+    const address = screen.getByLabelText('Address');
+    fireEvent.input(address, { target: { value: 'http://example.org:80' } });
     fireEvent.click(screen.getByRole('button', { name: 'Use This Address' }));
-    expect(await screen.findByText(/Type an address on this computer/)).toBeTruthy();
-    fireEvent.input(address, { target: { value: 'localhost:1234' } });
+    expect(await screen.findByText(/Plain http:\/\/ works only on this computer/)).toBeTruthy();
+    fireEvent.input(address, { target: { value: '192.168.1.20:11434' } });
     fireEvent.click(screen.getByRole('button', { name: 'Use This Address' }));
-    expect(t.onChange).toHaveBeenCalledWith('assistant.localServer', 'http://localhost:1234/v1');
+    expect(t.onChange).toHaveBeenCalledWith('assistant.server', HOME);
+    fireEvent.input(address, { target: { value: 'openrouter.ai/api/v1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Use This Address' }));
+    expect(t.onChange).toHaveBeenCalledWith('assistant.server', 'https://openrouter.ai/api/v1');
     t.assistant.findServers.mockResolvedValueOnce([]);
-    fireEvent.click(screen.getByRole('button', { name: 'Find' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Find on This Computer' }));
     expect(await screen.findByText(/No model server answers/)).toBeTruthy();
+  });
+
+  it('takes an optional key for a model server, with no page to get one', async () => {
+    const cloud = { 'assistant.server': 'https://models.example/v1' };
+    const t = setup({ ...VIEW, inUse: 'server' }, choosing('server', cloud));
+    const key = await screen.findByLabelText('API key (optional)');
+    expect(screen.getByText('Only if the server asks for one, as cloud services do.')).toBeTruthy();
+    expect(screen.queryByRole('link', { name: /Get a key/ })).toBeNull();
+    fireEvent.input(key, { target: { value: 'sk-cloud' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save Key' }));
+    await waitFor(() => {
+      expect(t.assistant.saveKey).toHaveBeenCalledWith('server', 'sk-cloud');
+    });
+    expect(
+      screen.getByText(
+        'Sends the last 10 messages of the open chat, plus its instructions, to models.example. When rewriting, it sends only what you typed. YapYap logs none of it.',
+      ),
+    ).toBeTruthy();
+  });
+
+  it('sends nothing to a server chosen before it has an address', async () => {
+    setup(
+      { ...VIEW, inUse: 'server', status: 'Set up the assistant to start: choose a provider.' },
+      choosing('server'),
+    );
+    expect(await screen.findByLabelText('Address')).toBeTruthy();
+    expect(screen.getByText('Nothing is sent anywhere until you set up a provider.')).toBeTruthy();
+    expect(document.querySelectorAll('.assistant')).toHaveLength(1);
+  });
+
+  it('names a server on the home network as where messages go', async () => {
+    setup({ ...VIEW, inUse: 'server' }, choosing('server', { 'assistant.server': HOME }));
+    expect(await screen.findByText(/to 192\.168\.1\.20:11434\. When rewriting/)).toBeTruthy();
   });
 
   it('lists the chats it works in, each with Remove', async () => {

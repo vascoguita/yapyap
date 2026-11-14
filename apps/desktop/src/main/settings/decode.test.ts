@@ -38,12 +38,12 @@ const DEFAULTS = {
   network: { proxyMode: 'system', proxyServer: '' },
   assistant: {
     enabled: true,
-    provider: 'auto',
+    provider: 'none',
     model: 'auto',
     autoSuggest: true,
     chats: 'chosen',
     messages: '10',
-    localServer: '',
+    server: '',
   },
   agents: { enabled: false, port: 0 },
   shortcuts: { custom: {}, global: { toggleWindow: '' } },
@@ -63,7 +63,7 @@ const CHOICES: Readonly<Record<string, readonly string[]>> = {
   'reliability.displayBackend': ['auto', 'wayland', 'x11'],
   'privacy.crashReports': ['off', 'local', 'ask'],
   'network.proxyMode': ['system', 'direct', 'manual'],
-  'assistant.provider': ['auto', 'built-in', 'anthropic', 'openai', 'local'],
+  'assistant.provider': ['none', 'anthropic', 'openai', 'server'],
   'assistant.messages': ['5', '10', '20'],
 };
 

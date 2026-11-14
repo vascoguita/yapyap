@@ -33,7 +33,7 @@ describe('exportSettings', () => {
     const settings = defaultSettings();
     const text = exportSettings(settings);
     const { assistant, agents, ...exported } = settings;
-    expect(assistant).toMatchObject({ provider: 'auto' });
+    expect(assistant).toMatchObject({ provider: 'none' });
     expect(agents).toEqual({ enabled: false, port: 0 });
     expect(JSON.parse(text)).toEqual({ format: 'yapyap-settings', settings: exported });
     expect(text).toMatch(/^\{\n {2}"format": "yapyap-settings",\n/);
@@ -139,7 +139,11 @@ describe('readImport', () => {
 
 describe('keepLocal', () => {
   it('keeps the assistant settings as they are, whatever the imported file says', () => {
-    const local = { ...defaultSettings().assistant, provider: 'local', localServer: '' } as const;
+    const local = {
+      ...defaultSettings().assistant,
+      provider: 'server',
+      server: 'http://192.168.1.20:11434/v1',
+    } as const;
     const current = { ...defaultSettings(), assistant: local };
     const imported = {
       ...defaultSettings(),

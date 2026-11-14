@@ -2,10 +2,9 @@ import type { ReadChat } from '../../adapter/active-chat.ts';
 import type { AssistantBarState, BarButtonId } from '../../shared/api/assistant-bar-api.ts';
 import { en } from '../../shared/messages/en.ts';
 import type { SettingsService } from '../settings/service.ts';
-import { problemWords, privateWords, setupWords, type Fix, type Words } from './bar-words.ts';
+import { problemWords, setupWords, type Words } from './bar-words.ts';
 import type { AllowedChats } from './chats.ts';
 import type { AssistantCore } from './core.ts';
-import type { PrivateModels } from './private/private-model.ts';
 import { ProviderError } from './providers/provider.ts';
 import { INSTRUCTIONS, suggestionsIn, transcriptOf } from './replies.ts';
 import {
@@ -33,7 +32,6 @@ export interface BarDependencies {
   readonly settings: Pick<SettingsService, 'current'>;
   readonly chats: Pick<AllowedChats, 'isAllowed'>;
   readonly accounts: BarAccounts;
-  readonly privateModels: Pick<PrivateModels, 'status' | 'download' | 'smaller' | 'outOfMemory'>;
   readonly openSettings: () => void;
   /** Runs `run` after `ms`; returns how to call it off. */
   readonly after: (ms: number, run: () => void) => () => void;
@@ -51,8 +49,6 @@ interface BarContext {
   chat: string | null;
   /** The draft Undo puts back. */
   kept: string;
-  /** What the notice's fix button does. */
-  fix: Fix;
   /** The notice says what keeps the assistant from answering, which goes once it can. */
   blocked: boolean;
   /** A rewrite runs; another click waits for it. */
@@ -88,7 +84,6 @@ function update(bar: BarContext, next: Partial<AssistantBarState>): void {
 
 /** Shows `words` above the message box, with its fix as the notice's button. */
 function say(bar: BarContext, { status, fix }: Words): void {
-  bar.fix = fix?.action ?? bar.fix;
   const button = fix === undefined ? null : { id: 'fix' as const, label: fix.label };
   update(bar, { notice: { text: status, button } });
 }
@@ -107,7 +102,7 @@ async function ready(bar: BarContext): Promise<Setup | undefined> {
   update(bar, { model: modelName(setup) });
   if (setup.missing !== '') {
     bar.blocked = true;
-    say(bar, setupWords(setup, await bar.deps.privateModels.status()));
+    say(bar, setupWords(setup));
     return undefined;
   }
   if (bar.blocked) {
@@ -124,14 +119,10 @@ const mayRead = (bar: BarContext, name: string): boolean =>
   assistantSettings(bar).chats === 'all' ||
   bar.deps.chats.isAllowed(bar.deps.accounts.active(), name);
 
-/** Explains a failed rewrite; a private model short of memory offers the smaller one. */
-async function failed(bar: BarContext, setup: Setup, error: unknown): Promise<void> {
+/** Explains a failed rewrite, with a way to Settings where a key would mend it. */
+function failed(bar: BarContext, setup: Setup, error: unknown): void {
   const kind = error instanceof ProviderError ? error.kind : 'failed';
-  if (kind === 'out-of-memory') {
-    bar.deps.privateModels.outOfMemory();
-  }
-  const { smaller } = await bar.deps.privateModels.status();
-  say(bar, problemWords(kind, setup.provider, smaller));
+  say(bar, problemWords(kind, setup.provider));
 }
 
 /**
@@ -174,7 +165,6 @@ async function draftToRewrite(
     return undefined;
   }
   if (!mayRead(bar, chat.name)) {
-    bar.fix = 'settings';
     update(bar, {
       notice: { text: text.status.notAllowed, button: { id: 'fix', label: text.bar.openSettings } },
     });
@@ -197,7 +187,7 @@ async function rewrite(bar: BarContext, style: PolishStyle): Promise<void> {
     answer = await bar.deps.core.ask(setup, rewriteInstructions(style), found.draft);
   } catch (error) {
     update(bar, { working: false });
-    await failed(bar, setup, error);
+    failed(bar, setup, error);
     return;
   }
   update(bar, { working: false });
@@ -237,19 +227,12 @@ async function undo(bar: BarContext): Promise<void> {
   update(bar, { notice: null });
 }
 
-const FIXES: Readonly<Record<Fix, (deps: BarDependencies) => unknown>> = {
-  settings: (deps) => {
-    deps.openSettings();
-  },
-  resume: (deps) => {
-    deps.privateModels.download();
-  },
-  smaller: (deps) => deps.privateModels.smaller(),
-};
-
 const BUTTONS: Readonly<Record<BarButtonId, (bar: BarContext) => unknown>> = {
   undo,
-  fix: (bar) => FIXES[bar.fix](bar.deps),
+  // Every fix the notice offers is in Settings.
+  fix: (bar) => {
+    bar.deps.openSettings();
+  },
   close: (bar) => {
     update(bar, { notice: null });
   },
@@ -351,19 +334,6 @@ async function suggest(bar: BarContext, message: string): Promise<void> {
   }
 }
 
-/** Download progress replaces a notice about the private model; a ready model takes it away. */
-async function followDownload(bar: BarContext): Promise<void> {
-  if (!bar.blocked) {
-    return;
-  }
-  const status = await bar.deps.privateModels.status();
-  if (status.phase.kind === 'ready' || status.phase.kind === 'none') {
-    await ready(bar);
-    return;
-  }
-  say(bar, privateWords(status));
-}
-
 /** Names the model in use; a notice about the setup shows how it stands now, or goes. */
 async function refresh(bar: BarContext): Promise<void> {
   if (bar.blocked) {
@@ -391,8 +361,6 @@ export interface AssistantBar {
   readonly arrived: (message: string) => void;
   /** The user sent a message in the open chat. */
   readonly sent: () => void;
-  /** The private model changed; its download's progress shows while a notice is about it. */
-  readonly privateModelChanged: () => Promise<void>;
 }
 
 /**
@@ -458,7 +426,6 @@ export function createAssistantBar(deps: BarDependencies): AssistantBar {
     state: EMPTY,
     chat: null,
     kept: '',
-    fix: 'settings',
     blocked: false,
     busy: false,
     suggesting: undefined,
@@ -473,7 +440,6 @@ export function createAssistantBar(deps: BarDependencies): AssistantBar {
     polish: (value) => polish(bar, value),
     use: (index) => use(bar, index),
     button: (id) => press(bar, id),
-    privateModelChanged: () => followDownload(bar),
     ...followChat(bar),
   };
 }

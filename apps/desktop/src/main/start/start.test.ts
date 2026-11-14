@@ -153,7 +153,6 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
       opened: vi.fn(),
       arrived: vi.fn(),
       sent: vi.fn(),
-      privateModelChanged: vi.fn(() => Promise.resolve()),
     } satisfies AssistantBar,
     assistantBarView: undefined as AssistantBarView | undefined,
     attachAssistantBar: vi.fn((create: (bar: AssistantBar) => AssistantBarView) => {

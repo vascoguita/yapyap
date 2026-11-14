@@ -3,59 +3,64 @@ import { assistantCore } from './core.ts';
 
 const SETTINGS = {
   enabled: true,
-  provider: 'auto',
+  provider: 'server',
   model: 'auto',
   autoSuggest: true,
   messages: '10',
-  localServer: '',
+  server: 'http://localhost:11434/v1',
 } as const;
 
+/** A model server's streamed answer, as OpenAI's API sends one. */
+function streamed(text: string): Response {
+  const chunk = (delta: object, finish: string | null) =>
+    `data: ${JSON.stringify({
+      id: 'c',
+      object: 'chat.completion.chunk',
+      created: 1,
+      model: 'llama',
+      choices: [{ index: 0, delta, finish_reason: finish }],
+    })}\n\n`;
+  return new Response(`${chunk({ content: text }, null)}${chunk({}, 'stop')}data: [DONE]\n\n`, {
+    headers: { 'content-type': 'text/event-stream' },
+  });
+}
+
 describe('assistantCore', () => {
-  it('reads the setup from the settings, the keys and the private model', async () => {
-    const list = vi.fn(() => Promise.resolve([{ id: 'qwen', label: 'Private model (Qwen)' }]));
+  it('reads the setup from the settings and every key', async () => {
+    const list = vi.fn(() => Promise.resolve([{ id: 'llama', label: 'llama' }]));
     const keys = { get: vi.fn(() => Promise.resolve(undefined)) };
     const core = assistantCore({
       settings: { current: () => ({ assistant: SETTINGS }) as never },
       keys,
-      privateModels: { ready: () => ({ id: 'qwen', name: 'Qwen' }) as never },
-      engine: { complete: vi.fn() },
       fetch: vi.fn(),
       list,
     });
-    await expect(core.setup()).resolves.toMatchObject({ provider: 'built-in', model: 'qwen' });
-    expect(keys.get.mock.calls).toEqual([['anthropic'], ['openai']]);
+    await expect(core.setup()).resolves.toMatchObject({ provider: 'server', model: 'llama' });
+    expect(keys.get.mock.calls).toEqual([['anthropic'], ['openai'], ['server']]);
   });
 
   it('asks the setup’s model exactly the instructions and text it is given', async () => {
-    const complete = vi.fn((_turns: unknown, onText: (text: string) => void) => {
-      onText('Hi');
-      return Promise.resolve({ text: 'Hi there', truncated: false });
-    });
+    const fetch = vi.fn<typeof globalThis.fetch>(() => Promise.resolve(streamed('Hi there')));
     const core = assistantCore({
       settings: { current: () => ({ assistant: SETTINGS }) as never },
       keys: { get: () => Promise.resolve(undefined) },
-      privateModels: { ready: () => undefined },
-      engine: { complete },
-      fetch: vi.fn(),
+      fetch,
       list: vi.fn(),
     });
     const setup = {
-      provider: 'built-in',
+      provider: 'server',
       missing: '',
       models: [],
       auto: undefined,
-      model: 'qwen',
+      model: 'llama',
       key: '',
-      endpoint: '',
+      endpoint: SETTINGS.server,
     } as const;
-    await expect(core.ask(setup, 'Summarize', 'Chat: Ana')).resolves.toBe('Hi there');
-    expect(complete).toHaveBeenCalledWith(
-      [
-        { role: 'system', content: 'Summarize' },
-        { role: 'user', content: 'Chat: Ana' },
-      ],
-      expect.any(Function),
-      undefined,
-    );
+    await expect(core.ask(setup, 'Rewrite warmly', 'Running late')).resolves.toBe('Hi there');
+    const body = JSON.parse(fetch.mock.calls[0]?.[1]?.body as string) as { messages: unknown };
+    expect(body.messages).toEqual([
+      { role: 'system', content: 'Rewrite warmly' },
+      { role: 'user', content: 'Running late' },
+    ]);
   });
 });

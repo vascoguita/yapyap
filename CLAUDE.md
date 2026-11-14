@@ -4,8 +4,8 @@ YapYap is an MIT-licensed, unofficial desktop client for WhatsApp Web on Linux,
 Windows and macOS. It wraps `https://web.whatsapp.com` in a hardened Electron
 shell, so WhatsApp runs on the stock Chromium it is built for. It adds isolated
 multi-account sessions, native notifications, a tray, and recovery tools. Its
-main feature is a built-in AI writing assistant, with a private model on the
-user's computer or the provider they choose (ADR 0017). AI agents can
+main feature is a built-in AI writing assistant, with the provider the user
+chooses: Claude, OpenAI, or a model server of their own (ADR 0017). AI agents can
 connect to it over MCP, when the user allows it (ADR 0019). It has no
 extension system (ADR 0018), no telemetry, and it is not affiliated with
 WhatsApp or Meta.
@@ -53,18 +53,18 @@ Update this table in the PR that adds a command.
 
 ## Architecture map
 
-| Part             | Path                                                                              | Notes                                                                                   |
-| ---------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| Main process     | `apps/desktop/src/main/`                                                          | One folder per feature; app lifecycle in `app/`, shared chrome plumbing in `chrome/`    |
-| Preloads         | `apps/desktop/src/preload/`                                                       | Minimal typed `contextBridge` APIs, one per zone                                        |
-| Chrome renderer  | `apps/desktop/src/renderer/`                                                      | YapYap's own UI (Preact), served from `app://`                                          |
-| WhatsApp adapter | `apps/desktop/src/adapter/`                                                       | **The only place** with WhatsApp DOM knowledge; versioned selectors; returns plain data |
-| AI assistant     | `apps/desktop/src/main/assistant/`, `src/renderer/engine/`, `src/preload/engine/` | Setup, providers, bar, private model and its engine window (ADR 0017)                   |
-| MCP server       | `apps/desktop/src/main/agents/`                                                   | Opt-in server for AI agents on 127.0.0.1, its tokens and tools (ADR 0019)               |
-| Docs             | `docs/`                                                                           | VitePress site, ADRs in `docs/adr/`                                                     |
-| Repo automation  | `scripts/`                                                                        | Tested automation such as catalog and license checks; entries in `scripts/src/bin/`     |
-| Packaging        | `apps/desktop/electron-builder.yml`, `packaging/`                                 | electron-builder targets, fuses, desktop entry, AppStream metainfo                      |
-| Release pipeline | `.github/workflows/{package,smoke,release}.yml`                                   | CI and releases share packaging and smoke tests; releases add signing, SBOM, provenance |
+| Part             | Path                                              | Notes                                                                                   |
+| ---------------- | ------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Main process     | `apps/desktop/src/main/`                          | One folder per feature; app lifecycle in `app/`, shared chrome plumbing in `chrome/`    |
+| Preloads         | `apps/desktop/src/preload/`                       | Minimal typed `contextBridge` APIs, one per zone                                        |
+| Chrome renderer  | `apps/desktop/src/renderer/`                      | YapYap's own UI (Preact), served from `app://`                                          |
+| WhatsApp adapter | `apps/desktop/src/adapter/`                       | **The only place** with WhatsApp DOM knowledge; versioned selectors; returns plain data |
+| AI assistant     | `apps/desktop/src/main/assistant/`                | Setup, providers, the bar in WhatsApp's page, Settings › Assistant (ADR 0017)           |
+| MCP server       | `apps/desktop/src/main/agents/`                   | Opt-in server for AI agents on 127.0.0.1, its tokens and tools (ADR 0019)               |
+| Docs             | `docs/`                                           | VitePress site, ADRs in `docs/adr/`                                                     |
+| Repo automation  | `scripts/`                                        | Tested automation such as catalog and license checks; entries in `scripts/src/bin/`     |
+| Packaging        | `apps/desktop/electron-builder.yml`, `packaging/` | electron-builder targets, fuses, desktop entry, AppStream metainfo                      |
+| Release pipeline | `.github/workflows/{package,smoke,release}.yml`   | CI and releases share packaging and smoke tests; releases add signing, SBOM, provenance |
 
 ## Non-negotiable rules
 

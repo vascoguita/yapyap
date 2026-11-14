@@ -2,24 +2,22 @@ import {
   CHROME_CHANNELS,
   type AssistantView,
   type KeyedProvider,
-  type PrivateModelAction,
 } from '../../shared/api/chrome-api.ts';
-import { en } from '../../shared/messages/en.ts';
 import { argumentsOf, isString, noArguments } from '../ipc/arguments.ts';
 import type { ChromeHandler } from '../ipc/chrome.ts';
-import { problemWords, privateWords, setupWords } from './bar-words.ts';
+import type { SettingsService } from '../settings/service.ts';
+import { problemWords, setupWords } from './bar-words.ts';
 import { isChatId, type AllowedChats } from './chats.ts';
 import type { AssistantCore } from './core.ts';
 import { KEYED_PROVIDERS, pastedKey, type AssistantKeys } from './keys.ts';
 import type { LocalServer } from './local-servers.ts';
 import { keyProblem } from './models.ts';
-import { sizeText } from './private/catalog.ts';
-import type { PrivateModels, PrivateModelStatus } from './private/private-model.ts';
 
 export interface AssistantSettingsDependencies {
   readonly core: Pick<AssistantCore, 'setup'>;
   readonly keys: AssistantKeys;
-  readonly privateModels: PrivateModels;
+  /** Where the model server is, to test its key there and nowhere else. */
+  readonly settings: Pick<SettingsService, 'current'>;
   readonly chats: Pick<AllowedChats, 'list' | 'forget' | 'allow'>;
   /** Every account, to name the ones with allowed chats. */
   readonly accounts: () => readonly { readonly id: string; readonly name: string }[];
@@ -30,35 +28,6 @@ export interface AssistantSettingsDependencies {
   readonly fetch: typeof globalThis.fetch;
   /** Tells the bar the setup changed. */
   readonly changed: () => void;
-}
-
-const words = en.assistant.settings.private;
-
-/** What the user can do with the private model in each phase. */
-function actionsOf({ phase, smaller }: PrivateModelStatus): readonly PrivateModelAction[] {
-  switch (phase.kind) {
-    case 'downloading':
-      return ['pause'];
-    case 'paused':
-      return ['resume', 'remove'];
-    case 'ready':
-      return ['remove'];
-    case 'out-of-memory':
-      return smaller ? ['smaller', 'remove'] : ['remove'];
-    default:
-      return ['download'];
-  }
-}
-
-function privateStatus(status: PrivateModelStatus): string {
-  switch (status.phase.kind) {
-    case 'none':
-      return words.none;
-    case 'ready':
-      return words.ready({ size: sizeText(status.used) });
-    default:
-      return privateWords(status).status;
-  }
 }
 
 async function chatsOf(deps: AssistantSettingsDependencies): Promise<AssistantView['chats']> {
@@ -80,19 +49,15 @@ async function chatsOf(deps: AssistantSettingsDependencies): Promise<AssistantVi
 
 async function viewOf(deps: AssistantSettingsDependencies): Promise<AssistantView> {
   const setup = await deps.core.setup();
-  const model = await deps.privateModels.status();
   const blocked = setup.missing !== '' && setup.missing !== 'off';
+  const saved = async (provider: KeyedProvider) => (await deps.keys.get(provider)) !== undefined;
   return {
     inUse: setup.provider ?? null,
-    status: blocked ? setupWords(setup, model).status : '',
+    status: blocked ? setupWords(setup).status : '',
     keys: {
-      anthropic: (await deps.keys.get('anthropic')) !== undefined,
-      openai: (await deps.keys.get('openai')) !== undefined,
-    },
-    privateModel: {
-      size: sizeText(model.model.size),
-      status: privateStatus(model),
-      actions: actionsOf(model),
+      anthropic: await saved('anthropic'),
+      openai: await saved('openai'),
+      server: await saved('server'),
     },
     models: setup.models,
     auto: setup.auto === undefined ? null : { id: setup.auto.id, label: setup.auto.label },
@@ -103,36 +68,15 @@ async function viewOf(deps: AssistantSettingsDependencies): Promise<AssistantVie
 const isProvider = (value: unknown): value is KeyedProvider =>
   (KEYED_PROVIDERS as readonly unknown[]).includes(value);
 
-const ACTIONS: ReadonlySet<unknown> = new Set<PrivateModelAction>([
-  'download',
-  'pause',
-  'resume',
-  'remove',
-  'smaller',
-]);
-
-function runAction(models: PrivateModels, action: PrivateModelAction): Promise<void> | void {
-  switch (action) {
-    case 'pause':
-      models.pause();
-      return;
-    case 'remove':
-      return models.remove();
-    case 'smaller':
-      return models.smaller();
-    default:
-      models.download();
-  }
-}
-
 /** Testing a key: '' when the provider answers, else what failed, in the user's words. */
 async function testKey(deps: AssistantSettingsDependencies, provider: KeyedProvider) {
   const key = await deps.keys.get(provider);
-  const problem = key === undefined ? 'auth' : await keyProblem(provider, key, deps.fetch);
-  return problem === '' ? '' : problemWords(problem, provider, false).status;
+  const server = deps.settings.current().assistant.server;
+  const problem = key === undefined ? 'auth' : await keyProblem(provider, key, deps.fetch, server);
+  return problem === '' ? '' : problemWords(problem, provider).status;
 }
 
-/** Keys and the private model: what the bar shows changes with them. */
+/** The keys: what the bar shows changes with them. */
 function setupHandlers(deps: AssistantSettingsDependencies): ChromeHandler[] {
   const changing = async <T>(work: () => Promise<T> | T): Promise<T> => {
     const result = await work();
@@ -150,12 +94,6 @@ function setupHandlers(deps: AssistantSettingsDependencies): ChromeHandler[] {
       channel: CHROME_CHANNELS.assistantForgetKey,
       accepts: argumentsOf(isProvider),
       handle: (_call, provider) => changing(() => deps.keys.forget(provider as KeyedProvider)),
-    },
-    {
-      channel: CHROME_CHANNELS.assistantPrivateModel,
-      accepts: argumentsOf((action) => ACTIONS.has(action)),
-      handle: (_call, action) =>
-        changing(() => runAction(deps.privateModels, action as PrivateModelAction)),
     },
   ];
 }
