@@ -156,8 +156,9 @@ describe('createAssistantBar: the rewrite button', () => {
   it('keeps the notice and Undo when the chat is first found, and drops them when another opens', async () => {
     const t = harness('Running late, sorry!');
     await t.bar.polish('polish');
-    // The first look at the chat came after the rewrite.
+    // The first look at the chat came after the rewrite, which is still in the message box.
     t.bar.found(null);
+    await tick();
     expect(t.last().notice?.button).toEqual({ id: 'undo', label: 'Undo' });
     t.bar.found('m1');
     await t.settle();
@@ -166,6 +167,35 @@ describe('createAssistantBar: the rewrite button', () => {
     t.bar.opened(null);
     expect(t.last().notice).toBeNull();
     expect(t.last().suggestions).toEqual([]);
+  });
+
+  it('drops the notice when the chat is first found with the message box emptied, as after a send', async () => {
+    const t = harness('Running late, sorry!');
+    await t.bar.polish('polish');
+    t.setDraft('');
+    t.bar.found(null);
+    await tick();
+    expect(t.last().notice).toBeNull();
+    // With no chat open, the draft is gone too.
+    t.setDraft('running late');
+    await t.bar.polish('polish');
+    t.setChat(null);
+    t.setDraft(null);
+    t.bar.found(null);
+    await tick();
+    expect(t.last().notice).toBeNull();
+  });
+
+  it('keeps the notice when the message box cannot be read, and reads nothing without a notice', async () => {
+    const t = harness('Running late, sorry!');
+    t.bar.found(null);
+    await tick();
+    expect(t.deps.accounts.readDraft).not.toHaveBeenCalled();
+    await t.bar.polish('polish');
+    vi.mocked(t.deps.accounts.readDraft).mockRejectedValueOnce(new Error('loading'));
+    t.bar.found(null);
+    await tick();
+    expect(t.last().notice?.button?.id).toBe('undo');
   });
 
   it('takes the rewrite’s suggestions away, and Undo restores nothing in another chat', async () => {

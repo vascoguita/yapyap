@@ -447,7 +447,8 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   open chat only finds it, and comes as soon as the assistant is on, even
   while YapYap's window has no focus. A rewrite made before that look, as
   right after launch or before the window first got focus, keeps its
-  notice and Undo instead of losing them to a chat taken for a new one.
+  notice and Undo instead of losing them to a chat taken for a new one;
+  they go if that look finds the message box empty, as after a send.
 - Ubuntu 26.04 runner (#619): the Linux memory-per-account budget moves
   from 270 MB to 315 MB, 10% above its median on the new runner image,
   whose shared Chromium processes hold more (ADR 0009).

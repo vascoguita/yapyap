@@ -398,14 +398,28 @@ export interface AssistantBar {
   readonly privateModelChanged: () => Promise<void>;
 }
 
+/**
+ * The chat was first found after the notice showed, as when the user
+ * rewrote right after YapYap started: the notice stays with its draft,
+ * and goes if the message box is empty, as after a send nobody saw.
+ */
+async function keepNotice(bar: BarContext): Promise<void> {
+  if (bar.state.notice === null) {
+    return;
+  }
+  const draft = await bar.deps.accounts.readDraft().catch(() => undefined);
+  if (draft !== undefined && (draft ?? '').trim() === '') {
+    update(bar, { notice: null });
+  }
+}
+
 /** What the assistant does as the open chat changes, and with the suggestions' dismiss. */
 function followChat(
   bar: BarContext,
 ): Pick<AssistantBar, 'dismiss' | 'found' | 'opened' | 'arrived' | 'sent'> {
   // The open chat's newest message from someone else, while it is the last one.
   let message: string | null = null;
-  // Nothing shown before the chat was first found is stale, so a rewrite's notice stays.
-  const found = (newest: string | null): void => {
+  const follow = (newest: string | null): void => {
     message = newest;
     if (newest !== null) {
       void suggest(bar, newest);
@@ -415,10 +429,13 @@ function followChat(
     dismiss: () => {
       dismiss(bar, message);
     },
-    found,
+    found: (newest) => {
+      follow(newest);
+      void keepNotice(bar);
+    },
     opened: (newest) => {
       forget(bar);
-      found(newest);
+      follow(newest);
     },
     arrived: (newest) => {
       message = newest;
