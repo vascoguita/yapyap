@@ -121,6 +121,7 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     openChatsWith: vi.fn<(open: (phone: string) => void) => void>(),
     setAccountMenu: vi.fn<(menu: AccountMenu) => void>(),
     openSettings: vi.fn(),
+    openAssistantSettings: vi.fn(),
     openWelcome: vi.fn(),
     openSpellingLanguages: vi.fn(),
     askProxyLogin: vi.fn(() =>
@@ -939,6 +940,12 @@ describe('startApp', () => {
     f.ipcListeners.get('whatsapp:assistant-bar-use')?.({ ...fromPage, sender: {} }, 2);
     expect(f.warn).toHaveBeenCalledWith('Ignored a message on whatsapp:assistant-bar-use.');
     expect(f.runtime.assistantBar.use).toHaveBeenCalledOnce();
+    // Its settings button opens Settings at the Assistant page.
+    f.ipcListeners.get('whatsapp:assistant-bar-settings')?.(fromPage);
+    await vi.waitFor(() => {
+      expect(f.runtime.openAssistantSettings).toHaveBeenCalledOnce();
+    });
+    expect(f.runtime.openSettings).not.toHaveBeenCalled();
   });
 
   it('puts the assistant bar back only while the window is on screen', async () => {

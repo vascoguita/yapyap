@@ -15,7 +15,7 @@ computer: nothing on the network can connect to it.
    connect to, such as `http://127.0.0.1:51234/mcp`. It keeps the same
    port from then on. If another program uses it, choose **Pick Another
    Port**.
-3. Choose **Create a Token…**.
+3. Choose **Create Token…**.
 
 ## Create a token
 

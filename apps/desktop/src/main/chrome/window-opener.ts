@@ -36,6 +36,7 @@ function openChromeWindow(
   deps: ChromeWindowDependencies,
   page: ChromePage,
   extra: WindowOptions,
+  url = `${CHROME_ORIGIN}/${page.path}`,
 ): ChromeWindowPort {
   // Dialog-like windows have no use for the app menu, which Windows and Linux
   // would otherwise draw inside each of them.
@@ -47,21 +48,42 @@ function openChromeWindow(
   });
   showWhenReady(window);
   deps.views.set(window.webContents, CHROME_VIEW);
-  window.loadURL(`${CHROME_ORIGIN}/${page.path}`).catch(() => {
-    deps.warn(`Could not load ${page.path}.`);
-  });
+  load(deps, page, window, url);
   return window;
 }
 
-/** Opens `page` in a window at most once: opening it again focuses it. */
-export function chromeWindowOpener(deps: ChromeWindowDependencies, page: ChromePage): () => void {
+function load(
+  deps: ChromeWindowDependencies,
+  page: ChromePage,
+  window: ChromeWindowPort,
+  url: string,
+): void {
+  window.loadURL(url).catch(() => {
+    deps.warn(`Could not load ${page.path}.`);
+  });
+}
+
+/**
+ * Opens `page` in a window at most once: opening it again focuses it. A
+ * `place`, such as one page of Settings, goes in the address's fragment,
+ * which an open window follows without loading again.
+ */
+export function chromeWindowOpener(
+  deps: ChromeWindowDependencies,
+  page: ChromePage,
+): (place?: string) => void {
   let current: ChromeWindowPort | undefined;
-  return () => {
+  return (place) => {
+    const fragment = place === undefined ? '' : `#${place}`;
+    const url = `${CHROME_ORIGIN}/${page.path}${fragment}`;
     if (current === undefined || current.isDestroyed()) {
-      current = openChromeWindow(deps, page, {});
-    } else {
-      current.focus();
+      current = openChromeWindow(deps, page, {}, url);
+      return;
     }
+    if (place !== undefined) {
+      load(deps, page, current, url);
+    }
+    current.focus();
   };
 }
 

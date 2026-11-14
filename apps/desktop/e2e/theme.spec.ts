@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { openFromMenu } from './chrome-helpers.ts';
+import { openFromMenu, showSettingsPage } from './chrome-helpers.ts';
 import { expect, test, whatsAppPage } from './fixtures.ts';
 
 const prefersDark = (page: Page) =>
@@ -7,6 +7,7 @@ const prefersDark = (page: Page) =>
 
 test('switches YapYap and WhatsApp between themes live', async ({ app, window }) => {
   const settings = await openFromMenu(app, 'Settings…', 'settings.html');
+  await showSettingsPage(settings, 'Appearance');
   await settings.getByRole('radio', { name: 'Dark', exact: true }).check();
   await expect.poll(() => prefersDark(window)).toBe(true);
   await expect.poll(() => prefersDark(settings)).toBe(true);
@@ -22,7 +23,8 @@ test('turns transitions off for people who prefer reduced motion', async ({ app 
       .locator('button, .notice')
       .first()
       .evaluate((element) => getComputedStyle(element).transitionDuration);
-  await settings.getByRole('checkbox', { name: 'Use hardware acceleration' }).uncheck();
+  await showSettingsPage(settings, 'Advanced');
+  await settings.getByRole('switch', { name: 'Use hardware acceleration' }).uncheck();
   expect(await duration()).not.toBe('0s');
   await settings.emulateMedia({ reducedMotion: 'reduce' });
   expect(await duration()).toBe('0s');
@@ -43,7 +45,7 @@ for (const theme of ['light', 'dark'] as const) {
       .soft(about)
       .toHaveScreenshot(`about-${theme}.png`, { mask: [about.locator('dl')] });
     const settings = await openFromMenu(app, 'Settings…', 'settings.html');
-    await expect(settings.getByRole('group', { name: 'Theme' })).toBeVisible();
+    await expect(settings.getByRole('switch', { name: 'Start at login' })).toBeVisible();
     await expect.soft(settings).toHaveScreenshot(`settings-${theme}.png`);
     const accounts = await openFromMenu(app, 'Manage Accounts…', 'accounts.html');
     await expect(accounts.getByLabel('Name')).toHaveValue('WhatsApp');

@@ -51,7 +51,7 @@ async function round(app: ElectronApplication, sidebar: Page): Promise<void> {
   // By URL: a page the second account opens late could otherwise pass for the new window.
   await clickMenu(app, 'Settings…');
   const settings = await chromePage(app, '/settings.html');
-  await settings.getByRole('heading', { name: 'Settings' }).waitFor();
+  await settings.getByRole('navigation', { name: 'Settings sections' }).waitFor();
   await settings.close();
   await expect
     .poll(() => app.windows().some((page) => page.url().endsWith('/settings.html')))

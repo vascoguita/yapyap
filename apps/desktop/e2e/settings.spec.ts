@@ -1,7 +1,7 @@
 import type { ElectronApplication, Page } from '@playwright/test';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { clickMenu, openFromMenu } from './chrome-helpers.ts';
+import { clickMenu, openFromMenu, showSettingsPage } from './chrome-helpers.ts';
 import { expect, test, whatsAppPage } from './fixtures.ts';
 
 const openSettings = (app: ElectronApplication): Promise<Page> =>
@@ -25,16 +25,37 @@ test('puts Settings in the menu on the conventional shortcut', async ({ app }) =
   expect(accelerator).toBe('CmdOrCtrl+,');
 });
 
-test('jumps to a section from the list at the top, staying on the page', async ({ app }) => {
+test('shows one page at a time, picked from the list beside it or with the arrow keys', async ({
+  app,
+}) => {
   const settings = await openSettings(app);
-  const network = settings.getByRole('heading', { name: 'Network' });
-  await expect(network).not.toBeInViewport();
-  await settings
-    .getByRole('navigation', { name: 'Settings sections' })
-    .getByRole('link', { name: 'Network' })
-    .click();
-  await expect(network).toBeInViewport();
-  expect(settings.url()).toBe('app://chrome/settings.html#network-title');
+  await expect(settings.getByRole('heading', { level: 1, name: 'General' })).toBeVisible();
+  const list = settings.getByRole('navigation', { name: 'Settings sections' });
+  await list.getByRole('button', { name: 'Network' }).click();
+  await expect(settings.getByRole('radiogroup', { name: 'Proxy' })).toBeVisible();
+  await expect(settings.getByRole('switch', { name: 'Start at login' })).toBeHidden();
+  expect(settings.url()).toBe('app://chrome/settings.html#network');
+  await settings.keyboard.press('ArrowDown');
+  await expect(settings.getByRole('heading', { level: 1, name: 'Advanced' })).toBeVisible();
+  await expect(list.getByRole('button', { name: 'Advanced' })).toBeFocused();
+});
+
+test('opens at the Assistant page from the Assistant menu, even when already open', async ({
+  app,
+}) => {
+  const settings = await openSettings(app);
+  await expect(settings.getByRole('heading', { level: 1, name: 'General' })).toBeVisible();
+  await clickMenu(app, 'Assistant Settings…');
+  await expect(settings.getByRole('heading', { level: 1, name: 'Assistant' })).toBeVisible();
+  expect(app.windows().filter((page) => page.url().includes('/settings.html'))).toHaveLength(1);
+});
+
+test('lists the pages above the page in a narrow window', async ({ app }) => {
+  const settings = await openSettings(app);
+  await settings.setViewportSize({ width: 600, height: 520 });
+  await expect(settings.getByRole('navigation', { name: 'Settings sections' })).toBeHidden();
+  await settings.getByRole('combobox', { name: 'Settings sections' }).selectOption('backup');
+  await expect(settings.getByRole('button', { name: 'Export Settings…' })).toBeVisible();
 });
 
 test('changes a setting from the keyboard, saves it and offers a restart', async ({
@@ -42,8 +63,8 @@ test('changes a setting from the keyboard, saves it and offers a restart', async
   profile,
 }) => {
   const settings = await openSettings(app);
-  await expect(settings.getByRole('heading', { name: 'Reliability' })).toBeVisible();
-  const toggle = settings.getByRole('checkbox', { name: 'Use hardware acceleration' });
+  await showSettingsPage(settings, 'Advanced');
+  const toggle = settings.getByRole('switch', { name: 'Use hardware acceleration' });
   await expect(toggle).toBeChecked();
   await toggle.focus();
   await settings.keyboard.press('Space');
@@ -72,7 +93,8 @@ test('restarts the app from the restart notice', async ({ app }) => {
     };
   });
   const settings = await openSettings(app);
-  await settings.getByRole('checkbox', { name: 'Use hardware acceleration' }).click();
+  await showSettingsPage(settings, 'Advanced');
+  await settings.getByRole('switch', { name: 'Use hardware acceleration' }).click();
   await settings.getByRole('button', { name: 'Restart Now' }).click();
   await expect(async () => {
     expect(
@@ -100,6 +122,7 @@ test('exports the settings to a file and imports them back', async ({ app, profi
     dialog.showMessageBox = () => Promise.resolve({ response: 0, checkboxChecked: false });
   }, file);
   const settings = await openSettings(app);
+  await showSettingsPage(settings, 'Backup');
   await settings.getByRole('button', { name: 'Export Settings…' }).click();
   await expect(settings.getByText('Settings exported.')).toBeVisible();
   const exported = JSON.parse(await readFile(file, 'utf8')) as {
@@ -112,6 +135,7 @@ test('exports the settings to a file and imports them back', async ({ app, profi
   await writeFile(file, JSON.stringify(exported));
   await settings.getByRole('button', { name: 'Import Settings…' }).click();
   await expect(settings.getByText('Settings imported.')).toBeVisible();
+  await showSettingsPage(settings, 'Appearance');
   await expect(settings.getByRole('radio', { name: 'Dark', exact: true })).toBeChecked();
   const saved = JSON.parse(await readFile(join(profile, 'settings.json'), 'utf8')) as {
     appearance: { theme: string };
@@ -126,7 +150,7 @@ test(
   async ({ app, profile }) => {
     const entry = join(profile, 'xdg-config', 'autostart', 'org.guita.YapYap.desktop');
     const settings = await openSettings(app);
-    const toggle = settings.getByRole('checkbox', { name: 'Start at login' });
+    const toggle = settings.getByRole('switch', { name: 'Start at login' });
     await toggle.check();
     await expect(async () => {
       expect(await readFile(entry, 'utf8').catch(() => '')).toContain('Exec=');
@@ -153,14 +177,18 @@ const proxiesInUse = (app: ElectronApplication): Promise<string[]> =>
 
 test('sends every connection through the proxy the user names, at once', async ({ app }) => {
   const settings = await openSettings(app);
+  await showSettingsPage(settings, 'Network');
   const address = settings.getByRole('textbox', { name: 'Proxy address' });
+  // The address shows only for a proxy of the user's own; until it has one, nothing connects.
+  await expect(address).toBeHidden();
+  await settings.getByRole('radio', { name: 'Custom' }).check();
   await expect(address).toHaveAttribute('placeholder', 'socks5://127.0.0.1:1080');
   await address.fill('http://127.0.0.1:3128');
   await address.press('Enter');
-  await settings.getByRole('radio', { name: 'This proxy' }).check();
+  await expect(settings.getByText('Saved', { exact: true })).toBeVisible();
   await expect
     .poll(() => proxiesInUse(app))
     .toEqual(['PROXY 127.0.0.1:3128', 'PROXY 127.0.0.1:3128']);
-  await settings.getByRole('radio', { name: 'No proxy' }).check();
+  await settings.getByRole('radio', { name: 'None' }).check();
   await expect.poll(() => proxiesInUse(app)).toEqual(['DIRECT', 'DIRECT']);
 });

@@ -1,5 +1,5 @@
 import type { ElectronApplication } from '@playwright/test';
-import { openFromMenu } from './chrome-helpers.ts';
+import { openFromMenu, showSettingsPage } from './chrome-helpers.ts';
 import {
   expect,
   launchApp,
@@ -60,8 +60,9 @@ test('starts at 100% when the stored zoom is invalid', async ({ fakeWhatsApp, pr
 test('sets the interface scale from Settings', async ({ app, window }) => {
   await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
   const settings = await openFromMenu(app, 'Settings…', 'settings.html');
-  const scale = settings.getByRole('group', { name: 'Interface scale' });
-  await expect(scale.getByRole('radio', { name: '100%' })).toBeChecked();
-  await scale.getByRole('radio', { name: '125%' }).check();
+  await showSettingsPage(settings, 'Appearance');
+  const scale = settings.getByRole('combobox', { name: 'Interface scale' });
+  await expect(scale).toHaveValue('1');
+  await scale.selectOption({ label: '125%' });
   await expect.poll(() => whatsAppZoom(app)).toBe(1.25);
 });

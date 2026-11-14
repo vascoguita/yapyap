@@ -87,7 +87,7 @@ test('downloads, verifies and runs the private model in its own engine window, r
             .length,
       );
     expect(await engines()).toBe(0);
-    const place = settings.locator('.place').filter({ hasText: 'Private, on this computer' });
+    const place = settings.locator('.provider').filter({ hasText: 'On this computer (private)' });
     await place.getByRole('radio').check();
     await place.getByRole('button', { name: 'Download' }).click();
     await expect(place.getByText(/^The download stopped at \d+%/)).toBeVisible({ timeout: 30_000 });

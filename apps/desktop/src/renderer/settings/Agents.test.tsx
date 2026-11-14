@@ -98,7 +98,7 @@ describe('AgentsSection', () => {
     const t = setup();
     expect(screen.getByText('Loading…')).toBeTruthy();
     await screen.findByText('http://127.0.0.1:50000/mcp');
-    expect(screen.getByRole('checkbox', { name: 'Let AI agents connect' })).toBeTruthy();
+    expect(screen.getByRole('switch', { name: 'Let AI agents connect' })).toBeTruthy();
     fireEvent.click(button('Copy'));
     expect(t.agents.copy).toHaveBeenCalledWith('http://127.0.0.1:50000/mcp');
     expect(screen.getByRole('heading', { name: 'Claude Code' })).toBeTruthy();
@@ -136,18 +136,28 @@ describe('AgentsSection', () => {
     expect(t.agents.newPort).toHaveBeenCalledOnce();
   });
 
-  it('asks to turn the server on, and waits for its address once it is', async () => {
-    const off = setup({ ...VIEW, address: null, tokens: [], activity: [] }, false);
-    await screen.findByText(/Turn on “Let AI agents connect”/);
-    expect(screen.getByText('No tokens yet.')).toBeTruthy();
-    expect(screen.getByText('No agent has connected since YapYap started.')).toBeTruthy();
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Let AI agents connect' }));
+  it('shows only the switch while agents may not connect, and waits for an address after', async () => {
+    const off = setup(VIEW, false);
+    expect(await screen.findByText('Turn this on to give agents an address.')).toBeTruthy();
+    expect(document.querySelector('.agents')?.getAttribute('aria-busy')).toBe('false');
+    expect(screen.queryByText('Tokens')).toBeNull();
+    expect(screen.queryByText('Recent activity')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Create Token…' })).toBeNull();
+    expect(screen.queryByText('http://127.0.0.1:50000/mcp')).toBeNull();
+    fireEvent.click(screen.getByRole('switch', { name: 'Let AI agents connect' }));
     expect(off.onChange).toHaveBeenCalledWith('agents.enabled', true);
     cleanup();
     setup({ ...VIEW, address: null }, true);
     await waitFor(() => {
-      expect(document.querySelector('[aria-busy="true"]')?.textContent).toBe('Loading…');
+      expect(document.querySelector('.row[aria-busy="true"]')?.textContent).toBe('Loading…');
     });
+  });
+
+  it('says in a line each when there are no tokens or activity yet', async () => {
+    setup({ ...VIEW, tokens: [], activity: [] });
+    expect(await screen.findByText('No tokens yet.')).toBeTruthy();
+    expect(screen.getByText('No agent has connected since YapYap started.')).toBeTruthy();
+    expect(screen.queryByRole('list', { name: 'Tokens' })).toBeNull();
   });
 
   it('reads the view again every few seconds while the server is on, and stops after', async () => {
@@ -178,7 +188,7 @@ describe('creating a token', () => {
   async function openForm() {
     const t = setup();
     await screen.findByText('http://127.0.0.1:50000/mcp');
-    fireEvent.click(button('Create a Token…'));
+    fireEvent.click(button('Create Token…'));
     fireEvent.input(screen.getByRole('textbox', { name: /Name/ }), {
       target: { value: 'Laptop' },
     });

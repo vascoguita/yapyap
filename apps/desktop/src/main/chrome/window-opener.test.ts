@@ -97,6 +97,25 @@ describe('chromeWindowOpener', () => {
     expect(t.windows[0].window.focus).toHaveBeenCalledOnce();
   });
 
+  it('opens at a place, and takes an open window there without opening another', async () => {
+    const t = setup();
+    t.open('assistant');
+    const [first] = t.windows;
+    expect(first.window.loadURL).toHaveBeenCalledExactlyOnceWith(
+      'app://chrome/about.html#assistant',
+    );
+    t.open('general');
+    expect(first.window.loadURL).toHaveBeenLastCalledWith('app://chrome/about.html#general');
+    expect(first.window.focus).toHaveBeenCalledOnce();
+    first.window.loadURL.mockRejectedValueOnce(new Error('ERR_ABORTED'));
+    t.open('assistant');
+    await settle();
+    expect(t.warn).toHaveBeenCalledExactlyOnceWith('Could not load about.html.');
+    t.open();
+    expect(first.window.loadURL).toHaveBeenCalledTimes(3);
+    expect(t.createWindow).toHaveBeenCalledOnce();
+  });
+
   it('opens a new window after the previous one was closed', () => {
     const t = setup();
     t.open();

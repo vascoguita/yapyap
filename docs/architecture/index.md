@@ -109,7 +109,7 @@ against Electron's security checklist.
    view and that each field has the expected shape and size. Bad messages
    are dropped.
 3. YapYap shows a native notification, named after the account when there
-   are several, and redacted if Settings → Privacy says so. Nothing is
+   are several, and redacted if Settings → Notifications & privacy says so. Nothing is
    logged or stored.
 4. Clicking it brings YapYap forward, switches to the account and opens the
    chat. Reading the chat closes the notification.

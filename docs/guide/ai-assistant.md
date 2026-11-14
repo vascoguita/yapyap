@@ -16,53 +16,56 @@ The assistant is part of YapYap. There is nothing to install.
 
 ## Set it up
 
-Open **Settings**. **Assistant** is the first section. You can also use
-**Assistant → Assistant Settings…**, or the gear in the bar above the
-message box. The first time you start YapYap, the Welcome offers the same
+Open **Settings → Assistant**, or use **Assistant → Assistant Settings…** or
+the gear in the bar above the message box, which open Settings there. The first time you start YapYap, the Welcome offers the same
 choices.
 
-Under **Where the assistant thinks**, choose one:
+Under **Provider**, choose one. Only the one you choose shows what it
+needs, such as its key:
 
-| Choice                          | What it means                                                                                                        |
-| ------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| Automatic                       | Uses the first one that is set up, in this order: the private model, a model server on this computer, Claude, OpenAI |
-| Private, on this computer       | A small model that runs inside YapYap. Your messages never leave your computer. It downloads once                    |
-| Claude (Anthropic)              | Claude, with your own API key                                                                                        |
-| OpenAI                          | OpenAI, with your own API key                                                                                        |
-| A model server on this computer | A model you already run, with Ollama, LM Studio, llama.cpp or another server that speaks OpenAI's API                |
+| Choice                        | What it means                                                                                                        |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Automatic                     | Uses the first one that is set up, in this order: the private model, a model server on this computer, Claude, OpenAI |
+| On this computer (private)    | A small model that runs inside YapYap. Your messages never leave your computer. It downloads once                    |
+| Claude (Anthropic)            | Claude, with your own API key                                                                                        |
+| OpenAI                        | OpenAI, with your own API key                                                                                        |
+| Model server on this computer | A model you already run, with Ollama, LM Studio, llama.cpp or another server that speaks OpenAI's API                |
 
-**In use** marks the one that answers now.
+The line at the top of the page says whether the assistant is ready, and
+with which provider; each provider shows its own status, such as **Key
+saved** or **Needs key**. Under the list, one sentence says what the
+assistant sends, and where.
 
 ### With Claude or OpenAI
 
-1. Choose **Get a key from Anthropic** or **Get a key from OpenAI**, and
-   create an API key in your account there.
-2. Paste it into **API key for Claude (Anthropic)** or **API key for
-   OpenAI**, and choose **Save Key**.
+1. Choose **Claude (Anthropic)** or **OpenAI**, then **Get a key from
+   Anthropic** or **Get a key from OpenAI**, and create an API key in your
+   account there.
+2. Paste it into **API key**, and choose **Save Key**.
 3. Choose **Test** to check that the provider accepts it.
 
 YapYap keeps the key encrypted with your system's secret store (Keychain,
 Credential Manager or the Secret Service), never in its settings. It never
-shows the key again. **Forget key** removes it. If your system has no
+shows the key again: **Replace** puts in another, and **Remove** removes it. If your system has no
 secret store, YapYap says it cannot keep the key safely, and does not
 save it.
 
 ### With a model server on this computer
 
 If you run a model with Ollama, Alpaca, LM Studio or llama.cpp, choose
-**Find**. YapYap checks the usual addresses of those servers on this
+**Model server on this computer**, then **Find**. YapYap checks the usual addresses of those servers on this
 computer (ports 11434, 11435, 1234 and 8080), asks each only for its list
 of models, and lists what it found. Choose **Use** beside one.
 
 Your server listens somewhere else? Type its address under **Or type its
-address**, such as `http://localhost:11434/v1`, and choose **Use this
-address**. Only addresses on this computer are accepted.
+address**, such as `http://localhost:11434/v1`, and choose **Use This
+Address**. Only addresses on this computer are accepted.
 
 Such a server needs no key, and nothing leaves your computer.
 
 ### With the private model
 
-Choose **Download** under **Private, on this computer**. Nothing is
+Choose **On this computer (private)**, then **Download**. Nothing is
 downloaded before you do.
 
 - The section shows how far the download is, such as **Downloading: 40%
@@ -119,15 +122,15 @@ settings**, which opens this list.
 
 ### Choose the chats it works in
 
-**Settings → Assistant → Chats the assistant works in**:
+**Settings → Assistant → Where the assistant works**:
 
-- **Only the chats listed below**, the default. Open a chat in WhatsApp,
-  then click **Add the Chat Open in WhatsApp**. **Remove** takes one back.
+- **Only chosen chats**, the default. Open a chat in WhatsApp, then click
+  **Add Open Chat**. **Remove** takes one back.
   Settings lists them by account.
 - **All chats**: the assistant works in every chat.
 
 Nothing of a chat is read for the assistant outside these chats.
-**Messages the assistant reads** sets how many of a chat's latest
+**Messages it reads** sets how many of a chat's latest
 messages it reads to suggest replies: 5, 10 or 20.
 
 ### Suggested replies

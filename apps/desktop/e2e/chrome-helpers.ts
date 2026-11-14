@@ -42,6 +42,9 @@ export const openFromMenu = async (
   return window;
 };
 
+/** Whether a window shows `path`, whichever part of it, such as a page of Settings, it shows. */
+const isAt = (page: Page, path: string): boolean => (page.url().split('#')[0] ?? '').endsWith(path);
+
 /**
  * The YapYap window whose address ends with `path`, once it is open, waiting
  * up to `timeout` ms, or Playwright's default for a poll.
@@ -52,7 +55,7 @@ export const chromePage = async (
   timeout?: number,
 ): Promise<Page> => {
   await expect
-    .poll(() => app.windows().some((page) => page.url().endsWith(path)), {
+    .poll(() => app.windows().some((page) => isAt(page, path)), {
       message: `a window at ${path}`,
       ...(timeout === undefined ? {} : { timeout }),
     })
@@ -60,9 +63,18 @@ export const chromePage = async (
     .catch((error: unknown) => {
       throw new Error(`No window at ${path} (${whatHappened(app)}).`, { cause: error });
     });
-  const page = app.windows().find((candidate) => candidate.url().endsWith(path));
+  const page = app.windows().find((candidate) => isAt(candidate, path));
   if (page === undefined) {
     throw new Error(`No ${path}.`);
   }
   return page;
+};
+
+/** Shows one page of Settings, picked by its name in the list beside the pages. */
+export const showSettingsPage = async (settings: Page, name: string): Promise<void> => {
+  await settings
+    .getByRole('navigation', { name: 'Settings sections' })
+    .getByRole('button', { name, exact: true })
+    .click();
+  await expect(settings.getByRole('heading', { level: 1, name, exact: true })).toBeVisible();
 };

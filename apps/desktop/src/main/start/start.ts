@@ -569,7 +569,7 @@ function attachAssistantBar<Window extends WindowPort>(
     listenToAssistantBar(deps.ipc, bar, {
       origin,
       activePage,
-      openSettings: chrome.openSettings,
+      openSettings: chrome.openAssistantSettings,
       views: security.views,
       warn: deps.warn,
     });
