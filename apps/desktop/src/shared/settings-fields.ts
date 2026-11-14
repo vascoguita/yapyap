@@ -107,9 +107,9 @@ export const SETTING_FIELDS: readonly SettingField[] = [
     options: choices(text.assistant.messages.options),
   },
   {
-    ...described('assistant', 'localServer'),
+    ...described('assistant', 'server'),
     restart: false,
-    text: { placeholder: en.assistant.settings.local.addressPlaceholder },
+    text: { placeholder: en.assistant.settings.server.addressPlaceholder },
   },
   { ...described('agents', 'enabled'), restart: false },
   { ...described('general', 'autostart'), restart: false },

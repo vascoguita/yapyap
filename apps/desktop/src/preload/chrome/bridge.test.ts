@@ -41,7 +41,6 @@ describe('createChromeBridge', () => {
     await api.assistant.forgetKey('openai');
     expect(await api.assistant.testKey('anthropic')).toBe('ignored');
     expect(await api.assistant.findServers()).toBe('ignored');
-    await api.assistant.privateModel('download');
     await api.assistant.forgetChat('a', 'b');
     await api.assistant.allowOpenChat();
     const spec = {
@@ -113,7 +112,6 @@ describe('createChromeBridge', () => {
       ['assistant:forget-key', 'openai'],
       ['assistant:test-key', 'anthropic'],
       ['assistant:find-servers'],
-      ['assistant:private-model', 'download'],
       ['assistant:forget-chat', 'a', 'b'],
       ['assistant:allow-open-chat'],
       ['agents:view'],

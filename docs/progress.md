@@ -470,3 +470,12 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   The View menu, its shortcuts and **Interface scale** are the ways to
   zoom. Loading settings drops a key the schema no longer has without
   calling it a reset, so no notice follows a removed setting.
+- Providers (#627): the private model, its engine window, `app://engine`
+  and wllama are gone, and so is **Automatic**: `assistant.provider` is
+  `none` until the user picks Claude, OpenAI or a **Model server**. That
+  server may be anywhere that speaks OpenAI's API, in
+  `assistant.server`: plain `http://` only on this computer and the home
+  network (`shared/model-server.ts`), `https://` elsewhere, with an
+  optional key in `secrets.json`. The guard allows the two services and
+  that server's origin only. YapYap deletes a leftover `models/` folder
+  and `assistant.json` at start.

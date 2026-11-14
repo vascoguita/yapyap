@@ -8,14 +8,11 @@ import {
   type ListTarget,
 } from './models.ts';
 
-const CLAUDE: ListTarget = {
-  provider: 'anthropic',
-  key: 'sk',
-  endpoint: '',
-  privateModel: undefined,
-};
+const CLAUDE: ListTarget = { provider: 'anthropic', key: 'sk', endpoint: '' };
 
-const LOCAL: ListTarget = { ...CLAUDE, provider: 'local', endpoint: 'http://localhost:11435/v1' };
+const LOCAL: ListTarget = { ...CLAUDE, provider: 'server', endpoint: 'http://localhost:11435/v1' };
+
+const CLOUD: ListTarget = { ...CLAUDE, provider: 'server', endpoint: 'https://models.example/v1' };
 
 const LISTED = [
   { id: 'claude-opus-5-5', label: 'Claude Opus 5.5' },
@@ -68,7 +65,7 @@ describe('modelsOf', () => {
     expect(server.urls[0]).toMatch(/^https:\/\/api\.anthropic\.com\/v1\/models\?limit=20/);
   });
 
-  it('lists OpenAI’s chat models newest first, and everything a local server serves', async () => {
+  it('lists OpenAI’s chat models newest first, and everything a model server serves', async () => {
     const openai = serving(
       served(['gpt-old', 'text-embedding-3', 'whisper-1', 'gpt-new'], (index) => index),
     );
@@ -87,7 +84,7 @@ describe('modelsOf', () => {
     expect(local.urls).toContain('http://localhost:11435/v1/models');
   });
 
-  it('lists a local server’s smallest models first when it reports their sizes', async () => {
+  it('lists a server’s smallest models first when it reports their sizes', async () => {
     const tags = { models: [{ name: 'big', size: 9 }, { name: 'small', size: 2 }, { name: 7 }] };
     const local = serving((url) =>
       url.endsWith('/api/tags') ? json(tags)() : served(['big', 'odd', 'small'])(),
@@ -98,6 +95,13 @@ describe('modelsOf', () => {
       { id: 'odd', label: 'odd' },
     ]);
     expect(local.urls).toContain('http://localhost:11435/api/tags');
+    // A cloud service is asked only what OpenAI's API offers, in its own order.
+    const cloud = serving(served(['big', 'small']));
+    await expect(modelsOf(CLOUD, cloud.fetch)).resolves.toEqual([
+      { id: 'big', label: 'big' },
+      { id: 'small', label: 'small' },
+    ]);
+    expect(cloud.urls).toEqual(['https://models.example/v1/models']);
     const bare = serving((url) => (url.endsWith('/api/tags') ? json({})() : served(['x'])()));
     await expect(modelsOf({ ...LOCAL, key: '' }, bare.fetch)).resolves.toEqual([
       { id: 'x', label: 'x' },
@@ -109,20 +113,6 @@ describe('modelsOf', () => {
     await expect(modelsOf(CLAUDE, refused.fetch)).resolves.toEqual([]);
     const many = serving(served(Array.from({ length: 30 }, (_, index) => `m${String(index)}`)));
     await expect(modelsOf(LOCAL, many.fetch)).resolves.toHaveLength(MAX_MODELS);
-  });
-
-  it('lists the downloaded private model by a plain name, without asking anyone', async () => {
-    const fetch = vi.fn<typeof globalThis.fetch>();
-    const target: ListTarget = {
-      ...CLAUDE,
-      provider: 'built-in',
-      privateModel: { id: 'qwen-1.5b', name: 'Qwen2.5 1.5B' },
-    };
-    const listed = await modelsOf(target, fetch);
-    expect(listed).toEqual([{ id: 'qwen-1.5b', label: 'Private model (Qwen2.5 1.5B)' }]);
-    expect(autoModel('built-in', listed)).toEqual(listed[0]);
-    await expect(modelsOf({ ...target, privateModel: undefined }, fetch)).resolves.toEqual([]);
-    expect(fetch).not.toHaveBeenCalled();
   });
 });
 
@@ -137,6 +127,14 @@ describe('keyProblem', () => {
     const down = serving(json({ error: { message: 'busy' } }, 429));
     await expect(keyProblem('openai', 'sk', down.fetch)).resolves.toBe('rate-limited');
   });
+
+  it('tests a model server’s key at its own address', async () => {
+    const cloud = serving(served(['llama']));
+    await expect(
+      keyProblem('server', 'sk-cloud', cloud.fetch, 'https://models.example/v1'),
+    ).resolves.toBe('');
+    expect(cloud.urls).toEqual(['https://models.example/v1/models']);
+  });
 });
 
 describe('autoModel', () => {
@@ -150,9 +148,9 @@ describe('autoModel', () => {
       { id: 'gpt-new-mini', label: 'gpt-new-mini' },
     ];
     expect(autoModel('openai', openai)?.id).toBe('gpt-new-mini');
-    // On this computer, the list is smallest first, so the first answers fastest.
-    expect(autoModel('local', openai)?.id).toBe('gpt-new');
-    expect(autoModel('local', [])).toBeUndefined();
+    // On a server at home, the list is smallest first, so the first answers fastest.
+    expect(autoModel('server', openai)?.id).toBe('gpt-new');
+    expect(autoModel('server', [])).toBeUndefined();
   });
 });
 

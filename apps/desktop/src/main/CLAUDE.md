@@ -43,17 +43,19 @@ These add to the repository's root `CLAUDE.md`, which applies here too.
   `security/web-contents-guards.ts`.
 - The assistant's network requests go only through its confined `fetch`
   (`src/main/assistant/net.ts`) on the in-memory `yapyap-assistant`
-  session, whose request guard allows only the providers, Hugging Face and
-  the chosen loopback server. Never use `globalThis.fetch` or another
-  session for them. Provider output is plain text, never markup.
-- The private model's engine window opens only on first use and closes when
-  idle. Never open it at startup: the startup bench budgets renderer
-  processes (ADR 0009). It runs on `app://engine` under its own CSP; serve
-  nothing else there.
+  session, whose request guard allows only Anthropic and OpenAI over HTTPS
+  and the model server the user chose, at its origin. Never use
+  `globalThis.fetch` or another session for them. Provider output is
+  plain text, never markup.
+- The model server's address (`assistant.server`) may use plain `http://`
+  only on this computer and the home network; anywhere else needs
+  `https://` (`src/shared/model-server.ts`, #627). The schema's pattern
+  and `isModelServer` both hold that line, so a settings file cannot point
+  the assistant's chats anywhere else.
 - The `assistant` and `agents` settings sections are local: never exported
-  or imported (`LOCAL_SECTIONS` in `settings/transfer.ts`). The
-  assistant's state that is no preference lives in `assistant.json` and
-  `assistant-chats.json`, its keys and chat names in `secrets.json`.
+  or imported (`LOCAL_SECTIONS` in `settings/transfer.ts`). The chats the
+  assistant may read live in `assistant-chats.json`, its keys (a model
+  server's too) and chat names in `secrets.json`.
 - The assistant never sends a message: it only puts text in the message
   box, and works only in the chats `assistant.chats` lets it (#616). Its UI
   text, including the bar's and the rewrite button's, lives in `en.json`

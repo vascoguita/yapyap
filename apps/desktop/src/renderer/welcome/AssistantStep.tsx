@@ -59,27 +59,24 @@ interface StepProps {
   readonly setPicked: (picked: Picked) => void;
 }
 
-/** What each choice does: a server or the private model now, a key to paste, or nothing yet. */
-function usePick({ api, onChange, choose, setPicked }: StepProps, server: FoundServer | undefined) {
+/** What each choice does: a server found on this computer now, a key to paste, or nothing yet. */
+function usePick({ onChange, choose, setPicked }: StepProps, server: FoundServer | undefined) {
   return useCallback(
     (value: string) => {
-      if (value === 'local' && server !== undefined) {
-        onChange('assistant.localServer', server.endpoint);
-        choose('local');
-      } else if (value === 'built-in') {
-        void api.assistant.privateModel('download');
-        choose('built-in');
+      if (value === 'server' && server !== undefined) {
+        onChange('assistant.server', server.endpoint);
+        choose('server');
       } else if (value === 'anthropic' || value === 'openai') {
         choose(value, value);
       } else {
         setPicked('done');
       }
     },
-    [api, onChange, choose, setPicked, server],
+    [onChange, choose, setPicked, server],
   );
 }
 
-/** The places the assistant can think, the one found on this computer first. */
+/** Where the assistant can run, a server found on this computer first. */
 function Options(props: StepProps): JSX.Element {
   const server = useFoundServer(props.api);
   const pick = usePick(props, server);
@@ -87,18 +84,12 @@ function Options(props: StepProps): JSX.Element {
     <>
       {server === undefined ? null : (
         <Option
-          value="local"
+          value="server"
           label={text.local({ server: server.server })}
           hint={text.localHint}
           onPick={pick}
         />
       )}
-      <Option
-        value="built-in"
-        label={text.private({ size: props.view.privateModel.size })}
-        hint={text.privateHint}
-        onPick={pick}
-      />
       {(['anthropic', 'openai'] as const).map((provider) => (
         <Option
           key={provider}
@@ -115,8 +106,7 @@ function Options(props: StepProps): JSX.Element {
 
 /**
  * The first launch's assistant step (ADR 0017): a model server already on
- * this computer when one answers, the private model with its size, Claude
- * or OpenAI with a key, or later. Each choice saves at once, as in Settings.
+ * this computer when one answers, Claude or OpenAI with a key, or later. Each choice saves at once, as in Settings.
  */
 export function AssistantStep(props: {
   readonly api: ChromeApi;

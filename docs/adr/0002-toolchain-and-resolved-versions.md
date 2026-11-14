@@ -70,7 +70,6 @@ docs                     VitePress site
 | electron-updater  | Signed update metadata for AppImage, NSIS and macOS only                                                                                                |
 | @anthropic-ai/sdk | The AI assistant's Anthropic provider: the vendor's own streaming, error types, retries and timeouts                                                    |
 | openai            | The AI assistant's OpenAI and OpenAI-compatible provider: the vendor's chat-completions streaming and error types, which self-hosted servers speak too  |
-| @wllama/wllama    | The AI assistant's private model: llama.cpp compiled to WebAssembly, bundled into the engine page                                                       |
 
 Everything else is written in-house and kept small: logging with redaction,
 settings store, i18n catalogs, and the RPC layer.
@@ -104,9 +103,8 @@ dependencies. Prettier checks formatting.
 
 - 2026-11-01 (ADR 0017): the AI assistant moved into the app.
   `@anthropic-ai/sdk` and `openai` are now dependencies of `apps/desktop`
-  and run in the main process; `@wllama/wllama` is bundled into the engine
-  page, with its `.wasm` copied beside the renderer's pages. `@noble/hashes`
-  is gone: the main process hashes the private model with `node:crypto`.
+  and run in the main process. `@noble/hashes` is gone. (`@wllama/wllama`,
+  which ran the private model, was removed with it on 2026-11-14, #627.)
   `extensions/ai-assistant` no longer exists.
 - 2026-11-01: the tables of resolved versions were removed. They drifted
   with every Dependabot PR, and the manifests already pin every version.

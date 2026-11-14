@@ -7,18 +7,16 @@ import {
   type AssistantAccounts,
   type AssistantChromeDependencies,
 } from './assistant-chrome.ts';
-import { CATALOG } from './private/catalog.ts';
-import type { ModelFiles } from './private/files.ts';
 
 const SETTINGS = {
   assistant: {
     enabled: true,
-    provider: 'auto',
+    provider: 'none',
     model: 'auto',
     autoSuggest: true,
     chats: 'chosen',
     messages: '10',
-    localServer: '',
+    server: '',
   },
 } as unknown as Settings;
 
@@ -32,38 +30,13 @@ const ACCOUNTS: AssistantAccounts = {
   replaceDraft: vi.fn(() => Promise.resolve(true)),
 };
 
-function files(): ModelFiles {
-  return {
-    path: () => '/models/m.gguf',
-    saved: () => Promise.resolve(0),
-    read: async function* () {
-      yield* [] as Uint8Array[];
-      await Promise.resolve();
-    },
-    append: vi.fn(),
-    finish: vi.fn(),
-    discard: vi.fn(),
-    clear: vi.fn(() => Promise.resolve()),
-    used: () => Promise.resolve(0),
-    free: () => Promise.resolve(undefined),
-  };
-}
-
 function harness(open: AssistantAccounts | undefined = ACCOUNTS) {
   let settings = SETTINGS;
   const accounts = open;
   const settingsListeners: (() => void)[] = [];
-  let hear: ((sender: object, url: string, payload: unknown) => void) | undefined;
   const deps: AssistantChromeDependencies = {
     sources: {
       fetch: vi.fn(),
-      catalog: CATALOG,
-      hardware: () => ({ memory: 16 * 1024 ** 3, cores: 8 }),
-      files: files(),
-      state: {
-        privateModel: () => undefined,
-        setPrivateModel: vi.fn(),
-      },
       chats: {
         isAllowed: () => false,
         allow: vi.fn(() => Promise.resolve()),
@@ -78,10 +51,6 @@ function harness(open: AssistantAccounts | undefined = ACCOUNTS) {
         canKeep: () => Promise.resolve(true),
       },
       findServers: () => Promise.resolve([]),
-      listenToEngine: (listener) => {
-        hear = listener;
-      },
-      now: () => 0,
     },
     settings: {
       current: () => settings,
@@ -92,7 +61,6 @@ function harness(open: AssistantAccounts | undefined = ACCOUNTS) {
         settingsListeners.push(listener as () => void);
       },
     },
-    openEngine: vi.fn(),
     accounts: () => accounts,
     openSettings: vi.fn(),
     warn: vi.fn(),
@@ -104,16 +72,16 @@ function harness(open: AssistantAccounts | undefined = ACCOUNTS) {
     setEnabled: (enabled: boolean) => {
       settings = { ...settings, assistant: { ...settings.assistant, enabled } };
     },
-    modelsChanged: () => {
-      const remove = chrome.handlers.find(({ channel }) => channel === 'assistant:private-model');
-      void remove?.handle({ sender: {} }, 'remove');
+    /** Saves a key from Settings, which changes the setup the bar shows. */
+    keyChanged: () => {
+      const save = chrome.handlers.find(({ channel }) => channel === 'assistant:save-key');
+      return save?.handle({ sender: {} }, 'openai', 'sk');
     },
     settingsChanged: () => {
       for (const run of settingsListeners) {
         run();
       }
     },
-    hear: () => hear,
   };
 }
 
@@ -141,8 +109,6 @@ describe('createAssistantChrome', () => {
     await vi.waitFor(() => {
       expect(view.show).toHaveBeenCalledTimes(3);
     });
-    expect(t.chrome.modelFile()).toBeUndefined();
-    expect(t.hear()).toBeTypeOf('function');
   });
 
   it('serves Settings › Assistant, which tells the bar when the setup changes', async () => {
@@ -151,8 +117,7 @@ describe('createAssistantChrome', () => {
     expect(channels).toContain('assistant:view');
     const view = { show: vi.fn(), publish: vi.fn() };
     t.chrome.attachBar(() => view);
-    const remove = t.chrome.handlers.find(({ channel }) => channel === 'assistant:private-model');
-    await remove?.handle({ sender: {} }, 'remove');
+    await t.keyChanged();
     await vi.waitFor(() => {
       expect(view.show).toHaveBeenCalledTimes(2);
     });
@@ -193,7 +158,7 @@ describe('createAssistantChrome', () => {
     await vi.waitFor(() => {
       expect(t.deps.warn).toHaveBeenCalledWith('The assistant bar could not show the setup.');
     });
-    t.modelsChanged();
+    await t.keyChanged();
     await vi.waitFor(() => {
       expect(vi.mocked(t.deps.warn).mock.calls.length).toBeGreaterThanOrEqual(2);
     });

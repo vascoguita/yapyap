@@ -34,11 +34,11 @@ import {
   rmSync,
   statSync,
 } from 'node:fs';
-import { readFile } from 'node:fs/promises';
+import { readFile, rm } from 'node:fs/promises';
 import { textFileAt, writeTextAtomically } from './support/atomic-write.ts';
 import { chatListWidths } from './chat-list/widths.ts';
 import { createCustomCode } from './custom-code/custom-code.ts';
-import { availableParallelism, homedir, release, totalmem } from 'node:os';
+import { homedir, release } from 'node:os';
 import { join } from 'node:path';
 import { createDownloadList } from './downloads/download-list.ts';
 import { downloadsFolder } from './downloads/downloads.ts';
@@ -75,14 +75,9 @@ import {
 } from './dialogs/prompts.ts';
 import { startAppReporting } from './start/start.ts';
 import { findLocalModels, loopbackRequest, modelServerPorts } from './assistant/local-servers.ts';
-import { ENGINE_CHANNELS } from '../shared/api/engine-api.ts';
-import { assistantState } from './assistant/state.ts';
 import { allowedChats } from './assistant/chats.ts';
+import { removeLeftovers } from './assistant/leftovers.ts';
 import { assistantKeys } from './assistant/keys.ts';
-import { catalogOf } from './assistant/private/catalog.ts';
-import { diskModelFiles } from './assistant/private/files.ts';
-import { ENGINE_PARTITION } from './assistant/private/engine-window.ts';
-import { engineListener } from './assistant/private/engine-host.ts';
 import { assistantMayReach, confinedFetch, guardedAssistantSession } from './assistant/net.ts';
 import { agentTokens } from './agents/tokens.ts';
 import { listenForAgents } from './agents/listener.ts';
@@ -105,7 +100,6 @@ const DOWNLOADS_STATE = join(USER_DATA, 'downloads.json');
 const CUSTOM_CODE = join(USER_DATA, 'custom-code.json');
 const CHAT_LIST_STATE = join(USER_DATA, 'chat-list.json');
 // The assistant's state and allowed chats are no preferences, so they live apart from settings (ADR 0017).
-const ASSISTANT_STATE = join(USER_DATA, 'assistant.json');
 const ASSISTANT_CHATS = join(USER_DATA, 'assistant-chats.json');
 // The agents' tokens are state, kept apart from settings and never exported (ADR 0019).
 const AGENT_TOKENS = join(USER_DATA, 'agent-tokens.json');
@@ -197,28 +191,21 @@ const secrets = openSecretStore(
   process.platform,
 );
 
-/** The private model's catalog, or in an unpackaged build under E2E tests, a test model (#457). */
-const catalog = catalogOf(process.env, app.isPackaged);
-const testModel = catalog.standard.id === 'test' ? catalog.standard.url : undefined;
-
-/** Read and write for the user alone: the assistant's state names chats by fingerprint. */
+/** Read and write for the user alone: the assistant's chats are named by fingerprint. */
 const OWNER_ONLY = 0o600;
 
-const assistantStore = assistantState(textFileAt(ASSISTANT_STATE, OWNER_ONLY), warn);
 const assistantChats = allowedChats(textFileAt(ASSISTANT_CHATS, OWNER_ONLY), secrets, warn);
 const keys = assistantKeys(secrets);
+void removeLeftovers(USER_DATA, rm, warn);
 
 /**
  * The assistant's requests go through Electron's network stack on a session
  * of its own, in memory, so system proxies apply and no cookie or cache is
- * kept, and only to the providers, Hugging Face and the chosen model server
- * on this computer (ADR 0017).
+ * kept, and only to the services and the model server the user chose
+ * (ADR 0017).
  */
 const assistantReach = (address: string): boolean =>
-  assistantMayReach(address, {
-    localServer: () => settings.current().assistant.localServer,
-    testModel,
-  });
+  assistantMayReach(address, { server: () => settings.current().assistant.server });
 const assistantSession = guardedAssistantSession(
   () => session.fromPartition('yapyap-assistant'),
   assistantReach,
@@ -282,12 +269,8 @@ const chrome = createChromeFeature({
     system: () => app.getPreferredSystemLanguages(),
   },
   assistant: {
-    catalog,
     keys,
     fetch: assistantFetch,
-    hardware: () => ({ memory: totalmem(), cores: availableParallelism() }),
-    files: diskModelFiles(join(USER_DATA, 'models')),
-    state: assistantStore,
     chats: assistantChats,
     // YapYap looks only on the user's click, at a few fixed ports on loopback (#456).
     findServers: () =>
@@ -295,12 +278,6 @@ const chrome = createChromeFeature({
         ports: modelServerPorts(process.env, app.isPackaged),
         request: loopbackRequest(fetch),
       }),
-    listenToEngine: (hear) => {
-      ipcMain.on(ENGINE_CHANNELS.event, engineListener(hear));
-    },
-    now: Date.now,
-    enginePreload: join(import.meta.dirname, '..', 'preload', 'engine.cjs'),
-    engineProtocol: () => session.fromPartition(ENGINE_PARTITION).protocol,
   },
   restart: () => {
     app.relaunch();

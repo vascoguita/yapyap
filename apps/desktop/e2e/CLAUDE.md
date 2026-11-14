@@ -36,9 +36,8 @@ These add to the repository's root `CLAUDE.md`, which applies here too.
   `@not-macos`, `@not-windows`) or its file goes in `playwright.config.ts`'s
   lists, never a conditional `test.skip`; and checks that retry use
   `expect(...).toPass()` or a web-first assertion, never `expect.poll`.
-- E2E tests give the assistant's private model a tiny model through
-  `YAPYAP_TEST_BUILT_IN_MODEL`, and fake model servers through
-  `YAPYAP_TEST_MODEL_PORTS`; a packaged build ignores both.
+- E2E tests find fake model servers through `YAPYAP_TEST_MODEL_PORTS`; a
+  packaged build ignores it.
 - Packaged builds disable the Node inspector fuse, so Playwright's Electron
   launcher cannot drive them. The smoke test connects over CDP through the
   `DevToolsActivePort` file in the profile directory instead.

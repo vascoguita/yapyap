@@ -61,11 +61,9 @@ import {
   type AssistantChrome,
   type AssistantSources,
 } from '../assistant/assistant-chrome.ts';
-import { serveEngineFiles } from '../assistant/private/engine-files.ts';
 import { agentServer, type AgentSources } from '../agents/server.ts';
 import { agentsHandlers } from '../agents/settings-handlers.ts';
 import type { AgentAccounts, AgentPage } from '../agents/tool-steps.ts';
-import { engineWindowOpener } from '../assistant/private/engine-window.ts';
 import { setDoNotDisturb } from '../notifications/quiet.ts';
 import { settingsHandlers, type SettingEffect } from '../settings/handlers.ts';
 import type { SettingsService } from '../settings/service.ts';
@@ -210,7 +208,6 @@ interface PrivilegedScheme {
   readonly privileges: {
     readonly standard: boolean;
     readonly secure: boolean;
-    readonly supportFetchAPI?: boolean;
   };
 }
 
@@ -263,20 +260,7 @@ export interface ChromeFeatureDependencies {
   /** Asks before removing the account named `name`; true when the user agrees. */
   readonly confirmRemoveAccount: (name: string) => Promise<boolean>;
   /** The AI assistant, part of YapYap (ADR 0017). */
-  readonly assistant: AssistantSources & {
-    /** The engine page's preload. */
-    readonly enginePreload: string;
-    /** The engine's own session's protocol, where `app://engine` is served. */
-    readonly engineProtocol: () => {
-      handle(
-        scheme: string,
-        handler: (request: {
-          readonly url: string;
-          readonly headers: Headers;
-        }) => Promise<Response>,
-      ): void;
-    };
-  };
+  readonly assistant: AssistantSources;
   /** The MCP server for AI agents (ADR 0019). */
   readonly agents: AgentSources;
   readonly captureSources: (kind: SourceKind) => Promise<readonly DesktopSource[]>;
@@ -748,39 +732,20 @@ function chromeSlots(
   };
 }
 
-/**
- * The AI assistant (ADR 0017), and `app://engine` on the engine's own
- * session, which serves its page and the downloaded model.
- */
+/** The AI assistant (ADR 0017). */
 function assistantOf(
   deps: ChromeFeatureDependencies,
   windows: ChromeWindowDependencies,
   accounts: AccountsSlot,
   openSettings: () => void,
 ): AssistantChrome {
-  const { assistant } = deps;
-  const chrome = createAssistantChrome({
+  return createAssistantChrome({
     openSettings,
-    sources: assistant,
+    sources: deps.assistant,
     settings: deps.settings,
-    openEngine: engineWindowOpener({
-      createWindow: deps.createWindow,
-      views: windows.views,
-      preload: assistant.enginePreload,
-      warn: windows.warn,
-    }),
     accounts: () => accounts.current,
     warn: windows.warn,
   });
-  assistant.engineProtocol().handle(
-    CHROME_SCHEME,
-    serveEngineFiles({
-      root: deps.rendererRoot,
-      readFile: deps.readFile,
-      model: chrome.modelFile,
-    }),
-  );
-  return chrome;
 }
 
 /** The accounts as AI agents reach them, once they are open. */
@@ -899,13 +864,7 @@ export function createChromeFeature(deps: ChromeFeatureDependencies): ChromeFeat
   return {
     beforeReady: () => {
       deps.registerSchemesAsPrivileged([
-        // The private model's engine page fetches its `.wasm` and the model
-        // from `app://engine` (ADR 0017). The CSP still decides: chrome
-        // pages allow no `connect-src`, so they fetch nothing.
-        {
-          scheme: CHROME_SCHEME,
-          privileges: { standard: true, secure: true, supportFetchAPI: true },
-        },
+        { scheme: CHROME_SCHEME, privileges: { standard: true, secure: true } },
       ]);
     },
     afterReady: (views, warn, graphics) => {

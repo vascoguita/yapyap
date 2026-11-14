@@ -130,3 +130,15 @@ could ask for too.
   gone, with their prompts; Soften joins the rewrite's ways. Consent to
   read a chat moves to Settings › Assistant, as a list of chats or all
   chats, and the assistant sends no message in any way.
+- 2026-11-14 (#627, the maintainer's decision): the private model, its
+  engine window and **Automatic** are removed. There is no provider until
+  the user chooses one, and nothing is sent anywhere before. The model
+  server on this computer becomes a model server anywhere: any server that
+  speaks OpenAI's API, with plain `http://` only on this computer and the
+  home network and `https://` everywhere else, and an optional key,
+  encrypted with the system's secret store like the others and sent as a
+  Bearer token. The assistant's guard allows only `api.anthropic.com` and
+  `api.openai.com` over HTTPS, plus the chosen server's origin; Hugging
+  Face is no longer reachable. YapYap deletes a leftover `models/` folder
+  and `assistant.json` from the profile at startup. Choices of `auto`,
+  `built-in` or `local` fall back to no provider (C45 in ADR 0008).

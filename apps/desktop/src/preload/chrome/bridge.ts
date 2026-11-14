@@ -44,9 +44,6 @@ function assistantBridge(invoke: Invoke): ChromeApi['assistant'] {
     testKey: (provider) => invoke(CHROME_CHANNELS.assistantTestKey, provider) as Promise<string>,
     findServers: () =>
       invoke(CHROME_CHANNELS.assistantFindServers) as Promise<readonly FoundServer[]>,
-    privateModel: async (action) => {
-      await invoke(CHROME_CHANNELS.assistantPrivateModel, action);
-    },
     forgetChat: async (account, id) => {
       await invoke(CHROME_CHANNELS.assistantForgetChat, account, id);
     },

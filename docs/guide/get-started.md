@@ -44,8 +44,8 @@ running in the tray when you close the window.
 The AI assistant is built in. Right above the message box, it suggests
 replies, writes the message you describe, rewrites your draft and catches
 you up on unread chats, for you to check and send. Set it up in
-**Settings → Assistant**: a private model that runs on your computer, a
-model server you already run, or your own key for Claude or OpenAI.
+**Settings → Assistant**: your own key for Claude or OpenAI, or a model
+server you run, such as Ollama on your computer or another one at home.
 [Set up the assistant](/guide/ai-assistant).
 
 ![Settings for the AI assistant](/screenshots/assistant.webp)

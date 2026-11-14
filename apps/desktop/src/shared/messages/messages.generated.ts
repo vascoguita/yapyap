@@ -148,11 +148,10 @@ export interface Messages {
           readonly label: string;
           readonly description: string;
           readonly options: {
-            readonly auto: string;
-            readonly 'built-in': string;
+            readonly none: string;
             readonly anthropic: string;
             readonly openai: string;
-            readonly local: string;
+            readonly server: string;
           };
         };
         readonly model: { readonly label: string; readonly description: string };
@@ -167,7 +166,7 @@ export interface Messages {
           readonly description: string;
           readonly options: { readonly '5': string; readonly '10': string; readonly '20': string };
         };
-        readonly localServer: { readonly label: string; readonly description: string };
+        readonly server: { readonly label: string; readonly description: string };
       };
       readonly agents: {
         readonly enabled: { readonly label: string; readonly description: string };
@@ -367,34 +366,18 @@ export interface Messages {
     readonly doNotDisturb: string;
   };
   readonly assistant: {
-    readonly privateModel: (params: { readonly name: string | number }) => string;
-    readonly providers: {
-      readonly 'built-in': string;
-      readonly anthropic: string;
-      readonly openai: string;
-      readonly local: string;
-    };
     readonly providerTitles: {
-      readonly 'built-in': string;
       readonly anthropic: string;
       readonly openai: string;
-      readonly local: string;
+      readonly server: string;
     };
     readonly settings: {
       readonly intro: string;
       readonly where: string;
       readonly whereHint: string;
-      readonly automatic: string;
-      readonly automaticHint: string;
       readonly notSetUp: string;
       readonly ready: (params: { readonly provider: string | number }) => string;
       readonly pills: {
-        readonly ready: string;
-        readonly nothingSetUp: string;
-        readonly notDownloaded: string;
-        readonly downloading: string;
-        readonly paused: string;
-        readonly tooLarge: string;
         readonly needsKey: string;
         readonly keySaved: string;
         readonly notSetUp: string;
@@ -404,28 +387,6 @@ export interface Messages {
         readonly inChats: string;
         readonly replies: string;
         readonly chats: string;
-      };
-      readonly private: {
-        readonly title: string;
-        readonly description: (params: { readonly size: string | number }) => string;
-        readonly download: string;
-        readonly pause: string;
-        readonly resume: string;
-        readonly remove: string;
-        readonly smaller: string;
-        readonly none: string;
-        readonly downloading: (params: {
-          readonly done: string | number;
-          readonly percent: string | number;
-          readonly size: string | number;
-        }) => string;
-        readonly paused: (params: { readonly percent: string | number }) => string;
-        readonly failed: (params: { readonly percent: string | number }) => string;
-        readonly diskFull: (params: { readonly size: string | number }) => string;
-        readonly damaged: string;
-        readonly ready: (params: { readonly size: string | number }) => string;
-        readonly outOfMemory: string;
-        readonly outOfMemorySmall: string;
       };
       readonly anthropic: {
         readonly title: string;
@@ -453,7 +414,7 @@ export interface Messages {
         readonly cannotKeep: string;
         readonly empty: string;
       };
-      readonly local: {
+      readonly server: {
         readonly title: string;
         readonly description: string;
         readonly find: string;
@@ -470,6 +431,8 @@ export interface Messages {
         readonly saveAddress: string;
         readonly badAddress: string;
         readonly current: (params: { readonly server: string | number }) => string;
+        readonly keyLabel: string;
+        readonly keyHint: string;
       };
       readonly model: {
         readonly auto: string;
@@ -529,16 +492,14 @@ export interface Messages {
       };
       readonly setUp: string;
       readonly pasteKey: string;
-      readonly resume: string;
-      readonly smaller: string;
       readonly openSettings: string;
     };
     readonly status: {
       readonly setUp: string;
+      readonly address: string;
       readonly key: (params: { readonly provider: string | number }) => string;
-      readonly download: string;
       readonly noModel: (params: { readonly provider: string | number }) => string;
-      readonly localServer: string;
+      readonly server: string;
       readonly nothing: string;
       readonly draftChanged: string;
       readonly notAllowed: string;
@@ -551,7 +512,6 @@ export interface Messages {
       readonly refused: string;
       readonly badRequest: (params: { readonly provider: string | number }) => string;
       readonly cancelled: string;
-      readonly outOfMemory: string;
       readonly failed: string;
     };
     readonly welcome: {
@@ -559,8 +519,6 @@ export interface Messages {
       readonly intro: string;
       readonly local: (params: { readonly server: string | number }) => string;
       readonly localHint: string;
-      readonly private: (params: { readonly size: string | number }) => string;
-      readonly privateHint: string;
       readonly anthropic: string;
       readonly openai: string;
       readonly keyHint: string;

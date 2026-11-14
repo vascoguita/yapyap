@@ -23,8 +23,8 @@
 
 A fast, private desktop client for WhatsApp Web, for Linux, Windows and
 macOS, with a built-in AI assistant that helps you write: reply ideas and
-rewrites, right in the message box, with a private model on your computer
-or the AI service you choose.
+rewrites, right in the message box, with the AI service or model server
+you choose.
 
 <p align="center"><img src="docs/public/screenshots/main.webp" alt="YapYap's main window: the Personal and Work accounts in a sidebar, beside WhatsApp with an open chat" width="800"></p>
 
@@ -52,9 +52,9 @@ YapYap is young and not yet at 1.0. Follow what comes next on the
 
 - A built-in AI assistant in the message box: it suggests short replies
   when someone writes to you, and rewrites what you type to polish,
-  shorten, elaborate, soften or formalize it. Use a private model that
-  runs on your computer, a model server you already run, or Claude or
-  OpenAI with your own key. It works only in the chats you choose, and
+  shorten, elaborate, soften or formalize it. Use Claude or OpenAI with
+  your own key, or any model server that speaks OpenAI's API, such as
+  Ollama on your computer. It works only in the chats you choose, and
   never sends a message on its own.
 - An opt-in MCP server: AI agents on your computer can read chats, write
   drafts and, only if you allow it, send messages, as far as the token you

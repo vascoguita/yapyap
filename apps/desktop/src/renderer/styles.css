@@ -1549,6 +1549,13 @@ main.settings-pane {
   font-weight: 500;
 }
 
+.key .hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+}
+
 .key a {
   align-self: flex-start;
   font-size: 0.875rem;

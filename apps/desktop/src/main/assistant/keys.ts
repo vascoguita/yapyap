@@ -1,8 +1,8 @@
 import type { KeyedProvider } from '../../shared/api/chrome-api.ts';
 import type { SecretStore } from '../secrets/secret-store.ts';
 
-/** The services the user brings a key for. */
-export const KEYED_PROVIDERS: readonly KeyedProvider[] = ['anthropic', 'openai'];
+/** Who the user may bring a key for: the services, and a model server that asks for one. */
+export const KEYED_PROVIDERS: readonly KeyedProvider[] = ['anthropic', 'openai', 'server'];
 
 /** Longer than any provider's keys. */
 export const MAX_KEY = 8192;

@@ -20,21 +20,21 @@ Open **Settings → Assistant**, or use **Assistant → Assistant Settings…** 
 the gear in the bar above the message box, which open Settings there. The first time you start YapYap, the Welcome offers the same
 choices.
 
-Under **Provider**, choose one. Only the one you choose shows what it
-needs, such as its key:
+Until you choose a provider, the assistant is off, and nothing is sent
+anywhere. Under **Provider**, choose one. Only the one you choose opens and
+shows what it needs, such as its key:
 
-| Choice                        | What it means                                                                                                        |
-| ----------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| Automatic                     | Uses the first one that is set up, in this order: the private model, a model server on this computer, Claude, OpenAI |
-| On this computer (private)    | A small model that runs inside YapYap. Your messages never leave your computer. It downloads once                    |
-| Claude (Anthropic)            | Claude, with your own API key                                                                                        |
-| OpenAI                        | OpenAI, with your own API key                                                                                        |
-| Model server on this computer | A model you already run, with Ollama, LM Studio, llama.cpp or another server that speaks OpenAI's API                |
+| Choice             | What it means                                                                                                           |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| Claude (Anthropic) | Claude, with your own API key                                                                                           |
+| OpenAI             | OpenAI, with your own API key                                                                                           |
+| Model server       | Any server that speaks OpenAI's API: Ollama or LM Studio on this or another computer, or a cloud service of your choice |
 
-The line at the top of the page says whether the assistant is ready, and
-with which provider; each provider shows its own status, such as **Key
-saved** or **Needs key**. Under the list, one sentence says what the
-assistant sends, and where.
+The line at the top of the page says whether the assistant is ready, such
+as "Ready. Using Claude (Anthropic).", or what the chosen provider still
+needs. Each provider shows its own status: **Key saved** or **Needs key**,
+and **Address saved** or **Not set up**. Under the list, one sentence says
+what the assistant sends, and where.
 
 ### With Claude or OpenAI
 
@@ -50,57 +50,32 @@ shows the key again: **Replace** puts in another, and **Remove** removes it. If 
 secret store, YapYap says it cannot keep the key safely, and does not
 save it.
 
-### With a model server on this computer
+### With a model server
 
-If you run a model with Ollama, Alpaca, LM Studio or llama.cpp, choose
-**Model server on this computer**, then **Find**. YapYap checks the usual addresses of those servers on this
-computer (ports 11434, 11435, 1234 and 8080), asks each only for its list
-of models, and lists what it found. Choose **Use** beside one.
+Choose **Model server**. It works with any server that speaks OpenAI's API.
 
-Your server listens somewhere else? Type its address under **Or type its
-address**, such as `http://localhost:11434/v1`, and choose **Use This
-Address**. Only addresses on this computer are accepted.
+**On this computer.** If you run a model with Ollama, Alpaca, LM Studio or
+llama.cpp, choose **Find on This Computer**. YapYap checks the usual
+addresses of those servers on this computer (ports 11434, 11435, 1234 and
+8080), asks each only for its list of models, and lists what it found.
+Choose **Use** beside one. Nothing leaves your computer.
 
-Such a server needs no key, and nothing leaves your computer.
+**Somewhere else.** Type the server's address under **Address**, and
+choose **Use This Address**. For example:
 
-### With the private model
+- `http://192.168.1.10:11434` for Ollama on another computer at home.
+- `https://openrouter.ai/api/v1` for a cloud service YapYap doesn't list.
 
-Choose **On this computer (private)**, then **Download**. Nothing is
-downloaded before you do.
+Plain `http://` works only on this computer and your home network, such as
+`localhost`, `192.168.x.x`, `10.x.x.x` or a `.local` name. Any other
+address needs `https://`. If you leave out `http://` or `https://`, YapYap
+adds `http://` where it is allowed, and `https://` elsewhere. An address
+with no path gets `/v1`. YapYap refuses an address with a user name or
+password in it.
 
-- The section shows how far the download is, such as **Downloading: 40%
-  (450 MB of 1.1 GB)**. You can keep using WhatsApp meanwhile.
-- **Pause** stops it and keeps what came. **Resume** carries on from where
-  it stopped, also after the connection dropped or YapYap quit.
-- If the disk is full, YapYap says how much room to free, then you can
-  resume.
-- Once it is all there, YapYap checks the file against the exact
-  fingerprint (SHA-256) it expects. A file that does not match is deleted,
-  never used.
-- **Remove** deletes the model.
-
-**Which model.** YapYap picks it for you: Qwen2.5 1.5B Instruct, about
-1.1 GB, or, on a computer with less memory than a typical 8 GB laptop or
-fewer than 4 processor cores, the smaller Qwen2.5 0.5B Instruct, about
-490 MB. If a model does not fit in memory, the assistant says so and
-offers **Try the smaller model**.
-
-**Speed.** Most laptops run the model on the processor, which is slower
-than a provider over the internet, and keeps the processor busy while it
-answers. The first answer also waits for the model to load. A computer
-whose graphics chip YapYap can use runs it faster. Small models are good
-at short replies and rewording, and less good at long or tricky messages;
-for those, Claude or OpenAI do better.
-
-YapYap loads the model only when you first ask, and frees its memory again
-after five minutes without a question.
-
-The models are [Qwen2.5 1.5B Instruct](https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF)
-and [Qwen2.5 0.5B Instruct](https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF)
-by the Qwen team at Alibaba Cloud, under the
-[Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0). The
-engine that runs them, [wllama](https://github.com/ngxson/wllama) (MIT),
-ships with YapYap; nothing that runs is ever downloaded.
+**API key (optional)**: only if the server asks for one, as cloud services
+do. YapYap keeps it encrypted, like the keys for Claude and OpenAI, and
+sends it to that server only.
 
 ## Choose the model
 
@@ -110,9 +85,9 @@ offers, with **Auto (recommended)** first, the default:
 - With Claude, Auto uses the newest of Claude's fast, inexpensive models
   (Haiku).
 - With OpenAI, it uses the newest "mini" chat model.
-- With a server on your computer, it uses the smallest model you
-  installed, which answers fastest.
-- With the private model, it uses that model.
+- With a model server, it uses the smallest model that Ollama reports on a
+  server at home, which answers fastest, and otherwise the first model the
+  server lists.
 
 When your provider releases a newer model, Auto moves to it by itself. The
 rewrite button's menu names the model in use, under **Assistant
@@ -176,10 +151,10 @@ send, undo or open another chat. If you change your text while the
 assistant works, your text stays as it is. A rewrite sends only your
 text, never the chat, and keeps its language.
 
-When something is missing, such as a key or the private model's download,
-or the assistant is off in the chat, the same line says so with a button
-that fixes it: **Set up…**, **Paste a key…**, **Open settings**, **Resume
-download** or **Try the smaller model**.
+When something is missing, such as a provider or a key, or the assistant
+is off in the chat, the same line says so, such as "Set up the assistant to
+start: choose a provider.", with a button that opens Settings where it
+fixes it: **Set up…**, **Paste a key…** or **Open settings**.
 
 The **Assistant** menu opens the assistant's settings.
 
@@ -188,13 +163,13 @@ The **Assistant** menu opens the assistant's settings.
 - The assistant reads a chat only in the chats you chose, or in every chat
   if you chose **All chats**, to suggest replies when someone else wrote
   last. A rewrite sends only what you typed.
-- **Settings → Assistant → Privacy** says where what you ask about goes
-  right now: nowhere off your computer with the private model or a server
-  on your computer, or to Anthropic or OpenAI with them.
-- YapYap sends the assistant's requests only to `api.anthropic.com`,
-  `api.openai.com`, Hugging Face (for the private model's download, which
-  sees your IP address as any download does, never your messages) and the
-  model server you chose on this computer. It refuses any other address.
+- Nothing is sent anywhere until you set up a provider.
+- **Settings → Assistant**, under the list of providers, says where what
+  you ask about goes right now: nowhere off your computer with a model
+  server on this computer, or to Anthropic, OpenAI or your server's host.
+- YapYap sends the assistant's requests only to `api.anthropic.com` and
+  `api.openai.com` over HTTPS, and to the model server you chose. It
+  refuses any other address.
 - YapYap keeps no chat text. It remembers the chats you allowed by a
   fingerprint of their name; the names it shows in Settings are kept only
   encrypted by your system, and not at all where your system cannot keep
@@ -208,12 +183,18 @@ See also [Privacy](../privacy.md).
 **"… did not accept your key."** Paste a new key in Settings, then
 **Test** it.
 
-**"The model server on this computer does not answer."** Start the server,
-such as by opening Ollama, then ask again. **Find** in Settings checks
-again.
+**"Set up the assistant to start: choose a provider."** No provider is
+chosen yet. If you used the private model or Automatic in an earlier
+version of YapYap, choose a provider again in Settings; your saved keys
+for Claude and OpenAI are still there.
 
-**"This computer doesn't have enough memory for this model."** Choose
-**Try the smaller model**, or close other apps and try again.
+**"Your model server does not answer."** Check its address in Settings,
+and start the server, such as by opening Ollama, then ask again. **Find on
+This Computer** checks again.
+
+**"Type a server address…"** The address is not one YapYap accepts. Plain
+`http://` works only on this computer and your home network; use
+`https://` for anything else.
 
 **The bar does not show.** Open a chat: the bar sits above its message
 box. Check that **Show the assistant in chats** is on in Settings.

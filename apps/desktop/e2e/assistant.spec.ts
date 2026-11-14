@@ -211,7 +211,7 @@ test('says what is missing before the assistant is set up, and opens its setting
   await window.keyboard.type('running late');
   await clickInTool(app, window, 'Polish');
   await expect(async () => {
-    expect(await barNotice(app)).toBe('Set up the assistant to start: choose where it thinks.');
+    expect(await barNotice(app)).toBe('Set up the assistant to start: choose a provider.');
   }).toPass();
   await clickInTool(app, window, 'Choose how to rewrite');
   await clickInTool(app, window, 'Assistant settings');
@@ -232,11 +232,11 @@ test('finds the model server on this computer, and suggests replies with it', as
     const window = await whatsAppPage(app);
     await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
     const settings = await openAssistantSettings(app);
-    await settings.getByRole('radio', { name: 'Model server on this computer' }).check();
-    await settings.getByRole('button', { name: 'Find' }).click();
+    await settings.getByRole('radio', { name: 'Model server' }).check();
+    await settings.getByRole('button', { name: 'Find on This Computer' }).click();
     await expect(settings.getByText(`localhost:${String(server.port)}: tiny-e2e`)).toBeVisible();
     await settings.getByRole('button', { name: 'Use', exact: true }).click();
-    await expect(settings.getByText('Ready. Using Model server on this computer.')).toBeVisible();
+    await expect(settings.getByText('Ready. Using Model server.')).toBeVisible();
     await expect(settings.getByText('Everything stays on this computer.')).toBeVisible();
     await allowAllChats(settings);
     await focusMain(app);
@@ -265,9 +265,7 @@ test('offers the model server it finds in the Welcome, and uses it on one click'
   try {
     const welcome = await chromePage(app, '/welcome.html');
     await expect(welcome.getByRole('heading', { name: 'Your AI assistant' })).toBeVisible();
-    await expect(
-      welcome.getByRole('button', { name: /^Download a Private Model \(\d/ }),
-    ).toBeVisible();
+    await expect(welcome.getByRole('button', { name: /Private/ })).toHaveCount(0);
     await welcome
       .getByRole('button', {
         name: `Use the Model Server on This Computer (localhost:${String(server.port)})`,
@@ -275,9 +273,7 @@ test('offers the model server it finds in the Welcome, and uses it on one click'
       .click();
     await expect(welcome.getByText(/^Done\./)).toBeVisible();
     const settings = await openAssistantSettings(app);
-    await expect(
-      settings.getByRole('radio', { name: 'Model server on this computer' }),
-    ).toBeChecked();
+    await expect(settings.getByRole('radio', { name: 'Model server' })).toBeChecked();
   } finally {
     await closeApp(app);
     server.close();

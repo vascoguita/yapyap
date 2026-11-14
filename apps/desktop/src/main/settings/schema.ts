@@ -2,7 +2,7 @@ import { Type, type Static, type TString } from 'typebox';
 import { MAX_SPELLING_LANGUAGES } from '../../shared/api/chrome-api.ts';
 import { MAX_PROXY_ADDRESS, PROXY_ADDRESS } from '../../shared/proxy-address.ts';
 import { SHORTCUT_IDS, type ShortcutId } from '../../shared/shortcuts.ts';
-import { LOCAL_SERVER } from '../../shared/local-server.ts';
+import { MODEL_SERVER } from '../../shared/model-server.ts';
 
 /**
  * The settings file's shape (ADR 0006). The TypeScript type is derived from
@@ -149,16 +149,15 @@ export const SettingsSchema = Type.Object(
     assistant: Type.Object(
       {
         enabled: Type.Boolean({ default: true }),
-        // Who answers; `auto` takes the first that is set up (ADR 0017).
+        // Who answers; none until the user chooses, so nothing is sent before (#627).
         provider: Type.Union(
           [
-            Type.Literal('auto'),
-            Type.Literal('built-in'),
+            Type.Literal('none'),
             Type.Literal('anthropic'),
             Type.Literal('openai'),
-            Type.Literal('local'),
+            Type.Literal('server'),
           ],
-          { default: 'auto' },
+          { default: 'none' },
         ),
         // `auto`, or a model's ID from the provider's own list.
         model: Type.String({ default: 'auto', minLength: 1, maxLength: 200 }),
@@ -170,8 +169,8 @@ export const SettingsSchema = Type.Object(
         messages: Type.Union([Type.Literal('5'), Type.Literal('10'), Type.Literal('20')], {
           default: '10',
         }),
-        // A model server on this computer; loopback only, so nothing else can be named here.
-        localServer: Type.String({ default: '', maxLength: 100, pattern: LOCAL_SERVER }),
+        // A model server that speaks OpenAI's API; plain http only on this computer and the home network.
+        server: Type.String({ default: '', maxLength: 300, pattern: MODEL_SERVER }),
       },
       { default: {}, additionalProperties: false },
     ),
