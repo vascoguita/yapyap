@@ -114,7 +114,7 @@ test('hides suggestions while the user types, and after Dismiss until the next m
   expect(await claudeRequests(app)).toHaveLength(2);
 });
 
-for (const run of [1, 2, 3, 4, 5]) test(`rewrites the draft in place from the message box, puts it back on Undo, and never sends ${String(run)}`, async ({
+for (const run of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) test(`rewrites the draft in place from the message box, puts it back on Undo, and never sends ${String(run)}`, async ({
   app,
   window,
 }) => {
@@ -179,7 +179,7 @@ for (const run of [1, 2, 3, 4, 5]) test(`rewrites the draft in place from the me
   }).toPass({ timeout: 10_000 });
 });
 
-for (const run of [1, 2, 3, 4, 5]) test(`says the assistant is off in a chat the user did not add, and opens its settings ${String(run)}`, async ({
+for (const run of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) test(`says the assistant is off in a chat the user did not add, and opens its settings ${String(run)}`, async ({
   app,
   window,
 }) => {
