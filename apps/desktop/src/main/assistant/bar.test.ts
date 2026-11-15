@@ -469,6 +469,23 @@ describe('createAssistantBar: suggested replies', () => {
     expect(t.deps.core.ask).toHaveBeenCalledTimes(2);
   });
 
+  it('brings the suggestions back after Undo too, and only takes the Undo notice away', async () => {
+    const t = harness('Yes, 9 works!\nCan we do 8?');
+    t.bar.arrived('m1');
+    await t.settle();
+    await t.bar.polish('polish');
+    await t.bar.button('undo');
+    expect(t.last().notice).toBeNull();
+    t.bar.cleared();
+    expect(t.last().suggestions).toHaveLength(2);
+    // With no message from someone else to answer, emptying the box only takes Undo away.
+    const quiet = harness();
+    await quiet.bar.polish('polish');
+    quiet.bar.cleared();
+    expect(quiet.last()).toMatchObject({ suggestions: [], notice: null });
+    expect(quiet.timers).toEqual([]);
+  });
+
   it('does nothing while the box is empty with no rewrite to take back, or after a send', async () => {
     const t = harness();
     t.bar.arrived('m1');
