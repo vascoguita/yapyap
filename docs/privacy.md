@@ -28,8 +28,9 @@ browser. YapYap does not read, copy or upload them.
   `secrets.json`, never in the settings or the logs. Without a keychain,
   YapYap keeps nothing and asks each time.
 - **The AI assistant sends only what you ask it to, where you chose.** It
-  reads a chat only after you allow it there, and you can see exactly what
-  it sends first with **What is sent?**. Nothing is sent before
+  reads a chat only after you allow it there, and sends its latest
+  messages, with their times and senders' names but never a phone number,
+  only to suggest replies or rewrite your text. Nothing is sent before
   you choose a provider. With a model server on your computer, nothing
   leaves your computer. With Claude or OpenAI, what you ask about goes to
   `api.anthropic.com` or `api.openai.com` over HTTPS, with your own key;

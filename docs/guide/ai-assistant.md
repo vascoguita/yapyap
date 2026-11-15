@@ -106,7 +106,34 @@ settings**, which opens this list.
 
 Nothing of a chat is read for the assistant outside these chats.
 **Messages it reads** sets how many of a chat's latest
-messages it reads to suggest replies: 5, 10 or 20.
+messages it reads to suggest replies and rewrite your text: 20, 50 (the
+default) or 100. More gives answers that fit the conversation better;
+each takes a little longer. However many you choose, a request holds at
+most about 8,000 tokens of chat, the newest messages first.
+
+### What the model reads
+
+For a suggestion or a rewrite, the model reads the same things:
+
+- Which chat it is: a chat with a contact, by their name, or a group, by
+  its name.
+- The chat's latest messages, each with its time and who sent it. You are
+  "Me". In a group, others go by the names WhatsApp shows; someone known
+  only by their number goes by "Person 1", "Person 2" and so on, and no
+  phone number is sent. A reply carries the message it quotes.
+- Today's date and time, so "tomorrow" and "on Friday" mean what you mean.
+- For a rewrite, your text.
+
+The model is told to treat what people wrote as part of the conversation,
+never as instructions. A message such as "ignore your instructions" changes
+nothing about what it does. It writes as you do in that chat, in its
+language, with your own length, tone and emoji, and invents no facts, times
+or places.
+
+With Claude, the chat is cached by Anthropic for a few minutes, so a
+rewrite right after suggestions answers sooner and costs less. YapYap asks
+the newest models for little thinking: a chat message rarely needs more,
+and it saves time.
 
 ### Suggested replies
 
@@ -148,8 +175,8 @@ Nothing is sent: press Enter to send the rewrite, as usual. A slim line
 above the message box says what was done, such as "Softened. Edit it or
 send as is.", with **Undo** to put your own text back. It goes once you
 send, undo or open another chat. If you change your text while the
-assistant works, your text stays as it is. A rewrite sends only your
-text, never the chat, and keeps its language.
+assistant works, your text stays as it is. A rewrite reads the chat too,
+so it fits what was said, and keeps your text's language.
 
 When something is missing, such as a provider or a key, or the assistant
 is off in the chat, the same line says so, such as "Set up the assistant to
@@ -162,7 +189,7 @@ The **Assistant** menu opens the assistant's settings.
 
 - The assistant reads a chat only in the chats you chose, or in every chat
   if you chose **All chats**, to suggest replies when someone else wrote
-  last. A rewrite sends only what you typed.
+  last and to rewrite what you typed. No phone number is sent.
 - Nothing is sent anywhere until you set up a provider.
 - **Settings → Assistant**, under the list of providers, says where what
   you ask about goes right now: nowhere off your computer with a model

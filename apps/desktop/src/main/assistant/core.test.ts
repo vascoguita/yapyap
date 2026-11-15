@@ -6,7 +6,7 @@ const SETTINGS = {
   provider: 'server',
   model: 'auto',
   autoSuggest: true,
-  messages: '10',
+  messages: '50',
   server: 'http://localhost:11434/v1',
 } as const;
 
@@ -56,11 +56,23 @@ describe('assistantCore', () => {
       key: '',
       endpoint: SETTINGS.server,
     } as const;
-    await expect(core.ask(setup, 'Rewrite warmly', 'Running late')).resolves.toBe('Hi there');
+    const prompt = {
+      instructions: 'Rewrite warmly',
+      context: '<chat></chat>',
+      task: 'Running late',
+    };
+    await expect(core.ask(setup, prompt)).resolves.toBe('Hi there');
     const body = JSON.parse(fetch.mock.calls[0]?.[1]?.body as string) as { messages: unknown };
     expect(body.messages).toEqual([
       { role: 'system', content: 'Rewrite warmly' },
-      { role: 'user', content: 'Running late' },
+      { role: 'user', content: '<chat></chat>\n\nRunning late' },
     ]);
+    // A request called off before it is sent never reaches the model.
+    const controller = new AbortController();
+    controller.abort();
+    await expect(core.ask(setup, prompt, controller.signal)).rejects.toMatchObject({
+      kind: 'cancelled',
+    });
+    expect(fetch).toHaveBeenCalledOnce();
   });
 });

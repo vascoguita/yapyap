@@ -65,7 +65,7 @@ test('suggests replies when a message arrives, only in a chat the user added in 
   }).toPass({ timeout: 15_000 });
   const asked = await claudeRequests(app);
   expect(asked).toHaveLength(1);
-  expect(asked[0]).toContain('Them: Dinner at 8 still?');
+  expect(asked[0]).toContain('[20:05, 24/10/2026] Test Chat One: Dinner at 8 still?');
   expect(asked[0]).toContain('"model":"claude-haiku-5-5"');
   // WhatsApp's page cannot read the suggestions.
   expect(await window.evaluate(() => document.body.innerText)).not.toContain('Can we do 9?');
@@ -138,8 +138,11 @@ test('rewrites the draft in place from the message box, puts it back on Undo, an
     expect(await barNotice(app)).toBe('Polished. Edit it or send as is.');
   }).toPass();
   const asked = await claudeRequests(app);
-  expect(asked[0]).toContain('spelling, grammar and flow');
-  expect(asked[0]).toContain('running late');
+  expect(asked[0]).toContain('fix its spelling, grammar and punctuation');
+  expect(asked[0]).toContain('<draft>\\nrunning late\\n</draft>');
+  // The rewrite reads the chat it answers, and the chat is cached for the next request.
+  expect(asked[0]).toContain('[19:58, 24/10/2026] Test Chat One: Dinner tonight?');
+  expect(asked[0]).toContain('"cache_control":{"type":"ephemeral"}');
   await clickInBar(app, window, 'Undo');
   await expect(composer).toHaveText('running late');
   await expect(async () => {
@@ -245,7 +248,7 @@ test('finds the model server on this computer, and suggests replies with it', as
       expect(await barNames(app)).toContain('Can we do 9?');
     }).toPass({ timeout: 15_000 });
     expect(server.chats).toHaveLength(1);
-    expect(server.chats[0]).toContain('Them: Are we still on?');
+    expect(server.chats[0]).toContain('[20:05, 24/10/2026] Test Chat One: Are we still on?');
     expect(server.chats[0]).toContain('"model":"tiny-e2e"');
   } finally {
     await closeApp(app);

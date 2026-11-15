@@ -33,6 +33,15 @@ function lengthLimit(compatible: boolean) {
     : { max_completion_tokens: MAX_OUTPUT_TOKENS };
 }
 
+/**
+ * OpenAI's reasoning models think before they answer; a chat message needs
+ * little of it. Other models, and servers, refuse the setting.
+ */
+const REASONS = /^(?:o\d|gpt-5)/;
+
+const effortFor = (model: string, compatible: boolean) =>
+  !compatible && REASONS.test(model) ? { reasoning_effort: 'low' as const } : {};
+
 /** The streamed pieces, passed on as they come, and why the stream ended. */
 async function collect(
   stream: AsyncIterable<OpenAI.ChatCompletionChunk>,
@@ -63,9 +72,12 @@ async function streamReply(
       model: settings.model,
       stream: true,
       ...lengthLimit(settings.baseURL !== undefined),
+      ...effortFor(settings.model, settings.baseURL !== undefined),
+      // The chat comes before the task, so the cached start of a request is
+      // as long as it can be: OpenAI and many servers cache by prefix.
       messages: [
         { role: 'system', content: request.instructions },
-        ...request.turns.map(({ role, text: content }) => ({ role, content })),
+        { role: 'user', content: `${request.context}\n\n${request.task}` },
       ],
     },
     request.signal === undefined ? {} : { signal: request.signal },

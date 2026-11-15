@@ -406,7 +406,7 @@ describe('createChromeFeature', () => {
         'assistant.model': 'auto',
         'assistant.autoSuggest': true,
         'assistant.chats': 'chosen',
-        'assistant.messages': '10',
+        'assistant.messages': '50',
         'assistant.server': '',
         'agents.enabled': false,
         'appearance.theme': 'system',

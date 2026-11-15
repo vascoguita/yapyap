@@ -22,6 +22,32 @@ const FALLBACK_MODELS: ReadonlySet<string> = new Set([
 
 const FALLBACK_BETA = 'server-side-fallback-2026-07-01';
 
+/**
+ * Claude's models that take an effort level: Fable and Mythos, and Opus,
+ * Sonnet and Haiku from their 5 versions. Older ones, such as Haiku 4.5,
+ * refuse the request when it names one.
+ */
+const TAKES_EFFORT = /^claude-(?:fable|mythos|(?:opus|sonnet|haiku)-[5-9])/;
+
+/**
+ * A short chat message needs little thought, and the newest models think
+ * at length unless told otherwise, which only makes the user wait.
+ */
+const effortFor = (model: string) =>
+  TAKES_EFFORT.test(model) ? { output_config: { effort: 'low' as const } } : {};
+
+/**
+ * The chat, marked for caching, then the task: a rewrite after suggestions,
+ * or suggestions for the next message, reads the chat from the cache.
+ */
+const userTurn = ({ context, task }: CompletionRequest) => ({
+  role: 'user' as const,
+  content: [
+    { type: 'text' as const, text: context, cache_control: { type: 'ephemeral' as const } },
+    { type: 'text' as const, text: task },
+  ],
+});
+
 export interface AnthropicSettings {
   readonly apiKey: string;
   readonly model: string;
@@ -45,7 +71,8 @@ async function streamReply(
       model,
       max_tokens: MAX_OUTPUT_TOKENS,
       system: request.instructions,
-      messages: request.turns.map(({ role, text: content }) => ({ role, content })),
+      messages: [userTurn(request)],
+      ...effortFor(model),
       ...fallbacks,
     },
     request.signal === undefined ? {} : { signal: request.signal },

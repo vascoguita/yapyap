@@ -75,6 +75,9 @@ export const later = (ms: number, run: () => void): (() => void) => {
   };
 };
 
+/** The time now, as the bar tells the model. */
+export const clock = (): Date => new Date();
+
 /** Where the bar's view goes once the accounts are open. */
 interface ViewSlot {
   current?: AssistantBarView;
@@ -95,6 +98,7 @@ function barOf(
     after: later,
     show: (visible) => view.current?.show(visible),
     publish: (state) => view.current?.publish(state),
+    now: clock,
   });
 }
 

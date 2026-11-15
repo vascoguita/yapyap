@@ -1,7 +1,7 @@
 import type { SettingsService } from '../settings/service.ts';
 import type { AssistantKeys } from './keys.ts';
 import type { modelsOf } from './models.ts';
-import { requestFor } from './replies.ts';
+import type { Prompt } from './prompts.ts';
 import { currentSetup, providerFor, type Setup } from './setup.ts';
 
 export interface CoreDependencies {
@@ -16,16 +16,8 @@ export interface CoreDependencies {
 /** What every part of the assistant asks of its setup and its model. */
 export interface AssistantCore {
   readonly setup: () => Promise<Setup>;
-  /**
-   * The model's answer to `instructions` about `text`, which is exactly
-   * what is sent. Nothing about it is logged.
-   */
-  readonly ask: (
-    setup: Setup,
-    instructions: string,
-    text: string,
-    signal?: AbortSignal,
-  ) => Promise<string>;
+  /** The model's answer to `prompt`, which is exactly what is sent. Nothing about it is logged. */
+  readonly ask: (setup: Setup, prompt: Prompt, signal?: AbortSignal) => Promise<string>;
 }
 
 /** The assistant's setup and its model, from the settings and the keys. */
@@ -40,10 +32,10 @@ export function assistantCore(deps: CoreDependencies): AssistantCore {
       const settings = deps.settings.current().assistant;
       return currentSetup({ settings, keys }, deps.list, deps.fetch);
     },
-    ask: async (setup, instructions, text, signal) => {
+    ask: async (setup, prompt, signal) => {
       const provider = providerFor(setup, deps.fetch);
       const completion = await provider.complete(
-        requestFor(instructions, text, signal),
+        signal === undefined ? prompt : { ...prompt, signal },
         () => undefined,
       );
       return completion.text;

@@ -164,7 +164,11 @@ export interface Messages {
         readonly messages: {
           readonly label: string;
           readonly description: string;
-          readonly options: { readonly '5': string; readonly '10': string; readonly '20': string };
+          readonly options: {
+            readonly '20': string;
+            readonly '50': string;
+            readonly '100': string;
+          };
         };
         readonly server: { readonly label: string; readonly description: string };
       };

@@ -42,10 +42,8 @@ const streamed = (body: string) => () =>
 
 const REQUEST = {
   instructions: 'Rewrite this more warmly.',
-  turns: [
-    { role: 'user' as const, text: 'Running late.' },
-    { role: 'assistant' as const, text: 'No worries!' },
-  ],
+  context: '<chat>\nAna: Where are you?\n</chat>',
+  task: '<draft>\nRunning late.\n</draft>',
 };
 
 describe('openAIProvider', () => {
@@ -67,10 +65,27 @@ describe('openAIProvider', () => {
       max_completion_tokens: 4096,
       messages: [
         { role: 'system', content: 'Rewrite this more warmly.' },
-        { role: 'user', content: 'Running late.' },
-        { role: 'assistant', content: 'No worries!' },
+        // The chat first and the task last, so the cached start is as long as it can be.
+        {
+          role: 'user',
+          content: '<chat>\nAna: Where are you?\n</chat>\n\n<draft>\nRunning late.\n</draft>',
+        },
       ],
     });
+  });
+
+  it.each([
+    ['o4-mini', true],
+    ['gpt-5-mini', true],
+    ['gpt-4.1-mini', false],
+  ])('asks %s for little reasoning only if it reasons: %s', async (model, reasons) => {
+    const fake = fakeFetch(streamed(reply(['Hi'])));
+    await openAIProvider({ apiKey: 'k', model, fetch: fake.fetch }).complete(REQUEST, vi.fn());
+    if (reasons) {
+      expect(fake.requests[0]?.body).toMatchObject({ reasoning_effort: 'low' });
+    } else {
+      expect(fake.requests[0]?.body).not.toHaveProperty('reasoning_effort');
+    }
   });
 
   it('talks to a compatible server at its own address, with the older length limit', async () => {
@@ -85,6 +100,17 @@ describe('openAIProvider', () => {
     expect(request?.url).toBe('https://llm.example.org/v1/chat/completions');
     expect(request?.body).toMatchObject({ max_tokens: 4096 });
     expect(request?.body).not.toHaveProperty('max_completion_tokens');
+  });
+
+  it('asks a compatible server for no reasoning effort, which many refuse', async () => {
+    const fake = fakeFetch(streamed(reply(['Hi'])));
+    await openAIProvider({
+      apiKey: 'local',
+      model: 'gpt-5-oss',
+      baseURL: 'https://llm.example.org/v1',
+      fetch: fake.fetch,
+    }).complete(REQUEST, vi.fn());
+    expect(fake.requests[0]?.body).not.toHaveProperty('reasoning_effort');
   });
 
   it('says when the reply was cut short, and fails a filtered one', async () => {

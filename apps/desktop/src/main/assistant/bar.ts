@@ -6,12 +6,12 @@ import { problemWords, setupWords, type Words } from './bar-words.ts';
 import type { AllowedChats } from './chats.ts';
 import type { AssistantCore } from './core.ts';
 import { ProviderError } from './providers/provider.ts';
-import { INSTRUCTIONS, suggestionsIn, transcriptOf } from './replies.ts';
+import { suggestionsIn, suggestPrompt } from './replies.ts';
 import {
   cleanRewrite,
   isPolishStyle,
   POLISH_STYLES,
-  rewriteInstructions,
+  rewritePrompt,
   type PolishStyle,
 } from './rewrites.ts';
 import type { Setup } from './setup.ts';
@@ -39,6 +39,8 @@ export interface BarDependencies {
   readonly show: (visible: boolean) => void;
   /** Sends the state to the page. */
   readonly publish: (state: AssistantBarState) => void;
+  /** The time now, which the model is told so it knows what "tomorrow" means. */
+  readonly now: () => Date;
 }
 
 /** What the assistant holds between clicks. */
@@ -156,11 +158,19 @@ async function putInPlace(
   }
 }
 
+/** What a rewrite works on: the draft, and the chat it answers. */
+interface DraftInChat {
+  readonly draft: string;
+  readonly chat: string;
+  readonly read: ReadChat;
+}
+
+/** How many of the open chat's latest messages the user lets the assistant read. */
+const messagesToRead = (bar: BarContext): number => Number(assistantSettings(bar).messages);
+
 /** The draft to rewrite in the open chat, if there is one and the assistant may work there. */
-async function draftToRewrite(
-  bar: BarContext,
-): Promise<{ readonly draft: string; readonly chat: string } | undefined> {
-  const chat = await bar.deps.accounts.readActiveChat(1);
+async function draftToRewrite(bar: BarContext): Promise<DraftInChat | undefined> {
+  const chat = await bar.deps.accounts.readActiveChat(messagesToRead(bar));
   if (chat === null) {
     return undefined;
   }
@@ -171,7 +181,7 @@ async function draftToRewrite(
     return undefined;
   }
   const draft = await bar.deps.accounts.readDraft();
-  return draft === null || draft.trim() === '' ? undefined : { draft, chat: chat.name };
+  return draft === null || draft.trim() === '' ? undefined : { draft, chat: chat.name, read: chat };
 }
 
 /** Rewrites the draft in `style` and puts the rewrite in its place; it never sends it. */
@@ -184,7 +194,10 @@ async function rewrite(bar: BarContext, style: PolishStyle): Promise<void> {
   update(bar, { working: true, notice: null });
   let answer: string;
   try {
-    answer = await bar.deps.core.ask(setup, rewriteInstructions(style), found.draft);
+    answer = await bar.deps.core.ask(
+      setup,
+      rewritePrompt(style, found.draft, found.read, bar.deps.now()),
+    );
   } catch (error) {
     update(bar, { working: false });
     failed(bar, setup, error);
@@ -275,7 +288,7 @@ function dismiss(bar: BarContext, message: string | null): void {
 
 /** The open chat, if the user wants suggestions there and its last message is someone else's. */
 async function chatToAnswer(bar: BarContext): Promise<ReadChat | undefined> {
-  const chat = await bar.deps.accounts.readActiveChat(Number(assistantSettings(bar).messages));
+  const chat = await bar.deps.accounts.readActiveChat(messagesToRead(bar));
   const theirs = chat?.messages.at(-1)?.outgoing === false;
   return chat !== null && theirs && mayRead(bar, chat.name) ? chat : undefined;
 }
@@ -289,8 +302,7 @@ async function makeSuggestions(bar: BarContext, message: string, signal: AbortSi
   if (chat === undefined || signal.aborted) {
     return;
   }
-  const transcript = transcriptOf(chat, Number(assistantSettings(bar).messages));
-  const answer = await bar.deps.core.ask(setup, INSTRUCTIONS, transcript, signal);
+  const answer = await bar.deps.core.ask(setup, suggestPrompt(chat, bar.deps.now()), signal);
   // A newer message or another chat may have called the request off while the model answered.
   if (isAborted(signal)) {
     return;

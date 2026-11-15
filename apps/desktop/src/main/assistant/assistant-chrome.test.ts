@@ -3,6 +3,7 @@ import type { Settings } from '../settings/schema.ts';
 import {
   barAccounts,
   createAssistantChrome,
+  clock,
   later,
   type AssistantAccounts,
   type AssistantChromeDependencies,
@@ -15,7 +16,7 @@ const SETTINGS = {
     model: 'auto',
     autoSuggest: true,
     chats: 'chosen',
-    messages: '10',
+    messages: '50',
     server: '',
   },
 } as unknown as Settings;
@@ -193,5 +194,14 @@ describe('barAccounts', () => {
     expect(await none.replaceDraft('x')).toBe(false);
     const nobody = barAccounts(() => ({ ...ACCOUNTS, entries: [] }));
     expect(nobody.active()).toBe('');
+  });
+});
+
+describe('clock', () => {
+  it('tells the time now', () => {
+    const before = Date.now();
+    const now = clock().getTime();
+    expect(now).toBeGreaterThanOrEqual(before);
+    expect(now).toBeLessThanOrEqual(Date.now());
   });
 });

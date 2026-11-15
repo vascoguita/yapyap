@@ -75,7 +75,8 @@ const failing = (status: number) => () =>
 
 const REQUEST = {
   instructions: 'Suggest a short reply.',
-  turns: [{ role: 'user' as const, text: 'Dinner tonight?' }],
+  context: '<chat>\nAna: Dinner tonight?\n</chat>',
+  task: 'Suggest replies.',
 };
 
 describe('anthropicProvider', () => {
@@ -102,7 +103,21 @@ describe('anthropicProvider', () => {
       max_tokens: 4096,
       stream: true,
       system: 'Suggest a short reply.',
-      messages: [{ role: 'user', content: 'Dinner tonight?' }],
+      // The chat is cached, so a rewrite after suggestions reads it from the cache.
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: '<chat>\nAna: Dinner tonight?\n</chat>',
+              cache_control: { type: 'ephemeral' },
+            },
+            { type: 'text', text: 'Suggest replies.' },
+          ],
+        },
+      ],
+      output_config: { effort: 'low' },
       fallbacks: 'default',
     });
     expect(request?.headers.get('anthropic-beta')).toContain('server-side-fallback-2026-07-01');
@@ -116,6 +131,24 @@ describe('anthropicProvider', () => {
       expect(fake.requests[0]?.body).toMatchObject({ model, fallbacks: 'default' });
     },
   );
+
+  it.each([
+    ['claude-haiku-5-5', true],
+    ['claude-sonnet-5', true],
+    ['claude-fable-5-2', true],
+    ['claude-mythos-5-2', true],
+    ['claude-haiku-4-5', false],
+    ['claude-sonnet-4-5', false],
+    ['claude-3-5-haiku', false],
+  ])('asks %s for little thinking only if it takes an effort level: %s', async (model, takes) => {
+    const fake = fakeFetch(streamed(reply(['Hi'])));
+    await anthropicProvider({ apiKey: 'k', model, fetch: fake.fetch }).complete(REQUEST, vi.fn());
+    if (takes) {
+      expect(fake.requests[0]?.body).toMatchObject({ output_config: { effort: 'low' } });
+    } else {
+      expect(fake.requests[0]?.body).not.toHaveProperty('output_config');
+    }
+  });
 
   it('asks no fallbacks of a model that does not take them', async () => {
     const fake = fakeFetch(streamed(reply(['Hi'])));

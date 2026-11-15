@@ -1,14 +1,15 @@
-/** One turn of the conversation a provider continues. */
-interface Turn {
-  readonly role: 'user' | 'assistant';
-  readonly text: string;
-}
-
-/** What the assistant asks a model for. */
+/**
+ * What the assistant asks a model for, in the order it is sent: what stays
+ * the same for every request first, so providers can keep it cached and
+ * answer sooner, and what changes each time last.
+ */
 export interface CompletionRequest {
-  /** How the model should behave, such as "Suggest three short replies". */
+  /** How the model should behave; the same for every request. */
   readonly instructions: string;
-  readonly turns: readonly Turn[];
+  /** The chat the task is about, the same for every task in it until a message arrives. */
+  readonly context: string;
+  /** What to do now, such as suggesting replies or rewriting the draft. */
+  readonly task: string;
   /** Stops the request, as when the user closes the panel. */
   readonly signal?: AbortSignal;
 }

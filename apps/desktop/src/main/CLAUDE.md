@@ -60,6 +60,12 @@ These add to the repository's root `CLAUDE.md`, which applies here too.
   box, and works only in the chats `assistant.chats` lets it (#616). Its UI
   text, including the bar's and the rewrite button's, lives in `en.json`
   under `assistant`.
+- Every assistant request is `INSTRUCTIONS`, then `chatContext(chat)`,
+  then the task (`assistant/prompts.ts`, #629). Keep the first two
+  byte-identical across requests in a chat: Claude caches them, and
+  anything that changes each time, such as the time now or the draft,
+  goes in the task. Text people wrote passes through `defused` so it
+  cannot close the `<chat>` or `<draft>` tags.
 - YapYap listens on no port but the MCP server's (ADR 0019):
   `src/main/agents/listener.ts`, on `127.0.0.1`, only while **Let AI
   agents connect** is on. `no-endpoint.test.ts` fails if any other file
