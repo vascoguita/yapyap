@@ -130,8 +130,9 @@ nothing about what it does. It writes as you do in that chat, in its
 language, with your own length, tone and emoji, and invents no facts, times
 or places.
 
-With Claude, the chat is cached by Anthropic for a few minutes, so a
-rewrite right after suggestions answers sooner and costs less. YapYap asks
+With Claude, the instructions and the chat are cached by Anthropic for a
+few minutes, so a rewrite right after suggestions, or another way of
+rewriting the same text, answers sooner and costs less. YapYap asks
 the newest models for little thinking: a chat message rarely needs more,
 and it saves time.
 
@@ -139,12 +140,15 @@ and it saves time.
 
 When the last message in the open chat is someone else's, up to three
 short replies appear right above the message box, in the chat's
-language:
+language. They are real choices, such as yes, not now, and a question
+back, written the way you write in that chat. Where an answer needs
+something only you know, such as whether you are free, they work without
+it rather than guess:
 
 - Click one to put it in the message box, where you can edit it before
   you send it. A suggestion never sends itself.
 - They go as soon as you start typing your own reply, and come back if
-  you clear it.
+  you clear it, even after a rewrite.
 - **×** dismisses them until the next message arrives.
 - A chat that needs no reply, such as one that ends in a link or a
   sticker, gets none.
@@ -161,13 +165,21 @@ it, just left of the microphone. It shows the way it rewrites, such as
 **Polish**, and rewrites your text right where it is:
 
 - Click it to rewrite your text that way.
-- Its arrow opens the menu, upwards: **Polish** fixes grammar and flow and
-  keeps your meaning, **Shorten** says the same in fewer words,
-  **Elaborate** adds detail or polite phrasing, **Soften** makes the tone
-  gentler and friendlier, and **Formalize** makes it more professional.
-  The way you pick rewrites your text at once, and the button keeps it
-  until YapYap restarts. The arrow keys move through the menu, and Esc
-  closes it.
+- Its arrow opens the menu, upwards:
+  - **Polish** fixes spelling, grammar, punctuation and accents, and
+    changes nothing else: your words, slang and tone stay, and text that
+    is already right comes back as it is.
+  - **Shorten** says the same in about half the words, keeping every
+    point and question.
+  - **Elaborate** makes it fuller and clearer, spelling out what the chat
+    makes obvious, such as which dinner "it" is, with no made-up details.
+  - **Soften** makes it gentler and friendlier at about the same length:
+    requests instead of demands, no blame or sarcasm, and a no stays a no.
+  - **Formalize** makes it polite and professional, without slang or
+    emoji, and still a chat message rather than an email.
+    The way you pick rewrites your text at once, and the button keeps it
+    until YapYap restarts. The arrow keys move through the menu, and Esc
+    closes it.
 - **Assistant settings**, at the bottom of the menu, names the model in
   use and opens Settings at the assistant.
 

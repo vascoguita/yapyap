@@ -11,31 +11,25 @@ import {
 const NOW = new Date(2026, 10, 15, 14, 3);
 
 describe('rewriteTask', () => {
-  it('asks for the draft in the chosen style, as the next message of the chat', () => {
-    expect(rewriteTask('polish', 'x', NOW)).toContain('fix its spelling, grammar and punctuation');
-    expect(rewriteTask('polish', 'x', NOW)).toContain('changing no more than it needs');
-    expect(rewriteTask('shorten', 'x', NOW)).toContain('the same in fewer words');
-    expect(rewriteTask('elaborate', 'x', NOW)).toContain(
-      'adding no facts that neither it nor the chat gives',
-    );
-    expect(rewriteTask('formalize', 'x', NOW)).toContain('rather than an email');
+  it('asks for the draft the chosen way, as the next message of the chat', () => {
+    const ways = {
+      polish: 'Polish',
+      shorten: 'Shorten',
+      elaborate: 'Elaborate',
+      soften: 'Soften',
+      formalize: 'Formalize',
+    };
     for (const style of POLISH_STYLES) {
       const task = rewriteTask(style, 'running late sry', NOW);
       expect(task).toMatch(/^It is now Sunday, 15 November 2026 at 14:03/);
+      expect(task).toContain(
+        `Rewrite my draft below the ${ways[style]} way, as "Rewriting the draft" describes it.`,
+      );
       expect(task).toContain('It is the next message I will send in this chat');
-      expect(task).toContain('Keep every fact, question, time, place, name and promise');
-      expect(task).toContain('Write it in the language the draft is in.');
       expect(task).toContain(
         '<draft>\nrunning late sry\n</draft>\nAnswer with the rewritten message only.',
       );
     }
-  });
-
-  it('softens a draft without making it longer or adding emoji', () => {
-    const soften = rewriteTask('soften', 'x', NOW);
-    expect(soften).toContain('gentler and friendlier');
-    expect(soften).toContain('about as long as it is');
-    expect(soften).toContain('no emoji it does not already have');
   });
 
   it('keeps a draft from closing its own tags', () => {
@@ -74,5 +68,6 @@ describe('cleanRewrite', () => {
   it('takes the quotes off a rewrite', () => {
     expect(cleanRewrite('  “See you at 8!” ')).toBe('See you at 8!');
     expect(cleanRewrite("'ok'")).toBe('ok');
+    expect(cleanRewrite('<draft>\nSee you at 8!\n</draft>')).toBe('See you at 8!');
   });
 });

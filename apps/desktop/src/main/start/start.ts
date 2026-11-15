@@ -582,6 +582,7 @@ function attachAssistantBar<Window extends WindowPort>(
       opened: bar.opened,
       arrived: bar.arrived,
       sent: bar.sent,
+      cleared: bar.cleared,
       every: setInterval,
     });
     return inPageAssistantBar(bar.state, { activePage, onScreen });

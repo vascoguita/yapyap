@@ -259,6 +259,8 @@ export function buildAssistantBar(
     },
   };
   doc.addEventListener('input', store.sync, true);
+  // WhatsApp's editor deletes without an `input` event, so a key let go looks again.
+  doc.addEventListener('keyup', store.sync, true);
   return store;
 }
 

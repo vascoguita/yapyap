@@ -96,11 +96,11 @@ describe('inPageAssistantBar', () => {
       working: true,
       current: 'soften',
       options: [
-        { value: 'polish', label: 'Polish', hint: 'Fix grammar and flow, keep your meaning' },
+        { value: 'polish', label: 'Polish', hint: 'Fix mistakes, keep your words' },
         { value: 'shorten', label: 'Shorten', hint: 'Same message, fewer words' },
-        { value: 'elaborate', label: 'Elaborate', hint: 'Add detail or polite phrasing' },
+        { value: 'elaborate', label: 'Elaborate', hint: 'Fuller and clearer, from the chat' },
         { value: 'soften', label: 'Soften', hint: 'Gentler, friendlier tone' },
-        { value: 'formalize', label: 'Formalize', hint: 'More professional tone' },
+        { value: 'formalize', label: 'Formalize', hint: 'Polite and professional' },
       ],
       labels: {
         label: 'Rewrite with AI',

@@ -264,6 +264,8 @@ export function buildComposerTool(
   kit.wire(store, scope, kit);
   kit.keys(store);
   doc.addEventListener('input', sync, true);
+  // WhatsApp's editor deletes without an `input` event, so a key let go looks again.
+  doc.addEventListener('keyup', sync, true);
   return store;
 }
 

@@ -322,8 +322,10 @@ describe('renderAssistantBar', () => {
     const t = setup();
     t.render();
     t.render(UNDO);
-    expect(listen).toHaveBeenCalledOnce();
+    // Typing, and a key let go, which is all a deletion in WhatsApp's editor gives.
+    expect(listen).toHaveBeenCalledTimes(2);
     expect(listen).toHaveBeenCalledWith('input', expect.any(Function), true);
+    expect(listen).toHaveBeenCalledWith('keyup', expect.any(Function), true);
   });
 
   it('changes nothing when nothing changed, and updates in place when something did', () => {

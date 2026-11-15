@@ -446,6 +446,58 @@ describe('createAssistantBar: suggested replies', () => {
     expect(t.last().suggestions).toEqual([]);
   });
 
+  it('takes a rewrite’s Undo away and brings the suggestions back once the user empties the box', async () => {
+    const t = harness('Yes, 9 works!\nCan we do 8?');
+    t.bar.arrived('m1');
+    await t.settle();
+    expect(t.last().suggestions).toHaveLength(2);
+    await t.bar.polish('polish');
+    expect(t.last()).toMatchObject({ suggestions: [], notice: { button: { id: 'undo' } } });
+    t.bar.cleared();
+    // The suggestions made for the message come back without asking the model again.
+    expect(t.last()).toMatchObject({
+      suggestions: ['Yes, 9 works!', 'Can we do 8?'],
+      notice: null,
+    });
+    expect(t.deps.core.ask).toHaveBeenCalledTimes(2);
+    // Undo has nothing left to put back.
+    await t.bar.button('undo');
+    expect(t.deps.accounts.replaceDraft).toHaveBeenCalledOnce();
+    // The box stays empty: the suggestions stay, and nothing is asked again.
+    t.bar.cleared();
+    expect(t.last().suggestions).toHaveLength(2);
+    expect(t.deps.core.ask).toHaveBeenCalledTimes(2);
+  });
+
+  it('does nothing while the box is empty with no rewrite to take back, or after a send', async () => {
+    const t = harness();
+    t.bar.arrived('m1');
+    await t.settle();
+    const shown = t.states.length;
+    t.bar.cleared();
+    expect(t.states).toHaveLength(shown);
+    await t.bar.polish('polish');
+    t.bar.sent();
+    t.bar.cleared();
+    expect(t.last()).toMatchObject({ suggestions: [], notice: null });
+    await t.bar.polish('polish');
+    t.bar.opened(null);
+    t.bar.cleared();
+    expect(t.last()).toMatchObject({ suggestions: [], notice: null });
+  });
+
+  it('keeps any other notice when the box is emptied, and suggests nothing with no message to answer', async () => {
+    const t = harness();
+    t.setSetup({ ...READY, missing: 'key' });
+    await t.bar.polish('polish');
+    const notice = t.last().notice;
+    expect(notice).not.toBeNull();
+    t.bar.cleared();
+    expect(t.last().notice).toEqual(notice);
+    expect(t.deps.core.ask).not.toHaveBeenCalled();
+    expect(t.timers).toEqual([]);
+  });
+
   it('remembers only the latest messages’ suggestions', async () => {
     const t = harness();
     for (let index = 0; index <= 20; index++) {

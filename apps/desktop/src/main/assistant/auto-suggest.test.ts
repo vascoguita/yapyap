@@ -14,7 +14,7 @@ function fakePage(first: unknown) {
   };
 }
 
-function setup(first: unknown = 'aaaaaaaa:00000001:-:i') {
+function setup(first: unknown = 'aaaaaaaa:00000001:-:i:e') {
   let page = fakePage(first);
   let enabled = true;
   let onScreen = true;
@@ -27,6 +27,7 @@ function setup(first: unknown = 'aaaaaaaa:00000001:-:i') {
     opened: vi.fn(),
     arrived: vi.fn(),
     sent: vi.fn(),
+    cleared: vi.fn(),
     every: vi.fn((callback: () => void) => {
       tick = callback;
     }),
@@ -70,7 +71,7 @@ describe('followOpenChat', () => {
     expect(t.deps.found).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000001');
     await t.look();
     expect(t.deps.arrived).not.toHaveBeenCalled();
-    t.page().set('aaaaaaaa:00000002:-:i');
+    t.page().set('aaaaaaaa:00000002:-:i:e');
     await t.look();
     expect(t.deps.arrived).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000002');
     expect(t.deps.opened).not.toHaveBeenCalled();
@@ -78,25 +79,41 @@ describe('followOpenChat', () => {
   });
 
   it('tells when the user sends a message, and asks nothing of a chat whose last message is theirs', async () => {
-    const t = setup('aaaaaaaa:00000001:-:i');
+    const t = setup('aaaaaaaa:00000001:-:i:e');
     await t.look();
-    t.page().set('aaaaaaaa:00000001:0000000f:o');
+    t.page().set('aaaaaaaa:00000001:0000000f:o:e');
     await t.look();
     expect(t.deps.sent).toHaveBeenCalledOnce();
-    t.page().set('aaaaaaaa:00000001:0000000e:o');
+    t.page().set('aaaaaaaa:00000001:0000000e:o:e');
     await t.look();
     expect(t.deps.sent).toHaveBeenCalledTimes(2);
     expect(t.deps.arrived).not.toHaveBeenCalled();
     // A message that arrived but is not the last, as when the user answered at once, asks nothing.
-    t.page().set('aaaaaaaa:00000002:0000000d:o');
+    t.page().set('aaaaaaaa:00000002:0000000d:o:e');
     await t.look();
     expect(t.deps.arrived).not.toHaveBeenCalled();
+  });
+
+  it('tells at every look that the message box is empty, but not when the user just sent what was in it', async () => {
+    const t = setup('aaaaaaaa:00000001:-:i:d');
+    await t.look();
+    await t.look();
+    expect(t.deps.cleared).not.toHaveBeenCalled();
+    t.page().set('aaaaaaaa:00000001:-:i:e');
+    await t.look();
+    await t.look();
+    expect(t.deps.cleared).toHaveBeenCalledTimes(2);
+    // Sending empties the box too, which is a send, not a clear.
+    t.page().set('aaaaaaaa:00000001:0000000f:o:e');
+    await t.look();
+    expect(t.deps.sent).toHaveBeenCalledOnce();
+    expect(t.deps.cleared).toHaveBeenCalledTimes(2);
   });
 
   it('tells another chat or account opened, naming its message only when it is theirs and last', async () => {
     const t = setup();
     await t.look();
-    t.page().set('bbbbbbbb:-:00000003:o');
+    t.page().set('bbbbbbbb:-:00000003:o:e');
     await t.look();
     expect(t.deps.opened).toHaveBeenLastCalledWith(null);
     t.page().set(null);
@@ -104,11 +121,11 @@ describe('followOpenChat', () => {
     expect(t.deps.opened).toHaveBeenCalledTimes(2);
     await t.look();
     expect(t.deps.opened).toHaveBeenCalledTimes(2);
-    const other = fakePage('bbbbbbbb:00000005:-:i');
+    const other = fakePage('bbbbbbbb:00000005:-:i:e');
     t.switchPage(other);
     await t.look();
     expect(t.deps.opened).toHaveBeenLastCalledWith('bbbbbbbb:00000005');
-    t.page().set('bbbbbbbb:-:-:-');
+    t.page().set('bbbbbbbb:-:-:-:e');
     await t.look();
     expect(t.deps.arrived).not.toHaveBeenCalled();
     expect(t.deps.sent).not.toHaveBeenCalled();
@@ -118,7 +135,7 @@ describe('followOpenChat', () => {
     const t = setup();
     await t.look();
     t.setOnScreen(false);
-    t.page().set('aaaaaaaa:00000002:-:i');
+    t.page().set('aaaaaaaa:00000002:-:i:e');
     expect(t.looked()).toBe(false);
     t.setOnScreen(true);
     await t.look();
@@ -141,7 +158,7 @@ describe('followOpenChat', () => {
     const t = setup(new Error('loading'));
     t.setOnScreen(false);
     await t.look();
-    t.page().set('aaaaaaaa:00000001:-:i');
+    t.page().set('aaaaaaaa:00000001:-:i:e');
     await t.look();
     expect(t.deps.found).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000001');
   });
@@ -179,7 +196,7 @@ describe('followOpenChat', () => {
     tick?.();
     tick?.();
     expect(t.page().executeJavaScriptInIsolatedWorld).toHaveBeenCalledOnce();
-    finish('aaaaaaaa:00000001:-:i');
+    finish('aaaaaaaa:00000001:-:i:e');
     // Once that look ends, the next tick looks again.
     await vi.waitFor(() => {
       tick?.();

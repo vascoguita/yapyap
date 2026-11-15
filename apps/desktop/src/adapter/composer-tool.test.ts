@@ -324,8 +324,10 @@ describe('renderComposerTool', () => {
     const t = setup();
     t.render();
     t.render({ ...CONTENT, working: true });
-    expect(listen).toHaveBeenCalledOnce();
+    // Typing, and a key let go, which is all a deletion in WhatsApp's editor gives.
+    expect(listen).toHaveBeenCalledTimes(2);
     expect(listen).toHaveBeenCalledWith('input', expect.any(Function), true);
+    expect(listen).toHaveBeenCalledWith('keyup', expect.any(Function), true);
   });
 
   it('puts the same button back when WhatsApp redraws the message box', () => {

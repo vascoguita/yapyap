@@ -488,3 +488,8 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   `assistant.messages` is `20`, `50` or `100`, 50 by default. Claude
   models that take it get `effort: low`; OpenAI reasoning models
   `reasoning_effort: low`.
+  The instructions describe suggestions and each rewrite way, so the
+  task only names the way and every way reads the same cache. The probe
+  in `adapter/incoming.ts` adds `d`/`e` for whether the message box holds a
+  draft; while it is empty, `cleared` drops a rewrite's Undo and brings the
+  suggestions back, once per rewrite (C50).

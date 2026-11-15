@@ -113,6 +113,40 @@ test('hides suggestions while the user types, and after Dismiss until the next m
   expect(await claudeRequests(app)).toHaveLength(2);
 });
 
+test('brings the suggestions back and drops Undo once the user empties a rewritten draft', async ({
+  app,
+  window,
+}) => {
+  await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
+  const settings = await readyClaude(app, CLAUDE_ANSWER, claudeAnswer('Sure, see you there!'));
+  await allowAllChats(settings);
+  await focusMain(app);
+  await messageArrives(window, '3EB0F7', 'Are we still on?');
+  await expect(async () => {
+    expect(await barNames(app)).toContain('See you there');
+  }).toPass({ timeout: 15_000 });
+  const composer = window.getByTestId('composer');
+  await composer.click();
+  await window.keyboard.type('sure c u');
+  await clickInTool(app, window, 'Polish');
+  await expect(composer).toHaveText('Sure, see you there!');
+  await expect(async () => {
+    expect(await barNotice(app)).toBe('Polished. Edit it or send as is.');
+  }).toPass();
+  // As the user clears the box, here at once, as select-all and Delete does.
+  await window.keyboard.press('ControlOrMeta+A');
+  await window.keyboard.press('Delete');
+  await expect(async () => {
+    expect(await barNotice(app)).toBeNull();
+    expect(await barNames(app)).toContain('See you there');
+  }).toPass({ timeout: 10_000 });
+  await expect(async () => {
+    expect(await toolNames(app)).toEqual([]);
+  }).toPass();
+  // The suggestions come back as they were, without asking again.
+  expect(await claudeRequests(app)).toHaveLength(2);
+});
+
 test('rewrites the draft in place from the message box, puts it back on Undo, and never sends', async ({
   app,
   window,
@@ -138,7 +172,7 @@ test('rewrites the draft in place from the message box, puts it back on Undo, an
     expect(await barNotice(app)).toBe('Polished. Edit it or send as is.');
   }).toPass();
   const asked = await claudeRequests(app);
-  expect(asked[0]).toContain('fix its spelling, grammar and punctuation');
+  expect(asked[0]).toContain('Rewrite my draft below the Polish way');
   expect(asked[0]).toContain('<draft>\\nrunning late\\n</draft>');
   // The rewrite reads the chat it answers, and the chat is cached for the next request.
   expect(asked[0]).toContain('[19:58, 24/10/2026] Test Chat One: Dinner tonight?');

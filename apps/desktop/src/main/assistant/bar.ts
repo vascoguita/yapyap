@@ -55,6 +55,8 @@ interface BarContext {
   blocked: boolean;
   /** A rewrite runs; another click waits for it. */
   busy: boolean;
+  /** A rewrite filled the message box, which took the suggestions away until it empties. */
+  rewritten: boolean;
   /** The suggestions being made, called off when a newer message or another chat makes them stale. */
   suggesting: AbortController | undefined;
   /** Suggestions made for recent messages, by message, so a chat opened again shows the same ones. */
@@ -153,6 +155,7 @@ async function putInPlace(
   if (await bar.deps.accounts.replaceDraft(rewritten)) {
     bar.kept = draft;
     bar.chat = chat;
+    bar.rewritten = true;
     const button = { id: 'undo' as const, label: text.bar.undo };
     update(bar, { suggestions: [], notice: { text: text.bar.done[style], button } });
   }
@@ -228,6 +231,7 @@ function forget(bar: BarContext): void {
   bar.chat = null;
   bar.kept = '';
   bar.blocked = false;
+  bar.rewritten = false;
   update(bar, { suggestions: [], notice: null });
 }
 
@@ -373,6 +377,8 @@ export interface AssistantBar {
   readonly arrived: (message: string) => void;
   /** The user sent a message in the open chat. */
   readonly sent: () => void;
+  /** The user emptied the open chat's message box without sending. */
+  readonly cleared: () => void;
 }
 
 /**
@@ -390,10 +396,30 @@ async function keepNotice(bar: BarContext): Promise<void> {
   }
 }
 
+/**
+ * The message box is empty. Once after a rewrite filled it, a rewrite's
+ * Undo has nothing left to put back over, and the suggestions for the
+ * newest message come back, as they do when the user clears what they
+ * typed (#629).
+ */
+function cleared(bar: BarContext, message: string | null): void {
+  if (!bar.rewritten) {
+    return;
+  }
+  bar.rewritten = false;
+  if (bar.state.notice?.button?.id === 'undo') {
+    bar.kept = '';
+    update(bar, { notice: null });
+  }
+  if (message !== null) {
+    void suggest(bar, message);
+  }
+}
+
 /** What the assistant does as the open chat changes, and with the suggestions' dismiss. */
 function followChat(
   bar: BarContext,
-): Pick<AssistantBar, 'dismiss' | 'found' | 'opened' | 'arrived' | 'sent'> {
+): Pick<AssistantBar, 'dismiss' | 'found' | 'opened' | 'arrived' | 'sent' | 'cleared'> {
   // The open chat's newest message from someone else, while it is the last one.
   let message: string | null = null;
   const follow = (newest: string | null): void => {
@@ -420,8 +446,12 @@ function followChat(
     },
     sent: () => {
       message = null;
+      bar.rewritten = false;
       bar.suggesting?.abort();
       update(bar, { suggestions: [], notice: null });
+    },
+    cleared: () => {
+      cleared(bar, message);
     },
   };
 }
@@ -440,6 +470,7 @@ export function createAssistantBar(deps: BarDependencies): AssistantBar {
     kept: '',
     blocked: false,
     busy: false,
+    rewritten: false,
     suggesting: undefined,
     made: new Map(),
   };
