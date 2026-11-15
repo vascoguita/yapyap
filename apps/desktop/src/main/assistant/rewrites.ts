@@ -49,10 +49,17 @@ export function rewritePrompt(
 
 /** A model's text without the quotes or draft tags it may put around it, as around a rewritten draft. */
 export function cleanRewrite(answer: string): string {
-  return answer
-    .trim()
-    .replace(/^<draft>\s*/i, '')
-    .replace(/\s*<\/draft>$/i, '')
+  return unwrapped(answer.trim())
     .replaceAll(/^["“”']|["“”']$/g, '')
     .trim();
+}
+
+const OPEN = '<draft>';
+const CLOSE = '</draft>';
+
+/** The text without the draft tags a model may echo around it. */
+function unwrapped(text: string): string {
+  const opened = text.toLowerCase().startsWith(OPEN) ? text.slice(OPEN.length) : text;
+  const inner = opened.trimEnd();
+  return (inner.toLowerCase().endsWith(CLOSE) ? inner.slice(0, -CLOSE.length) : inner).trim();
 }

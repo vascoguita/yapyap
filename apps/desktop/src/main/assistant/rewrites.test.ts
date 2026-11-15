@@ -69,5 +69,7 @@ describe('cleanRewrite', () => {
     expect(cleanRewrite('  “See you at 8!” ')).toBe('See you at 8!');
     expect(cleanRewrite("'ok'")).toBe('ok');
     expect(cleanRewrite('<draft>\nSee you at 8!\n</draft>')).toBe('See you at 8!');
+    expect(cleanRewrite('<DRAFT>“Ok” </Draft>')).toBe('Ok');
+    expect(cleanRewrite('See <draft> later')).toBe('See <draft> later');
   });
 });
