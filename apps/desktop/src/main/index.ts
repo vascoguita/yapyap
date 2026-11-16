@@ -56,7 +56,7 @@ import { recordTrace } from './crash/trace.ts';
 import trayIcon from '../../build/icons/32x32.png?asset';
 import { PRODUCT_NAME } from './identity/product.ts';
 import { createLogger } from './logging/logger.ts';
-import { logProcessErrors } from './app/process-errors.ts';
+import { describeError, logProcessErrors } from './app/process-errors.ts';
 import { pause } from './support/pause.ts';
 import { readInstallEvidence } from './updates/install-evidence.ts';
 import { releaseFetcher } from './updates/update-notice.ts';
@@ -73,7 +73,7 @@ import {
   explainUnsafeStartWithDialog,
   reviewCrashWithDialog,
 } from './dialogs/prompts.ts';
-import { startAppReporting } from './start/start.ts';
+import { startAppReporting } from './app/start.ts';
 import { findLocalModels, loopbackRequest, modelServerPorts } from './assistant/local-servers.ts';
 import { allowedChats } from './assistant/chats.ts';
 import { removeLeftovers } from './assistant/leftovers.ts';
@@ -438,7 +438,7 @@ void startAppReporting(
     },
   },
   (error) => {
-    logger.log('error', `Startup failed: ${String(error)}`);
+    logger.log('error', `Startup failed: ${describeError(error)}`);
     app.exit(1);
   },
 );

@@ -518,3 +518,8 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   **AI Assistant settings**, the Welcome step) and "the AI assistant" in
   running text, in `en.json` and the docs. Code identifiers, settings keys,
   file names and ADRs keep "assistant".
+- Main process layout (#649): `main/start/` moved into `main/app/`
+  (`start-types.ts` was `types.ts`). The About, recovery and diagnostics
+  code left `chrome/feature.ts` for `about/about-handlers.ts`,
+  `recovery/recovery-handlers.ts` and `crash/diagnostics.ts`, with
+  `page-state.ts` beside its user in `crash/`.

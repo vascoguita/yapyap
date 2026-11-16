@@ -5,8 +5,13 @@ export interface ErrorSource {
   ): unknown;
 }
 
-function describe(error: unknown): string {
-  return error instanceof Error ? (error.stack ?? error.message) : String(error);
+/** An error as the log shows it: its stack where it has one. */
+export function describeError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.stack ?? error.message;
+  }
+  // Any other value could carry what a chat said, so only its kind is logged.
+  return typeof error === 'string' ? error : Object.prototype.toString.call(error);
 }
 
 /**
@@ -16,9 +21,9 @@ function describe(error: unknown): string {
  */
 export function logProcessErrors(source: ErrorSource, log: (message: string) => void): void {
   source.on('uncaughtException', (error) => {
-    log(`Uncaught exception: ${describe(error)}`);
+    log(`Uncaught exception: ${describeError(error)}`);
   });
   source.on('unhandledRejection', (error) => {
-    log(`Unhandled rejection: ${describe(error)}`);
+    log(`Unhandled rejection: ${describeError(error)}`);
   });
 }
