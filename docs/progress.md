@@ -543,3 +543,5 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   `useEscapeToClose` in `renderer/shared/escape.ts`; `dirty` asks before
   losing a draft and `close` replaces closing (the picker cancels, Accounts
   asks through its own prompt). `mount()` no longer takes an Escape handler.
+- Contributors (#655): the README thanks Gianmaria Del Monte for the MCP
+  server, chats' pictures in notifications, and beta testing on Arch Linux.
