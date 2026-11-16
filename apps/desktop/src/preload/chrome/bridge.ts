@@ -71,6 +71,7 @@ function agentsBridge(invoke: Invoke): ChromeApi['agents'] {
 function accountsBridge(invoke: Invoke): ChromeApi['accounts'] {
   return {
     list: () => invoke(CHROME_CHANNELS.accountsList) as Promise<AccountList>,
+    add: () => invoke(CHROME_CHANNELS.accountsAdd) as Promise<AccountList>,
     save: (id, change) =>
       invoke(CHROME_CHANNELS.accountsSave, id, change) as Promise<AccountList | null>,
     remove: (id) => invoke(CHROME_CHANNELS.accountsRemove, id) as Promise<AccountList | null>,

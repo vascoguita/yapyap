@@ -179,16 +179,19 @@ YapYap can run several WhatsApp accounts side by side, such as a personal
 and a work number. Each one is linked separately and keeps its own login,
 cache and storage; nothing is shared between them.
 
-- **Account → Add Account** adds one and shows its QR code to link it.
+- **Account → Add Account**, or **Add Account** in the sidebar or the
+  Accounts window, adds one and shows its QR code to link it.
 - The **Account** menu lists your accounts; pick one, or press
   <kbd>Ctrl</kbd>+<kbd>1</kbd> to <kbd>Ctrl</kbd>+<kbd>9</kbd>
   (<kbd>⌘</kbd> on macOS) to switch by position. Switching never reloads an
   account.
 - With two or more accounts running, a sidebar on the left lists them with
   their unread chats, each with its WhatsApp profile photo, or its initial
-  until the photo loads; click one to switch. Its arrow button, or **Compact
-  account sidebar** in Settings → Appearance, shrinks it to avatars only.
-  Muted accounts show a crossed-out speaker instead of a count.
+  until the photo loads, ringed in the account's color; click one to
+  switch. Its arrow button, or **Compact account sidebar** in Settings →
+  Appearance, shrinks it to avatars only. Muted accounts show a
+  crossed-out bell instead of a count, and a moon at the bottom says Do
+  Not Disturb is on.
 - Every account keeps running in the background, so its messages keep
   arriving. The window title shows the account you see, and the unread count
   on YapYap's icon adds up all of them.

@@ -322,10 +322,10 @@ describe('createChromeFeature', () => {
     expect(lastOptions()).toEqual({
       autoHideMenuBar: true,
       title: 'Accounts',
-      width: 560,
-      height: 520,
+      width: 760,
+      height: 600,
       minWidth: 440,
-      minHeight: 360,
+      minHeight: 400,
       minimizable: false,
       maximizable: false,
       show: false,

@@ -12,6 +12,8 @@ import type { ChromeHandler } from '../ipc/chrome.ts';
 /** The accounts as the Accounts window manages them. */
 export interface AccountManager {
   readonly entries: readonly AccountSummary[];
+  /** Adds an account and shows it, as Account › Add Account does. */
+  readonly add: () => void;
   /** False when YapYap refused the change, such as turning off the last running account. */
   readonly update: (id: string, change: AccountChange) => boolean;
   readonly remove: (id: string) => Promise<boolean>;
@@ -92,6 +94,14 @@ export function accountsHandlers(
   const list = (): AccountList => ({ accounts: current()?.entries ?? [], colors: ACCOUNT_COLORS });
   return [
     { channel: CHROME_CHANNELS.accountsList, accepts: noArguments, handle: list },
+    {
+      channel: CHROME_CHANNELS.accountsAdd,
+      accepts: noArguments,
+      handle: () => {
+        current()?.add();
+        return list();
+      },
+    },
     {
       channel: CHROME_CHANNELS.accountsSave,
       accepts: argumentsOf(isString, (change) => parseChange(change) !== undefined),

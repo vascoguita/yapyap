@@ -407,10 +407,18 @@
     "title": "Accounts",
     "hint": "Each account uses one of WhatsApp’s linked-device slots for its number.",
     "listLabel": "Your accounts",
+    "addAccount": "Add Account",
+    "added": "Added {{name}}. To link it, open WhatsApp on your phone, go to Linked devices, and scan the code in the YapYap window.",
     "off": "Off",
     "shown": "On screen",
     "name": "Name",
     "color": "Color",
+    "groups": {
+      "identity": "Profile",
+      "activity": "Running and notifications",
+      "network": "Network",
+      "remove": "Remove"
+    },
     "colors": {
       "green": "Green",
       "blue": "Blue",
@@ -430,6 +438,7 @@
     "proxyInvalid": "Use http://, https:// or socks5://, then a host and a port, such as socks5://127.0.0.1:1080.",
     "save": "Save",
     "remove": "Remove Account…",
+    "removeLabel": "Remove this account",
     "refused": "At least one account must keep running, so this one cannot be turned off.",
     "removeRefused": "At least one account must keep running, so this one cannot be removed.",
     "failed": "Could not save the account. Try again.",
@@ -446,7 +455,8 @@
       "screenState": "Asks every time",
       "forget": "Ask Again for Camera and Microphone"
     },
-    "discard": "Discard your changes to this account?"
+    "discard": "Discard your changes to this account?",
+    "unsaved": "Unsaved changes"
   },
   "sidebar": {
     "label": "Accounts",
@@ -458,7 +468,8 @@
     "sharing": "Sharing",
     "stopSharing": "Stop sharing your screen in {{name}}",
     "full": "Show account names",
-    "doNotDisturb": "Do not disturb"
+    "doNotDisturb": "Do not disturb",
+    "addAccount": "Add Account"
   },
   "assistant": {
     "providerTitles": {

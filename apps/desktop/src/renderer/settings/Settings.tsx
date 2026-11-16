@@ -6,7 +6,7 @@ import { SETTING_FIELDS } from '../../shared/settings-fields.ts';
 import { AgentsSection } from './Agents.tsx';
 import { AssistantSection } from './Assistant.tsx';
 import { Field, Group, type Change } from './Field.tsx';
-import { Icon } from './icons.tsx';
+import { Icon } from '../shared/icons.tsx';
 import {
   BACKUP_PAGE,
   isDimmed,

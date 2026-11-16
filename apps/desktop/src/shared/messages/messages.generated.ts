@@ -317,10 +317,18 @@ export interface Messages {
     readonly title: string;
     readonly hint: string;
     readonly listLabel: string;
+    readonly addAccount: string;
+    readonly added: (params: { readonly name: string | number }) => string;
     readonly off: string;
     readonly shown: string;
     readonly name: string;
     readonly color: string;
+    readonly groups: {
+      readonly identity: string;
+      readonly activity: string;
+      readonly network: string;
+      readonly remove: string;
+    };
     readonly colors: {
       readonly green: string;
       readonly blue: string;
@@ -340,6 +348,7 @@ export interface Messages {
     readonly proxyInvalid: string;
     readonly save: string;
     readonly remove: string;
+    readonly removeLabel: string;
     readonly refused: string;
     readonly removeRefused: string;
     readonly failed: string;
@@ -357,6 +366,7 @@ export interface Messages {
       readonly forget: string;
     };
     readonly discard: string;
+    readonly unsaved: string;
   };
   readonly sidebar: {
     readonly label: string;
@@ -368,6 +378,7 @@ export interface Messages {
     readonly stopSharing: (params: { readonly name: string | number }) => string;
     readonly full: string;
     readonly doNotDisturb: string;
+    readonly addAccount: string;
   };
   readonly assistant: {
     readonly providerTitles: {

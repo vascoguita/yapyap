@@ -142,10 +142,10 @@ const ACCOUNTS_PAGE: ChromePage = {
   path: 'accounts.html',
   window: {
     title: en.windows.accounts,
-    width: 560,
-    height: 520,
+    width: 760,
+    height: 600,
     minWidth: 440,
-    minHeight: 360,
+    minHeight: 400,
     minimizable: false,
     maximizable: false,
   },
@@ -300,7 +300,6 @@ export interface AccountMenu extends AccountManager {
   /** An account's WhatsApp as AI agents reach it (ADR 0019); undefined while it is off. */
   readonly agentPage: (id: string) => AgentPage | undefined;
   readonly switchTo: (id: string) => void;
-  readonly add: () => void;
   readonly privacyScreen: boolean;
   readonly togglePrivacyScreen: () => void;
 }

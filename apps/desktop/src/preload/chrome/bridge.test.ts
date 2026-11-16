@@ -60,6 +60,7 @@ describe('createChromeBridge', () => {
     expect(await api.agents.openChat('a')).toBe('ignored');
     await api.agents.copy('yapyap_mcp_x');
     expect(await api.accounts.list()).toBe('ignored');
+    expect(await api.accounts.add()).toBe('ignored');
     const change = { name: 'Work', color: 'blue', enabled: true, muted: false, proxy: '' };
     expect(await api.accounts.save('a', change)).toBe('ignored');
     expect(await api.accounts.remove('a')).toBe('ignored');
@@ -122,6 +123,7 @@ describe('createChromeBridge', () => {
       ['agents:open-chat', 'a'],
       ['agents:copy', 'yapyap_mcp_x'],
       ['accounts:list'],
+      ['accounts:add'],
       [
         'accounts:save',
         'a',
@@ -198,6 +200,7 @@ describe('createChromeBridge', () => {
     expect(Object.keys(api.proxyLogin)).toEqual(['request', 'answer']);
     expect(Object.keys(api.accounts)).toEqual([
       'list',
+      'add',
       'save',
       'remove',
       'permissions',

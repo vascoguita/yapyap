@@ -26,6 +26,7 @@ function setup(confirmed = true, open = true) {
         },
         WORK,
       ],
+      add: vi.fn(),
       update: vi.fn(() => true),
       remove: vi.fn(() => Promise.resolve(true)),
       permissions: vi.fn((): readonly string[] | undefined => undefined),
@@ -57,6 +58,17 @@ describe('accountsHandlers', () => {
     expect(t.handler('accounts:save').handle(t.call, 'b', change)).toBeNull();
     await t.handler('accounts:remove').handle(t.call, 'b');
     expect(t.confirm).not.toHaveBeenCalled();
+    expect(t.handler('accounts:add').handle(t.call)).toHaveProperty('accounts', []);
+    expect(t.holder.current.add).not.toHaveBeenCalled();
+  });
+
+  it('adds an account and lists the result', () => {
+    const t = setup();
+    const add = t.handler('accounts:add');
+    expect(add.accepts([])).toBe(true);
+    expect(add.accepts(['b'])).toBe(false);
+    expect(add.handle(t.call)).toHaveProperty('accounts', t.holder.current.entries);
+    expect(t.holder.current.add).toHaveBeenCalledOnce();
   });
 
   it('lists every account with the colors to choose from', () => {

@@ -435,120 +435,77 @@ main.new-chat .actions {
   justify-content: flex-end;
 }
 
-main.accounts {
-  align-items: stretch;
-  max-width: 560px;
-  margin: 0 auto;
-  text-align: start;
-}
-
-.account-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.account-list button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 6px 10px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface);
-  color: var(--text);
-  font: inherit;
-  text-align: start;
-}
-
-.account-list button[aria-pressed='true'] {
-  border-color: var(--accent);
-  outline: 1px solid var(--accent);
-}
-
-.account-list .hint {
-  margin-inline-start: auto;
-  color: var(--muted);
-  font-size: 0.9rem;
-}
-
-main.accounts > .hint {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.9rem;
-}
-
-/* Mid tones that read on light and dark surfaces alike. */
-.swatch {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  margin-inline-end: 4px;
-  vertical-align: middle;
-}
-
+/* Mid tones that read on light and dark surfaces alike; each account wears one. */
 .swatch-green {
-  background: #2e9d5b;
+  --swatch: #2e9d5b;
 }
 
 .swatch-blue {
-  background: #2f74c0;
+  --swatch: #2f74c0;
 }
 
 .swatch-purple {
-  background: #7a4fc4;
+  --swatch: #7a4fc4;
 }
 
 .swatch-orange {
-  background: #d9822b;
+  --swatch: #d9822b;
 }
 
 .swatch-red {
-  background: #c8433b;
+  --swatch: #c8433b;
 }
 
 .swatch-teal {
-  background: #1f9a97;
+  --swatch: #1f9a97;
 }
 
-main.accounts .editor {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
+.swatch,
+.avatar {
+  background: var(--swatch, var(--muted));
 }
 
-main.accounts #name {
-  padding: 6px 10px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface);
-  color: var(--text);
-  font: inherit;
+/*
+ * An account's avatar: its photo or its initial, ringed in its color, with a
+ * gap the color of whatever it sits on (`--ring-gap`).
+ */
+.avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  inline-size: 32px;
+  block-size: 32px;
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 2px var(--ring-gap, var(--surface)),
+    0 0 0 4px var(--swatch, var(--muted));
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 600;
 }
 
-main.accounts .actions {
-  justify-content: flex-end;
+/* The account's WhatsApp profile photo, over its colour, once YapYap has it (#87). */
+.avatar .photo {
+  inline-size: 100%;
+  block-size: 100%;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
+/* The account sidebar, drawn like the list of pages in Settings. */
 body.sidebar {
   overflow: hidden;
+  block-size: 100vh;
   border-inline-end: 1px solid var(--border);
+  background: var(--sidebar);
   box-sizing: border-box;
-  height: 100vh;
 }
 
 body.sidebar nav {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  height: 100%;
+  block-size: 100%;
 }
 
 /* The shared list style is a centered row; the sidebar stacks its accounts. */
@@ -557,33 +514,40 @@ body.sidebar ul {
   flex-wrap: nowrap;
   align-items: stretch;
   gap: 2px;
-  padding: 8px;
+  padding: 12px 10px;
   overflow-y: auto;
 }
 
 body.sidebar li button {
+  --ring-gap: var(--sidebar);
+
   display: flex;
   align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 8px;
+  gap: 12px;
+  inline-size: 100%;
+  min-block-size: 48px;
+  padding-block: 6px;
+  padding-inline: 8px 10px;
   border: none;
-  border-radius: 8px;
-  background: none;
+  border-radius: 10px;
+  background: var(--ring-gap);
   color: var(--text);
   font: inherit;
+  font-size: 0.875rem;
   text-align: start;
   cursor: pointer;
 }
 
 body.sidebar li button:hover {
-  background: color-mix(in srgb, var(--text) 8%, transparent);
+  --ring-gap: color-mix(in srgb, var(--muted) 10%, var(--sidebar));
 }
 
-/* The account on screen: a tint and an edge, so it differs from a hovered one. */
+/* The account on screen, as Settings marks the page it shows. */
 body.sidebar li button[aria-current='page'] {
-  background: color-mix(in srgb, var(--accent) 22%, transparent);
-  box-shadow: inset 3px 0 var(--accent);
+  --ring-gap: var(--tint);
+
+  color: var(--accent);
+  font-weight: 600;
 }
 
 body.sidebar li button:focus-visible {
@@ -591,91 +555,153 @@ body.sidebar li button:focus-visible {
   outline-offset: -2px;
 }
 
-body.sidebar .avatar {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  color: #ffffff;
-  font-weight: 600;
-}
-
-/* The account's WhatsApp profile photo, over its colour, once YapYap has it (#87). */
-body.sidebar .avatar .photo {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
 body.sidebar .name {
   flex: 1;
-  overflow: hidden;
+  min-inline-size: 0;
   overflow-wrap: anywhere;
 }
 
 body.sidebar .badge {
-  min-width: 20px;
+  flex: none;
+  min-inline-size: 20px;
   padding: 0 6px;
-  border-radius: 10px;
+  border: none;
+  border-radius: 999px;
   background: var(--accent);
+  box-sizing: border-box;
   color: var(--surface);
   font-size: 0.75rem;
+  font-weight: 600;
   line-height: 20px;
   text-align: center;
 }
 
-body.sidebar .icon {
+body.sidebar .mark {
+  display: grid;
   flex: none;
-  width: 16px;
-  height: 16px;
+  place-items: center;
   color: var(--muted);
+}
+
+body.sidebar .mark .icon {
+  inline-size: 18px;
+  block-size: 18px;
+}
+
+/* Compact: the badge and the muted mark sit on the avatar's edge, not over its face. */
+body.sidebar nav.compact ul {
+  padding-inline: 8px;
 }
 
 body.sidebar nav.compact li button {
   position: relative;
   justify-content: center;
-  padding: 8px 0;
+  padding-inline: 0;
 }
 
 body.sidebar nav.compact .badge,
-body.sidebar nav.compact li .icon {
+body.sidebar nav.compact .mark {
   position: absolute;
-  top: 2px;
+  box-shadow: 0 0 0 2px var(--ring-gap);
+}
+
+body.sidebar nav.compact .badge {
+  inset-block-start: 2px;
+  inset-inline-end: 0;
+  min-inline-size: 18px;
+  padding: 0 5px;
+  font-size: 0.6875rem;
+  line-height: 18px;
+}
+
+body.sidebar nav.compact .mark {
+  inset-block-end: 2px;
   inset-inline-end: 2px;
+  inline-size: 20px;
+  block-size: 20px;
+  border-radius: 50%;
+  background: var(--raised);
+}
+
+body.sidebar nav.compact .mark .icon {
+  inline-size: 14px;
+  block-size: 14px;
 }
 
 body.sidebar footer {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 8px;
-  border-top: 1px solid var(--border);
+  gap: 8px;
+  padding: 10px;
+  border-block-start: 1px solid var(--border);
 }
 
+/* Do Not Disturb, for every account at once: a pill, as Settings shows a state. */
 body.sidebar .dnd {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   margin: 0;
-  color: var(--muted);
-  font-size: 0.85rem;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--tint);
+  color: var(--accent);
+  font-size: 0.8125rem;
+  font-weight: 500;
 }
 
-body.sidebar .layout {
-  align-self: center;
-  padding: 6px;
+body.sidebar .dnd .icon {
+  inline-size: 16px;
+  block-size: 16px;
+}
+
+body.sidebar nav.compact .dnd {
+  padding-inline: 0;
+}
+
+body.sidebar .footer-actions {
+  display: flex;
+  gap: 4px;
+}
+
+body.sidebar nav.compact .footer-actions {
+  flex-direction: column;
+  align-items: center;
+}
+
+body.sidebar footer button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-inline-size: 32px;
+  min-block-size: 32px;
+  padding: 0 8px;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   background: none;
+  color: var(--muted);
+  font-size: 0.875rem;
   cursor: pointer;
 }
 
-body.sidebar .layout:focus-visible {
-  outline: 2px solid var(--accent);
+body.sidebar footer .add {
+  flex: 1;
+  justify-content: flex-start;
+}
+
+body.sidebar nav.compact footer .add {
+  flex: none;
+  justify-content: center;
+}
+
+body.sidebar footer button:hover {
+  background: color-mix(in srgb, var(--muted) 10%, var(--sidebar));
+  color: var(--text);
+}
+
+body.sidebar footer button:focus-visible {
   outline-offset: -2px;
 }
 
@@ -685,21 +711,22 @@ body.sidebar .sharing {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  width: 100%;
-  margin-top: 2px;
-  padding: 4px 8px;
-  border: 1px solid var(--danger);
-  border-radius: 8px;
-  background: none;
+  inline-size: 100%;
+  margin-block-start: 2px;
+  padding: 2px 10px;
+  border: none;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--danger) 12%, var(--sidebar));
   color: var(--danger);
   font: inherit;
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
   cursor: pointer;
 }
 
 body.sidebar .sharing .dot {
-  width: 8px;
-  height: 8px;
+  inline-size: 8px;
+  block-size: 8px;
   border-radius: 50%;
   background: var(--danger);
 }
@@ -724,23 +751,6 @@ body.sidebar .sharing .dot {
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
-}
-
-main.accounts .permissions {
-  gap: 8px;
-}
-
-main.accounts .permissions h2 {
-  margin: 0;
-  font-size: 1rem;
-}
-
-main.accounts .permissions dl {
-  grid-template-columns: max-content 1fr;
-}
-
-main.accounts .forget {
-  align-self: flex-start;
 }
 
 main.welcome .actions {
@@ -1687,5 +1697,260 @@ code.address {
 
   .row:has(> .row-control > .switch) {
     flex-wrap: nowrap;
+  }
+}
+
+/* The Accounts window, laid out as Settings: the accounts listed beside the one being edited. */
+.accounts-window {
+  display: grid;
+  grid-template-columns: 236px minmax(0, 1fr);
+  block-size: 100vh;
+}
+
+.accounts-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  padding: 12px;
+  border-inline-end: 1px solid var(--border);
+  background: var(--sidebar);
+}
+
+.account-list {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 2px;
+}
+
+.account-list button {
+  --ring-gap: var(--sidebar);
+
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  inline-size: 100%;
+  min-block-size: 52px;
+  padding-block: 6px;
+  padding-inline: 10px;
+  border: none;
+  border-radius: 8px;
+  background: var(--ring-gap);
+  text-align: start;
+  cursor: pointer;
+}
+
+.account-list button:hover {
+  --ring-gap: color-mix(in srgb, var(--muted) 10%, var(--sidebar));
+}
+
+.account-list button[aria-pressed='true'] {
+  --ring-gap: var(--tint);
+}
+
+.account-list button[aria-pressed='true'] .account-name {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.account-list button:focus-visible {
+  outline-offset: -2px;
+}
+
+/* An account that is off, faded like a dimmed setting; its list entry says so in words. */
+.account-list button.off .avatar {
+  opacity: 0.5;
+}
+
+.account-text {
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+}
+
+.account-name {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  overflow-wrap: anywhere;
+}
+
+.account-text .hint {
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.accounts-nav .add-account {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-block-size: 36px;
+  padding: 0 10px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  background: none;
+  color: var(--accent);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.accounts-nav .add-account:hover {
+  border-color: var(--accent);
+  background: var(--tint);
+}
+
+.accounts .editor {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+/* The account's color: swatches that are radio buttons, the chosen one ringed and ticked. */
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.swatch-option {
+  position: relative;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.swatch-option input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.swatch-option .swatch {
+  display: grid;
+  place-items: center;
+  inline-size: 28px;
+  block-size: 28px;
+  border-radius: 50%;
+  color: #ffffff;
+}
+
+.swatch-option .icon {
+  inline-size: 16px;
+  block-size: 16px;
+  stroke-width: 2.5;
+  visibility: hidden;
+}
+
+.swatch-option:has(input:checked) .swatch {
+  box-shadow:
+    0 0 0 2px var(--card),
+    0 0 0 4px var(--swatch);
+}
+
+.swatch-option:has(input:checked) .icon {
+  visibility: visible;
+}
+
+.swatch-option:has(input:focus-visible) .swatch {
+  outline: 2px solid var(--accent);
+  outline-offset: 5px;
+}
+
+.row .hint.invalid {
+  color: var(--danger);
+}
+
+.row .state {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  text-align: end;
+}
+
+button.danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--danger);
+}
+
+button.danger .icon {
+  inline-size: 16px;
+  block-size: 16px;
+}
+
+button.danger:hover:not(:disabled) {
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 10%, var(--raised));
+}
+
+/* Save and Cancel, kept in sight at the bottom of the page, raised while there is something to save. */
+.save-bar {
+  position: sticky;
+  inset-block-end: 16px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-block: 10px;
+  padding-inline: 16px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--raised);
+}
+
+/* With nothing to save, the bar rests at the end of the page instead of over it. */
+.save-bar:not(.dirty) {
+  position: static;
+  padding-inline: 0;
+  border-color: transparent;
+  background: none;
+}
+
+/* Buttons in the account's cards, at the size of the rows' text. */
+.accounts :is(.row, .group-head, .save-bar) button {
+  font-size: 0.875rem;
+}
+
+.save-bar.dirty {
+  box-shadow: 0 4px 16px rgb(0 0 0 / 12%);
+}
+
+.save-status {
+  flex: 1;
+  min-inline-size: 0;
+  font-size: 0.875rem;
+}
+
+.save-status output {
+  margin: 0;
+  color: var(--muted);
+}
+
+.save-status p[role='alert'] {
+  margin: 0;
+  color: var(--danger);
+}
+
+.save-bar button {
+  box-sizing: border-box;
+  min-block-size: 32px;
+  border-radius: 8px;
+}
+
+/* A narrow window lists the accounts above the one being edited. */
+@media (width < 680px) {
+  .accounts-window {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .accounts-nav {
+    max-block-size: 40vh;
+    border-inline-end: none;
+    border-block-end: 1px solid var(--border);
   }
 }
