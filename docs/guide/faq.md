@@ -69,7 +69,7 @@ server you chose. Nothing is sent before you choose one. See the
 
 ## Something is broken. What should I try first?
 
-Use **Clear Cache and Reload** in the Account menu, which keeps you logged
+Use **Account → Troubleshoot → Clear Cache and Reload**, which keeps you logged
 in (see [When WhatsApp misbehaves](/guide/#when-whatsapp-misbehaves)). If
 YapYap itself misbehaves, [Troubleshooting](/guide/troubleshooting) explains
 how to collect diagnostics and report the problem.

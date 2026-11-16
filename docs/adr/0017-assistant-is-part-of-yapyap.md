@@ -99,9 +99,9 @@ could ask for too.
    Close. It asks before it reads a chat for the first time, with **What
    is sent?** to see the exact text first. Catching up shows exactly what
    is sent and needs **Send** each time (C41). Setup problems come with a
-   one-click fix. An Assistant menu holds the actions, with shortcuts
-   Ctrl+Shift+Y, Ctrl+Shift+L and Ctrl+Shift+U (⌘ on macOS). The panel
-   window is gone.
+   one-click fix. The assistant has no menu of its own: its actions live
+   in the message box, and Settings and the bar's gear reach its page
+   (#635). The panel window is gone.
 8. **The extension goes.** YapYap carries nothing over from the
    `org.guita.yapyap.ai-assistant` extension: there is no backward
    compatibility before 1.0 (ADR 0008). The extension API loses `assistant:bar`, `assistant.offer`,

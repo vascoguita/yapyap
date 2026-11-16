@@ -2,7 +2,7 @@ import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import type { ElectronApplication, Page } from '@playwright/test';
 import { ADAPTER_WORLD_ID } from '../src/adapter/world.ts';
-import { chromePage, clickMenu } from './chrome-helpers.ts';
+import { chromePage, clickMenu, showSettingsPage } from './chrome-helpers.ts';
 import { expect, mainWindow, whatsAppContents } from './fixtures.ts';
 
 /** A control of the assistant bar, and where on the page the user would click it. */
@@ -241,11 +241,11 @@ export async function standInKeyring(app: ElectronApplication): Promise<void> {
   });
 }
 
-/** Opens Settings from the Assistant menu, which opens it at its Assistant page. */
+/** Opens Settings from the menu, at its Assistant page. */
 export async function openAssistantSettings(app: ElectronApplication): Promise<Page> {
-  await clickMenu(app, 'Assistant Settings…');
+  await clickMenu(app, 'Settings…');
   const settings = await chromePage(app, '/settings.html');
-  await expect(settings.getByRole('heading', { level: 1, name: 'Assistant' })).toBeVisible();
+  await showSettingsPage(settings, 'Assistant');
   return settings;
 }
 

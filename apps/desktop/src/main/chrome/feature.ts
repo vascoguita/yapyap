@@ -537,7 +537,6 @@ type ChromeOpeners = Pick<
   | 'openAccounts'
   | 'openAbout'
   | 'openSettings'
-  | 'openAssistantSettings'
   | 'openNewChat'
   | 'openShortcuts'
   | 'openCustomCode'
@@ -547,12 +546,11 @@ type ChromeOpeners = Pick<
 
 function chromeOpeners(
   windows: ChromeWindowDependencies,
-  standby: Pick<ChromeOpeners, 'openSettings' | 'openAssistantSettings'>,
+  standby: Pick<ChromeOpeners, 'openSettings'>,
 ): ChromeOpeners {
   const opener = (page: ChromePage): (() => void) => plainOpener(windows, page);
   return {
     openSettings: standby.openSettings,
-    openAssistantSettings: standby.openAssistantSettings,
     openAccounts: opener(ACCOUNTS_PAGE),
     openAbout: opener(ABOUT_PAGE),
     openNewChat: opener(NEW_CHAT_PAGE),
@@ -850,7 +848,7 @@ function startChrome(
     },
     setAccountMenu: accountMenuSetter(withGraphics, slots, openers, standby.assistant, warn),
     openSettings: openers.openSettings,
-    openAssistantSettings: openers.openAssistantSettings,
+    openAssistantSettings: standby.openAssistantSettings,
     openWelcome: plainOpener(windows, WELCOME_PAGE),
     openSpellingLanguages: plainOpener(windows, SPELLING_LANGUAGES_PAGE),
     askProxyLogin: standby.proxyLogin.ask,

@@ -139,6 +139,20 @@ function setup() {
       },
       ...args,
     );
+  // Finds an item by its label in any menu, submenus included.
+  const clickItem = (label: string): void => {
+    interface Item {
+      readonly label?: string;
+      readonly click?: unknown;
+      readonly submenu?: unknown;
+    }
+    const within = (items: unknown): Item[] =>
+      Array.isArray(items)
+        ? (items as Item[]).flatMap((entry) => [entry, ...within(entry.submenu)])
+        : [];
+    const item = within(menu).find((candidate) => candidate.label === label);
+    (item?.click as (() => void) | undefined)?.();
+  };
   // Electron hands a menu item's handler the item itself, which must not reach the window.
   const click = (menuIndex: number) => (): void => {
     const submenu = menu.at(menuIndex)?.submenu;
@@ -152,14 +166,10 @@ function setup() {
     window,
     call,
     clickAbout: click(-1),
-    clickSettings: click(0),
-    clickAccount: (label: string) => {
-      const submenu = menu[1]?.submenu;
-      const item = Array.isArray(submenu)
-        ? submenu.find((candidate) => candidate.label === label)
-        : undefined;
-      (item?.click as (() => void) | undefined)?.();
+    clickSettings: () => {
+      clickItem('Settings…');
     },
+    clickItem,
     handler: () => handler,
     menu: () => menu,
   };
@@ -547,8 +557,8 @@ describe('createChromeFeature', () => {
     const t = setup();
     const warn = vi.fn();
     const runtime = t.feature.afterReady(t.views, warn, 'hardware accelerated');
-    t.clickAccount('Clear Cache and Reload');
-    t.clickAccount('Reset Session…');
+    t.clickItem('Clear Cache and Reload');
+    t.clickItem('Reset Session…');
     await new Promise((resolve) => setTimeout(resolve));
     expect(t.deps.confirmReset).toHaveBeenCalledOnce();
     // Before WhatsApp loaded, there is no session to act on, and nothing goes wrong.
@@ -593,21 +603,21 @@ describe('createChromeFeature', () => {
       permissions: vi.fn((): readonly string[] | undefined => undefined),
       forgetPermissions: vi.fn(),
     });
-    t.clickAccount('Clear Cache and Reload');
+    t.clickItem('Clear Cache and Reload');
     await new Promise((resolve) => setTimeout(resolve));
     expect(session.clearStorageData).toHaveBeenLastCalledWith({
       storages: ['serviceworkers', 'cachestorage'],
     });
     t.deps.confirmReset.mockResolvedValueOnce(false);
-    t.clickAccount('Reset Session…');
+    t.clickItem('Reset Session…');
     await new Promise((resolve) => setTimeout(resolve));
     expect(session.clearStorageData).toHaveBeenCalledOnce();
-    t.clickAccount('Reset Session…');
+    t.clickItem('Reset Session…');
     await new Promise((resolve) => setTimeout(resolve));
     expect(session.clearStorageData).toHaveBeenLastCalledWith();
     expect(contents.loadURL).toHaveBeenCalledTimes(2);
     session.clearCache.mockRejectedValueOnce(new Error('busy'));
-    t.clickAccount('Clear Cache and Reload');
+    t.clickItem('Clear Cache and Reload');
     await new Promise((resolve) => setTimeout(resolve));
     expect(warn).toHaveBeenCalledWith('Could not finish an account maintenance action.');
   });
@@ -616,8 +626,8 @@ describe('createChromeFeature', () => {
     const t = setup();
     const warn = vi.fn();
     const runtime = t.feature.afterReady(t.views, warn, 'hardware accelerated');
-    t.clickAccount('Add Account');
-    t.clickAccount('Remove Account…');
+    t.clickItem('Add Account');
+    t.clickItem('Remove Account…');
     expect(t.deps.confirmRemoveAccount).not.toHaveBeenCalled();
     const menu = {
       entries: [
@@ -655,7 +665,7 @@ describe('createChromeFeature', () => {
       permissions: vi.fn((): readonly string[] | undefined => undefined),
       forgetPermissions: vi.fn(),
     };
-    t.clickAccount('Manage Accounts…');
+    t.clickItem('Manage Accounts…');
     expect(await t.call('agents:view')).toMatchObject({ accounts: [] });
     runtime.setAccountMenu(menu);
     expect(await t.call('agents:view')).toMatchObject({
@@ -667,20 +677,20 @@ describe('createChromeFeature', () => {
     });
     expect(await t.call('agents:open-chat', undefined, 'a')).toBeNull();
     expect(menu.agentPage).toHaveBeenCalledWith('a');
-    t.clickAccount('Personal');
+    t.clickItem('Personal');
     expect(menu.switchTo).toHaveBeenCalledWith('a');
-    t.clickAccount('Add Account');
+    t.clickItem('Add Account');
     expect(menu.add).toHaveBeenCalledOnce();
     t.deps.confirmRemoveAccount.mockResolvedValueOnce(false);
-    t.clickAccount('Remove Account…');
+    t.clickItem('Remove Account…');
     await new Promise((resolve) => setTimeout(resolve));
     expect(menu.remove).not.toHaveBeenCalled();
-    t.clickAccount('Remove Account…');
+    t.clickItem('Remove Account…');
     await new Promise((resolve) => setTimeout(resolve));
     expect(t.deps.confirmRemoveAccount).toHaveBeenLastCalledWith('Work');
     expect(menu.remove).toHaveBeenCalledExactlyOnceWith('b');
     t.deps.confirmRemoveAccount.mockRejectedValueOnce(new Error('no dialog'));
-    t.clickAccount('Remove Account…');
+    t.clickItem('Remove Account…');
     await new Promise((resolve) => setTimeout(resolve));
     expect(warn).toHaveBeenCalledWith('Could not finish an account maintenance action.');
   });
@@ -769,20 +779,18 @@ describe('createChromeFeature', () => {
     await expect(t.call('assistant:view')).resolves.toMatchObject({ inUse: null });
   });
 
-  it('opens the assistant’s settings from its menu', () => {
+  it('opens Settings at the assistant’s page, which the menu leaves to Settings', () => {
     const t = setup();
-    t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
-    const menu = t.menu().find((entry) => entry.label === 'A&ssistant');
-    const submenu = (menu?.submenu ?? []) as { label?: string; click?: () => void }[];
-    expect(submenu.map(({ label }) => label)).toEqual(['Assistant Settings…']);
-    submenu[0]?.click?.();
+    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    expect(t.menu().map((entry) => entry.label ?? entry.role)).not.toContain('A&ssistant');
+    runtime.openAssistantSettings();
     expect(t.window.loadURL).toHaveBeenCalledWith('app://chrome/settings.html#assistant');
   });
 
   it('opens the Accounts window from the Account menu, listing the current accounts', () => {
     const t = setup();
     const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
-    t.clickAccount('Manage Accounts…');
+    t.clickItem('Manage Accounts…');
     expect(t.window.loadURL).toHaveBeenCalledWith('app://chrome/accounts.html');
     expect(t.call('accounts:list')).toHaveProperty('accounts', []);
     const scopes = () => (t.call('custom-code:get') as { scopes: { id: string }[] }).scopes;
@@ -858,15 +866,15 @@ describe('createChromeFeature', () => {
       permissions: vi.fn((): readonly string[] | undefined => undefined),
       forgetPermissions: vi.fn(),
     });
-    t.clickAccount('Remove Account…');
+    t.clickItem('Remove Account…');
     expect(t.deps.confirmRemoveAccount).not.toHaveBeenCalled();
   });
 
   it('turns do not disturb on and mutes the account on screen from the Account menu', () => {
     const t = setup();
     const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
-    t.clickAccount('Do Not Disturb');
-    t.clickAccount('Mute This Account');
+    t.clickItem('Do Not Disturb');
+    t.clickItem('Mute This Account');
     expect(t.deps.settings.update).toHaveBeenCalledOnce();
     const work = { id: 'b', name: 'Work', color: 'blue', enabled: true, muted: false, proxy: '' };
     const menu = {
@@ -887,12 +895,12 @@ describe('createChromeFeature', () => {
       forgetPermissions: vi.fn(),
     };
     runtime.setAccountMenu(menu);
-    t.clickAccount('Mute This Account');
+    t.clickItem('Mute This Account');
     runtime.setAccountMenu({ ...menu, entries: [{ ...work, color: 'pink', active: true }] });
-    t.clickAccount('Mute This Account');
+    t.clickItem('Mute This Account');
     expect(menu.update).not.toHaveBeenCalled();
     runtime.setAccountMenu({ ...menu, entries: [{ ...work, active: true }] });
-    t.clickAccount('Mute This Account');
+    t.clickItem('Mute This Account');
     expect(menu.update).toHaveBeenCalledExactlyOnceWith('b', {
       name: 'Work',
       color: 'blue',
@@ -902,10 +910,10 @@ describe('createChromeFeature', () => {
     });
   });
 
-  it('opens New Chat from the Account menu and its chats in WhatsApp once there is a window', () => {
+  it('opens New Chat from the File menu and its chats in WhatsApp once there is a window', () => {
     const t = setup();
     const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
-    t.clickAccount('New Chat with Number…');
+    t.clickItem('New Chat with Number…');
     expect(t.window.loadURL).toHaveBeenCalledWith('app://chrome/new-chat.html');
     expect(t.call('chat:open-number', t.window.webContents, '+44 7700 900123')).toBe(false);
     const open = vi.fn();

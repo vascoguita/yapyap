@@ -16,8 +16,8 @@ The assistant is part of YapYap. There is nothing to install.
 
 ## Set it up
 
-Open **Settings → Assistant**, or use **Assistant → Assistant Settings…** or
-the gear in the bar above the message box, which open Settings there. The first time you start YapYap, the Welcome offers the same
+Open **Settings → Assistant**, or use the gear in the bar above the message
+box, which opens Settings there. The first time you start YapYap, the Welcome offers the same
 choices.
 
 Until you choose a provider, the assistant is off, and nothing is sent

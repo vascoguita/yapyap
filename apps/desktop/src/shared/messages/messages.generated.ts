@@ -804,8 +804,7 @@ export interface Messages {
     readonly edit: string;
     readonly window: string;
     readonly reportProblem: string;
-    readonly assistant: string;
-    readonly assistantSettings: string;
+    readonly troubleshoot: string;
   };
   readonly windows: {
     readonly about: string;

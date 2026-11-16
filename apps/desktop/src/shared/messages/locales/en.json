@@ -876,8 +876,7 @@
     "edit": "&Edit",
     "window": "&Window",
     "reportProblem": "Report a Problem…",
-    "assistant": "A&ssistant",
-    "assistantSettings": "Assistant Settings…"
+    "troubleshoot": "Troubleshoot"
   },
   "windows": {
     "about": "About YapYap",

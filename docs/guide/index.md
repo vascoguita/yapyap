@@ -211,7 +211,7 @@ Each account uses one of WhatsApp's linked-device slots for its number.
 
 ## When WhatsApp misbehaves
 
-The **Account** menu has two maintenance actions for the account you see:
+**Account → Troubleshoot** has two maintenance actions for the account you see:
 
 - **Clear Cache and Reload** removes WhatsApp's cached files and service
   worker, then reloads. You stay logged in, so try this first when WhatsApp
@@ -230,7 +230,7 @@ from these links.
 
 ## Chat with a number
 
-To message a number that is not in your contacts, choose **Account → New
+To message a number that is not in your contacts, choose **File → New
 Chat with Number…**, type the number with its country code (for example
 `+44 7700 900123` or `0044 7700 900123`) and choose **Open Chat**. WhatsApp
 opens the chat; YapYap does not save the number.
