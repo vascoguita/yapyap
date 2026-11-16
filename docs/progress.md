@@ -518,3 +518,6 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   **AI Assistant settings**, the Welcome step) and "the AI assistant" in
   running text, in `en.json` and the docs. Code identifiers, settings keys,
   file names and ADRs keep "assistant".
+- Adapter shared helpers (#650): `adapter/page-kit.ts` holds the `Scope` and
+  `Actions` types and the `shadowPart`, `strokeIcon` and `paintWhatsAppTheme`
+  helpers that the bar and the rewrite button each carry in their own kit.

@@ -3,6 +3,7 @@ import {
   MAX_CHAT_LIST_WIDTH,
   MIN_CHAT_LIST_WIDTH,
 } from '../shared/api/chat-list-api.ts';
+import type { Actions, Scope } from './page-kit.ts';
 import { LANDMARKS } from './page-state.ts';
 
 /** YapYap's own words on the divider, in the user's language. */
@@ -111,8 +112,6 @@ interface ListStore {
   pending: { readonly width: number | null } | null;
   drag: ListDrag | null;
 }
-
-type Scope = Record<string, unknown>;
 
 type Styles = (node: ListNode) => {
   readonly order: string;
@@ -344,7 +343,6 @@ export function chooseChatListWidth(
   places: ListPlaces,
   kit: ListKit,
 ): void {
-  type Actions = Record<string, ((width?: number) => void) | undefined>;
   const bridge = (scope[places.bridge] ?? {}) as Actions;
   store.pending = { width };
   kit.size(store, width, places, kit);
