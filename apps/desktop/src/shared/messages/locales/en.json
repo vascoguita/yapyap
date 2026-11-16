@@ -119,7 +119,6 @@
       "settingsFile": "Settings file"
     },
     "backup": {
-      "title": "Backup",
       "exportLabel": "Back up your settings",
       "exportHint": "Save your settings to a file. It never includes your WhatsApp login or chats.",
       "importLabel": "Restore settings",
@@ -528,8 +527,7 @@
       },
       "model": {
         "auto": "Auto (recommended)",
-        "autoNamed": "Auto (recommended): {{model}}",
-        "none": "The provider listed no model. Check its key, or that the server runs."
+        "autoNamed": "Auto (recommended): {{model}}"
       },
       "privacy": {
         "noChats": "No chats yet.",
@@ -545,8 +543,7 @@
           "here": "Everything stays on this computer.",
           "away": "Sends the last {{messages}} messages of the open chat, plus its instructions, to {{company}}. When rewriting, it sends only what you typed. YapYap logs none of it."
         }
-      },
-      "unavailable": "The AI assistant’s settings could not be read. Try again in a moment."
+      }
     },
     "bar": {
       "label": "AI Assistant",

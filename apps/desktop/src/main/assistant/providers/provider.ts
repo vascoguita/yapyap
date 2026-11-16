@@ -10,15 +10,8 @@ export interface CompletionRequest {
   readonly context: string;
   /** What to do now, such as suggesting replies or rewriting the draft. */
   readonly task: string;
-  /** Stops the request, as when the user closes the panel. */
+  /** Stops the request, as when a newer suggestion replaces it. */
   readonly signal?: AbortSignal;
-}
-
-/** What came back once the stream ended. */
-export interface Completion {
-  readonly text: string;
-  /** The model stopped at its length limit, so the text may be cut short. */
-  readonly truncated: boolean;
 }
 
 /** Why a request failed, worded for the user rather than a log. */
@@ -46,13 +39,10 @@ export class ProviderError extends Error {
   }
 }
 
-/** A model the assistant can stream text from. */
+/** A model the assistant can ask for text. */
 export interface Provider {
-  /** Streams the reply, calling `onText` with each piece as it arrives. */
-  readonly complete: (
-    request: CompletionRequest,
-    onText: (text: string) => void,
-  ) => Promise<Completion>;
+  /** The model's whole reply. */
+  readonly complete: (request: CompletionRequest) => Promise<string>;
 }
 
 /** How long one request may take, retries included, before it fails as `timeout`. */

@@ -513,6 +513,9 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   Distribute workflow uses the `setup` action; `test/temp-dir.ts` moved to
   `apps/desktop/test/`, its only user; `scripts/src/bin/package.ts` now
   runs the full packaging matrix. Stale config entries are gone.
+- Dead code (#640): `general.language` left the schema until a Language
+  setting ships (ADR 0012). Providers return the reply's text: nothing
+  read the streamed pieces or `truncated` since the panel went.
 - AI Assistant name (#645): the assistant is called "AI Assistant" in
   titles and labels (Settings page, the bar's label, the rewrite menu's
   **AI Assistant settings**, the Welcome step) and "the AI assistant" in

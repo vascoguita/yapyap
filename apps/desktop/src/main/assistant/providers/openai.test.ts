@@ -50,12 +50,7 @@ describe('openAIProvider', () => {
   it('streams the reply from OpenAI, with the instructions first', async () => {
     const fake = fakeFetch(streamed(reply(['So sorry', ', running late!'])));
     const provider = openAIProvider({ apiKey: 'sk-test', model: 'gpt-test', fetch: fake.fetch });
-    const pieces: string[] = [];
-    await expect(provider.complete(REQUEST, (text) => pieces.push(text))).resolves.toEqual({
-      text: 'So sorry, running late!',
-      truncated: false,
-    });
-    expect(pieces).toEqual(['So sorry', ', running late!']);
+    await expect(provider.complete(REQUEST)).resolves.toBe('So sorry, running late!');
     const [request] = fake.requests;
     expect(request?.url).toBe('https://api.openai.com/v1/chat/completions');
     expect(request?.headers.get('authorization')).toBe('Bearer sk-test');
@@ -80,7 +75,7 @@ describe('openAIProvider', () => {
     ['gpt-4.1-mini', false],
   ])('asks %s for little reasoning only if it reasons: %s', async (model, reasons) => {
     const fake = fakeFetch(streamed(reply(['Hi'])));
-    await openAIProvider({ apiKey: 'k', model, fetch: fake.fetch }).complete(REQUEST, vi.fn());
+    await openAIProvider({ apiKey: 'k', model, fetch: fake.fetch }).complete(REQUEST);
     if (reasons) {
       expect(fake.requests[0]?.body).toMatchObject({ reasoning_effort: 'low' });
     } else {
@@ -95,7 +90,7 @@ describe('openAIProvider', () => {
       model: 'llama',
       baseURL: 'https://llm.example.org/v1',
       fetch: fake.fetch,
-    }).complete(REQUEST, vi.fn());
+    }).complete(REQUEST);
     const [request] = fake.requests;
     expect(request?.url).toBe('https://llm.example.org/v1/chat/completions');
     expect(request?.body).toMatchObject({ max_tokens: 4096 });
@@ -109,18 +104,18 @@ describe('openAIProvider', () => {
       model: 'gpt-5-oss',
       baseURL: 'https://llm.example.org/v1',
       fetch: fake.fetch,
-    }).complete(REQUEST, vi.fn());
+    }).complete(REQUEST);
     expect(fake.requests[0]?.body).not.toHaveProperty('reasoning_effort');
   });
 
-  it('says when the reply was cut short, and fails a filtered one', async () => {
+  it('keeps a reply cut short at the limit, and fails a filtered one', async () => {
     const cut = fakeFetch(streamed(reply(['Long'], 'length')));
     await expect(
-      openAIProvider({ apiKey: 'k', model: 'm', fetch: cut.fetch }).complete(REQUEST, vi.fn()),
-    ).resolves.toEqual({ text: 'Long', truncated: true });
+      openAIProvider({ apiKey: 'k', model: 'm', fetch: cut.fetch }).complete(REQUEST),
+    ).resolves.toBe('Long');
     const filtered = fakeFetch(streamed(reply([], 'content_filter')));
     await expect(
-      openAIProvider({ apiKey: 'k', model: 'm', fetch: filtered.fetch }).complete(REQUEST, vi.fn()),
+      openAIProvider({ apiKey: 'k', model: 'm', fetch: filtered.fetch }).complete(REQUEST),
     ).rejects.toMatchObject({ kind: 'refused' });
   });
 
@@ -138,7 +133,7 @@ describe('openAIProvider', () => {
         }),
     );
     const error: unknown = await openAIProvider({ apiKey: 'k', model: 'm', fetch: fake.fetch })
-      .complete(REQUEST, vi.fn())
+      .complete(REQUEST)
       .catch((caught: unknown) => caught);
     expect(error).toBeInstanceOf(ProviderError);
     expect(error).toMatchObject({ kind });
@@ -150,10 +145,10 @@ describe('openAIProvider', () => {
     const controller = new AbortController();
     controller.abort();
     await expect(
-      openAIProvider({ apiKey: 'k', model: 'm', fetch: fake.fetch }).complete(
-        { ...REQUEST, signal: controller.signal },
-        vi.fn(),
-      ),
+      openAIProvider({ apiKey: 'k', model: 'm', fetch: fake.fetch }).complete({
+        ...REQUEST,
+        signal: controller.signal,
+      }),
     ).rejects.toMatchObject({ kind: 'cancelled' });
   });
 
@@ -177,7 +172,7 @@ describe('openAIProvider', () => {
         model: 'm',
         fetch: fetch as unknown as typeof globalThis.fetch,
         timeoutMs: 10,
-      }).complete(REQUEST, vi.fn()),
+      }).complete(REQUEST),
     ).rejects.toMatchObject({ kind: 'timeout' });
     await vi.runAllTimersAsync();
     await failed;

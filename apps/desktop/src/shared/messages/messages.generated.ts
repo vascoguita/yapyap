@@ -114,7 +114,6 @@ export interface Messages {
       readonly settingsFile: string;
     };
     readonly backup: {
-      readonly title: string;
       readonly exportLabel: string;
       readonly exportHint: string;
       readonly importLabel: string;
@@ -441,7 +440,6 @@ export interface Messages {
       readonly model: {
         readonly auto: string;
         readonly autoNamed: (params: { readonly model: string | number }) => string;
-        readonly none: string;
       };
       readonly privacy: {
         readonly noChats: string;
@@ -464,7 +462,6 @@ export interface Messages {
           }) => string;
         };
       };
-      readonly unavailable: string;
     };
     readonly bar: {
       readonly label: string;
