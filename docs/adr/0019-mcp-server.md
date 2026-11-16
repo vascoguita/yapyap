@@ -25,7 +25,7 @@ Each of these goes against something decided before:
 
 - YapYap listens on no port or socket, enforced by
   `src/main/security/no-endpoint.test.ts`.
-- Rule 8 of `CLAUDE.md`: nothing sends a message for the user. ADR 0013
+- Rule 7 of `CLAUDE.md`: nothing sends a message for the user. ADR 0013
   and ADR 0017 say the same of the assistant.
 
 The risks this brings in, which the design has to limit:
@@ -68,7 +68,7 @@ trusted: every rule below is enforced by YapYap, on every call.
 - **Implementation.** The official MCP TypeScript SDK, so the protocol
   (handshake, version negotiation, JSON-RPC framing and errors, capability
   advertising) follows the spec and its fixes without us tracking it by
-  hand. We take the v2 server package alone, pinned exactly (rule 10):
+  hand. We take the v2 server package alone, pinned exactly (rule 9):
   `@modelcontextprotocol/server`, which brings `@modelcontextprotocol/core`
   and `zod`. Both are MIT or Apache-2.0, which `pnpm check:licenses`
   allows, and neither has an install script. We take neither the v1
@@ -222,7 +222,7 @@ All text lives in `en.json` under `agents` (ADR 0012).
   its limits, expiry and last use; and **Revoke**.
 - **Recent activity**: the last 500 calls, newest first: time, token,
   tool, account and the result. Never message text, drafts, chat names or
-  phone numbers (rule 9). It is kept in memory only, until YapYap quits.
+  phone numbers (rule 8). It is kept in memory only, until YapYap quits.
 
 **Create a Token…** opens a form in the section:
 
@@ -259,7 +259,7 @@ refuses its next request.
 - `no-endpoint.test.ts` allows `node:http` and `.listen(` in
   `src/main/agents/listener.ts` alone, and checks it binds `127.0.0.1`
   only.
-- Rule 8 of `CLAUDE.md`: nothing sends a message for the user, except the
+- Rule 7 of `CLAUDE.md`: nothing sends a message for the user, except the
   MCP server for a token with `messages:send`. ADR 0013 and ADR 0017 do
   not change: the assistant never sends.
 - The adapter gains opening a chat by name (`adapter/open-chat.ts`),
@@ -273,7 +273,7 @@ refuses its next request.
   `chatList`, `chatRow` and `chatTitle` landmarks, so `LANDMARKS_VERSION`
   stays. The
   fake page opens a chat when its row is pressed. Sending reuses the
-  assistant bar's Enter. Tests never touch a real account (rule 3).
+  assistant bar's Enter. Tests never touch a real account (rule 2).
 - ADR 0008 logs C47.
 
 ### Out of scope

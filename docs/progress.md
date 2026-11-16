@@ -499,3 +499,6 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   reach its page; View leads with zoom and the privacy screen and ends
   with reloading and DevTools; Help sets diagnostics apart. The menus
   stay native, so each platform keeps its look and keyboard handling.
+- Confidentiality rule dropped (#637): `CLAUDE.md` loses its rule 2 and the
+  priority order its fourth place, so the rules after it move up one
+  number; ADR 0008 logs it as C51, and ADR 0019 cites the new numbers.

@@ -177,7 +177,7 @@ export interface ReadChat {
 /**
  * Puts `Person 1`, `Person 2`… in place of senders named only by their
  * phone number, the same person under the same name, so no number reaches
- * a model or an agent (root CLAUDE.md, rule 9).
+ * a model or an agent (root CLAUDE.md, rule 8).
  */
 function maskNumbers(messages: readonly ReadMessage[]): ReadMessage[] {
   const people = new Map<string, string>();
