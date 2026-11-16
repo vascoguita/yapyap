@@ -4,6 +4,7 @@ import type { ChromeApi, GlobalShortcutState, ShortcutList } from '../../shared/
 import { en } from '../../shared/messages/en.ts';
 import { acceleratorFromKeys } from '../../shared/shortcut-keys.ts';
 import { keysOf, type ActiveShortcut } from '../../shared/shortcuts.ts';
+import { useEscapeToClose } from '../shared/escape.ts';
 
 const text = en.shortcuts;
 
@@ -233,6 +234,7 @@ function useShortcuts(api: ChromeApi) {
 
 /** Every keyboard shortcut YapYap answers to on this computer, each one changeable (#75). */
 export function Shortcuts({ api }: { readonly api: ChromeApi }): JSX.Element {
+  useEscapeToClose();
   const { list, problem, apply } = useShortcuts(api);
   const [listening, setListening] = useState<string>();
   const onKeys = useCallback(

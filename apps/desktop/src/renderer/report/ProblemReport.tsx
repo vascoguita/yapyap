@@ -2,7 +2,8 @@ import type { JSX } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import type { ChromeApi } from '../../shared/api/chrome-api.ts';
 import { en } from '../../shared/messages/en.ts';
-import { DiscardPrompt, useEscapeToClose } from '../shared/discard.tsx';
+import { DiscardPrompt } from '../shared/discard.tsx';
+import { useEscapeToClose } from '../shared/escape.ts';
 
 const text = en.report;
 
@@ -76,7 +77,7 @@ export function ProblemReport({ api }: { readonly api: ChromeApi }): JSX.Element
   useEffect(() => {
     api.report.diagnostics().then(setDiagnostics, () => undefined);
   }, [api]);
-  const leaving = useEscapeToClose(description.trim() !== '' && description !== opened);
+  const leaving = useEscapeToClose({ dirty: description.trim() !== '' && description !== opened });
   return (
     <main class="report">
       <h1>{text.title}</h1>

@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fakeChromeApi } from '../../../test/chrome-api.ts';
 import type { PickerOffer } from '../../shared/api/chrome-api.ts';
-import { cancelOnEscape, Picker } from './Picker.tsx';
+import { Picker } from './Picker.tsx';
 
 const OFFER: PickerOffer = {
   sources: [
@@ -111,11 +111,15 @@ describe('Picker', () => {
     expect(await screen.findByText('Nothing can be shared right now.')).toBeTruthy();
   });
 
-  it('cancels on Escape only', () => {
+  it('cancels on Escape, rather than only closing the window', () => {
     const t = api();
-    cancelOnEscape(new KeyboardEvent('keydown', { key: 'Enter' }), t);
+    const close = vi.spyOn(window, 'close').mockImplementation(() => undefined);
+    render(<Picker api={t} />);
+    fireEvent.keyDown(document, { key: 'Enter' });
     expect(t.picker.cancel).not.toHaveBeenCalled();
-    cancelOnEscape(new KeyboardEvent('keydown', { key: 'Escape' }), t);
+    fireEvent.keyDown(document, { key: 'Escape' });
     expect(t.picker.cancel).toHaveBeenCalledOnce();
+    expect(close).not.toHaveBeenCalled();
+    close.mockRestore();
   });
 });

@@ -2,6 +2,7 @@ import type { JSX } from 'preact';
 import { useState } from 'preact/hooks';
 import type { ChromeApi, PickerOffer, PickerSource } from '../../shared/api/chrome-api.ts';
 import { en } from '../../shared/messages/en.ts';
+import { useEscapeToClose } from '../shared/escape.ts';
 import { useLoaded } from '../shared/hooks.ts';
 
 const text = en.picker;
@@ -10,13 +11,6 @@ const GROUPS = [
   { kind: 'screen', title: text.screens },
   { kind: 'window', title: text.windows },
 ] as const;
-
-/** Escape cancels, like closing the window. */
-export function cancelOnEscape(event: KeyboardEvent, api: ChromeApi): void {
-  if (event.key === 'Escape') {
-    void api.picker.cancel();
-  }
-}
 
 function Source(props: {
   readonly source: PickerSource;
@@ -121,6 +115,8 @@ function Choices(props: { readonly api: ChromeApi; readonly offer: PickerOffer }
 }
 
 export function Picker({ api }: { readonly api: ChromeApi }): JSX.Element {
+  // Escape answers the request, as Cancel does, so the page is never left waiting.
+  useEscapeToClose({ close: () => void api.picker.cancel() });
   const offer = useLoaded(api.picker.offer);
   return (
     <main class="picker">

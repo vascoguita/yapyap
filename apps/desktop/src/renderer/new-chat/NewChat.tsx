@@ -3,6 +3,7 @@ import { useCallback, useState } from 'preact/hooks';
 import type { ChromeApi } from '../../shared/api/chrome-api.ts';
 import { en } from '../../shared/messages/en.ts';
 import { parseInternationalNumber } from '../../shared/phone-number.ts';
+import { useEscapeToClose } from '../shared/escape.ts';
 
 const text = en.newChat;
 
@@ -54,6 +55,7 @@ function Actions({ canOpen }: { readonly canOpen: boolean }): JSX.Element {
  * goes to WhatsApp's own chat link and is never saved.
  */
 export function NewChat({ api }: { readonly api: ChromeApi }): JSX.Element {
+  useEscapeToClose();
   const [number, setNumber] = useState('');
   const [failed, setFailed] = useState(false);
   const valid = parseInternationalNumber(number) !== undefined;

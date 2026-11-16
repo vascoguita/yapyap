@@ -9,7 +9,8 @@ import {
   type Snippet,
 } from '../../shared/custom-code.ts';
 import { en } from '../../shared/messages/en.ts';
-import { DiscardPrompt, useEscapeToClose } from '../shared/discard.tsx';
+import { DiscardPrompt } from '../shared/discard.tsx';
+import { useEscapeToClose } from '../shared/escape.ts';
 
 const text = en.customCode;
 const EMPTY: Snippet = { css: '', js: '' };
@@ -217,7 +218,7 @@ function useEditor(api: ChromeApi) {
  */
 export function CustomCodeEditor({ api }: { readonly api: ChromeApi }): JSX.Element {
   const { view, draft, dirty, scope, setScope, status, enable, edit, save } = useEditor(api);
-  const leaving = useEscapeToClose(dirty);
+  const leaving = useEscapeToClose({ dirty });
   return (
     <main class="custom-code">
       <h1>{text.title}</h1>

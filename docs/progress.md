@@ -539,3 +539,7 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
 - Adapter shared helpers (#650): `adapter/page-kit.ts` holds the `Scope` and
   `Actions` types and the `shadowPart`, `strokeIcon` and `paintWhatsAppTheme`
   helpers that the bar and the rewrite button each carry in their own kit.
+- One Escape (#651): every chrome window closes on Escape through
+  `useEscapeToClose` in `renderer/shared/escape.ts`; `dirty` asks before
+  losing a draft and `close` replaces closing (the picker cancels, Accounts
+  asks through its own prompt). `mount()` no longer takes an Escape handler.
