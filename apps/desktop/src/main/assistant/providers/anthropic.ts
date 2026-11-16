@@ -3,7 +3,6 @@ import {
   MAX_OUTPUT_TOKENS,
   ProviderError,
   REQUEST_TIMEOUT_MS,
-  type Completion,
   type CompletionRequest,
   type Provider,
 } from './provider.ts';
@@ -61,8 +60,7 @@ async function streamReply(
   client: Anthropic,
   model: string,
   request: CompletionRequest,
-  onText: (text: string) => void,
-): Promise<Completion> {
+): Promise<string> {
   const fallbacks = FALLBACK_MODELS.has(model)
     ? { betas: [FALLBACK_BETA], fallbacks: 'default' as const }
     : {};
@@ -81,14 +79,13 @@ async function streamReply(
   for await (const event of stream) {
     if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
       text += event.delta.text;
-      onText(event.delta.text);
     }
   }
   const message = await stream.finalMessage();
   if (message.stop_reason === 'refusal') {
     throw new ProviderError('refused');
   }
-  return { text, truncated: message.stop_reason === 'max_tokens' };
+  return text;
 }
 
 /**
@@ -104,9 +101,9 @@ export function anthropicProvider(settings: AnthropicSettings): Provider {
     fetch: settings.fetch,
   });
   return {
-    complete: async (request, onText) => {
+    complete: async (request) => {
       try {
-        return await streamReply(client, settings.model, request, onText);
+        return await streamReply(client, settings.model, request);
       } catch (error) {
         throw error instanceof ProviderError ? error : new ProviderError(kindOf(error, Anthropic));
       }

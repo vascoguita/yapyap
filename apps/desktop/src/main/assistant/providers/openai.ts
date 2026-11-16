@@ -4,7 +4,6 @@ import {
   MAX_OUTPUT_TOKENS,
   ProviderError,
   REQUEST_TIMEOUT_MS,
-  type Completion,
   type CompletionRequest,
   type Provider,
 } from './provider.ts';
@@ -42,20 +41,15 @@ const REASONS = /^(?:o\d|gpt-5)/;
 const effortFor = (model: string, compatible: boolean) =>
   !compatible && REASONS.test(model) ? { reasoning_effort: 'low' as const } : {};
 
-/** The streamed pieces, passed on as they come, and why the stream ended. */
+/** The streamed pieces joined, and why the stream ended. */
 async function collect(
   stream: AsyncIterable<OpenAI.ChatCompletionChunk>,
-  onText: (text: string) => void,
 ): Promise<{ text: string; finish: string | null }> {
   let text = '';
   let finish: string | null = null;
   for await (const chunk of stream) {
     const [choice] = chunk.choices;
-    const piece = choice?.delta.content ?? '';
-    if (piece !== '') {
-      text += piece;
-      onText(piece);
-    }
+    text += choice?.delta.content ?? '';
     finish = choice?.finish_reason ?? finish;
   }
   return { text, finish };
@@ -65,8 +59,7 @@ async function streamReply(
   client: OpenAI,
   settings: OpenAISettings,
   request: CompletionRequest,
-  onText: (text: string) => void,
-): Promise<Completion> {
+): Promise<string> {
   const stream = await client.chat.completions.create(
     {
       model: settings.model,
@@ -82,11 +75,11 @@ async function streamReply(
     },
     request.signal === undefined ? {} : { signal: request.signal },
   );
-  const { text, finish } = await collect(stream, onText);
+  const { text, finish } = await collect(stream);
   if (finish === 'content_filter') {
     throw new ProviderError('refused');
   }
-  return { text, truncated: finish === 'length' };
+  return text;
 }
 
 /**
@@ -103,9 +96,9 @@ export function openAIProvider(settings: OpenAISettings): Provider {
     ...(settings.baseURL === undefined ? {} : { baseURL: settings.baseURL }),
   });
   return {
-    complete: async (request, onText) => {
+    complete: async (request) => {
       try {
-        return await streamReply(client, settings, request, onText);
+        return await streamReply(client, settings, request);
       } catch (error) {
         throw error instanceof ProviderError ? error : new ProviderError(kindOf(error, OpenAI));
       }

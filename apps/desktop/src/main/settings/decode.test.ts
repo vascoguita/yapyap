@@ -5,7 +5,6 @@ import { decodeSettings, defaultSettings } from './decode.ts';
 const DEFAULTS = {
   schemaVersion: 1,
   general: {
-    language: 'system',
     startMinimized: false,
     autostart: false,
     closeToTray: false,
@@ -96,9 +95,9 @@ describe('decodeSettings', () => {
   });
 
   it('fills in missing sections and values with defaults', () => {
-    expect(decodeSettings('{"schemaVersion":1,"general":{"language":"pt"}}')).toEqual({
+    expect(decodeSettings('{"schemaVersion":1,"general":{"autostart":true}}')).toEqual({
       kind: 'ok',
-      settings: { ...DEFAULTS, general: { ...DEFAULTS.general, language: 'pt' } },
+      settings: { ...DEFAULTS, general: { ...DEFAULTS.general, autostart: true } },
       reset: [],
     });
   });
@@ -121,13 +120,13 @@ describe('decodeSettings', () => {
     const decoded = decodeSettings(
       JSON.stringify({
         ...DEFAULTS,
-        general: { ...DEFAULTS.general, language: 'pt', startMinimized: 'yes' },
+        general: { ...DEFAULTS.general, autostart: true, startMinimized: 'yes' },
         appearance: { theme: 'neon', zoom: 9 },
       }),
     );
     expect(decoded).toEqual({
       kind: 'ok',
-      settings: { ...DEFAULTS, general: { ...DEFAULTS.general, language: 'pt' } },
+      settings: { ...DEFAULTS, general: { ...DEFAULTS.general, autostart: true } },
       reset: ['/general/startMinimized', '/appearance/theme', '/appearance/zoom'],
     });
   });

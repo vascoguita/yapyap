@@ -80,19 +80,14 @@ const REQUEST = {
 };
 
 describe('anthropicProvider', () => {
-  it('streams the reply piece by piece, and asks with the user’s key and model', async () => {
+  it('joins the streamed reply, and asks with the user’s key and model', async () => {
     const fake = fakeFetch(streamed(reply(['Sure', ', see you at 8.'])));
     const provider = anthropicProvider({
       apiKey: 'sk-ant-test',
       model: 'claude-opus-5-5',
       fetch: fake.fetch,
     });
-    const pieces: string[] = [];
-    await expect(provider.complete(REQUEST, (text) => pieces.push(text))).resolves.toEqual({
-      text: 'Sure, see you at 8.',
-      truncated: false,
-    });
-    expect(pieces).toEqual(['Sure', ', see you at 8.']);
+    await expect(provider.complete(REQUEST)).resolves.toBe('Sure, see you at 8.');
     const [request] = fake.requests;
     expect(request?.url).toMatch(/^https:\/\/api\.anthropic\.com\/v1\/messages(\?|$)/);
     expect(keyOf(request?.headers)).toBe('sk-ant-test');
@@ -127,7 +122,7 @@ describe('anthropicProvider', () => {
     'asks %s to fall back on a refusal',
     async (model) => {
       const fake = fakeFetch(streamed(reply(['Hi'])));
-      await anthropicProvider({ apiKey: 'k', model, fetch: fake.fetch }).complete(REQUEST, vi.fn());
+      await anthropicProvider({ apiKey: 'k', model, fetch: fake.fetch }).complete(REQUEST);
       expect(fake.requests[0]?.body).toMatchObject({ model, fallbacks: 'default' });
     },
   );
@@ -142,7 +137,7 @@ describe('anthropicProvider', () => {
     ['claude-3-5-haiku', false],
   ])('asks %s for little thinking only if it takes an effort level: %s', async (model, takes) => {
     const fake = fakeFetch(streamed(reply(['Hi'])));
-    await anthropicProvider({ apiKey: 'k', model, fetch: fake.fetch }).complete(REQUEST, vi.fn());
+    await anthropicProvider({ apiKey: 'k', model, fetch: fake.fetch }).complete(REQUEST);
     if (takes) {
       expect(fake.requests[0]?.body).toMatchObject({ output_config: { effort: 'low' } });
     } else {
@@ -154,23 +149,18 @@ describe('anthropicProvider', () => {
     const fake = fakeFetch(streamed(reply(['Hi'])));
     await anthropicProvider({ apiKey: 'k', model: 'claude-haiku-5-5', fetch: fake.fetch }).complete(
       REQUEST,
-      vi.fn(),
     );
     expect(fake.requests[0]?.body).not.toHaveProperty('fallbacks');
   });
 
-  it('says when the reply was cut short, and fails a refused one', async () => {
+  it('keeps a reply cut short at the limit, and fails a refused one', async () => {
     const cut = fakeFetch(streamed(reply(['Long'], 'max_tokens')));
     const provider = anthropicProvider({ apiKey: 'k', model: 'claude-opus-5-5', fetch: cut.fetch });
-    await expect(provider.complete(REQUEST, vi.fn())).resolves.toEqual({
-      text: 'Long',
-      truncated: true,
-    });
+    await expect(provider.complete(REQUEST)).resolves.toBe('Long');
     const refused = fakeFetch(streamed(reply([], 'refusal')));
     await expect(
       anthropicProvider({ apiKey: 'k', model: 'claude-opus-5-5', fetch: refused.fetch }).complete(
         REQUEST,
-        vi.fn(),
       ),
     ).rejects.toMatchObject({ kind: 'refused' });
   });
@@ -185,7 +175,7 @@ describe('anthropicProvider', () => {
   ])('fails a %d as %s, without the provider’s own words', async (status, kind) => {
     const fake = fakeFetch(failing(status));
     const failure = anthropicProvider({ apiKey: 'k', model: 'm', fetch: fake.fetch })
-      .complete(REQUEST, vi.fn())
+      .complete(REQUEST)
       .catch((error: unknown) => error);
     const error = await failure;
     expect(error).toBeInstanceOf(ProviderError);
@@ -198,10 +188,10 @@ describe('anthropicProvider', () => {
     const controller = new AbortController();
     controller.abort();
     await expect(
-      anthropicProvider({ apiKey: 'k', model: 'm', fetch: fake.fetch }).complete(
-        { ...REQUEST, signal: controller.signal },
-        vi.fn(),
-      ),
+      anthropicProvider({ apiKey: 'k', model: 'm', fetch: fake.fetch }).complete({
+        ...REQUEST,
+        signal: controller.signal,
+      }),
     ).rejects.toMatchObject({ kind: 'cancelled' });
   });
 
@@ -216,7 +206,7 @@ describe('anthropicProvider', () => {
       apiKey: 'k',
       model: 'm',
       fetch: fetch,
-    }).complete(REQUEST, vi.fn());
+    }).complete(REQUEST);
     const failed = expect(failure).rejects.toMatchObject({ kind: 'network' });
     await vi.runAllTimersAsync();
     await failed;
@@ -241,7 +231,7 @@ describe('anthropicProvider', () => {
       model: 'm',
       fetch: fetch as unknown as typeof globalThis.fetch,
       timeoutMs: 10,
-    }).complete(REQUEST, vi.fn());
+    }).complete(REQUEST);
     const failed = expect(failure).rejects.toMatchObject({ kind: 'timeout' });
     await vi.runAllTimersAsync();
     await failed;

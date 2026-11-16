@@ -510,6 +510,9 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   Distribute workflow uses the `setup` action; `test/temp-dir.ts` moved to
   `apps/desktop/test/`, its only user; `scripts/src/bin/package.ts` now
   runs the full packaging matrix. Stale config entries are gone.
+- Dead code (#640): `general.language` left the schema until a Language
+  setting ships (ADR 0012). Providers return the reply's text: nothing
+  read the streamed pieces or `truncated` since the panel went.
 - Docs drift (#641): accepted ADRs, the architecture page, the assistant
   guide and CONTRIBUTING no longer describe extensions, the marketplace,
   call recording, the private model, the assistant panel or Dependabot
@@ -531,11 +534,6 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   code left `chrome/feature.ts` for `about/about-handlers.ts`,
   `recovery/recovery-handlers.ts` and `crash/diagnostics.ts`, with
   `page-state.ts` beside its user in `crash/`.
-- Fewer CI jobs per pull request (#657): mutation starts one job per five
-  changed in-scope modules (none for most changes), macOS runs only for
-  changes that can affect it, the repository test follows full packaging,
-  and the Renovate check its config; nightly packages and smoke-tests every
-  format. `scripts/src/ci/changes.ts` decides (ADR 0007).
 - Adapter shared helpers (#650): `adapter/page-kit.ts` holds the `Scope` and
   `Actions` types and the `shadowPart`, `strokeIcon` and `paintWhatsAppTheme`
   helpers that the bar and the rewrite button each carry in their own kit.
@@ -545,3 +543,8 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   asks through its own prompt). `mount()` no longer takes an Escape handler.
 - Contributors (#655): the README thanks Gianmaria Del Monte for the MCP
   server, chats' pictures in notifications, and beta testing on Arch Linux.
+- Fewer CI jobs per pull request (#657): mutation starts one job per five
+  changed in-scope modules (none for most changes), macOS runs only for
+  changes that can affect it, the repository test follows full packaging,
+  and the Renovate check its config; nightly packages and smoke-tests every
+  format. `scripts/src/ci/changes.ts` decides (ADR 0007).

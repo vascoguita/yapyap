@@ -25,7 +25,6 @@ describe('openSettings', () => {
       general: object;
     };
     expect(saved.general).toEqual({
-      language: 'system',
       startMinimized: false,
       autostart: true,
       closeToTray: false,
