@@ -104,17 +104,24 @@ pull request, with `master` always green and releases fully automated.
   its commit and its merge commit; the release workflow merges each pair
   into one entry, linking the pull request, in the release PR's changelog
   and body (#358).
-- **Dependabot**: grouped weekly updates with a 3-day cooldown. Patch and
-  minor updates get auto-merge (`gh pr merge --auto --merge`) once all checks
-  pass.
+- **Renovate** (ADR 0020): grouped updates on Mondays, each release at
+  least 3 days old. Minor and patch groups get GitHub's auto-merge, with a
+  merge commit, once all checks pass. Dependabot only opens security
+  updates.
 - **Releases**: release-please keeps a release PR on `master`. Merging it tags
   `vX.Y.Z`, writes CHANGELOG and creates the GitHub Release. That triggers
   the release build. Nobody tags by hand.
 
+## Amendments
+
+- 2026-11-16 (#641): Renovate replaced Dependabot's version updates (ADR
+  0020), and release-please and Renovate now use the automation App's
+  token instead of `AUTOMATION_TOKEN`, so the pinned-versions workflow and
+  the hand re-triggering are gone.
+
 ## Consequences
 
 - Required checks don't run on PRs opened with the default `GITHUB_TOKEN`.
-  release-please therefore needs a GitHub App or fine-grained token
-  (`AUTOMATION_TOKEN`, also used by the pinned-versions workflow) for its PR to be mergeable. Until one exists, the
-  maintainer re-triggers checks by hand. This is tracked as a
-  `needs-maintainer` issue.
+  release-please and Renovate therefore work through a short-lived token
+  from the YapYap automation GitHub App, so their PRs are mergeable (see
+  CONTRIBUTING.md, "Automation app").

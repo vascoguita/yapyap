@@ -272,8 +272,9 @@ refuses its next request.
   which box that is is a layout detail, falling back to `#pane-side`. It reuses the
   `chatList`, `chatRow` and `chatTitle` landmarks, so `LANDMARKS_VERSION`
   stays. The
-  fake page opens a chat when its row is pressed. Sending reuses the
-  assistant bar's Enter. Tests never touch a real account (rule 2).
+  fake page opens a chat when its row is pressed. Sending reuses
+  `pressEnter` from `notifications/reply.ts`. Tests never touch a real
+  account (rule 2).
 - ADR 0008 logs C47.
 
 ### Out of scope
@@ -297,10 +298,16 @@ groups and calls, and MCP over stdio.
 - Users who turn sending on risk WhatsApp banning their number. Settings
   and the token form say so; YapYap cannot prevent it.
 - Three new runtime packages in the main process: the MCP project's
-  server and core, and Zod. Their updates come through Dependabot like any
-  other.
+  server and core, and Zod. Their updates come through Renovate like any
+  other (ADR 0020).
 - New code tested to 100%: the request checks (with a property test for
   `Origin`), the real listener on a free port, tokens, every tool through
   the SDK, Settings' section and form, the adapter's opener, and E2E tests
   that create a token in Settings, call the server over HTTP and send in
   the fake page.
+
+## Amendments
+
+- 2026-11-16 (#641): sending is said to reuse `pressEnter` from
+  `notifications/reply.ts`, as the assistant bar's Send is gone (ADR
+  0013), and updates come through Renovate, not Dependabot (ADR 0020).

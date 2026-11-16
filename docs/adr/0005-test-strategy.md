@@ -14,16 +14,16 @@ coverage numbers mean something, and must never touch real WhatsApp.
 
 ### Layers
 
-| Layer         | Tool                      | Scope                                                                                                                                            |
-| ------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Unit          | Vitest (node / happy-dom) | All pure logic: settings decoding, URL policy, UA builder, capability checker, signature verification, redaction, update policy, adapter parsing |
-| Integration   | Vitest                    | IPC handlers with a fake Electron surface, extension host RPC pipeline, protocol handlers, extension installer                                   |
-| Property      | Vitest + fast-check       | Parsers and validators of untrusted input (origin overrides, license expressions, versions, later IPC payloads and extension manifests)          |
-| E2E           | Playwright `_electron`    | App chrome, multi-account, tray, settings, recovery actions, extensions, the malicious-extension suite, and accessibility (axe)                  |
-| Visual        | Playwright screenshots    | App chrome in light and dark themes, per OS baseline                                                                                             |
-| Mutation      | Stryker (command runner)  | WhatsApp adapter, extension host, capability checker, signature verification, settings, AI providers. Score ≥ 90%, enforced.                     |
-| Package smoke | CI per artifact           | Install, launch, window opens, fake WhatsApp loads                                                                                               |
-| Benchmarks    | Nightly                   | Cold start and idle memory per account against budgets                                                                                           |
+| Layer         | Tool                      | Scope                                                                                                                                                                                                                                |
+| ------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Unit          | Vitest (node / happy-dom) | All pure logic: settings decoding, URL policy, UA builder, redaction, update policy, adapter parsing, agent token checks                                                                                                             |
+| Integration   | Vitest                    | IPC handlers with a fake Electron surface, protocol handlers, the MCP server                                                                                                                                                         |
+| Property      | Vitest + fast-check       | Parsers and validators of untrusted input (origin overrides, license expressions, versions, settings files, MCP requests)                                                                                                            |
+| E2E           | Playwright `_electron`    | App chrome, multi-account, tray, settings, recovery actions, the assistant, the MCP server, and accessibility (axe)                                                                                                                  |
+| Visual        | Playwright screenshots    | App chrome in light and dark themes, per OS baseline                                                                                                                                                                                 |
+| Mutation      | Stryker (command runner)  | The scope in `scripts/src/mutation/scope.ts`: WhatsApp adapter, chrome IPC plumbing and handlers, settings, navigation, permissions, security guards, updates, AI providers, and license and release scripts. Score ≥ 90%, enforced. |
+| Package smoke | CI per artifact           | Install, launch, window opens, fake WhatsApp loads                                                                                                                                                                                   |
+| Benchmarks    | Nightly                   | Cold start and idle memory per account against budgets                                                                                                                                                                               |
 
 ### Fake WhatsApp
 
@@ -52,41 +52,26 @@ attacker-controlled redirect.
 - Files excluded from coverage are listed in `vitest.config.ts` and justified
   here, and nowhere else:
 
-  | Excluded                                                               | Why                                                                                                                                |
-  | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-  | `apps/desktop/src/main/index.ts`                                       | Process entry: wires real Electron modules into tested factories. Only runnable inside Electron, and exercised by every E2E test.  |
-  | `apps/desktop/src/preload/*/index.ts`                                  | `contextBridge.exposeInMainWorld` calls. Each only binds an already unit-tested API object, and exercised by E2E.                  |
-  | `scripts/src/bin/*.ts`                                                 | Command entry points that only read `process.env` and pass real `fetch` and `fs` into tested modules; branch-free by lint rule.    |
-  | `packages/*/src/bin/*.ts`                                              | The same for package CLIs such as `yapyap-extension-sign`: they pass `process.argv` and real `fs` and streams into tested modules. |
-  | `**/*.d.ts`, generated `*.schema.json`                                 | No executable code                                                                                                                 |
-  | `**/*.test.ts`, `**/*.test.tsx`, `test/**`, `e2e/**`, `**/*.config.ts` | Test and build infrastructure                                                                                                      |
+  | Excluded                              | Why                                                                                                                               |
+  | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+  | `apps/desktop/src/main/index.ts`      | Process entry: wires real Electron modules into tested factories. Only runnable inside Electron, and exercised by every E2E test. |
+  | `apps/desktop/src/preload/*/index.ts` | `contextBridge.exposeInMainWorld` calls. Each only binds an already unit-tested API object, and exercised by E2E.                 |
+  | `scripts/src/bin/**`                  | Command entry points that only read `process.env` and pass real `fetch` and `fs` into tested modules; branch-free by lint rule.   |
+  | `**/*.d.ts`                           | No executable code                                                                                                                |
+  | `**/*.test.ts`, `**/*.test.tsx`       | Tests. Test helpers, E2E specs and config files lie outside the covered `src` folders anyway.                                     |
 
 The rule for entry files: they may only import factories and call them with
 real dependencies. They contain no branches. A lint rule (`complexity: 1`
 for these paths) enforces it.
 
-### Malicious-extension suite
+### Untrusted callers
 
-`extensions/test-malicious/` (never shipped, signed with a test key generated
-in-memory per test run) attempts each attack below. Each test asserts the
-specific failure:
-
-1. DOM access: there is no `document` of WhatsApp. The extension can only see its
-   own blank page, and adapter RPCs return data only.
-2. Undeclared network: `fetch`, `XMLHttpRequest`, `WebSocket`, `<img>`,
-   `EventSource` and `sendBeacon` to an undeclared host are all blocked at the
-   session level.
-3. Other extensions' secrets and storage: `secrets.get` with a foreign namespace
-   is rejected, and partitions are distinct.
-4. Sending messages: no such RPC method exists, so an `unknown method` error is
-   asserted. Draft insertion leaves the composer unsent.
-5. Spoofing UI: contributions with HTML or overlong labels are rejected by the
-   schema. Panels have no z-order over WhatsApp.
-6. Resource limits: a busy loop and memory balloon lead to termination, then
-   disablement.
-7. Additional cases: eval or inline script blocked by CSP, path traversal on
-   `extension://`, RPC flood rate-limited, oversized messages rejected, tampered
-   archive rejected, key-change update rejected.
+The MCP server is the one door into YapYap from other programs (ADR 0019).
+`apps/desktop/src/main/agents/request-checks.test.ts` asserts that a
+request from another computer, with a rebound host, or of the wrong method,
+path, type or size is refused, and, with fast-check, that no request naming
+an origin gets through. `apps/desktop/e2e/agents.spec.ts` checks the
+scopes and chat lists of real tokens end to end.
 
 ### Platforms
 
@@ -120,6 +105,13 @@ Code that parses untrusted or external input also gets property-based tests in
 the code with a simple reference model, and fast-check searches for
 counterexamples. They run with the unit tests, and they also count as fuzzing
 for the OpenSSF Scorecard.
+
+## Amendments
+
+- 2026-11-16 (#641): dropped the capability checker, signature checks,
+  extension host and installer, the malicious-extension suite and the
+  `packages/*/src/bin` coverage row, all gone with extensions (ADR 0018),
+  and matched the mutation scope and coverage exclusions to the code.
 
 ## Consequences
 

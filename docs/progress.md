@@ -5,14 +5,12 @@ elsewhere, and short notes on what each pull request changed. Decisions and
 their reasons belong in the ADRs (`docs/adr/`), and released changes in
 `CHANGELOG.md`. Git history keeps the long versions of older notes.
 
-## Current state (2026-11-01)
+## Current state (2026-11-16)
 
-- **Latest stable release:** v0.2.0 (2026-10-29). **Latest beta:**
-  v0.3.0-beta.1 (2026-11-02). The release-please PR for 0.3.0 is open.
+- **Latest stable release:** v0.3.0 (2026-11-14). **Latest beta:**
+  v0.3.1-beta.3 (2026-11-16). The release-please PR for 0.3.1 is open.
   Releases happen only by merging it, and a release needs a published beta
   of its version first (#184).
-- **On `master`, unreleased:** the AI assistant is part of YapYap itself
-  (ADR 0017, #505). It is YapYap's main feature and no longer an extension.
 - **Next:** M8 (#119 Flathub, #118 the final audit and v1.0.0).
 - **Waiting on the maintainer:** #24 (Windows code signing), #25 (AUR
   credentials), #402 (renew the macOS certificate before 2027-11-25).
@@ -26,7 +24,7 @@ their reasons belong in the ADRs (`docs/adr/`), and released changes in
 | M2 · Single-account shell                            | Done                             |
 | M3 · Accounts, tray, notifications, updates (v0.1.0) | Done                             |
 | M4 · Remaining desktop features (v0.1.x)             | Done                             |
-| M5 · Extension platform                              | Done                             |
+| M5 · Extension platform                              | Done; removed by ADR 0018 (#571) |
 | M6 · AI writing assistant (v0.2.0)                   | Done; made part of YapYap (#505) |
 | M7 · Hardening                                       | Done                             |
 | M8 · Docs and v1.0.0                                 | In progress (#118, #119)         |
@@ -47,8 +45,8 @@ their reasons belong in the ADRs (`docs/adr/`), and released changes in
 - **Advisories.** A build-only advisory without an upstream fix is resolved
   with an `override` in `pnpm-workspace.yaml`, with a comment saying why and
   when to remove it.
-- **Test-only switches.** `YAPYAP_TEST_*` variables (marketplace origin and
-  anchor, model ports, the built-in model) point E2E tests at local fakes.
+- **Test-only switches.** `YAPYAP_TEST_*` variables (the WhatsApp origin and
+  the model servers' ports) point E2E tests at local fakes.
   Packaged builds ignore them.
 - **Releases.** release-please keeps the release PR on `master`, and the
   release workflow merges each change's commit and merge-commit entries
@@ -203,8 +201,7 @@ their reasons belong in the ADRs (`docs/adr/`), and released changes in
 - Assistant in YapYap (#505, ADR 0017): `apps/desktop/src/main/assistant/`
   runs the providers on a confined in-memory session and the private model
   in a hidden engine window. Settings version 19 adds the local
-  `assistant` section. The first start imports an installed `ai-assistant`
-  extension's setup and removes it. `extensions/ai-assistant` and the
+  `assistant` section. `extensions/ai-assistant` and the
   `assistant:bar`, `local-model` and `localModels.find` extension APIs are
   gone (C42 and C43 in ADR 0008).
 
@@ -501,7 +498,7 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   that only ran on the maintainer's machine.
 - Menu regrouping (#635): File starts with **New Chat with Number…**;
   Account ends with a **Troubleshoot** submenu for Clear Cache and Reset
-  Session; the Assistant menu is gone, since Settings and the bar's gear
+  Session; the Assistant menu is gone, since Settings and the rewrite menu
   reach its page; View leads with zoom and the privacy screen and ends
   with reloading and DevTools; Help sets diagnostics apart. The menus
   stay native, so each platform keeps its look and keyboard handling.
@@ -513,6 +510,10 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   Distribute workflow uses the `setup` action; `test/temp-dir.ts` moved to
   `apps/desktop/test/`, its only user; `scripts/src/bin/package.ts` now
   runs the full packaging matrix. Stale config entries are gone.
+- Docs drift (#641): accepted ADRs, the architecture page, the assistant
+  guide and CONTRIBUTING no longer describe extensions, the marketplace,
+  call recording, the private model, the assistant panel or Dependabot
+  version updates as current. Each ADR touched has a dated amendment.
 - AI Assistant name (#645): the assistant is called "AI Assistant" in
   titles and labels (Settings page, the bar's label, the rewrite menu's
   **AI Assistant settings**, the Welcome step) and "the AI assistant" in

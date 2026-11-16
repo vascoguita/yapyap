@@ -16,9 +16,10 @@ The AI assistant is part of YapYap. There is nothing to install.
 
 ## Set it up
 
-Open **Settings → AI Assistant**, or use the gear in the bar above the message
-box, which opens Settings there. The first time you start YapYap, the Welcome offers the same
-choices.
+Open **Settings → AI Assistant**, or choose **AI Assistant settings** at
+the end of the menu by the message box's rewrite button, which opens
+Settings there. The first time you start YapYap, the Welcome offers the
+same choices.
 
 Until you choose a provider, the AI assistant is off, and nothing is sent
 anywhere. Under **Provider**, choose one. Only the one you choose opens and
@@ -221,9 +222,7 @@ See also [Privacy](../privacy.md).
 **Test** it.
 
 **"Set up the AI assistant to start: choose a provider."** No provider is
-chosen yet. If you used the private model or Automatic in an earlier
-version of YapYap, choose a provider again in Settings; your saved keys
-for Claude and OpenAI are still there.
+chosen yet. Choose one in Settings → AI Assistant.
 
 **"Your model server does not answer."** Check its address in Settings,
 and start the server, such as by opening Ollama, then ask again. **Find on

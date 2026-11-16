@@ -41,7 +41,7 @@ test('shows one page at a time, picked from the list beside it or with the arrow
   await expect(list.getByRole('button', { name: 'Advanced' })).toBeFocused();
 });
 
-test('opens at the AI Assistant page from the assistant’s gear, even when already open', async ({
+test('opens at the AI Assistant page from the assistant’s rewrite menu, even when already open', async ({
   app,
   window,
 }) => {

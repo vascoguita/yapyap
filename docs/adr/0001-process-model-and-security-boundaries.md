@@ -6,21 +6,20 @@
 ## Context
 
 YapYap loads a remote, third-party web application (WhatsApp Web) that we do
-not control, renders its own trusted UI around it, and later hosts third-party
-extensions. Each of these has a different trust level, and they must never share
-privileges. WhatsApp builds and tests for current Chromium, so the engine must
-be a stock, current Chromium with a matching user agent.
+not control, and renders its own trusted UI around it. Each has a different
+trust level, and they must never share privileges. WhatsApp builds and
+tests for current Chromium, so the engine must be a stock, current Chromium
+with a matching user agent.
 
 ## Decision
 
 ### Trust zones
 
-| Zone       | Process                                   | Trust                         | Content                                                                                                |
-| ---------- | ----------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------ |
-| Main       | Electron main (Node)                      | Trusted                       | App logic, settings, IPC validation, extension host, capability checker                                |
-| App chrome | Renderer, `app://chrome/`                 | Trusted code, untrusted input | Account switcher, settings, dialogs, recovery UI, extension UI rendered from declarative contributions |
-| WhatsApp   | One renderer per account                  | Untrusted (remote)            | `https://web.whatsapp.com` plus the WhatsApp adapter preload in an isolated world                      |
-| Extension  | One hidden renderer per enabled extension | Untrusted (third party)       | Extension bundle served from `extension://<id>/`                                                       |
+| Zone       | Process                   | Trust                         | Content                                                                           |
+| ---------- | ------------------------- | ----------------------------- | --------------------------------------------------------------------------------- |
+| Main       | Electron main (Node)      | Trusted                       | App logic, settings, IPC validation, the assistant's requests, the MCP server     |
+| App chrome | Renderer, `app://chrome/` | Trusted code, untrusted input | Account switcher, settings, dialogs, recovery UI                                  |
+| WhatsApp   | One renderer per account  | Untrusted (remote)            | `https://web.whatsapp.com` plus the WhatsApp adapter preload in an isolated world |
 
 ### Window composition
 
@@ -56,10 +55,11 @@ and an ESLint restriction forbids constructing `BrowserWindow` or
   notification fields, active-chat metadata). It never sends DOM nodes or HTML.
   Its probes return flags, never page text. The readers that return text,
   the open chat's latest messages (#100), the unread chats in the chat list
-  (#100) and the draft in its composer (#105), run only when an extension
-  holding `chat:read-active`, `chat:read-unread-summary` or
-  `composer:read-draft` for the account on screen asks. They return as
-  many messages as the user allows, or at most 20 unread chats with one
+  (#100) and the draft in its composer (#105), run only for the account on
+  screen: for the assistant, in a chat the user allowed it to read (ADR
+  0017), or when an AI agent whose token holds `chat:read-active`,
+  `chat:read-unread-summary` or `composer:read-draft` asks (ADR 0019).
+  They return as many messages as the user allows, or at most 20 unread chats with one
   preview each, checked against a schema, and nothing logs them (C26 and
   C39 in ADR 0008). The unread reader never opens a chat, which would mark
   it read.
@@ -82,8 +82,8 @@ and an ESLint restriction forbids constructing `BrowserWindow` or
 - Two pieces of YapYap's interface live inside WhatsApp's page. The
   assistant bar (ADR 0013, C35 in ADR 0008): the adapter renders it from
   its isolated world into a closed shadow root right above the message
-  box, writes extension text only as text, acts only on trusted events,
-  and puts it back on a timer while it shows, never with observers.
+  box, writes the assistant's text only as text, acts only on trusted
+  events, and puts it back on a timer while it shows, never with observers.
 - The chat list divider (#79, C40 in ADR 0008), with the same safeguards.
   The adapter keeps it right after the chat list's column, in a closed
   shadow root, and sets that column's inline `flex` to the account's width,
@@ -117,18 +117,14 @@ and an ESLint restriction forbids constructing `BrowserWindow` or
   `https://api.whatsapp.com/send` are rewritten as `whatsapp://send` and go
   through the same link policy, keeping only the phone number and text.
   Every other argument is ignored, and links are never logged (#45).
-  The one other link YapYap accepts is `yapyap://extensions/install/<id>`,
-  which only opens the extension marketplace on that extension (ADR 0014).
-- The main process makes two kinds of requests of its own besides update
-  checks. One is the signed extension index from `packages.guita.org`, only
-  when the user opens the marketplace, follows an install link or checks
-  for extension updates (ADR 0014). The other looks for AI models on this
-  computer (#456, C37). It runs only when an extension holding
-  `local-network` calls `host.localModels.find()` and the user allowed that
-  extension to look. It is a `GET /v1/models` to `127.0.0.1` on four fixed
-  ports (Ollama's 11434, Alpaca's 11435, LM Studio's 1234 and llama.cpp's
-  8080), all at once, each with a 1.5-second timeout and a 256 KiB cap on
-  the answer. It uses Node's `fetch`, which keeps no cookies, follows no
+- Besides update checks and the assistant's requests (ADR 0017), the main
+  process makes one kind of request of its own: it looks for AI models on
+  this computer (#456, C37), in `assistant/local-servers.ts`. It runs only
+  when the welcome's assistant step shows, to offer a server it finds, and
+  when the user chooses **Find on This Computer** in Settings › Assistant.
+  It is a `GET /v1/models` to `127.0.0.1` on four fixed ports (Ollama's
+  11434, Alpaca's 11435, LM Studio's 1234 and llama.cpp's 8080), all at
+  once, each with a 1.5-second timeout and a 256 KiB cap on the answer. It uses Node's `fetch`, which keeps no cookies, follows no
   redirect and sends no credentials. Nothing about the answers is logged.
 - The exceptions are popups WhatsApp opens for itself: an empty
   `about:blank` popup, which it opens before setting its location, and a
@@ -148,9 +144,8 @@ and an ESLint restriction forbids constructing `BrowserWindow` or
   lasts until the app quits. Its permission check answers yes, since
   Electron reports a refused check as `denied` and WhatsApp then never asks
   (C30); the request still asks. Checks compare origins with
-  `isSameOrigin`, as Electron passes them with a trailing slash. Chrome and
-  extension zones get nothing, and neither do web contents YapYap did not
-  create.
+  `isSameOrigin`, as Electron passes them with a trailing slash. The chrome
+  zone gets nothing, and neither do web contents YapYap did not create.
 - Downloads from WhatsApp are saved straight into the real downloads folder
   (resolved through symlinks), under a name stripped of path parts,
   characters Windows forbids, reserved device names and leading dots. An
@@ -177,7 +172,7 @@ and an ESLint restriction forbids constructing `BrowserWindow` or
     display-media handler only hands over that pick, once (#146).
   - It is accepted only from a WhatsApp frame (an account view or that
     account's call window) on its own origin whose window is visible and
-    focused. Requests from hidden accounts, chrome or extensions are rejected.
+    focused. Requests from hidden accounts or chrome are rejected.
   - While a share runs, the tray and the account's sidebar entry show it,
     with a Stop action, until it ends, however it ends (#161, ADR 0011).
   - The source is always chosen by the user, never preselected. On macOS 15+
@@ -206,8 +201,6 @@ and an ESLint restriction forbids constructing `BrowserWindow` or
 img-src 'self' data:; font-src 'self'; connect-src 'none';
 frame-ancestors 'none'; base-uri 'none'; form-action 'none'`, served
   from a custom `app://` protocol, not `file://`.
-- Extensions: `default-src 'none'; script-src 'self'`, plus `style-src 'self'`
-  and `img-src 'self' data:` for panels. See [ADR 0004](0004-extension-isolation-and-trust-model.md).
 - WhatsApp keeps its own CSP. We do not weaken it.
 
 ### User agent
@@ -245,28 +238,28 @@ back from every build and asserts them.
 
 ### Electron security checklist compliance
 
-| #   | Checklist item                                         | How YapYap complies                                                                                 |
-| --- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
-| 1   | Only load secure content                               | WhatsApp is HTTPS. Chrome and extensions use custom privileged protocols. Mixed content is blocked. |
-| 2   | No Node.js integration for remote content              | `nodeIntegration: false` everywhere                                                                 |
-| 3   | Context isolation                                      | `contextIsolation: true` everywhere                                                                 |
-| 4   | Process sandboxing                                     | `sandbox: true` everywhere, plus `app.enableSandbox()`; never starts with `--no-sandbox` (#134)     |
-| 5   | Permission request handler                             | Per-zone allowlists, see above                                                                      |
-| 6   | Do not disable `webSecurity`                           | Never set                                                                                           |
-| 7   | Define a CSP                                           | Chrome and extension CSPs set as response headers                                                   |
-| 8   | Do not enable `allowRunningInsecureContent`            | Never set                                                                                           |
-| 9   | Do not enable experimental features                    | Never set                                                                                           |
-| 10  | Do not use `enableBlinkFeatures`                       | Never set                                                                                           |
-| 11  | `<webview>`: do not use `allowpopups`                  | `webviewTag: false`; `<webview>` is not used                                                        |
-| 12  | Verify WebView options before creation                 | `will-attach-webview` always prevented                                                              |
-| 13  | Disable or limit navigation                            | Navigation guards, see above                                                                        |
-| 14  | Disable or limit creation of new windows               | `setWindowOpenHandler` denies                                                                       |
-| 15  | Do not use `shell.openExternal` with untrusted content | Scheme allowlist, URL re-serialization, `http(s)`, `mailto` and `tel` only                          |
-| 16  | Use a current version of Electron                      | Latest stable, kept current by Dependabot, nightly beta run                                         |
-| 17  | Validate the `sender` of all IPC messages              | Sender frame origin and role checked in every handler                                               |
-| 18  | Avoid the `file://` protocol                           | `app://` and `extension://` custom protocols                                                        |
-| 19  | Check which fuses you can change                       | Fuses table above, asserted in CI                                                                   |
-| 20  | Do not expose Electron APIs to untrusted web content   | Minimal typed bridges only                                                                          |
+| #   | Checklist item                                         | How YapYap complies                                                                             |
+| --- | ------------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| 1   | Only load secure content                               | WhatsApp is HTTPS. Chrome uses a custom privileged protocol. Mixed content is blocked.          |
+| 2   | No Node.js integration for remote content              | `nodeIntegration: false` everywhere                                                             |
+| 3   | Context isolation                                      | `contextIsolation: true` everywhere                                                             |
+| 4   | Process sandboxing                                     | `sandbox: true` everywhere, plus `app.enableSandbox()`; never starts with `--no-sandbox` (#134) |
+| 5   | Permission request handler                             | Per-zone allowlists, see above                                                                  |
+| 6   | Do not disable `webSecurity`                           | Never set                                                                                       |
+| 7   | Define a CSP                                           | Chrome CSP set as a response header                                                             |
+| 8   | Do not enable `allowRunningInsecureContent`            | Never set                                                                                       |
+| 9   | Do not enable experimental features                    | Never set                                                                                       |
+| 10  | Do not use `enableBlinkFeatures`                       | Never set                                                                                       |
+| 11  | `<webview>`: do not use `allowpopups`                  | `webviewTag: false`; `<webview>` is not used                                                    |
+| 12  | Verify WebView options before creation                 | `will-attach-webview` always prevented                                                          |
+| 13  | Disable or limit navigation                            | Navigation guards, see above                                                                    |
+| 14  | Disable or limit creation of new windows               | `setWindowOpenHandler` denies                                                                   |
+| 15  | Do not use `shell.openExternal` with untrusted content | Scheme allowlist, URL re-serialization, `http(s)`, `mailto` and `tel` only                      |
+| 16  | Use a current version of Electron                      | Latest stable, kept current by Renovate, nightly beta run                                       |
+| 17  | Validate the `sender` of all IPC messages              | Sender frame origin and role checked in every handler                                           |
+| 18  | Avoid the `file://` protocol                           | `app://` custom protocol                                                                        |
+| 19  | Check which fuses you can change                       | Fuses table above, asserted in CI                                                               |
+| 20  | Do not expose Electron APIs to untrusted web content   | Minimal typed bridges only                                                                      |
 
 ## Consequences
 
@@ -299,6 +292,12 @@ back from every build and asserts them.
   guard allows only `api.anthropic.com` and `api.openai.com` over HTTPS,
   plus the origin of the model server the user chose, which may be plain
   `http://` only on this computer or the home network.
+- 2026-11-16 (#641): dropped the Extension zone, the extension host,
+  extension CSP and `extension://` protocol, the `yapyap://extensions/install`
+  link and the marketplace index request, since extensions are gone (ADR
+  0018); the text readers now serve the assistant and MCP tokens, the model
+  search runs from the welcome and Settings › Assistant, and Electron is kept current by
+  Renovate (ADR 0020).
 
 ## Never without the sandbox
 
