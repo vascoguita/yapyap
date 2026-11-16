@@ -31,7 +31,7 @@ function fromBackup(dir: string): LoadedSettings {
 /**
  * Loads settings without ever failing (ADR 0006). A damaged file, or one of
  * another schema version, is kept as `settings.corrupt-<time>.json` for
- * inspection.
+ * inspection by hand.
  */
 export function loadSettings(dir: string, now: number): LoadedSettings {
   const path = join(dir, SETTINGS_FILE);
