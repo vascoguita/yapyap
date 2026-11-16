@@ -46,7 +46,7 @@ release's changes are in [`CHANGELOG.md`](CHANGELOG.md).
 
 YapYap is young and not yet at 1.0. Follow what comes next on the
 [project board](https://github.com/users/vascoguita/projects/5) and in
-[`docs/progress.md`](docs/progress.md).
+[`docs/progress/`](docs/progress/index.md).
 
 ## Highlights
 

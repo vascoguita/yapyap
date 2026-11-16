@@ -11,7 +11,7 @@ extension system (ADR 0018), no telemetry, and it is not affiliated with
 WhatsApp or Meta.
 
 Start every session by reading this file and the status at the top of
-`docs/progress.md`. Before changing an area, read the ADRs that cover it
+`docs/progress/index.md`. Before changing an area, read the ADRs that cover it
 (listed in `docs/adr/README.md`) and the `CLAUDE.md` next to its code.
 
 ## Commands
@@ -36,7 +36,7 @@ Use pnpm (version pinned in `package.json`) on Node.js 26 LTS.
 | Regenerate the message types      | `node scripts/src/bin/i18n-types.ts` (after changing `locales/en.json`)                             |
 | Check translation catalogs        | `node scripts/src/bin/check-catalogs.ts` (part of `pnpm lint`)                                      |
 | Check chrome CSS is logical       | `node scripts/src/bin/check-logical-css.ts` (part of `pnpm lint`; no physical left/right, ADR 0012) |
-| Check progress note order         | `node scripts/src/bin/check-progress-order.ts` (part of `pnpm lint`; notes in issue-number order)   |
+| Check progress note names         | `node scripts/src/bin/check-progress-notes.ts` (part of `pnpm lint`; one file per issue)            |
 | Validate the Renovate config      | Run the `docker run` command of the `renovate` job in `.github/workflows/ci.yml`                    |
 | License compatibility             | `pnpm check:licenses`                                                                               |
 | Vulnerability audit               | `pnpm audit --audit-level high`                                                                     |
@@ -107,9 +107,9 @@ Update this table in the PR that adds a command.
   Commits and are **signed**. Never disable or bypass signing.
 - Every commit builds and passes tests on its own.
 - Open PRs with `gh pr create`, including `Closes #N` and test evidence.
-  Update `docs/progress.md` in every PR, adding a short note in issue-number
-  order (never at the top, so PRs don't conflict), and this file when it is
-  affected.
+  Add a short progress note in every PR as `docs/progress/notes/<issue>.md`,
+  named by the issue it closes, so PRs never edit the same file, and update
+  this file when it is affected.
 - Watch checks with `gh pr checks --watch`. Fix failures with new commits.
   Never skip, weaken or disable a check or test.
 - Merge once the required checks are green with

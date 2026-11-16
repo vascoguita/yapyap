@@ -63,7 +63,9 @@ the renderer changes; close and reopen a window to see your edit.
 4. Commits follow [Conventional Commits](https://www.conventionalcommits.org/)
    and **must be signed**.
 5. Open a PR that links the issue (`Closes #N`) and includes test evidence.
-   Update `docs/progress.md`, and `CLAUDE.md` if your change affects it.
+   Add a short note as `docs/progress/notes/<issue>.md`, named by the issue
+   it closes and citing it first, as in "Topic (#123): ...", and update
+   `CLAUDE.md` if your change affects it.
 6. Rebase onto `master` and push with `--force-with-lease` only when the
    PR conflicts: branches need not be up to date (ADR 0007).
 7. Merge with a merge commit (`gh pr merge --merge --delete-branch`). Squash
