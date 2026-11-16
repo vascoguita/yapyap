@@ -15,7 +15,6 @@ function actions(accounts: AccountSummary[] = []) {
     setMuted: vi.fn(),
     openAbout: vi.fn(),
     openSettings: vi.fn(),
-    openAssistantSettings: vi.fn(),
     openCustomCode: vi.fn(),
     openNewChat: vi.fn(),
     clearCache: vi.fn(),
@@ -47,13 +46,24 @@ const ACCOUNT = (a: ReturnType<typeof actions>) => ({
       enabled: false,
     }),
     { type: 'separator' },
-    { label: 'New Chat with Number…', click: a.openNewChat },
-    { type: 'separator' },
-    { label: 'Clear Cache and Reload', click: a.clearCache },
-    { type: 'separator' },
-    { label: 'Reset Session…', click: a.resetSession },
+    {
+      label: 'Troubleshoot',
+      submenu: [
+        { label: 'Clear Cache and Reload', click: a.clearCache },
+        { type: 'separator' },
+        { label: 'Reset Session…', click: a.resetSession },
+      ],
+    },
   ],
 });
+
+const HELP = (a: ReturnType<typeof actions>) => [
+  { label: 'Keyboard Shortcuts…', accelerator: 'CmdOrCtrl+/', click: a.openShortcuts },
+  { label: 'Report a Problem…', click: a.openReport },
+  { type: 'separator' },
+  { label: 'Copy Diagnostics', click: a.copyDiagnostics },
+  { label: 'Record a Performance Trace…', click: a.recordTrace },
+];
 
 const items = (menu: MenuItemConstructorOptions | undefined) =>
   Array.isArray(menu?.submenu) ? menu.submenu : [];
@@ -113,23 +123,23 @@ describe('buildMenuTemplate', () => {
     expect(screen?.click).toBe(a.togglePrivacyScreen);
   });
 
-  it('zooms the WhatsApp view in 5% steps from the View menu', () => {
+  it('zooms in 5% steps first in the View menu, and keeps reloading and DevTools last', () => {
     const a = actions();
     const view = buildMenuTemplate('linux', a).find((menu) => menu.label === '&View');
     const entries = items(view);
     expect(entries.map((item) => item.role ?? item.label ?? item.type)).toEqual([
-      'reload',
-      'forceReload',
-      'toggleDevTools',
-      'separator',
       'Actual Size',
       'Zoom In',
       'Zoom Out',
       'separator',
       'Privacy Screen',
       'togglefullscreen',
+      'separator',
+      'reload',
+      'forceReload',
+      'toggleDevTools',
     ]);
-    const zoomItems = entries.slice(4, 7);
+    const zoomItems = entries.slice(0, 3);
     expect(zoomItems.map((item) => item.accelerator)).toEqual([
       'CmdOrCtrl+0',
       'CmdOrCtrl+=',
@@ -141,19 +151,20 @@ describe('buildMenuTemplate', () => {
     expect(a.zoom.mock.calls).toEqual([['reset'], ['in'], ['out']]);
   });
 
-  it('puts Settings in the File menu and About in the Help menu on Windows and Linux', () => {
+  it('puts a new chat and Settings in the File menu and About in Help on Windows and Linux', () => {
     const a = actions();
     const template = buildMenuTemplate('linux', a);
     expect(template.map((item) => item.role ?? item.label)).toEqual([
       '&File',
       '&Account',
-      'A&ssistant',
       '&Edit',
       '&View',
       '&Window',
       'help',
     ]);
     expect(items(template[0])).toEqual([
+      { label: 'New Chat with Number…', click: a.openNewChat },
+      { type: 'separator' },
       { label: 'Settings…', accelerator: 'CmdOrCtrl+,', click: a.openSettings },
       { label: 'Custom CSS and JavaScript…', click: a.openCustomCode },
       { type: 'separator' },
@@ -162,18 +173,9 @@ describe('buildMenuTemplate', () => {
     expect(items(template.at(-1))).toEqual([
       { label: 'About YapYap', click: a.openAbout },
       { type: 'separator' },
-      { label: 'Keyboard Shortcuts…', accelerator: 'CmdOrCtrl+/', click: a.openShortcuts },
-      { label: 'Report a Problem…', click: a.openReport },
-      { label: 'Copy Diagnostics', click: a.copyDiagnostics },
-      { label: 'Record a Performance Trace…', click: a.recordTrace },
+      ...HELP(a),
     ]);
     expect(template[1]).toEqual(ACCOUNT(a));
-  });
-
-  it('gives the assistant a menu of its own, which opens its settings', () => {
-    const a = actions();
-    const menu = buildMenuTemplate('linux', a).find((entry) => entry.label === 'A&ssistant');
-    expect(items(menu)).toEqual([{ label: 'Assistant Settings…', click: a.openAssistantSettings }]);
   });
 
   it('turns do not disturb on and off, and mutes or unmutes the account on screen', () => {
@@ -229,20 +231,19 @@ describe('buildMenuTemplate', () => {
     ]);
     expect(entries.find((item) => item.role === 'hide')?.accelerator).toBe('Cmd+H');
     expect(rest.map((item) => item.role ?? item.label)).toEqual([
-      'fileMenu',
+      '&File',
       '&Account',
-      'A&ssistant',
       '&Edit',
       '&View',
       'windowMenu',
       'help',
     ]);
-    expect(items(rest.at(-1))).toEqual([
-      { label: 'Keyboard Shortcuts…', accelerator: 'CmdOrCtrl+/', click: a.openShortcuts },
-      { label: 'Report a Problem…', click: a.openReport },
-      { label: 'Copy Diagnostics', click: a.copyDiagnostics },
-      { label: 'Record a Performance Trace…', click: a.recordTrace },
+    expect(items(rest[0])).toEqual([
+      { label: 'New Chat with Number…', click: a.openNewChat },
+      { type: 'separator' },
+      { role: 'close' },
     ]);
+    expect(items(rest.at(-1))).toEqual(HELP(a));
     expect(rest[1]).toEqual(ACCOUNT(a));
   });
 });
@@ -325,7 +326,7 @@ describe('custom shortcuts in the menus', () => {
       quit: 'Ctrl+Alt+Q',
     });
     const file = items(template[0]);
-    expect(file[0]).toMatchObject({ label: 'Settings…', accelerator: 'Alt+S' });
+    expect(file[2]).toMatchObject({ label: 'Settings…', accelerator: 'Alt+S' });
     expect(file.at(-1)).toEqual({ role: 'quit', accelerator: 'Ctrl+Alt+Q' });
     expect(
       items(template[1])

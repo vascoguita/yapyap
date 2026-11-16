@@ -34,8 +34,6 @@ export interface MenuActions {
   readonly setMuted: (muted: boolean) => void;
   readonly openAbout: () => void;
   readonly openSettings: () => void;
-  /** Settings, at its Assistant page. */
-  readonly openAssistantSettings: () => void;
   readonly openCustomCode: () => void;
   readonly openNewChat: () => void;
   readonly clearCache: () => void;
@@ -69,15 +67,14 @@ function zoomItems(actions: MenuActions, keys: Keys): MenuItemConstructorOptions
   ];
 }
 
-/** The standard View menu, with YapYap's zoom and its privacy screen. */
+/**
+ * The standard View menu: zoom and the privacy screen first, as people use
+ * them daily, and reloading and the developer tools last.
+ */
 function viewMenu(actions: MenuActions, keys: Keys): MenuItemConstructorOptions {
   return {
     label: en.menu.view,
     submenu: [
-      { role: 'reload', ...keyed('reload', keys) },
-      { role: 'forceReload', ...keyed('forceReload', keys) },
-      { role: 'toggleDevTools', ...keyed('devTools', keys) },
-      { type: 'separator' },
       ...zoomItems(actions, keys),
       { type: 'separator' },
       {
@@ -88,6 +85,10 @@ function viewMenu(actions: MenuActions, keys: Keys): MenuItemConstructorOptions 
         click: actions.togglePrivacyScreen,
       },
       { role: 'togglefullscreen', ...keyed('fullScreen', keys) },
+      { type: 'separator' },
+      { role: 'reload', ...keyed('reload', keys) },
+      { role: 'forceReload', ...keyed('forceReload', keys) },
+      { role: 'toggleDevTools', ...keyed('devTools', keys) },
     ],
   };
 }
@@ -170,7 +171,22 @@ function quietItems(actions: MenuActions): MenuItemConstructorOptions[] {
   ];
 }
 
-/** The accounts, and maintenance for the active one, for when it misbehaves. */
+/**
+ * Clearing the cache and resetting the session sit one level down, as they
+ * are for when an account misbehaves and resetting logs it out.
+ */
+function troubleshootMenu(actions: MenuActions): MenuItemConstructorOptions {
+  return {
+    label: en.menu.troubleshoot,
+    submenu: [
+      { label: en.menu.clearCache, click: actions.clearCache },
+      { type: 'separator' },
+      { label: en.menu.resetSession, click: actions.resetSession },
+    ],
+  };
+}
+
+/** The accounts, how loud they are, and fixes for the active one. */
 function accountMenu(actions: MenuActions, keys: Keys): MenuItemConstructorOptions {
   return {
     label: en.menu.account,
@@ -187,31 +203,22 @@ function accountMenu(actions: MenuActions, keys: Keys): MenuItemConstructorOptio
       { type: 'separator' },
       ...quietItems(actions),
       { type: 'separator' },
-      { label: en.menu.newChat, click: actions.openNewChat },
-      { type: 'separator' },
-      { label: en.menu.clearCache, click: actions.clearCache },
-      { type: 'separator' },
-      { label: en.menu.resetSession, click: actions.resetSession },
+      troubleshootMenu(actions),
     ],
-  };
-}
-
-/**
- * The assistant's settings, which open at the assistant (ADR 0017). The
- * assistant itself works in the message box, so it needs no menu items.
- */
-function assistantMenu(actions: MenuActions): MenuItemConstructorOptions {
-  return {
-    label: en.menu.assistant,
-    submenu: [{ label: en.menu.assistantSettings, click: actions.openAssistantSettings }],
   };
 }
 
 /** The items whose place differs between macOS and the other platforms. */
 interface PlacedItems {
   readonly about: MenuItemConstructorOptions;
-  /** Settings, and beside it the user's own code, as Settings is where Developer Mode lives. */
+  /**
+   * Settings, and beside it the user's own code, as Settings is where
+   * Developer Mode lives. The assistant needs no item: it works in the
+   * message box, and its gear opens Settings at its page (ADR 0017).
+   */
   readonly settings: MenuItemConstructorOptions[];
+  /** Starting a chat, which File holds as other apps hold New. */
+  readonly newChat: MenuItemConstructorOptions;
   readonly help: MenuItemConstructorOptions[];
   readonly quit: MenuItemConstructorOptions;
 }
@@ -223,9 +230,11 @@ function placedItems(actions: MenuActions, keys: Keys): PlacedItems {
       { label: en.menu.settings, ...keyed('settings', keys), click: actions.openSettings },
       { label: en.menu.customCode, click: actions.openCustomCode },
     ],
+    newChat: { label: en.menu.newChat, click: actions.openNewChat },
     help: [
       { label: en.menu.shortcuts, ...keyed('shortcuts', keys), click: actions.openShortcuts },
       { label: en.menu.reportProblem, click: actions.openReport },
+      { type: 'separator' },
       { label: en.menu.copyDiagnostics, click: actions.copyDiagnostics },
       { label: en.menu.recordTrace, click: actions.recordTrace },
     ],
@@ -247,21 +256,29 @@ export function buildMenuTemplate(
   const placed = placedItems(actions, keys);
   const menus: MenuItemConstructorOptions[] = [
     accountMenu(actions, keys),
-    assistantMenu(actions),
     editMenu(keys),
     viewMenu(actions, keys),
     windowMenu(actions, keys),
   ];
   if (platform !== 'darwin') {
     return [
-      { label: en.menu.file, submenu: [...placed.settings, { type: 'separator' }, placed.quit] },
+      {
+        label: en.menu.file,
+        submenu: [
+          placed.newChat,
+          { type: 'separator' },
+          ...placed.settings,
+          { type: 'separator' },
+          placed.quit,
+        ],
+      },
       ...menus,
       { role: 'help', submenu: [placed.about, { type: 'separator' }, ...placed.help] },
     ];
   }
   return [
     macAppMenu(placed, keys),
-    { role: 'fileMenu' },
+    { label: en.menu.file, submenu: [placed.newChat, { type: 'separator' }, { role: 'close' }] },
     ...menus,
     { role: 'help', submenu: placed.help },
   ];

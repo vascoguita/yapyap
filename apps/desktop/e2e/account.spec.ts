@@ -1,10 +1,12 @@
 import type { ElectronApplication, Page } from '@playwright/test';
 import { expect, test } from './fixtures.ts';
 
-async function clickAccountItem(app: ElectronApplication, label: string): Promise<void> {
+/** Clicks an item of Account › Troubleshoot, where the fixes for a misbehaving account sit. */
+async function clickTroubleshootItem(app: ElectronApplication, label: string): Promise<void> {
   await app.evaluate(({ Menu }, wanted) => {
     Menu.getApplicationMenu()
       ?.items.find((menu) => menu.label.replaceAll('&', '') === 'Account')
+      ?.submenu?.items.find((item) => item.label === 'Troubleshoot')
       ?.submenu?.items.find((item) => item.label === wanted)
       ?.click();
   }, label);
@@ -28,7 +30,7 @@ const login = (window: Page) => window.evaluate(() => localStorage.getItem('logi
 
 test('clears the cache and reloads WhatsApp, keeping the login', async ({ app, window }) => {
   await prepare(window);
-  await clickAccountItem(app, 'Clear Cache and Reload');
+  await clickTroubleshootItem(app, 'Clear Cache and Reload');
   await reloaded(window);
   expect(await login(window)).toBe('linked');
 });
@@ -42,10 +44,10 @@ test('resets the session only once the user confirms', async ({ app, window }) =
         Promise.resolve({ response: answers.shift() ?? 1, checkboxChecked: false }),
     });
   });
-  await clickAccountItem(app, 'Reset Session…');
+  await clickTroubleshootItem(app, 'Reset Session…');
   await expect.poll(() => window.evaluate(() => 'beforeReload' in window)).toBe(true);
   expect(await login(window)).toBe('linked');
-  await clickAccountItem(app, 'Reset Session…');
+  await clickTroubleshootItem(app, 'Reset Session…');
   await reloaded(window);
   expect(await login(window)).toBeNull();
 });

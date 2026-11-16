@@ -2,15 +2,16 @@ import type { ElectronApplication, Page } from '@playwright/test';
 import { expect, whatsAppPage } from './fixtures.ts';
 
 /**
- * Clicks a menu item by its label, wherever it sits in the application menu.
- * The menu is set just before the WhatsApp window opens, so that comes first;
- * startup can take a while on a slow machine.
+ * Clicks a menu item by its label, wherever it sits in the application menu,
+ * submenus included. The menu is set just before the WhatsApp window opens,
+ * so that comes first; startup can take a while on a slow machine.
  */
 export const clickMenu = async (app: ElectronApplication, label: string): Promise<void> => {
   await whatsAppPage(app);
   await app.evaluate(({ Menu }, wanted) => {
-    Menu.getApplicationMenu()
-      ?.items.flatMap((menu) => menu.submenu?.items ?? [])
+    const within = (items: readonly Electron.MenuItem[]): Electron.MenuItem[] =>
+      items.flatMap((entry) => [entry, ...within(entry.submenu?.items ?? [])]);
+    within(Menu.getApplicationMenu()?.items ?? [])
       .find((entry) => entry.label === wanted)
       ?.click();
   }, label);

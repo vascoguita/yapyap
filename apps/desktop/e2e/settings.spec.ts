@@ -2,6 +2,7 @@ import type { ElectronApplication, Page } from '@playwright/test';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { clickMenu, openFromMenu, showSettingsPage } from './chrome-helpers.ts';
+import { clickInTool } from './assistant-helpers.ts';
 import { expect, test, whatsAppPage } from './fixtures.ts';
 
 const openSettings = (app: ElectronApplication): Promise<Page> =>
@@ -40,12 +41,16 @@ test('shows one page at a time, picked from the list beside it or with the arrow
   await expect(list.getByRole('button', { name: 'Advanced' })).toBeFocused();
 });
 
-test('opens at the Assistant page from the Assistant menu, even when already open', async ({
+test('opens at the Assistant page from the assistant’s gear, even when already open', async ({
   app,
+  window,
 }) => {
   const settings = await openSettings(app);
   await expect(settings.getByRole('heading', { level: 1, name: 'General' })).toBeVisible();
-  await clickMenu(app, 'Assistant Settings…');
+  await window.getByTestId('composer').click();
+  await window.keyboard.type('running late');
+  await clickInTool(app, window, 'Choose how to rewrite');
+  await clickInTool(app, window, 'Assistant settings');
   await expect(settings.getByRole('heading', { level: 1, name: 'Assistant' })).toBeVisible();
   expect(app.windows().filter((page) => page.url().includes('/settings.html'))).toHaveLength(1);
 });
