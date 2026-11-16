@@ -9,6 +9,7 @@ import type {
 import { en } from '../../shared/messages/en.ts';
 import { isProxyAddress } from '../../shared/proxy-address.ts';
 import { DiscardPrompt } from '../shared/discard.tsx';
+import { useEscapeToClose } from '../shared/escape.ts';
 
 const text = en.accounts;
 
@@ -425,20 +426,6 @@ function useSelect(request: (pending: Pending) => void): (id: string) => void {
   );
 }
 
-function useEscapeToClose(request: (pending: Pending) => void): void {
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') {
-        request({ kind: 'close' });
-      }
-    };
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [request]);
-}
-
 /** Saving and removing; YapYap answers with the accounts as they now are. */
 function useActions(
   api: ChromeApi,
@@ -513,7 +500,12 @@ export function Accounts({ api }: { readonly api: ChromeApi }): JSX.Element {
   const state = useAccountList(api);
   const leaving = useLeaving(state);
   const actions = useActions(api, state.show);
-  useEscapeToClose(leaving.request);
+  // Closing shares the prompt with picking another account, which asks the same question.
+  useEscapeToClose({
+    close: () => {
+      leaving.request({ kind: 'close' });
+    },
+  });
   const select = useSelect(leaving.request);
   const { list, account } = state;
   if (list == null || account === undefined) {

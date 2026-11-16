@@ -518,3 +518,7 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   **AI Assistant settings**, the Welcome step) and "the AI assistant" in
   running text, in `en.json` and the docs. Code identifiers, settings keys,
   file names and ADRs keep "assistant".
+- One Escape (#651): every chrome window closes on Escape through
+  `useEscapeToClose` in `renderer/shared/escape.ts`; `dirty` asks before
+  losing a draft and `close` replaces closing (the picker cancels, Accounts
+  asks through its own prompt). `mount()` no longer takes an Escape handler.

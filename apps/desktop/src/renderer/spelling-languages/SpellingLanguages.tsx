@@ -6,6 +6,7 @@ import {
   type SpellingLanguages,
 } from '../../shared/api/chrome-api.ts';
 import { en } from '../../shared/messages/en.ts';
+import { useEscapeToClose } from '../shared/escape.ts';
 
 const text = en.spellingLanguages;
 
@@ -147,6 +148,7 @@ function Body(props: {
 
 /** Picks the languages spell checking uses; none means the system's (#73). */
 export function SpellingLanguagesPage({ api }: { readonly api: ChromeApi }): JSX.Element {
+  useEscapeToClose();
   const [state, setState] = useState<SpellingLanguages>();
   useEffect(() => {
     void api.spelling.languages().then(setState);

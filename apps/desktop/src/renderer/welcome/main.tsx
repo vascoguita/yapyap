@@ -1,5 +1,5 @@
 import { en } from '../../shared/messages/en.ts';
-import { closeOnEscape, mount } from '../shared/mount.tsx';
+import { mount } from '../shared/mount.tsx';
 import { Welcome } from './Welcome.tsx';
 
-mount(Welcome, { title: en.windows.welcome, escape: closeOnEscape });
+mount(Welcome, { title: en.windows.welcome });
