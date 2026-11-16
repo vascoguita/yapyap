@@ -1,14 +1,8 @@
 import type { MenuItemConstructorOptions } from 'electron';
-import { describePageState } from '../../adapter/page-state.ts';
-import { CHROME_CHANNELS } from '../../shared/api/chrome-api.ts';
-import {
-  buildAboutInfo,
-  formatDiagnostics,
-  formatTechnicalDetails,
-  summarizeGpu,
-  type RuntimeFacts,
-} from '../about/about-info.ts';
-import { readPageState } from '../about/page-state.ts';
+import { buildAboutInfo, formatTechnicalDetails, type RuntimeFacts } from '../about/about-info.ts';
+import { aboutHandlers } from '../about/about-handlers.ts';
+import { currentDiagnostics, diagnostics } from '../crash/diagnostics.ts';
+import { recoveryHandlers } from '../recovery/recovery-handlers.ts';
 import type { AdapterPage } from '../../adapter/world.ts';
 import type { ReadChat } from '../../adapter/active-chat.ts';
 import { newChatHandlers, type ChatTarget } from '../navigation/new-chat-handlers.ts';
@@ -24,11 +18,7 @@ import {
   PROXY_LOGIN_PAGE,
   type ProxyLoginPrompt,
 } from '../network/proxy-login-handlers.ts';
-import {
-  decideUpdatePolicy,
-  describeUpdatePolicy,
-  type InstallEvidence,
-} from '../updates/update-policy.ts';
+import type { InstallEvidence } from '../updates/update-policy.ts';
 import {
   createSourcePicker,
   type DesktopSource,
@@ -73,13 +63,7 @@ import type { ViewRegistry } from '../security/views.ts';
 import type { RendererOptions } from '../window/web-preferences.ts';
 import type { WindowOptions } from '../window/windows.ts';
 import { CHROME_SCHEME, createChromeHandler } from './assets.ts';
-import { noArguments } from '../ipc/arguments.ts';
-import {
-  registerChromeHandlers,
-  type ChromeCall,
-  type ChromeHandler,
-  type IpcMainPort,
-} from '../ipc/chrome.ts';
+import { registerChromeHandlers, type ChromeHandler, type IpcMainPort } from '../ipc/chrome.ts';
 import {
   chromeWindowOpener,
   openPromptWindow,
@@ -345,39 +329,6 @@ type ChromeDependencies = Omit<ChromeFeatureDependencies, 'facts'> & {
   readonly facts: () => RuntimeFacts;
 };
 
-function aboutHandlers(deps: ChromeDependencies): ChromeHandler[] {
-  const info = () => buildAboutInfo(deps.facts());
-  return [
-    { channel: CHROME_CHANNELS.aboutInfo, accepts: noArguments, handle: info },
-    {
-      channel: CHROME_CHANNELS.copyTechnicalDetails,
-      accepts: noArguments,
-      handle: () => deps.writeClipboard(formatTechnicalDetails(info())),
-    },
-  ];
-}
-
-function recoveryHandlers(recoveries: ReadonlyMap<object, Recovery>): ChromeHandler[] {
-  const of = ({ sender }: ChromeCall): Recovery => {
-    const recovery = [...recoveries.values()].find((candidate) => candidate.owns(sender));
-    if (recovery === undefined) {
-      throw new Error('No recovery screen belongs to this window.');
-    }
-    return recovery;
-  };
-  const operation = (channel: string, run: (recovery: Recovery) => unknown): ChromeHandler => ({
-    channel,
-    accepts: noArguments,
-    handle: (call) => run(of(call)),
-  });
-  return [
-    operation(CHROME_CHANNELS.recoveryProblem, (recovery) => recovery.problem()),
-    operation(CHROME_CHANNELS.recoveryRetry, (recovery) => recovery.retry()),
-    operation(CHROME_CHANNELS.recoveryClearCache, (recovery) => recovery.clearCacheAndRetry()),
-    operation(CHROME_CHANNELS.recoveryCopyDiagnostics, (recovery) => recovery.copyDiagnostics()),
-  ];
-}
-
 function recoveryAttacher(
   deps: ChromeDependencies,
   renderer: RendererOptions,
@@ -479,36 +430,6 @@ function quietActions(
       }
     },
   };
-}
-
-function diagnostics(deps: ChromeDependencies, page?: string): string {
-  const info = buildAboutInfo(deps.facts());
-  const updates = decideUpdatePolicy(info.channel, deps.installEvidence());
-  const runtime = [`GPU ${summarizeGpu(deps.gpuStatus())}`, describeUpdatePolicy(updates)];
-  return formatDiagnostics(
-    info,
-    page === undefined ? runtime : [...runtime, page],
-    deps.recentLog(),
-  );
-}
-
-/** The first WhatsApp view is the one diagnostics describe until accounts arrive. */
-async function currentDiagnostics(
-  deps: ChromeDependencies,
-  pages: readonly AdapterPage[],
-): Promise<string> {
-  const page = pages[0];
-  const state = page === undefined ? undefined : await readPageState(page);
-  return diagnostics(deps, describePageState(state));
-}
-
-/** Report a Problem's operations, describing the WhatsApp views open now. */
-function reportHandlers(deps: ChromeDependencies, pages: readonly AdapterPage[]): ChromeHandler[] {
-  return problemReportHandlers({
-    diagnostics: () => currentDiagnostics(deps, pages),
-    writeClipboard: deps.writeClipboard,
-    openExternal: deps.openExternal,
-  });
 }
 
 function chromeWindows(
@@ -665,7 +586,11 @@ function allHandlers(
   return [
     ...aboutHandlers(deps),
     ...recoveryHandlers(recoveries),
-    ...reportHandlers(deps, pages),
+    ...problemReportHandlers({
+      diagnostics: () => currentDiagnostics(deps, pages),
+      writeClipboard: deps.writeClipboard,
+      openExternal: deps.openExternal,
+    }),
     ...settingsHandlers(
       deps.settings,
       deps.restart,

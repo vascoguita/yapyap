@@ -10,7 +10,7 @@ import type {
   DictionarySession,
   StartDependencies,
   WindowPort,
-} from './types.ts';
+} from './start-types.ts';
 
 /**
  * Each account's session gets YapYap's guards, download handling, spelling

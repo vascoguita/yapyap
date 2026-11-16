@@ -43,14 +43,9 @@ import {
 } from '../notifications/reply.ts';
 import { readOpenChat } from '../assistant/chat-reading.ts';
 import { agentPageOf } from '../agents/agent-page.ts';
-import {
-  bringToFront,
-  claimSingleInstance,
-  type Instances,
-  type LinkPage,
-} from '../app/instances.ts';
+import { bringToFront, claimSingleInstance, type Instances, type LinkPage } from './instances.ts';
 import { chatLinkInArguments } from '../navigation/deep-link.ts';
-import { quitOnShutdown } from '../app/shutdown.ts';
+import { quitOnShutdown } from './shutdown.ts';
 import { pause } from '../support/pause.ts';
 import { showWhenPageReady } from '../window/show-when-ready.ts';
 import { focusPageWithWindow } from '../window/focus-page.ts';
@@ -81,7 +76,7 @@ import type {
   SessionSecurity,
   StartDependencies,
   WindowPort,
-} from './types.ts';
+} from './start-types.ts';
 
 /**
  * Sessions are guarded before the app is ready, but YapYap's picker only

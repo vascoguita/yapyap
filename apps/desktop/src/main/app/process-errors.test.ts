@@ -17,10 +17,12 @@ describe('logProcessErrors', () => {
     Object.defineProperty(bare, 'stack', { value: undefined });
     listeners.get('unhandledRejection')?.(bare);
     listeners.get('unhandledRejection')?.('a reason');
+    listeners.get('unhandledRejection')?.({ text: 'See you at 8' });
     expect(log.mock.calls).toEqual([
       [`Uncaught exception: ${String(error.stack)}`],
       ['Unhandled rejection: no stack'],
       ['Unhandled rejection: a reason'],
+      ['Unhandled rejection: [object Object]'],
     ]);
   });
 });
