@@ -7,8 +7,8 @@ By participating you agree to the [Code of Conduct](CODE_OF_CONDUCT.md).
 ## Ground rules
 
 1. **Priorities.** When requirements conflict, the order is: security, then
-   correctness, then user privacy, then confidentiality, then tests and
-   coverage, then performance, then code style. Record any conflict in
+   correctness, then user privacy, then tests and coverage, then
+   performance, then code style. Record any conflict in
    [ADR 0008](docs/adr/0008-requirement-conflicts.md).
 2. **Never automate a real WhatsApp account.** Tests use the local fake
    WhatsApp page in `apps/desktop/test/fake-whatsapp/`.

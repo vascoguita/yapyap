@@ -69,40 +69,35 @@ Update this table in the PR that adds a command.
 ## Non-negotiable rules
 
 1. **Priority order.** When rules conflict: security > correctness > user
-   privacy > confidentiality > tests and coverage > performance > code style.
+   privacy > tests and coverage > performance > code style.
    Log every conflict in `docs/adr/0008-requirement-conflicts.md`.
-2. **Confidentiality.** Never mention or link to the reference project in any
-   committed or public artifact. That includes code, comments, tests,
-   fixtures, docs, commit messages, branch names, issues, PRs and release
-   notes. Describe feature choices as based on "common needs of WhatsApp Web
-   desktop users".
-3. **Never automate a real WhatsApp account.** Tests use the local fake
+2. **Never automate a real WhatsApp account.** Tests use the local fake
    WhatsApp page and anonymized fixtures only.
-4. **Comments explain why, never what.** Good reasons are constraints,
+3. **Comments explain why, never what.** Good reasons are constraints,
    WhatsApp quirks, security reasoning, and workarounds (with a link to the
    YapYap issue). No commented-out code, and no TODOs: open an issue.
-5. **Coverage.** 100% lines and branches. `istanbul`, `c8` and `v8` ignore
+4. **Coverage.** 100% lines and branches. `istanbul`, `c8` and `v8` ignore
    comments are forbidden (enforced by lint). Coverage exclusions live only in
    `vitest.config.ts` and must be justified in ADR 0005.
-6. **Lint.** `strict-type-checked` + `stylistic-type-checked`, complexity ≤ 8,
+5. **Lint.** `strict-type-checked` + `stylistic-type-checked`, complexity ≤ 8,
    functions ≤ 40 lines, no `any`, no non-null assertions, no unused exports
    (knip).
-7. **Security settings.** All web content runs with `sandbox: true`,
+6. **Security settings.** All web content runs with `sandbox: true`,
    `contextIsolation: true`, `nodeIntegration: false` and no `webviewTag`.
    Other requirements: strict CSP for app UI, minimal typed preloads, sender
    and payload validation on every IPC call, deny-by-default permissions,
    navigation and `window.open` guards, hardened fuses. No remote code except
    WhatsApp itself. See ADR 0001.
-8. **No extensions.** YapYap runs no third-party code beside WhatsApp, and
+7. **No extensions.** YapYap runs no third-party code beside WhatsApp, and
    has no extension host, marketplace or call recorder (ADR 0018). A
    feature goes into YapYap itself. Nothing sends a message for the user
    but an AI agent whose token has `messages:send`, to the chats it lists
    (ADR 0019): the assistant inserts drafts only.
-9. **Privacy.** No telemetry. Never log or persist message content, phone
+8. **Privacy.** No telemetry. Never log or persist message content, phone
    numbers or secrets. Secrets go through `safeStorage`.
-10. **Versions.** Latest stable releases only, pinned exactly. Justify new
-    dependencies. Install scripts must be allowlisted in `allowBuilds` in
-    `pnpm-workspace.yaml`.
+9. **Versions.** Latest stable releases only, pinned exactly. Justify new
+   dependencies. Install scripts must be allowlisted in `allowBuilds` in
+   `pnpm-workspace.yaml`.
 
 ## Branch, PR and merge flow
 
