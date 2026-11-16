@@ -523,3 +523,8 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   code left `chrome/feature.ts` for `about/about-handlers.ts`,
   `recovery/recovery-handlers.ts` and `crash/diagnostics.ts`, with
   `page-state.ts` beside its user in `crash/`.
+- Fewer CI jobs per pull request (#657): mutation starts one job per five
+  changed in-scope modules (none for most changes), macOS runs only for
+  changes that can affect it, the repository test follows full packaging,
+  and the Renovate check its config; nightly packages and smoke-tests every
+  format. `scripts/src/ci/changes.ts` decides (ADR 0007).

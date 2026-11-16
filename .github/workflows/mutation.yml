@@ -7,22 +7,27 @@ on:
         description: Mutate every in-scope module (nightly) instead of the pull request's changed ones
         type: boolean
         default: false
+      shards:
+        description: The shards to run, as a JSON list counted from 1; the modules are dealt out among them
+        type: string
+        default: '[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]'
 
 permissions:
   contents: read
 
 jobs:
   mutation:
-    name: ${{ inputs.all && 'All modules' || 'Changed modules' }} (${{ matrix.shard }}/16)
+    name: ${{ inputs.all && 'All modules' || 'Changed modules' }} (${{ matrix.shard }}/${{ strategy.job-total }})
     # One run over every module outgrew a runner's two hours, since each
-    # mutant ran the whole suite, and a pull request that touches most
-    # modules, such as a rename, would outgrow six. Each shard mutates a
-    # sixteenth of the modules and runs only the tests related to them. A
-    # shard with nothing to mutate stops before installing anything.
+    # mutant ran the whole suite. Each shard mutates its share of the modules
+    # and runs only the tests related to them: the nightly run splits them
+    # sixteen ways, and a pull request gets one shard per five changed
+    # modules (ADR 0007). A shard with nothing to mutate, such as one whose
+    # modules the pull request deletes, stops before installing anything.
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+        shard: ${{ fromJSON(inputs.shards) }}
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
@@ -42,7 +47,7 @@ jobs:
         env:
           ALL: ${{ inputs.all && '--all' || '' }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          SHARD: ${{ matrix.shard }}
+          SHARD: ${{ matrix.shard }}/${{ strategy.job-total }}
         run: |
           set -o pipefail
           if [ -n "$ALL" ]; then
@@ -50,7 +55,7 @@ jobs:
           else
             files=$(git diff --name-only --diff-filter=AMR "$BASE_SHA...HEAD")
           fi
-          targets=$(node scripts/src/bin/mutation-targets.ts --shard "$SHARD/16" <<< "$files")
+          targets=$(node scripts/src/bin/mutation-targets.ts --shard "$SHARD" <<< "$files")
           echo "targets=$targets" >> "$GITHUB_OUTPUT"
           if [ -z "$targets" ]; then
             echo "No in-scope modules in this shard; the nightly run covers everything." >> "$GITHUB_STEP_SUMMARY"

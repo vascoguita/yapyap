@@ -21,6 +21,20 @@ jobs:
     with:
       all: true
 
+  # Pull requests run one package per system, and macOS only when it is
+  # affected (ADR 0007); every format and architecture is checked here
+  # against what the runners and distributions changed overnight, and on
+  # every push to master.
+  package:
+    name: Package
+    if: github.event_name != 'pull_request'
+    uses: ./.github/workflows/package.yml
+
+  smoke:
+    name: Smoke
+    needs: package
+    uses: ./.github/workflows/smoke.yml
+
   benchmark:
     name: Benchmark (${{ matrix.os }})
     strategy:

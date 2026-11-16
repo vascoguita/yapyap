@@ -20,6 +20,9 @@ jobs:
     outputs:
       code: ${{ steps.scope.outputs.code }}
       packaging: ${{ steps.scope.outputs.packaging }}
+      macos: ${{ steps.scope.outputs.macos }}
+      renovate: ${{ steps.scope.outputs.renovate }}
+      mutation: ${{ steps.scope.outputs.mutation }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -29,15 +32,24 @@ jobs:
         with:
           node-version-file: .nvmrc
       # Pull requests skip what their changes cannot affect (ADR 0007); every
-      # other event has no base, so it runs everything.
+      # other event has no base, so it runs everything. GitHub's free runners
+      # take about 20 jobs at once, 5 of them macOS, so every job a pull
+      # request skips shortens the queue for the others.
       - name: Decide what this change must check
         id: scope
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_REF: ${{ github.head_ref }}
         run: |
           changed=''
           if [ -n "$BASE_SHA" ]; then
             changed=$(git diff --name-only "$BASE_SHA...HEAD")
+            # Changed files with macOS-only branches, which test for
+            # `darwin`, before or after the change. git grep fails when nothing
+            # matches, which is no failure here.
+            MACOS_FILES=$(git diff --name-only -z "$BASE_SHA...HEAD" |
+              { xargs -0 -r git grep -l -w darwin HEAD "$BASE_SHA" -- || true; } | sed 's/^[^:]*://' | sort -u)
+            export MACOS_FILES
           fi
           node scripts/src/bin/ci-changes.ts <<< "$changed"
 
@@ -61,6 +73,8 @@ jobs:
 
   renovate:
     name: Renovate config
+    needs: changes
+    if: needs.changes.outputs.renovate == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -81,7 +95,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        # macOS runs when the change can affect it (ADR 0007).
+        os: ${{ fromJSON(needs.changes.outputs.macos == 'true' && '["ubuntu-latest","windows-latest","macos-latest"]' || '["ubuntu-latest","windows-latest"]') }}
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -148,7 +163,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        # macOS runs when the change can affect it (ADR 0007).
+        os: ${{ fromJSON(needs.changes.outputs.macos == 'true' && '["ubuntu-latest","windows-latest","macos-latest"]' || '["ubuntu-latest","windows-latest"]') }}
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -206,9 +222,13 @@ jobs:
   mutation:
     name: Mutation
     needs: changes
-    # A pull request mutates its changes before they merge; master has nothing new to prove.
-    if: needs.changes.outputs.code == 'true' && github.event_name == 'pull_request'
+    # A pull request mutates its changes before they merge; master has nothing
+    # new to prove. One job takes up to five changed in-scope modules, and a
+    # change with none starts no job; the nightly run mutates everything.
+    if: github.event_name == 'pull_request' && needs.changes.outputs.mutation != '[]'
     uses: ./.github/workflows/mutation.yml
+    with:
+      shards: ${{ needs.changes.outputs.mutation }}
 
   package:
     name: Package
@@ -217,6 +237,7 @@ jobs:
     uses: ./.github/workflows/package.yml
     with:
       scope: ${{ needs.changes.outputs.packaging }}
+      macos: ${{ needs.changes.outputs.macos == 'true' }}
 
   smoke:
     name: Smoke
@@ -225,6 +246,7 @@ jobs:
     uses: ./.github/workflows/smoke.yml
     with:
       scope: ${{ needs.changes.outputs.packaging }}
+      macos: ${{ needs.changes.outputs.macos == 'true' }}
 
   # A stable release needs a beta that testers have had for a few days
   # (#184); the release PR cannot merge before then.
@@ -247,8 +269,9 @@ jobs:
   repository:
     name: Package repositories
     needs: changes
-    # The apt and dnf repositories (#344) follow the packaging they serve.
-    if: needs.changes.outputs.packaging != 'none'
+    # The apt and dnf repositories (#344) follow the packaging scripts they
+    # test; the test builds stand-in packages, so app code cannot affect it.
+    if: needs.changes.outputs.packaging == 'full'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:

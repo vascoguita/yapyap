@@ -7,6 +7,10 @@ on:
         description: full runs every format and architecture; representative, one package per system (ADR 0007)
         type: string
         default: full
+      macos:
+        description: Package for macOS too; pull requests skip it when their change cannot affect macOS (ADR 0007)
+        type: boolean
+        default: true
       release:
         description: Stamp the release into the metainfo and sign with the certificates that exist
         type: boolean
@@ -28,7 +32,6 @@ jobs:
         include:
           - { name: linux-x64, os: ubuntu-latest }
           - { name: windows, os: windows-latest }
-          - { name: macos, os: macos-latest }
     runs-on: ${{ matrix.os }}
     # Packaging takes minutes, notarization included, and the cap leaves
     # room for a slow notary queue. A hung runner step would otherwise hold
@@ -138,6 +141,18 @@ jobs:
             apps/desktop/release/*.blockmap
             apps/desktop/release/latest*.yml
           retention-days: 7
+
+  package-macos:
+    name: Package (${{ matrix.name }})
+    if: inputs.macos
+    strategy:
+      matrix:
+        include:
+          - { name: macos, os: macos-latest }
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    env: *package-env
+    steps: *package-steps
 
   package-full:
     name: Package (${{ matrix.name }})

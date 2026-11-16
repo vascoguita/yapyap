@@ -23,6 +23,10 @@ These add to the repository's root `CLAUDE.md`, which applies here too.
 - Package and smoke workflows take a `scope` input: `representative` runs
   the always-on jobs, `full` adds the `*-full` jobs, which share their steps
   through YAML anchors. Add a new format or architecture to the right half.
+  Their `macos` input drops the macOS jobs, which pull requests do unless
+  the change can affect macOS (ADR 0007). `Changes` also sizes the pull
+  request's mutation run and decides whether macOS and the Renovate check
+  run, all in `scripts/src/ci/changes.ts` and `ci-changes.ts`.
 - The Homebrew tap is its own repository, `vascoguita/homebrew-yapyap`,
   with its own checks; its casks come from `scripts/src/release/homebrew.ts`,
   never from edits there. The Distribute workflow proposes them as a pull

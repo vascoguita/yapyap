@@ -91,15 +91,17 @@ specific failure:
 ### Platforms
 
 Unit, integration and E2E run on `ubuntu-latest`, `windows-latest` and
-`macos-latest`. Linux E2E runs under `xvfb-run`, which developers also use
+`macos-latest`; a pull request runs macOS only when its change can affect
+it (ADR 0007, #657). Linux E2E runs under `xvfb-run`, which developers also use
 locally when available. Visual baselines are per-OS.
 
 ### Mutation testing
 
 Stryker uses its `command` runner. Each mutant runs `vitest run --config vitest.mutation.config.ts`, a flat single-project config, and the mutant is switched on through the environment. The Vitest runner extension does not activate mutants under Vitest 5 (ADR 0008, C12). The scope lives in `scripts/src/mutation/scope.ts`, which both Stryker and the PR target selection use. On PRs, Stryker mutates only changed files within the mutation scope
-(`--mutate` from the diff), dealt out to 16 shards so that a change touching
-most modules, such as a rename, stays within a runner's time limit; a shard
-with nothing to mutate stops before installing. Nightly runs the full scope
+(`--mutate` from the diff), in one job per five changed modules so that a
+change touching most modules, such as a rename, stays within a runner's time
+limit (#657); a change with no in-scope module starts no job, and a shard
+with nothing left to mutate stops before installing. Nightly runs the full scope
 in 16 shards (`git ls-files | mutation-targets.ts --shard i/16` deals the sorted
 modules out in turn), each mutating its modules and running only their
 related tests, as PRs do;

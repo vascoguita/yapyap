@@ -55,6 +55,22 @@ export function mutationTargets(changedFiles: readonly string[]): string[] {
 }
 
 /**
+ * In-scope modules one pull-request mutation job takes on. The slowest
+ * nightly shards mutate about five modules in an hour and a half, inside
+ * the jobs' two-hour limit.
+ */
+const MODULES_PER_JOB = 5;
+
+/**
+ * The shards, counted from 1, a pull request that changes `changedFiles`
+ * mutates in: none when it changes no in-scope module, one for most changes.
+ */
+export function pullRequestShards(changedFiles: readonly string[]): number[] {
+  const modules = mutationTargets(changedFiles).filter((file) => file.endsWith('.ts')).length;
+  return Array.from({ length: Math.ceil(modules / MODULES_PER_JOB) }, (_, index) => index + 1);
+}
+
+/**
  * The in-scope files that shard `shard` of `shards` (counted from 1)
  * mutates in the nightly run. Files are dealt out in turn, sorted, so
  * neighbouring files from one busy folder land in different shards.
