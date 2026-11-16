@@ -1,3 +1,6 @@
+import type { ReadChat } from '../../adapter/active-chat.ts';
+import { chatContext, defused, INSTRUCTIONS, nowLine, type Prompt } from './prompts.ts';
+
 /** The ways the message box's rewrite button offers, Polish first (#609). */
 export const POLISH_STYLES = ['polish', 'shorten', 'elaborate', 'soften', 'formalize'] as const;
 
@@ -8,32 +11,55 @@ export type PolishStyle = (typeof POLISH_STYLES)[number];
 export const isPolishStyle = (value: string): value is PolishStyle =>
   (POLISH_STYLES as readonly string[]).includes(value);
 
-const ASKS: Readonly<Record<PolishStyle, string>> = {
-  polish:
-    'so its spelling, grammar and flow are right and it reads clearly, keeping its voice and core message',
-  shorten: 'so it is more concise and to the point',
-  elaborate:
-    'so it expands on its points with more detail, context or polite phrasing, adding no facts it does not give',
-  // The maintainer's brief: gentler, about as long, and no emoji the draft does not have.
-  soften:
-    'so it sounds gentler and friendlier, about as long as it is, with no emoji it does not already have',
-  formalize: 'so its tone is more professional and formal',
+/** Each way as the instructions name it, where it is described (#629). */
+const WAYS: Readonly<Record<PolishStyle, string>> = {
+  polish: 'Polish',
+  shorten: 'Shorten',
+  elaborate: 'Elaborate',
+  soften: 'Soften',
+  formalize: 'Formalize',
 };
 
-/** What the model is asked to do with the draft. */
-export function rewriteInstructions(style: PolishStyle): string {
+/** What the model is asked to do with the draft, which it reads in the light of the chat. */
+export function rewriteTask(style: PolishStyle, draft: string, now: Date): string {
   return [
-    `Rewrite the WhatsApp message the user drafted ${ASKS[style]}.`,
-    'Keep its meaning, and anything it names, such as times and places.',
-    'Write it in the language the draft is in.',
-    'Answer with the rewritten message only, with no quotes or other text.',
-  ].join(' ');
+    nowLine(now),
+    `Rewrite my draft below the ${WAYS[style]} way, as "Rewriting the draft" describes it.`,
+    'It is the next message I will send in this chat, so it must fit what was said.',
+    '<draft>',
+    defused(draft),
+    '</draft>',
+    'Answer with the rewritten message only.',
+  ].join('\n');
 }
 
-/** A model's text without the quotes it may put around it, as around a rewritten draft. */
+/** Everything a request to rewrite `draft` in `chat` sends. */
+export function rewritePrompt(
+  style: PolishStyle,
+  draft: string,
+  chat: ReadChat,
+  now: Date,
+): Prompt {
+  return {
+    instructions: INSTRUCTIONS,
+    context: chatContext(chat),
+    task: rewriteTask(style, draft, now),
+  };
+}
+
+/** A model's text without the quotes or draft tags it may put around it, as around a rewritten draft. */
 export function cleanRewrite(answer: string): string {
-  return answer
-    .trim()
+  return unwrapped(answer.trim())
     .replaceAll(/^["“”']|["“”']$/g, '')
     .trim();
+}
+
+const OPEN = '<draft>';
+const CLOSE = '</draft>';
+
+/** The text without the draft tags a model may echo around it. */
+function unwrapped(text: string): string {
+  const opened = text.toLowerCase().startsWith(OPEN) ? text.slice(OPEN.length) : text;
+  const inner = opened.trimEnd();
+  return (inner.toLowerCase().endsWith(CLOSE) ? inner.slice(0, -CLOSE.length) : inner).trim();
 }

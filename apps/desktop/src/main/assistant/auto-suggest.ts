@@ -19,6 +19,8 @@ export interface ChatWatchDependencies {
   readonly arrived: (message: string) => unknown;
   /** The user sent a message in the open chat. */
   readonly sent: () => unknown;
+  /** The open chat's message box is empty, and the user sent nothing since the last look. */
+  readonly cleared: () => unknown;
   readonly every: (callback: () => void, ms: number) => unknown;
 }
 
@@ -36,10 +38,16 @@ const answerable = (newest: Newest | null): string | null =>
 const newMessage = (was: Newest, now: Newest): string | null =>
   now.theirs === was.theirs ? null : answerable(now);
 
-/** Tells what changed in the chat that stayed open: the user sent a message, or one arrived. */
+/**
+ * Tells what changed in the chat that stayed open: the user sent a
+ * message, or a message arrived; and, at every look, that the message box
+ * is empty, as a draft a rewrite filled may be cleared between two looks.
+ */
 function inSameChat(was: Newest, now: Newest, deps: ChatWatchDependencies): void {
   if (now.mine !== null && now.mine !== was.mine) {
     deps.sent();
+  } else if (!now.drafting) {
+    deps.cleared();
   }
   const message = newMessage(was, now);
   if (message !== null) {

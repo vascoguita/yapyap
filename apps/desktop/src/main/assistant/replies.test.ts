@@ -1,32 +1,28 @@
 import { describe, expect, it } from 'vitest';
-import { INSTRUCTIONS, requestFor, suggestionsIn, transcriptOf } from './replies.ts';
+import { INSTRUCTIONS } from './prompts.ts';
+import { suggestionsIn, suggestPrompt, suggestTask } from './replies.ts';
 
-describe('transcriptOf', () => {
-  it('writes the chat’s last messages, marking whose each is', () => {
-    const chat = {
-      name: 'Book club',
-      group: true,
-      messages: [
-        { outgoing: false, text: 'First' },
-        { outgoing: true, text: 'Second' },
-        { outgoing: false, text: 'Third' },
-      ],
-    };
-    expect(transcriptOf(chat, 2)).toBe('Chat: Book club\nMe: Second\nThem: Third');
+const NOW = new Date(2026, 10, 15, 14, 3);
+
+describe('suggestTask', () => {
+  it('asks for up to three replies as the instructions describe them, one per line, or NONE', () => {
+    const task = suggestTask(NOW);
+    expect(task).toMatch(/^It is now Sunday, 15 November 2026 at 14:03, the user’s time\./);
+    expect(task).toContain('Suggest up to 3 replies I could send next');
+    expect(task).toContain('as "Suggesting replies" describes them');
+    expect(task).toContain('one reply per line');
+    expect(task).toContain('answer only NONE');
   });
 });
 
-describe('requestFor', () => {
-  it('asks for three replies, one per line, with the transcript as the user’s turn', () => {
-    expect(INSTRUCTIONS).toContain('Suggest up to 3 short, different replies');
-    expect(INSTRUCTIONS).toContain('answer only NONE');
-    expect(INSTRUCTIONS).toContain('one reply per line');
-    expect(requestFor(INSTRUCTIONS, 'Chat: x')).toEqual({
+describe('suggestPrompt', () => {
+  it('sends the shared instructions, the chat, then the task', () => {
+    const chat = { name: 'Ana', group: false, messages: [{ outgoing: false, text: 'Hi' }] };
+    expect(suggestPrompt(chat, NOW)).toEqual({
       instructions: INSTRUCTIONS,
-      turns: [{ role: 'user', text: 'Chat: x' }],
+      context: '<chat>\nThis is a chat with Ana.\nAna: Hi\n</chat>',
+      task: suggestTask(NOW),
     });
-    const signal = new AbortController().signal;
-    expect(requestFor(INSTRUCTIONS, 'Chat: x', signal).signal).toBe(signal);
   });
 });
 

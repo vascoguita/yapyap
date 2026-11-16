@@ -6,12 +6,12 @@ import { problemWords, setupWords, type Words } from './bar-words.ts';
 import type { AllowedChats } from './chats.ts';
 import type { AssistantCore } from './core.ts';
 import { ProviderError } from './providers/provider.ts';
-import { INSTRUCTIONS, suggestionsIn, transcriptOf } from './replies.ts';
+import { suggestionsIn, suggestPrompt } from './replies.ts';
 import {
   cleanRewrite,
   isPolishStyle,
   POLISH_STYLES,
-  rewriteInstructions,
+  rewritePrompt,
   type PolishStyle,
 } from './rewrites.ts';
 import type { Setup } from './setup.ts';
@@ -39,6 +39,8 @@ export interface BarDependencies {
   readonly show: (visible: boolean) => void;
   /** Sends the state to the page. */
   readonly publish: (state: AssistantBarState) => void;
+  /** The time now, which the model is told so it knows what "tomorrow" means. */
+  readonly now: () => Date;
 }
 
 /** What the assistant holds between clicks. */
@@ -53,6 +55,8 @@ interface BarContext {
   blocked: boolean;
   /** A rewrite runs; another click waits for it. */
   busy: boolean;
+  /** A rewrite filled the message box, which took the suggestions away until it empties. */
+  rewritten: boolean;
   /** The suggestions being made, called off when a newer message or another chat makes them stale. */
   suggesting: AbortController | undefined;
   /** Suggestions made for recent messages, by message, so a chat opened again shows the same ones. */
@@ -151,16 +155,25 @@ async function putInPlace(
   if (await bar.deps.accounts.replaceDraft(rewritten)) {
     bar.kept = draft;
     bar.chat = chat;
+    bar.rewritten = true;
     const button = { id: 'undo' as const, label: text.bar.undo };
     update(bar, { suggestions: [], notice: { text: text.bar.done[style], button } });
   }
 }
 
+/** What a rewrite works on: the draft, and the chat it answers. */
+interface DraftInChat {
+  readonly draft: string;
+  readonly chat: string;
+  readonly read: ReadChat;
+}
+
+/** How many of the open chat's latest messages the user lets the assistant read. */
+const messagesToRead = (bar: BarContext): number => Number(assistantSettings(bar).messages);
+
 /** The draft to rewrite in the open chat, if there is one and the assistant may work there. */
-async function draftToRewrite(
-  bar: BarContext,
-): Promise<{ readonly draft: string; readonly chat: string } | undefined> {
-  const chat = await bar.deps.accounts.readActiveChat(1);
+async function draftToRewrite(bar: BarContext): Promise<DraftInChat | undefined> {
+  const chat = await bar.deps.accounts.readActiveChat(messagesToRead(bar));
   if (chat === null) {
     return undefined;
   }
@@ -171,7 +184,7 @@ async function draftToRewrite(
     return undefined;
   }
   const draft = await bar.deps.accounts.readDraft();
-  return draft === null || draft.trim() === '' ? undefined : { draft, chat: chat.name };
+  return draft === null || draft.trim() === '' ? undefined : { draft, chat: chat.name, read: chat };
 }
 
 /** Rewrites the draft in `style` and puts the rewrite in its place; it never sends it. */
@@ -184,7 +197,10 @@ async function rewrite(bar: BarContext, style: PolishStyle): Promise<void> {
   update(bar, { working: true, notice: null });
   let answer: string;
   try {
-    answer = await bar.deps.core.ask(setup, rewriteInstructions(style), found.draft);
+    answer = await bar.deps.core.ask(
+      setup,
+      rewritePrompt(style, found.draft, found.read, bar.deps.now()),
+    );
   } catch (error) {
     update(bar, { working: false });
     failed(bar, setup, error);
@@ -215,6 +231,7 @@ function forget(bar: BarContext): void {
   bar.chat = null;
   bar.kept = '';
   bar.blocked = false;
+  bar.rewritten = false;
   update(bar, { suggestions: [], notice: null });
 }
 
@@ -275,7 +292,7 @@ function dismiss(bar: BarContext, message: string | null): void {
 
 /** The open chat, if the user wants suggestions there and its last message is someone else's. */
 async function chatToAnswer(bar: BarContext): Promise<ReadChat | undefined> {
-  const chat = await bar.deps.accounts.readActiveChat(Number(assistantSettings(bar).messages));
+  const chat = await bar.deps.accounts.readActiveChat(messagesToRead(bar));
   const theirs = chat?.messages.at(-1)?.outgoing === false;
   return chat !== null && theirs && mayRead(bar, chat.name) ? chat : undefined;
 }
@@ -289,8 +306,7 @@ async function makeSuggestions(bar: BarContext, message: string, signal: AbortSi
   if (chat === undefined || signal.aborted) {
     return;
   }
-  const transcript = transcriptOf(chat, Number(assistantSettings(bar).messages));
-  const answer = await bar.deps.core.ask(setup, INSTRUCTIONS, transcript, signal);
+  const answer = await bar.deps.core.ask(setup, suggestPrompt(chat, bar.deps.now()), signal);
   // A newer message or another chat may have called the request off while the model answered.
   if (isAborted(signal)) {
     return;
@@ -361,6 +377,8 @@ export interface AssistantBar {
   readonly arrived: (message: string) => void;
   /** The user sent a message in the open chat. */
   readonly sent: () => void;
+  /** The user emptied the open chat's message box without sending. */
+  readonly cleared: () => void;
 }
 
 /**
@@ -378,10 +396,30 @@ async function keepNotice(bar: BarContext): Promise<void> {
   }
 }
 
+/**
+ * The message box is empty. Once after a rewrite filled it, a rewrite's
+ * Undo has nothing left to put back over, and the suggestions for the
+ * newest message come back, as they do when the user clears what they
+ * typed (#629).
+ */
+function cleared(bar: BarContext, message: string | null): void {
+  if (!bar.rewritten) {
+    return;
+  }
+  bar.rewritten = false;
+  if (bar.state.notice?.button?.id === 'undo') {
+    bar.kept = '';
+    update(bar, { notice: null });
+  }
+  if (message !== null) {
+    void suggest(bar, message);
+  }
+}
+
 /** What the assistant does as the open chat changes, and with the suggestions' dismiss. */
 function followChat(
   bar: BarContext,
-): Pick<AssistantBar, 'dismiss' | 'found' | 'opened' | 'arrived' | 'sent'> {
+): Pick<AssistantBar, 'dismiss' | 'found' | 'opened' | 'arrived' | 'sent' | 'cleared'> {
   // The open chat's newest message from someone else, while it is the last one.
   let message: string | null = null;
   const follow = (newest: string | null): void => {
@@ -408,8 +446,12 @@ function followChat(
     },
     sent: () => {
       message = null;
+      bar.rewritten = false;
       bar.suggesting?.abort();
       update(bar, { suggestions: [], notice: null });
+    },
+    cleared: () => {
+      cleared(bar, message);
     },
   };
 }
@@ -428,6 +470,7 @@ export function createAssistantBar(deps: BarDependencies): AssistantBar {
     kept: '',
     blocked: false,
     busy: false,
+    rewritten: false,
     suggesting: undefined,
     made: new Map(),
   };

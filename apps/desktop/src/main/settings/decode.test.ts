@@ -42,7 +42,7 @@ const DEFAULTS = {
     model: 'auto',
     autoSuggest: true,
     chats: 'chosen',
-    messages: '10',
+    messages: '50',
     server: '',
   },
   agents: { enabled: false, port: 0 },
@@ -64,7 +64,7 @@ const CHOICES: Readonly<Record<string, readonly string[]>> = {
   'privacy.crashReports': ['off', 'local', 'ask'],
   'network.proxyMode': ['system', 'direct', 'manual'],
   'assistant.provider': ['none', 'anthropic', 'openai', 'server'],
-  'assistant.messages': ['5', '10', '20'],
+  'assistant.messages': ['20', '50', '100'],
 };
 
 /** The defaults with one setting changed. */

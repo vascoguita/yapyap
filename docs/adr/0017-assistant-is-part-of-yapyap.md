@@ -142,3 +142,12 @@ could ask for too.
   Face is no longer reachable. YapYap deletes a leftover `models/` folder
   and `assistant.json` from the profile at startup. Choices of `auto`,
   `built-in` or `local` fall back to no provider (C45 in ADR 0008).
+- 2026-11-15 (#629, the maintainer's decision): every request has three
+  parts, in this order: one set of instructions shared by every action,
+  the chat, then the task. Suggestions and rewrites send the same chat:
+  its latest messages with their times, senders and quoted messages, with
+  no phone number (C49). Claude caches the instructions and the chat, so
+  a rewrite after suggestions reads them from the cache. Models that take
+  an effort level are asked for little thinking (`effort: low` for
+  Claude, `reasoning_effort: low` for OpenAI's reasoning models). What
+  people wrote is fenced and marked as data, never instructions.

@@ -8,7 +8,7 @@ const SETTINGS: SetupInputs['settings'] = {
   model: 'auto',
   autoSuggest: true,
   chats: 'chosen',
-  messages: '10',
+  messages: '50',
   server: '',
 };
 
@@ -123,7 +123,9 @@ describe('providerFor', () => {
     provider: ReturnType<typeof providerFor>,
     fetch: typeof globalThis.fetch,
   ) {
-    await provider.complete({ instructions: 'x', turns: [] }, vi.fn()).catch(() => undefined);
+    await provider
+      .complete({ instructions: 'x', context: '', task: '' }, vi.fn())
+      .catch(() => undefined);
     const [, init] = vi.mocked(fetch).mock.calls[0] ?? [];
     return {
       url: vi.mocked(fetch).mock.calls[0]?.[0],

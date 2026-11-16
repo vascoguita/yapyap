@@ -153,6 +153,7 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
       opened: vi.fn(),
       arrived: vi.fn(),
       sent: vi.fn(),
+      cleared: vi.fn(),
     } satisfies AssistantBar,
     assistantBarView: undefined as AssistantBarView | undefined,
     attachAssistantBar: vi.fn((create: (bar: AssistantBar) => AssistantBarView) => {
@@ -984,19 +985,19 @@ describe('startApp', () => {
     f.window.isFocused.mockReturnValue(true);
     f.runtime.assistantBarView?.show(true);
     const bar = f.runtime.assistantBar;
-    f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValue('aaaaaaaa:00000001:-:i');
+    f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValue('aaaaaaaa:00000001:-:i:e');
     await vi.advanceTimersByTimeAsync(1500);
     expect(bar.found).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000001');
-    f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValue('aaaaaaaa:00000002:-:i');
+    f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValue('aaaaaaaa:00000002:-:i:e');
     await vi.advanceTimersByTimeAsync(1500);
     expect(bar.arrived).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000002');
     f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValue(
-      'aaaaaaaa:00000002:0000000f:o',
+      'aaaaaaaa:00000002:0000000f:o:e',
     );
     await vi.advanceTimersByTimeAsync(1500);
     expect(bar.sent).toHaveBeenCalledOnce();
     f.window.isFocused.mockReturnValue(false);
-    f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValue('aaaaaaaa:00000003:-:i');
+    f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValue('aaaaaaaa:00000003:-:i:e');
     await vi.advanceTimersByTimeAsync(3000);
     expect(bar.arrived).toHaveBeenCalledOnce();
     f.runtime.assistantBarView?.show(false);

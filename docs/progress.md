@@ -479,3 +479,17 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   optional key in `secrets.json`. The guard allows the two services and
   that server's origin only. YapYap deletes a leftover `models/` folder
   and `assistant.json` at start.
+- Assistant context (#629): suggestions and rewrites share one request
+  shape (`assistant/prompts.ts`): stable instructions, the chat (cached
+  with Anthropic's `cache_control`), then the task. The adapter's reader
+  adds each message's time and sender from `data-pre-plain-text` and the
+  quoted message; `parseActiveChat` turns numbers into `Person N` for the
+  assistant and MCP alike. Rewrites now send the chat (C49).
+  `assistant.messages` is `20`, `50` or `100`, 50 by default. Claude
+  models that take it get `effort: low`; OpenAI reasoning models
+  `reasoning_effort: low`.
+  The instructions describe suggestions and each rewrite way, so the
+  task only names the way and every way reads the same cache. The probe
+  in `adapter/incoming.ts` adds `d`/`e` for whether the message box holds a
+  draft; while it is empty, `cleared` drops a rewrite's Undo and brings the
+  suggestions back, once per rewrite (C50).

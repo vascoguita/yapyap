@@ -183,11 +183,11 @@
         },
         "messages": {
           "label": "Messages it reads",
-          "description": "How many of the open chat’s latest messages it reads to suggest replies.",
+          "description": "How many of the open chat’s latest messages it reads to suggest replies and rewrite your draft. More gives better answers, but each one takes a little longer.",
           "options": {
-            "5": "5",
-            "10": "10",
-            "20": "20"
+            "20": "20",
+            "50": "50",
+            "100": "100"
           }
         },
         "server": {
@@ -563,11 +563,11 @@
         "formalize": "Formalize"
       },
       "styleHints": {
-        "polish": "Fix grammar and flow, keep your meaning",
+        "polish": "Fix mistakes, keep your words",
         "shorten": "Same message, fewer words",
-        "elaborate": "Add detail or polite phrasing",
+        "elaborate": "Fuller and clearer, from the chat",
         "soften": "Gentler, friendlier tone",
-        "formalize": "More professional tone"
+        "formalize": "Polite and professional"
       },
       "done": {
         "polish": "Polished. Edit it or send as is.",

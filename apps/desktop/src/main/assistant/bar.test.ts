@@ -3,8 +3,8 @@ import type { ReadChat } from '../../adapter/active-chat.ts';
 import type { AssistantBarState } from '../../shared/api/assistant-bar-api.ts';
 import { createAssistantBar, SETTLE_MS, type BarDependencies } from './bar.ts';
 import { ProviderError } from './providers/provider.ts';
-import { INSTRUCTIONS } from './replies.ts';
-import { rewriteInstructions } from './rewrites.ts';
+import { suggestPrompt } from './replies.ts';
+import { rewritePrompt } from './rewrites.ts';
 import type { Setup } from './setup.ts';
 
 /** A chat whose last message is someone else's. */
@@ -36,9 +36,11 @@ const SETTINGS = {
   model: 'auto',
   autoSuggest: true,
   chats: 'chosen',
-  messages: '10',
+  messages: '50',
   server: '',
 } as const;
+
+const NOW = new Date(2026, 10, 15, 14, 3);
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -77,6 +79,7 @@ function harness(answer = 'Yes, 9 works!\nCan we do 8?') {
     }),
     show: vi.fn(),
     publish: (state) => states.push(state),
+    now: () => NOW,
   };
   const bar = createAssistantBar(deps);
   return {
@@ -114,10 +117,11 @@ describe('createAssistantBar: the rewrite button', () => {
   it('rewrites the draft in place in the picked way, keeps that way, and offers Undo', async () => {
     const t = harness('“Running late, sorry!”');
     await t.bar.polish('soften');
+    // The rewrite reads the chat as suggestions do, so it fits the conversation.
+    expect(t.deps.accounts.readActiveChat).toHaveBeenCalledWith(50);
     expect(t.deps.core.ask).toHaveBeenCalledExactlyOnceWith(
       READY,
-      rewriteInstructions('soften'),
-      'running late sry',
+      rewritePrompt('soften', 'running late sry', CHAT, NOW),
     );
     expect(t.deps.accounts.replaceDraft).toHaveBeenCalledExactlyOnceWith('Running late, sorry!');
     expect(t.last()).toMatchObject({
@@ -353,11 +357,10 @@ describe('createAssistantBar: suggested replies', () => {
     t.bar.arrived('m1');
     expect(t.timers[0]?.ms).toBe(SETTLE_MS);
     await t.settle();
-    expect(t.deps.accounts.readActiveChat).toHaveBeenCalledWith(10);
+    expect(t.deps.accounts.readActiveChat).toHaveBeenCalledWith(50);
     expect(t.deps.core.ask).toHaveBeenCalledExactlyOnceWith(
       READY,
-      INSTRUCTIONS,
-      'Chat: Ana\nMe: See you at 8\nThem: Can we do 9?',
+      suggestPrompt(CHAT, NOW),
       expect.any(AbortSignal),
     );
     expect(t.last().suggestions).toEqual(['Yes, 9 works!', 'Can we do 8?']);
@@ -441,6 +444,75 @@ describe('createAssistantBar: suggested replies', () => {
     t.bar.sent();
     t.bar.dismiss();
     expect(t.last().suggestions).toEqual([]);
+  });
+
+  it('takes a rewrite’s Undo away and brings the suggestions back once the user empties the box', async () => {
+    const t = harness('Yes, 9 works!\nCan we do 8?');
+    t.bar.arrived('m1');
+    await t.settle();
+    expect(t.last().suggestions).toHaveLength(2);
+    await t.bar.polish('polish');
+    expect(t.last()).toMatchObject({ suggestions: [], notice: { button: { id: 'undo' } } });
+    t.bar.cleared();
+    // The suggestions made for the message come back without asking the model again.
+    expect(t.last()).toMatchObject({
+      suggestions: ['Yes, 9 works!', 'Can we do 8?'],
+      notice: null,
+    });
+    expect(t.deps.core.ask).toHaveBeenCalledTimes(2);
+    // Undo has nothing left to put back.
+    await t.bar.button('undo');
+    expect(t.deps.accounts.replaceDraft).toHaveBeenCalledOnce();
+    // The box stays empty: the suggestions stay, and nothing is asked again.
+    t.bar.cleared();
+    expect(t.last().suggestions).toHaveLength(2);
+    expect(t.deps.core.ask).toHaveBeenCalledTimes(2);
+  });
+
+  it('brings the suggestions back after Undo too, and only takes the Undo notice away', async () => {
+    const t = harness('Yes, 9 works!\nCan we do 8?');
+    t.bar.arrived('m1');
+    await t.settle();
+    await t.bar.polish('polish');
+    await t.bar.button('undo');
+    expect(t.last().notice).toBeNull();
+    t.bar.cleared();
+    expect(t.last().suggestions).toHaveLength(2);
+    // With no message from someone else to answer, emptying the box only takes Undo away.
+    const quiet = harness();
+    await quiet.bar.polish('polish');
+    quiet.bar.cleared();
+    expect(quiet.last()).toMatchObject({ suggestions: [], notice: null });
+    expect(quiet.timers).toEqual([]);
+  });
+
+  it('does nothing while the box is empty with no rewrite to take back, or after a send', async () => {
+    const t = harness();
+    t.bar.arrived('m1');
+    await t.settle();
+    const shown = t.states.length;
+    t.bar.cleared();
+    expect(t.states).toHaveLength(shown);
+    await t.bar.polish('polish');
+    t.bar.sent();
+    t.bar.cleared();
+    expect(t.last()).toMatchObject({ suggestions: [], notice: null });
+    await t.bar.polish('polish');
+    t.bar.opened(null);
+    t.bar.cleared();
+    expect(t.last()).toMatchObject({ suggestions: [], notice: null });
+  });
+
+  it('keeps any other notice when the box is emptied, and suggests nothing with no message to answer', async () => {
+    const t = harness();
+    t.setSetup({ ...READY, missing: 'key' });
+    await t.bar.polish('polish');
+    const notice = t.last().notice;
+    expect(notice).not.toBeNull();
+    t.bar.cleared();
+    expect(t.last().notice).toEqual(notice);
+    expect(t.deps.core.ask).not.toHaveBeenCalled();
+    expect(t.timers).toEqual([]);
   });
 
   it('remembers only the latest messages’ suggestions', async () => {

@@ -10,11 +10,12 @@ interface IncomingDocument {
   querySelector(selectors: string): { readonly textContent: string | null } | null;
 }
 
-/** Where the probe looks: the open chat's messages, the marks on the account's own, its name. */
+/** Where the probe looks: the open chat's messages, the marks on the account's own, its name, its message box. */
 interface IncomingPlaces {
   readonly message: string;
   readonly outgoing: string;
   readonly chatName: string;
+  readonly composer: string;
 }
 
 /**
@@ -25,8 +26,10 @@ interface IncomingPlaces {
  * decides (#410). The page hashes the chat's name and the messages' IDs and
  * hands over only the hashes, never an ID, a name or any text: `-` for a
  * message there is none of, then `i` when the last is someone else's, `o`
- * when it is the account's own. Runs inside the page as source text, so it
- * stays self-contained; null while no chat is open.
+ * when it is the account's own, and last `d` while the message box holds a
+ * draft, `e` while it is empty, so the assistant can tell the user cleared
+ * it (#629). Runs inside the page as source text, so it stays
+ * self-contained; null while no chat is open.
  */
 export function newestMessages(doc: IncomingDocument, places: IncomingPlaces): string | null {
   const name = doc.querySelector(places.chatName);
@@ -56,7 +59,8 @@ export function newestMessages(doc: IncomingDocument, places: IncomingPlaces): s
     whose = own(last) ? 'o' : 'i';
   }
   const theirs = newest(rows.filter((row) => !own(row)));
-  return `${hash(name.textContent ?? '')}:${theirs}:${newest(rows.filter(own))}:${whose}`;
+  const draft = (doc.querySelector(places.composer)?.textContent ?? '').trim() === '' ? 'e' : 'd';
+  return `${hash(name.textContent ?? '')}:${theirs}:${newest(rows.filter(own))}:${whose}:${draft}`;
 }
 
 /** The probe as code for `executeJavaScriptInIsolatedWorld`. */
@@ -64,6 +68,7 @@ export const NEWEST_MESSAGES = `(${newestMessages.toString()})(document, ${JSON.
   message: LANDMARKS.message,
   outgoing: LANDMARKS.outgoing,
   chatName: LANDMARKS.chatName,
+  composer: LANDMARKS.composer,
 })})`;
 
 /** What the probe saw, as hashes: the open chat, and its newest messages from each side. */
@@ -75,10 +80,12 @@ export interface Newest {
   readonly mine: string | null;
   /** Whether the chat's last message is someone else's. */
   readonly theirsLast: boolean;
+  /** Whether the message box holds a draft. */
+  readonly drafting: boolean;
 }
 
 const HASH = '([0-9a-f]{8}|-)';
-const ANSWER = new RegExp(`^([0-9a-f]{8}):${HASH}:${HASH}:([io-])$`);
+const ANSWER = new RegExp(`^([0-9a-f]{8}):${HASH}:${HASH}:([io-]):([de])$`);
 
 const hashOrNull = (value: string | undefined): string | null =>
   value === undefined || value === '-' ? null : value;
@@ -97,5 +104,6 @@ export function parseNewest(value: unknown): Newest | null | undefined {
     theirs: hashOrNull(match[2]),
     mine: hashOrNull(match[3]),
     theirsLast: match[4] === 'i',
+    drafting: match[5] === 'd',
   };
 }
