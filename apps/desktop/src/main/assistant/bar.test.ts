@@ -244,7 +244,7 @@ describe('createAssistantBar: the rewrite button', () => {
     await t.bar.polish('polish');
     expect(t.deps.core.ask).not.toHaveBeenCalled();
     expect(t.last().notice).toEqual({
-      text: 'The assistant is off in this chat. Turn it on in Settings, under Assistant.',
+      text: 'The AI assistant is off in this chat. Turn it on in Settings, under AI Assistant.',
       button: { id: 'fix', label: 'Open settings' },
     });
     await t.bar.button('fix');
@@ -263,7 +263,7 @@ describe('createAssistantBar: the rewrite button', () => {
     await t.bar.polish('polish');
     expect(t.deps.accounts.replaceDraft).not.toHaveBeenCalled();
     expect(t.last().notice).toEqual({
-      text: 'You changed your message while the assistant worked, so it was left as it is.',
+      text: 'You changed your message while the AI assistant worked, so it was left as it is.',
       button: null,
     });
     vi.mocked(t.deps.core.ask).mockImplementationOnce(() => {
@@ -277,7 +277,7 @@ describe('createAssistantBar: the rewrite button', () => {
   it('says so when the model wrote nothing, and keeps no Undo when the draft could not change', async () => {
     const t = harness('  ""  ');
     await t.bar.polish('polish');
-    expect(t.last().notice?.text).toBe('The assistant had nothing to write. Try again.');
+    expect(t.last().notice?.text).toBe('The AI assistant had nothing to write. Try again.');
     const u = harness();
     vi.mocked(u.deps.accounts.replaceDraft).mockResolvedValueOnce(false);
     await u.bar.polish('polish');

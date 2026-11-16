@@ -245,7 +245,7 @@ export async function standInKeyring(app: ElectronApplication): Promise<void> {
 export async function openAssistantSettings(app: ElectronApplication): Promise<Page> {
   await clickMenu(app, 'Settings…');
   const settings = await chromePage(app, '/settings.html');
-  await showSettingsPage(settings, 'Assistant');
+  await showSettingsPage(settings, 'AI Assistant');
   return settings;
 }
 

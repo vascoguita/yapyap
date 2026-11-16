@@ -60,7 +60,7 @@ Update this table in the PR that adds a command.
 | Preloads         | `apps/desktop/src/preload/`                       | Minimal typed `contextBridge` APIs, one per zone                                        |
 | Chrome renderer  | `apps/desktop/src/renderer/`                      | YapYap's own UI (Preact), served from `app://`                                          |
 | WhatsApp adapter | `apps/desktop/src/adapter/`                       | **The only place** with WhatsApp DOM knowledge; versioned selectors; returns plain data |
-| AI assistant     | `apps/desktop/src/main/assistant/`                | Setup, providers, the bar in WhatsApp's page, Settings › Assistant (ADR 0017)           |
+| AI assistant     | `apps/desktop/src/main/assistant/`                | Setup, providers, the bar in WhatsApp's page, Settings › AI Assistant (ADR 0017)        |
 | MCP server       | `apps/desktop/src/main/agents/`                   | Opt-in server for AI agents on 127.0.0.1, its tokens and tools (ADR 0019)               |
 | Docs             | `docs/`                                           | VitePress site, ADRs in `docs/adr/`                                                     |
 | Repo automation  | `scripts/`                                        | Tested automation such as catalog and license checks; entries in `scripts/src/bin/`     |

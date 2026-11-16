@@ -119,7 +119,7 @@ describe('assistantHandlers', () => {
     t.setSetup({ ...READY, provider: undefined, missing: 'setup', models: [], auto: undefined });
     expect(await t.call('view')).toMatchObject({
       inUse: null,
-      status: 'Set up the assistant to start: choose a provider.',
+      status: 'Set up the AI assistant to start: choose a provider.',
       auto: null,
     });
     t.setSetup({ ...READY, missing: 'off' });

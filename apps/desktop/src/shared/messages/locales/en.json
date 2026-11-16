@@ -95,7 +95,7 @@
       "appearance": "Appearance",
       "notifications": "Notifications & privacy",
       "downloads": "Downloads",
-      "assistant": "Assistant",
+      "assistant": "AI Assistant",
       "agents": "Agents",
       "network": "Network",
       "advanced": "Advanced",
@@ -152,12 +152,12 @@
     "fields": {
       "assistant": {
         "enabled": {
-          "label": "Show the assistant in chats",
+          "label": "Show the AI assistant in chats",
           "description": "Shows Polish in the message box while you type, and reply suggestions right above it."
         },
         "provider": {
           "label": "Provider",
-          "description": "Where the assistant runs.",
+          "description": "Where the AI assistant runs.",
           "options": {
             "none": "None",
             "anthropic": "Claude (Anthropic)",
@@ -171,10 +171,10 @@
         },
         "autoSuggest": {
           "label": "Suggest replies",
-          "description": "When the last message in the open chat is someone else’s, the assistant suggests short replies above the message box."
+          "description": "When the last message in the open chat is someone else’s, the AI assistant suggests short replies above the message box."
         },
         "chats": {
-          "label": "Where the assistant works",
+          "label": "Where the AI assistant works",
           "description": "It suggests replies, and rewrites what you type, only in these chats.",
           "options": {
             "all": "All chats",
@@ -469,7 +469,7 @@
     "settings": {
       "intro": "Suggests replies to the messages you get and rewrites what you type, in the tone you choose. It never sends a message: it only puts text in the message box, for you to send.",
       "where": "Provider",
-      "whereHint": "Where the assistant runs.",
+      "whereHint": "Where the AI assistant runs.",
       "notSetUp": "Not set up yet. Choose a provider below.",
       "ready": "Ready. Using {{provider}}.",
       "pills": {
@@ -546,10 +546,10 @@
           "away": "Sends the last {{messages}} messages of the open chat, plus its instructions, to {{company}}. When rewriting, it sends only what you typed. YapYap logs none of it."
         }
       },
-      "unavailable": "The assistant’s settings could not be read. Try again in a moment."
+      "unavailable": "The AI assistant’s settings could not be read. Try again in a moment."
     },
     "bar": {
-      "label": "AI assistant",
+      "label": "AI Assistant",
       "suggestions": "Suggested replies",
       "use": "Puts this reply in the message box, for you to edit or send.",
       "dismiss": "Dismiss suggestions",
@@ -581,14 +581,14 @@
       "openSettings": "Open settings"
     },
     "status": {
-      "setUp": "Set up the assistant to start: choose a provider.",
+      "setUp": "Set up the AI assistant to start: choose a provider.",
       "address": "Type your model server’s address in Settings to start.",
       "key": "Paste your API key for {{provider}} to start.",
       "noModel": "{{provider}} listed no model. Check its key, or that it runs.",
       "server": "Your model server does not answer. Check its address, and that it runs, then try again.",
-      "nothing": "The assistant had nothing to write. Try again.",
-      "draftChanged": "You changed your message while the assistant worked, so it was left as it is.",
-      "notAllowed": "The assistant is off in this chat. Turn it on in Settings, under Assistant."
+      "nothing": "The AI assistant had nothing to write. Try again.",
+      "draftChanged": "You changed your message while the AI assistant worked, so it was left as it is.",
+      "notAllowed": "The AI assistant is off in this chat. Turn it on in Settings, under AI Assistant."
     },
     "problems": {
       "auth": "{{provider}} did not accept your key.",
@@ -601,21 +601,21 @@
       "failed": "Something went wrong. Try again."
     },
     "welcome": {
-      "title": "Your AI assistant",
-      "intro": "The assistant suggests replies and rewrites what you type, in the message box. It never sends anything without your click. Where should it run?",
+      "title": "Your AI Assistant",
+      "intro": "The AI assistant suggests replies and rewrites what you type, in the message box. It never sends anything without your click. Where should it run?",
       "local": "Use the Model Server on This Computer ({{server}})",
       "localHint": "Private and quick: your messages stay on this computer.",
       "anthropic": "Use Claude with My API Key",
       "openai": "Use OpenAI with My API Key",
       "keyHint": "Quick and capable. What you ask about goes to the service.",
       "later": "Later",
-      "laterHint": "You can set it up any time in Settings, under Assistant.",
-      "done": "Done. You can change this in Settings, under Assistant."
+      "laterHint": "You can set it up any time in Settings, under AI Assistant.",
+      "done": "Done. You can change this in Settings, under AI Assistant."
     },
     "composer": {
       "label": "Rewrite with AI",
       "more": "Choose how to rewrite",
-      "settings": "Assistant settings",
+      "settings": "AI Assistant settings",
       "model": "Model: {{model}}",
       "noModel": "not set up yet"
     }

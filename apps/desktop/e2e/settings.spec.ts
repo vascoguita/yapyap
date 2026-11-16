@@ -41,7 +41,7 @@ test('shows one page at a time, picked from the list beside it or with the arrow
   await expect(list.getByRole('button', { name: 'Advanced' })).toBeFocused();
 });
 
-test('opens at the Assistant page from the assistant’s gear, even when already open', async ({
+test('opens at the AI Assistant page from the assistant’s gear, even when already open', async ({
   app,
   window,
 }) => {
@@ -50,8 +50,8 @@ test('opens at the Assistant page from the assistant’s gear, even when already
   await window.getByTestId('composer').click();
   await window.keyboard.type('running late');
   await clickInTool(app, window, 'Choose how to rewrite');
-  await clickInTool(app, window, 'Assistant settings');
-  await expect(settings.getByRole('heading', { level: 1, name: 'Assistant' })).toBeVisible();
+  await clickInTool(app, window, 'AI Assistant settings');
+  await expect(settings.getByRole('heading', { level: 1, name: 'AI Assistant' })).toBeVisible();
   expect(app.windows().filter((page) => page.url().includes('/settings.html'))).toHaveLength(1);
 });
 

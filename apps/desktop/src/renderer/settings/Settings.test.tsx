@@ -108,7 +108,7 @@ describe('Settings', () => {
       'Appearance',
       'Notifications & privacy',
       'Downloads',
-      'Assistant',
+      'AI Assistant',
       'Agents',
       'Network',
       'Advanced',
@@ -414,9 +414,9 @@ describe('Settings › Assistant and Agents', () => {
     vi.mocked(settings.assistant.view).mockReturnValue(new Promise<never>(() => undefined));
     vi.mocked(settings.agents.view).mockReturnValue(new Promise<never>(() => undefined));
     render(<Settings api={settings} />);
-    await open('Assistant');
+    await open('AI Assistant');
     expect(screen.getByText(/never sends a message/)).toBeTruthy();
-    fireEvent.click(screen.getByRole('switch', { name: 'Show the assistant in chats' }));
+    fireEvent.click(screen.getByRole('switch', { name: 'Show the AI assistant in chats' }));
     expect(settings.settings.set).toHaveBeenCalledWith('assistant.enabled', false);
     await open('Agents');
     expect(screen.getByRole('switch', { name: 'Let AI agents connect' })).toBeTruthy();

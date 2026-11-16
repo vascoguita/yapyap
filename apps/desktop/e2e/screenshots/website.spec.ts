@@ -174,7 +174,7 @@ test('Accounts window, for the get-started guide (#385)', async ({ profile }) =>
   }
 });
 
-test('AI assistant settings', async ({ profile }) => {
+test('AI Assistant settings', async ({ profile }) => {
   const showcase = await startFakeWhatsApp('showcase.html');
   await seed(profile, 'light');
   await preparePersonas(showcase.origin, profile);

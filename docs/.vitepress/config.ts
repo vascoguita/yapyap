@@ -44,7 +44,7 @@ export default defineConfig({
     nav: [
       { text: 'Download', link: '/guide/install' },
       { text: 'Guide', link: '/guide/' },
-      { text: 'AI assistant', link: '/guide/ai-assistant' },
+      { text: 'AI Assistant', link: '/guide/ai-assistant' },
       { text: 'Privacy', link: '/privacy' },
       {
         text: 'Developers',
@@ -74,7 +74,7 @@ export default defineConfig({
           text: 'User guide',
           items: [
             { text: 'Get started', link: '/guide/get-started' },
-            { text: 'AI assistant', link: '/guide/ai-assistant' },
+            { text: 'AI Assistant', link: '/guide/ai-assistant' },
             { text: 'AI agents (MCP)', link: '/guide/ai-agents' },
             { text: 'User guide', link: '/guide/' },
             { text: 'Install', link: '/guide/install' },

@@ -21,7 +21,7 @@ import { ASSISTANT_ICONS } from './assistant-look.ts';
 import { LANDMARKS } from './page-state.ts';
 
 const LABELS = {
-  label: 'AI assistant',
+  label: 'AI Assistant',
   suggestions: 'Suggested replies',
   use: 'Puts this reply in the message box.',
   dismiss: 'Dismiss suggestions',
@@ -138,7 +138,7 @@ describe('renderAssistantBar', () => {
     expect(t.render()).toBe('kept');
     const shadow = t.shadow();
     expect(shadow.querySelector('style')?.textContent).toBe('.bar { display: flex; }');
-    expect(shadow.querySelector('.bar')?.getAttribute('aria-label')).toBe('AI assistant');
+    expect(shadow.querySelector('.bar')?.getAttribute('aria-label')).toBe('AI Assistant');
     expect(t.stored().parts.chips.getAttribute('aria-label')).toBe('Suggested replies');
     expect(t.stored().parts.notice.getAttribute('role')).toBe('status');
   });

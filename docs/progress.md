@@ -513,3 +513,8 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   Distribute workflow uses the `setup` action; `test/temp-dir.ts` moved to
   `apps/desktop/test/`, its only user; `scripts/src/bin/package.ts` now
   runs the full packaging matrix. Stale config entries are gone.
+- AI Assistant name (#645): the assistant is called "AI Assistant" in
+  titles and labels (Settings page, the bar's label, the rewrite menu's
+  **AI Assistant settings**, the Welcome step) and "the AI assistant" in
+  running text, in `en.json` and the docs. Code identifiers, settings keys,
+  file names and ADRs keep "assistant".
