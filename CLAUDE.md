@@ -36,6 +36,7 @@ Use pnpm (version pinned in `package.json`) on Node.js 26 LTS.
 | Regenerate the message types      | `node scripts/src/bin/i18n-types.ts` (after changing `locales/en.json`)                             |
 | Check translation catalogs        | `node scripts/src/bin/check-catalogs.ts` (part of `pnpm lint`)                                      |
 | Check chrome CSS is logical       | `node scripts/src/bin/check-logical-css.ts` (part of `pnpm lint`; no physical left/right, ADR 0012) |
+| Check progress note order         | `node scripts/src/bin/check-progress-order.ts` (part of `pnpm lint`; notes in issue-number order)   |
 | Validate the Renovate config      | Run the `docker run` command of the `renovate` job in `.github/workflows/ci.yml`                    |
 | License compatibility             | `pnpm check:licenses`                                                                               |
 | Vulnerability audit               | `pnpm audit --audit-level high`                                                                     |

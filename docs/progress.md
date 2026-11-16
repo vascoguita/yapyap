@@ -35,8 +35,9 @@ their reasons belong in the ADRs (`docs/adr/`), and released changes in
 
 - **Notes go in issue-number order.** Add a note where its first issue
   number belongs, never at the top, so pull requests for different issues
-  do not edit the same lines. Keep it to a few lines: what changed and
-  where to look. Put the reasons in an ADR (ADR 0008 for conflicts).
+  do not edit the same lines; `pnpm lint` checks the order. Keep it to a
+  few lines: what changed and where to look. Put the reasons in an ADR
+  (ADR 0008 for conflicts).
 - **Planned features.** The website marks unshipped features as planned.
   When a feature ships, drop its "(planned)" marker and add its settings,
   files and flags to `docs/guide/reference.md`.
@@ -340,22 +341,12 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   photo's rules, only while the sender is shown, and waited for at most
   1.5 s (`main/notifications/notifier.ts`).
 
-- Install page button (#579): the download button carries its own styles,
-  so it shows as a button on the install page too, not only on the home
-  page.
-
-- Stale suggestions (#582): when WhatsApp draws a chat again, the bar
-  checks the open chat and takes away suggestions, a summary or a consent
-  question made for another one. The key links in Settings have an E2E test.
-
-- No quick access panel (#585): the always-on-top panel, its settings and
-  `quick-panel.json` are gone; the tray, the sidebar and the Account menu
-  switch accounts and turn Do not disturb on or off.
 - MCP server design (#576, ADR 0019, C47 in ADR 0008): proposed a built-in
   MCP server, off by default, on `127.0.0.1` and the official MCP SDK, with
   fine-grained tokens (scopes, accounts, chat allowlist, limits, expiry)
   that let AI agents read chats, write drafts and, with `messages:send`,
   send to allowed chats. Design only; no code yet.
+
 - MCP server for AI agents (#576, ADR 0019, C47 in ADR 0008): Settings ›
   Agents turns on an MCP server on `127.0.0.1`, built on the official SDK
   (`@modelcontextprotocol/server`). Tokens, created and narrowed there,
@@ -367,13 +358,23 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   WhatsApp's own link wherever it is, while a name is found by scrolling
   the chat list. The tray stops it, the activity stays in memory, and
   `no-endpoint.test.ts` allows the one listener file.
+
 - Renovate (#578, ADR 0020): Renovate replaces Dependabot's version
   updates and the pinned-versions script, with the same schedule, cooldown,
   groups and auto-merge. Custom managers move `engines.node` with `.nvmrc`
   and the Flatpak runtime with the BaseApp, and CI validates the config.
+
 - Install page button (#579): the download button carries its own styles,
   so it shows as a button on the install page too, not only on the home
   page.
+
+- Stale suggestions (#582): when WhatsApp draws a chat again, the bar
+  checks the open chat and takes away suggestions, a summary or a consent
+  question made for another one. The key links in Settings have an E2E test.
+
+- No quick access panel (#585): the always-on-top panel, its settings and
+  `quick-panel.json` are gone; the tray, the sidebar and the Account menu
+  switch accounts and turn Do not disturb on or off.
 - Dev chrome pages (#588): `pnpm dev` watch-builds the renderer into
   `out/renderer`, which `app://chrome/` serves, and starts Electron only
   after the first build, so the dev app never shows stale chrome pages.
@@ -402,15 +403,15 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   `scripts/`, `apps/desktop/e2e/`, and `src/main/`, `adapter/`,
   `preload/` and `renderer/`). Sessions read the progress status and
   only the ADRs for the area they change.
+- Model list (#605): the assistant bar's open model list uses the bar's
+  colors, since Chromium drew it on white under light text in the dark
+  scheme. The bar and Settings list the model Auto names only as Auto,
+  unless it is the saved choice (`src/shared/model-choices.ts`).
 - Assistant bar room (#607): when the bar opens, changes or opens its ways
   to rewrite, the chat's message list scrolls by as much as the bar grew,
   so the bar no longer covers the last message. The list is the nearest
   scrolling box around a message inside the open chat; the fake page's
   messages now scroll in a body of their own, as WhatsApp's do.
-- Model list (#605): the assistant bar's open model list uses the bar's
-  colors, since Chromium drew it on white under light text in the dark
-  scheme. The bar and Settings list the model Auto names only as Auto,
-  unless it is the saved choice (`src/shared/model-choices.ts`).
 - Rewrite from the message box (#609): a chip before WhatsApp's
   microphone or Send shows the selected way's icon and name and rewrites
   the draft in place, Polish by default, with Shorten, Elaborate and
@@ -493,6 +494,11 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   in `adapter/incoming.ts` adds `d`/`e` for whether the message box holds a
   draft; while it is empty, `cleared` drops a rewrite's Undo and brings the
   suggestions back, once per rewrite (C50).
+- Progress order check (#633): `pnpm lint` runs
+  `check-progress-order.ts`, which reports notes under `## Notes` that are
+  out of issue-number order (outside the longest ordered run), exact
+  duplicates, and notes that cite no issue number. It replaces a script
+  that only ran on the maintainer's machine.
 - Menu regrouping (#635): File starts with **New Chat with Number…**;
   Account ends with a **Troubleshoot** submenu for Clear Cache and Reset
   Session; the Assistant menu is gone, since Settings and the bar's gear
