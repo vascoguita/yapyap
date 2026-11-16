@@ -41,14 +41,14 @@ jobs:
         id: targets
         env:
           ALL: ${{ inputs.all && '--all' || '' }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
           SHARD: ${{ matrix.shard }}
         run: |
           set -o pipefail
           if [ -n "$ALL" ]; then
             files=$(git ls-files)
           else
-            files=$(git diff --name-only --diff-filter=AMR "${BASE_SHA:-origin/master}...HEAD")
+            files=$(git diff --name-only --diff-filter=AMR "$BASE_SHA...HEAD")
           fi
           targets=$(node scripts/src/bin/mutation-targets.ts --shard "$SHARD/16" <<< "$files")
           echo "targets=$targets" >> "$GITHUB_OUTPUT"

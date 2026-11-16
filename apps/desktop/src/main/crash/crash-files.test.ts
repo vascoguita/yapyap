@@ -1,7 +1,7 @@
 import { mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { tempDir } from '../../../../../test/temp-dir.ts';
+import { tempDir } from '../../../test/temp-dir.ts';
 import { profileCrashFiles, readPreviousLog } from './crash-files.ts';
 
 function fresh(): string {

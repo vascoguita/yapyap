@@ -1,7 +1,7 @@
 import { mkdirSync, readdirSync, readFileSync, utimesSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { tempDir } from '../../../../../test/temp-dir.ts';
+import { tempDir } from '../../../test/temp-dir.ts';
 import { createLogger } from './logger.ts';
 
 const HOME = '/home/maria';
