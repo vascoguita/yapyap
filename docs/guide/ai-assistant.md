@@ -1,6 +1,6 @@
-# AI assistant
+# AI Assistant
 
-YapYap's assistant helps you write, in the message box itself. It
+YapYap's AI assistant helps you write, in the message box itself. It
 suggests short replies when someone writes to you, and rewrites what you
 type in the tone you choose.
 
@@ -12,15 +12,15 @@ You stay in charge of every message:
   send it, as usual.
 - YapYap logs none of it.
 
-The assistant is part of YapYap. There is nothing to install.
+The AI assistant is part of YapYap. There is nothing to install.
 
 ## Set it up
 
-Open **Settings → Assistant**, or use the gear in the bar above the message
+Open **Settings → AI Assistant**, or use the gear in the bar above the message
 box, which opens Settings there. The first time you start YapYap, the Welcome offers the same
 choices.
 
-Until you choose a provider, the assistant is off, and nothing is sent
+Until you choose a provider, the AI assistant is off, and nothing is sent
 anywhere. Under **Provider**, choose one. Only the one you choose opens and
 shows what it needs, such as its key:
 
@@ -30,11 +30,11 @@ shows what it needs, such as its key:
 | OpenAI             | OpenAI, with your own API key                                                                                           |
 | Model server       | Any server that speaks OpenAI's API: Ollama or LM Studio on this or another computer, or a cloud service of your choice |
 
-The line at the top of the page says whether the assistant is ready, such
+The line at the top of the page says whether the AI assistant is ready, such
 as "Ready. Using Claude (Anthropic).", or what the chosen provider still
 needs. Each provider shows its own status: **Key saved** or **Needs key**,
 and **Address saved** or **Not set up**. Under the list, one sentence says
-what the assistant sends, and where.
+what the AI assistant sends, and where.
 
 ### With Claude or OpenAI
 
@@ -90,21 +90,21 @@ offers, with **Auto (recommended)** first, the default:
   server lists.
 
 When your provider releases a newer model, Auto moves to it by itself. The
-rewrite button's menu names the model in use, under **Assistant
+rewrite button's menu names the model in use, under **AI Assistant
 settings**, which opens this list.
 
 ## In the chat
 
 ### Choose the chats it works in
 
-**Settings → Assistant → Where the assistant works**:
+**Settings → AI Assistant → Where the AI assistant works**:
 
 - **Only chosen chats**, the default. Open a chat in WhatsApp, then click
   **Add Open Chat**. **Remove** takes one back.
   Settings lists them by account.
-- **All chats**: the assistant works in every chat.
+- **All chats**: the AI assistant works in every chat.
 
-Nothing of a chat is read for the assistant outside these chats.
+Nothing of a chat is read for the AI assistant outside these chats.
 **Messages it reads** sets how many of a chat's latest
 messages it reads to suggest replies and rewrite your text: 20, 50 (the
 default) or 100. More gives answers that fit the conversation better;
@@ -153,14 +153,14 @@ it rather than guess:
 - A chat that needs no reply, such as one that ends in a link or a
   sticker, gets none.
 
-The assistant asks for suggestions once a message settles in, so a burst
+The AI assistant asks for suggestions once a message settles in, so a burst
 of messages asks once, and only while YapYap's window is in front. Each
 time, it reads the chat's latest messages. Turn off **Suggest replies** in
 Settings to stop them.
 
 ### Rewrite what you type
 
-Once you type in the message box, the assistant's button appears inside
+Once you type in the message box, the AI assistant's button appears inside
 it, just left of the microphone. It shows the way it rewrites, such as
 **Polish**, and rewrites your text right where it is:
 
@@ -180,33 +180,31 @@ it, just left of the microphone. It shows the way it rewrites, such as
     The way you pick rewrites your text at once, and the button keeps it
     until YapYap restarts. The arrow keys move through the menu, and Esc
     closes it.
-- **Assistant settings**, at the bottom of the menu, names the model in
-  use and opens Settings at the assistant.
+- **AI Assistant settings**, at the bottom of the menu, names the model in
+  use and opens Settings at the AI assistant.
 
 Nothing is sent: press Enter to send the rewrite, as usual. A slim line
 above the message box says what was done, such as "Softened. Edit it or
 send as is.", with **Undo** to put your own text back. It goes once you
 send, undo or open another chat. If you change your text while the
-assistant works, your text stays as it is. A rewrite reads the chat too,
+AI assistant works, your text stays as it is. A rewrite reads the chat too,
 so it fits what was said, and keeps your text's language.
 
-When something is missing, such as a provider or a key, or the assistant
-is off in the chat, the same line says so, such as "Set up the assistant to
+When something is missing, such as a provider or a key, or the AI assistant
+is off in the chat, the same line says so, such as "Set up the AI assistant to
 start: choose a provider.", with a button that opens Settings where it
 fixes it: **Set up…**, **Paste a key…** or **Open settings**.
 
-The **Assistant** menu opens the assistant's settings.
-
 ## Privacy
 
-- The assistant reads a chat only in the chats you chose, or in every chat
+- The AI assistant reads a chat only in the chats you chose, or in every chat
   if you chose **All chats**, to suggest replies when someone else wrote
   last and to rewrite what you typed. No phone number is sent.
 - Nothing is sent anywhere until you set up a provider.
-- **Settings → Assistant**, under the list of providers, says where what
+- **Settings → AI Assistant**, under the list of providers, says where what
   you ask about goes right now: nowhere off your computer with a model
   server on this computer, or to Anthropic, OpenAI or your server's host.
-- YapYap sends the assistant's requests only to `api.anthropic.com` and
+- YapYap sends the AI assistant's requests only to `api.anthropic.com` and
   `api.openai.com` over HTTPS, and to the model server you chose. It
   refuses any other address.
 - YapYap keeps no chat text. It remembers the chats you allowed by a
@@ -222,7 +220,7 @@ See also [Privacy](../privacy.md).
 **"… did not accept your key."** Paste a new key in Settings, then
 **Test** it.
 
-**"Set up the assistant to start: choose a provider."** No provider is
+**"Set up the AI assistant to start: choose a provider."** No provider is
 chosen yet. If you used the private model or Automatic in an earlier
 version of YapYap, choose a provider again in Settings; your saved keys
 for Claude and OpenAI are still there.
@@ -236,4 +234,4 @@ This Computer** checks again.
 `https://` for anything else.
 
 **The bar does not show.** Open a chat: the bar sits above its message
-box. Check that **Show the assistant in chats** is on in Settings.
+box. Check that **Show the AI assistant in chats** is on in Settings.

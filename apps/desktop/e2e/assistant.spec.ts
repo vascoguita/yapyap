@@ -21,7 +21,7 @@ import {
 import { chromePage } from './chrome-helpers.ts';
 import { closeApp, expect, launchApp, test, whatsAppPage } from './fixtures.ts';
 
-test('sets Claude up in Settings › Assistant, with the key encrypted, tested and in use', async ({
+test('sets Claude up in Settings › AI Assistant, with the key encrypted, tested and in use', async ({
   app,
   profile,
 }) => {
@@ -193,7 +193,7 @@ test('rewrites the draft in place from the message box, puts it back on Undo, an
       'Elaborate',
       'Soften',
       'Formalize',
-      'Assistant settings',
+      'AI Assistant settings',
     ]);
   }).toPass();
   await clickInTool(app, window, 'Soften');
@@ -228,13 +228,16 @@ test('says the assistant is off in a chat the user did not add, and opens its se
   await clickInTool(app, window, 'Polish');
   await expect(async () => {
     expect(await barNotice(app)).toBe(
-      'The assistant is off in this chat. Turn it on in Settings, under Assistant.',
+      'The AI assistant is off in this chat. Turn it on in Settings, under AI Assistant.',
     );
   }).toPass();
   expect(await claudeRequests(app)).toEqual([]);
   await clickInBar(app, window, 'Open settings');
   await expect(
-    (await chromePage(app, '/settings.html')).getByRole('heading', { level: 1, name: 'Assistant' }),
+    (await chromePage(app, '/settings.html')).getByRole('heading', {
+      level: 1,
+      name: 'AI Assistant',
+    }),
   ).toBeVisible();
 });
 
@@ -248,12 +251,15 @@ test('says what is missing before the assistant is set up, and opens its setting
   await window.keyboard.type('running late');
   await clickInTool(app, window, 'Polish');
   await expect(async () => {
-    expect(await barNotice(app)).toBe('Set up the assistant to start: choose a provider.');
+    expect(await barNotice(app)).toBe('Set up the AI assistant to start: choose a provider.');
   }).toPass();
   await clickInTool(app, window, 'Choose how to rewrite');
-  await clickInTool(app, window, 'Assistant settings');
+  await clickInTool(app, window, 'AI Assistant settings');
   await expect(
-    (await chromePage(app, '/settings.html')).getByRole('heading', { level: 1, name: 'Assistant' }),
+    (await chromePage(app, '/settings.html')).getByRole('heading', {
+      level: 1,
+      name: 'AI Assistant',
+    }),
   ).toBeVisible();
 });
 
@@ -301,7 +307,7 @@ test('offers the model server it finds in the Welcome, and uses it on one click'
   });
   try {
     const welcome = await chromePage(app, '/welcome.html');
-    await expect(welcome.getByRole('heading', { name: 'Your AI assistant' })).toBeVisible();
+    await expect(welcome.getByRole('heading', { name: 'Your AI Assistant' })).toBeVisible();
     await expect(welcome.getByRole('button', { name: /Private/ })).toHaveCount(0);
     await welcome
       .getByRole('button', {

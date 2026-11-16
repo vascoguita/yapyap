@@ -108,11 +108,11 @@ describe('AssistantSection', () => {
         'Sends the last 10 messages of the open chat, plus its instructions, to Anthropic. When rewriting, it sends only what you typed. YapYap logs none of it.',
       ),
     ).toBeTruthy();
-    for (const name of ['Show the assistant in chats', 'Suggest replies']) {
+    for (const name of ['Show the AI assistant in chats', 'Suggest replies']) {
       expect(screen.getByRole('switch', { name })).toBeTruthy();
     }
     expect(screen.getByRole('radiogroup', { name: 'Messages it reads' })).toBeTruthy();
-    expect(screen.getByRole('radiogroup', { name: 'Where the assistant works' })).toBeTruthy();
+    expect(screen.getByRole('radiogroup', { name: 'Where the AI assistant works' })).toBeTruthy();
     expect(screen.getByRole('radio', { name: 'Only chosen chats' })).toHaveProperty(
       'checked',
       true,
@@ -165,11 +165,11 @@ describe('AssistantSection', () => {
 
   it('chooses no provider until the user does, and sends nothing before', async () => {
     setup(
-      { ...VIEW, inUse: null, status: 'Set up the assistant.', models: [], auto: null },
+      { ...VIEW, inUse: null, status: 'Set up the AI assistant.', models: [], auto: null },
       choosing('none'),
     );
     expect(await screen.findByText('Not set up yet. Choose a provider below.')).toBeTruthy();
-    expect(screen.queryByText('Set up the assistant.')).toBeNull();
+    expect(screen.queryByText('Set up the AI assistant.')).toBeNull();
     const list = screen.getByRole('group', { name: 'Provider' });
     for (const radio of within(list).getAllByRole<HTMLInputElement>('radio')) {
       expect(radio.checked).toBe(false);
@@ -281,7 +281,7 @@ describe('AssistantSection', () => {
 
   it('sends nothing to a server chosen before it has an address', async () => {
     setup(
-      { ...VIEW, inUse: 'server', status: 'Set up the assistant to start: choose a provider.' },
+      { ...VIEW, inUse: 'server', status: 'Set up the AI assistant to start: choose a provider.' },
       choosing('server'),
     );
     expect(await screen.findByLabelText('Address')).toBeTruthy();
@@ -350,6 +350,6 @@ describe('AssistantSection', () => {
       expect(t.assistant.view).toHaveBeenCalledTimes(2);
     });
     expect(screen.getByText('Loading…')).toBeTruthy();
-    expect(screen.getByRole('switch', { name: 'Show the assistant in chats' })).toBeTruthy();
+    expect(screen.getByRole('switch', { name: 'Show the AI assistant in chats' })).toBeTruthy();
   });
 });

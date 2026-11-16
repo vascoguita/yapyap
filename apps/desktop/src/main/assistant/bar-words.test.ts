@@ -32,7 +32,7 @@ describe('setupWords', () => {
     expect(model.status).toContain('listed no model');
     expect(model.fix).toEqual({ label: 'Open settings' });
     expect(setupWords({ ...SETUP, missing: 'setup' })).toEqual({
-      status: 'Set up the assistant to start: choose a provider.',
+      status: 'Set up the AI assistant to start: choose a provider.',
       fix: { label: 'Set up…' },
     });
     expect(setupWords({ ...SETUP, missing: 'setup', provider: 'server' }).status).toBe(

@@ -101,7 +101,7 @@ against Electron's security checklist.
 
 ### An AI assistant reply
 
-The assistant is part of YapYap ([ADR 0017](/adr/0017-assistant-is-part-of-yapyap)).
+The AI assistant is part of YapYap ([ADR 0017](/adr/0017-assistant-is-part-of-yapyap)).
 
 1. You choose **Suggest replies** in the bar above the message box. The
    bar lives in WhatsApp's page, in the adapter's isolated world, in a
@@ -117,7 +117,7 @@ The assistant is part of YapYap ([ADR 0017](/adr/0017-assistant-is-part-of-yapya
 4. The suggestions appear in the bar as plain text. You click one to put
    it in the message box, and send it yourself.
 
-See the [AI assistant guide](/guide/ai-assistant) for the settings and
+See the [AI Assistant guide](/guide/ai-assistant) for the settings and
 the [privacy page](/privacy) for everything YapYap keeps on disk.
 
 ## Decisions

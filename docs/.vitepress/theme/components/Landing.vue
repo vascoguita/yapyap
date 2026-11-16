@@ -116,7 +116,7 @@ const faqs: readonly { readonly question: string; readonly answer: string }[] = 
 
     <section class="feature">
       <div class="feature-text">
-        <p class="kicker">AI assistant</p>
+        <p class="kicker">AI Assistant</p>
         <h2>An AI co-writer in every chat.</h2>
         <p>
           Get reply ideas as messages arrive, and put one in the message box with a click. Turn a
@@ -129,7 +129,7 @@ const faqs: readonly { readonly question: string; readonly answer: string }[] = 
           <li>Works only in the chats you choose, and never sends a message for you</li>
           <li>Suggestions and rewrites right in the message box</li>
         </ul>
-        <a class="more" href="/guide/ai-assistant">Meet the assistant</a>
+        <a class="more" href="/guide/ai-assistant">Meet the AI assistant</a>
       </div>
       <img
         class="feature-shot"

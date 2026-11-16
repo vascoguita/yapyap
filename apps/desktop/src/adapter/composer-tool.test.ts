@@ -30,7 +30,7 @@ const CONTENT: ToolContent = {
   labels: {
     label: 'Rewrite with AI',
     more: 'Choose how to rewrite',
-    settings: 'Assistant settings',
+    settings: 'AI Assistant settings',
     model: 'Model: Claude Sonnet 5.5',
   },
 };
@@ -204,7 +204,7 @@ describe('renderComposerTool', () => {
       ['Polish', 'Polish it.'],
       ['Soften', 'Soften it.'],
       ['Odd', 'Odd it.'],
-      ['Assistant settings', 'Model: Claude Sonnet 5.5'],
+      ['AI Assistant settings', 'Model: Claude Sonnet 5.5'],
     ]);
   });
 

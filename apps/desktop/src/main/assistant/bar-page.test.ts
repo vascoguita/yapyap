@@ -64,7 +64,7 @@ describe('inPageAssistantBar', () => {
     expect(contentOf(t.page())).toEqual({
       visible: true,
       labels: {
-        label: 'AI assistant',
+        label: 'AI Assistant',
         suggestions: 'Suggested replies',
         use: 'Puts this reply in the message box, for you to edit or send.',
         dismiss: 'Dismiss suggestions',
@@ -105,7 +105,7 @@ describe('inPageAssistantBar', () => {
       labels: {
         label: 'Rewrite with AI',
         more: 'Choose how to rewrite',
-        settings: 'Assistant settings',
+        settings: 'AI Assistant settings',
         model: 'Model: Haiku',
       },
     });
