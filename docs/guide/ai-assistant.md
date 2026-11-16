@@ -16,9 +16,10 @@ The AI assistant is part of YapYap. There is nothing to install.
 
 ## Set it up
 
-Open **Settings → AI Assistant**, or use the gear in the bar above the message
-box, which opens Settings there. The first time you start YapYap, the Welcome offers the same
-choices.
+Open **Settings → AI Assistant**, or choose **AI Assistant settings** at
+the end of the menu by the message box's rewrite button, which opens
+Settings there. The first time you start YapYap, the Welcome offers the
+same choices.
 
 Until you choose a provider, the AI assistant is off, and nothing is sent
 anywhere. Under **Provider**, choose one. Only the one you choose opens and

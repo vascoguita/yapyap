@@ -214,7 +214,7 @@ interface PlacedItems {
   /**
    * Settings, and beside it the user's own code, as Settings is where
    * Developer Mode lives. The assistant needs no item: it works in the
-   * message box, and its gear opens Settings at its page (ADR 0017).
+   * message box, and its rewrite menu opens Settings at its page (ADR 0017).
    */
   readonly settings: MenuItemConstructorOptions[];
   /** Starting a chat, which File holds as other apps hold New. */

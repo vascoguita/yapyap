@@ -100,7 +100,8 @@ could ask for too.
    is sent?** to see the exact text first. Catching up shows exactly what
    is sent and needs **Send** each time (C41). Setup problems come with a
    one-click fix. The assistant has no menu of its own: its actions live
-   in the message box, and Settings and the bar's gear reach its page
+   in the message box, and Settings and the rewrite menu's **Assistant
+   settings** reach its page
    (#635). The panel window is gone.
 8. **The extension goes.** YapYap carries nothing over from the
    `org.guita.yapyap.ai-assistant` extension: there is no backward

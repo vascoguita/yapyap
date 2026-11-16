@@ -498,7 +498,7 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   that only ran on the maintainer's machine.
 - Menu regrouping (#635): File starts with **New Chat with Number…**;
   Account ends with a **Troubleshoot** submenu for Clear Cache and Reset
-  Session; the Assistant menu is gone, since Settings and the bar's gear
+  Session; the Assistant menu is gone, since Settings and the rewrite menu
   reach its page; View leads with zoom and the privacy screen and ends
   with reloading and DevTools; Help sets diagnostics apart. The menus
   stay native, so each platform keeps its look and keyboard handling.

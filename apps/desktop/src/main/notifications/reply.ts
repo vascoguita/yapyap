@@ -55,8 +55,9 @@ export interface KeyContents {
 
 /**
  * Presses Enter in the open chat's message box, which sends what is in it,
- * as the user's own key press would. Only the assistant bar's Send button
- * calls it, once per click (ADR 0013); false when no chat is open.
+ * as the user's own key press would. Only an AI agent whose token has
+ * `messages:send` calls it, once per message (ADR 0019); false when no
+ * chat is open.
  */
 export async function pressEnter(contents: ReplyContents & KeyContents): Promise<boolean> {
   if (!(await focused(contents))) {
