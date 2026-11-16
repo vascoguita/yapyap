@@ -103,19 +103,21 @@ against Electron's security checklist.
 
 The AI assistant is part of YapYap ([ADR 0017](/adr/0017-assistant-is-part-of-yapyap)).
 
-1. You choose **Suggest replies** in the bar above the message box. The
-   bar lives in WhatsApp's page, in the adapter's isolated world, in a
-   closed shadow root, and its click reaches the main process over a
-   fixed channel, checked for sender and payload.
+1. About every second and a half, the main process asks the open chat's
+   page, in the adapter's isolated world, for hashes of the chat and its
+   newest messages. No text leaves the page. When someone else wrote the
+   chat's last message, and it stays the newest for 600 ms, suggestions
+   start on their own.
 2. The main process reads the open chat through the adapter, at most the
-   number of messages you set. The first time in a chat, the bar asks
-   you to allow it there, and shows exactly what is sent when you ask.
+   number of messages you set, only if Settings → Assistant lets it read
+   that chat: all chats, or the ones you chose.
 3. The main process sends it to the provider you chose, with your API key
    from the system keychain, through a session of its own that reaches
    only `api.anthropic.com` and `api.openai.com` over HTTPS, and the model
    server you chose ([ADR 0017](/adr/0017-assistant-is-part-of-yapyap)).
-4. The suggestions appear in the bar as plain text. You click one to put
-   it in the message box, and send it yourself.
+4. The suggestions appear right above the message box as plain text, in
+   a closed shadow root. You click one to put it in the message box, and
+   send it yourself.
 
 See the [AI Assistant guide](/guide/ai-assistant) for the settings and
 the [privacy page](/privacy) for everything YapYap keeps on disk.

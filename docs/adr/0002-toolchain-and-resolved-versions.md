@@ -21,12 +21,9 @@ its runtime. This ADR records the choices and their reasons.
 ### Repository layout (pnpm workspaces)
 
 ```
-apps/desktop             Electron app (main, preloads, chrome renderer, WhatsApp adapter, AI assistant, extension host)
-packages/sdk             @yapyap/extension-sdk: typed extension API, manifest JSON Schema
-packages/extension-sign  @yapyap/extension-sign: Ed25519 signing and verification CLI
-extensions/              first-party extensions (call recorder, example)
-scripts                  tested repository automation
-docs                     VitePress site
+apps/desktop  Electron app (main, preloads, chrome renderer, WhatsApp adapter, AI assistant, MCP server)
+scripts       tested repository automation
+docs          VitePress site
 ```
 
 ### Versions
@@ -38,10 +35,9 @@ docs                     VitePress site
 - **Node.js:** the latest Active LTS line, matching the Node bundled in
   Electron where possible. **pnpm:** pinned through `packageManager`.
 - **GitHub Actions** are pinned by commit SHA, with the tag in a comment.
-- Versions outside Dependabot's reach (the Node.js LTS line, the Flatpak
-  runtime and base app) are checked by a weekly workflow
-  (`.github/workflows/pinned-versions.yml`, `scripts/src/pinned-versions/`),
-  which opens a PR when a newer stable release exists.
+- Renovate keeps every pinned version current (ADR 0020). Its custom
+  managers in `.github/renovate.json` also track versions no package
+  manager knows: the Node.js LTS line and the Flatpak runtime and base app.
 
 ### Build and test tools
 
@@ -56,32 +52,30 @@ docs                     VitePress site
   page `@axe-core/playwright` needs.
 - **happy-dom** and **@testing-library/preact** for component tests;
   **commitlint** for commit messages.
-- **VitePress** and **typedoc** with `typedoc-plugin-markdown` for the docs
-  site and SDK reference; **@cyclonedx/cyclonedx-npm** and
+- **VitePress** for the docs site; **@cyclonedx/cyclonedx-npm** and
   **license-checker-rseidelsohn** for the SBOM and license checks.
 
 ### Runtime dependencies
 
-| Package           | Justification                                                                                                                                           |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| preact            | About 4 KB UI runtime for app chrome. TSX type-checks under strict lint. Unlike shadow-DOM component libraries, ARIA references work across components. |
-| typebox           | One schema source gives TS types and publishable JSON Schema (extension manifest, RPC, settings). Its interpreter-mode validation needs no `eval`.      |
-| fflate            | Zero-dependency zip reader for `.yapyap-extension` bundles                                                                                              |
-| electron-updater  | Signed update metadata for AppImage, NSIS and macOS only                                                                                                |
-| @anthropic-ai/sdk | The AI assistant's Anthropic provider: the vendor's own streaming, error types, retries and timeouts                                                    |
-| openai            | The AI assistant's OpenAI and OpenAI-compatible provider: the vendor's chat-completions streaming and error types, which self-hosted servers speak too  |
+| Package           | Justification                                                                                                                                                           |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| preact            | About 4 KB UI runtime for app chrome. TSX type-checks under strict lint. Unlike shadow-DOM component libraries, ARIA references work across components.                 |
+| typebox           | One schema source gives TS types and runtime checks (settings, IPC payloads, stored files, agent tokens, model lists). Its interpreter-mode validation needs no `eval`. |
+| electron-updater  | Signed update metadata for AppImage, NSIS and macOS only                                                                                                                |
+| @anthropic-ai/sdk | The AI assistant's Anthropic provider: the vendor's own streaming, error types, retries and timeouts                                                                    |
+| openai            | The AI assistant's OpenAI and OpenAI-compatible provider: the vendor's chat-completions streaming and error types, which self-hosted servers speak too                  |
 
 Everything else is written in-house and kept small: logging with redaction,
-settings store, i18n catalogs, and the RPC layer.
+settings store and i18n catalogs.
 
 ### TypeScript 7
 
 TypeScript 7 was the npm `latest` when this ADR was written, but the
-typescript-eslint and typedoc releases this project needs (strict
-type-checked linting, SDK API reference) accept only TypeScript 6. We pin
-the newest TypeScript 6 release that satisfies every peer. Dependabot
-proposes 7.x, and we adopt it once its peers support it. This conflict is
-logged in [ADR 0008](0008-requirement-conflicts.md) (C1).
+typescript-eslint release this project needs for strict type-checked
+linting accepts only TypeScript 6. We pin the newest TypeScript 6 release
+that satisfies every peer. Renovate proposes 7.x, and we adopt it once
+its peers support it. This conflict is logged in
+[ADR 0008](0008-requirement-conflicts.md) (C1).
 
 ### Install scripts
 
@@ -108,10 +102,14 @@ dependencies. Prettier checks formatting.
   `extensions/ai-assistant` no longer exists.
 - 2026-11-01: the tables of resolved versions were removed. They drifted
   with every Dependabot PR, and the manifests already pin every version.
+- 2026-11-16 (#641): dropped the extension SDK, signing tool and
+  `extensions/` folders from the layout, the fflate row, typedoc and the
+  RPC layer, all gone with extensions (ADR 0018), and replaced Dependabot
+  and the pinned-versions workflow with Renovate (ADR 0020).
 
 ## Consequences
 
-- Upgrades arrive as grouped weekly Dependabot PRs with a 3-day cooldown.
-  Patch and minor updates auto-merge once all checks pass.
-- TypeScript is one major behind `latest` until the lint and doc toolchain
-  catches up.
+- Upgrades arrive as grouped weekly Renovate PRs, each release at least
+  3 days old. Patch and minor updates auto-merge once all checks pass.
+- TypeScript is one major behind `latest` until the lint toolchain catches
+  up.

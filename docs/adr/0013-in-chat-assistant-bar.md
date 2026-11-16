@@ -62,8 +62,8 @@ still should.
 - ADR 0001 gains the bar as a chrome view in the main window, with the
   same CSP, preload and sender checks as the sidebar (since 2026-10-30,
   the bar in WhatsApp's page and its bridge in the adapter's world).
-- The panel stays for setup (provider, key, model) and for longer work,
-  such as summaries.
+- Setup (provider, key, model) lives in Settings › Assistant (ADR 0017).
+  The panel and its longer work, such as summaries, are gone.
 - The bar is a second place where extension text appears in YapYap's own
   interface. It is always labelled with the extension's name, so it cannot
   pass for WhatsApp's or YapYap's own suggestions.
@@ -208,3 +208,7 @@ still should.
   - Both follow WhatsApp's own theme, read from the message box's text
     color, and draw the assistant in its own indigo accent, apart from
     WhatsApp's green.
+- 2026-11-16 (#641): the Consequences no longer say the panel stays for
+  setup and summaries, since both went with ADR 0017; the private model's
+  progress and status lines (2026-10-31, #457) went with the model
+  (#627).

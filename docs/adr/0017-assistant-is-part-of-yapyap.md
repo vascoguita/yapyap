@@ -57,8 +57,8 @@ could ask for too.
    or off, the provider (`auto`, `built-in`, `anthropic`, `openai` or
    `local`), the model (`auto` or an ID), suggesting replies as messages
    arrive, how many messages it reads, and the model server's address, which only a
-   loopback `/v1` address can be. The section is local, like
-   `extensions`: an export leaves it out and an import keeps it as it is,
+   loopback `/v1` address can be. The section is local
+   (`LOCAL_SECTIONS`, like `agents`): an export leaves it out and an import keeps it as it is,
    so a file someone hands the user cannot point the assistant elsewhere.
    API keys go to YapYap's secrets, encrypted by the system through
    `safeStorage`, under `assistant/key/<provider>`. What is no preference
@@ -115,9 +115,9 @@ could ask for too.
 - The extension model is back to what ADR 0004 meant: no capability lets
   an extension run code with WebAssembly, draw in WhatsApp's page or skip
   the resource limits.
-- The main process now makes network requests and runs a model (C43).
-  Both stay confined: the assistant's session reaches only the listed
-  hosts, and the engine window reaches no network at all.
+- The main process now makes network requests (C43), confined to the
+  assistant's session, which reaches only the listed hosts. Until #627 it
+  also ran a model, in an engine window that reached no network at all.
 - The assistant ships with YapYap releases, no longer on its own.
 - People who used the extension set the assistant up again.
 
@@ -151,3 +151,6 @@ could ask for too.
   an effort level are asked for little thinking (`effort: low` for
   Claude, `reasoning_effort: low` for OpenAI's reasoning models). What
   people wrote is fenced and marked as data, never instructions.
+- 2026-11-16 (#641): decision 4 now names `agents`, not the removed
+  `extensions` section (ADR 0018), as the other local section, and the
+  Consequences say the engine window ran a model only until #627.

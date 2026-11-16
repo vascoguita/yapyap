@@ -165,15 +165,15 @@ timings in PRs would flap.
     timers stop when their page is destroyed, and the 15 rounds of
     `activity.spec.ts` level off as before.
 
-- **Extensions on demand (#495, 2026-11-01).** The startup benchmark has a
-  second test. It installs the example and call-recorder extensions, which
-  declare `"activation": "on-demand"` (ADR 0004), launches three times on
-  copies of that profile, and holds the renderer count to the same budget
-  of one. On the fake page under Xvfb on Linux, the median idle memory with
+- **Extensions on demand (#495, 2026-11-01).** Until extensions were
+  removed (ADR 0018), the startup benchmark had a second test. It
+  installed the example and call-recorder extensions, which declared
+  `"activation": "on-demand"` (ADR 0004), launched three times on copies of
+  that profile, and held the renderer count to the same budget of one. On the fake page under Xvfb on Linux, the median idle memory with
   both installed went from 786 MB with three renderers (each extension's
   page held 102 MB of working set) to 560 MB with one, the same as with no
-  extensions (559 MB). Extensions that keep the default `startup` still
-  cost a renderer each, as before.
+  extensions (559 MB). The benchmark now has the one test, with no
+  extensions.
 - **Warm-up.** The first launch on a fresh runner takes 3–7 s while the disk
   cache fills. The benchmark makes one warm-up launch and leaves it out, then
   takes the median of seven.
@@ -182,6 +182,12 @@ timings in PRs would flap.
   the run. Results are kept as artifacts for 30 days.
 - **Changing a budget** needs a PR that says why: a deliberate feature cost,
   or new runner hardware.
+
+## Amendments
+
+- 2026-11-16 (#641): the "Extensions on demand" note now says its second
+  benchmark test went with extensions (ADR 0018); the startup benchmark
+  has one test.
 
 ## Consequences
 

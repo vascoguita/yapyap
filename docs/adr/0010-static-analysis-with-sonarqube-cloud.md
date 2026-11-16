@@ -20,8 +20,10 @@ analysis must run in CI.
   official scan action pinned by commit SHA, and waits for the quality gate.
   The action is LGPL-3.0 and runs only in CI, so the dependency review allows
   it by name (ADR 0008, C17).
-  Automatic analysis is turned off for the project. Dependabot has its own
-  copy of the secret, so dependency updates are analyzed too. A run without
+  Automatic analysis is turned off for the project. Renovate's branches
+  live in this repository, so its PRs get the secret like any other.
+  Dependabot has its own copy, so its security updates are analyzed too.
+  A run without
   `SONAR_TOKEN` fails rather than pass unanalyzed.
 - **Pull requests from forks** (amended 2026-11-03, after #577 merged with
   no analysis) get no secrets, so their analysis fails and says why. Once
@@ -84,6 +86,12 @@ analysis must run in CI.
   blocked unrelated work. For that reason the job analyzes every pull
   request, even one that changes no code. The README shows the
   gate and the main measures as badges.
+
+## Amendments
+
+- 2026-11-16 (#641): Dependabot's copy of `SONAR_TOKEN` now serves only
+  its security updates; Renovate's version updates use the normal secret
+  (ADR 0020).
 
 ## Consequences
 

@@ -38,8 +38,8 @@ conflict log mention extensions, they describe what YapYap used to do.
 
 ## Consequences
 
-- One trust zone fewer: the only renderers are WhatsApp's accounts,
-  YapYap's own pages and the private model's engine. The permission
+- One trust zone fewer: the only renderers are WhatsApp's accounts and
+  YapYap's own pages. The permission
   handler, navigation guards and CSPs no longer carry rules for third-party
   code.
 - No signing key to guard, no index to sign again every 30 days, and no
@@ -50,3 +50,8 @@ conflict log mention extensions, they describe what YapYap used to do.
   dropped as unknown on the next start.
 - Features that need code beside WhatsApp go into YapYap itself, through
   the usual review, or into the user's own CSS and JavaScript.
+
+## Amendments
+
+- 2026-11-16 (#641): the Consequences no longer list the private model's
+  engine among the renderers, since it went with #627.

@@ -221,9 +221,7 @@ See also [Privacy](../privacy.md).
 **Test** it.
 
 **"Set up the AI assistant to start: choose a provider."** No provider is
-chosen yet. If you used the private model or Automatic in an earlier
-version of YapYap, choose a provider again in Settings; your saved keys
-for Claude and OpenAI are still there.
+chosen yet. Choose one in Settings → AI Assistant.
 
 **"Your model server does not answer."** Check its address in Settings,
 and start the server, such as by opening Ollama, then ask again. **Find on

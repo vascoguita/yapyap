@@ -30,29 +30,38 @@ through an export.
   reset (TypeBox `Value.Default`, then `Value.Repair`), so one bad value never
   costs the others. Unknown keys are dropped. Sections and values are
   added as the features that own them land, with a default in the schema.
-- **Sections**: `general` (language, startMinimized, closeToTray, autostart),
-  `appearance` (theme, zoom default), `notifications` (enabled, dnd,
-  showPreview, sound), `accounts[]` (id, name, color, partition, muted, zoom,
-  customCss/Js refs), `shortcuts`, `downloads` (mode ask|auto, directory,
-  openAfter), `spellcheck` (enabled, languages), `network` (proxy mode/rules),
-  `reliability` (memoryWatchdog threshold, hardwareAcceleration,
-  safeMode), `privacy` (crashReports: off|local|ask), `advanced`
-  (customCode enabled, developerMode), `extensions` (enabled, grants per
-  account, pinned keys, approved hosts).
+- **Sections**: `general` (start minimized, autostart, close to
+  tray, beta updates, do not disturb), `spelling` (enabled, languages),
+  `appearance` (theme, zoom, menu bar, sidebar, tray icon), `reliability`
+  (hardware acceleration and video decoding, memory watchdog, cache and
+  heap sizes, display backend), `downloads` (ask where, open when done,
+  folder), `privacy` (crash reports, unread counts and notification
+  content, blur), `network` (proxy mode and server), `shortcuts`,
+  `assistant` (ADR 0017) and `agents` (ADR 0019). Accounts, custom code
+  and other state live in files of their own, outside settings.
 - **Export/import**: export writes
   `{ "format": "yapyap-settings", "settings": { "schemaVersion": n, ... } }`,
   holding only the sections in an explicit allowlist (`EXPORTED_SECTIONS` in
   `settings/transfer.ts`), cleaned of keys the schema does not define. A
   test fails whenever the schema gains a section the allowlist has not
-  classified. Partition names, extension secrets, cookies, pinned keys and
-  anything under `secrets` are never exported; a section holding them stays
-  out of exports and keeps its current values on import (`LOCAL_SECTIONS`).
-  The `extensions` section is one: Developer Mode must not arrive in a file. Import reads at
-  most 64 KiB, requires the format marker, runs the same checks as
-  loading, refuses a file of another schema version, and asks before
-  replacing.
+  classified. Partition names, cookies and secrets never reach an export:
+  they live outside `settings.json`. A section that must stay on this
+  computer stays out of exports and keeps its current values on import
+  (`LOCAL_SECTIONS`): `assistant` and `agents`, so a file cannot point the
+  assistant at another provider or server, nor turn on the MCP server.
+  Import reads at most 64 KiB, requires the format marker, runs the same
+  checks as loading, refuses a file of another schema version, and asks
+  before replacing.
 - **Secrets**: never stored in `settings.json`. Electron `safeStorage`
-  ciphertext lives in `<userData>/secrets/<namespace>.bin`.
+  ciphertext lives in one file, `<userData>/secrets.json`, readable by the
+  user alone.
+
+## Amendments
+
+- 2026-11-16 (#641): matched the section list to the schema and dropped
+  the `extensions` section, extension secrets and pinned keys, gone with
+  extensions (ADR 0018); `LOCAL_SECTIONS` now holds `assistant` and
+  `agents`, and secrets share one `secrets.json`.
 
 ## Consequences
 
