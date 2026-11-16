@@ -1,6 +1,6 @@
 import type { SettingsSnapshot } from '../../shared/api/chrome-api.ts';
 import { en } from '../../shared/messages/en.ts';
-import type { IconName } from './icons.tsx';
+import type { IconName } from '../shared/icons.tsx';
 
 const text = en.settings;
 const groups = text.groups;

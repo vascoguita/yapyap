@@ -11,7 +11,7 @@ import { isModelServer, isOnThisComputer, modelServerOf } from '../../shared/mod
 import { en } from '../../shared/messages/en.ts';
 import { modelsBesideAuto } from '../../shared/model-choices.ts';
 import { fieldsOf, Group, Pill, type Change, type Tone } from './Field.tsx';
-import { Icon, type IconName } from './icons.tsx';
+import { Icon, type IconName } from '../shared/icons.tsx';
 
 const text = en.assistant.settings;
 const pills = text.pills;

@@ -7,7 +7,7 @@ import {
   type SettingField,
   type SettingValue,
 } from '../../shared/settings-fields.ts';
-import { Icon } from './icons.tsx';
+import { Icon } from '../shared/icons.tsx';
 
 const text = en.settings;
 

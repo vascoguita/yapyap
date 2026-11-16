@@ -2,24 +2,10 @@ import type { JSX } from 'preact';
 import { useCallback, useEffect, useState } from 'preact/hooks';
 import type { ChromeApi, SidebarAccount, SidebarState } from '../../shared/api/chrome-api.ts';
 import { en } from '../../shared/messages/en.ts';
+import { Avatar } from '../shared/avatar.tsx';
+import { Icon } from '../shared/icons.tsx';
 
 const text = en.sidebar;
-
-/** The first letter of the name, which the avatar shows like a contact's initial. */
-function initial(name: string): string {
-  // Names are never blank (the Accounts window trims and checks them).
-  return Array.from(name.trim()).slice(0, 1).join('').toUpperCase();
-}
-
-/** A speaker with a slash, drawn rather than written, so it reads in every language. */
-function MutedIcon(): JSX.Element {
-  return (
-    <svg class="icon" viewBox="0 0 16 16" aria-hidden="true">
-      <path d="M2 6h3l4-3v10l-4-3H2z" fill="currentColor" />
-      <path d="M11 5l4 6M15 5l-4 6" stroke="currentColor" stroke-width="1.5" />
-    </svg>
-  );
-}
 
 /** The largest count a badge shows in full; two digits fit it. */
 const MAX_BADGE = 99;
@@ -37,7 +23,11 @@ function accountLabel(account: SidebarAccount): string {
 
 function Mark({ account }: { readonly account: SidebarAccount }): JSX.Element | null {
   if (account.muted) {
-    return <MutedIcon />;
+    return (
+      <span class="mark">
+        <Icon name="muted" />
+      </span>
+    );
   }
   return account.unread > 0 ? (
     <span class="badge" aria-hidden="true">
@@ -88,13 +78,7 @@ function AccountButton(props: {
           props.onSwitch(account.id);
         }}
       >
-        <span class={`avatar swatch-${account.color}`} aria-hidden="true">
-          {account.avatar === undefined ? (
-            initial(account.name)
-          ) : (
-            <img class="photo" src={account.avatar} alt="" />
-          )}
-        </span>
+        <Avatar name={account.name} color={account.color} photo={account.avatar} />
         {compact ? null : <span class="name">{account.name}</span>}
         <Mark account={account} />
       </button>
@@ -120,31 +104,48 @@ function useSidebarState(api: ChromeApi): SidebarState | null {
   return state;
 }
 
+/** Do Not Disturb silences every account, so it shows once, under them all. */
+function DoNotDisturb({ compact }: { readonly compact: boolean }): JSX.Element {
+  return (
+    <p class="dnd" title={text.doNotDisturb}>
+      <Icon name="moon" />
+      {/* The compact sidebar shows the icon alone, so the words stay for screen readers. */}
+      <span class={compact ? 'visually-hidden' : undefined}>{text.doNotDisturb}</span>
+    </p>
+  );
+}
+
 function Footer({ api, state }: { readonly api: ChromeApi; readonly state: SidebarState }) {
   const { compact } = state;
   const layout = compact ? text.full : text.compact;
   return (
     <footer>
-      {state.doNotDisturb ? (
-        <p class="dnd" title={text.doNotDisturb}>
-          <MutedIcon />
-          {/* The compact sidebar shows the icon alone, so the words stay for screen readers. */}
-          <span class={compact ? 'visually-hidden' : undefined}>{text.doNotDisturb}</span>
-        </p>
-      ) : null}
-      <button
-        type="button"
-        class="layout"
-        aria-label={layout}
-        title={layout}
-        onClick={() => {
-          void api.sidebar.setCompact(!compact);
-        }}
-      >
-        <svg class="icon" viewBox="0 0 16 16" aria-hidden="true">
-          <path d={compact ? 'M6 3l5 5-5 5' : 'M10 3L5 8l5 5'} stroke="currentColor" fill="none" />
-        </svg>
-      </button>
+      {state.doNotDisturb ? <DoNotDisturb compact={compact} /> : null}
+      <div class="footer-actions">
+        <button
+          type="button"
+          class="add"
+          aria-label={text.addAccount}
+          title={text.addAccount}
+          onClick={() => {
+            void api.accounts.add();
+          }}
+        >
+          <Icon name="plus" />
+          {compact ? null : <span aria-hidden="true">{text.addAccount}</span>}
+        </button>
+        <button
+          type="button"
+          class="layout"
+          aria-label={layout}
+          title={layout}
+          onClick={() => {
+            void api.sidebar.setCompact(!compact);
+          }}
+        >
+          <Icon name={compact ? 'expand' : 'collapse'} />
+        </button>
+      </div>
     </footer>
   );
 }

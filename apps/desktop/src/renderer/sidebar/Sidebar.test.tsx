@@ -63,9 +63,11 @@ function setup(state: () => Promise<SidebarState> = () => Promise.resolve(STATE)
       push = listener;
     }),
   };
-  render(<Sidebar api={fakeChromeApi({ sidebar })} />);
+  const accounts = { add: vi.fn(() => Promise.resolve({ accounts: [], colors: [] })) };
+  render(<Sidebar api={fakeChromeApi({ sidebar, accounts })} />);
   return {
     sidebar,
+    accounts,
     push: (next: SidebarState) => {
       void act(() => {
         push?.(next);
@@ -143,6 +145,16 @@ describe('Sidebar', () => {
     expect(screen.getByText('Do not disturb').className).toBe('visually-hidden');
     fireEvent.click(screen.getByRole('button', { name: 'Show account names' }));
     expect(t.sidebar.setCompact).toHaveBeenLastCalledWith(false);
+  });
+
+  it('adds an account, in either layout', async () => {
+    const t = setup();
+    const add = await screen.findByRole('button', { name: 'Add Account' });
+    expect(add.textContent).toBe('Add Account');
+    fireEvent.click(add);
+    expect(t.accounts.add).toHaveBeenCalledOnce();
+    t.push({ ...STATE, compact: true });
+    expect(screen.getByRole('button', { name: 'Add Account' }).textContent).toBe('');
   });
 
   it('says when do not disturb is on', async () => {

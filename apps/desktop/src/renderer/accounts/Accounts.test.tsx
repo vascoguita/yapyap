@@ -28,6 +28,7 @@ function api(list: () => Promise<AccountList> = () => Promise.resolve(LIST)) {
     list: vi.fn(list),
     save: vi.fn<ChromeApi['accounts']['save']>(() => Promise.resolve(LIST)),
     remove: vi.fn<ChromeApi['accounts']['remove']>(() => Promise.resolve(LIST)),
+    add: vi.fn<ChromeApi['accounts']['add']>(() => Promise.resolve(LIST)),
     permissions: vi.fn<ChromeApi['accounts']['permissions']>(() => Promise.resolve(['video'])),
     forgetPermissions: vi.fn<ChromeApi['accounts']['forgetPermissions']>(() => Promise.resolve([])),
   };
@@ -172,6 +173,45 @@ describe('Accounts', () => {
     await screen.findByText('Could not save the account. Try again.');
   });
 
+  it('adds an account, selects it, and says where to link it', async () => {
+    const t = await shown();
+    const added = {
+      id: 'd',
+      name: 'WhatsApp 4',
+      color: 'teal',
+      enabled: true,
+      muted: false,
+      proxy: '',
+      active: true,
+    };
+    const accounts = [...LIST.accounts.map((entry) => ({ ...entry, active: false })), added];
+    t.accounts.add.mockResolvedValueOnce({ ...LIST, accounts });
+    fireEvent.click(button('Add Account'));
+    expect(t.accounts.add).toHaveBeenCalledOnce();
+    await waitFor(() => {
+      expect(name().value).toBe('WhatsApp 4');
+    });
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('WhatsApp 4');
+    expect(screen.getByText(/^Added WhatsApp 4\. To link it/)).toBeTruthy();
+    fireEvent.click(button('Work'));
+    expect(screen.queryByText(/^Added /)).toBeNull();
+  });
+
+  it('asks before adding an account over unsaved changes, and says when adding fails', async () => {
+    const t = await shown();
+    fireEvent.input(name(), { target: { value: 'Office' } });
+    fireEvent.click(button('Add Account'));
+    expect(t.accounts.add).not.toHaveBeenCalled();
+    fireEvent.click(button('Discard'));
+    expect(t.accounts.add).toHaveBeenCalledOnce();
+    await waitFor(() => {
+      expect(name().value).toBe('Work');
+    });
+    t.accounts.add.mockRejectedValueOnce(new Error('no'));
+    fireEvent.click(button('Add Account'));
+    await screen.findByText('Could not save the account. Try again.');
+  });
+
   it('says why YapYap refused a removal', async () => {
     const t = await shown();
     t.accounts.remove.mockResolvedValueOnce(null);
@@ -199,13 +239,17 @@ describe('Accounts', () => {
     );
     fireEvent.click(button('Old Off'));
     expect(button('Remove Account…').disabled).toBe(false);
-    expect(document.getElementById('remove-hint')).toBeNull();
+    expect(document.getElementById('remove-hint')?.textContent).toBe(
+      'This logs the account out and deletes its WhatsApp data on this computer. Its chats stay on your phone.',
+    );
   });
 
   it('shows what the account may use, and asks again for camera and microphone when told', async () => {
     const t = await shown();
     expect(await screen.findByText('Permissions')).toBeTruthy();
-    const states = [...document.querySelectorAll('.permissions dd')].map((dd) => dd.textContent);
+    const states = [
+      ...document.querySelectorAll('[aria-labelledby="permissions-title"] .row-control'),
+    ].map((control) => control.textContent);
     expect(states).toEqual([
       'Allowed until YapYap quits',
       'Asks first',

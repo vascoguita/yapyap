@@ -38,6 +38,7 @@ function blank() {
     chat: { openNumber: vi.fn() },
     accounts: {
       list: vi.fn(),
+      add: vi.fn(),
       save: vi.fn(),
       remove: vi.fn(),
       permissions: vi.fn(),

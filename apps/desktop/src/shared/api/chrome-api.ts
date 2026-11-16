@@ -173,6 +173,8 @@ export interface ChromeApi {
   };
   readonly accounts: {
     readonly list: () => Promise<AccountList>;
+    /** Adds an account, which the main window then shows, ready to link to a phone. */
+    readonly add: () => Promise<AccountList>;
     /** Null when YapYap refused the change, such as turning off the last running account. */
     readonly save: (id: string, change: AccountChange) => Promise<AccountList | null>;
     /**
@@ -354,6 +356,7 @@ export const CHROME_CHANNELS = {
   pickerCancel: 'picker:cancel',
   chatOpenNumber: 'chat:open-number',
   accountsList: 'accounts:list',
+  accountsAdd: 'accounts:add',
   accountsSave: 'accounts:save',
   accountsRemove: 'accounts:remove',
   accountsPermissions: 'accounts:permissions',

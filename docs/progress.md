@@ -519,6 +519,13 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   **AI Assistant settings**, the Welcome step) and "the AI assistant" in
   running text, in `en.json` and the docs. Code identifiers, settings keys,
   file names and ADRs keep "assistant".
+- Multi-account restyle (#647): the Accounts window is laid out as
+  Settings (`accounts-window`: the list beside cards of rows, switches,
+  color swatches, pills, a sticky save bar, Remove apart) and can add an
+  account (`accounts:add`), as can the sidebar's footer. Avatars are
+  ringed in the account's color (`shared/avatar.tsx`); muted accounts
+  show a bell, Do Not Disturb a moon. Settings' icons moved to
+  `renderer/shared/icons.tsx`.
 - Main process layout (#649): `main/start/` moved into `main/app/`
   (`start-types.ts` was `types.ts`). The About, recovery and diagnostics
   code left `chrome/feature.ts` for `about/about-handlers.ts`,
