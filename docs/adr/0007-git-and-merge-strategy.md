@@ -28,11 +28,44 @@ pull request, with `master` always green and releases fully automated.
   smoke-tests one format per system (AppImage x64, NSIS x64, DMG); the full
   format and architecture matrix runs when packaging inputs change (package
   manifests, lockfile, electron-builder and Flatpak configuration, packaging
-  and release scripts and workflows) and on every push to `master`. `scripts/src/ci/changes.ts` decides, with
+  and release scripts and workflows) and on every push to `master`; see
+  the 2026-11-16 amendment below. `scripts/src/ci/changes.ts` decides, with
   tests. Mutation testing runs on pull requests only, against the tests that
   import the mutated files. **"Require branches to be up to date" is off**,
   so a merge does not force every other pull request to rerun; the `master`
   run after each merge catches the rare conflict between two pull requests.
+- **Fewer jobs per pull request** (amended 2026-11-16, #657). A run for
+  #646 took 42 minutes, though no job ran longer than 7: its 34 CI jobs
+  (40 with the other workflows) waited up to 29 minutes for GitHub's free
+  runners, which take about 20 jobs at once and about 5 on macOS. Waiting,
+  not working, is the cost, so a pull request now starts only the jobs its
+  change can fail:
+  - **Mutation** runs one job per five changed in-scope modules, so most
+    changes start one job, and a change with none starts no job. The
+    nightly run still mutates every module in 16 shards.
+  - **macOS** tests, E2E, packaging and smoke tests run when the change
+    holds macOS-specific code (a changed file that mentions `darwin`, the
+    platform's name in Node.js), a `.plist`, dependencies (package
+    manifests, lockfile, workspace, `.nvmrc`), packaging configuration or
+    the CI workflow. Other changes run Linux and Windows only.
+  - **Packaging**: a code change packages and smoke-tests one format per
+    system, as before. Dependency updates now get that too, macOS
+    included; the full format and architecture matrix runs when packaging
+    configuration changes (electron-builder and Flatpak configuration,
+    packaging and release scripts, the packaging workflows and the setup
+    action), on every push to `master`, nightly, and on the release-please
+    pull request, which runs everything.
+  - **Package repositories** follows the full packaging matrix, since its
+    test builds stand-in packages that app code cannot affect, and
+    **Renovate config** runs when `.github/renovate.json` or the CI
+    workflow, which pins the validating Renovate, changes.
+
+  `CI result` and the other required checks are unchanged: a skipped job
+  passes, a failed or cancelled one does not. The cost is that a macOS-only
+  or arm64-only break in code that names neither can reach `master`; its
+  run, and the nightly one, show it within one merge, and nothing ships
+  without the full matrix.
+
 - **Releases are the hard gate, `master` is guarded after the fact**
   (amended 2026-11-04, #210). Both choices above began as a temporary
   shortcut until M7 and are now the long-term design: on a personal account

@@ -7,6 +7,10 @@ on:
         description: full runs every format and architecture; representative, one package per system (ADR 0007)
         type: string
         default: full
+      macos:
+        description: Smoke-test the DMG on macOS too; pull requests skip it when their change cannot affect macOS (ADR 0007)
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -291,6 +295,7 @@ jobs:
 
   macos:
     name: Smoke (dmg-universal)
+    if: inputs.macos
     runs-on: macos-latest
     timeout-minutes: 20
     steps:

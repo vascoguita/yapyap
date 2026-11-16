@@ -1,7 +1,13 @@
 import { globSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { inMutationScope, MUTATION_SCOPE, mutationShard, mutationTargets } from './scope.ts';
+import {
+  inMutationScope,
+  MUTATION_SCOPE,
+  mutationShard,
+  mutationTargets,
+  pullRequestShards,
+} from './scope.ts';
 
 describe('inMutationScope', () => {
   it.each([
@@ -89,5 +95,25 @@ describe('mutationShard', () => {
     [1, Number.NaN],
   ])('refuses shard %d of %d', (shard, shards) => {
     expect(() => mutationShard(files, shard, shards)).toThrow('No shard');
+  });
+});
+
+describe('pullRequestShards', () => {
+  const modules = (count: number) =>
+    Array.from(
+      { length: count },
+      (_, index) => `apps/desktop/src/adapter/module-${String(index)}.ts`,
+    );
+
+  it('starts no job when no in-scope module changed', () => {
+    expect(pullRequestShards(['docs/index.md', 'apps/desktop/src/main/start.ts'])).toEqual([]);
+    expect(pullRequestShards(['apps/desktop/src/adapter/composer.test.ts'])).toEqual([]);
+  });
+
+  it('starts one job per five changed modules', () => {
+    expect(pullRequestShards(modules(1))).toEqual([1]);
+    expect(pullRequestShards(modules(5))).toEqual([1]);
+    expect(pullRequestShards(modules(6))).toEqual([1, 2]);
+    expect(pullRequestShards([...modules(11), 'README.md'])).toEqual([1, 2, 3]);
   });
 });
