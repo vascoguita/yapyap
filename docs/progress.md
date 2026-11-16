@@ -536,3 +536,6 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   changes that can affect it, the repository test follows full packaging,
   and the Renovate check its config; nightly packages and smoke-tests every
   format. `scripts/src/ci/changes.ts` decides (ADR 0007).
+- Adapter shared helpers (#650): `adapter/page-kit.ts` holds the `Scope` and
+  `Actions` types and the `shadowPart`, `strokeIcon` and `paintWhatsAppTheme`
+  helpers that the bar and the rewrite button each carry in their own kit.

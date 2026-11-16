@@ -1,5 +1,12 @@
 import { ASSISTANT_BAR_BRIDGE } from '../shared/api/assistant-bar-api.ts';
 import { ASSISTANT_ICONS, ASSISTANT_THEME } from './assistant-look.ts';
+import {
+  paintWhatsAppTheme,
+  shadowPart,
+  strokeIcon,
+  type Actions,
+  type Scope,
+} from './page-kit.ts';
 import { LANDMARKS } from './page-state.ts';
 
 /** One way the button rewrites the draft, in the user's words. */
@@ -114,8 +121,6 @@ interface ToolStore {
   readonly sync: () => void;
 }
 
-type Scope = Record<string, unknown>;
-
 /** The message box's row, and the microphone's or Send's place in it, which the button goes before. */
 interface ToolSpot {
   readonly row: ToolNode;
@@ -125,15 +130,9 @@ interface ToolSpot {
 /** The button's helpers, passed in because each runs as its own source text. */
 export interface ToolKit {
   readonly slot: (doc: ToolDocument, places: ToolPlaces) => ToolSpot | null;
-  readonly paint: (scope: Scope, host: ToolNode, row: ToolNode) => void;
+  readonly paint: typeof paintWhatsAppTheme;
   readonly build: (doc: ToolDocument, scope: Scope, places: ToolPlaces, kit: ToolKit) => ToolStore;
-  readonly node: (
-    doc: ToolDocument,
-    tag: string,
-    name: string,
-    parent: ToolNode,
-    action?: string,
-  ) => ToolNode;
+  readonly node: typeof shadowPart;
   readonly show: (doc: ToolDocument, host: ToolNode, places: ToolPlaces) => void;
   readonly wire: (store: ToolStore, scope: Scope, kit: ToolKit) => void;
   readonly place: (scope: Scope, places: ToolPlaces, tool: ToolNode, menu: ToolNode) => void;
@@ -150,7 +149,7 @@ export interface ToolKit {
     option: ToolOption,
     kit: ToolKit,
   ) => ToolNode;
-  readonly icon: (doc: ToolDocument, path: string, name?: string) => ToolNode;
+  readonly icon: typeof strokeIcon;
 }
 
 /** Where a render left the button. */
@@ -216,20 +215,6 @@ export function findComposerSlot(doc: ToolDocument, places: ToolPlaces): ToolSpo
 }
 
 /**
- * Follows WhatsApp's own theme, which can differ from the system's: light
- * text on the message box means its dark theme. Read anew on every render,
- * in case the user switches it.
- */
-export function paintComposerTool(scope: Scope, host: ToolNode, row: ToolNode): void {
-  const computed = scope['getComputedStyle'] as (node: ToolNode) => { readonly color: string };
-  const [red = 0, green = 0, blue = 0] = (
-    computed.call(scope, row).color.match(/\d+(?:\.\d+)?/g) ?? []
-  ).map(Number);
-  const light = 0.299 * red + 0.587 * green + 0.114 * blue > 128;
-  host.dataset['theme'] = light ? 'dark' : 'light';
-}
-
-/**
  * Builds the button in a closed shadow root, as the bar is: WhatsApp's
  * scripts cannot reach into it, and its styles cannot restyle it. The page
  * tells the button when the user types, once, as the button is built once
@@ -269,33 +254,12 @@ export function buildComposerTool(
   return store;
 }
 
-/** One part of the button, with the class its styles use; a button names its action. */
-export function composerToolNode(
-  doc: ToolDocument,
-  tag: string,
-  name: string,
-  parent: ToolNode,
-  action?: string,
-): ToolNode {
-  const node = doc.createElement(tag);
-  node.setAttribute('class', name);
-  if (action !== undefined) {
-    node.dataset['action'] = action;
-    node.setAttribute('type', 'button');
-  }
-  parent.append(node);
-  return node;
-}
-
 /** Shows the button only while the message box holds a draft to rewrite. */
 export function showComposerTool(doc: ToolDocument, host: ToolNode, places: ToolPlaces): void {
   const field = doc.querySelector(places.field) as ToolNode | null;
   const empty = (field?.textContent ?? '').trim() === '';
   host.style.display = empty ? 'none' : '';
 }
-
-/** The bridge's actions, as the adapter world has them once the preload ran. */
-type Actions = Record<string, ((value?: unknown) => void) | undefined>;
 
 /**
  * Acts on the user's clicks only, never on clicks a page script made up.
@@ -481,21 +445,6 @@ export function composerToolItem(
   return item;
 }
 
-/** A stroke icon on a 24 px grid, drawn in its class's color. */
-export function composerToolIcon(doc: ToolDocument, path: string, name?: string): ToolNode {
-  const svgNs = 'http://www.w3.org/2000/svg';
-  const icon = doc.createElementNS(svgNs, 'svg');
-  icon.setAttribute('viewBox', '0 0 24 24');
-  icon.setAttribute('aria-hidden', 'true');
-  if (name !== undefined) {
-    icon.setAttribute('class', name);
-  }
-  const shape = doc.createElementNS(svgNs, 'path');
-  shape.setAttribute('d', path);
-  icon.append(shape);
-  return icon;
-}
-
 /**
  * The button's own styles, inside its shadow root: one pill in WhatsApp's
  * message box, the selected way's icon and name, then the arrow that opens
@@ -591,16 +540,16 @@ const PLACES: ToolPlaces = {
 export function composerToolRender(content: ToolContent): string {
   const kit = [
     `slot: ${findComposerSlot.toString()}`,
-    `paint: ${paintComposerTool.toString()}`,
+    `paint: ${paintWhatsAppTheme.toString()}`,
     `build: ${buildComposerTool.toString()}`,
-    `node: ${composerToolNode.toString()}`,
+    `node: ${shadowPart.toString()}`,
     `show: ${showComposerTool.toString()}`,
     `wire: ${wireComposerTool.toString()}`,
     `place: ${placeComposerMenu.toString()}`,
     `keys: ${composerToolKeys.toString()}`,
     `update: ${updateComposerTool.toString()}`,
     `item: ${composerToolItem.toString()}`,
-    `icon: ${composerToolIcon.toString()}`,
+    `icon: ${strokeIcon.toString()}`,
   ].join(', ');
   return `(${renderComposerTool.toString()})(document, globalThis, ${JSON.stringify(content)}, ${JSON.stringify(PLACES)}, { ${kit} })`;
 }

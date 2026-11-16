@@ -3,8 +3,6 @@ import { runInNewContext } from 'node:vm';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   alignAssistantBar,
-  assistantBarIcon,
-  assistantBarNode,
   assistantBarRender,
   assistantBarRows,
   buildAssistantBar,
@@ -18,6 +16,7 @@ import {
   type BarPlacement,
 } from './assistant-bar.ts';
 import { ASSISTANT_ICONS } from './assistant-look.ts';
+import { paintWhatsAppTheme, shadowPart, strokeIcon } from './page-kit.ts';
 import { LANDMARKS } from './page-state.ts';
 
 const LABELS = {
@@ -54,15 +53,16 @@ const PLACES = {
 
 const KIT = {
   align: alignAssistantBar,
+  paint: paintWhatsAppTheme,
   room: holdAssistantBarRoom,
   build: buildAssistantBar,
   rows: assistantBarRows,
-  node: assistantBarNode,
+  node: shadowPart,
   show: showAssistantBar,
   wire: wireAssistantBar,
   update: updateAssistantBar,
   notice: noticeAssistantBar,
-  icon: assistantBarIcon,
+  icon: strokeIcon,
 };
 
 interface Stored {
@@ -370,33 +370,6 @@ describe('renderAssistantBar', () => {
   });
 });
 
-describe('alignAssistantBar', () => {
-  it('reads a dark theme from light text, and a light one from dark text or a color it cannot read', () => {
-    const host = document.createElement('div');
-    const align = (color: string) => {
-      const computed = () => ({ order: '1', zIndex: '1', color });
-      alignAssistantBar({ getComputedStyle: computed }, host as never, host as never);
-      return host.dataset['theme'];
-    };
-    expect(align('rgb(233, 237, 239)')).toBe('dark');
-    expect(align('rgba(250, 250, 250, 0.9)')).toBe('dark');
-    expect(align('rgb(17, 27, 33)')).toBe('light');
-    // Just at the middle grey still reads as dark text.
-    expect(align('rgb(128, 128, 128)')).toBe('light');
-    expect(align('rgb(129, 129, 129)')).toBe('dark');
-    // Green weighs most, then red, then blue.
-    expect(align('rgb(0, 220, 0)')).toBe('dark');
-    expect(align('rgb(255, 0, 0)')).toBe('light');
-    expect(align('rgb(0, 0, 255)')).toBe('light');
-    expect(align('rgb(100, 100, 255)')).toBe('light');
-    expect(align('rgb(120, 140, 255)')).toBe('dark');
-    expect(align('rgb(255, 140, 40)')).toBe('dark');
-    expect(align('')).toBe('light');
-    expect(align('rgb(250)')).toBe('light');
-    expect(align('rgb(250, 250)')).toBe('dark');
-  });
-});
-
 /**
  * Lays `list` out as a browser would, which the test DOM does not: 1000 px
  * of messages in a box 600 px tall less the bar's height, which never
@@ -614,7 +587,7 @@ describe('assistantBarRender', () => {
   it('sends the bar’s helpers, its place, icons and its own styles along with the content', () => {
     const code = assistantBarRender(CONTENT);
     expect(code).toMatch(
-      /\{ align: [\s\S]+, room: [\s\S]+, build: [\s\S]+, rows: [\s\S]+, node: [\s\S]+, show: [\s\S]+, wire: [\s\S]+, update: [\s\S]+, notice: [\s\S]+, icon: [\s\S]+ \}\)$/,
+      /\{ align: [\s\S]+, paint: [\s\S]+, room: [\s\S]+, build: [\s\S]+, rows: [\s\S]+, node: [\s\S]+, show: [\s\S]+, wire: [\s\S]+, update: [\s\S]+, notice: [\s\S]+, icon: [\s\S]+ \}\)$/,
     );
     expect(code).toContain('"store":"yapyapAssistantBarView"');
     expect(code).toContain('"bridge":"yapyapAssistantBar"');
