@@ -518,3 +518,5 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
   **AI Assistant settings**, the Welcome step) and "the AI assistant" in
   running text, in `en.json` and the docs. Code identifiers, settings keys,
   file names and ADRs keep "assistant".
+- Contributors (#655): the README thanks Gianmaria Del Monte for the MCP
+  server, chats' pictures in notifications, and beta testing on Arch Linux.
