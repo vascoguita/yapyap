@@ -35,6 +35,7 @@ const PACKAGING = [
   'scripts/src/release/**',
   'scripts/src/bin/aur.ts',
   'scripts/src/bin/distribution.ts',
+  'scripts/src/bin/package.ts',
   'scripts/src/bin/stamp-metainfo.ts',
   'scripts/src/bin/verify-fuses.ts',
   '.github/workflows/package.yml',

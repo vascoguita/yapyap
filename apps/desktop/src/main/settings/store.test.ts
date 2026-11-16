@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { tempDir } from '../../../../../test/temp-dir.ts';
+import { tempDir } from '../../../test/temp-dir.ts';
 import { defaultSettings } from './decode.ts';
 import { loadSettings, saveSettings, SETTINGS_FILE } from './store.ts';
 

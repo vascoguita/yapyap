@@ -33,6 +33,7 @@ describe('changeScope', () => {
     'scripts/src/packaging/targets.ts',
     'scripts/src/release/aur.ts',
     'scripts/src/bin/verify-fuses.ts',
+    'scripts/src/bin/package.ts',
     'scripts/src/bin/distribution.ts',
     '.github/workflows/distribute.yml',
     '.github/workflows/smoke.yml',

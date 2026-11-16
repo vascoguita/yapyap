@@ -236,7 +236,7 @@ their reasons belong in the ADRs (`docs/adr/`), and released changes in
   section, the FAQ says what the assistant reads, and the install guide
   says macOS builds are signed and notarized.
 
-- Test hygiene (#521): `tempDir()` in the root `test/temp-dir.ts` gives a
+- Test hygiene (#521): `tempDir()` in `apps/desktop/test/temp-dir.ts` gives a
   test a temp folder that is removed when the test ends. The marketplace
   takes its clock as `now`, so its tests use fixed dates.
 
@@ -502,3 +502,8 @@ title, escape })` (`src/renderer/shared/mount.tsx`), which titles the
 - Confidentiality rule dropped (#637): `CLAUDE.md` loses its rule 2 and the
   priority order its fourth place, so the rules after it move up one
   number; ADR 0008 logs it as C51, and ADR 0019 cites the new numbers.
+- CI and config (#639): Dependabot's auto-merge workflow no longer asks
+  it to rebase (branches need not be up to date, ADR 0007); the
+  Distribute workflow uses the `setup` action; `test/temp-dir.ts` moved to
+  `apps/desktop/test/`, its only user; `scripts/src/bin/package.ts` now
+  runs the full packaging matrix. Stale config entries are gone.
