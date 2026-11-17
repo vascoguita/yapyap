@@ -28,8 +28,8 @@
   <url type="contribute">https://yapyap.guita.org/contributing</url>
   <screenshots>
     <screenshot type="default">
-      <caption>WhatsApp with each of your accounts in a sidebar, with its unread count</caption>
-      <image type="source" width="1920" height="869">https://yapyap.guita.org/screenshots/main.png</image>
+      <caption>Each of your accounts in a sidebar, and replies the AI assistant suggests</caption>
+      <image type="source" width="2880" height="1760">https://yapyap.guita.org/screenshots/main.png</image>
     </screenshot>
     <screenshot>
       <caption>Setting up the AI assistant with the model you choose</caption>

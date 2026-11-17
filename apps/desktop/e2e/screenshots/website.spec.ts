@@ -3,46 +3,25 @@ import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { CLAUDE_ANSWER, readyClaude } from '../assistant-helpers.ts';
+import { allowAllChats, CLAUDE_ANSWER, claudeAnswer, readyClaude } from '../assistant-helpers.ts';
 import { startFakeWhatsApp } from '../fake-whatsapp-server.ts';
-import { closeApp, expect, launchApp, seedSettings, test } from '../fixtures.ts';
+import { closeApp, expect, launchApp, test } from '../fixtures.ts';
+import {
+  focusMainWindow,
+  MAIN,
+  painted,
+  personalPage,
+  preparePersonas,
+  SCALE,
+  seed,
+} from './showcase.ts';
 import { chromePage, clickMenu } from '../chrome-helpers.ts';
 
 /**
- * Screenshots of YapYap's own windows for the website (#384), taken on the
- * showcase page with invented people, never on a real account. The main
- * window's pictures show the real WhatsApp, with the maintainer's chats
- * replaced by invented ones on screen before capture; see CONTRIBUTING.
+ * Screenshots for the README, the website (#384) and the app stores, taken
+ * on the showcase page with invented people, never on a real account.
  */
 const OUT = join(import.meta.dirname, '..', '..', '..', '..', 'docs', 'public', 'screenshots');
-const SCALE = 2;
-const PERSONAL = '0b6c3f0e-58a4-4a39-9a43-6f0c1c1f6a01';
-const WORK = '7d2e9b1c-3f4a-4c5d-8e6f-1a2b3c4d5e6f';
-
-async function seed(profile: string, theme: 'light' | 'dark'): Promise<void> {
-  await seedSettings(profile, { appearance: { theme } });
-  // The window opens where screenshots want it, as it would where the user left it.
-  await writeFile(
-    join(profile, 'window-state.json'),
-    JSON.stringify({
-      bounds: { x: 0, y: 0, width: 1200, height: 760 },
-      maximized: false,
-      fullScreen: false,
-    }),
-  );
-  await writeFile(
-    join(profile, 'accounts.json'),
-    JSON.stringify({
-      version: 1,
-      active: PERSONAL,
-      accounts: [
-        { id: PERSONAL, name: 'Personal', color: 'green', enabled: true },
-        { id: WORK, name: 'Work', color: 'blue', enabled: true },
-      ],
-    }),
-  );
-}
-
 /** Encodes the PNG for the website too, as a much smaller WebP. */
 function webp(png: string, name: string): void {
   execFileSync('ffmpeg', [
@@ -107,38 +86,6 @@ async function captureWindow(
   }
 }
 
-/**
- * Gives the Work account its own persona in its own storage, which outlives
- * a restart, so both accounts load as themselves, photos included, the
- * next time YapYap starts.
- */
-async function preparePersonas(origin: string, profile: string): Promise<void> {
-  const app = await launchApp(origin, profile);
-  try {
-    await expect
-      .poll(() =>
-        app.evaluate(
-          ({ webContents }, work) =>
-            webContents
-              .getAllWebContents()
-              .some(
-                (contents) => contents.session.storagePath?.endsWith(`account-${work}`) === true,
-              ),
-          WORK,
-        ),
-      )
-      .toBe(true);
-    await app.evaluate(async ({ webContents }, work) => {
-      const page = webContents
-        .getAllWebContents()
-        .find((contents) => contents.session.storagePath?.endsWith(`account-${work}`) === true);
-      await page?.executeJavaScript("localStorage.setItem('showcase-persona', 'work')");
-    }, WORK);
-  } finally {
-    await closeApp(app);
-  }
-}
-
 test('Settings window', async ({ profile }) => {
   const showcase = await startFakeWhatsApp('showcase.html');
   await seed(profile, 'light');
@@ -190,6 +137,56 @@ test('AI Assistant settings', async ({ profile }) => {
       document.querySelector('main')?.scrollTo(0, 0);
     });
     await captureWindow(app, '/settings.html', 'assistant', ['png', 'webp']);
+  } finally {
+    await closeApp(app);
+    await showcase.close();
+  }
+});
+
+/**
+ * The main window as the screen shows it: the account sidebar and WhatsApp
+ * are separate views, and the AI Assistant draws inside WhatsApp's page, so
+ * only the screen has them together. The window sits at the screen's corner.
+ */
+async function captureScreen(name: string, formats: readonly Format[]): Promise<void> {
+  const png = join(OUT, `${name}.png`);
+  execFileSync('ffmpeg', [
+    ...['-loglevel', 'error', '-y', '-f', 'x11grab', '-draw_mouse', '0'],
+    ...['-video_size', `${String(MAIN.width * SCALE)}x${String(MAIN.height * SCALE)}`],
+    ...['-i', `${String(process.env['DISPLAY'])}+0,0`, '-frames:v', '1', png],
+  ]);
+  if (formats.includes('webp')) {
+    webp(png, name);
+  }
+  if (!formats.includes('png')) {
+    await rm(png);
+  }
+}
+
+/** Three replies to the open chat's last message, from Inês. */
+const REPLIES = claudeAnswer('Amazing, thanks Inês! 🙌\nSee you at 10!\nI’ll bring snacks');
+
+test('Main window, with the AI Assistant', async ({ profile }) => {
+  const showcase = await startFakeWhatsApp('showcase.html');
+  await seed(profile, 'light');
+  await preparePersonas(showcase.origin, profile);
+  const app = await launchApp(showcase.origin, profile, [
+    `--force-device-scale-factor=${String(SCALE)}`,
+  ]);
+  try {
+    const settings = await readyClaude(app, REPLIES, REPLIES, REPLIES);
+    await allowAllChats(settings);
+    const page = await personalPage(app);
+    await focusMainWindow(app);
+    // Suggestions come by themselves, as the chat's last message is someone
+    // else's. They draw in a closed shadow root, so the run waits for them.
+    await page.waitForTimeout(3000);
+    // Nothing focused, so no focus ring draws on the page.
+    await page.evaluate(() => {
+      (document.activeElement as HTMLElement | null)?.blur();
+    });
+    await painted(page);
+    await captureScreen('main', ['png', 'webp']);
   } finally {
     await closeApp(app);
     await showcase.close();

@@ -96,13 +96,18 @@ changing it, run `node scripts/src/bin/i18n-types.ts`. Translations follow
 
 ### Website screenshots
 
-Pictures of YapYap's own windows, such as Settings and the AI assistant, come
-from `pnpm screenshots` (see the commands in CLAUDE.md), on a showcase page
-with invented people. The main window's pictures show the real WhatsApp: the
-maintainer takes them on their own account, after every name, photo and
-message on screen has been replaced with invented ones, and checks each
-picture before it is committed. Never commit a screenshot of anyone's real
-chats.
+Every picture, the main window's included, comes from `pnpm screenshots`
+(see the commands in CLAUDE.md), on a showcase page with invented people
+and a stand-in for Claude. Look at each picture before committing it, and
+never commit a screenshot of anyone's real chats.
+
+The README's animation comes from the same run
+(`e2e/screenshots/readme-animation.spec.ts`), which writes
+`apps/desktop/test-results/readme/yapyap-ai-assistant.webp`. It is not kept
+in git: attach it to a pull request comment or description on GitHub, and
+point the README at the `github.com/user-attachments/...` link GitHub gives
+it. GitHub serves an attachment only once saved content on the site links
+to it, so put it in the pull request's description too.
 
 ### Visual baselines
 
