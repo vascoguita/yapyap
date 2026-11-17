@@ -131,7 +131,7 @@ describe('agentServer', () => {
     await settle();
     expect(t.server.address()).toBeNull();
     expect(t.server.problem()).toBe(
-      'Another program uses port 50000, so agents can’t connect. Pick another port.',
+      'Another program uses port 50000, so agents cannot connect. Pick another port.',
     );
     expect(t.deps.warn).toHaveBeenCalledWith('The MCP server could not listen on its port.');
     t.server.newPort();

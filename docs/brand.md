@@ -94,6 +94,29 @@ values of its own.
 - **Wordmark and docs:** Inter, bundled with the documentation site.
   "YapYap" is written as one word with two capital Ys.
 
+## Words
+
+YapYap's text lives in
+[`en.json`](https://github.com/vascoguita/yapyap/blob/master/apps/desktop/src/shared/messages/locales/en.json)
+(ADR 0012). It follows the desktop platforms' own conventions:
+
+- **Title Case** for buttons, menu items and window titles: **Add Account**,
+  **Keep Editing**, **Choose What to Share**. Short words such as _a_,
+  _and_, _in_ and _to_ stay lower case.
+- **Sentence case** for everything else: headings, labels, options,
+  tooltips, pills and messages.
+- An ellipsis ends a button or menu item that asks for more before it acts:
+  **Remove Account…**.
+- No contractions: _cannot_, _does not_.
+- A confirmation's button names its action (**Remove Account**, **Import
+  Settings**), never _OK_ or _Yes_.
+- A failure says what failed and what to do next: _Could not save the code.
+  Try again._
+- A place in Settings is written with an arrow, after its page's name:
+  _Settings → AI Assistant_.
+- One word for one thing: the _keychain_ keeps secrets, an _account_ is a
+  WhatsApp login, a _token_ is what an AI agent holds.
+
 ## Disclaimer
 
 YapYap is unofficial and is not affiliated with, endorsed by, or sponsored by

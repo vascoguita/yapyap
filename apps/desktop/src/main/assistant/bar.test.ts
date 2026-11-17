@@ -244,8 +244,8 @@ describe('createAssistantBar: the rewrite button', () => {
     await t.bar.polish('polish');
     expect(t.deps.core.ask).not.toHaveBeenCalled();
     expect(t.last().notice).toEqual({
-      text: 'The AI assistant is off in this chat. Turn it on in Settings, under AI Assistant.',
-      button: { id: 'fix', label: 'Open settings' },
+      text: 'The AI assistant is off in this chat. Turn it on in Settings → AI Assistant.',
+      button: { id: 'fix', label: 'Open Settings' },
     });
     await t.bar.button('fix');
     expect(t.deps.openSettings).toHaveBeenCalledOnce();
@@ -305,7 +305,7 @@ describe('createAssistantBar: the rewrite button', () => {
     await t.bar.polish('polish');
     expect(t.deps.core.ask).not.toHaveBeenCalled();
     expect(t.last().model).toBe('not set up yet');
-    expect(t.last().notice?.button).toEqual({ id: 'fix', label: 'Paste a key…' });
+    expect(t.last().notice?.button).toEqual({ id: 'fix', label: 'Paste a Key…' });
     await t.bar.button('fix');
     expect(t.deps.openSettings).toHaveBeenCalledOnce();
     t.setSetup({ ...READY, missing: 'model', provider: 'server', models: [] });

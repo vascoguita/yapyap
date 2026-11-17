@@ -71,7 +71,7 @@ describe('settings export', () => {
     t.files.write.mockRejectedValueOnce(new Error('EACCES'));
     await expect(t.run(t.exporting)).resolves.toEqual({
       outcome: 'failed',
-      message: 'Could not save the settings file.',
+      message: 'Could not save the settings file. Try again.',
     });
   });
 });

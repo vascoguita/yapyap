@@ -80,6 +80,6 @@ describe('About', () => {
   it('announces when copying fails', async () => {
     render(<About api={api({ copyTechnicalDetails: () => Promise.reject(new Error('no')) })} />);
     fireEvent.click(screen.getByRole('button', { name: 'Copy Technical Details' }));
-    expect(await screen.findByText('Could not copy the details.')).toBeTruthy();
+    expect(await screen.findByText('Could not copy the details. Try again.')).toBeTruthy();
   });
 });

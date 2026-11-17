@@ -79,7 +79,7 @@ describe('electronSettingsFiles', () => {
       title: 'YapYap',
       message: 'Import these settings?',
       detail: 'Your current settings will be replaced.',
-      buttons: ['Import', 'Cancel'],
+      buttons: ['Import Settings', 'Cancel'],
       defaultId: 1,
       cancelId: 1,
     });
