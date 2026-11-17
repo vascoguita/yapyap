@@ -96,13 +96,10 @@ changing it, run `node scripts/src/bin/i18n-types.ts`. Translations follow
 
 ### Website screenshots
 
-Pictures of YapYap's own windows, such as Settings and the AI assistant, come
-from `pnpm screenshots` (see the commands in CLAUDE.md), on a showcase page
-with invented people. The main window's pictures show the real WhatsApp: the
-maintainer takes them on their own account, after every name, photo and
-message on screen has been replaced with invented ones, and checks each
-picture before it is committed. Never commit a screenshot of anyone's real
-chats.
+Every picture, the main window's included, comes from `pnpm screenshots`
+(see the commands in CLAUDE.md), on a showcase page with invented people
+and a stand-in for Claude. Look at each picture before committing it, and
+never commit a screenshot of anyone's real chats.
 
 ### Visual baselines
 

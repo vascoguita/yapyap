@@ -292,6 +292,37 @@ footer {
   background: var(--panel);
 }
 
+.compose-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.compose-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.compose-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+}
+
+.compose-icon svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
 .composer {
   min-height: 40px;
   padding: 9px 14px;
