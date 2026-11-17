@@ -23,15 +23,18 @@ in `apps/desktop/build/icons/`.
 
 ## Palette
 
-| Token              | Light     | Dark      | Use                           |
-| ------------------ | --------- | --------- | ----------------------------- |
-| `--yy-violet`      | `#5B47E0` | `#A99BFF` | Primary actions, focus, brand |
-| `--yy-violet-deep` | `#3F2FB8` | `#8F7DF7` | Pressed states, icon accents  |
-| `--yy-coral`       | `#FF7A59` | `#FF8F73` | Highlights, unread badges     |
-| `--yy-ink`         | `#1E1B4B` | `#ECEAFF` | Primary text                  |
-| `--yy-muted`       | `#5B5878` | `#A9A6C9` | Secondary text                |
-| `--yy-surface`     | `#FFFFFF` | `#14122B` | Window background             |
-| `--yy-surface-2`   | `#F4F3FF` | `#1E1B3D` | Sidebars, cards               |
+The brand's colors, as the icon and the website use them. The app's own
+tokens follow under [In the app](#in-the-app).
+
+| Token              | Light     | Dark      | Use                                       |
+| ------------------ | --------- | --------- | ----------------------------------------- |
+| `--yy-violet`      | `#5B47E0` | `#A99BFF` | The website's actions and focus, the icon |
+| `--yy-violet-deep` | `#3F2FB8` | `#8F7DF7` | Pressed states, icon accents              |
+| `--yy-coral`       | `#FF7A59` | `#FF8F73` | Highlights, unread badges                 |
+| `--yy-ink`         | `#1E1B4B` | `#ECEAFF` | Primary text                              |
+| `--yy-muted`       | `#5B5878` | `#A9A6C9` | Secondary text                            |
+| `--yy-surface`     | `#FFFFFF` | `#14122B` | Window background                         |
+| `--yy-surface-2`   | `#F4F3FF` | `#1E1B3D` | Sidebars, cards                           |
 
 Measured contrast ratios (WCAG 2.2 AA requires 4.5:1 for text):
 
@@ -44,6 +47,44 @@ Measured contrast ratios (WCAG 2.2 AA requires 4.5:1 for text):
 
 Coral is for highlights and badges with dark text, never for body text on
 white.
+
+### In the app
+
+YapYap's windows and its in-chat assistant draw from one set of tokens, on
+`:root` in
+[`renderer/styles.css`](https://github.com/vascoguita/yapyap/blob/master/apps/desktop/src/renderer/styles.css).
+Their accent is the deep violet: white text on small controls needs more
+contrast than `--yy-violet` gives at a glance. In dark mode it turns to a
+light violet that reads on dark cards. The assistant takes the same accent
+inside WhatsApp, over WhatsApp's own greys
+([`assistant-look.ts`](https://github.com/vascoguita/yapyap/blob/master/apps/desktop/src/adapter/assistant-look.ts)).
+
+| Token       | Light     | Dark      | Use                                                     |
+| ----------- | --------- | --------- | ------------------------------------------------------- |
+| `--accent`  | `#3F2FB8` | `#C9C3FF` | Primary buttons, switches, focus, links, chosen items   |
+| `--text`    | `#1C1B29` | `#F2F1FA` | Text                                                    |
+| `--muted`   | `#5B5A6E` | `#B0AEC4` | Hints, group titles                                     |
+| `--surface` | `#FFFFFF` | `#17161F` | Window background                                       |
+| `--card`    | `#F7F7FA` | `#1F1E29` | Cards of rows                                           |
+| `--sidebar` | `#F3F2F8` | `#1B1A24` | The page list in Settings and Accounts, and the sidebar |
+| `--border`  | `#DCD9F2` | `#34324A` | Card edges, dividers, controls                          |
+| `--danger`  | `#B3261E` | `#FFB4AB` | What can do harm                                        |
+| `--success` | `#1E7A46` | `#5BC688` | Ready, saved                                            |
+| `--warning` | `#8A5A00` | `#E3B341` | Needs something                                         |
+
+Measured contrast:
+
+- white on `#3F2FB8`: 9.1:1; `#3F2FB8` on a card: 8.5:1
+- `#C9C3FF` on a dark card: 10.0:1; the dark surface on `#C9C3FF`: 10.9:1
+- `#5B5A6E` on a card: 6.3:1; `#B0AEC4` on a dark card: 7.6:1
+- the assistant's accent on its tint: 7.9:1, and 8.7:1 in dark mode
+
+Type, corners, spacing and motion are tokens too: `--font-title` (1.25rem),
+`--font-body` (0.875rem), `--font-hint` (0.8125rem) and `--font-caption`
+(0.75rem); `--radius-sm` (6 px, key caps), `--radius-md` (8 px, controls),
+`--radius-lg` (10 px, cards) and `--radius-pill`; `--space-1` to `--space-8`
+on a 4 px grid; `--shadow-raised` and `--motion`. A window uses them, never
+values of its own.
 
 ## Typography
 

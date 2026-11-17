@@ -331,6 +331,11 @@ section > .actions {
   color: var(--danger);
 }
 
+/*
+ * One notice for every window, drawn as Settings › AI Assistant's status
+ * line: a tinted box, in the accent for what needs an answer, in red for
+ * what can do harm.
+ */
 .notice {
   display: flex;
   flex-wrap: wrap;
@@ -338,9 +343,34 @@ section > .actions {
   justify-content: space-between;
   gap: var(--space-2);
   margin: 0;
+  padding: 10px 14px;
+  border-radius: var(--radius-lg);
+  background: var(--tint);
+}
+
+.notice.danger,
+.danger-box {
+  border: 1px solid color-mix(in srgb, var(--danger) 30%, var(--border));
+  background: color-mix(in srgb, var(--danger) 8%, var(--surface));
+}
+
+.notice.danger,
+.danger-box [role='note'] {
+  color: var(--danger);
+}
+
+/* Sending messages, apart from the other scopes, with what it means beside it. */
+.danger-box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
   padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--accent);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
+}
+
+.danger-box [role='note'] {
+  margin: 0;
+  font-size: var(--font-hint);
 }
 
 .notice output {
@@ -990,16 +1020,6 @@ textarea.diagnostics {
   tab-size: 2;
 }
 
-/* A warning before something that can do harm, as a danger notice. */
-.warning {
-  margin: 0;
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid color-mix(in srgb, var(--danger) 40%, var(--border));
-  border-radius: var(--radius-lg);
-  background: color-mix(in srgb, var(--danger) 8%, var(--surface));
-  color: var(--danger);
-}
-
 main :is(form, .form) {
   display: flex;
   flex-direction: column;
@@ -1265,21 +1285,7 @@ main.spelling-languages input[type='search'] {
   stroke-width: 1.5;
 }
 
-/* "Needs restart", beside the name of a setting that takes effect at the next launch. */
-.tag {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding: 0 6px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--muted);
-  font-size: var(--font-caption);
-  line-height: 1.25rem;
-}
-
-.tag .icon,
+/* The one chip: a state beside a setting's name or at its row's end, such as "Needs restart". */
 .pill .icon {
   inline-size: 12px;
   block-size: 12px;
@@ -1795,9 +1801,130 @@ code.address {
   background: var(--card);
 }
 
-.token-form h3 {
+.token-form h3,
+.notice h3 {
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--font-body);
+  font-weight: 600;
+}
+
+/* A new token's value and command: each in code, with its own Copy at its end. */
+.copyable {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  inline-size: 100%;
+  margin: 0;
+}
+
+.copyable code {
+  flex: 1;
+  min-inline-size: 0;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--raised);
+  font-size: var(--font-hint);
+  overflow-wrap: anywhere;
+}
+
+/* A chat to add to the token's list: its fields stacked under the hint, as a stacked setting. */
+.add-chat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/*
+ * The new token's form, laid out as a stacked setting: each part titled as a
+ * group of settings is, its choices one per line, a divider between parts.
+ */
+.token-form fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-inline-size: 0;
+  margin: 0;
+  padding: var(--space-3) 0 0;
+  border: none;
+  border-block-start: 1px solid var(--border);
+}
+
+.token-form legend {
+  float: inline-start;
+  inline-size: 100%;
+  margin-block-end: var(--space-1);
+  padding: 0;
+  color: var(--muted);
+  font-size: var(--font-hint);
+  font-weight: 600;
+}
+
+/* A checkbox or radio button with its words, at least 28 px tall to be easy to hit. */
+.token-form label:has(> input:is([type='checkbox'], [type='radio'])) {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: 28px;
+}
+
+/* A name and its box, or a name and its list, one under the other. */
+.token-form > label,
+.token-form > div > label:has(> :is(input[type='text'], select)) {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-weight: 500;
+}
+
+.token-form > label > :is(input, select) {
+  max-inline-size: 20rem;
+  font-weight: 400;
+}
+
+.token-form fieldset > .actions,
+.token-form > .actions {
+  justify-content: flex-start;
+}
+
+.token-form fieldset > button,
+.add-chat > button {
+  align-self: flex-start;
+}
+
+.token-form [role='note'] {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--font-hint);
+}
+
+/* What sending can do stays red, inside its box. */
+.token-form .danger-box [role='note'] {
+  color: var(--danger);
+}
+
+/* A limit: its name and number on one line, and Unlimited at its end. */
+.limit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-4);
+}
+
+.limit > label:first-child {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.limit input[type='number'] {
+  inline-size: 7rem;
+}
+
+.notice p {
+  margin: 0;
 }
 
 .token-form .actions {

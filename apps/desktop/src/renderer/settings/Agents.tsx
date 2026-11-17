@@ -265,7 +265,7 @@ function TokenList(props: {
     return <p class="group-note">{text.tokens.none}</p>;
   }
   return (
-    <ul class="group tokens" aria-label={text.tokens.title}>
+    <ul class="group" aria-label={text.tokens.title}>
       {view.tokens.map((token) => (
         <Token key={token.id} api={api} token={token} accounts={view.accounts} reload={reload} />
       ))}

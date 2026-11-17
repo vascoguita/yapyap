@@ -136,7 +136,6 @@ function Footer({ api, state }: { readonly api: ChromeApi; readonly state: Sideb
         </button>
         <button
           type="button"
-          class="layout"
           aria-label={layout}
           title={layout}
           onClick={() => {

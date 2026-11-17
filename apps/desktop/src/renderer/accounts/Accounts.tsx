@@ -417,7 +417,6 @@ function Permissions({ api, id }: { readonly api: ChromeApi; readonly id: string
         </h2>
         <button
           type="button"
-          class="forget"
           disabled={allowed.length === 0}
           onClick={() => {
             api.accounts.forgetPermissions(id).then(setAllowed, () => undefined);
