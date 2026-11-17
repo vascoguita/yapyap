@@ -17,7 +17,7 @@ describe('changeScope', () => {
   });
 
   it('runs tests and one package per system, macOS aside, when code changed', () => {
-    expect(changeScope(['docs/progress.md', CODE])).toEqual({
+    expect(changeScope(['docs/progress/notes/657.md', CODE])).toEqual({
       code: true,
       packaging: 'representative',
       macos: false,

@@ -19,7 +19,8 @@ export default defineConfig({
   lang: 'en-US',
   cleanUrls: true,
   lastUpdated: true,
-  srcExclude: ['progress.md'],
+  // Each progress note is its own file, shown on the progress page (#660).
+  srcExclude: ['progress/notes/**'],
   // ADR folders keep README.md so they also read well on GitHub.
   rewrites: { 'adr/README.md': 'adr/index.md' },
   vite: {
@@ -54,6 +55,7 @@ export default defineConfig({
           { text: 'Contributing', link: '/contributing' },
           { text: 'Translations', link: '/translations' },
           { text: 'Brand', link: '/brand' },
+          { text: 'Progress', link: '/progress/' },
         ],
       },
       { text: 'Sponsor', link: 'https://github.com/sponsors/vascoguita' },

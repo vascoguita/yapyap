@@ -99,6 +99,16 @@ pull request, with `master` always green and releases fully automated.
   the branch commits keep their own signatures. Squash and rebase merging are
   disabled in repository settings, because GitHub's rebase-merge re-creates
   commits and drops their signatures.
+- **Progress notes** (amended 2026-11-16, #660): every pull request adds a
+  short note, and they used to share one list in `docs/progress.md`. Even
+  in issue-number order (#634), new pull requests have the newest issues,
+  so they all added at the end and each merge put the others in conflict:
+  they rebased and reran all of CI, the day's runs were mostly such reruns,
+  and they queued behind each other. Each note is now its own file,
+  `docs/progress/notes/<issue>.md`, named by the issue its pull request
+  closes, and the docs site lists them in issue-number order; lint checks
+  the names. Dropping notes for the changelog was simpler, but the notes
+  say where to look in the code, which commit subjects do not.
 - **PR titles** follow Conventional Commits (checked in CI) and become the
   merge commit subject. release-please therefore lists a change twice, for
   its commit and its merge commit; the release workflow merges each pair
