@@ -1,42 +1,63 @@
+/* Today's WhatsApp Web, closely enough for the README's and website's pictures. */
 :root {
+  /* WhatsApp's own design tokens for its default theme (--WDS-*), light first. */
   color-scheme: light dark;
-  --bg: #f4f1ec;
+  --rail: #f7f5f3;
   --panel: #ffffff;
-  --rail: #efebe5;
-  --line: #e6e1d9;
-  --text: #1d1f21;
-  --muted: #6b6f73;
-  --accent: #0e8a6e;
-  --badge: #13a37f;
-  --mine: #d8f5e4;
+  --wall: #f5f1eb;
+  --line: #0000001a;
+  --text: #0a0a0a;
+  --muted: #00000099;
+  --icon: #000000b3;
+  --hover: #0000000d;
+  --field: #f7f5f3;
+  --green: #1daa61;
+  --green-text: #1b8755;
+  --on-green: #ffffff;
+  --chip: #d9fdd3;
+  --chip-text: #15603e;
+  --chip-line: #0000001a;
+  --mine: #d9fdd3;
   --theirs: #ffffff;
-  --wall: #ece5dc;
-  --chip: #e8f3ee;
-  --chip-text: #0b6b55;
+  --tick: #007bfc;
+  --pill: #ffffff;
+  --doodle: #eae0d3;
+  --shadow: 0 1px 0.5px #0b141a21;
   font:
-    15px/1.4 system-ui,
-    'Segoe UI',
-    Roboto,
-    Ubuntu,
+    15px/1.35 'Segoe UI',
     'Helvetica Neue',
+    Helvetica,
+    'Lucida Grande',
+    Arial,
+    Ubuntu,
+    Cantarell,
+    'Fira Sans',
     sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #111416;
-    --panel: #171b1e;
-    --rail: #1d2226;
-    --line: #262c30;
-    --text: #e9edef;
-    --muted: #8d969c;
-    --accent: #2fc195;
-    --badge: #23b386;
-    --mine: #10513f;
-    --theirs: #20272b;
-    --wall: #0d1012;
-    --chip: #1d3a31;
-    --chip-text: #8ce0c3;
+    --rail: #1d1f1f;
+    --panel: #161717;
+    --wall: #161717;
+    --line: #ffffff1a;
+    --text: #f7f8fa;
+    --muted: #8d9599;
+    --icon: #c6cacc;
+    --hover: #ffffff1a;
+    --field: #242626;
+    --green: #21c063;
+    --green-text: #21c063;
+    --on-green: #0a1014;
+    --chip: #103529;
+    --chip-text: #d9fdd3;
+    --chip-line: #ffffff26;
+    --mine: #144d37;
+    --theirs: #242626;
+    --tick: #53bdeb;
+    --pill: #242626;
+    --doodle: #ffffff14;
+    --shadow: 0 1px 0.5px #0000004d;
   }
 }
 
@@ -47,42 +68,67 @@
 html,
 body {
   margin: 0;
-  height: 100%;
-  background: var(--bg);
+  block-size: 100%;
+  background: var(--panel);
   color: var(--text);
+}
+
+svg {
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 #app {
   display: grid;
-  grid-template-columns: 64px minmax(300px, 380px) 1fr;
-  height: 100vh;
+  grid-template-columns: 64px minmax(320px, 420px) 1fr;
+  block-size: 100vh;
 }
+
+/* The navigation rail */
 
 .rail {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 18px;
-  padding: 18px 0;
+  gap: 10px;
+  padding-block: 12px;
   background: var(--rail);
-  border-right: 1px solid var(--line);
+  border-inline-end: 1px solid var(--line);
+  color: var(--icon);
+}
+
+.rail-icon {
+  display: grid;
+  place-items: center;
+  inline-size: 40px;
+  block-size: 40px;
+  border-radius: 50%;
 }
 
 .rail-icon svg {
-  width: 24px;
-  height: 24px;
-  fill: none;
-  stroke: var(--muted);
-  stroke-width: 1.8;
-  stroke-linejoin: round;
+  inline-size: 24px;
+  block-size: 24px;
 }
 
-.rail-icon.active svg {
-  stroke: var(--accent);
+.rail-icon.active {
+  background: var(--hover);
+  color: var(--text);
+}
+
+.rail-icon .filled path {
+  fill: currentcolor;
+  stroke: var(--hover);
 }
 
 .rail-foot {
-  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-block-start: auto;
 }
 
 .rail-foot button {
@@ -92,180 +138,267 @@ body {
 }
 
 .rail-foot img {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
   display: block;
+  inline-size: 30px;
+  block-size: 30px;
+  border-radius: 50%;
 }
+
+/* The chat list */
 
 .list {
   display: flex;
   flex-direction: column;
+  min-inline-size: 0;
   background: var(--panel);
-  border-right: 1px solid var(--line);
-  min-width: 0;
+  border-inline-end: 1px solid var(--line);
 }
 
 .list-head {
-  padding: 16px 16px 8px;
+  padding: 10px 16px 6px;
 }
 
-.list-head h1 {
-  margin: 0 0 12px;
+.list-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  block-size: 52px;
+}
+
+.list-title h1 {
+  margin: 0;
   font-size: 22px;
+  font-weight: 700;
+}
+
+.head-icons {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  color: var(--icon);
+}
+
+.head-icons svg {
+  inline-size: 24px;
+  block-size: 24px;
+}
+
+.dots {
+  stroke-width: 3;
+}
+
+.new-chat {
+  display: grid;
+  place-items: center;
+  order: 2;
+  inline-size: 40px;
+  block-size: 40px;
+  border-radius: 50%;
+  background: var(--green);
+  color: var(--on-green);
+}
+
+.new-chat svg {
+  stroke-width: 2.2;
 }
 
 .search {
-  padding: 9px 14px;
-  border-radius: 20px;
-  background: var(--rail);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-block: 6px 10px;
+  padding: 9px 16px;
+  border-radius: 22px;
+  background: var(--field);
   color: var(--muted);
-  font-size: 14px;
+}
+
+.search svg {
+  inline-size: 18px;
+  block-size: 18px;
+  color: var(--icon);
 }
 
 .filters {
   display: flex;
   gap: 8px;
-  margin-top: 12px;
+  overflow: hidden;
 }
 
 .chip {
-  padding: 4px 12px;
-  border-radius: 14px;
-  background: var(--rail);
+  padding: 5px 12px;
+  border: 1px solid var(--chip-line);
+  border-radius: 18px;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .chip.on {
+  border-color: var(--chip);
   background: var(--chip);
   color: var(--chip-text);
 }
 
+.chip.add {
+  inline-size: 31px;
+  padding-inline: 0;
+  text-align: center;
+  font-weight: 400;
+}
+
 #pane-side {
+  flex: 1;
   overflow: hidden;
+  padding: 4px 8px;
 }
 
 .row {
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr) auto;
-  gap: 12px;
+  grid-template-columns: 49px 1fr auto;
   align-items: center;
-  padding: 10px 16px;
+  gap: 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
 }
 
 .row.open {
-  background: var(--rail);
-}
-
-.face {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  color: #fff;
-  font-weight: 600;
-  font-size: 17px;
-}
-
-.chat-head .face {
-  width: 40px;
-  height: 40px;
-  font-size: 15px;
+  background: var(--hover);
 }
 
 .row strong {
   display: block;
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 16px;
+  font-weight: 400;
 }
 
-.row span.last {
+.row .last {
   display: block;
+  overflow: hidden;
   color: var(--muted);
   font-size: 14px;
-  white-space: nowrap;
-  overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .meta {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 6px;
+  gap: 4px;
+  align-self: start;
+  padding-block-start: 2px;
   color: var(--muted);
   font-size: 12px;
 }
 
-.unread .meta time {
-  color: var(--badge);
+.row.unread .meta time {
+  color: var(--green-text);
 }
 
 .count {
-  min-width: 20px;
+  min-inline-size: 20px;
   padding: 1px 6px;
   border-radius: 10px;
-  background: var(--badge);
-  color: #fff;
+  background: var(--green);
+  color: var(--on-green);
   font-size: 12px;
   font-weight: 600;
   text-align: center;
 }
 
+/* Avatars: an illustrated face, or an emoji for a group */
+
+.face {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  inline-size: 49px;
+  block-size: 49px;
+  border-radius: 50%;
+  background-size: cover;
+  font-size: 26px;
+}
+
+/* The open chat */
+
 #main {
   display: flex;
   flex-direction: column;
-  min-width: 0;
-  background: var(--wall);
+  min-inline-size: 0;
+  background-color: var(--wall);
 }
 
 .chat-head {
   display: flex;
-  gap: 12px;
   align-items: center;
-  padding: 10px 18px;
+  gap: 14px;
+  block-size: 64px;
+  padding-inline: 16px 20px;
   background: var(--panel);
-  border-bottom: 1px solid var(--line);
+  border-block-end: 1px solid var(--line);
 }
 
-.chat-head span[dir] {
+.chat-head .face {
+  inline-size: 40px;
+  block-size: 40px;
+  font-size: 21px;
+}
+
+.chat-title {
+  flex: 1;
+  min-inline-size: 0;
+}
+
+#chat-name {
   display: block;
+  font-size: 16px;
   font-weight: 600;
 }
 
-.chat-head small {
+#chat-status {
+  display: block;
   color: var(--muted);
+  font-size: 13px;
+}
+
+.chat-head .head-icons {
+  gap: 26px;
 }
 
 .messages {
-  flex: 1;
   display: flex;
+  flex: 1;
   flex-direction: column;
-  gap: 6px;
-  padding: 18px 8%;
+  gap: 3px;
   overflow: hidden;
+  padding: 16px 7% 12px;
+  background-image: var(--doodles);
+  background-size: 300px;
 }
 
 .day {
   align-self: center;
-  margin: 6px 0;
-  padding: 3px 12px;
+  margin-block: 6px 10px;
+  padding: 5px 12px;
   border-radius: 8px;
-  background: var(--panel);
+  background: var(--pill);
+  box-shadow: var(--shadow);
   color: var(--muted);
-  font-size: 12px;
+  font-size: 12.5px;
 }
 
 .bubble {
-  max-width: 62%;
-  padding: 7px 10px 6px;
-  border-radius: 10px;
+  position: relative;
+  align-self: flex-start;
+  max-inline-size: min(65%, 560px);
+  margin-block-start: 6px;
+  padding: 6px 9px 8px;
+  border-radius: 8px;
   background: var(--theirs);
-  box-shadow: 0 1px 0 rgb(0 0 0 / 8%);
+  box-shadow: var(--shadow);
+  font-size: 14.5px;
 }
 
 .bubble.mine {
@@ -273,65 +406,95 @@ body {
   background: var(--mine);
 }
 
-.bubble time {
-  float: right;
-  margin: 6px 0 0 10px;
-  color: var(--muted);
-  font-size: 11px;
-}
-
 .bubble .who {
   display: block;
-  color: var(--accent);
   font-size: 13px;
   font-weight: 600;
 }
 
+.bubble time {
+  float: inline-end;
+  margin: 8px -2px -5px 12px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.bubble .ticks {
+  display: inline-block;
+  inline-size: 16px;
+  block-size: 11px;
+  margin-inline-start: 3px;
+  vertical-align: -1px;
+  color: var(--tick);
+  stroke-width: 1.6;
+}
+
+/* The message box */
+
 footer {
-  padding: 10px 18px;
-  background: var(--panel);
+  padding: 8px 16px 14px;
 }
 
 .compose-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
+  padding: 5px 8px;
+  border-radius: 26px;
+  background: var(--pill);
+  box-shadow: var(--shadow);
 }
 
 .compose-field {
   flex: 1;
-  min-width: 0;
-}
-
-.compose-icon {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--muted);
-}
-
-.compose-icon svg {
-  width: 24px;
-  height: 24px;
-  fill: none;
-  stroke: currentcolor;
-  stroke-width: 2;
-  stroke-linecap: round;
+  min-inline-size: 0;
 }
 
 .composer {
-  min-height: 40px;
-  padding: 9px 14px;
-  border-radius: 20px;
-  background: var(--rail);
+  min-block-size: 24px;
+  padding: 8px 6px;
   outline: none;
+  font-size: 15px;
 }
 
 .composer:empty::before {
   content: 'Type a message';
   color: var(--muted);
+}
+
+.compose-icon {
+  display: grid;
+  place-items: center;
+  inline-size: 40px;
+  block-size: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--icon);
+}
+
+.compose-icon svg {
+  inline-size: 24px;
+  block-size: 24px;
+}
+
+.compose-icon .send,
+.compose-icon.sending .voice {
+  display: none;
+}
+
+.compose-icon.sending .send {
+  display: inline;
+}
+
+.compose-icon.sending {
+  background: var(--green);
+  color: var(--on-green);
+}
+
+.compose-icon.sending svg {
+  inline-size: 20px;
+  block-size: 20px;
+  fill: currentcolor;
 }

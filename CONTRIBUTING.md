@@ -101,6 +101,14 @@ Every picture, the main window's included, comes from `pnpm screenshots`
 and a stand-in for Claude. Look at each picture before committing it, and
 never commit a screenshot of anyone's real chats.
 
+The README's animation comes from the same run
+(`e2e/screenshots/readme-animation.spec.ts`), which writes
+`apps/desktop/test-results/readme/yapyap-ai-assistant.webp`. It is not kept
+in git: attach it to a pull request comment or description on GitHub, and
+point the README at the `github.com/user-attachments/...` link GitHub gives
+it. GitHub serves an attachment only once saved content on the site links
+to it, so put it in the pull request's description too.
+
 ### Visual baselines
 
 `apps/desktop/e2e/theme.spec.ts` compares the app chrome against screenshots

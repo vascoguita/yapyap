@@ -26,8 +26,7 @@ macOS, with a built-in AI assistant that helps you write: reply ideas and
 rewrites, right in the message box, with the AI service or model server
 you choose.
 
-<p align="center"><img src="docs/public/screenshots/main.webp" alt="YapYap's main window: the Personal and Work accounts in a sidebar, beside WhatsApp with a group chat open and three replies the AI Assistant suggested under the last message" width="800"></p>
-<p align="center"><img src="docs/public/screenshots/rewrite.webp" alt="A draft in the message box, with the AI Assistant's rewrite menu open: Polish, Shorten, Elaborate, Soften and Formalize" width="800"></p>
+<p align="center"><img src="https://github.com/user-attachments/assets/9cac230e-4b80-47f2-b9d8-25fbb0a35723" alt="YapYap with two WhatsApp accounts: the AI Assistant suggests replies, one is picked and sent, then a rough draft is rewritten with Elaborate and sent" width="800"></p>
 
 > **YapYap is unofficial.** It is not affiliated with, endorsed by, or
 > sponsored by WhatsApp or Meta. "WhatsApp" is a trademark of its owner.
