@@ -593,7 +593,7 @@ describe('composerToolRender', () => {
     };
     expect(code).toContain(`"icons":${JSON.stringify(icons)}`);
     // The assistant's own accent, in both of WhatsApp's themes, then the button's styles.
-    expect(code).toContain('--ai: #4f46e5');
+    expect(code).toContain('--ai: #3f2fb8');
     expect(code).toContain(":host([data-theme='dark'])");
     expect(code).toContain(':host { display: flex;');
     expect(code).toContain('prefers-reduced-motion');

@@ -212,3 +212,7 @@ still should.
   setup and summaries, since both went with ADR 0017; the private model's
   progress and status lines (2026-10-31, #457) went with the model
   (#627).
+- 2026-11-17 (#666): the bar and the rewrite button draw in YapYap's own
+  accent, the indigo of its windows, instead of an indigo of their own, so
+  they look like the AI Assistant page in Settings. Their surfaces keep
+  WhatsApp's greys.
