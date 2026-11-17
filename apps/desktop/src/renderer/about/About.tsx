@@ -1,6 +1,7 @@
 import type { JSX } from 'preact';
 import type { AboutInfo, ChromeApi } from '../../shared/api/chrome-api.ts';
 import { en } from '../../shared/messages/en.ts';
+import { useEscapeToClose } from '../shared/escape.ts';
 import { useActionStatus, useLoaded } from '../shared/hooks.ts';
 
 const text = en.about;
@@ -52,6 +53,7 @@ function Links(): JSX.Element {
 }
 
 export function About({ api }: { readonly api: ChromeApi }): JSX.Element {
+  useEscapeToClose();
   const info = useLoaded(api.about.info);
   const [copyStatus, run] = useActionStatus(text.copyFailed);
   return (

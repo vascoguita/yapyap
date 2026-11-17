@@ -2,6 +2,7 @@ import type { JSX, TargetedInputEvent } from 'preact';
 import { useState } from 'preact/hooks';
 import type { ChromeApi, ProxyLoginRequest } from '../../shared/api/chrome-api.ts';
 import { en } from '../../shared/messages/en.ts';
+import { useEscapeToClose } from '../shared/escape.ts';
 import { useLoaded } from '../shared/hooks.ts';
 
 const text = en.proxyLogin;
@@ -121,6 +122,7 @@ function Form({
 
 /** Asks for a proxy's username and password; YapYap closes the window once answered. */
 export function ProxyLogin({ api }: { readonly api: ChromeApi }): JSX.Element {
+  useEscapeToClose();
   const request = useLoaded(api.proxyLogin.request);
   return (
     <main class="proxy-login">

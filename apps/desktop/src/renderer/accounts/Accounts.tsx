@@ -11,6 +11,7 @@ import { isProxyAddress } from '../../shared/proxy-address.ts';
 import { Group, Pill } from '../settings/Field.tsx';
 import { Avatar } from '../shared/avatar.tsx';
 import { DiscardPrompt } from '../shared/discard.tsx';
+import { useEscapeToClose } from '../shared/escape.ts';
 import { Icon } from '../shared/icons.tsx';
 
 const text = en.accounts;
@@ -518,20 +519,6 @@ function useLeaving(state: WindowState, add: () => void): Leaving {
   return { pending, request, settle };
 }
 
-function useEscapeToClose(request: (pending: Pending) => void): void {
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') {
-        request({ kind: 'close' });
-      }
-    };
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [request]);
-}
-
 interface Actions {
   readonly error: string;
   /** The account just added here, which the window helps to link. */
@@ -632,6 +619,15 @@ function useRequests(request: Leaving['request']): {
   return { select, add };
 }
 
+/** Escape closes through the same prompt as picking another account, which asks the same question. */
+function useCloseOnEscape(request: Leaving['request']): void {
+  useEscapeToClose({
+    close: () => {
+      request({ kind: 'close' });
+    },
+  });
+}
+
 /**
  * Renames, recolors, turns off, removes and adds accounts, laid out as
  * Settings is. Edits stay a draft until saved, and YapYap checks each
@@ -641,7 +637,7 @@ export function Accounts({ api }: { readonly api: ChromeApi }): JSX.Element {
   const state = useAccountList(api);
   const actions = useActions(api, state.show);
   const leaving = useLeaving(state, actions.add);
-  useEscapeToClose(leaving.request);
+  useCloseOnEscape(leaving.request);
   const { select, add } = useRequests(leaving.request);
   const { list, account } = state;
   if (list == null || account === undefined) {

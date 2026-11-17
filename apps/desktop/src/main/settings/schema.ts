@@ -16,7 +16,6 @@ export const SettingsSchema = Type.Object(
     schemaVersion: Type.Literal(SETTINGS_VERSION),
     general: Type.Object(
       {
-        language: Type.String({ default: 'system', maxLength: 35 }),
         startMinimized: Type.Boolean({ default: false }),
         autostart: Type.Boolean({ default: false }),
         closeToTray: Type.Boolean({ default: false }),

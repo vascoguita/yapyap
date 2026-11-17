@@ -4,13 +4,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ASSISTANT_ICONS } from './assistant-look.ts';
 import {
   buildComposerTool,
-  composerToolIcon,
   composerToolItem,
   composerToolKeys,
-  composerToolNode,
   composerToolRender,
   findComposerSlot,
-  paintComposerTool,
   placeComposerMenu,
   renderComposerTool,
   showComposerTool,
@@ -18,6 +15,7 @@ import {
   wireComposerTool,
   type ToolContent,
 } from './composer-tool.ts';
+import { paintWhatsAppTheme, shadowPart, strokeIcon } from './page-kit.ts';
 import { LANDMARKS } from './page-state.ts';
 
 const option = (value: string, label: string) => ({ value, label, hint: `${label} it.` });
@@ -53,16 +51,16 @@ const PLACES = {
 
 const KIT = {
   slot: findComposerSlot,
-  paint: paintComposerTool,
+  paint: paintWhatsAppTheme,
   build: buildComposerTool,
-  node: composerToolNode,
+  node: shadowPart,
   show: showComposerTool,
   wire: wireComposerTool,
   place: placeComposerMenu,
   keys: composerToolKeys,
   update: updateComposerTool,
   item: composerToolItem,
-  icon: composerToolIcon,
+  icon: strokeIcon,
 };
 
 /** WhatsApp's message box as it lays it out: attach, the field in its own box, then the microphone. */
@@ -373,29 +371,6 @@ describe('renderComposerTool', () => {
   });
 });
 
-describe('paintComposerTool', () => {
-  it('reads a dark theme from light text, and a light one from dark text or a color it cannot read', () => {
-    const host = document.createElement('div');
-    const paint = (color: string) => {
-      paintComposerTool({ getComputedStyle: () => ({ color }) }, host as never, host as never);
-      return host.dataset['theme'];
-    };
-    expect(paint('rgb(233, 237, 239)')).toBe('dark');
-    expect(paint('rgba(250, 250, 250, 0.5)')).toBe('dark');
-    expect(paint('rgb(17, 27, 33)')).toBe('light');
-    expect(paint('rgb(128, 128, 128)')).toBe('light');
-    expect(paint('rgb(129, 129, 129)')).toBe('dark');
-    expect(paint('rgb(0, 220, 0)')).toBe('dark');
-    expect(paint('rgb(255, 0, 0)')).toBe('light');
-    expect(paint('rgb(100, 100, 255)')).toBe('light');
-    expect(paint('rgb(120, 140, 255)')).toBe('dark');
-    expect(paint('rgb(255, 140, 40)')).toBe('dark');
-    expect(paint('')).toBe('light');
-    expect(paint('rgb(250)')).toBe('light');
-    expect(paint('rgb(250, 250)')).toBe('dark');
-  });
-});
-
 describe('the button’s controls', () => {
   it('rewrite in the selected way on the user’s click, never on a click a page script made up', () => {
     const t = setup();
@@ -596,7 +571,7 @@ describe('composerToolRender', () => {
   it('sends the button’s helpers, its place, icons and styles along with the content', () => {
     const code = composerToolRender(CONTENT);
     expect(code).toMatch(
-      /\{ slot: [\s\S]+, paint: [\s\S]+, build: [\s\S]+, node: [\s\S]+, show: [\s\S]+, wire: [\s\S]+, place: [\s\S]+, keys: [\s\S]+, update: [\s\S]+, item: [\s\S]+, icon: function composerToolIcon[\s\S]+ \}\)$/,
+      /\{ slot: [\s\S]+, paint: [\s\S]+, build: [\s\S]+, node: [\s\S]+, show: [\s\S]+, wire: [\s\S]+, place: [\s\S]+, keys: [\s\S]+, update: [\s\S]+, item: [\s\S]+, icon: function strokeIcon[\s\S]+ \}\)$/,
     );
     expect(code).toContain(`"field":${JSON.stringify(LANDMARKS.composer)}`);
     expect(code).toContain(`"footer":${JSON.stringify(LANDMARKS.composerFooter)}`);

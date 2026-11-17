@@ -2,6 +2,7 @@ import type { JSX } from 'preact';
 import { useCallback, useEffect, useState } from 'preact/hooks';
 import type { ChromeApi, DownloadAction, DownloadEntry } from '../../shared/api/chrome-api.ts';
 import { en } from '../../shared/messages/en.ts';
+import { useEscapeToClose } from '../shared/escape.ts';
 
 const text = en.downloads;
 
@@ -104,6 +105,7 @@ function List(props: {
 
 /** This session's downloads, with what can be done to each (#74). */
 export function Downloads({ api }: { readonly api: ChromeApi }): JSX.Element {
+  useEscapeToClose();
   const [entries, setEntries] = useState<readonly DownloadEntry[]>([]);
   const refresh = useCallback(() => {
     void api.downloads.list().then(setEntries);

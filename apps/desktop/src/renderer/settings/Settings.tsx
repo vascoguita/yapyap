@@ -3,6 +3,7 @@ import { useEffect, useState } from 'preact/hooks';
 import type { ChromeApi, SettingsSnapshot, TransferResult } from '../../shared/api/chrome-api.ts';
 import { en } from '../../shared/messages/en.ts';
 import { SETTING_FIELDS } from '../../shared/settings-fields.ts';
+import { useEscapeToClose } from '../shared/escape.ts';
 import { AgentsSection } from './Agents.tsx';
 import { AssistantSection } from './Assistant.tsx';
 import { Field, Group, type Change } from './Field.tsx';
@@ -306,6 +307,7 @@ function usePageInAddress(): string {
  * the bottom.
  */
 export function Settings({ api }: { readonly api: ChromeApi }): JSX.Element {
+  useEscapeToClose();
   const [snapshot, error, change, reload] = useSnapshot(api);
   const current = usePageInAddress();
   if (snapshot == null) {

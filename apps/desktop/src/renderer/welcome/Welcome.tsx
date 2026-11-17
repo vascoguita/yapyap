@@ -2,6 +2,7 @@ import type { JSX } from 'preact';
 import type { ChromeApi, SettingsSnapshot } from '../../shared/api/chrome-api.ts';
 import { en } from '../../shared/messages/en.ts';
 import { SETTING_FIELDS } from '../../shared/settings-fields.ts';
+import { useEscapeToClose } from '../shared/escape.ts';
 import { Field, type Change } from '../settings/Field.tsx';
 import { useSnapshot } from '../settings/Settings.tsx';
 import { AssistantStep } from './AssistantStep.tsx';
@@ -51,6 +52,7 @@ function Group(props: {
  * window, so each choice applies and saves as it is made.
  */
 export function Welcome({ api }: { readonly api: ChromeApi }): JSX.Element | null {
+  useEscapeToClose();
   const [snapshot, error, change] = useSnapshot(api);
   if (snapshot == null) {
     return null;

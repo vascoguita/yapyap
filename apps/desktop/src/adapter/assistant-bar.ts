@@ -1,5 +1,12 @@
 import { ASSISTANT_BAR_BRIDGE } from '../shared/api/assistant-bar-api.ts';
 import { ASSISTANT_ICONS, ASSISTANT_THEME } from './assistant-look.ts';
+import {
+  paintWhatsAppTheme,
+  shadowPart,
+  strokeIcon,
+  type Actions,
+  type Scope,
+} from './page-kit.ts';
 import { LANDMARKS } from './page-state.ts';
 
 /** YapYap's own words on the bar, in the user's language. */
@@ -96,21 +103,14 @@ interface BarStore {
   readonly sync: () => void;
 }
 
-type Scope = Record<string, unknown>;
-
 /** The bar's helpers, passed in because each runs as its own source text. */
 export interface BarKit {
   readonly align: (scope: Scope, host: BarNode, footer: BarNode) => void;
+  readonly paint: typeof paintWhatsAppTheme;
   readonly room: (scope: Scope, places: BarPlaces, bar: BarNode, change: () => void) => void;
   readonly build: (doc: BarDocument, scope: Scope, places: BarPlaces, kit: BarKit) => BarStore;
   readonly rows: (doc: BarDocument, bar: BarNode, places: BarPlaces, kit: BarKit) => BarParts;
-  readonly node: (
-    doc: BarDocument,
-    tag: string,
-    name: string,
-    parent: BarNode,
-    action?: string,
-  ) => BarNode;
+  readonly node: typeof shadowPart;
   readonly show: (
     doc: BarDocument,
     scope: Scope,
@@ -121,7 +121,7 @@ export interface BarKit {
   readonly wire: (shadow: BarNode, scope: Scope, places: BarPlaces) => void;
   readonly update: (doc: BarDocument, parts: BarParts, content: BarContent) => void;
   readonly notice: (parts: BarParts, notice: BarContent['notice']) => void;
-  readonly icon: (doc: BarDocument, path: string, name: string) => BarNode;
+  readonly icon: typeof strokeIcon;
 }
 
 /** Where a render left the bar. */
@@ -165,6 +165,7 @@ export function renderAssistantBar(
   }
   store.sync();
   kit.align(scope, store.host, footer);
+  kit.paint(scope, store.host, footer);
   return placed ? 'placed' : 'kept';
 }
 
@@ -173,21 +174,16 @@ export function renderAssistantBar(
  * orders the open chat's parts with flexbox `order` and lays a positioned
  * wallpaper over the chat, so the bar takes the message box's order and
  * stacking, read anew on every render in case WhatsApp changes them (#466).
- * It follows WhatsApp's own theme, which can differ from the system's:
- * light text in the message box means its dark theme.
  */
 export function alignAssistantBar(scope: Scope, host: BarNode, footer: BarNode): void {
   const computed = scope['getComputedStyle'] as (node: BarNode) => {
     readonly order: string;
     readonly zIndex: string;
-    readonly color: string;
   };
-  const { order, zIndex, color } = computed.call(scope, footer);
+  const { order, zIndex } = computed.call(scope, footer);
   host.style.order = order;
   host.style.position = 'relative';
   host.style.zIndex = zIndex;
-  const [red = 0, green = 0, blue = 0] = (color.match(/\d+(?:\.\d+)?/g) ?? []).map(Number);
-  host.dataset['theme'] = 0.299 * red + 0.587 * green + 0.114 * blue > 128 ? 'dark' : 'light';
 }
 
 /**
@@ -297,24 +293,6 @@ export function assistantBarRows(
   return parts;
 }
 
-/** One part of the bar, with the class its styles use; a button names its action. */
-export function assistantBarNode(
-  doc: BarDocument,
-  tag: string,
-  name: string,
-  parent: BarNode,
-  action?: string,
-): BarNode {
-  const node = doc.createElement(tag);
-  node.setAttribute('class', name);
-  if (action !== undefined) {
-    node.dataset['action'] = action;
-    node.setAttribute('type', 'button');
-  }
-  parent.append(node);
-  return node;
-}
-
 /**
  * Shows the suggestions only while the message box is empty, and the bar
  * only with something in it. Measuring forces a layout, and the bar
@@ -339,9 +317,6 @@ export function showAssistantBar(
     });
   }
 }
-
-/** The bridge's actions, as the adapter world has them once the preload ran. */
-type Actions = Record<string, ((value?: unknown) => void) | undefined>;
 
 /**
  * Acts on the user's clicks, never on clicks a page script made up, and
@@ -408,19 +383,6 @@ export function noticeAssistantBar(parts: BarParts, notice: BarContent['notice']
   parts.close.hidden = button?.id === 'undo';
 }
 
-/** A stroke icon on a 24 px grid, hidden from screen readers: the controls are labelled. */
-export function assistantBarIcon(doc: BarDocument, path: string, name: string): BarNode {
-  const svgNs = 'http://www.w3.org/2000/svg';
-  const icon = doc.createElementNS(svgNs, 'svg');
-  icon.setAttribute('viewBox', '0 0 24 24');
-  icon.setAttribute('aria-hidden', 'true');
-  icon.setAttribute('class', name);
-  const shape = doc.createElementNS(svgNs, 'path');
-  shape.setAttribute('d', path);
-  icon.append(shape);
-  return icon;
-}
-
 /**
  * The bar's own styles, inside its shadow root: one slim row at a time,
  * the sparkle in the assistant's own accent (`ASSISTANT_THEME`), then the
@@ -484,15 +446,16 @@ const PLACES: BarPlaces = {
 export function assistantBarRender(content: BarContent): string {
   const kit = [
     `align: ${alignAssistantBar.toString()}`,
+    `paint: ${paintWhatsAppTheme.toString()}`,
     `room: ${holdAssistantBarRoom.toString()}`,
     `build: ${buildAssistantBar.toString()}`,
     `rows: ${assistantBarRows.toString()}`,
-    `node: ${assistantBarNode.toString()}`,
+    `node: ${shadowPart.toString()}`,
     `show: ${showAssistantBar.toString()}`,
     `wire: ${wireAssistantBar.toString()}`,
     `update: ${updateAssistantBar.toString()}`,
     `notice: ${noticeAssistantBar.toString()}`,
-    `icon: ${assistantBarIcon.toString()}`,
+    `icon: ${strokeIcon.toString()}`,
   ].join(', ');
   return `(${renderAssistantBar.toString()})(document, globalThis, ${JSON.stringify(content)}, ${JSON.stringify(PLACES)}, { ${kit} })`;
 }

@@ -34,11 +34,7 @@ export function assistantCore(deps: CoreDependencies): AssistantCore {
     },
     ask: async (setup, prompt, signal) => {
       const provider = providerFor(setup, deps.fetch);
-      const completion = await provider.complete(
-        signal === undefined ? prompt : { ...prompt, signal },
-        () => undefined,
-      );
-      return completion.text;
+      return provider.complete(signal === undefined ? prompt : { ...prompt, signal });
     },
   };
 }

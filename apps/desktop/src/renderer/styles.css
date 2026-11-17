@@ -947,10 +947,6 @@ main.welcome .option .hint {
   overflow-wrap: anywhere;
 }
 
-.folder-actions {
-  justify-content: flex-start;
-}
-
 /*
  * Settings rows (#622), shared with the welcome window: a setting's name and
  * description on the left, its control on the right, in cards of rows that

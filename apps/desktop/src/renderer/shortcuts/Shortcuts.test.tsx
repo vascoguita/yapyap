@@ -107,19 +107,23 @@ describe('changing a shortcut', () => {
     );
   });
 
-  it('keeps the keys, and the window, on Escape', async () => {
+  it('keeps the keys, and the window, on Escape, and closes on the next one', async () => {
     const yapyap = api('linux');
-    const closed = vi.fn();
-    document.addEventListener('keydown', closed);
+    const close = vi.spyOn(window, 'close').mockImplementation(() => undefined);
+    const escape = () => {
+      fireEvent.keyDown(document.body, { code: 'Escape', key: 'Escape' });
+    };
     render(<Shortcuts api={yapyap} />);
     fireEvent.click(await screen.findByRole('button', { name: 'Change: Zoom in' }));
-    press('Escape');
-    expect(closed).not.toHaveBeenCalled();
+    escape();
+    expect(close).not.toHaveBeenCalled();
     expect(screen.queryByRole('status')).toBeNull();
     expect(yapyap.shortcuts.set).not.toHaveBeenCalled();
     press('KeyK', { ctrlKey: true });
     expect(yapyap.shortcuts.set).not.toHaveBeenCalled();
-    document.removeEventListener('keydown', closed);
+    escape();
+    expect(close).toHaveBeenCalledOnce();
+    close.mockRestore();
   });
 });
 

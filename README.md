@@ -92,6 +92,15 @@ YapYap's development is supported by [Ensita](https://www.ensita.org/), a
 nonprofit that builds free, open-source apps that keep your data yours, and
 mentors new developers.
 
+## Contributors
+
+Thanks to everyone who has helped build and test YapYap:
+
+- [Gianmaria Del Monte](https://github.com/gmgigi96) built the
+  [MCP server](docs/guide/ai-agents.md) that lets AI agents work with
+  WhatsApp (#577), added chats' pictures to message notifications (#573),
+  and beta-tests YapYap on Arch Linux.
+
 ## License
 
 [MIT](LICENSE) © Vasco Guita
