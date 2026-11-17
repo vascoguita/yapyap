@@ -222,7 +222,7 @@ export function CustomCodeEditor({ api }: { readonly api: ChromeApi }): JSX.Elem
   return (
     <main class="custom-code">
       <h1>{text.title}</h1>
-      <p class="warning">{text.warning}</p>
+      <p class="notice danger">{text.warning}</p>
       {leaving.asking ? <DiscardPrompt message={text.discard} onSettle={leaving.settle} /> : null}
       <form onSubmit={save}>
         <Fields

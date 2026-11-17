@@ -44,7 +44,7 @@ function Hint({ field, snapshot }: Pick<FieldProps, 'field' | 'snapshot'>): JSX.
 /** A setting that only takes effect at the next launch says so beside its name. */
 function RestartTag({ field }: { readonly field: SettingField }): JSX.Element | null {
   return field.restart ? (
-    <span id={`${field.id}-tag`} class="tag">
+    <span id={`${field.id}-tag`} class="pill">
       <Icon name="restart" />
       {text.restartTag}
     </span>
