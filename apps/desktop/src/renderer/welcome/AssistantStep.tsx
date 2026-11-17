@@ -37,7 +37,7 @@ function Option(props: {
   readonly onPick: (value: string) => void;
 }): JSX.Element {
   return (
-    <div class="option">
+    <div class="option row stacked">
       <button
         type="button"
         onClick={() => {
@@ -81,7 +81,7 @@ function Options(props: StepProps): JSX.Element {
   const server = useFoundServer(props.api);
   const pick = usePick(props, server);
   return (
-    <>
+    <div class="group options">
       {server === undefined ? null : (
         <Option
           value="server"
@@ -100,7 +100,7 @@ function Options(props: StepProps): JSX.Element {
         />
       ))}
       <Option value="later" label={text.later} hint={text.laterHint} onPick={pick} />
-    </>
+    </div>
   );
 }
 

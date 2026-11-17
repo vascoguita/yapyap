@@ -15,7 +15,7 @@ function Description(props: {
   readonly onChange: (value: string) => void;
 }): JSX.Element {
   return (
-    <>
+    <div class="field">
       <label htmlFor="description">{text.description}</label>
       <textarea
         id="description"
@@ -27,7 +27,7 @@ function Description(props: {
           props.onChange(event.currentTarget.value);
         }}
       />
-    </>
+    </div>
   );
 }
 
@@ -84,18 +84,20 @@ export function ProblemReport({ api }: { readonly api: ChromeApi }): JSX.Element
       <p class="hint">{text.intro}</p>
       {leaving.asking ? <DiscardPrompt message={text.discard} onSettle={leaving.settle} /> : null}
       <Description value={description} onChange={setDescription} />
-      <label htmlFor="diagnostics">{text.diagnostics}</label>
-      <p class="hint" id="diagnostics-hint">
-        {text.diagnosticsHint}
-      </p>
-      <textarea
-        id="diagnostics"
-        class="diagnostics"
-        rows={10}
-        readOnly
-        aria-describedby="diagnostics-hint"
-        value={diagnostics}
-      />
+      <div class="field">
+        <label htmlFor="diagnostics">{text.diagnostics}</label>
+        <p class="hint" id="diagnostics-hint">
+          {text.diagnosticsHint}
+        </p>
+        <textarea
+          id="diagnostics"
+          class="diagnostics"
+          rows={10}
+          readOnly
+          aria-describedby="diagnostics-hint"
+          value={diagnostics}
+        />
+      </div>
       <Open api={api} description={description} onOpened={setOpened} />
     </main>
   );

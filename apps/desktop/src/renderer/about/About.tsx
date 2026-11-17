@@ -57,7 +57,7 @@ export function About({ api }: { readonly api: ChromeApi }): JSX.Element {
   const info = useLoaded(api.about.info);
   const [copyStatus, run] = useActionStatus(text.copyFailed);
   return (
-    <main>
+    <main class="about">
       <img src="./icon.svg" alt="" width={96} height={96} />
       <h1>{text.title}</h1>
       {info == null ? (
