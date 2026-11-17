@@ -10,7 +10,7 @@ export function Recovery({ api }: { readonly api: ChromeApi }): JSX.Element {
   const [status, run] = useActionStatus(text.failed);
   const kind = problem?.kind ?? 'blank';
   return (
-    <main>
+    <main class="recovery">
       <h1>{text.problems[kind].title}</h1>
       <p>{text.problems[kind].advice}</p>
       <div class="actions">

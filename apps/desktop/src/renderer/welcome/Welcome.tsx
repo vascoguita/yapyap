@@ -69,7 +69,7 @@ export function Welcome({ api }: { readonly api: ChromeApi }): JSX.Element | nul
       <AssistantStep api={api} onChange={change} />
       <section>
         <h2>{text.language}</h2>
-        <p>{text.languageNote}</p>
+        <p class="hint">{text.languageNote}</p>
       </section>
       {GROUPS.map((group) => (
         <Group key={group.title} group={group} snapshot={snapshot} onChange={change} />

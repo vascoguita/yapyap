@@ -37,7 +37,7 @@ function CodeField(props: {
   readonly onChange: (value: string) => void;
 }): JSX.Element {
   return (
-    <>
+    <div class="field">
       <label htmlFor={props.id}>{props.label}</label>
       <textarea
         id={props.id}
@@ -55,7 +55,7 @@ function CodeField(props: {
       <p class="hint" id={`${props.id}-hint`}>
         {props.hint}
       </p>
-    </>
+    </div>
   );
 }
 
