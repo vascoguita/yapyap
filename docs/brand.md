@@ -86,6 +86,12 @@ Type, corners, spacing and motion are tokens too: `--font-title` (1.25rem),
 on a 4 px grid; `--shadow-raised` and `--motion`. A window uses them, never
 values of its own.
 
+Windows come in three sizes (`WINDOW_SIZES` in
+`apps/desktop/src/main/chrome/window-sizes.ts`): a dialog, 440 px wide and as
+tall as its content (About, New Chat, proxy sign-in); a medium window, 600 ×
+640 px, which fits one column; and a large one, 820 × 640 px, for a page list
+beside its content (Settings, Accounts, the share picker).
+
 ## Typography
 
 - **App:** the platform's own UI font (`system-ui`, which is Segoe UI on

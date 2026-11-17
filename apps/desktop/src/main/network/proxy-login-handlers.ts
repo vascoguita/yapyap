@@ -7,13 +7,14 @@ import { en } from '../../shared/messages/en.ts';
 import { noArguments } from '../ipc/arguments.ts';
 import type { ChromeCall, ChromeHandler } from '../ipc/chrome.ts';
 import type { ChromePage, PromptWindow } from '../chrome/window-opener.ts';
+import { WINDOW_SIZES } from '../chrome/window-sizes.ts';
 
 export const PROXY_LOGIN_PAGE: ChromePage = {
   path: 'proxy-login.html',
   window: {
     title: en.windows.proxyLogin,
-    width: 440,
-    height: 400,
+    width: WINDOW_SIZES.dialogWidth,
+    height: 480,
     resizable: false,
     minimizable: false,
     maximizable: false,

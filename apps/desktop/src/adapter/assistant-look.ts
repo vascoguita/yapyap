@@ -5,10 +5,13 @@
  * page in Settings and nothing it draws passes for WhatsApp's green. The
  * host's `data-theme` follows WhatsApp's own theme, which can differ from
  * the system's. Every text color keeps 4.5:1 or more against the surface
- * it sits on, in both themes.
+ * it sits on, in both themes. Type, corners and spacing are the windows'
+ * tokens too, in pixels, because WhatsApp's root font size is its own.
  */
 export const ASSISTANT_THEME = `
 :host {
+  --font-body: 14px; --font-hint: 13px; --radius-md: 8px; --radius-lg: 10px;
+  --radius-pill: 999px; --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
   --ai: #3f2fb8; --ai-tint: #eeedfc; --ai-border: #d9d6f7; --ai-split: #ffffff;
   --ai-hover: #e3e1fa; --area: #f7f5f3; --area-border: #e1ddd6; --chip: #ffffff;
   --chip-border: #d6d3cd; --text: #111b21; --muted: #54656f; --menu: #ffffff;
