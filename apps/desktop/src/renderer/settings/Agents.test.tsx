@@ -109,7 +109,7 @@ describe('AgentsSection', () => {
     expect(screen.getByText(/Expired/)).toBeTruthy();
     expect(screen.getByText(/Last used/)).toBeTruthy();
     expect(screen.getAllByText('All chats').length).toBeGreaterThan(0);
-    expect(screen.getByText(/A chat YapYap couldn’t keep the name of/)).toBeTruthy();
+    expect(screen.getByText(/A chat whose name YapYap could not keep/)).toBeTruthy();
     expect(screen.getByText(/Claude Code · read_chat in Personal: ok/)).toBeTruthy();
   });
 

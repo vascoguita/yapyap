@@ -194,7 +194,7 @@ so it fits what was said, and keeps your text's language.
 When something is missing, such as a provider or a key, or the AI assistant
 is off in the chat, the same line says so, such as "Set up the AI assistant to
 start: choose a provider.", with a button that opens Settings where it
-fixes it: **Set up…**, **Paste a key…** or **Open settings**.
+fixes it: **Set Up…**, **Paste a Key…** or **Open Settings**.
 
 ## Privacy
 

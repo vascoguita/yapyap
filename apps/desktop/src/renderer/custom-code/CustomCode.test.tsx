@@ -90,7 +90,7 @@ describe('CustomCodeEditor', () => {
     await opened(chrome);
     fireEvent.click(saveButton());
     await waitFor(() => {
-      expect(screen.getByText('Could not save the code.')).toBeTruthy();
+      expect(screen.getByText('Could not save the code. Try again.')).toBeTruthy();
     });
   });
 

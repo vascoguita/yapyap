@@ -228,11 +228,11 @@ test('says the assistant is off in a chat the user did not add, and opens its se
   await clickInTool(app, window, 'Polish');
   await expect(async () => {
     expect(await barNotice(app)).toBe(
-      'The AI assistant is off in this chat. Turn it on in Settings, under AI Assistant.',
+      'The AI assistant is off in this chat. Turn it on in Settings → AI Assistant.',
     );
   }).toPass();
   expect(await claudeRequests(app)).toEqual([]);
-  await clickInBar(app, window, 'Open settings');
+  await clickInBar(app, window, 'Open Settings');
   await expect(
     (await chromePage(app, '/settings.html')).getByRole('heading', {
       level: 1,
@@ -307,7 +307,7 @@ test('offers the model server it finds in the Welcome, and uses it on one click'
   });
   try {
     const welcome = await chromePage(app, '/welcome.html');
-    await expect(welcome.getByRole('heading', { name: 'Your AI Assistant' })).toBeVisible();
+    await expect(welcome.getByRole('heading', { name: 'Your AI assistant' })).toBeVisible();
     await expect(welcome.getByRole('button', { name: /Private/ })).toHaveCount(0);
     await welcome
       .getByRole('button', {

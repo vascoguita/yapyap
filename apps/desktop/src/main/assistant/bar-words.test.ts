@@ -24,16 +24,16 @@ describe('setupWords', () => {
   it('says what is missing, with the button to Settings that mends it', () => {
     const key = setupWords({ ...SETUP, missing: 'key' });
     expect(key.status).toContain('Claude');
-    expect(key.fix).toEqual({ label: 'Paste a key…' });
+    expect(key.fix).toEqual({ label: 'Paste a Key…' });
     expect(setupWords({ ...SETUP, missing: 'model', provider: 'server' }).status).toBe(
       'Your model server does not answer. Check its address, and that it runs, then try again.',
     );
     const model = setupWords({ ...SETUP, missing: 'model' });
     expect(model.status).toContain('listed no model');
-    expect(model.fix).toEqual({ label: 'Open settings' });
+    expect(model.fix).toEqual({ label: 'Open Settings' });
     expect(setupWords({ ...SETUP, missing: 'setup' })).toEqual({
       status: 'Set up the AI assistant to start: choose a provider.',
-      fix: { label: 'Set up…' },
+      fix: { label: 'Set Up…' },
     });
     expect(setupWords({ ...SETUP, missing: 'setup', provider: 'server' }).status).toBe(
       'Type your model server’s address in Settings to start.',
@@ -43,7 +43,7 @@ describe('setupWords', () => {
 
 describe('problemWords', () => {
   it('explains a failed request, with a fix only where a key would mend it', () => {
-    expect(problemWords('auth', 'anthropic').fix?.label).toBe('Paste a key…');
+    expect(problemWords('auth', 'anthropic').fix?.label).toBe('Paste a Key…');
     for (const kind of [
       'rate-limited',
       'network',

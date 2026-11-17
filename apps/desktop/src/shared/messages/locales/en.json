@@ -18,7 +18,7 @@
     "unavailable": "Details are unavailable.",
     "copyDetails": "Copy Technical Details",
     "copied": "Copied to the clipboard.",
-    "copyFailed": "Could not copy the details.",
+    "copyFailed": "Could not copy the details. Try again.",
     "linksLabel": "Links",
     "links": {
       "website": "Website",
@@ -83,7 +83,7 @@
     "restartNeeded": "Restart YapYap to apply your changes.",
     "restartNow": "Restart Now",
     "restartTag": "Needs restart",
-    "saveFailed": "Could not save that setting.",
+    "saveFailed": "Could not save that setting. Try again.",
     "saved": "Saved",
     "scale": "{{percent}}%",
     "proxyPlaceholder": "socks5://127.0.0.1:1080",
@@ -128,12 +128,12 @@
       "failed": "Something went wrong. Try again.",
       "fileType": "YapYap settings",
       "exported": "Settings exported.",
-      "exportFailed": "Could not save the settings file.",
+      "exportFailed": "Could not save the settings file. Try again.",
       "readFailed": "Could not read that file.",
       "notSettings": "That file is not a YapYap settings file.",
       "damaged": "YapYap could not read that file. It may be damaged.",
       "confirm": "Import these settings?",
-      "confirmButton": "Import",
+      "confirmButton": "Import Settings",
       "replaces": "Your current settings will be replaced.",
       "invalidValues_one": "1 invalid value in the file will use the default instead.",
       "invalidValues_other": "{{count}} invalid values in the file will use the default instead.",
@@ -516,7 +516,7 @@
         "saved": "A key is saved, encrypted by your system.",
         "testing": "Testing…",
         "works": "The key works.",
-        "cannotKeep": "This system cannot keep the key safely, so it was not saved. Set up your system’s keyring, then try again.",
+        "cannotKeep": "This system cannot keep the key safely, so it was not saved. Set up your system’s keychain, then try again.",
         "empty": "Paste a key first."
       },
       "server": {
@@ -584,9 +584,9 @@
         "soften": "Softened. Edit it or send as is.",
         "formalize": "Formalized. Edit it or send as is."
       },
-      "setUp": "Set up…",
-      "pasteKey": "Paste a key…",
-      "openSettings": "Open settings"
+      "setUp": "Set Up…",
+      "pasteKey": "Paste a Key…",
+      "openSettings": "Open Settings"
     },
     "status": {
       "setUp": "Set up the AI assistant to start: choose a provider.",
@@ -596,7 +596,7 @@
       "server": "Your model server does not answer. Check its address, and that it runs, then try again.",
       "nothing": "The AI assistant had nothing to write. Try again.",
       "draftChanged": "You changed your message while the AI assistant worked, so it was left as it is.",
-      "notAllowed": "The AI assistant is off in this chat. Turn it on in Settings, under AI Assistant."
+      "notAllowed": "The AI assistant is off in this chat. Turn it on in Settings → AI Assistant."
     },
     "problems": {
       "auth": "{{provider}} did not accept your key.",
@@ -609,7 +609,7 @@
       "failed": "Something went wrong. Try again."
     },
     "welcome": {
-      "title": "Your AI Assistant",
+      "title": "Your AI assistant",
       "intro": "The AI assistant suggests replies and rewrites what you type, in the message box. It never sends anything without your click. Where should it run?",
       "local": "Use the Model Server on This Computer ({{server}})",
       "localHint": "Private and quick: your messages stay on this computer.",
@@ -617,8 +617,8 @@
       "openai": "Use OpenAI with My API Key",
       "keyHint": "Quick and capable. What you ask about goes to the service.",
       "later": "Later",
-      "laterHint": "You can set it up any time in Settings, under AI Assistant.",
-      "done": "Done. You can change this in Settings, under AI Assistant."
+      "laterHint": "You can set it up any time in Settings → AI Assistant.",
+      "done": "Done. You can change this in Settings → AI Assistant."
     },
     "composer": {
       "label": "Rewrite with AI",
@@ -635,7 +635,7 @@
     "addressHint": "Agents connect here with a token. Only this computer can reach it.",
     "copy": "Copy",
     "off": "Turn this on to give agents an address.",
-    "portTaken": "Another program uses port {{port}}, so agents can’t connect. Pick another port.",
+    "portTaken": "Another program uses port {{port}}, so agents cannot connect. Pick another port.",
     "newPort": "Pick Another Port",
     "sent": "{{token}} sent a message to {{chat}}.",
     "revokedToken": "A revoked token",
@@ -656,7 +656,7 @@
       "remove": "Remove {{item}}",
       "removeMark": "×",
       "allChats": "All chats",
-      "unnamedChat": "A chat YapYap couldn’t keep the name of",
+      "unnamedChat": "A chat whose name YapYap could not keep",
       "expires": "Expires {{date}}",
       "neverExpires": "Never expires",
       "expired": "Expired",
@@ -701,13 +701,13 @@
         "90": "In 90 days",
         "never": "Never"
       },
-      "sendWarning": "An agent that sends can be tricked by a message someone sends you into sending things you didn’t want, and WhatsApp may ban numbers that send automatically. Only list chats you trust it with.",
+      "sendWarning": "An agent that sends can be tricked by a message someone sends you into sending things you did not want, and WhatsApp may ban numbers that send automatically. Only list chats you trust it with.",
       "create": "Create Token",
       "cancel": "Cancel"
     },
     "created": {
       "title": "Your new token",
-      "once": "Copy it now: YapYap keeps only a fingerprint of it and can’t show it again.",
+      "once": "Copy it now: YapYap keeps only a fingerprint of it and cannot show it again.",
       "claudeCode": "Add it to Claude Code with:",
       "other": "Other MCP clients connect over HTTP with this header:",
       "done": "Done"
@@ -766,7 +766,7 @@
     "jsHint": "Runs when WhatsApp loads, after the code for all accounts, apart from WhatsApp’s own scripts. Reload WhatsApp to run a change.",
     "save": "Save",
     "saved": "Saved.",
-    "failed": "Could not save the code.",
+    "failed": "Could not save the code. Try again.",
     "discard": "Discard your unsaved changes to the code?"
   },
   "shortcuts": {
@@ -814,7 +814,7 @@
   "spellingLanguages": {
     "title": "Spelling languages",
     "search": "Search languages",
-    "off": "Spell checking is off. Turn it on in Settings → Spelling; the languages you choose here apply once it is on.",
+    "off": "Spell checking is off. Turn it on in Settings → General; the languages you choose here apply once it is on.",
     "download": "On Windows and Linux, each language’s dictionary is downloaded from Google the first time it is used.",
     "system": "Checking your system’s language: {{names}}.",
     "noSystem": "No dictionary matches your system’s language. Choose one below.",

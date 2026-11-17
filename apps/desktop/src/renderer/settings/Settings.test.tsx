@@ -241,7 +241,7 @@ describe('Settings', () => {
     render(<Settings api={api({ set })} />);
     await open('Advanced');
     fireEvent.click(await toggle());
-    expect(await screen.findByText('Could not save that setting.')).toBeTruthy();
+    expect(await screen.findByText('Could not save that setting. Try again.')).toBeTruthy();
     fireEvent.click(await toggle());
     await screen.findByRole('button', { name: 'Restart Now' });
     expect(screen.getByRole('alert').textContent).toBe('');
