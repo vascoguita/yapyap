@@ -40,14 +40,10 @@ export interface MenuActions {
   readonly zoom: (step: ZoomStep) => void;
   readonly privacyScreen: boolean;
   readonly togglePrivacyScreen: () => void;
-  /** Copies versions, platform, GPU summary and recent redacted log lines for bug reports. */
-  readonly copyDiagnostics: () => void;
   readonly openShortcuts: () => void;
   readonly openDownloads: () => void;
   /** Help → Report a Problem: the guided report (#82). */
   readonly openReport: () => void;
-  /** Help → Record a Performance Trace, for slow-downs a log cannot explain (#113). */
-  readonly recordTrace: () => void;
 }
 
 /** Zoom in YapYap's own 5% steps, kept per account. */
@@ -211,12 +207,12 @@ function accountMenu(actions: MenuActions, keys: Keys): MenuItemConstructorOptio
 interface PlacedItems {
   readonly about: MenuItemConstructorOptions;
   /**
-   * Settings, and beside it the user's own code, as Settings is where
-   * Developer Mode lives. The assistant needs no item: it works in the
-   * message box, and its rewrite menu opens Settings at its page (ADR 0017).
+   * Settings, and beside it the user's own code. The assistant needs no
+   * item: it works in the message box, and its rewrite menu opens Settings
+   * at its page (ADR 0017).
    */
   readonly settings: MenuItemConstructorOptions[];
-  /** Starting a chat, which File holds as other apps hold New. */
+  /** The shortcuts and reporting a problem, which also copies diagnostics and records traces. */
   readonly help: MenuItemConstructorOptions[];
   readonly quit: MenuItemConstructorOptions;
 }
@@ -231,9 +227,6 @@ function placedItems(actions: MenuActions, keys: Keys): PlacedItems {
     help: [
       { label: en.menu.shortcuts, ...keyed('shortcuts', keys), click: actions.openShortcuts },
       { label: en.menu.reportProblem, click: actions.openReport },
-      { type: 'separator' },
-      { label: en.menu.copyDiagnostics, click: actions.copyDiagnostics },
-      { label: en.menu.recordTrace, click: actions.recordTrace },
     ],
     quit: { role: 'quit', ...keyed('quit', keys) },
   };

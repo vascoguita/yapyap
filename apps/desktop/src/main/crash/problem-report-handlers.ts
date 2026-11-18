@@ -14,6 +14,8 @@ export interface ProblemReportDependencies {
   readonly diagnostics: () => Promise<string>;
   readonly writeClipboard: (text: string) => Promise<unknown>;
   readonly openExternal: (url: string) => Promise<unknown>;
+  /** Records a performance trace, once the user agrees, for when YapYap is slow (#113). */
+  readonly recordTrace: () => void;
 }
 
 function titleOf(description: string): string {
@@ -30,10 +32,15 @@ function titleOf(description: string): string {
 const isDescription = (value: unknown): value is string =>
   typeof value === 'string' && value.length <= MAX_DESCRIPTION;
 
+/** The description and the diagnostics, as the clipboard carries them. */
+const reportText = (description: string, diagnostics: string): string =>
+  [description, diagnostics].filter((part) => part !== '').join('\n\n');
+
 /**
  * Help → Report a Problem (#82): the user reviews the sanitized report in
  * YapYap, then it is copied and GitHub's bug form opens in the browser with
- * it filled in. YapYap sends nothing itself; the user submits on GitHub.
+ * it filled in, or it is only copied, to share some other way (#693).
+ * YapYap sends nothing itself; the user submits on GitHub.
  */
 export function problemReportHandlers(deps: ProblemReportDependencies): ChromeHandler[] {
   return [
@@ -48,10 +55,26 @@ export function problemReportHandlers(deps: ProblemReportDependencies): ChromeHa
       handle: async (_call, description) => {
         const text = (description as string).trim();
         const diagnostics = await deps.diagnostics();
-        await deps.writeClipboard([text, diagnostics].filter((part) => part !== '').join('\n\n'));
+        await deps.writeClipboard(reportText(text, diagnostics));
         await deps.openExternal(
           bugReportUrl({ title: titleOf(text), whatHappened: text, diagnostics }),
         );
+      },
+    },
+    {
+      channel: CHROME_CHANNELS.reportCopy,
+      accepts: argumentsOf(isDescription),
+      handle: async (_call, description) => {
+        await deps.writeClipboard(
+          reportText((description as string).trim(), await deps.diagnostics()),
+        );
+      },
+    },
+    {
+      channel: CHROME_CHANNELS.reportTrace,
+      accepts: noArguments,
+      handle: () => {
+        deps.recordTrace();
       },
     },
   ];

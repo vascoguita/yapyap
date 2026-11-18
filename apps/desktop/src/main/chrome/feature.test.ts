@@ -1,7 +1,6 @@
 import type { MenuItemConstructorOptions } from 'electron';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
-import { en } from '../../shared/messages/en.ts';
 import { defaultSettings } from '../settings/decode.ts';
 import type { Settings } from '../settings/schema.ts';
 import type { ViewInfo } from '../security/views.ts';
@@ -909,19 +908,21 @@ describe('createChromeFeature', () => {
     );
   });
 
-  it('copies diagnostics with the GPU summary and recent log from the Help menu', async () => {
+  /** Opens Report a Problem, whose window alone may ask for the report. */
+  const openReport = (t: ReturnType<typeof setup>): void => {
+    const help = t.menu().at(-1)?.submenu;
+    const report = Array.isArray(help)
+      ? help.find((item) => item.label === 'Report a Problem…')
+      : undefined;
+    (report?.click as (() => void) | undefined)?.();
+  };
+
+  it('gives Report a Problem diagnostics with the GPU summary and recent log', async () => {
     const t = setup();
     t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
-    const help = t.menu().at(-1)?.submenu;
-    const copy = Array.isArray(help)
-      ? help.find((item) => item.label === 'Copy Diagnostics')
-      : undefined;
-    (copy?.click as (() => void) | undefined)?.();
-    await new Promise((resolve) => setTimeout(resolve));
-    expect(t.deps.writeClipboard).toHaveBeenLastCalledWith(
-      expect.stringMatching(
-        /^YapYap 0\.1\.0 \(deb\)\n[\s\S]*\nGPU gpu_compositing=enabled, rasterization=unknown, video_decode=unknown, webgl=enabled_on\nUpdates system \(deb\)\nWhatsApp page unavailable \(landmarks v10\)\n\nRecent log:\n2026-10-21T12:00:00\.000Z warn Something happened$/,
-      ),
+    openReport(t);
+    await expect(t.call('report:diagnostics')).resolves.toMatch(
+      /^YapYap 0\.1\.0 \(deb\)\n[\s\S]*\nGPU gpu_compositing=enabled, rasterization=unknown, video_decode=unknown, webgl=enabled_on\nUpdates system \(deb\)\nWhatsApp page unavailable \(landmarks v10\)\n\nRecent log:\n2026-10-21T12:00:00\.000Z warn Something happened$/,
     );
   });
 
@@ -942,33 +943,22 @@ describe('createChromeFeature', () => {
       },
     };
     runtime.attachRecovery(contents, 'https://web.whatsapp.com', vi.fn());
-    const help = t.menu().at(-1)?.submenu;
-    const copy = Array.isArray(help)
-      ? help.find((item) => item.label === 'Copy Diagnostics')
-      : undefined;
-    (copy?.click as (() => void) | undefined)?.();
-    await new Promise((resolve) => setTimeout(resolve));
-    expect(t.deps.writeClipboard).toHaveBeenLastCalledWith(
-      expect.stringContaining(
-        '\nWhatsApp view=chats, chat_open=true (landmarks v10)\n\nRecent log:',
-      ),
+    openReport(t);
+    await expect(t.call('report:diagnostics')).resolves.toContain(
+      '\nWhatsApp view=chats, chat_open=true (landmarks v10)\n\nRecent log:',
     );
-    expect(t.deps.notify).toHaveBeenLastCalledWith(en.recovery.diagnosticsCopied);
   });
 
-  it('logs diagnostics it could not copy', async () => {
+  it('records a performance trace from Report a Problem, which the Help menu leaves out', async () => {
     const t = setup();
-    const warn = vi.fn();
-    t.deps.writeClipboard.mockRejectedValueOnce(new Error('denied'));
-    t.feature.afterReady(t.views, warn, 'hardware accelerated');
+    t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
     const help = t.menu().at(-1)?.submenu;
-    const copy = Array.isArray(help)
-      ? help.find((item) => item.label === 'Copy Diagnostics')
-      : undefined;
-    (copy?.click as (() => void) | undefined)?.();
-    await new Promise((resolve) => setTimeout(resolve));
-    expect(warn).toHaveBeenCalledWith('Could not copy the diagnostics.');
-    expect(t.deps.notify).toHaveBeenLastCalledWith(en.recovery.diagnosticsNotCopied);
+    expect(Array.isArray(help) ? help.map((item) => item.label) : []).not.toContain(
+      'Record a Performance Trace…',
+    );
+    openReport(t);
+    await t.call('report:trace');
+    expect(t.deps.recordTrace).toHaveBeenCalledOnce();
   });
 
   it('keeps chrome storage in memory', () => {

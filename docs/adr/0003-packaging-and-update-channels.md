@@ -59,7 +59,7 @@ falls back to `manual`: no update checks at all. A pure function maps
 (`src/main/updates/update-policy.ts`). The AUR package is repackaged from
 the DEB, so it carries the `deb` marker; both are `system`. "Signed" on
 macOS means a Developer ID signature, because electron-builder signs every
-build ad hoc. Copy Diagnostics shows the policy and channel.
+build ad hoc. The diagnostics in Report a Problem show the policy and channel.
 
 | Policy        | Behavior                                                                                                     |
 | ------------- | ------------------------------------------------------------------------------------------------------------ |

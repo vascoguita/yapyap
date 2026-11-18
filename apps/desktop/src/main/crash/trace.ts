@@ -62,9 +62,10 @@ export interface TraceDependencies {
 }
 
 /**
- * Help → Record a Performance Trace (#113): after the user agrees and picks
- * a file, records what Chromium does for a few seconds and saves it there.
- * Nothing is sent anywhere; the user decides whether to share the file.
+ * Report a Problem › Record a Performance Trace (#113, #693): after the
+ * user agrees and picks a file, records what Chromium does for a few seconds
+ * and saves it there. Nothing is sent anywhere; the user decides whether to
+ * share the file.
  */
 export async function recordTrace(deps: TraceDependencies): Promise<void> {
   const { response } = await deps.ask(QUESTION);

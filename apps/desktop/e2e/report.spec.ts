@@ -28,3 +28,15 @@ test('builds a problem report the user reviews, copies it and opens GitHub', asy
     /^The window stays blank after waking up\.\n\nYapYap /,
   );
 });
+
+test('copies the report without opening GitHub', async ({ app, window }) => {
+  await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
+  const report = await openFromMenu(app, 'Report a Problem…', 'report.html');
+  await expect(report.getByLabel('What the report includes')).toHaveValue(/^YapYap /);
+  await report.getByLabel('What happened?').fill('Notifications stop after an hour.');
+  await report.getByRole('button', { name: 'Copy Report' }).click();
+  await expect(report.getByText('The report is on your clipboard.')).toBeVisible();
+  expect(await app.evaluate(({ clipboard }) => clipboard.readText())).toMatch(
+    /^Notifications stop after an hour\.\n\nYapYap /,
+  );
+});

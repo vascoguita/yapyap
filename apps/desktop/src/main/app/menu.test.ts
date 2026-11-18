@@ -21,11 +21,9 @@ function actions(accounts: AccountSummary[] = []) {
     zoom: vi.fn(),
     privacyScreen: false,
     togglePrivacyScreen: vi.fn(),
-    copyDiagnostics: vi.fn(),
     openShortcuts: vi.fn(),
     openDownloads: vi.fn(),
     openReport: vi.fn(),
-    recordTrace: vi.fn(),
   };
 }
 
@@ -59,9 +57,6 @@ const ACCOUNT = (a: ReturnType<typeof actions>) => ({
 const HELP = (a: ReturnType<typeof actions>) => [
   { label: 'Keyboard Shortcuts…', accelerator: 'CmdOrCtrl+/', click: a.openShortcuts },
   { label: 'Report a Problem…', click: a.openReport },
-  { type: 'separator' },
-  { label: 'Copy Diagnostics', click: a.copyDiagnostics },
-  { label: 'Record a Performance Trace…', click: a.recordTrace },
 ];
 
 const items = (menu: MenuItemConstructorOptions | undefined) =>

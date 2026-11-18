@@ -79,6 +79,8 @@ describe('createChromeBridge', () => {
     await api.customCode.preview('all', null);
     expect(await api.report.diagnostics()).toBe('ignored');
     await api.report.open('It froze.');
+    await api.report.copy('It froze.');
+    await api.report.recordTrace();
     const chosen = ['pt-PT'];
     expect(await api.spelling.languages()).toBe('ignored');
     expect(await api.spelling.choose(chosen)).toBe('ignored');
@@ -143,6 +145,8 @@ describe('createChromeBridge', () => {
       ['custom-code:preview', 'all', null],
       ['report:diagnostics'],
       ['report:open', 'It froze.'],
+      ['report:copy', 'It froze.'],
+      ['report:trace'],
       ['spelling:languages'],
       ['spelling:choose', ['pt-PT']],
       ['proxy-login:request'],
@@ -172,7 +176,7 @@ describe('createChromeBridge', () => {
       'proxyLogin',
     ]);
     expect(Object.keys(api.customCode)).toEqual(['get', 'save', 'preview']);
-    expect(Object.keys(api.report)).toEqual(['diagnostics', 'open']);
+    expect(Object.keys(api.report)).toEqual(['diagnostics', 'open', 'copy', 'recordTrace']);
     expect(Object.keys(api.sidebar)).toEqual([
       'state',
       'switchTo',

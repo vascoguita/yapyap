@@ -1,25 +1,15 @@
-import type { ElectronApplication } from '@playwright/test';
 import { ADAPTER_WORLD_ID } from '../src/adapter/world.ts';
 import { PAGE_STATE_PROBE } from '../src/adapter/page-state.ts';
-import { clickMenu } from './chrome-helpers.ts';
+import { reportedDiagnostics } from './chrome-helpers.ts';
 import { expect, test } from './fixtures.ts';
 
 /** p95 time from a key press to the next frame after the composer updates. */
 const TYPING_P95_BUDGET_MS = 100;
 const TYPED_TEXT = 'The quick brown fox jumps over the lazy dog';
 
-async function copiedDiagnostics(app: ElectronApplication): Promise<string> {
-  await app.evaluate(({ clipboard }) => {
-    clipboard.clear();
-  });
-  await clickMenu(app, 'Copy Diagnostics');
-  await expect.poll(() => app.evaluate(({ clipboard }) => clipboard.readText())).not.toBe('');
-  return app.evaluate(({ clipboard }) => clipboard.readText());
-}
-
 test('describes the chat list and the open chat in the diagnostics', async ({ app, window }) => {
   await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
-  expect(await copiedDiagnostics(app)).toContain(
+  expect(await reportedDiagnostics(app)).toContain(
     '\nWhatsApp view=chats, chat_open=true (landmarks v10)\n',
   );
 });
@@ -29,7 +19,7 @@ test.describe('when the account is logged out', () => {
 
   test('reports the login screen in the diagnostics', async ({ app, window }) => {
     await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
-    expect(await copiedDiagnostics(app)).toContain(
+    expect(await reportedDiagnostics(app)).toContain(
       '\nWhatsApp view=logged-out, chat_open=false (landmarks v10)\n',
     );
   });

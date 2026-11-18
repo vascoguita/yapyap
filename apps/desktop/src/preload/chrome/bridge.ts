@@ -144,6 +144,12 @@ function reportBridge(invoke: Invoke): ChromeApi['report'] {
     open: async (description) => {
       await invoke(CHROME_CHANNELS.reportOpen, description);
     },
+    copy: async (description) => {
+      await invoke(CHROME_CHANNELS.reportCopy, description);
+    },
+    recordTrace: async () => {
+      await invoke(CHROME_CHANNELS.reportTrace);
+    },
   };
 }
 

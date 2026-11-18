@@ -390,7 +390,13 @@
     "diagnosticsHint": "Versions, your system, graphics and the end of YapYap’s log, with phone numbers and other personal details removed. Never your messages.",
     "open": "Copy and Open GitHub",
     "opened": "The report is on your clipboard, and GitHub is open in your browser.",
-    "failed": "Could not open GitHub. Copy Diagnostics from the Help menu instead.",
+    "failed": "Could not open GitHub. Copy the report instead, and share it another way.",
+    "copy": "Copy Report",
+    "copied": "The report is on your clipboard.",
+    "copyFailed": "Could not copy the report. Try again.",
+    "slow": "Is YapYap slow?",
+    "slowHint": "A performance trace shows where YapYap’s time goes. It records for 10 seconds while you do what is slow, and saves a file where you choose. Attach it to your report if you like.",
+    "trace": "Record a Performance Trace…",
     "discard": "Discard your description of the problem?"
   },
   "accounts": {
@@ -868,8 +874,6 @@
     "muteAccount": "Mute This Account",
     "about": "About {{product}}",
     "settings": "Settings…",
-    "copyDiagnostics": "Copy Diagnostics",
-    "recordTrace": "Record a Performance Trace…",
     "shortcuts": "Keyboard Shortcuts…",
     "downloads": "Downloads…",
     "edit": "&Edit",
