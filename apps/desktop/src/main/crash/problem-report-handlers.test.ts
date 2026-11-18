@@ -6,6 +6,7 @@ function setup() {
     diagnostics: vi.fn(() => Promise.resolve('YapYap 0.1.0 (deb)\nRecent log:\n(empty)')),
     writeClipboard: vi.fn<(text: string) => Promise<void>>(() => Promise.resolve()),
     openExternal: vi.fn<(url: string) => Promise<void>>(() => Promise.resolve()),
+    recordTrace: vi.fn(),
   };
   const handlers = problemReportHandlers(deps);
   const handler = (channel: string) => {
@@ -39,6 +40,26 @@ describe('problemReportHandlers', () => {
     expect(url.searchParams.get('title')).toBe('The window stays blank');
     expect(url.searchParams.get('what-happened')).toBe('The window stays blank\nafter waking up.');
     expect(url.searchParams.get('diagnostics')).toBe('YapYap 0.1.0 (deb)\nRecent log:\n(empty)');
+  });
+
+  it('copies the report without opening GitHub, to share some other way', async () => {
+    const t = setup();
+    expect(t.handler('report:copy').accepts(['x'.repeat(4001)])).toBe(false);
+    await t.handler('report:copy').handle(t.call, '  It froze.  ');
+    await t.handler('report:copy').handle(t.call, ' ');
+    expect(t.deps.writeClipboard.mock.calls).toEqual([
+      ['It froze.\n\nYapYap 0.1.0 (deb)\nRecent log:\n(empty)'],
+      ['YapYap 0.1.0 (deb)\nRecent log:\n(empty)'],
+    ]);
+    expect(t.deps.openExternal).not.toHaveBeenCalled();
+  });
+
+  it('records a performance trace, which asks the user first', async () => {
+    const t = setup();
+    expect(t.handler('report:trace').accepts([])).toBe(true);
+    expect(t.handler('report:trace').accepts(['now'])).toBe(false);
+    await t.handler('report:trace').handle(t.call);
+    expect(t.deps.recordTrace).toHaveBeenCalledOnce();
   });
 
   it('gives an empty report a plain title, and shortens a long one', async () => {

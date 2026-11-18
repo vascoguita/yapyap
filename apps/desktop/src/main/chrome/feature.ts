@@ -469,7 +469,6 @@ function menuActionsOf(
   openers: ChromeOpeners,
   warn: (message: string) => void,
 ): (menu: AccountMenu | undefined) => MenuActions {
-  const copyDiagnostics = diagnosticsCopier(deps, slots.pages, warn);
   return (menu) => ({
     ...menuAccounts(menu),
     ...openers,
@@ -478,8 +477,6 @@ function menuActionsOf(
     zoom: (step) => {
       changeZoom(deps.settings, step);
     },
-    copyDiagnostics,
-    recordTrace: deps.recordTrace,
   });
 }
 
@@ -543,6 +540,7 @@ function allHandlers(
       diagnostics: () => currentDiagnostics(deps, pages),
       writeClipboard: deps.writeClipboard,
       openExternal: deps.openExternal,
+      recordTrace: deps.recordTrace,
     }),
     ...settingsHandlers(
       deps.settings,
@@ -560,27 +558,6 @@ function allHandlers(
     ...sidebarHandlers(sidebar, deps.settings),
     ...picker.handlers,
   ];
-}
-
-/** Copies the diagnostics, telling the log when it cannot. */
-function diagnosticsCopier(
-  deps: ChromeDependencies,
-  pages: readonly AdapterPage[],
-  warn: (message: string) => void,
-): () => void {
-  return () => {
-    currentDiagnostics(deps, pages)
-      .then((text) => deps.writeClipboard(text))
-      .then(
-        () => {
-          deps.notify(en.recovery.diagnosticsCopied);
-        },
-        () => {
-          warn('Could not copy the diagnostics.');
-          deps.notify(en.recovery.diagnosticsNotCopied);
-        },
-      );
-  };
 }
 
 /** What YapYap's pages share with the main process: the pages it watches and what they act on. */

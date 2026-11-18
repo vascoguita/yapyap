@@ -301,6 +301,12 @@ export interface Messages {
     readonly open: string;
     readonly opened: string;
     readonly failed: string;
+    readonly copy: string;
+    readonly copied: string;
+    readonly copyFailed: string;
+    readonly slow: string;
+    readonly slowHint: string;
+    readonly trace: string;
     readonly discard: string;
   };
   readonly accounts: {
@@ -796,8 +802,6 @@ export interface Messages {
     readonly muteAccount: string;
     readonly about: (params: { readonly product: string | number }) => string;
     readonly settings: string;
-    readonly copyDiagnostics: string;
-    readonly recordTrace: string;
     readonly shortcuts: string;
     readonly downloads: string;
     readonly edit: string;

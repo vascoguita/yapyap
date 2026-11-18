@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { expect, test } from './fixtures.ts';
-import { clickMenu } from './chrome-helpers.ts';
+import { openFromMenu } from './chrome-helpers.ts';
 
 test('records a performance trace where the user chose, once they agree', async ({
   app,
@@ -17,7 +17,8 @@ test('records a performance trace where the user chose, once they agree', async 
     };
     dialog.showSaveDialog = () => Promise.resolve({ canceled: false, filePath: file });
   }, path);
-  await clickMenu(app, 'Record a Performance Trace…');
+  const report = await openFromMenu(app, 'Report a Problem…', 'report.html');
+  await report.getByRole('button', { name: 'Record a Performance Trace…' }).click();
   // Electron writes Perfetto's binary format, which names the categories it recorded.
   const trace = () => readFile(path, 'latin1').catch(() => '');
   await expect(async () => {

@@ -31,37 +31,81 @@ function Description(props: {
   );
 }
 
-function Open(props: {
+interface SendProps {
   readonly api: ChromeApi;
   readonly description: string;
-  /** Once opened, the description is on the clipboard and in GitHub's form, so closing loses nothing. */
-  readonly onOpened: (description: string) => void;
-}): JSX.Element {
+  /** Once copied, the description is on the clipboard, so closing loses nothing. */
+  readonly onCopied: (description: string) => void;
+}
+
+type Operation = (description: string) => Promise<void>;
+
+/** Runs a copy or an open, and keeps what to tell the user about it. */
+function useSend(
+  props: SendProps,
+): readonly [string, (operation: Operation, done: string, failed: string) => void] {
   const [status, setStatus] = useState('');
+  const send = (operation: Operation, done: string, failed: string): void => {
+    const { description, onCopied } = props;
+    operation(description).then(
+      () => {
+        setStatus(done);
+        onCopied(description);
+      },
+      () => {
+        setStatus(failed);
+      },
+    );
+  };
+  return [status, send];
+}
+
+/** Copies the report, and opens GitHub's form with it or leaves it to share some other way. */
+function Send(props: SendProps): JSX.Element {
+  const [status, send] = useSend(props);
   return (
     <>
       <output>{status}</output>
       <div class="actions">
         <button
           type="button"
+          onClick={() => {
+            send(props.api.report.copy, text.copied, text.copyFailed);
+          }}
+        >
+          {text.copy}
+        </button>
+        <button
+          type="button"
           class="primary"
           onClick={() => {
-            const { description, onOpened } = props;
-            props.api.report.open(description).then(
-              () => {
-                setStatus(text.opened);
-                onOpened(description);
-              },
-              () => {
-                setStatus(text.failed);
-              },
-            );
+            send(props.api.report.open, text.opened, text.failed);
           }}
         >
           {text.open}
         </button>
       </div>
     </>
+  );
+}
+
+/** For slow-downs a log cannot explain: a trace the user records and attaches themselves (#113). */
+function Slow({ api }: { readonly api: ChromeApi }): JSX.Element {
+  return (
+    <section aria-labelledby="slow-title">
+      <h2 id="slow-title">{text.slow}</h2>
+      <p class="hint">{text.slowHint}</p>
+      <div class="actions">
+        <button
+          type="button"
+          onClick={() => {
+            void api.report.recordTrace();
+          }}
+        >
+          {text.trace}
+        </button>
+      </div>
+    </section>
   );
 }
 
@@ -98,7 +142,8 @@ export function ProblemReport({ api }: { readonly api: ChromeApi }): JSX.Element
           value={diagnostics}
         />
       </div>
-      <Open api={api} description={description} onOpened={setOpened} />
+      <Slow api={api} />
+      <Send api={api} description={description} onCopied={setOpened} />
     </main>
   );
 }

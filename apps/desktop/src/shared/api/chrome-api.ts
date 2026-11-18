@@ -195,6 +195,10 @@ export interface ChromeApi {
     readonly diagnostics: () => Promise<string>;
     /** Copies the report and opens GitHub's form with it; YapYap itself sends nothing. */
     readonly open: (description: string) => Promise<void>;
+    /** Copies the report without opening GitHub, to share some other way. */
+    readonly copy: (description: string) => Promise<void>;
+    /** Asks, then records a performance trace where the user chooses (#113). */
+    readonly recordTrace: () => Promise<void>;
   };
   readonly picker: {
     readonly offer: () => Promise<PickerOffer>;
@@ -362,6 +366,8 @@ export const CHROME_CHANNELS = {
   sidebarStopSharing: 'sidebar:stop-sharing',
   reportDiagnostics: 'report:diagnostics',
   reportOpen: 'report:open',
+  reportCopy: 'report:copy',
+  reportTrace: 'report:trace',
   shortcutsList: 'shortcuts:list',
   shortcutsSet: 'shortcuts:set',
   downloadsList: 'downloads:list',

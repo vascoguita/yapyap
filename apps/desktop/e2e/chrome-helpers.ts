@@ -43,6 +43,17 @@ export const openFromMenu = async (
   return window;
 };
 
+/** The diagnostics Report a Problem shows, read from a window then closed again. */
+export const reportedDiagnostics = async (app: ElectronApplication): Promise<string> => {
+  const report = await openFromMenu(app, 'Report a Problem…', 'report.html');
+  const box = report.getByLabel('What the report includes');
+  await expect(box).not.toHaveValue('');
+  const text = await box.inputValue();
+  // The window closes on its own key press, which Playwright then cannot finish.
+  await report.keyboard.press('Escape').catch(() => undefined);
+  return text;
+};
+
 /** Whether a window shows `path`, whichever part of it, such as a page of Settings, it shows. */
 const isAt = (page: Page, path: string): boolean => (page.url().split('#')[0] ?? '').endsWith(path);
 

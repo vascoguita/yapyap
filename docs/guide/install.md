@@ -178,8 +178,9 @@ before everyone gets the update. Betas are pre-releases on the
   package from its pre-release and install it by hand; the next release
   replaces it.
 
-Found a problem? [Open an issue](https://github.com/vascoguita/yapyap/issues/new/choose)
-and paste **Help → Copy Diagnostics**, which names the beta you run.
+Found a problem? Choose **Help → Report a Problem…**, whose diagnostics
+name the beta you run, or [open an issue](https://github.com/vascoguita/yapyap/issues/new/choose)
+yourself.
 
 ## Flatpak permissions
 
