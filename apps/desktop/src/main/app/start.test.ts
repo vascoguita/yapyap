@@ -118,7 +118,6 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
       Promise.resolve({ video: { id: 'screen:1:0', name: 'Screen' } }),
     ),
     technicalDetails: () => 'YapYap 0.1.0 (deb)',
-    openChatsWith: vi.fn<(open: (phone: string) => void) => void>(),
     setAccountMenu: vi.fn<(menu: AccountMenu) => void>(),
     openSettings: vi.fn(),
     openAssistantSettings: vi.fn(),
@@ -799,23 +798,6 @@ describe('startApp', () => {
     );
   });
 
-  it('opens chats from the New Chat window in the WhatsApp window, brought to the front', async () => {
-    const f = fakes();
-    await startApp(f);
-    const open = f.runtime.openChatsWith.mock.calls[0]?.[0];
-    f.window.isMinimized.mockReturnValueOnce(true);
-    open?.('447700900123');
-    expect(f.window.restore).toHaveBeenCalledOnce();
-    expect(f.window.focus).toHaveBeenCalled();
-    expect(f.web.contents.loadURL).toHaveBeenLastCalledWith(
-      'https://web.whatsapp.com/send?phone=447700900123',
-    );
-    f.web.contents.loadURL.mockRejectedValueOnce(new Error('ERR_INTERNET_DISCONNECTED'));
-    open?.('447700900123');
-    await vi.advanceTimersByTimeAsync(0);
-    expect(f.warn).not.toHaveBeenCalled();
-  });
-
   it('tells a portable build about a new release, and other builds never ask', async () => {
     const quiet = fakes();
     await startApp(quiet);
@@ -1372,8 +1354,11 @@ describe('startApp', () => {
     it('sends chat links and focus to the active account', async () => {
       const f = twoAccounts();
       await startApp(f);
-      const [[open]] = f.runtime.openChatsWith.mock.calls as [[(phone: string) => void]];
-      open('447700900123');
+      const secondInstance = f.listeners.get('second-instance') as unknown as (
+        event: unknown,
+        argv: readonly string[],
+      ) => void;
+      secondInstance({}, ['/opt/YapYap/yapyap', 'whatsapp://send?phone=447700900123']);
       const work = f.hosts[1]?.webContents;
       expect(work?.loadURL).toHaveBeenLastCalledWith(`${WHATSAPP_ORIGIN}/send?phone=447700900123`);
       windowEvent(f, 'focus');

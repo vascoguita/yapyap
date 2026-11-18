@@ -88,7 +88,7 @@ values of its own.
 
 Windows come in three sizes (`WINDOW_SIZES` in
 `apps/desktop/src/main/chrome/window-sizes.ts`): a dialog, 440 px wide and as
-tall as its content (About, New Chat, proxy sign-in); a medium window, 600 ×
+tall as its content (About, proxy sign-in); a medium window, 600 ×
 640 px, which fits one column; and a large one, 820 × 640 px, for a page list
 beside its content (Settings, Accounts, the share picker).
 

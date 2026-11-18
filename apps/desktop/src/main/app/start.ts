@@ -626,20 +626,11 @@ function reconnectWhenOnline<Window extends WindowPort>(
 /** The window-wide parts: chat links, focus, and showing the window. */
 function wireMainWindow<Window extends WindowPort>(
   deps: StartDependencies<Window>,
-  chrome: ChromeRuntime,
   window: Window,
   running: RunningAccounts<OpenedAccount>,
-  origin: string,
 ): LinkPage {
   const activePage = (): AccountContents => running.active().page.contents;
   const page: LinkPage = { loadURL: (url) => activePage().loadURL(url) };
-  chrome.openChatsWith((phone) => {
-    const target = new URL('/send', origin);
-    target.searchParams.set('phone', phone);
-    bringToFront(window);
-    // A failed load is reported by the recovery monitor.
-    page.loadURL(target.href).catch(() => undefined);
-  });
   focusPageWithWindow(window, {
     focus: () => {
       activePage().focus();
@@ -718,7 +709,7 @@ async function openWindow<Window extends WindowPort>(
     page: running.active().page.contents,
   }));
   attachAssistantBar({ deps, chrome, window, security, origin }, running);
-  instances.attach(window, wireMainWindow(deps, chrome, window, running, origin));
+  instances.attach(window, wireMainWindow(deps, window, running));
   // A failed load must not end startup: the monitor shows the recovery screen.
   await Promise.all(running.opened().map(({ page }) => page.loaded));
 }

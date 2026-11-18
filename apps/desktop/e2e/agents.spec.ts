@@ -136,7 +136,7 @@ test('finds a listed chat by part of its name, and sends to its number wherever 
     text: 'Sent by number',
   });
   expect(sent).toMatchObject({ isError: false, text: '{"sent":true}' });
-  // WhatsApp's own link opened the chat, as New Chat does.
+  // WhatsApp's own link opened the chat.
   expect(window.url()).toBe(`${fakeWhatsApp.origin}/send?phone=447700900123`);
   await expect(window.locator('#main header')).toHaveText('Test Chat Two');
   await expect(window.getByTestId('sent')).toHaveText('Sent by number');

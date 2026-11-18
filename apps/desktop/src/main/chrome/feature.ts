@@ -5,7 +5,6 @@ import { currentDiagnostics, diagnostics } from '../crash/diagnostics.ts';
 import { recoveryHandlers } from '../recovery/recovery-handlers.ts';
 import type { AdapterPage } from '../../adapter/world.ts';
 import type { ReadChat } from '../../adapter/active-chat.ts';
-import { newChatHandlers, type ChatTarget } from '../navigation/new-chat-handlers.ts';
 import { folderChoiceHandlers } from '../settings/folder-choice.ts';
 import { shortcutHandlers } from '../shortcuts/shortcuts-handlers.ts';
 import { CUSTOM_CODE_PAGE, customCodeHandlers } from '../custom-code/custom-code-handlers.ts';
@@ -96,18 +95,6 @@ const PICKER_PAGE: ChromePage = {
     ...WINDOW_SIZES.large,
     minimizable: false,
     modal: true,
-  },
-};
-
-const NEW_CHAT_PAGE: ChromePage = {
-  path: 'new-chat.html',
-  window: {
-    title: en.windows.newChat,
-    width: WINDOW_SIZES.dialogWidth,
-    height: 300,
-    resizable: false,
-    minimizable: false,
-    maximizable: false,
   },
 };
 
@@ -245,8 +232,6 @@ export interface ChromeRuntime {
   readonly pickCaptureSource: SourcePicker['pick'];
   /** The About window's technical details, for crash reports. */
   readonly technicalDetails: () => string;
-  /** Where the New Chat window opens chats: WhatsApp's window, once it exists. */
-  readonly openChatsWith: (open: (phone: string) => void) => void;
   /** Lists the accounts in the Account menu, whose actions apply to the active one. */
   readonly setAccountMenu: (menu: AccountMenu) => void;
   readonly openSettings: () => void;
@@ -437,7 +422,6 @@ type ChromeOpeners = Pick<
   | 'openAccounts'
   | 'openAbout'
   | 'openSettings'
-  | 'openNewChat'
   | 'openShortcuts'
   | 'openCustomCode'
   | 'openDownloads'
@@ -453,7 +437,6 @@ function chromeOpeners(
     openSettings: standby.openSettings,
     openAccounts: opener(ACCOUNTS_PAGE),
     openAbout: opener(ABOUT_PAGE),
-    openNewChat: opener(NEW_CHAT_PAGE),
     openShortcuts: opener(SHORTCUTS_PAGE),
     openCustomCode: opener(CUSTOM_CODE_PAGE),
     openDownloads: opener(DOWNLOADS_PAGE),
@@ -560,7 +543,7 @@ function serveChromePages(deps: ChromeFeatureDependencies): void {
 
 function allHandlers(
   deps: ChromeDependencies,
-  { recoveries, pages, picker, chats, accounts, sidebar }: ChromeSlots,
+  { recoveries, pages, picker, accounts, sidebar }: ChromeSlots,
 ): ChromeHandler[] {
   return [
     ...aboutHandlers(deps),
@@ -579,7 +562,6 @@ function allHandlers(
     ),
     ...settingsTransferHandlers(deps.settings, deps.settingsFiles),
     ...folderChoiceHandlers(deps.settings, deps.chooseFolder),
-    ...newChatHandlers(chats),
     ...spellingHandlers(deps.settings, deps.spelling),
     ...downloadsHandlers(deps.downloads),
     ...accountsHandlers(() => accounts.current, deps.confirmRemoveAccount),
@@ -615,7 +597,6 @@ interface ChromeSlots {
   readonly recoveries: Map<object, Recovery>;
   readonly pages: AdapterPage[];
   readonly picker: SourcePicker;
-  readonly chats: ChatTarget;
   readonly accounts: AccountsSlot;
   readonly sidebar: SidebarSlot;
 }
@@ -628,7 +609,6 @@ function chromeSlots(
     recoveries: new Map(),
     pages: [],
     picker: sourcePicker(deps, windows),
-    chats: {},
     accounts: {},
     sidebar: {},
   };
@@ -734,7 +714,7 @@ function startChrome(
   const withGraphics = { ...deps, facts: () => ({ ...deps.facts(), graphics }) };
   const windows = chromeWindows(deps, renderer, views, warn);
   const slots = chromeSlots(deps, windows);
-  const { recoveries, pages, picker, chats, sidebar } = slots;
+  const { recoveries, pages, picker, sidebar } = slots;
   const standby = standbyWindows(deps, windows, slots.accounts);
   const handlers = [
     ...allHandlers(withGraphics, slots),
@@ -747,9 +727,6 @@ function startChrome(
     attachRecovery: recoveryAttacher(withGraphics, renderer, views, warn, recoveries, pages),
     pickCaptureSource: picker.pick,
     technicalDetails: () => formatTechnicalDetails(buildAboutInfo(withGraphics.facts())),
-    openChatsWith: (open) => {
-      chats.open = open;
-    },
     setAccountMenu: accountMenuSetter(withGraphics, slots, openers, standby.assistant, warn),
     openSettings: openers.openSettings,
     openAssistantSettings: standby.openAssistantSettings,

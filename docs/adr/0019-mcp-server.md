@@ -191,10 +191,10 @@ which one it means.
 
 A chat is opened by `chat`, its exact name, which YapYap looks for in the
 chat list, or by `phone`, an international number on the token's list,
-which YapYap opens with WhatsApp's own `/send?phone=` link, as New Chat
-does. The link reloads WhatsApp, so it takes a few seconds, but it opens
-the chat wherever it is, archived included. The chat it opens may then be
-read, drafted in or sent to for the rest of that call, under the name
+which YapYap opens with WhatsApp's own `/send?phone=` link. The link
+reloads WhatsApp, so it takes a few seconds, but it opens the chat
+wherever it is, archived included. The chat it opens may then be read,
+drafted in or sent to for the rest of that call, under the name
 WhatsApp shows for it.
 
 `send_message` checks the token and the allowlist; opens the chat, by
