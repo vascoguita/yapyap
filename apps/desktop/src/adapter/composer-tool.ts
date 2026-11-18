@@ -459,7 +459,8 @@ const TOOL_STYLE = `${ASSISTANT_THEME}
 @keyframes breathe { to { opacity: 0.4; } }
 .tool {
   position: relative; display: flex; align-items: stretch; box-sizing: border-box;
-  block-size: 40px; margin-inline: 2px 4px; border: 1px solid var(--ai); border-radius: 20px;
+  block-size: 40px; margin-inline: 2px 4px; border: 1px solid var(--ai);
+  border-radius: var(--radius-pill);
   background: var(--ai-tint); color: var(--ai); font-family: inherit;
 }
 button {
@@ -473,14 +474,16 @@ svg {
   stroke-linecap: round; stroke-linejoin: round;
 }
 .apply {
-  gap: 6px; padding-inline: 12px 10px; border-start-start-radius: 19px;
-  border-end-start-radius: 19px; font-size: 14px; font-weight: 600; white-space: nowrap;
+  gap: 6px; padding-inline: var(--space-3) 10px; border-start-start-radius: var(--radius-pill);
+  border-end-start-radius: var(--radius-pill); font-size: var(--font-body); font-weight: 600;
+  white-space: nowrap;
 }
 .tool[aria-busy='true'] .apply .mode { animation: breathe 0.6s ease-in-out infinite alternate; }
 .apply:disabled .label { opacity: 0.7; }
 .more {
   min-inline-size: 36px; justify-content: center; border-inline-start: 1px solid var(--ai-border);
-  border-start-end-radius: 19px; border-end-end-radius: 19px; background: var(--ai-split);
+  border-start-end-radius: var(--radius-pill);
+  border-end-end-radius: var(--radius-pill); background: var(--ai-split);
 }
 .more svg { inline-size: 18px; block-size: 18px; }
 .apply:hover:not(:disabled), .more:hover:not(:disabled), .more[aria-expanded='true'] {
@@ -490,22 +493,22 @@ svg {
   position: absolute; inset-block-end: calc(100% + 10px); inset-inline-end: -1px; z-index: 10;
   display: flex; flex-direction: column; box-sizing: border-box;
   inline-size: min(320px, calc(100vw - 32px)); max-block-size: var(--room, 70vh); padding: 6px;
-  overflow-y: auto; border-radius: 14px; background: var(--menu); color: var(--text);
+  overflow-y: auto; border-radius: calc(var(--radius-md) + 6px); background: var(--menu); color: var(--text);
   box-shadow: 0 8px 28px var(--shadow);
 }
 .menu[data-place='below'] { inset-block: calc(100% + 10px) auto; }
 .menu[hidden] { display: none; }
 .item {
-  display: grid; grid-template-columns: 20px 1fr 20px; gap: 2px 12px; align-items: center;
-  box-sizing: border-box; min-block-size: 56px; padding-block: 8px; padding-inline: 12px;
-  border-radius: 10px; text-align: start;
+  display: grid; grid-template-columns: 20px 1fr 20px; gap: 2px var(--space-3);
+  align-items: center; box-sizing: border-box; min-block-size: 56px;
+  padding-block: var(--space-2); padding-inline: var(--space-3); border-radius: var(--radius-md); text-align: start;
 }
 .item.settings { min-block-size: 52px; }
 .item:hover, .item:focus-visible { background: var(--hover); outline: none; }
 .item[aria-checked='true'] { background: var(--ai-tint); }
 .item .mode { grid-row: 1 / span 2; grid-column: 1; color: var(--ai); }
-.name { grid-column: 2; font-size: 14px; font-weight: 600; }
-.hint { grid-column: 2; font-size: 12.5px; line-height: 1.35; color: var(--muted); }
+.name { grid-column: 2; font-size: var(--font-body); font-weight: 600; }
+.hint { grid-column: 2; font-size: var(--font-hint); line-height: 1.35; color: var(--muted); }
 .check { grid-row: 1 / span 2; grid-column: 3; color: var(--ai); visibility: hidden; }
 .item[aria-checked='true'] .check { visibility: visible; }
 .line { block-size: 1px; margin-block: 6px; margin-inline: 6px; background: var(--border); }

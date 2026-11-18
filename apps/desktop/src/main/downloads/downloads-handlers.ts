@@ -8,15 +8,13 @@ import type { DownloadList } from './download-list.ts';
 import { argumentsOf, noArguments } from '../ipc/arguments.ts';
 import type { ChromeHandler } from '../ipc/chrome.ts';
 import type { ChromePage } from '../chrome/window-opener.ts';
+import { WINDOW_SIZES } from '../chrome/window-sizes.ts';
 
 export const DOWNLOADS_PAGE: ChromePage = {
   path: 'downloads.html',
   window: {
     title: en.windows.downloads,
-    width: 520,
-    height: 480,
-    minWidth: 380,
-    minHeight: 280,
+    ...WINDOW_SIZES.medium,
     minimizable: false,
   },
 };

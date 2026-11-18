@@ -395,21 +395,22 @@ const BAR_STYLE = `${ASSISTANT_THEME}
 [hidden] { display: none !important; }
 .bar {
   display: flex; flex-direction: column; box-sizing: border-box; padding-block: 6px;
-  padding-inline: 16px 8px; border-block-start: 1px solid var(--area-border);
-  background: var(--area); color: var(--text); font-family: inherit; font-size: 14px;
+  padding-inline: var(--space-4) var(--space-2); border-block-start: 1px solid var(--area-border);
+  background: var(--area); color: var(--text); font-family: inherit;
+  font-size: var(--font-body);
 }
-.row { display: flex; align-items: center; gap: 10px; min-block-size: 44px; min-inline-size: 0; }
+.row { display: flex; align-items: center; gap: var(--space-3); min-block-size: 44px; min-inline-size: 0; }
 svg {
   flex: none; inline-size: 22px; block-size: 22px; fill: none; stroke: currentColor;
   stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
 }
 .mark { color: var(--ai); }
-.text { flex: 1; min-inline-size: 0; padding-block: 4px; overflow-wrap: anywhere; }
+.text { flex: 1; min-inline-size: 0; padding-block: var(--space-1); overflow-wrap: anywhere; }
 button { font: inherit; cursor: pointer; }
 button:focus-visible { outline: 2px solid var(--ai); outline-offset: 2px; }
 .action {
-  flex: none; min-block-size: 40px; padding-inline: 16px; border: 1px solid var(--ai-border);
-  border-radius: 20px; background: var(--chip); color: var(--ai); font-weight: 600;
+  flex: none; min-block-size: 40px; padding-inline: var(--space-4);
+  border: 1px solid var(--ai-border); border-radius: var(--radius-pill); background: var(--chip); color: var(--ai); font-weight: 600;
 }
 .action:hover { background: var(--ai-tint); }
 .icon {
@@ -419,14 +420,14 @@ button:focus-visible { outline: 2px solid var(--ai); outline-offset: 2px; }
 }
 .icon:hover { background: var(--hover); }
 .list {
-  display: flex; flex: 1; gap: 8px; min-inline-size: 0; margin: 0; padding-block: 2px;
+  display: flex; flex: 1; gap: var(--space-2); min-inline-size: 0; margin: 0; padding-block: 2px;
   padding-inline: 0; overflow-x: auto; list-style: none; scrollbar-width: thin;
 }
 li { display: flex; flex: none; max-inline-size: 75%; }
 .chip {
-  min-block-size: 40px; max-inline-size: 100%; padding-inline: 16px; overflow: hidden;
-  border: 1px solid var(--chip-border); border-radius: 20px; background: var(--chip);
-  color: var(--text); font-size: 14px; text-overflow: ellipsis; white-space: nowrap;
+  min-block-size: 40px; max-inline-size: 100%; padding-inline: var(--space-4); overflow: hidden;
+  border: 1px solid var(--chip-border); border-radius: var(--radius-pill);
+  background: var(--chip); color: var(--text); font-size: var(--font-body); text-overflow: ellipsis; white-space: nowrap;
 }
 .chip:hover { border-color: var(--ai-border); background: var(--ai-tint); }
 `;

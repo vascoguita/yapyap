@@ -216,3 +216,7 @@ still should.
   accent, the indigo of its windows, instead of an indigo of their own, so
   they look like the AI Assistant page in Settings. Their surfaces keep
   WhatsApp's greys.
+- 2026-11-18 (#677): their type, corners and spacing are the windows'
+  tokens too, written in pixels because WhatsApp sets its own root font
+  size. The 40 and 44 px heights stay, to line up with WhatsApp's own
+  message box.

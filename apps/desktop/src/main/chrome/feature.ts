@@ -72,6 +72,7 @@ import {
   type ChromeWindowPort,
 } from './window-opener.ts';
 import { en } from '../../shared/messages/en.ts';
+import { WINDOW_SIZES } from './window-sizes.ts';
 
 /** In memory only: app chrome never shares storage with WhatsApp or keeps any. */
 export const CHROME_PARTITION = 'yapyap-chrome';
@@ -80,7 +81,7 @@ const ABOUT_PAGE: ChromePage = {
   path: 'about.html',
   window: {
     title: en.windows.about,
-    width: 480,
+    width: WINDOW_SIZES.dialogWidth,
     height: 640,
     resizable: false,
     minimizable: false,
@@ -92,10 +93,7 @@ const PICKER_PAGE: ChromePage = {
   path: 'picker.html',
   window: {
     title: en.windows.picker,
-    width: 760,
-    height: 580,
-    minWidth: 480,
-    minHeight: 400,
+    ...WINDOW_SIZES.large,
     minimizable: false,
     modal: true,
   },
@@ -105,7 +103,7 @@ const NEW_CHAT_PAGE: ChromePage = {
   path: 'new-chat.html',
   window: {
     title: en.windows.newChat,
-    width: 440,
+    width: WINDOW_SIZES.dialogWidth,
     height: 300,
     resizable: false,
     minimizable: false,
@@ -117,10 +115,7 @@ const SHORTCUTS_PAGE: ChromePage = {
   path: 'shortcuts.html',
   window: {
     title: en.windows.shortcuts,
-    width: 520,
-    height: 640,
-    minWidth: 400,
-    minHeight: 360,
+    ...WINDOW_SIZES.medium,
     minimizable: false,
   },
 };
@@ -129,10 +124,7 @@ const SPELLING_LANGUAGES_PAGE: ChromePage = {
   path: 'spelling-languages.html',
   window: {
     title: en.windows.spellingLanguages,
-    width: 460,
-    height: 560,
-    minWidth: 360,
-    minHeight: 360,
+    ...WINDOW_SIZES.medium,
     minimizable: false,
     maximizable: false,
   },
@@ -142,10 +134,7 @@ const ACCOUNTS_PAGE: ChromePage = {
   path: 'accounts.html',
   window: {
     title: en.windows.accounts,
-    width: 760,
-    height: 600,
-    minWidth: 440,
-    minHeight: 400,
+    ...WINDOW_SIZES.large,
     minimizable: false,
     maximizable: false,
   },
@@ -155,10 +144,7 @@ const WELCOME_PAGE: ChromePage = {
   path: 'welcome.html',
   window: {
     title: en.windows.welcome,
-    width: 560,
-    height: 640,
-    minWidth: 420,
-    minHeight: 420,
+    ...WINDOW_SIZES.medium,
     minimizable: false,
     maximizable: false,
   },
@@ -168,10 +154,7 @@ const REPORT_PAGE: ChromePage = {
   path: 'report.html',
   window: {
     title: en.windows.report,
-    width: 600,
-    height: 640,
-    minWidth: 440,
-    minHeight: 420,
+    ...WINDOW_SIZES.medium,
     minimizable: false,
   },
 };
@@ -180,10 +163,7 @@ const SETTINGS_PAGE: ChromePage = {
   path: 'settings.html',
   window: {
     title: en.windows.settings,
-    width: 820,
-    height: 640,
-    minWidth: 600,
-    minHeight: 480,
+    ...WINDOW_SIZES.large,
   },
 };
 
