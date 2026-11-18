@@ -46,7 +46,9 @@ for (const theme of ['light', 'dark'] as const) {
       .toHaveScreenshot(`about-${theme}.png`, { mask: [about.locator('dl')] });
     const settings = await openFromMenu(app, 'Settings…', 'settings.html');
     await expect(settings.getByRole('switch', { name: 'Start at login' })).toBeVisible();
-    await expect.soft(settings).toHaveScreenshot(`settings-${theme}.png`);
+    // The shared 1% lets over 5,000 pixels of this window differ, enough to miss
+    // a renamed or added page in its list (#687); a word changes a few hundred.
+    await expect.soft(settings).toHaveScreenshot(`settings-${theme}.png`, { maxDiffPixels: 100 });
     const accounts = await openFromMenu(app, 'Manage Accounts…', 'accounts.html');
     await expect(accounts.getByLabel('Name')).toHaveValue('WhatsApp');
     await expect.soft(accounts).toHaveScreenshot(`accounts-${theme}.png`);
