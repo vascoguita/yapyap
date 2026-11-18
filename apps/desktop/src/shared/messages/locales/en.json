@@ -785,7 +785,6 @@
       "zoomOut": "Zoom out",
       "actualSize": "Actual size",
       "reload": "Reload WhatsApp",
-      "forceReload": "Reload WhatsApp, bypassing the cache",
       "fullScreen": "Full screen",
       "devTools": "Developer tools",
       "undo": "Undo",
@@ -858,8 +857,9 @@
     "privacyScreen": "Privacy Screen",
     "zoomIn": "Zoom In",
     "zoomOut": "Zoom Out",
+    "reload": "Reload",
     "clearCache": "Clear Cache and Reload",
-    "resetSession": "Reset Session…",
+    "logOut": "Log Out and Delete Data…",
     "addAccount": "Add Account",
     "manageAccounts": "Manage Accounts…",
     "customCode": "Custom CSS and JavaScript…",
@@ -891,10 +891,10 @@
     "offline": "{{pageTitle}} (offline)"
   },
   "dialogs": {
-    "resetSession": {
-      "message": "Reset this WhatsApp session?",
-      "detail": "This logs you out and deletes WhatsApp’s data on this computer. Your chats stay on your phone. To use WhatsApp here again, link this device again.",
-      "confirm": "Reset Session"
+    "logOut": {
+      "message": "Log out and delete this account’s data?",
+      "detail": "This deletes WhatsApp’s data on this computer, its login included. Your chats stay on your phone. To use WhatsApp here again, link this device again.",
+      "confirm": "Log Out and Delete Data"
     },
     "removeAccount": {
       "message": "Remove {{name}}?",

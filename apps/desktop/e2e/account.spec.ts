@@ -28,6 +28,19 @@ const reloaded = (window: Page) =>
 
 const login = (window: Page) => window.evaluate(() => localStorage.getItem('login'));
 
+test('reloads WhatsApp from the View menu, whatever has the focus', async ({ app, window }) => {
+  await prepare(window);
+  // A click from main has no focused page, the case Electron's own reload role ignores.
+  await app.evaluate(({ Menu }) => {
+    Menu.getApplicationMenu()
+      ?.items.find((menu) => menu.label.replaceAll('&', '') === 'View')
+      ?.submenu?.items.find((item) => item.label === 'Reload')
+      ?.click();
+  });
+  await reloaded(window);
+  expect(await login(window)).toBe('linked');
+});
+
 test('clears the cache and reloads WhatsApp, keeping the login', async ({ app, window }) => {
   await prepare(window);
   await clickTroubleshootItem(app, 'Clear Cache and Reload');
@@ -35,7 +48,7 @@ test('clears the cache and reloads WhatsApp, keeping the login', async ({ app, w
   expect(await login(window)).toBe('linked');
 });
 
-test('resets the session only once the user confirms', async ({ app, window }) => {
+test('logs out and deletes the data only once the user confirms', async ({ app, window }) => {
   await prepare(window);
   await app.evaluate(({ dialog }) => {
     const answers = [1, 0];
@@ -44,10 +57,10 @@ test('resets the session only once the user confirms', async ({ app, window }) =
         Promise.resolve({ response: answers.shift() ?? 1, checkboxChecked: false }),
     });
   });
-  await clickTroubleshootItem(app, 'Reset Session…');
+  await clickTroubleshootItem(app, 'Log Out and Delete Data…');
   await expect.poll(() => window.evaluate(() => 'beforeReload' in window)).toBe(true);
   expect(await login(window)).toBe('linked');
-  await clickTroubleshootItem(app, 'Reset Session…');
+  await clickTroubleshootItem(app, 'Log Out and Delete Data…');
   await reloaded(window);
   expect(await login(window)).toBeNull();
 });

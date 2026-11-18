@@ -37,7 +37,7 @@ export interface Recovery {
   readonly retry: () => Promise<void>;
   readonly clearCacheAndRetry: () => Promise<void>;
   /** Deletes all of the account's site data, which logs it out, and reloads. */
-  readonly resetSession: () => Promise<void>;
+  readonly logOut: () => Promise<void>;
   readonly copyDiagnostics: () => Promise<unknown>;
   /** Retries on its own only when WhatsApp could not be reached. */
   readonly reconnect: () => void;
@@ -83,7 +83,7 @@ export function createRecovery(deps: RecoveryDependencies): Recovery {
         ? null
         : { kind: current.failure.kind, description: describeFailure(current.failure) },
     clearCacheAndRetry: () => clearSiteCache(deps.contents).then(retry),
-    resetSession: () => clearAllSiteData(deps.contents).then(retry),
+    logOut: () => clearAllSiteData(deps.contents).then(retry),
     reconnect: () => {
       if (current?.failure.kind === 'load-failed') {
         void retry();

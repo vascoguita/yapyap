@@ -24,7 +24,6 @@ const TABLE = [
   { id: 'zoomOut', label: text.zoomOut, accelerator: 'CmdOrCtrl+-' },
   { id: 'actualSize', label: text.actualSize, accelerator: 'CmdOrCtrl+0' },
   { id: 'reload', label: text.reload, accelerator: 'CmdOrCtrl+R' },
-  { id: 'forceReload', label: text.forceReload, accelerator: 'CmdOrCtrl+Shift+R' },
   { id: 'fullScreen', label: text.fullScreen, accelerator: 'F11', mac: 'Ctrl+Cmd+F' },
   { id: 'devTools', label: text.devTools, accelerator: 'CmdOrCtrl+Shift+I', mac: 'Alt+Cmd+I' },
   { id: 'undo', label: text.undo, accelerator: 'CmdOrCtrl+Z' },

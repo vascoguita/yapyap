@@ -717,7 +717,6 @@ export interface Messages {
       readonly zoomOut: string;
       readonly actualSize: string;
       readonly reload: string;
-      readonly forceReload: string;
       readonly fullScreen: string;
       readonly devTools: string;
       readonly undo: string;
@@ -786,8 +785,9 @@ export interface Messages {
     readonly privacyScreen: string;
     readonly zoomIn: string;
     readonly zoomOut: string;
+    readonly reload: string;
     readonly clearCache: string;
-    readonly resetSession: string;
+    readonly logOut: string;
     readonly addAccount: string;
     readonly manageAccounts: string;
     readonly customCode: string;
@@ -819,7 +819,7 @@ export interface Messages {
     readonly offline: (params: { readonly pageTitle: string | number }) => string;
   };
   readonly dialogs: {
-    readonly resetSession: {
+    readonly logOut: {
       readonly message: string;
       readonly detail: string;
       readonly confirm: string;

@@ -198,7 +198,7 @@ export interface ChromeFeatureDependencies {
   /** Quits and starts YapYap again, to apply settings that need a restart. */
   readonly restart: () => void;
   /** Asks before logging the account out; true when the user agrees. */
-  readonly confirmReset: () => Promise<boolean>;
+  readonly confirmLogOut: () => Promise<boolean>;
   /** Asks before removing the account named `name`; true when the user agrees. */
   readonly confirmRemoveAccount: (name: string) => Promise<boolean>;
   /** The AI assistant, part of YapYap (ADR 0017). */
@@ -338,20 +338,23 @@ function accountActions(
   recoveries: ReadonlyMap<object, Recovery>,
   menu: AccountMenu | undefined,
   warn: (message: string) => void,
-): Pick<MenuActions, 'clearCache' | 'resetSession' | 'removeAccount'> {
+): Pick<MenuActions, 'reload' | 'clearCache' | 'logOut' | 'removeAccount'> {
   const failed = (): void => {
     warn('Could not finish an account maintenance action.');
   };
   const active = (): Recovery | undefined =>
     menu === undefined ? undefined : recoveries.get(menu.activeContents());
   return {
+    reload: () => {
+      active()?.retry().catch(failed);
+    },
     clearCache: () => {
       active()?.clearCacheAndRetry().catch(failed);
     },
-    resetSession: () => {
+    logOut: () => {
       deps
-        .confirmReset()
-        .then((confirmed) => (confirmed ? active()?.resetSession() : undefined))
+        .confirmLogOut()
+        .then((confirmed) => (confirmed ? active()?.logOut() : undefined))
         .catch(failed);
     },
     removeAccount: () => {

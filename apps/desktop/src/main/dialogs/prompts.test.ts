@@ -21,13 +21,13 @@ describe.each([
     },
   },
   {
-    name: 'confirmResetWithDialog',
-    ask: () => prompts.confirmResetWithDialog(),
+    name: 'confirmLogOutWithDialog',
+    ask: () => prompts.confirmLogOutWithDialog(),
     shown: {
       type: 'warning',
-      message: TEXT.resetSession.message,
-      detail: TEXT.resetSession.detail,
-      buttons: [TEXT.resetSession.confirm, en.common.cancel],
+      message: TEXT.logOut.message,
+      detail: TEXT.logOut.detail,
+      buttons: [TEXT.logOut.confirm, en.common.cancel],
       defaultId: 1,
     },
   },

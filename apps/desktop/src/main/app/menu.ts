@@ -35,8 +35,10 @@ export interface MenuActions {
   readonly openAbout: () => void;
   readonly openSettings: () => void;
   readonly openCustomCode: () => void;
+  /** Reloads the active account's WhatsApp, wherever the focus is. */
+  readonly reload: () => void;
   readonly clearCache: () => void;
-  readonly resetSession: () => void;
+  readonly logOut: () => void;
   readonly zoom: (step: ZoomStep) => void;
   readonly privacyScreen: boolean;
   readonly togglePrivacyScreen: () => void;
@@ -85,8 +87,7 @@ function viewMenu(actions: MenuActions, keys: Keys): MenuItemConstructorOptions 
       },
       { role: 'togglefullscreen', ...keyed('fullScreen', keys) },
       { type: 'separator' },
-      { role: 'reload', ...keyed('reload', keys) },
-      { role: 'forceReload', ...keyed('forceReload', keys) },
+      { label: en.menu.reload, ...keyed('reload', keys), click: actions.reload },
       { role: 'toggleDevTools', ...keyed('devTools', keys) },
     ],
   };
@@ -172,7 +173,7 @@ function quietItems(actions: MenuActions): MenuItemConstructorOptions[] {
 
 /**
  * Clearing the cache and resetting the session sit one level down, as they
- * are for when an account misbehaves and resetting logs it out.
+ * are for when an account misbehaves and the last of them logs it out.
  */
 function troubleshootMenu(actions: MenuActions): MenuItemConstructorOptions {
   return {
@@ -180,7 +181,7 @@ function troubleshootMenu(actions: MenuActions): MenuItemConstructorOptions {
     submenu: [
       { label: en.menu.clearCache, click: actions.clearCache },
       { type: 'separator' },
-      { label: en.menu.resetSession, click: actions.resetSession },
+      { label: en.menu.logOut, click: actions.logOut },
     ],
   };
 }
