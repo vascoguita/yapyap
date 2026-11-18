@@ -37,14 +37,6 @@ export interface Messages {
     readonly supportedBy: string;
     readonly disclaimer: string;
   };
-  readonly newChat: {
-    readonly title: string;
-    readonly numberLabel: string;
-    readonly numberPlaceholder: string;
-    readonly numberHint: string;
-    readonly notReady: string;
-    readonly open: string;
-  };
   readonly picker: {
     readonly title: string;
     readonly screens: string;
@@ -794,7 +786,6 @@ export interface Messages {
     readonly privacyScreen: string;
     readonly zoomIn: string;
     readonly zoomOut: string;
-    readonly newChat: string;
     readonly clearCache: string;
     readonly resetSession: string;
     readonly addAccount: string;
@@ -818,7 +809,6 @@ export interface Messages {
     readonly about: string;
     readonly settings: string;
     readonly picker: string;
-    readonly newChat: string;
     readonly spellingLanguages: string;
     readonly accounts: string;
     readonly shortcuts: string;

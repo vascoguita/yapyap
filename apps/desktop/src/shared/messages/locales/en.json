@@ -30,14 +30,6 @@
     "supportedBy": "Development supported by",
     "disclaimer": "YapYap is unofficial and is not affiliated with, endorsed by, or sponsored by WhatsApp or Meta."
   },
-  "newChat": {
-    "title": "New chat",
-    "numberLabel": "Phone number, with the country code",
-    "numberPlaceholder": "+44 7700 900123",
-    "numberHint": "Start with + or 00 and the country code. YapYap does not save the number.",
-    "notReady": "WhatsApp is not ready to open the chat. Try again.",
-    "open": "Open Chat"
-  },
   "picker": {
     "title": "Choose what to share",
     "screens": "Screens",
@@ -866,7 +858,6 @@
     "privacyScreen": "Privacy Screen",
     "zoomIn": "Zoom In",
     "zoomOut": "Zoom Out",
-    "newChat": "New Chat with Number…",
     "clearCache": "Clear Cache and Reload",
     "resetSession": "Reset Session…",
     "addAccount": "Add Account",
@@ -890,7 +881,6 @@
     "about": "About YapYap",
     "settings": "YapYap Settings",
     "picker": "Choose What to Share",
-    "newChat": "New Chat",
     "spellingLanguages": "Spelling Languages",
     "accounts": "Accounts",
     "shortcuts": "Keyboard Shortcuts",

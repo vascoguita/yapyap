@@ -35,7 +35,6 @@ function blank() {
       openChat: vi.fn(),
       copy: vi.fn(),
     },
-    chat: { openNumber: vi.fn() },
     accounts: {
       list: vi.fn(),
       add: vi.fn(),

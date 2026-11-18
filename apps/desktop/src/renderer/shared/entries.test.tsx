@@ -4,7 +4,6 @@ import { About } from '../about/About.tsx';
 import { Accounts } from '../accounts/Accounts.tsx';
 import { CustomCodeEditor } from '../custom-code/CustomCode.tsx';
 import { Downloads } from '../downloads/Downloads.tsx';
-import { NewChat } from '../new-chat/NewChat.tsx';
 import { Picker } from '../picker/Picker.tsx';
 import { ProxyLogin } from '../proxy-login/ProxyLogin.tsx';
 import { Recovery } from '../recovery/Recovery.tsx';
@@ -37,7 +36,6 @@ const ENTRIES = [
     { title: windows.customCode },
   ],
   ['downloads', () => import('../downloads/main.tsx'), Downloads, { title: windows.downloads }],
-  ['new chat', () => import('../new-chat/main.tsx'), NewChat, { title: windows.newChat }],
   ['picker', () => import('../picker/main.tsx'), Picker, { title: windows.picker }],
   [
     'proxy sign-in',

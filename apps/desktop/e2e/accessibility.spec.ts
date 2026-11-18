@@ -13,7 +13,6 @@ const PAGES = [
   ['Custom CSS and JavaScript…', 'custom-code.html'],
   ['Keyboard Shortcuts…', 'shortcuts.html'],
   ['Downloads…', 'downloads.html'],
-  ['New Chat with Number…', 'new-chat.html'],
   ['Report a Problem…', 'report.html'],
 ] as const;
 

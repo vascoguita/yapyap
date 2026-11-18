@@ -216,9 +216,6 @@ export function createChromeBridge(invoke: Invoke, listen: Listen): ChromeApi {
     settings: settingsBridge(invoke),
     assistant: assistantBridge(invoke),
     agents: agentsBridge(invoke),
-    chat: {
-      openNumber: (number) => invoke(CHROME_CHANNELS.chatOpenNumber, number) as Promise<boolean>,
-    },
     accounts: accountsBridge(invoke),
     sidebar: sidebarBridge(invoke, listen),
     report: reportBridge(invoke),

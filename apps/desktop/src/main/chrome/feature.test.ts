@@ -287,15 +287,6 @@ describe('createChromeFeature', () => {
       ...fixed,
       show: false,
     });
-    clickLabel('New Chat with Number…');
-    expect(lastOptions()).toEqual({
-      autoHideMenuBar: true,
-      title: 'New Chat',
-      width: 440,
-      height: 300,
-      ...fixed,
-      show: false,
-    });
     clickLabel('Keyboard Shortcuts…');
     expect(lastOptions()).toEqual({
       autoHideMenuBar: true,
@@ -908,18 +899,6 @@ describe('createChromeFeature', () => {
       muted: true,
       proxy: '',
     });
-  });
-
-  it('opens New Chat from the File menu and its chats in WhatsApp once there is a window', () => {
-    const t = setup();
-    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
-    t.clickItem('New Chat with Number…');
-    expect(t.window.loadURL).toHaveBeenCalledWith('app://chrome/new-chat.html');
-    expect(t.call('chat:open-number', t.window.webContents, '+44 7700 900123')).toBe(false);
-    const open = vi.fn();
-    runtime.openChatsWith(open);
-    expect(t.call('chat:open-number', t.window.webContents, '+44 7700 900123')).toBe(true);
-    expect(open).toHaveBeenCalledExactlyOnceWith('447700900123');
   });
 
   it('zooms through the settings from the View menu', () => {

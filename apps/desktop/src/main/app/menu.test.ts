@@ -16,7 +16,6 @@ function actions(accounts: AccountSummary[] = []) {
     openAbout: vi.fn(),
     openSettings: vi.fn(),
     openCustomCode: vi.fn(),
-    openNewChat: vi.fn(),
     clearCache: vi.fn(),
     resetSession: vi.fn(),
     zoom: vi.fn(),
@@ -151,7 +150,7 @@ describe('buildMenuTemplate', () => {
     expect(a.zoom.mock.calls).toEqual([['reset'], ['in'], ['out']]);
   });
 
-  it('puts a new chat and Settings in the File menu and About in Help on Windows and Linux', () => {
+  it('puts Settings in the File menu and About in Help on Windows and Linux', () => {
     const a = actions();
     const template = buildMenuTemplate('linux', a);
     expect(template.map((item) => item.role ?? item.label)).toEqual([
@@ -163,8 +162,6 @@ describe('buildMenuTemplate', () => {
       'help',
     ]);
     expect(items(template[0])).toEqual([
-      { label: 'New Chat with Number…', click: a.openNewChat },
-      { type: 'separator' },
       { label: 'Settings…', accelerator: 'CmdOrCtrl+,', click: a.openSettings },
       { label: 'Custom CSS and JavaScript…', click: a.openCustomCode },
       { type: 'separator' },
@@ -238,11 +235,7 @@ describe('buildMenuTemplate', () => {
       'windowMenu',
       'help',
     ]);
-    expect(items(rest[0])).toEqual([
-      { label: 'New Chat with Number…', click: a.openNewChat },
-      { type: 'separator' },
-      { role: 'close' },
-    ]);
+    expect(items(rest[0])).toEqual([{ role: 'close' }]);
     expect(items(rest.at(-1))).toEqual(HELP(a));
     expect(rest[1]).toEqual(ACCOUNT(a));
   });
@@ -326,7 +319,7 @@ describe('custom shortcuts in the menus', () => {
       quit: 'Ctrl+Alt+Q',
     });
     const file = items(template[0]);
-    expect(file[2]).toMatchObject({ label: 'Settings…', accelerator: 'Alt+S' });
+    expect(file[0]).toMatchObject({ label: 'Settings…', accelerator: 'Alt+S' });
     expect(file.at(-1)).toEqual({ role: 'quit', accelerator: 'Ctrl+Alt+Q' });
     expect(
       items(template[1])

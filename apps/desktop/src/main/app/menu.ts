@@ -35,7 +35,6 @@ export interface MenuActions {
   readonly openAbout: () => void;
   readonly openSettings: () => void;
   readonly openCustomCode: () => void;
-  readonly openNewChat: () => void;
   readonly clearCache: () => void;
   readonly resetSession: () => void;
   readonly zoom: (step: ZoomStep) => void;
@@ -218,7 +217,6 @@ interface PlacedItems {
    */
   readonly settings: MenuItemConstructorOptions[];
   /** Starting a chat, which File holds as other apps hold New. */
-  readonly newChat: MenuItemConstructorOptions;
   readonly help: MenuItemConstructorOptions[];
   readonly quit: MenuItemConstructorOptions;
 }
@@ -230,7 +228,6 @@ function placedItems(actions: MenuActions, keys: Keys): PlacedItems {
       { label: en.menu.settings, ...keyed('settings', keys), click: actions.openSettings },
       { label: en.menu.customCode, click: actions.openCustomCode },
     ],
-    newChat: { label: en.menu.newChat, click: actions.openNewChat },
     help: [
       { label: en.menu.shortcuts, ...keyed('shortcuts', keys), click: actions.openShortcuts },
       { label: en.menu.reportProblem, click: actions.openReport },
@@ -264,13 +261,7 @@ export function buildMenuTemplate(
     return [
       {
         label: en.menu.file,
-        submenu: [
-          placed.newChat,
-          { type: 'separator' },
-          ...placed.settings,
-          { type: 'separator' },
-          placed.quit,
-        ],
+        submenu: [...placed.settings, { type: 'separator' }, placed.quit],
       },
       ...menus,
       { role: 'help', submenu: [placed.about, { type: 'separator' }, ...placed.help] },
@@ -278,7 +269,7 @@ export function buildMenuTemplate(
   }
   return [
     macAppMenu(placed, keys),
-    { label: en.menu.file, submenu: [placed.newChat, { type: 'separator' }, { role: 'close' }] },
+    { label: en.menu.file, submenu: [{ role: 'close' }] },
     ...menus,
     { role: 'help', submenu: placed.help },
   ];

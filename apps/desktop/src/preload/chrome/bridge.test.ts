@@ -11,7 +11,6 @@ describe('createChromeBridge', () => {
       'recovery:problem': problem,
       'settings:get': snapshot,
       'settings:set': snapshot,
-      'chat:open-number': true,
       'assistant:save-key': true,
       'agents:narrow': true,
     };
@@ -35,7 +34,6 @@ describe('createChromeBridge', () => {
     expect(await api.picker.offer()).toBe('ignored');
     await api.picker.choose('screen:1:0', true);
     await api.picker.cancel();
-    expect(await api.chat.openNumber('+44 7700 900123')).toBe(true);
     expect(await api.assistant.view()).toBe('ignored');
     expect(await api.assistant.saveKey('anthropic', 'sk')).toBe(true);
     await api.assistant.forgetKey('openai');
@@ -107,7 +105,6 @@ describe('createChromeBridge', () => {
       ['picker:offer'],
       ['picker:choose', 'screen:1:0', true],
       ['picker:cancel'],
-      ['chat:open-number', '+44 7700 900123'],
       ['assistant:view'],
       ['assistant:save-key', 'anthropic', 'sk'],
       ['assistant:forget-key', 'openai'],
@@ -164,7 +161,6 @@ describe('createChromeBridge', () => {
       'settings',
       'assistant',
       'agents',
-      'chat',
       'accounts',
       'sidebar',
       'report',
@@ -184,7 +180,6 @@ describe('createChromeBridge', () => {
       'stopSharing',
       'onState',
     ]);
-    expect(Object.keys(api.chat)).toEqual(['openNumber']);
     expect(Object.keys(api.agents)).toEqual([
       'view',
       'create',

@@ -75,7 +75,7 @@ async function openedChat(contents: ReplyContents, wait: Wait, step = 1): Promis
 }
 
 /**
- * Opens the chat of a number with WhatsApp's own link, as New Chat does:
+ * Opens the chat of a number with WhatsApp's own `/send?phone=` link:
  * it reloads WhatsApp, which then opens the chat, wherever it is in the
  * list, or says the number is not on WhatsApp, and no chat opens.
  */
@@ -95,7 +95,7 @@ async function openByLink(
 /**
  * One account's WhatsApp as the agents' tools reach it: the adapter's
  * readers, the message box as the assistant bar's Send uses it, and
- * WhatsApp's own link to a number, as New Chat uses it.
+ * WhatsApp's own link to a number.
  */
 export function agentPageOf(
   contents: LinkContents & KeyContents,

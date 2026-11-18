@@ -167,10 +167,6 @@ export interface ChromeApi {
     /** Copies a new token, or a command that holds it, which chrome pages cannot do themselves. */
     readonly copy: (text: string) => Promise<void>;
   };
-  readonly chat: {
-    /** Opens the chat with an international number; false when WhatsApp cannot yet. */
-    readonly openNumber: (number: string) => Promise<boolean>;
-  };
   readonly accounts: {
     readonly list: () => Promise<AccountList>;
     /** Adds an account, which the main window then shows, ready to link to a phone. */
@@ -354,7 +350,6 @@ export const CHROME_CHANNELS = {
   pickerOffer: 'picker:offer',
   pickerChoose: 'picker:choose',
   pickerCancel: 'picker:cancel',
-  chatOpenNumber: 'chat:open-number',
   accountsList: 'accounts:list',
   accountsAdd: 'accounts:add',
   accountsSave: 'accounts:save',
