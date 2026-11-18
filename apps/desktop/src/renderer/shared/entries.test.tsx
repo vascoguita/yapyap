@@ -9,7 +9,6 @@ import { ProxyLogin } from '../proxy-login/ProxyLogin.tsx';
 import { Recovery } from '../recovery/Recovery.tsx';
 import { ProblemReport } from '../report/ProblemReport.tsx';
 import { Settings } from '../settings/Settings.tsx';
-import { Shortcuts } from '../shortcuts/Shortcuts.tsx';
 import { Sidebar } from '../sidebar/Sidebar.tsx';
 import { SpellingLanguagesPage } from '../spelling-languages/SpellingLanguages.tsx';
 import { Welcome } from '../welcome/Welcome.tsx';
@@ -46,7 +45,6 @@ const ENTRIES = [
   ['recovery', () => import('../recovery/main.tsx'), Recovery, undefined],
   ['report', () => import('../report/main.tsx'), ProblemReport, { title: windows.report }],
   ['settings', () => import('../settings/main.tsx'), Settings, { title: windows.settings }],
-  ['shortcuts', () => import('../shortcuts/main.tsx'), Shortcuts, { title: windows.shortcuts }],
   ['sidebar', () => import('../sidebar/main.tsx'), Sidebar, undefined],
   [
     'spelling languages',

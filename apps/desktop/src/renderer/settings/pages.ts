@@ -23,7 +23,7 @@ export interface SettingsPage {
   readonly icon: IconName;
   readonly intro?: string;
   /** A page with more than settings has a component of its own instead of groups. */
-  readonly own?: 'assistant' | 'agents' | 'backup';
+  readonly own?: 'shortcuts' | 'assistant' | 'agents' | 'backup';
   readonly groups: readonly SettingsGroup[];
   /** Comes after a divider, as a page for when something goes wrong. */
   readonly apart?: boolean;
@@ -92,6 +92,13 @@ const PAGES: readonly SettingsPage[] = [
     ],
   },
   {
+    id: 'shortcuts',
+    title: text.pages.shortcuts,
+    icon: 'shortcuts',
+    own: 'shortcuts',
+    groups: [],
+  },
+  {
     id: 'assistant',
     title: text.pages.assistant,
     icon: 'assistant',
@@ -157,9 +164,16 @@ export const isShown = (id: string, values: Values): boolean =>
 
 export const isDimmed = (id: string, values: Values): boolean => DIMMED_WHEN[id]?.(values) ?? false;
 
-/** The pages before Backup this platform has: those with a setting here, and those of their own. */
+/**
+ * The pages before Backup this platform has: those with a setting here, and
+ * those of their own. Keyboard shortcuts work everywhere; the assistant's
+ * and the agents' pages show where their switch does.
+ */
 export function shownPages(snapshot: SettingsSnapshot): readonly SettingsPage[] {
   return PAGES.filter((page) => {
+    if (page.own === 'shortcuts') {
+      return true;
+    }
     if (page.own !== undefined) {
       return `${page.own}.enabled` in snapshot.values;
     }

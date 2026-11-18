@@ -130,8 +130,9 @@ already running passes the link to the open window.
 
 ## Keyboard shortcuts
 
-**Help → Keyboard Shortcuts…** (<kbd>Ctrl</kbd>+<kbd>/</kbd>, <kbd>⌘</kbd><kbd>/</kbd>
-on macOS) lists every shortcut with the keys of your system. **Change** next to one
+Settings → Keyboard shortcuts, which **Help → Keyboard Shortcuts…**
+(<kbd>Ctrl</kbd>+<kbd>/</kbd>, <kbd>⌘</kbd><kbd>/</kbd> on macOS) opens, lists
+every shortcut with the keys of your system. **Change** next to one
 waits for the new keys: press them, or Escape to keep the old ones. YapYap
 refuses keys another action already uses, and keys without Ctrl, Alt,
 Shift or ⌘, unless they are a function key. **Reset** goes back to YapYap's own keys.

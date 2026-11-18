@@ -7,6 +7,7 @@ import { useEscapeToClose } from '../shared/escape.ts';
 import { AgentsSection } from './Agents.tsx';
 import { AssistantSection } from './Assistant.tsx';
 import { Field, Group, type Change } from './Field.tsx';
+import { ShortcutsSection } from './Shortcuts.tsx';
 import { Icon } from '../shared/icons.tsx';
 import {
   BACKUP_PAGE,
@@ -58,6 +59,8 @@ function GroupOf(props: PageProps & { readonly group: SettingsGroup }): JSX.Elem
 function PageBody(props: PageProps & { readonly page: SettingsPage }): JSX.Element {
   const { page } = props;
   switch (page.own) {
+    case 'shortcuts':
+      return <ShortcutsSection api={props.api} />;
     case 'assistant':
       return <AssistantSection {...props} />;
     case 'agents':
@@ -320,10 +323,9 @@ export function Settings({ api }: { readonly api: ChromeApi }): JSX.Element {
       </main>
     );
   }
-  const shown = shownPages(snapshot);
-  const pages = [...shown, BACKUP_PAGE];
+  const pages = [...shownPages(snapshot), BACKUP_PAGE] as const;
   // The first page opens until another is picked, and stands in for one this platform lacks.
-  const page = pages.find(({ id }) => id === current) ?? shown[0] ?? BACKUP_PAGE;
+  const page = pages.find(({ id }) => id === current) ?? pages[0];
   return (
     <div class="settings-window">
       <SectionNav pages={pages} current={page.id} onSelect={showPage} />
