@@ -87,6 +87,7 @@
       "appearance": "Appearance",
       "notifications": "Notifications & privacy",
       "downloads": "Downloads",
+      "shortcuts": "Keyboard shortcuts",
       "assistant": "AI Assistant",
       "agents": "Agents",
       "network": "Network",
@@ -773,7 +774,6 @@
     "invalid": "Use a key together with a modifier such as Ctrl, Alt, Shift or ⌘, or a function key alone.",
     "switchEndsInOne": "Switching accounts needs keys that end in 1, as it takes 1 to 9.",
     "taken": "Those keys are already used for “{{action}}”.",
-    "title": "Keyboard shortcuts",
     "shortcut": "Shortcut",
     "action": "Action",
     "actions": {
@@ -883,7 +883,6 @@
     "picker": "Choose What to Share",
     "spellingLanguages": "Spelling Languages",
     "accounts": "Accounts",
-    "shortcuts": "Keyboard Shortcuts",
     "customCode": "Custom CSS and JavaScript",
     "downloads": "Downloads",
     "welcome": "Welcome",

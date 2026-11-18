@@ -73,7 +73,7 @@ function save(service: Service, id: string, accelerator: string | null): void {
   });
 }
 
-/** Every shortcut as the Keyboard Shortcuts window shows it. */
+/** Every shortcut as Settings › Keyboard shortcuts shows it. */
 function listOf(
   service: Service,
   platform: string,
@@ -93,7 +93,7 @@ function listOf(
 }
 
 /**
- * The Keyboard Shortcuts window's operations (#75): list the shortcuts, and
+ * Settings › Keyboard shortcuts' operations (#75): list the shortcuts, and
  * change or reset one, in-app or global. Keys that do not fit or that
  * another action uses are refused, with the reason. A global shortcut also
  * says whether the system granted its keys.

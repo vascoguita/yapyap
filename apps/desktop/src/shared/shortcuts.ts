@@ -50,7 +50,7 @@ const TABLE = [
 export type ShortcutId = (typeof TABLE)[number]['id'];
 
 /**
- * Every shortcut, in the order the Keyboard Shortcuts window lists them. The
+ * Every shortcut, in the order Settings › Keyboard shortcuts lists them. The
  * menus take their accelerators from here, so the list cannot drift from them.
  */
 export const SHORTCUTS: readonly Shortcut[] = TABLE;

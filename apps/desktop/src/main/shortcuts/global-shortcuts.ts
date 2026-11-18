@@ -15,7 +15,7 @@ export interface GlobalShortcutPort {
 /**
  * Keeps the system's global shortcuts in step with the settings (#75):
  * keys are taken when the user sets them and given back when they change.
- * Whether the system granted them shows in the Keyboard Shortcuts window.
+ * Whether the system granted them shows in Settings › Keyboard shortcuts.
  */
 export function followGlobalShortcuts(
   port: GlobalShortcutPort,

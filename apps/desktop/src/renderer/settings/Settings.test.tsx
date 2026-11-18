@@ -38,6 +38,8 @@ function api(overrides: Partial<ChromeApi['settings']> = {}, first = snapshot())
       chooseFolder: vi.fn(() => Promise.resolve()),
       ...overrides,
     },
+    // Keyboard shortcuts has tests of its own, in Shortcuts.test.tsx.
+    shortcuts: { list: vi.fn(() => new Promise<never>(() => undefined)), set: vi.fn() },
   });
 }
 
@@ -74,7 +76,7 @@ describe('Settings', () => {
       within(list)
         .getAllByRole('button')
         .map((button) => button.textContent),
-    ).toEqual(['Appearance', 'Advanced', 'Backup']);
+    ).toEqual(['Appearance', 'Keyboard shortcuts', 'Advanced', 'Backup']);
     expect(title()).toBe('Appearance');
     const current = within(list).getByRole('button', { name: 'Appearance' });
     expect(current.getAttribute('aria-current')).toBe('page');
@@ -108,6 +110,7 @@ describe('Settings', () => {
       'Appearance',
       'Notifications & privacy',
       'Downloads',
+      'Keyboard shortcuts',
       'AI Assistant',
       'Agents',
       'Network',
@@ -159,15 +162,15 @@ describe('Settings', () => {
     expect(SETTING_FIELDS.map(({ id }) => id).filter((id) => !seen.has(id))).toEqual(own);
   });
 
-  it('shows Backup when this platform has no other page', async () => {
+  it('shows Keyboard shortcuts and Backup on every platform', async () => {
     render(<Settings api={api({}, snapshot({ values: {} }))} />);
     const list = await screen.findByRole('navigation', { name: 'Settings sections' });
     expect(
       within(list)
         .getAllByRole('button')
         .map((button) => button.textContent),
-    ).toEqual(['Backup']);
-    expect(title()).toBe('Backup');
+    ).toEqual(['Keyboard shortcuts', 'Backup']);
+    expect(title()).toBe('Keyboard shortcuts');
   });
 
   it('shows one page at a time, its intro under its title', async () => {
@@ -191,9 +194,11 @@ describe('Settings', () => {
     fireEvent.keyDown(first, { key: 'ArrowUp' });
     expect(title()).toBe('Appearance');
     fireEvent.keyDown(first, { key: 'ArrowDown' });
-    expect(title()).toBe('Advanced');
-    expect(document.activeElement?.textContent).toBe('Advanced');
+    expect(title()).toBe('Keyboard shortcuts');
+    expect(document.activeElement?.textContent).toBe('Keyboard shortcuts');
     fireEvent.keyDown(first, { key: 'Tab' });
+    expect(title()).toBe('Keyboard shortcuts');
+    fireEvent.keyDown(first, { key: 'ArrowDown' });
     expect(title()).toBe('Advanced');
     fireEvent.keyDown(first, { key: 'ArrowDown' });
     expect(title()).toBe('Backup');
@@ -308,6 +313,7 @@ describe('Settings', () => {
     const values = { 'network.proxyMode': 'system', 'network.proxyServer': '' };
     const t = api({}, snapshot({ values }));
     render(<Settings api={t} />);
+    await open('Network');
     await screen.findByRole('radiogroup', { name: 'Proxy' });
     expect(screen.queryByLabelText('Proxy address')).toBeNull();
     fireEvent.click(screen.getByRole('radio', { name: 'Custom' }));

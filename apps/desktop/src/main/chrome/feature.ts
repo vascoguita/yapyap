@@ -98,15 +98,6 @@ const PICKER_PAGE: ChromePage = {
   },
 };
 
-const SHORTCUTS_PAGE: ChromePage = {
-  path: 'shortcuts.html',
-  window: {
-    title: en.windows.shortcuts,
-    ...WINDOW_SIZES.medium,
-    minimizable: false,
-  },
-};
-
 const SPELLING_LANGUAGES_PAGE: ChromePage = {
   path: 'spelling-languages.html',
   window: {
@@ -430,14 +421,14 @@ type ChromeOpeners = Pick<
 
 function chromeOpeners(
   windows: ChromeWindowDependencies,
-  standby: Pick<ChromeOpeners, 'openSettings'>,
+  standby: Pick<ChromeOpeners, 'openSettings' | 'openShortcuts'>,
 ): ChromeOpeners {
   const opener = (page: ChromePage): (() => void) => plainOpener(windows, page);
   return {
     openSettings: standby.openSettings,
     openAccounts: opener(ACCOUNTS_PAGE),
     openAbout: opener(ABOUT_PAGE),
-    openShortcuts: opener(SHORTCUTS_PAGE),
+    openShortcuts: standby.openShortcuts,
     openCustomCode: opener(CUSTOM_CODE_PAGE),
     openDownloads: opener(DOWNLOADS_PAGE),
     openReport: opener(REPORT_PAGE),
@@ -675,6 +666,8 @@ function standbyWindows(
   openSettings: () => void;
   /** The same window, at its Assistant page. */
   openAssistantSettings: () => void;
+  /** The same window, at its Keyboard shortcuts page, which Help opens. */
+  openShortcuts: () => void;
   proxyLogin: ProxyLoginPrompt;
 } {
   const settingsOpener = chromeWindowOpener(windows, SETTINGS_PAGE);
@@ -686,6 +679,9 @@ function standbyWindows(
       settingsOpener();
     },
     openAssistantSettings,
+    openShortcuts: () => {
+      settingsOpener('shortcuts');
+    },
     assistant: assistantOf(deps, windows, accounts, openAssistantSettings),
     proxyLogin: createProxyLoginPrompt(() => openPromptWindow(windows, PROXY_LOGIN_PAGE)),
   };

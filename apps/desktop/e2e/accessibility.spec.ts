@@ -11,7 +11,7 @@ const PAGES = [
   ['Settings…', 'settings.html'],
   ['Manage Accounts…', 'accounts.html'],
   ['Custom CSS and JavaScript…', 'custom-code.html'],
-  ['Keyboard Shortcuts…', 'shortcuts.html'],
+  ['Keyboard Shortcuts…', 'settings.html#shortcuts'],
   ['Downloads…', 'downloads.html'],
   ['Report a Problem…', 'report.html'],
 ] as const;

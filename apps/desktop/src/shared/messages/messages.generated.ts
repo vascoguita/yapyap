@@ -82,6 +82,7 @@ export interface Messages {
       readonly appearance: string;
       readonly notifications: string;
       readonly downloads: string;
+      readonly shortcuts: string;
       readonly assistant: string;
       readonly agents: string;
       readonly network: string;
@@ -705,7 +706,6 @@ export interface Messages {
     readonly invalid: string;
     readonly switchEndsInOne: string;
     readonly taken: (params: { readonly action: string | number }) => string;
-    readonly title: string;
     readonly shortcut: string;
     readonly action: string;
     readonly actions: {
@@ -811,7 +811,6 @@ export interface Messages {
     readonly picker: string;
     readonly spellingLanguages: string;
     readonly accounts: string;
-    readonly shortcuts: string;
     readonly customCode: string;
     readonly downloads: string;
     readonly welcome: string;

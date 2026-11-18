@@ -922,7 +922,7 @@ main.welcome .option .hint {
 }
 
 /* A list of things in a window, drawn as a card of rows, as Settings draws its settings. */
-main.shortcuts table,
+.page-shortcuts table,
 main.downloads ul,
 ul.languages {
   box-sizing: border-box;
@@ -934,61 +934,64 @@ ul.languages {
   background: var(--card);
 }
 
-main.shortcuts table {
+.page-shortcuts table {
   border-collapse: separate;
   border-spacing: 0;
   overflow: hidden;
 }
 
-main.shortcuts th,
-main.shortcuts td {
+.page-shortcuts th,
+.page-shortcuts td {
   padding: var(--space-3) var(--space-4);
   border-block-start: 1px solid var(--border);
   text-align: start;
   vertical-align: middle;
 }
 
-main.shortcuts tr:first-child > :is(th, td) {
+.page-shortcuts tr:first-child > :is(th, td) {
   border-block-start: none;
 }
 
 /* The table's head names its columns as a group of settings is titled. */
-main.shortcuts th {
+.page-shortcuts th {
   padding-block: var(--space-2);
   color: var(--muted);
   font-size: var(--font-hint);
   font-weight: 600;
 }
 
-main.shortcuts td:first-child {
+.page-shortcuts td:first-child {
   font-weight: 500;
 }
 
-main.shortcuts td .hint {
+.page-shortcuts td .hint {
   margin: 2px 0 0;
   font-weight: 400;
 }
 
-main.shortcuts td output {
+.page-shortcuts td output {
+  display: inline-block;
+  inline-size: 12rem;
   margin: 0;
   color: var(--accent);
+  white-space: normal;
 }
 
-main.shortcuts .keys {
+.page-shortcuts .keys {
   white-space: nowrap;
 }
 
-main.shortcuts :is(th, td):not(:first-child) {
+.page-shortcuts :is(th, td):not(:first-child) {
   inline-size: 1%;
   white-space: nowrap;
 }
 
-main.shortcuts .row-actions {
+.page-shortcuts .row-actions {
   text-align: end;
   white-space: nowrap;
 }
 
-main.shortcuts .row-actions button + button {
+.page-shortcuts .row-actions button + button {
   margin-inline-start: var(--space-2);
 }
 
@@ -1934,6 +1937,11 @@ code.address {
 .settings-content > p[role='alert'] {
   margin: 0;
   color: var(--danger);
+}
+
+/* Out of the page's column while it says nothing, so it adds no gap, yet still heard when it speaks. */
+.settings-content > p[role='alert']:empty {
+  position: absolute;
 }
 
 /* A narrow window lists the pages above the page, and stacks each control under its name. */

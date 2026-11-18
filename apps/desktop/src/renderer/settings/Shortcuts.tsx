@@ -4,7 +4,6 @@ import type { ChromeApi, GlobalShortcutState, ShortcutList } from '../../shared/
 import { en } from '../../shared/messages/en.ts';
 import { acceleratorFromKeys } from '../../shared/shortcut-keys.ts';
 import { keysOf, type ActiveShortcut } from '../../shared/shortcuts.ts';
-import { useEscapeToClose } from '../shared/escape.ts';
 
 const text = en.shortcuts;
 
@@ -26,7 +25,7 @@ function Keys(props: { readonly accelerator: string; readonly platform: string }
 
 /**
  * Waits for the next key press while `id` is being changed. It listens
- * before anything else, so Escape cancels rather than closing the window.
+ * before anything else, so Escape cancels rather than closing Settings.
  */
 function useKeyCapture(
   id: string | undefined,
@@ -232,9 +231,11 @@ function useShortcuts(api: ChromeApi) {
   return { list, problem, apply };
 }
 
-/** Every keyboard shortcut YapYap answers to on this computer, each one changeable (#75). */
-export function Shortcuts({ api }: { readonly api: ChromeApi }): JSX.Element {
-  useEscapeToClose();
+/**
+ * Settings › Keyboard shortcuts: every shortcut YapYap answers to on this
+ * computer, each one changeable (#75, #685).
+ */
+export function ShortcutsSection({ api }: { readonly api: ChromeApi }): JSX.Element {
   const { list, problem, apply } = useShortcuts(api);
   const [listening, setListening] = useState<string>();
   const onKeys = useCallback(
@@ -254,8 +255,7 @@ export function Shortcuts({ api }: { readonly api: ChromeApi }): JSX.Element {
   );
   useKeyCapture(listening, list?.platform ?? '', onKeys);
   return (
-    <main class="shortcuts">
-      <h1>{text.title}</h1>
+    <>
       <p role="alert">{problem}</p>
       {list === undefined ? null : (
         <>
@@ -263,6 +263,6 @@ export function Shortcuts({ api }: { readonly api: ChromeApi }): JSX.Element {
           <GlobalTable list={list} listening={listening} onChange={setListening} onRemove={reset} />
         </>
       )}
-    </main>
+    </>
   );
 }

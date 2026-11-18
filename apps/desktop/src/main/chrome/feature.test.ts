@@ -251,7 +251,7 @@ describe('createChromeFeature', () => {
     expect(t.deps.setMenu).toHaveBeenCalledTimes(builds + 1);
   });
 
-  it('lists the shortcuts of the platform it runs on', () => {
+  it('opens Settings at its shortcuts from Help, listing those of this platform', () => {
     const t = setup();
     t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
     const help = t.menu().find((menu) => menu.role === 'help');
@@ -259,7 +259,7 @@ describe('createChromeFeature', () => {
       ? help.submenu.find((item) => item.label === 'Keyboard Shortcuts…')
       : undefined;
     (open?.click as (() => void) | undefined)?.();
-    expect(t.window.loadURL).toHaveBeenCalledWith('app://chrome/shortcuts.html');
+    expect(t.window.loadURL).toHaveBeenCalledWith('app://chrome/settings.html#shortcuts');
     const list = t.call('shortcuts:list') as { platform: string; shortcuts: { id: string }[] };
     expect(list.platform).toBe(t.deps.platform);
     expect(list.shortcuts.map((shortcut) => shortcut.id)).toContain('settings');
@@ -285,17 +285,6 @@ describe('createChromeFeature', () => {
       width: 440,
       height: 640,
       ...fixed,
-      show: false,
-    });
-    clickLabel('Keyboard Shortcuts…');
-    expect(lastOptions()).toEqual({
-      autoHideMenuBar: true,
-      title: 'Keyboard Shortcuts',
-      width: 600,
-      height: 640,
-      minWidth: 440,
-      minHeight: 400,
-      minimizable: false,
       show: false,
     });
     clickLabel('Custom CSS and JavaScript…');

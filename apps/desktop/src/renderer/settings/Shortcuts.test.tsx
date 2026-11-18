@@ -2,8 +2,16 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fakeChromeApi } from '../../../test/chrome-api.ts';
+import type { ChromeApi } from '../../shared/api/chrome-api.ts';
 import { shortcutsFor } from '../../shared/shortcuts.ts';
-import { Shortcuts } from './Shortcuts.tsx';
+import { useEscapeToClose } from '../shared/escape.ts';
+import { ShortcutsSection } from './Shortcuts.tsx';
+
+/** The page in a window that closes on Escape, as Settings does. */
+function Shortcuts({ api }: { readonly api: ChromeApi }) {
+  useEscapeToClose();
+  return <ShortcutsSection api={api} />;
+}
 
 const globalOf = (accelerator: string, registered = true) => [
   { id: 'toggleWindow', label: 'Show or hide YapYap, from any app', accelerator, registered },
@@ -107,7 +115,7 @@ describe('changing a shortcut', () => {
     );
   });
 
-  it('keeps the keys, and the window, on Escape, and closes on the next one', async () => {
+  it('keeps the keys, and Settings open, on Escape, and closes on the next one', async () => {
     const yapyap = api('linux');
     const close = vi.spyOn(window, 'close').mockImplementation(() => undefined);
     const escape = () => {
