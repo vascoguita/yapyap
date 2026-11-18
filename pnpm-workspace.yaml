@@ -40,10 +40,3 @@ overrides:
   # YapYap builds no Squirrel.Windows installer (NSIS instead), and this
   # optional peer of electron-builder only brings an old glob and rimraf.
   electron-builder-squirrel-windows: '-'
-auditConfig:
-  ignoreGhsas:
-    # picomatch's ReDoS through single-branch repeated extglobs has no patched
-    # release yet. picomatch reaches YapYap only through build, test, lint and
-    # docs tools, never the packaged app, and only on our own patterns (C52 in
-    # ADR 0008). Remove once a patched picomatch is out (#671).
-    - GHSA-fc5q-39xc-vjpf
