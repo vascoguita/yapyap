@@ -17,15 +17,21 @@ const PAGES = [
   ['Report a Problem…', 'report.html'],
 ] as const;
 
-/** Settings pages that only the message box's right-click menu opens, by their name in Settings. */
-const LISTED: Partial<Record<string, string>> = { 'settings.html#spelling': 'Spelling' };
+/**
+ * Settings pages no menu item opens, which the message box's right-click
+ * menu opens by address. They are reached the same way here: clicking
+ * their entry in Settings' list would start the Tab lap there instead.
+ */
+const BY_ADDRESS: Partial<Record<string, string>> = { 'settings.html#spelling': 'spelling' };
 
 async function openChrome(app: ElectronApplication, label: string, page: string): Promise<Page> {
-  const listed = LISTED[page];
-  const window = await openFromMenu(app, label, listed === undefined ? page : 'settings.html');
+  const hash = BY_ADDRESS[page];
+  const window = await openFromMenu(app, label, hash === undefined ? page : 'settings.html');
   await window.waitForLoadState('load');
-  if (listed !== undefined) {
-    await window.getByRole('navigation').getByRole('button', { name: listed }).click();
+  if (hash !== undefined) {
+    await window.evaluate((name) => {
+      globalThis.location.hash = name;
+    }, hash);
     await window.waitForURL(`app://chrome/${page}`);
   }
   // Parts of a page fill in after it loads; walking or auditing it earlier misses them.
