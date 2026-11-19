@@ -65,7 +65,7 @@ function parse(text: string | undefined): Map<string, string> {
 async function reveal(
   encryption: EncryptionPort,
   stored: string,
-  keepAgain: (result: string) => Promise<void>,
+  keepAgain: (result: string) => Promise<unknown>,
 ): Promise<string | undefined> {
   try {
     const { result, shouldReEncrypt } = await encryption.decryptStringAsync(
@@ -86,6 +86,33 @@ async function reveal(
 const backendOf = (encryption: EncryptionPort, platform: string): string =>
   platform === 'linux' ? encryption.getSelectedStorageBackend() : 'system';
 
+/**
+ * Chromium's tag for data sealed with the key built into every Linux install.
+ * Without a working keyring it falls back to that key while still naming the
+ * keyring as its backend (#717), so only the data tells. macOS and Windows tag
+ * their real keys the same way.
+ */
+const SHARED_KEY_TAG = 'v10';
+
+const sealedWithSharedKey = (sealed: Buffer, platform: string): boolean =>
+  platform === 'linux' && sealed.subarray(0, SHARED_KEY_TAG.length).toString() === SHARED_KEY_TAG;
+
+/** Seals `value` with the system's key; undefined where that key would not protect it. */
+async function sealOf(
+  encryption: EncryptionPort,
+  platform: string,
+  value: string,
+): Promise<Buffer | undefined> {
+  if (
+    !(await encryption.isAsyncEncryptionAvailable()) ||
+    WEAK_BACKENDS.has(backendOf(encryption, platform))
+  ) {
+    return undefined;
+  }
+  const sealed = Buffer.from(await encryption.encryptStringAsync(value));
+  return sealedWithSharedKey(sealed, platform) ? undefined : sealed;
+}
+
 /** Forgets the secrets under a prefix, writing the file only when one was there. */
 function forgetter(secrets: Map<string, string>, save: () => void): SecretStore['forgetAll'] {
   return (prefix) => {
@@ -96,6 +123,24 @@ function forgetter(secrets: Map<string, string>, save: () => void): SecretStore[
     if (names.length > 0) {
       save();
     }
+  };
+}
+
+/** Seals and keeps a secret, writing the file; false where it would not be protected. */
+function keeper(
+  secrets: Map<string, string>,
+  save: () => void,
+  encryption: EncryptionPort,
+  platform: string,
+): (name: string, value: string) => Promise<boolean> {
+  return async (name, value) => {
+    const sealed = await sealOf(encryption, platform, value);
+    if (sealed === undefined) {
+      return false;
+    }
+    secrets.set(name, sealed.toString('base64'));
+    save();
+    return true;
   };
 }
 
@@ -112,18 +157,18 @@ export function openSecretStore(
   const save = (): void => {
     file.write(JSON.stringify({ version: FILE_VERSION, secrets: Object.fromEntries(secrets) }));
   };
-  const canKeep = async (): Promise<boolean> =>
-    (await encryption.isAsyncEncryptionAvailable()) &&
-    !WEAK_BACKENDS.has(backendOf(encryption, platform));
-  const keep = async (name: string, value: string): Promise<void> => {
-    secrets.set(name, Buffer.from(await encryption.encryptStringAsync(value)).toString('base64'));
-    save();
-  };
+  const keep = keeper(secrets, save, encryption, platform);
   return {
-    canKeep,
+    canKeep: async () => (await sealOf(encryption, platform, 'probe')) !== undefined,
     get: async (name) => {
       const stored = secrets.get(name);
       if (stored === undefined || !(await encryption.isAsyncEncryptionAvailable())) {
+        return undefined;
+      }
+      if (sealedWithSharedKey(Buffer.from(stored, 'base64'), platform)) {
+        // Anyone who can read the profile can open it; asking again is safer than using it.
+        secrets.delete(name);
+        save();
         return undefined;
       }
       return reveal(encryption, stored, (result) => keep(name, result));
@@ -134,11 +179,7 @@ export function openSecretStore(
         save();
         return true;
       }
-      if (!(await canKeep())) {
-        return false;
-      }
-      await keep(name, value);
-      return true;
+      return keep(name, value);
     },
     forgetAll: forgetter(secrets, save),
   };

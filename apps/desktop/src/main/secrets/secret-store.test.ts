@@ -4,23 +4,26 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { openSecretStore, secretFileAt } from './secret-store.ts';
 
-/** Reversible stand-in for the keychain; real encryption is the system's job. */
-function encryption(available = true, backend = 'gnome_libsecret') {
+/**
+ * Reversible stand-in for the keychain; real encryption is the system's job.
+ * `tag` starts each ciphertext, as Chromium's version tags do.
+ */
+function encryption(available = true, backend = 'gnome_libsecret', tag = 'sealed:') {
   const keychain = {
     available,
     rotated: false,
     getSelectedStorageBackend: () => backend,
     isAsyncEncryptionAvailable: () => Promise.resolve(keychain.available),
     encryptStringAsync: vi.fn((plainText: string) =>
-      Promise.resolve(Buffer.from(`sealed:${plainText}`)),
+      Promise.resolve(Buffer.from(`${tag}${plainText}`)),
     ),
     decryptStringAsync: (encrypted: Buffer) => {
       const text = encrypted.toString();
-      if (!text.startsWith('sealed:')) {
+      if (!text.startsWith(tag)) {
         return Promise.reject(new Error('Wrong key.'));
       }
       return Promise.resolve({
-        result: text.slice('sealed:'.length),
+        result: text.slice(tag.length),
         shouldReEncrypt: keychain.rotated,
       });
     },
@@ -89,6 +92,35 @@ describe('openSecretStore', () => {
     expect(await store.set('proxy', 'x')).toBe(false);
     expect(file.text).toBeUndefined();
     expect(await store.set('proxy', undefined)).toBe(true);
+  });
+
+  it('keeps nothing on Linux under the key every Chromium shares, whatever the backend says', async () => {
+    const file = memoryFile();
+    const shared = openSecretStore(file, encryption(true, 'gnome_libsecret', 'v10'), 'linux');
+    expect(await shared.canKeep()).toBe(false);
+    expect(await shared.set('proxy', 'hunter2')).toBe(false);
+    expect(file.text).toBeUndefined();
+    for (const platform of ['darwin', 'win32']) {
+      const store = openSecretStore(memoryFile(), encryption(true, 'system', 'v10'), platform);
+      expect(await store.canKeep()).toBe(true);
+      expect(await store.set('proxy', 'hunter2')).toBe(true);
+      expect(await store.get('proxy')).toBe('hunter2');
+    }
+  });
+
+  it('forgets a secret kept under the shared key on Linux rather than using it', async () => {
+    const kept = (): string =>
+      JSON.stringify({
+        version: 1,
+        secrets: { proxy: Buffer.from('v10hunter2').toString('base64') },
+      });
+    const file = memoryFile(kept());
+    const keychain = encryption(true, 'gnome_libsecret', 'v10');
+    expect(await openSecretStore(file, keychain, 'linux').get('proxy')).toBeUndefined();
+    expect(file.text).toBe('{"version":1,"secrets":{}}');
+    expect(await openSecretStore(memoryFile(kept()), keychain, 'darwin').get('proxy')).toBe(
+      'hunter2',
+    );
   });
 
   it('gives nothing back once the system can no longer decrypt', async () => {
