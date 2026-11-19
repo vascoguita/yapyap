@@ -48,7 +48,7 @@ function parse(text: string | undefined): Map<string, string> {
   try {
     const parsed = JSON.parse(text ?? '{}') as { version?: unknown; secrets?: unknown };
     const secrets = parsed.version === FILE_VERSION ? parsed.secrets : undefined;
-    if (typeof secrets !== 'object' || secrets === null) {
+    if (!(secrets instanceof Object)) {
       return new Map();
     }
     return new Map(
@@ -83,8 +83,8 @@ async function reveal(
 }
 
 /** Only Linux has backends of different strength to tell apart. */
-const backendOf = (encryption: EncryptionPort, platform: string): string =>
-  platform === 'linux' ? encryption.getSelectedStorageBackend() : 'system';
+const weakBackend = (encryption: EncryptionPort, platform: string): boolean =>
+  platform === 'linux' && WEAK_BACKENDS.has(encryption.getSelectedStorageBackend());
 
 /**
  * Chromium's tag for data sealed with the key built into every Linux install.
@@ -103,10 +103,7 @@ async function sealOf(
   platform: string,
   value: string,
 ): Promise<Buffer | undefined> {
-  if (
-    !(await encryption.isAsyncEncryptionAvailable()) ||
-    WEAK_BACKENDS.has(backendOf(encryption, platform))
-  ) {
+  if (!(await encryption.isAsyncEncryptionAvailable()) || weakBackend(encryption, platform)) {
     return undefined;
   }
   const sealed = Buffer.from(await encryption.encryptStringAsync(value));

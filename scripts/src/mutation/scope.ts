@@ -2,8 +2,8 @@ import { matchesGlob } from 'node:path';
 
 /**
  * Modules whose tests must kill at least 90% of mutants (ADR 0005): the
- * WhatsApp adapter, settings and AI providers, plus other security-sensitive
- * parsers.
+ * WhatsApp adapter, settings, the secret store and AI providers, plus other
+ * security-sensitive parsers.
  */
 export const MUTATION_SCOPE: readonly string[] = [
   'apps/desktop/src/adapter/**/*.ts',
@@ -21,6 +21,7 @@ export const MUTATION_SCOPE: readonly string[] = [
   'apps/desktop/src/main/navigation/**/*.ts',
   'apps/desktop/src/main/permissions/**/*.ts',
   'apps/desktop/src/main/recovery/**/*.ts',
+  'apps/desktop/src/main/secrets/**/*.ts',
   'apps/desktop/src/main/settings/**/*.ts',
   'apps/desktop/src/main/updates/**/*.ts',
   'apps/desktop/src/main/security/security.ts',
