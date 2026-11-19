@@ -68,6 +68,10 @@ describe('recordTrace', () => {
     );
   });
 
+  it('samples JavaScript call stacks, so a slow script shows its functions', () => {
+    expect(TRACE_CATEGORIES).toContain('disabled-by-default-v8.cpu_profiler');
+  });
+
   it('leaves memory dumps and screenshots out', () => {
     expect(TRACE_CATEGORIES.some((category) => /memory|screenshot/.test(category))).toBe(false);
   });

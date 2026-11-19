@@ -54,7 +54,9 @@ YapYap never logs message content. Read it before you share it.
 If YapYap is slow and the log does not say why, choose **Record a
 Performance Trace…** in **Help → Report a Problem…**. After you agree and
 choose where to save it, YapYap records for 10 seconds where its time
-goes, so do whatever is slow during that time. The trace holds the addresses of the pages and files YapYap
-loads, but no messages, memory dumps or screenshots. It opens in the
+goes, so do whatever is slow during that time. The trace holds the
+addresses of the pages and files YapYap loads, and which parts of their
+code ran (the names of their functions, so a slow script shows what it was
+doing), but no messages, memory dumps or screenshots. It opens in the
 Perfetto trace viewer, and YapYap sends it nowhere; attach it to a bug
 report only if you choose to.
