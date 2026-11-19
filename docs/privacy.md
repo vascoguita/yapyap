@@ -18,7 +18,7 @@ browser. YapYap does not read, copy or upload them.
 - **No hidden downloads.** Chromium normally fetches a spelling dictionary
   from Google whenever a window opens, which tells Google your language and
   your IP address. YapYap stops that, so spell checking is off until you
-  turn it on under Settings → General. Then, on Windows and Linux,
+  turn it on under Settings → Spelling. Then, on Windows and Linux,
   Chromium downloads the dictionary for your language from Google once;
   macOS uses its own spell checker and downloads nothing. Words you add to
   the dictionary stay in YapYap's data folder.

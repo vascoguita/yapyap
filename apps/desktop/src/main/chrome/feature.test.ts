@@ -309,19 +309,6 @@ describe('createChromeFeature', () => {
       maximizable: false,
       show: false,
     });
-    (runtime.openSpellingLanguages as (clicked: unknown) => void)({ label: 'Languages…' });
-    expect(t.window.loadURL).toHaveBeenLastCalledWith('app://chrome/spelling-languages.html');
-    expect(lastOptions()).toEqual({
-      autoHideMenuBar: true,
-      title: 'Spelling Languages',
-      width: 600,
-      height: 640,
-      minWidth: 440,
-      minHeight: 400,
-      minimizable: false,
-      maximizable: false,
-      show: false,
-    });
     clickLabel('Downloads…');
     expect(lastOptions()).toEqual({
       autoHideMenuBar: true,
@@ -769,6 +756,13 @@ describe('createChromeFeature', () => {
     expect(t.menu().map((entry) => entry.label ?? entry.role)).not.toContain('A&ssistant');
     runtime.openAssistantSettings();
     expect(t.window.loadURL).toHaveBeenCalledWith('app://chrome/settings.html#assistant');
+  });
+
+  it('opens Settings at the Spelling page, for the right-click menu’s languages', () => {
+    const t = setup();
+    const runtime = t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    runtime.openSpellingSettings();
+    expect(t.window.loadURL).toHaveBeenCalledWith('app://chrome/settings.html#spelling');
   });
 
   it('opens the Accounts window from the Account menu, listing the current accounts', () => {

@@ -86,6 +86,7 @@
       "general": "General",
       "appearance": "Appearance",
       "notifications": "Notifications & privacy",
+      "spelling": "Spelling",
       "downloads": "Downloads",
       "shortcuts": "Keyboard shortcuts",
       "assistant": "AI Assistant",
@@ -97,13 +98,14 @@
     "advancedIntro": "Change these only if you have a problem. Most need a restart.",
     "groups": {
       "startup": "Startup",
-      "writing": "Writing",
       "updates": "Updates",
       "look": "Look",
       "window": "Window",
       "notifications": "Notifications",
       "screenPrivacy": "Screen privacy",
       "crashReports": "Crash reports",
+      "spellChecking": "Spell checking",
+      "spellingLanguages": "Languages",
       "savingFiles": "Saving files",
       "afterDownloading": "After downloading",
       "proxy": "Proxy",
@@ -218,7 +220,7 @@
       "spelling": {
         "enabled": {
           "label": "Check spelling",
-          "description": "Underline misspelled words as you type, in your system’s language. On Windows and Linux, turning this on downloads that language’s dictionary from Google once."
+          "description": "Underline misspelled words as you type. On Windows and Linux, each language’s dictionary is downloaded from Google the first time it is used."
         }
       },
       "appearance": {
@@ -809,15 +811,15 @@
     }
   },
   "spellingLanguages": {
-    "title": "Spelling languages",
-    "search": "Search languages",
-    "off": "Spell checking is off. Turn it on in Settings → General; the languages you choose here apply once it is on.",
-    "download": "On Windows and Linux, each language’s dictionary is downloaded from Google the first time it is used.",
-    "system": "Checking your system’s language: {{names}}.",
-    "noSystem": "No dictionary matches your system’s language. Choose one below.",
-    "chosen": "{{count}} of {{max}} chosen.",
+    "system": "Your system’s language: {{names}}",
+    "systemHint": "Or choose up to {{max}} languages below.",
+    "noSystem": "No dictionary for your system’s language",
+    "noSystemHint": "Choose up to {{max}} languages below.",
+    "chosen": "{{count}} of {{max}} languages chosen",
     "useSystem": "Use System Language",
+    "search": "Search languages",
     "noMatch": "No language matches your search.",
+    "macosLabel": "Chosen by macOS",
     "macos": "macOS checks spelling in the languages chosen in System Settings → Keyboard → Text Input."
   },
   "contextMenu": {
@@ -885,7 +887,6 @@
     "about": "About YapYap",
     "settings": "YapYap Settings",
     "picker": "Choose What to Share",
-    "spellingLanguages": "Spelling Languages",
     "accounts": "Accounts",
     "customCode": "Custom CSS and JavaScript",
     "downloads": "Downloads",

@@ -98,16 +98,6 @@ const PICKER_PAGE: ChromePage = {
   },
 };
 
-const SPELLING_LANGUAGES_PAGE: ChromePage = {
-  path: 'spelling-languages.html',
-  window: {
-    title: en.windows.spellingLanguages,
-    ...WINDOW_SIZES.medium,
-    minimizable: false,
-    maximizable: false,
-  },
-};
-
 const ACCOUNTS_PAGE: ChromePage = {
   path: 'accounts.html',
   window: {
@@ -230,7 +220,8 @@ export interface ChromeRuntime {
   readonly openAssistantSettings: () => void;
   /** The first launch's welcome (#84). */
   readonly openWelcome: () => void;
-  readonly openSpellingLanguages: () => void;
+  /** Settings at its Spelling page, for the message box's right-click menu. */
+  readonly openSpellingSettings: () => void;
   /** Asks the user to sign in to a proxy, one proxy at a time (#76). */
   readonly askProxyLogin: ProxyLoginPrompt['ask'];
   /** Docks the account sidebar; returns how to show it the accounts. */
@@ -648,6 +639,8 @@ function standbyWindows(
   openAssistantSettings: () => void;
   /** The same window, at its Keyboard shortcuts page, which Help opens. */
   openShortcuts: () => void;
+  /** The same window, at its Spelling page, which the right-click menu opens. */
+  openSpellingSettings: () => void;
   proxyLogin: ProxyLoginPrompt;
 } {
   const settingsOpener = chromeWindowOpener(windows, SETTINGS_PAGE);
@@ -661,6 +654,9 @@ function standbyWindows(
     openAssistantSettings,
     openShortcuts: () => {
       settingsOpener('shortcuts');
+    },
+    openSpellingSettings: () => {
+      settingsOpener('spelling');
     },
     assistant: assistantOf(deps, windows, accounts, openAssistantSettings),
     proxyLogin: createProxyLoginPrompt(() => openPromptWindow(windows, PROXY_LOGIN_PAGE)),
@@ -707,7 +703,7 @@ function startChrome(
     openSettings: openers.openSettings,
     openAssistantSettings: standby.openAssistantSettings,
     openWelcome: plainOpener(windows, WELCOME_PAGE),
-    openSpellingLanguages: plainOpener(windows, SPELLING_LANGUAGES_PAGE),
+    openSpellingSettings: standby.openSpellingSettings,
     askProxyLogin: standby.proxyLogin.ask,
     attachSidebar: (create) => attachSidebar(create(renderer), views, sidebar, warn),
     attachAssistantBar: standby.assistant.attachBar,

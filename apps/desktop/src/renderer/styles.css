@@ -923,8 +923,7 @@ main.welcome .option .hint {
 
 /* A list of things in a window, drawn as a card of rows, as Settings draws its settings. */
 .page-shortcuts table,
-main.downloads ul,
-ul.languages {
+main.downloads ul {
   box-sizing: border-box;
   inline-size: 100%;
   margin: 0;
@@ -1064,7 +1063,10 @@ main.downloads ul:empty {
   display: none;
 }
 
-/* Spelling languages: each language a row, with its checkbox, its own name and its English one. */
+/*
+ * Settings › Spelling's languages: each a row of the card, with its
+ * checkbox, its own name and its English one.
+ */
 ul.languages {
   flex-direction: column;
   flex-wrap: nowrap;
@@ -1088,16 +1090,14 @@ ul.languages label .hint {
   margin-inline-start: auto;
 }
 
-main.spelling-languages .summary {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
+/* Faded like a dimmed row, by color rather than opacity, for the same contrast. */
+ul.languages.dimmed label > span {
+  color: var(--muted);
 }
 
-main.spelling-languages input[type='search'] {
-  inline-size: 100%;
+.spelling-search input[type='search'] {
+  flex: 1;
+  min-inline-size: 0;
 }
 
 /*
@@ -1203,8 +1203,12 @@ main.spelling-languages input[type='search'] {
   gap: 6px;
 }
 
-.row.dimmed .row-text {
-  opacity: 0.65;
+/*
+ * A row that matters less right now: its name takes the hint's color, which
+ * keeps both at AA contrast, as an opacity would not on a control still in use.
+ */
+.row.dimmed .row-label {
+  color: var(--muted);
 }
 
 .row-text {

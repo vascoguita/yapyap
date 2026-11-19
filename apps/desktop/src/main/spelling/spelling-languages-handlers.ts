@@ -9,7 +9,7 @@ import { spellingLanguagesOf } from './spelling.ts';
 import { argumentsOf, noArguments } from '../ipc/arguments.ts';
 import type { ChromeHandler } from '../ipc/chrome.ts';
 
-/** Where the window's languages come from. */
+/** Where Settings' languages come from. */
 export interface SpellingSources {
   /** The languages Chromium has dictionaries for; empty on macOS. */
   readonly available: () => readonly string[];
@@ -19,9 +19,8 @@ export interface SpellingSources {
 
 function snapshotOf(settings: Settings, sources: SpellingSources): SpellingLanguages {
   const available = sources.available();
-  const { enabled, languages } = settings.spelling;
+  const { languages } = settings.spelling;
   return {
-    enabled,
     available,
     chosen: languages,
     inUse: spellingLanguagesOf(languages, sources.system(), available),
@@ -38,7 +37,7 @@ function acceptsLanguages(languages: unknown, available: readonly string[]): boo
   );
 }
 
-/** The Spelling Languages window's operations (#73). */
+/** Settings › Spelling's operations on the languages (#73). */
 export function spellingHandlers(
   settings: Pick<SettingsService, 'current' | 'update'>,
   sources: SpellingSources,

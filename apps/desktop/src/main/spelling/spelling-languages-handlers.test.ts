@@ -51,7 +51,6 @@ describe('spellingHandlers', () => {
     expect(languages.accepts([])).toBe(true);
     expect(languages.accepts(['extra'])).toBe(false);
     expect(languages.handle(call)).toEqual({
-      enabled: true,
       available: AVAILABLE,
       chosen: [],
       inUse: ['en-GB'],

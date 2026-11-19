@@ -59,8 +59,7 @@ export function contextMenuFor<Window extends WindowPort>(
         spelling: { ...current.spelling, enabled: false },
       }));
     },
-    openSettings: chrome.openSettings,
-    openLanguages: chrome.openSpellingLanguages,
+    openSpellingSettings: chrome.openSpellingSettings,
   };
   attachContextMenu(contents, actions, deps.contextMenu);
 }

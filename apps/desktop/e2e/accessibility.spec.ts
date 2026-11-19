@@ -9,6 +9,7 @@ import { expect, test, whatsAppPage } from './fixtures.ts';
 const PAGES = [
   ['About YapYap', 'about.html'],
   ['Settings…', 'settings.html'],
+  ['Settings…', 'settings.html#spelling'],
   ['Manage Accounts…', 'accounts.html'],
   ['Custom CSS and JavaScript…', 'custom-code.html'],
   ['Keyboard Shortcuts…', 'settings.html#shortcuts'],
@@ -16,9 +17,23 @@ const PAGES = [
   ['Report a Problem…', 'report.html'],
 ] as const;
 
+/**
+ * Settings pages no menu item opens, which the message box's right-click
+ * menu opens by address. They are reached the same way here: clicking
+ * their entry in Settings' list would start the Tab lap there instead.
+ */
+const BY_ADDRESS: Partial<Record<string, string>> = { 'settings.html#spelling': 'spelling' };
+
 async function openChrome(app: ElectronApplication, label: string, page: string): Promise<Page> {
-  const window = await openFromMenu(app, label, page);
+  const hash = BY_ADDRESS[page];
+  const window = await openFromMenu(app, label, hash === undefined ? page : 'settings.html');
   await window.waitForLoadState('load');
+  if (hash !== undefined) {
+    await window.evaluate((name) => {
+      globalThis.location.hash = name;
+    }, hash);
+    await window.waitForURL(`app://chrome/${page}`);
+  }
   // Parts of a page fill in after it loads; walking or auditing it earlier misses them.
   await expect(window.locator('main')).toBeAttached();
   await expect(window.locator('[aria-busy="true"]')).toHaveCount(0);

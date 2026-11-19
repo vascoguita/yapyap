@@ -10,7 +10,6 @@ import { Recovery } from '../recovery/Recovery.tsx';
 import { ProblemReport } from '../report/ProblemReport.tsx';
 import { Settings } from '../settings/Settings.tsx';
 import { Sidebar } from '../sidebar/Sidebar.tsx';
-import { SpellingLanguagesPage } from '../spelling-languages/SpellingLanguages.tsx';
 import { Welcome } from '../welcome/Welcome.tsx';
 import { mount } from './mount.tsx';
 
@@ -46,12 +45,6 @@ const ENTRIES = [
   ['report', () => import('../report/main.tsx'), ProblemReport, { title: windows.report }],
   ['settings', () => import('../settings/main.tsx'), Settings, { title: windows.settings }],
   ['sidebar', () => import('../sidebar/main.tsx'), Sidebar, undefined],
-  [
-    'spelling languages',
-    () => import('../spelling-languages/main.tsx'),
-    SpellingLanguagesPage,
-    { title: windows.spellingLanguages },
-  ],
   ['welcome', () => import('../welcome/main.tsx'), Welcome, { title: windows.welcome }],
 ] as const;
 

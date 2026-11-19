@@ -2,8 +2,8 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fakeChromeApi } from '../../../test/chrome-api.ts';
-import type { SpellingLanguages } from '../../shared/api/chrome-api.ts';
-import { languageNames, SpellingLanguagesPage } from './SpellingLanguages.tsx';
+import type { SettingsSnapshot, SpellingLanguages } from '../../shared/api/chrome-api.ts';
+import { languageNames, SpellingSection } from './Spelling.tsx';
 
 const AVAILABLE = [
   'da',
@@ -22,7 +22,6 @@ const AVAILABLE = [
 
 function api(initial: Partial<SpellingLanguages>) {
   let state: SpellingLanguages = {
-    enabled: true,
     available: AVAILABLE,
     chosen: [],
     inUse: ['en-GB'],
@@ -33,6 +32,18 @@ function api(initial: Partial<SpellingLanguages>) {
     return Promise.resolve(state);
   });
   return fakeChromeApi({ spelling: { languages: vi.fn(() => Promise.resolve(state)), choose } });
+}
+
+const snapshot = (enabled = true): SettingsSnapshot => ({
+  values: { 'spelling.enabled': enabled },
+  restartPending: false,
+  problems: {},
+});
+
+function show(yapyap: ReturnType<typeof api>, enabled = true) {
+  const onChange = vi.fn();
+  render(<SpellingSection api={yapyap} snapshot={snapshot(enabled)} onChange={onChange} />);
+  return onChange;
 }
 
 const box = (name: string) =>
@@ -48,23 +59,31 @@ describe('languageNames', () => {
   });
 });
 
-describe('SpellingLanguagesPage', () => {
+describe('SpellingSection', () => {
   afterEach(() => {
     cleanup();
   });
 
+  it('turns spell checking on and off from its switch', async () => {
+    const onChange = show(api({}), false);
+    fireEvent.click(await screen.findByRole('switch', { name: 'Check spelling' }));
+    expect(onChange).toHaveBeenCalledExactlyOnceWith('spelling.enabled', true);
+  });
+
   it('checks the system language until the user picks others, and can go back to it', async () => {
     const yapyap = api({});
-    render(<SpellingLanguagesPage api={yapyap} />);
+    show(yapyap);
     expect(
-      await screen.findByText('Checking your system’s language: English (United Kingdom).'),
+      await screen.findByText('Your system’s language: English (United Kingdom)'),
     ).toBeTruthy();
+    expect(screen.getByText('Or choose up to 10 languages below.')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Use System Language' })).toBeNull();
     fireEvent.click(box('português'));
     await waitFor(() => {
       expect(box('português').checked).toBe(true);
     });
     expect(yapyap.spelling.choose).toHaveBeenLastCalledWith(['pt-PT']);
-    expect(screen.getByText(/1 of 10 chosen\./)).toBeTruthy();
+    expect(screen.getByText('1 of 10 languages chosen')).toBeTruthy();
     fireEvent.click(box('Deutsch'));
     await waitFor(() => {
       expect(yapyap.spelling.choose).toHaveBeenLastCalledWith(['pt-PT', 'de-DE']);
@@ -80,7 +99,7 @@ describe('SpellingLanguagesPage', () => {
   });
 
   it('finds a language by its own name, its English name or its code, ignoring accents', async () => {
-    render(<SpellingLanguagesPage api={api({})} />);
+    show(api({}));
     const search = await screen.findByRole('searchbox', { name: 'Search languages' });
     fireEvent.input(search, { target: { value: 'portugues' } });
     expect(
@@ -96,23 +115,39 @@ describe('SpellingLanguagesPage', () => {
 
   it('lists the chosen languages first and stops at ten', async () => {
     const chosen = AVAILABLE.slice(2, 12);
-    render(<SpellingLanguagesPage api={api({ chosen, inUse: chosen })} />);
+    show(api({ chosen, inUse: chosen }));
     const boxes = await screen.findAllByRole<HTMLInputElement>('checkbox');
     expect(boxes.slice(0, 10).every((input) => input.checked && !input.disabled)).toBe(true);
     expect(boxes.slice(10).every((input) => !input.checked && input.disabled)).toBe(true);
   });
 
-  it('says when spelling is off or no dictionary fits the system', async () => {
-    render(<SpellingLanguagesPage api={api({ enabled: false, inUse: [] })} />);
-    expect(await screen.findByText(/Spell checking is off\./)).toBeTruthy();
-    expect(
-      screen.getByText('No dictionary matches your system’s language. Choose one below.'),
-    ).toBeTruthy();
+  it('fades the languages while spell checking is off, and says when no dictionary fits', async () => {
+    show(api({ inUse: [] }), false);
+    const summary = await screen.findByText('No dictionary for your system’s language');
+    expect(screen.getByText('Choose up to 10 languages below.')).toBeTruthy();
+    expect(summary.closest('.row')?.classList.contains('dimmed')).toBe(true);
+    expect(screen.getByRole('list').classList.contains('dimmed')).toBe(true);
+    expect(box('português').disabled).toBe(false);
+  });
+
+  it('shows the languages at full strength while spell checking is on', async () => {
+    show(api({}));
+    const summary = await screen.findByText(/Your system’s language/);
+    expect(summary.closest('.row')?.classList.contains('dimmed')).toBe(false);
+    expect(screen.getByRole('list').classList.contains('dimmed')).toBe(false);
   });
 
   it('leaves languages to macOS, which lists none', async () => {
-    render(<SpellingLanguagesPage api={api({ available: [], inUse: [] })} />);
-    expect(await screen.findByText(/macOS checks spelling/)).toBeTruthy();
+    show(api({ available: [], inUse: [] }), false);
+    const note = await screen.findByText(/macOS checks spelling/);
+    expect(screen.getByText('Chosen by macOS')).toBeTruthy();
+    expect(note.closest('.row')?.classList.contains('dimmed')).toBe(true);
     expect(screen.queryByRole('searchbox')).toBeNull();
+  });
+
+  it('shows the macOS note at full strength while spell checking is on', async () => {
+    show(api({ available: [], inUse: [] }));
+    const note = await screen.findByText(/macOS checks spelling/);
+    expect(note.closest('.row')?.classList.contains('dimmed')).toBe(false);
   });
 });

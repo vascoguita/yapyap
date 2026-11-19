@@ -81,6 +81,7 @@ export interface Messages {
       readonly general: string;
       readonly appearance: string;
       readonly notifications: string;
+      readonly spelling: string;
       readonly downloads: string;
       readonly shortcuts: string;
       readonly assistant: string;
@@ -92,13 +93,14 @@ export interface Messages {
     readonly advancedIntro: string;
     readonly groups: {
       readonly startup: string;
-      readonly writing: string;
       readonly updates: string;
       readonly look: string;
       readonly window: string;
       readonly notifications: string;
       readonly screenPrivacy: string;
       readonly crashReports: string;
+      readonly spellChecking: string;
+      readonly spellingLanguages: string;
       readonly savingFiles: string;
       readonly afterDownloading: string;
       readonly proxy: string;
@@ -741,15 +743,15 @@ export interface Messages {
     };
   };
   readonly spellingLanguages: {
-    readonly title: string;
-    readonly search: string;
-    readonly off: string;
-    readonly download: string;
     readonly system: (params: { readonly names: string | number }) => string;
+    readonly systemHint: (params: { readonly max: string | number }) => string;
     readonly noSystem: string;
+    readonly noSystemHint: (params: { readonly max: string | number }) => string;
     readonly chosen: (params: { readonly count: number; readonly max: string | number }) => string;
     readonly useSystem: string;
+    readonly search: string;
     readonly noMatch: string;
+    readonly macosLabel: string;
     readonly macos: string;
   };
   readonly contextMenu: {
@@ -813,7 +815,6 @@ export interface Messages {
     readonly about: string;
     readonly settings: string;
     readonly picker: string;
-    readonly spellingLanguages: string;
     readonly accounts: string;
     readonly customCode: string;
     readonly downloads: string;

@@ -38,8 +38,9 @@ function api(overrides: Partial<ChromeApi['settings']> = {}, first = snapshot())
       chooseFolder: vi.fn(() => Promise.resolve()),
       ...overrides,
     },
-    // Keyboard shortcuts has tests of its own, in Shortcuts.test.tsx.
+    // Keyboard shortcuts and the spelling languages have tests of their own.
     shortcuts: { list: vi.fn(() => new Promise<never>(() => undefined)), set: vi.fn() },
+    spelling: { languages: vi.fn(() => new Promise<never>(() => undefined)), choose: vi.fn() },
   });
 }
 
@@ -89,6 +90,7 @@ describe('Settings', () => {
   it('opens General first, with every page beside it, the advanced ones apart', async () => {
     const values = {
       'general.autostart': false,
+      'spelling.enabled': false,
       'assistant.enabled': true,
       'agents.enabled': false,
       'privacy.crashReports': 'off',
@@ -109,6 +111,7 @@ describe('Settings', () => {
       'General',
       'Appearance',
       'Notifications & privacy',
+      'Spelling',
       'Downloads',
       'Keyboard shortcuts',
       'AI Assistant',
@@ -120,7 +123,15 @@ describe('Settings', () => {
     expect(nav().querySelector('li.apart')?.textContent).toBe('Advanced');
     expect(screen.getByRole('group', { name: 'Startup' })).toBeTruthy();
     // A group with no setting on this platform is left out.
-    expect(screen.queryByRole('group', { name: 'Writing' })).toBeNull();
+    expect(screen.queryByRole('group', { name: 'Updates' })).toBeNull();
+  });
+
+  it('keeps spell checking and its languages on a page of their own', async () => {
+    window.history.replaceState(null, '', '#spelling');
+    render(<Settings api={api({}, snapshot({ values: { 'spelling.enabled': true } }))} />);
+    expect(await screen.findByRole('switch', { name: 'Check spelling' })).toBeTruthy();
+    expect(title()).toBe('Spelling');
+    expect(screen.getByRole('group', { name: 'Spell checking' })).toBeTruthy();
   });
 
   it('opens at the page the address names, and follows the address after', async () => {

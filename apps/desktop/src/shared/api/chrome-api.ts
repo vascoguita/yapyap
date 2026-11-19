@@ -281,9 +281,8 @@ export interface ShortcutChange extends ShortcutList {
 /** How many spelling languages can be on at once; each one is a dictionary to load. */
 export const MAX_SPELLING_LANGUAGES = 10;
 
-/** What the Spelling Languages window shows. */
+/** What Settings › Spelling shows of the languages. */
 export interface SpellingLanguages {
-  readonly enabled: boolean;
   /** The languages with a dictionary; empty on macOS, which picks languages itself. */
   readonly available: readonly string[];
   readonly chosen: readonly string[];
