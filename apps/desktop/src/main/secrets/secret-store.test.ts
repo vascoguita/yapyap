@@ -84,9 +84,15 @@ describe('openSecretStore', () => {
 
   it('keeps nothing without real encryption, but can still forget', async () => {
     const file = memoryFile();
+    for (const backend of ['basic_text', 'unknown']) {
+      expect(
+        await openSecretStore(file, encryption(true, backend), 'linux').set('proxy', 'x'),
+      ).toBe(false);
+    }
+    // Only Linux names its backends; elsewhere the name says nothing about strength.
     expect(
-      await openSecretStore(file, encryption(true, 'basic_text'), 'linux').set('proxy', 'x'),
-    ).toBe(false);
+      await openSecretStore(memoryFile(), encryption(true, 'unknown'), 'darwin').canKeep(),
+    ).toBe(true);
     const store = openSecretStore(file, encryption(false), 'darwin');
     expect(await store.canKeep()).toBe(false);
     expect(await store.set('proxy', 'x')).toBe(false);
@@ -148,6 +154,17 @@ describe('openSecretStore', () => {
         await openSecretStore(memoryFile(text), encryption(), 'darwin').get('a'),
       ).toBeUndefined();
     }
+    const sealed = Buffer.from('sealed:x').toString('base64');
+    const foreign = JSON.stringify({ version: 2, secrets: { a: sealed } });
+    expect(
+      await openSecretStore(memoryFile(foreign), encryption(), 'darwin').get('a'),
+    ).toBeUndefined();
+    // A list of characters is not a map of secrets, and is not written back as one.
+    const text = memoryFile('{"version":1,"secrets":"ab"}');
+    await openSecretStore(text, encryption(), 'darwin').set('proxy', 'x');
+    expect(Object.keys((JSON.parse(text.text ?? '') as { secrets: object }).secrets)).toEqual([
+      'proxy',
+    ]);
     const mixed = memoryFile(
       JSON.stringify({
         version: 1,
