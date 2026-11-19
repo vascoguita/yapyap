@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { followOpenChat, LOOK_EVERY_MS } from './auto-suggest.ts';
+import { followOpenChat, GIVE_UP_AFTER, LOOK_EVERY_MS } from './auto-suggest.ts';
 
 /** A page whose probe answers with what `answer` says now. */
 function fakePage(first: unknown) {
@@ -202,5 +202,60 @@ describe('followOpenChat', () => {
       tick?.();
       expect(t.page().executeJavaScriptInIsolatedWorld).toHaveBeenCalledTimes(2);
     });
+  });
+
+  it('gives up on a look the page never answers, and ignores its answer if it comes late', async () => {
+    let finish: (value: unknown) => void = () => undefined;
+    const t = setup();
+    t.page().executeJavaScriptInIsolatedWorld.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    expect(t.looked()).toBe(true);
+    for (let turn = 1; turn <= GIVE_UP_AFTER; turn += 1) {
+      expect(t.looked()).toBe(false);
+    }
+    await t.look();
+    expect(t.deps.found).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000001');
+    // The stuck look's answer, a chat that is no longer open, comes in too late to count.
+    finish('bbbbbbbb:00000002:-:i:e');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(t.deps.opened).not.toHaveBeenCalled();
+    expect(t.looked()).toBe(true);
+  });
+
+  it('keeps looking once at a time after the stuck look ends late', async () => {
+    let finish: (value: unknown) => void = () => undefined;
+    let finishNext: (value: unknown) => void = () => undefined;
+    const t = setup();
+    t.page()
+      .executeJavaScriptInIsolatedWorld.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finish = resolve;
+          }),
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finishNext = resolve;
+          }),
+      );
+    t.looked();
+    for (let turn = 1; turn <= GIVE_UP_AFTER; turn += 1) {
+      t.looked();
+    }
+    expect(t.looked()).toBe(true);
+    // The first look ending must not let a third start while the second still waits.
+    finish('aaaaaaaa:00000001:-:i:e');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(t.looked()).toBe(false);
+    finishNext('aaaaaaaa:00000001:-:i:e');
+    await vi.waitFor(() => {
+      expect(t.deps.found).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000001');
+    });
+    expect(t.looked()).toBe(true);
   });
 });
