@@ -4,6 +4,13 @@ import { NEWEST_MESSAGES, parseNewest, type Newest } from '../../adapter/incomin
 /** How often the open chat is looked at while the assistant shows. */
 export const LOOK_EVERY_MS = 1500;
 
+/**
+ * How many turns a look may wait for the page before the next one starts
+ * anyway, about six seconds. A page can leave a call unanswered, as when it
+ * reloads mid-call, and the follow must not wait for it forever (#721).
+ */
+export const GIVE_UP_AFTER = 4;
+
 export interface ChatWatchDependencies {
   /** The WhatsApp page of the account on screen. */
   readonly activePage: () => AdapterPage;
@@ -87,11 +94,15 @@ function compare(before: Seen | undefined, now: Seen, deps: ChatWatchDependencie
  */
 export function followOpenChat(deps: ChatWatchDependencies): void {
   let seen: Seen | undefined;
-  let looking = false;
-  const look = async (): Promise<void> => {
+  // Looks are numbered as they start; `current` is the one under way, 0 while none is.
+  let started = 0;
+  let current = 0;
+  let waited = 0;
+  const look = async (number: number): Promise<void> => {
     const page = deps.activePage();
     const newest = parseNewest(await runInAdapterWorld(page, NEWEST_MESSAGES));
-    if (newest === undefined) {
+    // An answer that came after the look was given up on is stale.
+    if (newest === undefined || number !== current) {
       return;
     }
     const now = { page, newest };
@@ -99,16 +110,25 @@ export function followOpenChat(deps: ChatWatchDependencies): void {
     seen = now;
     compare(before, now, deps);
   };
+  const busy = (): boolean => {
+    waited += 1;
+    return current !== 0 && waited <= GIVE_UP_AFTER;
+  };
   deps.every(() => {
-    if (looking || !deps.enabled() || (seen !== undefined && !deps.onScreen())) {
+    if (busy() || !deps.enabled() || (seen !== undefined && !deps.onScreen())) {
       return;
     }
-    looking = true;
+    started += 1;
+    const number = started;
+    current = number;
+    waited = 0;
     // A page between loads cannot answer; the next look tries again.
-    look()
+    look(number)
       .catch(() => undefined)
       .finally(() => {
-        looking = false;
+        if (current === number) {
+          current = 0;
+        }
       });
   }, LOOK_EVERY_MS);
 }
