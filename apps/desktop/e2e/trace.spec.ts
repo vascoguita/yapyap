@@ -24,6 +24,8 @@ test('records a performance trace where the user chose, once they agree', async 
   await expect(async () => {
     expect(await trace()).toContain('toplevel');
   }).toPass({ timeout: 30_000 });
+  // V8's sampled call stacks, which let a viewer show which functions ran (#697).
+  expect(await trace()).toContain('ProfileChunk');
   await expect(async () => {
     expect(
       await app.evaluate(() => (globalThis as { traceMessages?: string[] }).traceMessages),

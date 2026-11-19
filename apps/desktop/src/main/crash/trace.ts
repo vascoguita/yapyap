@@ -5,8 +5,9 @@ const TRACE_SECONDS = 10;
 
 /**
  * What Chromium records: where time goes in pages, scripts, layout and
- * drawing. Memory dumps and screenshots are left out, since they can hold
- * messages.
+ * drawing, with samples of the JavaScript call stack, so a slow script
+ * shows which functions ran (#697). Memory dumps and screenshots are left
+ * out, since they can hold messages.
  */
 export const TRACE_CATEGORIES: readonly string[] = [
   'toplevel',
@@ -18,6 +19,7 @@ export const TRACE_CATEGORIES: readonly string[] = [
   'loading',
   'renderer.scheduler',
   'disabled-by-default-devtools.timeline',
+  'disabled-by-default-v8.cpu_profiler',
 ];
 
 /** What the user is told once the trace is saved, or could not be. */

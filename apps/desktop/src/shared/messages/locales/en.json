@@ -370,7 +370,7 @@
   },
   "trace": {
     "confirm": "Record a performance trace?",
-    "confirmDetail": "For 10 seconds, YapYap records where its time goes: pages, scripts, layout and drawing. Do whatever is slow during that time. The trace holds the addresses of the pages and files YapYap loads, but no messages, memory dumps or screenshots. It is saved where you choose, and nothing is sent.",
+    "confirmDetail": "For 10 seconds, YapYap records where its time goes: pages, scripts, layout and drawing. Do whatever is slow during that time. The trace holds the addresses of the pages and files YapYap loads, and which parts of their code ran, but no messages, memory dumps or screenshots. It is saved where you choose, and nothing is sent.",
     "choose": "Choose Where to Save…",
     "saved": "The performance trace is saved.",
     "savedDetail": "Attach it to a bug report if you choose to. To see where the time went, open it at ui.perfetto.dev.",
