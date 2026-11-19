@@ -69,7 +69,7 @@ import { sandboxDisabled } from './security/sandbox-check.ts';
 import {
   askToInstallUpdateWithDialog,
   confirmRemoveAccountWithDialog,
-  confirmResetWithDialog,
+  confirmLogOutWithDialog,
   explainUnsafeStartWithDialog,
   reviewCrashWithDialog,
 } from './dialogs/prompts.ts';
@@ -283,7 +283,7 @@ const chrome = createChromeFeature({
     app.relaunch();
     app.quit();
   },
-  confirmReset: confirmResetWithDialog,
+  confirmLogOut: confirmLogOutWithDialog,
   confirmRemoveAccount: confirmRemoveAccountWithDialog,
   captureSources: (kind) =>
     desktopCapturer.getSources({ types: [kind], thumbnailSize: PICKER_THUMBNAIL }),

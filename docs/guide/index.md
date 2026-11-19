@@ -214,14 +214,18 @@ Each account uses one of WhatsApp's linked-device slots for its number.
 
 ## When WhatsApp misbehaves
 
-**Account → Troubleshoot** has two maintenance actions for the account you see:
+Three fixes act on the account you see, from the lightest to the last
+resort:
 
-- **Clear Cache and Reload** removes WhatsApp's cached files and service
-  worker, then reloads. You stay logged in, so try this first when WhatsApp
-  looks broken or will not update.
-- **Reset Session…** logs you out and deletes WhatsApp's data on this
-  computer. YapYap asks first. Your chats stay on your phone; link this
-  device again to continue.
+- **View → Reload** (<kbd>Ctrl</kbd>+<kbd>R</kbd>, <kbd>⌘</kbd><kbd>R</kbd>
+  on macOS) loads WhatsApp again. Try it first when WhatsApp is stuck or
+  stops updating.
+- **Account → Troubleshoot → Clear Cache and Reload** removes WhatsApp's
+  cached files and service worker, then reloads. You stay logged in, so try
+  this next, or when WhatsApp looks broken or will not update.
+- **Account → Troubleshoot → Log Out and Delete Data…** logs you out and
+  deletes WhatsApp's data on this computer. YapYap asks first. Your chats
+  stay on your phone; link this device again to continue.
 
 ## Chat links
 

@@ -109,7 +109,7 @@ function setup() {
       flatpakInfo: false,
       developerIdSigned: false,
     }),
-    confirmReset: vi.fn(() => Promise.resolve(true)),
+    confirmLogOut: vi.fn(() => Promise.resolve(true)),
     confirmRemoveAccount: vi.fn(() => Promise.resolve(true)),
     captureSources: vi.fn<ChromeFeatureDependencies['captureSources']>(() => Promise.resolve([])),
     windowOf: vi.fn<ChromeFeatureDependencies['windowOf']>(() => null),
@@ -532,14 +532,15 @@ describe('createChromeFeature', () => {
     expect(t.deps.createWindow.mock.lastCall).not.toHaveProperty(['0', 'parent']);
   });
 
-  it('clears the cache or, once confirmed, resets the session of the WhatsApp view', async () => {
+  it('reloads, clears the cache or, once confirmed, logs out the WhatsApp view', async () => {
     const t = setup();
     const warn = vi.fn();
     const runtime = t.feature.afterReady(t.views, warn, 'hardware accelerated');
+    t.clickItem('Reload');
     t.clickItem('Clear Cache and Reload');
-    t.clickItem('Reset Session…');
+    t.clickItem('Log Out and Delete Data…');
     await new Promise((resolve) => setTimeout(resolve));
-    expect(t.deps.confirmReset).toHaveBeenCalledOnce();
+    expect(t.deps.confirmLogOut).toHaveBeenCalledOnce();
     // Before WhatsApp loaded, there is no session to act on, and nothing goes wrong.
     expect(warn).not.toHaveBeenCalled();
     const session = {
@@ -582,19 +583,23 @@ describe('createChromeFeature', () => {
       permissions: vi.fn((): readonly string[] | undefined => undefined),
       forgetPermissions: vi.fn(),
     });
+    t.clickItem('Reload');
+    await new Promise((resolve) => setTimeout(resolve));
+    expect(contents.loadURL).toHaveBeenCalledOnce();
+    expect(session.clearCache).not.toHaveBeenCalled();
     t.clickItem('Clear Cache and Reload');
     await new Promise((resolve) => setTimeout(resolve));
     expect(session.clearStorageData).toHaveBeenLastCalledWith({
       storages: ['serviceworkers', 'cachestorage'],
     });
-    t.deps.confirmReset.mockResolvedValueOnce(false);
-    t.clickItem('Reset Session…');
+    t.deps.confirmLogOut.mockResolvedValueOnce(false);
+    t.clickItem('Log Out and Delete Data…');
     await new Promise((resolve) => setTimeout(resolve));
     expect(session.clearStorageData).toHaveBeenCalledOnce();
-    t.clickItem('Reset Session…');
+    t.clickItem('Log Out and Delete Data…');
     await new Promise((resolve) => setTimeout(resolve));
     expect(session.clearStorageData).toHaveBeenLastCalledWith();
-    expect(contents.loadURL).toHaveBeenCalledTimes(2);
+    expect(contents.loadURL).toHaveBeenCalledTimes(3);
     session.clearCache.mockRejectedValueOnce(new Error('busy'));
     t.clickItem('Clear Cache and Reload');
     await new Promise((resolve) => setTimeout(resolve));

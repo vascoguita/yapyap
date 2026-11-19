@@ -157,7 +157,6 @@ names other keys.
 | <kbd>Ctrl</kbd>+<kbd>-</kbd>                                                                            | Zoom out                                                    |
 | <kbd>Ctrl</kbd>+<kbd>0</kbd>                                                                            | Actual size                                                 |
 | <kbd>Ctrl</kbd>+<kbd>R</kbd>                                                                            | Reload WhatsApp                                             |
-| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd>                                                           | Reload WhatsApp, bypassing the cache                        |
 | <kbd>F11</kbd> (macOS: <kbd>⌃</kbd><kbd>⌘</kbd><kbd>F</kbd>)                                            | Full screen                                                 |
 | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> (macOS: <kbd>⌥</kbd><kbd>⌘</kbd><kbd>I</kbd>)             | Developer tools                                             |
 | <kbd>Ctrl</kbd>+<kbd>Z</kbd>                                                                            | Undo                                                        |

@@ -92,10 +92,10 @@ survive a reinstall.
 
 ### WhatsApp
 
-| Path                   | What it holds                                                                                                         | How to delete it                                                                                                                              |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Partitions/account-…` | What WhatsApp Web keeps in a browser for each account: its login, the chats and media it caches, and its own settings | **Remove Account…** deletes it all. **Reset Session…** logs the account out and deletes it. **Clear Cache and Reload** deletes only the cache |
-| `accounts.json`        | Each account's name, color, whether it is on or muted, and its own proxy address                                      | **Remove Account…** deletes the account's entry                                                                                               |
+| Path                   | What it holds                                                                                                         | How to delete it                                                                                                                                        |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Partitions/account-…` | What WhatsApp Web keeps in a browser for each account: its login, the chats and media it caches, and its own settings | **Remove Account…** deletes it all. **Log Out and Delete Data…** logs the account out and deletes it. **Clear Cache and Reload** deletes only the cache |
+| `accounts.json`        | Each account's name, color, whether it is on or muted, and its own proxy address                                      | **Remove Account…** deletes the account's entry                                                                                                         |
 
 Camera and microphone choices are kept in memory only, until YapYap quits
 or you choose **Ask Again for Camera and Microphone**. Words you add to the

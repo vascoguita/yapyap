@@ -16,8 +16,9 @@ function actions(accounts: AccountSummary[] = []) {
     openAbout: vi.fn(),
     openSettings: vi.fn(),
     openCustomCode: vi.fn(),
+    reload: vi.fn(),
     clearCache: vi.fn(),
-    resetSession: vi.fn(),
+    logOut: vi.fn(),
     zoom: vi.fn(),
     privacyScreen: false,
     togglePrivacyScreen: vi.fn(),
@@ -48,7 +49,7 @@ const ACCOUNT = (a: ReturnType<typeof actions>) => ({
       submenu: [
         { label: 'Clear Cache and Reload', click: a.clearCache },
         { type: 'separator' },
-        { label: 'Reset Session…', click: a.resetSession },
+        { label: 'Log Out and Delete Data…', click: a.logOut },
       ],
     },
   ],
@@ -129,8 +130,7 @@ describe('buildMenuTemplate', () => {
       'Privacy Screen',
       'togglefullscreen',
       'separator',
-      'reload',
-      'forceReload',
+      'Reload',
       'toggleDevTools',
     ]);
     const zoomItems = entries.slice(0, 3);
@@ -143,6 +143,14 @@ describe('buildMenuTemplate', () => {
       (item.click as () => void)();
     }
     expect(a.zoom.mock.calls).toEqual([['reset'], ['in'], ['out']]);
+  });
+
+  it('reloads the active account rather than the focused page', () => {
+    const a = actions();
+    const view = buildMenuTemplate('linux', a).find((menu) => menu.label === '&View');
+    const reload = items(view).find((item) => item.label === 'Reload');
+    expect(reload).toMatchObject({ accelerator: 'CmdOrCtrl+R', click: a.reload });
+    expect(reload).not.toHaveProperty('role');
   });
 
   it('puts Settings in the File menu and About in Help on Windows and Linux', () => {

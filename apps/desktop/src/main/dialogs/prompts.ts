@@ -17,13 +17,13 @@ export function confirmRemoveAccountWithDialog(name: string): Promise<boolean> {
   });
 }
 
-/** Resetting cannot be undone, so Cancel is the default answer. */
-export function confirmResetWithDialog(): Promise<boolean> {
+/** Logging out and deleting the data cannot be undone, so Cancel is the default answer. */
+export function confirmLogOutWithDialog(): Promise<boolean> {
   return confirm({
     type: 'warning',
-    message: TEXT.resetSession.message,
-    detail: TEXT.resetSession.detail,
-    yes: TEXT.resetSession.confirm,
+    message: TEXT.logOut.message,
+    detail: TEXT.logOut.detail,
+    yes: TEXT.logOut.confirm,
     no: en.common.cancel,
   });
 }

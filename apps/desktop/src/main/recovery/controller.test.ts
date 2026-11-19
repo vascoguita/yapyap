@@ -99,7 +99,7 @@ describe('createRecovery', () => {
   it('resets the session by clearing every kind of site data, then reloads', async () => {
     const t = setup();
     t.recovery.show(BLANK);
-    await t.recovery.resetSession();
+    await t.recovery.logOut();
     expect(t.deps.contents.session.clearStorageData).toHaveBeenCalledExactlyOnceWith();
     expect(t.deps.contents.session.clearCache).toHaveBeenCalledOnce();
     expect(t.deps.contents.loadURL).toHaveBeenCalledWith(ORIGIN);
