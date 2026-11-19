@@ -3,6 +3,7 @@ import { createConnection } from 'node:net';
 import { variant, type DBusValue, type Variant } from './dbus-codec.ts';
 import type { Environment } from '../support/environment.ts';
 import { BUS, connectBus, type Bus } from './dbus-client.ts';
+import { LOGIN_FLAG } from './login-launch.ts';
 
 const PORTAL = {
   destination: 'org.freedesktop.portal.Desktop',
@@ -123,7 +124,11 @@ export function backgroundAsker(
     );
     try {
       // The Flatpak's command, which the portal runs in the sandbox at login.
-      return await requestBackground(bus, { autostart, reason, commandline: ['yapyap'] });
+      return await requestBackground(bus, {
+        autostart,
+        reason,
+        commandline: ['yapyap', LOGIN_FLAG],
+      });
     } finally {
       bus.close();
     }

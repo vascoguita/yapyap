@@ -162,6 +162,8 @@ const SHOWN_WHEN: Readonly<Record<string, (values: Values) => boolean>> = {
 /** Fields shown faded while another setting makes them matter less. */
 const DIMMED_WHEN: Readonly<Record<string, (values: Values) => boolean>> = {
   'downloads.folder': (values) => values['downloads.askWhere'] === true,
+  // It acts only at login (#699).
+  'general.startMinimized': (values) => values['general.autostart'] !== true,
 };
 
 /** Whether a field shows: main lists only the fields that do something on this platform. */

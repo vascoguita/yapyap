@@ -1,5 +1,6 @@
 import { en } from '../../shared/messages/en.ts';
 import type { SettingsService } from '../settings/service.ts';
+import { LOGIN_FLAG } from './login-launch.ts';
 
 /** Whether YapYap starts when the user logs in, as the operating system sees it. */
 export interface AutostartPort {
@@ -14,24 +15,31 @@ export interface AutostartPort {
   readonly refresh: () => void;
 }
 
-/** Electron's login items, which exist on Windows and macOS only. */
+/**
+ * Electron's login items, which exist on Windows and macOS only. Only
+ * Windows takes `args`, and finds an entry only with the arguments it has.
+ */
 export interface LoginItems {
-  readonly getLoginItemSettings: () => { readonly openAtLogin: boolean };
-  readonly setLoginItemSettings: (settings: { readonly openAtLogin: boolean }) => void;
+  readonly getLoginItemSettings: (options?: { args: string[] }) => {
+    readonly openAtLogin: boolean;
+  };
+  readonly setLoginItemSettings: (settings: { openAtLogin: boolean; args?: string[] }) => void;
 }
 
 export function loginItemAutostart(items: LoginItems): AutostartPort {
+  const start = (): void => {
+    items.setLoginItemSettings({ openAtLogin: true, args: [LOGIN_FLAG] });
+  };
   return {
-    enabled: () => items.getLoginItemSettings().openAtLogin,
-    enable: () => {
-      items.setLoginItemSettings({ openAtLogin: true });
-    },
+    // An entry from before the flag counts too, so refresh can add the flag to it.
+    enabled: () =>
+      items.getLoginItemSettings({ args: [LOGIN_FLAG] }).openAtLogin ||
+      items.getLoginItemSettings().openAtLogin,
+    enable: start,
     disable: () => {
       items.setLoginItemSettings({ openAtLogin: false });
     },
-    refresh: () => {
-      items.setLoginItemSettings({ openAtLogin: true });
-    },
+    refresh: start,
   };
 }
 

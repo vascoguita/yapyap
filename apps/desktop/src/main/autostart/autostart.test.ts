@@ -10,12 +10,17 @@ import {
   type AutostartPort,
 } from './autostart.ts';
 
-function loginItems(openAtLogin = false) {
+/** Windows' login items, which find an entry only with the arguments it was written with. */
+function loginItems(openAtLogin = false, args: readonly string[] = []) {
   const items = {
     openAtLogin,
-    getLoginItemSettings: () => ({ openAtLogin: items.openAtLogin }),
-    setLoginItemSettings: vi.fn((settings: { readonly openAtLogin: boolean }) => {
+    args,
+    getLoginItemSettings: (options?: { args: string[] }) => ({
+      openAtLogin: items.openAtLogin && (options?.args ?? []).join(' ') === items.args.join(' '),
+    }),
+    setLoginItemSettings: vi.fn((settings: { openAtLogin: boolean; args?: string[] }) => {
       items.openAtLogin = settings.openAtLogin;
+      items.args = settings.args ?? [];
     }),
   };
   return items;
@@ -86,12 +91,27 @@ describe('loginItemAutostart', () => {
     const items = loginItems();
     const autostart = loginItemAutostart(items);
     void autostart.enable();
-    expect(items.setLoginItemSettings).toHaveBeenCalledWith({ openAtLogin: true });
+    expect(items.setLoginItemSettings).toHaveBeenCalledWith({
+      openAtLogin: true,
+      args: ['--started-at-login'],
+    });
     expect(autostart.enabled()).toBe(true);
     void autostart.disable();
     expect(autostart.enabled()).toBe(false);
     autostart.refresh();
-    expect(items.setLoginItemSettings).toHaveBeenLastCalledWith({ openAtLogin: true });
+    expect(items.setLoginItemSettings).toHaveBeenLastCalledWith({
+      openAtLogin: true,
+      args: ['--started-at-login'],
+    });
+  });
+
+  it('finds a login item from before the login flag, which refresh gives the flag', () => {
+    const items = loginItems(true);
+    const autostart = loginItemAutostart(items);
+    expect(autostart.enabled()).toBe(true);
+    autostart.refresh();
+    expect(items.args).toEqual(['--started-at-login']);
+    expect(autostart.enabled()).toBe(true);
   });
 });
 

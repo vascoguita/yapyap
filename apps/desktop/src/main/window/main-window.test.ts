@@ -5,12 +5,7 @@ import { manageMainWindow, restoreWindowState, type ManagedWindow } from './main
 const SCREEN = { x: 0, y: 0, width: 1920, height: 1040 };
 const BOUNDS = { x: 100, y: 80, width: 1000, height: 700 };
 
-function setup(
-  platform = 'linux',
-  autoHideMenuBar = false,
-  closeToTray = false,
-  startMinimized = false,
-) {
+function setup(platform = 'linux', autoHideMenuBar = false, closeToTray = false, hidden = false) {
   const shown: (() => void)[] = [];
   const windowListeners = new Map<string, (event: { preventDefault(): void }) => void>();
   const appListeners = new Map<string, () => void>();
@@ -33,7 +28,7 @@ function setup(
   } satisfies ManagedWindow;
   const settings = fakeSettings({
     appearance: { autoHideMenuBar },
-    general: { closeToTray, startMinimized },
+    general: { closeToTray },
   });
   const deps = {
     store: { read: vi.fn(() => ''), write: vi.fn() },
@@ -45,6 +40,7 @@ function setup(
       }),
     },
     warn: vi.fn(),
+    hidden,
   };
   const close = () => {
     const preventDefault = vi.fn();

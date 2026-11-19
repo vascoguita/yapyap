@@ -40,15 +40,11 @@ export function showWhenReady(window: ShowableWindow): void {
 }
 
 /**
- * Shows the main window once `page` has loaded. Started minimized, it stays
+ * Shows the main window once `page` has loaded. Started hidden, at login, it stays
  * hidden until the tray, the Dock or a second launch shows it.
  */
-export function showWhenPageReady(
-  window: Showable,
-  startMinimized: boolean,
-  page: ReadyPage,
-): void {
-  if (startMinimized) {
+export function showWhenPageReady(window: Showable, hidden: boolean, page: ReadyPage): void {
+  if (hidden) {
     return;
   }
   showOnce(window, (show) => {

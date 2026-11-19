@@ -197,8 +197,8 @@
       },
       "general": {
         "startMinimized": {
-          "label": "Start minimized",
-          "description": "Open YapYap in the background, in the tray or the Dock. Starting it again shows the window."
+          "label": "Start in the background",
+          "description": "At login, YapYap starts in the tray or the Dock, without its window. When you open YapYap yourself, the window shows."
         },
         "autostart": {
           "label": "Start at login",

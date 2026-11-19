@@ -278,7 +278,7 @@ function FolderField(props: FieldProps & { readonly words: NonNullable<SettingFi
 function Switch(props: FieldProps): JSX.Element {
   const { field, snapshot, onChange } = props;
   return (
-    <Row field={field} snapshot={snapshot} labelFor={field.id}>
+    <Row field={field} snapshot={snapshot} labelFor={field.id} dimmed={props.dimmed === true}>
       <input
         id={field.id}
         type="checkbox"

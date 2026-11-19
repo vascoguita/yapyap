@@ -342,6 +342,17 @@ describe('Settings', () => {
     });
   });
 
+  it('fades Start in the background while YapYap does not start at login', async () => {
+    const values = { 'general.autostart': false, 'general.startMinimized': false };
+    render(<Settings api={api({}, snapshot({ values }))} />);
+    const background = await screen.findByRole('switch', { name: 'Start in the background' });
+    expect(background.closest('.row')?.classList.contains('dimmed')).toBe(true);
+    fireEvent.click(screen.getByRole('switch', { name: 'Start at login' }));
+    await vi.waitFor(() => {
+      expect(background.closest('.row')?.classList.contains('dimmed')).toBe(false);
+    });
+  });
+
   it('asks main for the folder, then shows what was saved', async () => {
     const withFolder = snapshot({ values: { 'downloads.folder': '' } });
     const yapyap = api({}, withFolder);

@@ -29,6 +29,8 @@ export interface MainWindowDependencies {
   readonly settings: Pick<SettingsService, 'current' | 'onChange'>;
   readonly app: QuittingApp;
   readonly warn: (message: string) => void;
+  /** Whether the window starts hidden, as Start in the background does at login. */
+  readonly hidden: boolean;
 }
 
 /** The saved state, with bounds kept only while they land on a connected display. */
@@ -95,7 +97,7 @@ export function manageMainWindow(
   state: WindowState,
   deps: MainWindowDependencies,
 ): void {
-  restoreLayout(window, state, deps.settings.current().general.startMinimized);
+  restoreLayout(window, state, deps.hidden);
   applyMenuBar(window, deps.platform, deps.settings.current());
   deps.settings.onChange((settings) => {
     applyMenuBar(window, deps.platform, settings);

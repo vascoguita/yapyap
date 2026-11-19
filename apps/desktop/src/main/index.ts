@@ -348,6 +348,7 @@ void startAppReporting(
     platform: process.platform,
     env: process.env,
     argv: process.argv,
+    wasOpenedAtLogin: () => app.getLoginItemSettings().wasOpenedAtLogin,
     openExternal: (url) => shell.openExternal(url),
     isOnline: () => net.isOnline(),
     avatarImage: (bytes) => shrinkAvatar(nativeImage.createFromBuffer(Buffer.from(bytes))),

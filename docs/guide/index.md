@@ -253,9 +253,8 @@ YapYap's tray icon shows the window again; on macOS it sits in the menu bar
 and opens its menu. The menu shows or hides the window, lists your running
 accounts to switch to, and has **Settings…** and **Quit YapYap**. Its
 tooltip shows how many chats have unread messages across all accounts, and
-on macOS the number also appears next to the icon. With **Start minimized** on, YapYap opens in the
-background. Some Linux desktops have no tray; there, starting YapYap again
-always brings its window back.
+on macOS the number also appears next to the icon. Some Linux desktops have
+no tray; there, starting YapYap again always brings its window back.
 
 **Tray icon** under Settings → Appearance swaps the colorful app icon for a
 one-color one that matches the other icons of your panel. **Automatic**
@@ -276,9 +275,11 @@ on the Dock on macOS, over the taskbar icon on Windows, and on the launcher
 icon on Linux desktops that support counts, such as Ubuntu's dock and KDE
 Plasma.
 
-**Start at login** under Settings → General starts YapYap when you log in;
-together with **Start minimized** it waits in the tray. It uses your
-system's login items, so removing YapYap there turns the setting off too.
+**Start at login** under Settings → General starts YapYap when you log in.
+With **Start in the background** on as well, it starts in the tray or the
+Dock, without its window; when you open YapYap yourself, the window shows.
+It uses your system's login items, so removing YapYap there turns the
+setting off too.
 In the Flatpak package, your desktop asks first whether YapYap may start
 at login, and the setting changes only if you agree.
 

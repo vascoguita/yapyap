@@ -336,6 +336,7 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     onResume: vi.fn(),
     env,
     argv,
+    wasOpenedAtLogin: vi.fn(() => false),
     chatListWidths: {
       get: vi.fn<(account: string) => number | undefined>(() => undefined),
       set: vi.fn(),
@@ -1529,8 +1530,8 @@ describe('startApp', () => {
     expect(f.sessionOf).toHaveBeenCalledWith(`persist:account-${ACCOUNT}`);
   });
 
-  it('stays hidden when started minimized', async () => {
-    const f = fakes();
+  it('stays hidden when started in the background at login', async () => {
+    const f = fakes({}, ['/usr/bin/yapyap', '--started-at-login']);
     const settings = defaultSettings();
     f.settings.current = () => ({
       ...settings,
@@ -1540,6 +1541,18 @@ describe('startApp', () => {
     f.web.fire('dom-ready');
     await vi.advanceTimersByTimeAsync(5000);
     expect(f.window.show).not.toHaveBeenCalled();
+  });
+
+  it('shows the window when the user opens YapYap, even set to start in the background', async () => {
+    const f = fakes();
+    const settings = defaultSettings();
+    f.settings.current = () => ({
+      ...settings,
+      general: { ...settings.general, startMinimized: true },
+    });
+    await startApp(f);
+    f.web.fire('dom-ready');
+    expect(f.window.show).toHaveBeenCalledOnce();
   });
 
   it('leaves the launch to the running YapYap when another one holds the lock', async () => {
