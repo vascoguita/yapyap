@@ -7,6 +7,7 @@ import { Field } from './Field.tsx';
 const snapshot = (overrides: Partial<SettingsSnapshot> = {}): SettingsSnapshot => ({
   values: {},
   restartPending: false,
+  platform: 'linux',
   problems: {},
   ...overrides,
 });
@@ -32,6 +33,18 @@ describe('a switch', () => {
     expect(document.getElementById('general.example-tag')).toBeNull();
     fireEvent.click(screen.getByText('Example'));
     expect(onChange).toHaveBeenCalledExactlyOnceWith('general.example', true);
+  });
+
+  it('words its hint for macOS where it has a macOS wording', () => {
+    const tray = { ...field, description: 'In the tray.', descriptionMac: 'In the menu bar.' };
+    render(<Field field={tray} snapshot={snapshot({ platform: 'darwin' })} onChange={vi.fn()} />);
+    expect(document.getElementById('general.example-hint')?.textContent).toBe('In the menu bar.');
+    cleanup();
+    render(<Field field={tray} snapshot={snapshot()} onChange={vi.fn()} />);
+    expect(document.getElementById('general.example-hint')?.textContent).toBe('In the tray.');
+    cleanup();
+    render(<Field field={field} snapshot={snapshot({ platform: 'darwin' })} onChange={vi.fn()} />);
+    expect(document.getElementById('general.example-hint')?.textContent).toBe('Applies at once.');
   });
 
   it('explains under a setting why its change did not take effect', () => {

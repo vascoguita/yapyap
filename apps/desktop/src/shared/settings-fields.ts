@@ -23,6 +23,8 @@ export interface SettingField {
   readonly id: `${SettingsSection}.${string}`;
   readonly label: string;
   readonly description: string;
+  /** The description on macOS, where it words the place differently, such as the menu bar for the tray. */
+  readonly descriptionMac?: string;
   /** Takes effect only at the next launch, so changing it offers a restart. */
   readonly restart: boolean;
   /** One of several values; without options, the setting is an on/off switch. */
@@ -51,10 +53,21 @@ type Texts = typeof text;
 function described<S extends keyof Texts>(
   section: S,
   key: keyof Texts[S] & string,
-): Pick<SettingField, 'id' | 'label' | 'description'> {
-  const { label, description } = text[section][key] as { label: string; description: string };
-  return { id: `${section}.${key}`, label, description };
+): Pick<SettingField, 'id' | 'label' | 'description' | 'descriptionMac'> {
+  const { label, description, descriptionMac } = text[section][key] as {
+    label: string;
+    description: string;
+    descriptionMac?: string;
+  };
+  const id = `${section}.${key}` as const;
+  return descriptionMac === undefined
+    ? { id, label, description }
+    : { id, label, description, descriptionMac };
 }
+
+/** The description a field has on `platform`. */
+export const descriptionOn = (field: SettingField, platform: string): string =>
+  platform === 'darwin' ? (field.descriptionMac ?? field.description) : field.description;
 
 /** Catalog option keys are the stored values, listed in catalog order. */
 function choices(options: Readonly<Record<string, string>>): NonNullable<SettingField['options']> {

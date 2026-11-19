@@ -12,6 +12,7 @@ const THEME = 'appearance.theme';
 const snapshot = (overrides: Partial<SettingsSnapshot> = {}): SettingsSnapshot => ({
   values: { [THEME]: 'system', [HARDWARE]: true },
   restartPending: false,
+  platform: 'linux',
   problems: {},
   ...overrides,
 });

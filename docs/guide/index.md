@@ -276,8 +276,8 @@ icon on Linux desktops that support counts, such as Ubuntu's dock and KDE
 Plasma.
 
 **Start at login** under Settings → General starts YapYap when you log in.
-With **Start in the background** on as well, it starts in the tray or the
-Dock, without its window; when you open YapYap yourself, the window shows.
+With **Start in the background** on as well, it starts in the tray (the
+menu bar on macOS), without its window; when you open YapYap yourself, the window shows.
 It uses your system's login items, so removing YapYap there turns the
 setting off too.
 In the Flatpak package, your desktop asks first whether YapYap may start

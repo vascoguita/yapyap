@@ -13,6 +13,7 @@ const SNAPSHOT: SettingsSnapshot = {
     'privacy.notificationText': true,
   },
   restartPending: false,
+  platform: 'linux',
   problems: {},
 };
 

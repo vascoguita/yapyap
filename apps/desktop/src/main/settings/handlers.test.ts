@@ -110,9 +110,11 @@ describe('settingsHandlers', () => {
       const handler = settingsHandlers(service, vi.fn(), platform).find(
         ({ channel }) => channel === 'settings:get',
       );
-      return handler?.handle({ sender: {} }) as { values: object };
+      return handler?.handle({ sender: {} }) as { values: object; platform: string };
     };
     expect(get('linux').values).toHaveProperty(['appearance.autoHideMenuBar'], false);
+    // Settings words some hints for macOS, so it learns the platform.
+    expect(get('darwin').platform).toBe('darwin');
     expect(get('darwin').values).not.toHaveProperty(['appearance.autoHideMenuBar']);
     const set = settingsHandlers(service, vi.fn(), 'darwin').find(
       ({ channel }) => channel === 'settings:set',
@@ -164,6 +166,7 @@ describe('settingsHandlers', () => {
         [CLOSE_TO_TRAY]: false,
       },
       restartPending: false,
+      platform: 'linux',
       problems: {},
     });
   });
@@ -237,6 +240,7 @@ describe('settingsHandlers', () => {
         [CLOSE_TO_TRAY]: false,
       },
       restartPending: true,
+      platform: 'linux',
       problems: {},
     });
     expect(t.settings().reliability.hardwareAcceleration).toBe(false);

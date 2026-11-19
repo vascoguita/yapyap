@@ -198,7 +198,8 @@
       "general": {
         "startMinimized": {
           "label": "Start in the background",
-          "description": "At login, YapYap starts in the tray or the Dock, without its window. When you open YapYap yourself, the window shows."
+          "description": "At login, YapYap starts in the tray, without its window. When you open YapYap yourself, the window shows.",
+          "descriptionMac": "At login, YapYap starts in the menu bar, without its window. When you open YapYap yourself, the window shows."
         },
         "autostart": {
           "label": "Start at login",
