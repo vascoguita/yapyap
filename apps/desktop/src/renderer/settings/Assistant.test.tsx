@@ -38,6 +38,7 @@ const SNAPSHOT: SettingsSnapshot = {
     'assistant.server': '',
   },
   restartPending: false,
+  platform: 'linux',
   problems: {},
 };
 

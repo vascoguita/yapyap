@@ -17,6 +17,7 @@ import { useCameraPortal } from '../permissions/camera-portal.ts';
 import type { ChromeRuntime } from '../chrome/feature.ts';
 import type { StartDependencies, WindowPort } from './start-types.ts';
 import type { Environment } from '../support/environment.ts';
+import { startsHidden } from '../autostart/login-launch.ts';
 
 /** Starts without hardware acceleration, for when graphics problems stop YapYap from starting. */
 const SAFE_MODE_FLAG = '--safe-mode';
@@ -184,6 +185,7 @@ export function openMainWindow<Window extends WindowPort>(deps: StartDependencie
     settings: deps.settings,
     app: deps.app,
     warn: deps.warn,
+    hidden: startsHidden(deps.settings.current().general.startMinimized, deps),
   });
   return window;
 }

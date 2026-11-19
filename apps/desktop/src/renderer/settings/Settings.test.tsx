@@ -12,6 +12,7 @@ const THEME = 'appearance.theme';
 const snapshot = (overrides: Partial<SettingsSnapshot> = {}): SettingsSnapshot => ({
   values: { [THEME]: 'system', [HARDWARE]: true },
   restartPending: false,
+  platform: 'linux',
   problems: {},
   ...overrides,
 });
@@ -339,6 +340,17 @@ describe('Settings', () => {
     fireEvent.click(screen.getByRole('switch', { name: 'Ask where to save each file' }));
     await vi.waitFor(() => {
       expect(change.closest('.row')?.classList.contains('dimmed')).toBe(false);
+    });
+  });
+
+  it('fades Start in the background while YapYap does not start at login', async () => {
+    const values = { 'general.autostart': false, 'general.startMinimized': false };
+    render(<Settings api={api({}, snapshot({ values }))} />);
+    const background = await screen.findByRole('switch', { name: 'Start in the background' });
+    expect(background.closest('.row')?.classList.contains('dimmed')).toBe(true);
+    fireEvent.click(screen.getByRole('switch', { name: 'Start at login' }));
+    await vi.waitFor(() => {
+      expect(background.closest('.row')?.classList.contains('dimmed')).toBe(false);
     });
   });
 

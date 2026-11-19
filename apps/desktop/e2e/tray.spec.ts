@@ -1,6 +1,7 @@
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { ElectronApplication } from '@playwright/test';
+import { LOGIN_FLAG } from '../src/main/autostart/login-launch.ts';
 import { SHOW_FALLBACK_MS } from '../src/main/window/show-when-ready.ts';
 import {
   closeApp,
@@ -21,9 +22,14 @@ const whatsApp = (app: ElectronApplication) =>
     return window === null ? 'gone' : `visible=${String(window.isVisible())}`;
   });
 
-async function launchWith(origin: string, profile: string, general: object) {
+async function launchWith(
+  origin: string,
+  profile: string,
+  general: object,
+  args: readonly string[] = [],
+) {
   await seedSettings(profile, { general });
-  return launchApp(origin, profile);
+  return launchApp(origin, profile, args);
 }
 
 test('keeps running hidden when the window closes, with Close to the tray on', async ({
@@ -45,7 +51,7 @@ test('keeps running hidden when the window closes, with Close to the tray on', a
   }
 });
 
-test('starts hidden when Start minimized is on, even when it was last maximized', async ({
+test('starts hidden at login in the background, even when it was last maximized', async ({
   fakeWhatsApp,
   profile,
 }) => {
@@ -54,7 +60,9 @@ test('starts hidden when Start minimized is on, even when it was last maximized'
     join(profile, 'window-state.json'),
     JSON.stringify({ maximized: true, fullScreen: false }),
   );
-  const app = await launchWith(fakeWhatsApp.origin, profile, { startMinimized: true });
+  const app = await launchWith(fakeWhatsApp.origin, profile, { startMinimized: true }, [
+    LOGIN_FLAG,
+  ]);
   try {
     const window = await whatsAppPage(app);
     await window.waitForLoadState('load');
@@ -62,6 +70,21 @@ test('starts hidden when Start minimized is on, even when it was last maximized'
     // fallback that shows a window which never reports ready.
     await window.waitForTimeout(SHOW_FALLBACK_MS + 500);
     expect(await whatsApp(app)).toBe('visible=false');
+  } finally {
+    await closeApp(app);
+  }
+});
+
+test('shows the window when the user opens YapYap, even set to start in the background', async ({
+  fakeWhatsApp,
+  profile,
+}) => {
+  const app = await launchWith(fakeWhatsApp.origin, profile, { startMinimized: true });
+  try {
+    await expect((await whatsAppPage(app)).getByTestId('fake-whatsapp')).toBeVisible();
+    await expect(async () => {
+      expect(await whatsApp(app)).toBe('visible=true');
+    }).toPass();
   } finally {
     await closeApp(app);
   }

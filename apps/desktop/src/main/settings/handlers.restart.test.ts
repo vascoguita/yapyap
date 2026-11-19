@@ -19,6 +19,7 @@ describe('settingsHandlers with settings that apply at once', () => {
     expect(await set?.handle(call, 'general.startMinimized', true)).toEqual({
       values: { 'general.startMinimized': true, 'reliability.hardwareAcceleration': true },
       restartPending: false,
+      platform: 'linux',
       problems: {},
     });
     expect(await set?.handle(call, 'reliability.hardwareAcceleration', false)).toEqual(

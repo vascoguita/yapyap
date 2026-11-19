@@ -58,6 +58,7 @@ const VIEW: AgentsView = {
 const snapshot = (on: boolean): SettingsSnapshot => ({
   values: { 'agents.enabled': on },
   restartPending: false,
+  platform: 'linux',
   problems: {},
 });
 

@@ -197,8 +197,10 @@ export interface StartDependencies<Window extends WindowPort> {
   readonly capture: (pickInApp: PickInApp, wayland: boolean) => DisplayCapturePort;
   readonly chrome: ChromeFeature;
   readonly env: Environment;
-  /** The command line, for `--safe-mode`. */
+  /** The command line, for `--safe-mode` and the login flag. */
   readonly argv: readonly string[];
+  /** Whether macOS opened YapYap as a login item, which passes no flag (#699). */
+  readonly wasOpenedAtLogin: () => boolean;
   readonly openExternal: (url: string) => Promise<unknown>;
   readonly isOnline: () => boolean;
   readonly onResume: (listener: () => void) => void;

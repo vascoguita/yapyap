@@ -55,7 +55,7 @@ describe('autostartEntry', () => {
         '[Desktop Entry]',
         'Type=Application',
         'Name=YapYap',
-        'Exec="/opt/YapYap/yapyap"',
+        'Exec="/opt/YapYap/yapyap" --started-at-login',
         'Icon=org.guita.YapYap',
         'X-GNOME-Autostart-enabled=true',
         '',
@@ -131,6 +131,17 @@ describe('refresh', () => {
     writeFileSync(entryPath(home), '[Desktop Entry]\nExec=yapyap\n');
     autostart.refresh();
     expect(readFileSync(entryPath(home), 'utf8')).toBe(autostartEntry('/opt/YapYap/yapyap'));
+  });
+
+  it('gives an entry from before the login flag the flag, keeping its program', () => {
+    const { home, autostart } = setup();
+    const other = join(home, 'Other YapYap');
+    writeFileSync(other, '');
+    mkdirSync(join(home, '.config', 'autostart'), { recursive: true });
+    const old = autostartEntry(other).replace(' --started-at-login', '');
+    writeFileSync(entryPath(home), old);
+    autostart.refresh();
+    expect(readFileSync(entryPath(home), 'utf8')).toBe(autostartEntry(other));
   });
 });
 

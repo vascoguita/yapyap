@@ -37,6 +37,7 @@ function api(initial: Partial<SpellingLanguages>) {
 const snapshot = (enabled = true): SettingsSnapshot => ({
   values: { 'spelling.enabled': enabled },
   restartPending: false,
+  platform: 'linux',
   problems: {},
 });
 

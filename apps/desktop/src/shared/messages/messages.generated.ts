@@ -170,7 +170,11 @@ export interface Messages {
         readonly enabled: { readonly label: string; readonly description: string };
       };
       readonly general: {
-        readonly startMinimized: { readonly label: string; readonly description: string };
+        readonly startMinimized: {
+          readonly label: string;
+          readonly description: string;
+          readonly descriptionMac: string;
+        };
         readonly autostart: { readonly label: string; readonly description: string };
         readonly betaUpdates: { readonly label: string; readonly description: string };
         readonly doNotDisturb: { readonly label: string; readonly description: string };

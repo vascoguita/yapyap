@@ -55,6 +55,7 @@ import { followTrayIconSetting } from '../tray/tray-icon.ts';
 import { syncAutostartSetting } from '../autostart/autostart.ts';
 import { followSpellingSetting } from '../spelling/spelling.ts';
 import { sidebarSource } from '../accounts/sidebar-source.ts';
+import { startsHidden } from '../autostart/login-launch.ts';
 import {
   beforeReady,
   applyDisplayBackend,
@@ -636,7 +637,11 @@ function wireMainWindow<Window extends WindowPort>(
       activePage().focus();
     },
   });
-  showWhenPageReady(window, deps.settings.current().general.startMinimized, activePage());
+  showWhenPageReady(
+    window,
+    startsHidden(deps.settings.current().general.startMinimized, deps),
+    activePage(),
+  );
   return page;
 }
 

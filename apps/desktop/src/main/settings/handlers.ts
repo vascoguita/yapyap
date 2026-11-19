@@ -43,6 +43,7 @@ function snapshotOf(
   fields: readonly SettingField[],
   launched: Settings,
   problems: Readonly<Record<string, string>>,
+  platform: string,
 ): SettingsSnapshot {
   const current = service.current();
   const values: Record<string, SettingValue> = {};
@@ -52,6 +53,7 @@ function snapshotOf(
   return {
     values,
     problems,
+    platform,
     restartPending: fields.some(
       ({ id, restart: needsRestart }) =>
         needsRestart && readValue(current, id) !== readValue(launched, id),
@@ -103,7 +105,7 @@ export function settingsHandlers(
   const launched = service.current();
   const problems = new Map<string, string>();
   const snapshot = (): SettingsSnapshot =>
-    snapshotOf(service, fields, launched, Object.fromEntries(problems));
+    snapshotOf(service, fields, launched, Object.fromEntries(problems), platform);
   const change = ([id, value]: readonly unknown[]): unknown =>
     withValue(service.current(), String(id), value);
   return [

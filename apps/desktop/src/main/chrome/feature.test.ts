@@ -414,6 +414,7 @@ describe('createChromeFeature', () => {
         'general.closeToTray': false,
       },
       restartPending: false,
+      platform: 'linux',
       problems: {},
     });
     t.call('settings:restart');

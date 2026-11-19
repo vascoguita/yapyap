@@ -2,6 +2,7 @@ import { isAbsolute, join } from 'node:path';
 import type { Environment } from '../support/environment.ts';
 import { APP_ID, PRODUCT_NAME } from '../identity/product.ts';
 import type { AutostartPort } from './autostart.ts';
+import { LOGIN_FLAG } from './login-launch.ts';
 
 interface XdgFiles {
   readonly exists: (path: string) => boolean;
@@ -30,7 +31,7 @@ export function autostartEntry(executable: string): string {
     '[Desktop Entry]',
     'Type=Application',
     `Name=${PRODUCT_NAME}`,
-    `Exec=${quoteExecArgument(executable)}`,
+    `Exec=${quoteExecArgument(executable)} ${LOGIN_FLAG}`,
     `Icon=${APP_ID}`,
     'X-GNOME-Autostart-enabled=true',
     '',
@@ -39,7 +40,7 @@ export function autostartEntry(executable: string): string {
 
 /** The program an autostart entry starts, undone from {@link quoteExecArgument}. */
 export function entryExecutable(entry: string): string | undefined {
-  const quoted = /^Exec="((?:[^"\\]|\\.)*)"$/m.exec(entry)?.[1];
+  const quoted = /^Exec="((?:[^"\\]|\\.)*)"(?: .*)?$/m.exec(entry)?.[1];
   return quoted?.replaceAll(/\\(.)/g, '$1').replaceAll('%%', '%');
 }
 
@@ -68,10 +69,14 @@ export function xdgAutostart(options: XdgAutostartOptions): AutostartPort {
     },
     // The entry is shared by every YapYap on this computer, so it is taken
     // over only when the program it starts is gone, as when an AppImage moved.
+    // One from before the login flag keeps its program and gains the flag.
     refresh: () => {
-      const current = entryExecutable(files.read(path));
+      const entry = files.read(path);
+      const current = entryExecutable(entry);
       if (current === undefined || !files.exists(current)) {
         files.write(path, autostartEntry(executable));
+      } else if (!entry.includes(` ${LOGIN_FLAG}`)) {
+        files.write(path, autostartEntry(current));
       }
     },
   };

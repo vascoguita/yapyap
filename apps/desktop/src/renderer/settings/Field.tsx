@@ -3,6 +3,7 @@ import { useState } from 'preact/hooks';
 import type { SettingsSnapshot } from '../../shared/api/chrome-api.ts';
 import { en } from '../../shared/messages/en.ts';
 import {
+  descriptionOn,
   SETTING_FIELDS,
   type SettingField,
   type SettingValue,
@@ -33,7 +34,7 @@ const describedBy = (field: SettingField): string =>
 function Hint({ field, snapshot }: Pick<FieldProps, 'field' | 'snapshot'>): JSX.Element {
   return (
     <p id={`${field.id}-hint`} class="hint">
-      {field.description}
+      {descriptionOn(field, snapshot.platform)}
       <span class="problem" aria-live="polite">
         {snapshot.problems[field.id]}
       </span>
@@ -278,7 +279,7 @@ function FolderField(props: FieldProps & { readonly words: NonNullable<SettingFi
 function Switch(props: FieldProps): JSX.Element {
   const { field, snapshot, onChange } = props;
   return (
-    <Row field={field} snapshot={snapshot} labelFor={field.id}>
+    <Row field={field} snapshot={snapshot} labelFor={field.id} dimmed={props.dimmed === true}>
       <input
         id={field.id}
         type="checkbox"
