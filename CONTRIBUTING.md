@@ -29,9 +29,17 @@ By participating you agree to the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 You need Node.js 26 LTS and pnpm (version pinned in `package.json`, enable it
 with `corepack enable`). On Linux, run E2E tests as
-`dbus-run-session -- xvfb-run -a pnpm test:e2e`: `xvfb-run` keeps their
-windows off your desktop, and a private session bus keeps their tray icons
-and notifications off it too.
+
+```sh
+RT=$(mktemp -d); ln -s "$XDG_RUNTIME_DIR/keyring" "$RT"
+XDG_RUNTIME_DIR=$RT dbus-run-session -- xvfb-run -a pnpm test:e2e
+```
+
+`xvfb-run` keeps their windows off your desktop, and a private session bus
+keeps their tray icons and notifications off it too. The throwaway runtime
+directory stops that bus's document portal from unmounting your desktop's
+on exit, which would leave Flatpak apps unable to start; the link in it lets
+tests that keep secrets reach your keyring.
 
 ```sh
 pnpm install            # install (frozen lockfile in CI)
