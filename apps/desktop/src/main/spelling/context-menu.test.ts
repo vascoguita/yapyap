@@ -19,15 +19,14 @@ const actions = (spellingOn = false) => ({
   replaceMisspelling: vi.fn(),
   addToDictionary: vi.fn(),
   turnSpellingOff: vi.fn(),
-  openSettings: vi.fn(),
-  openLanguages: vi.fn(),
+  openSpellingSettings: vi.fn(),
 });
 
 const labels = (items: ReturnType<typeof contextMenuOf>) =>
   items.map((item) => item.label ?? item.role ?? item.type);
 
 describe('contextMenuOf', () => {
-  it('offers editing in a text box, and leads to Settings to turn spelling on', () => {
+  it('offers editing in a text box, and leads to Settings › Spelling to turn spelling on', () => {
     const act = actions();
     const items = contextMenuOf(params({ editFlags: { ...ALL_FLAGS, canCut: false } }), act);
     expect(labels(items)).toEqual([
@@ -42,7 +41,7 @@ describe('contextMenuOf', () => {
     expect(items.at(-1)).toMatchObject({ type: 'checkbox', checked: false });
     expect(items[0]?.enabled).toBe(false);
     items.at(-1)?.click?.();
-    expect(act.openSettings).toHaveBeenCalledOnce();
+    expect(act.openSpellingSettings).toHaveBeenCalledOnce();
   });
 
   it('puts at most five suggestions first, and learns the word on request', () => {
@@ -79,7 +78,7 @@ describe('contextMenuOf', () => {
     const languages = items.at(-1);
     expect(languages?.label).toBe('Languages…');
     languages?.click?.();
-    expect(act.openLanguages).toHaveBeenCalledOnce();
+    expect(act.openSpellingSettings).toHaveBeenCalledOnce();
   });
 
   it('says so when a misspelled word has no suggestions', () => {

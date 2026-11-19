@@ -32,9 +32,11 @@ export interface ContextMenuActions {
   readonly replaceMisspelling: (word: string) => void;
   readonly addToDictionary: (word: string) => void;
   readonly turnSpellingOff: () => void;
-  /** Settings explains the dictionary download before spelling can come on (C24). */
-  readonly openSettings: () => void;
-  readonly openLanguages: () => void;
+  /**
+   * Settings › Spelling, for its languages, and before spelling comes on,
+   * since it explains the dictionary download first (C24).
+   */
+  readonly openSpellingSettings: () => void;
 }
 
 /** Long lists push the editing entries out of reach; Chromium's own menu stops at five too. */
@@ -74,9 +76,9 @@ function spellingSwitch(actions: ContextMenuActions): ContextMenuItem[] {
       label: en.contextMenu.checkSpelling,
       type: 'checkbox',
       checked: on,
-      click: on ? actions.turnSpellingOff : actions.openSettings,
+      click: on ? actions.turnSpellingOff : actions.openSpellingSettings,
     },
-    ...(on ? [{ label: en.contextMenu.languages, click: actions.openLanguages }] : []),
+    ...(on ? [{ label: en.contextMenu.languages, click: actions.openSpellingSettings }] : []),
   ];
 }
 

@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { closeApp, expect, launchApp, seedSettings, test, whatsAppPage } from './fixtures.ts';
 import { clickLastItem, lastMenu, recordMenus, shownMenus } from './menu-helpers.ts';
 
-test('offers editing on a right click in the message box, and leads to Settings for spelling', async ({
+test('offers editing on a right click in the message box, and leads to Settings › Spelling', async ({
   app,
   window,
 }) => {
@@ -15,7 +15,7 @@ test('offers editing on a right click in the message box, and leads to Settings 
   const opened = app.waitForEvent('window');
   await clickLastItem(app);
   const settings = await opened;
-  await settings.waitForURL('app://chrome/settings.html');
+  await settings.waitForURL('app://chrome/settings.html#spelling');
   await expect(settings.getByRole('switch', { name: 'Check spelling' })).not.toBeChecked();
 });
 
@@ -34,7 +34,7 @@ test(
 
 // macOS picks spelling languages itself.
 test(
-  'picks spelling languages from a searchable list',
+  'picks spelling languages from a searchable list in Settings',
   { tag: '@not-macos' },
   async ({ fakeWhatsApp, profile }) => {
     await seedSettings(profile, { spelling: { enabled: true } });
@@ -56,16 +56,15 @@ test(
           ?.click();
       });
       const languages = await opened;
-      await languages.waitForURL('app://chrome/spelling-languages.html');
+      await languages.waitForURL('app://chrome/settings.html#spelling');
+      await expect(languages.getByRole('switch', { name: 'Check spelling' })).toBeChecked();
       // Which one depends on whether the system's language has a dictionary.
       await expect(
-        languages.getByText(
-          /Checking your system’s language|No dictionary matches your system’s language/,
-        ),
+        languages.getByText(/Your system’s language: |No dictionary for your system’s language/),
       ).toBeVisible();
       await languages.getByRole('searchbox', { name: 'Search languages' }).fill('portugues');
       await languages.getByRole('checkbox', { name: /português \(Portugal\)/ }).check();
-      await expect(languages.getByText('1 of 10 chosen.')).toBeVisible();
+      await expect(languages.getByText('1 of 10 languages chosen')).toBeVisible();
       await expect
         .poll(async () => {
           const saved = JSON.parse(await readFile(join(profile, 'settings.json'), 'utf8')) as {

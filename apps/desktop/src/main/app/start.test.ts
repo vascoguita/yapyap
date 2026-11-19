@@ -122,7 +122,7 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     openSettings: vi.fn(),
     openAssistantSettings: vi.fn(),
     openWelcome: vi.fn(),
-    openSpellingLanguages: vi.fn(),
+    openSpellingSettings: vi.fn(),
     askProxyLogin: vi.fn(() =>
       Promise.resolve<ProxyLoginAnswer | undefined>({
         username: 'ana',
@@ -1492,7 +1492,7 @@ describe('startApp', () => {
       return items;
     }
 
-    it('replaces a misspelling, learns a word, and leads to Settings to turn spelling on', async () => {
+    it('replaces a misspelling, learns a word, and leads to Settings › Spelling to turn spelling on', async () => {
       const f = fakes();
       const items = await rightClick(f);
       items[0]?.click?.();
@@ -1502,7 +1502,7 @@ describe('startApp', () => {
         'helo',
       );
       items.at(-1)?.click?.();
-      expect(f.runtime.openSettings).toHaveBeenCalledOnce();
+      expect(f.runtime.openSpellingSettings).toHaveBeenCalledOnce();
     });
 
     it('turns spell checking off at once, and opens the languages', async () => {
@@ -1514,7 +1514,7 @@ describe('startApp', () => {
       const [change] = f.settings.update.mock.lastCall as [(settings: Settings) => Settings];
       expect(change(on).spelling).toEqual({ enabled: false, languages: [] });
       items.at(-1)?.click?.();
-      expect(f.runtime.openSpellingLanguages).toHaveBeenCalledOnce();
+      expect(f.runtime.openSpellingSettings).toHaveBeenCalledOnce();
     });
   });
 

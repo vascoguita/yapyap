@@ -9,6 +9,7 @@ import { expect, test, whatsAppPage } from './fixtures.ts';
 const PAGES = [
   ['About YapYap', 'about.html'],
   ['Settings…', 'settings.html'],
+  ['Settings…', 'settings.html#spelling'],
   ['Manage Accounts…', 'accounts.html'],
   ['Custom CSS and JavaScript…', 'custom-code.html'],
   ['Keyboard Shortcuts…', 'settings.html#shortcuts'],
@@ -16,9 +17,17 @@ const PAGES = [
   ['Report a Problem…', 'report.html'],
 ] as const;
 
+/** Settings pages that only the message box's right-click menu opens, by their name in Settings. */
+const LISTED: Partial<Record<string, string>> = { 'settings.html#spelling': 'Spelling' };
+
 async function openChrome(app: ElectronApplication, label: string, page: string): Promise<Page> {
-  const window = await openFromMenu(app, label, page);
+  const listed = LISTED[page];
+  const window = await openFromMenu(app, label, listed === undefined ? page : 'settings.html');
   await window.waitForLoadState('load');
+  if (listed !== undefined) {
+    await window.getByRole('navigation').getByRole('button', { name: listed }).click();
+    await window.waitForURL(`app://chrome/${page}`);
+  }
   // Parts of a page fill in after it loads; walking or auditing it earlier misses them.
   await expect(window.locator('main')).toBeAttached();
   await expect(window.locator('[aria-busy="true"]')).toHaveCount(0);

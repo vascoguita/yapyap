@@ -8,6 +8,7 @@ import { AgentsSection } from './Agents.tsx';
 import { AssistantSection } from './Assistant.tsx';
 import { Field, Group, type Change } from './Field.tsx';
 import { ShortcutsSection } from './Shortcuts.tsx';
+import { SpellingSection } from './Spelling.tsx';
 import { Icon } from '../shared/icons.tsx';
 import {
   BACKUP_PAGE,
@@ -59,6 +60,8 @@ function GroupOf(props: PageProps & { readonly group: SettingsGroup }): JSX.Elem
 function PageBody(props: PageProps & { readonly page: SettingsPage }): JSX.Element {
   const { page } = props;
   switch (page.own) {
+    case 'spelling':
+      return <SpellingSection {...props} />;
     case 'shortcuts':
       return <ShortcutsSection api={props.api} />;
     case 'assistant':

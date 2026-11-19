@@ -23,7 +23,7 @@ export interface SettingsPage {
   readonly icon: IconName;
   readonly intro?: string;
   /** A page with more than settings has a component of its own instead of groups. */
-  readonly own?: 'shortcuts' | 'assistant' | 'agents' | 'backup';
+  readonly own?: 'spelling' | 'shortcuts' | 'assistant' | 'agents' | 'backup';
   readonly groups: readonly SettingsGroup[];
   /** Comes after a divider, as a page for when something goes wrong. */
   readonly apart?: boolean;
@@ -47,7 +47,6 @@ const PAGES: readonly SettingsPage[] = [
         'general.startMinimized',
         'general.closeToTray',
       ]),
-      group('writing', groups.writing, ['spelling.enabled']),
       group('updates', groups.updates, ['general.betaUpdates']),
     ],
   },
@@ -81,6 +80,13 @@ const PAGES: readonly SettingsPage[] = [
       ]),
       group('crash-reports', groups.crashReports, ['privacy.crashReports']),
     ],
+  },
+  {
+    id: 'spelling',
+    title: text.pages.spelling,
+    icon: 'spelling',
+    own: 'spelling',
+    groups: [],
   },
   {
     id: 'downloads',
@@ -166,8 +172,8 @@ export const isDimmed = (id: string, values: Values): boolean => DIMMED_WHEN[id]
 
 /**
  * The pages before Backup this platform has: those with a setting here, and
- * those of their own. Keyboard shortcuts work everywhere; the assistant's
- * and the agents' pages show where their switch does.
+ * those of their own. Keyboard shortcuts work everywhere; the spelling,
+ * assistant's and agents' pages show where their switch does.
  */
 export function shownPages(snapshot: SettingsSnapshot): readonly SettingsPage[] {
   return PAGES.filter((page) => {
