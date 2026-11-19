@@ -12,13 +12,12 @@ These add to the repository's root `CLAUDE.md`, which applies here too.
 - On a Linux desktop, run E2E tests under `dbus-run-session` as well as
   `xvfb-run`: Xvfb hides the windows, but tray icons and notifications go
   through the session bus and would appear on the developer's desktop.
-  Give that bus a throwaway `XDG_RUNTIME_DIR` (`$(mktemp -d)`): it starts
-  its own document portal, which mounts on `$XDG_RUNTIME_DIR/doc` and
-  unmounts it on exit, and with the real one that breaks the developer's
-  Flatpak apps until `xdg-document-portal.service` restarts (#713). Link
-  the real `keyring` directory into it: the bus's keyring daemon finds the
-  unlocked one there, where a fresh one would wait for an unlock prompt
-  nobody sees under Xvfb, and the agents tests need a keyring.
+  Pass it `--config-file=apps/desktop/e2e/session-bus.conf`, a bus that
+  starts no services, as CI has none. A standard one starts the desktop
+  portal for Chromium, and with it a document portal that unmounts the
+  developer's on exit, breaking their Flatpak apps (#713), and a keyring
+  daemon that is either the developer's or locked behind a prompt nobody
+  sees under Xvfb (#715).
 - E2E runs drop `WAYLAND_DISPLAY` and set `XDG_SESSION_TYPE=x11` so local
   runs use the virtual X11 display like CI; Chromium otherwise reaches a
   desktop's Wayland compositor through its default socket.
