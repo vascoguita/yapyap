@@ -11,6 +11,7 @@ import {
   holdAssistantBarRoom,
   markAssistantBar,
   noticeAssistantBar,
+  refreshAssistantBar,
   renderAssistantBar,
   showAssistantBar,
   updateAssistantBar,
@@ -76,6 +77,7 @@ const KIT = {
   icon: strokeIcon,
   here: assistantBarHere,
   fingerprint,
+  refresh: refreshAssistantBar,
   hidden: assistantBarHidden,
   mark: markAssistantBar,
 };
@@ -471,8 +473,12 @@ function barHeights() {
 describe('holdAssistantBarRoom', () => {
   type Bar = Parameters<typeof holdAssistantBarRoom>[2];
   /** A bar `height` tall, which the list's layout reads. */
-  function bar(height: number) {
-    const node = { offsetHeight: height, ownerDocument: document } as unknown as Bar;
+  function bar(height: number, top = 10_000) {
+    const node = {
+      offsetHeight: height,
+      ownerDocument: document,
+      getBoundingClientRect: () => ({ top, bottom: top + height }),
+    } as unknown as Bar;
     const resize = (next: number) => () => {
       Object.assign(node, { offsetHeight: next });
     };
@@ -523,6 +529,22 @@ describe('holdAssistantBarRoom', () => {
     list.scrollTop = 400;
     holdAssistantBarRoom({ getComputedStyle }, PLACES, b.node, b.resize(30));
     expect(fromEnd(list)).toBe(0);
+  });
+
+  it('makes room at the list’s end where it runs on under the bar, as under WhatsApp’s floating message box (#743)', () => {
+    const b = bar(0, 520);
+    const list = scrollingChat(b.height);
+    list.style.paddingBlockEnd = '12px';
+    list.getBoundingClientRect = () => ({ top: 0, bottom: 600 }) as DOMRect;
+    list.scrollTop = 1000;
+    holdAssistantBarRoom({ getComputedStyle }, PLACES, b.node, b.resize(80));
+    expect(list.style.getPropertyValue('padding-block-end')).toBe('calc(12px + 80px)');
+    // Its own padding is kept apart, so the room is never added twice.
+    holdAssistantBarRoom({ getComputedStyle }, PLACES, b.node, b.resize(80));
+    expect(list.style.getPropertyValue('padding-block-end')).toBe('calc(12px + 80px)');
+    // A hidden bar covers nothing.
+    holdAssistantBarRoom({ getComputedStyle }, PLACES, b.node, b.resize(0));
+    expect(list.style.getPropertyValue('padding-block-end')).toBe('calc(12px + 0px)');
   });
 
   it('makes the change in a chat with no messages', () => {

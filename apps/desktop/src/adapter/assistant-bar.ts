@@ -77,8 +77,15 @@ interface BarNode {
   readonly parentElement: BarNode | null;
   readonly ownerDocument: BarDocument;
   readonly previousElementSibling: unknown;
-  readonly style: { order: string; position: string; zIndex: string; display: string };
+  readonly style: {
+    order: string;
+    position: string;
+    zIndex: string;
+    display: string;
+    setProperty(name: string, value: string): void;
+  };
   readonly dataset: Record<string, string | undefined>;
+  getBoundingClientRect(): { readonly top: number; readonly bottom: number };
   setAttribute(name: string, value: string): void;
   append(...nodes: BarNode[]): void;
   replaceChildren(...nodes: BarNode[]): void;
@@ -163,6 +170,13 @@ export interface BarKit {
   readonly fingerprint: (text: string) => string;
   readonly hidden: (parts: BarParts) => BarHidden;
   readonly mark: (parts: BarParts, content: BarContent) => void;
+  readonly refresh: (
+    doc: BarDocument,
+    scope: Scope,
+    places: BarPlaces,
+    change: { store: BarStore; shown: BarContent; placed: boolean },
+    kit: BarKit,
+  ) => void;
   readonly icon: typeof strokeIcon;
 }
 
@@ -195,18 +209,10 @@ export function renderAssistantBar(
   scope[places.store] = store;
   const placed = footer.previousElementSibling !== store.host;
   const shown = kit.here(doc, content, places, kit.fingerprint);
-  const key = JSON.stringify(shown);
   if (placed) {
     footer.before(store.host);
   }
-  if (store.key !== key) {
-    store.key = key;
-    kit.room(scope, places, store.parts.bar, () => {
-      kit.update(doc, store.parts, shown);
-      kit.mark(store.parts, shown);
-      kit.notice(store.parts, shown.notice);
-    });
-  }
+  kit.refresh(doc, scope, places, { store, shown, placed }, kit);
   store.sync();
   kit.align(scope, store.host, footer);
   kit.paint(scope, store.host, footer);
@@ -237,6 +243,32 @@ export function assistantBarHere(
 }
 
 /**
+ * Shows new content, making room for it in the chat; or, put back into a
+ * chat WhatsApp drew anew, whose list has none of the room it made, makes
+ * that room again (#743). Content that did not change is left alone.
+ */
+export function refreshAssistantBar(
+  doc: BarDocument,
+  scope: Scope,
+  places: BarPlaces,
+  { store, shown, placed }: { store: BarStore; shown: BarContent; placed: boolean },
+  kit: BarKit,
+): void {
+  const key = JSON.stringify(shown);
+  const fresh = store.key !== key;
+  store.key = key;
+  if (fresh || placed) {
+    kit.room(scope, places, store.parts.bar, () => {
+      if (fresh) {
+        kit.update(doc, store.parts, shown);
+        kit.mark(store.parts, shown);
+        kit.notice(store.parts, shown.notice);
+      }
+    });
+  }
+}
+
+/**
  * Puts the bar where the message box is in WhatsApp's layout. WhatsApp
  * orders the open chat's parts with flexbox `order` and lays a positioned
  * wallpaper over the chat, so the bar takes the message box's order and
@@ -261,8 +293,10 @@ export function alignAssistantBar(scope: Scope, host: BarNode, footer: BarNode):
  * it, whichever way the bar changed. Browsers already pull a list scrolled
  * to its end back as it grows, so moving it by the bar's change in height
  * would move it twice (#616). The list is the nearest scrolling box around a
- * message, inside the open chat. Measuring forces a layout, so it measures
- * only around a change.
+ * message, inside the open chat. Where WhatsApp lets the list run on under
+ * the bar, the list's end gets that much more padding, so the last message
+ * can still scroll clear of the bar. Measuring forces a layout, so it
+ * measures only around a change.
  */
 export function holdAssistantBarRoom(
   scope: Scope,
@@ -270,7 +304,10 @@ export function holdAssistantBarRoom(
   bar: BarNode,
   change: () => void,
 ): void {
-  const computed = scope['getComputedStyle'] as (node: BarNode) => { readonly overflowY: string };
+  const computed = scope['getComputedStyle'] as (node: BarNode) => {
+    readonly overflowY: string;
+    readonly paddingBlockEnd: string;
+  };
   const inChat = (node: BarNode | null): node is BarNode =>
     node !== null && node.closest(places.conversation) !== null;
   const scrolls = (node: BarNode): boolean =>
@@ -283,8 +320,19 @@ export function holdAssistantBarRoom(
     change();
     return;
   }
+  // Where the list runs on under the bar, as WhatsApp's does under its floating message box,
+  // it gets as much room again at its end, so its last message can scroll clear of the bar (#743).
+  const pad = (scrolled: BarNode): void => {
+    const own = computed.call(scope, scrolled).paddingBlockEnd || '0px';
+    const base = scrolled.dataset['yapyapPad'] ?? own;
+    scrolled.dataset['yapyapPad'] = base;
+    const under = scrolled.getBoundingClientRect().bottom - bar.getBoundingClientRect().top;
+    const covered = bar.offsetHeight === 0 ? 0 : Math.max(0, under);
+    scrolled.style.setProperty('padding-block-end', `calc(${base} + ${String(covered)}px)`);
+  };
   const fromEnd = list.scrollHeight - list.scrollTop - list.clientHeight;
   change();
+  pad(list);
   list.scrollTop = list.scrollHeight - list.clientHeight - fromEnd;
 }
 
@@ -631,6 +679,7 @@ export function assistantBarRender(content: BarContent): string {
     `fingerprint: ${fingerprint.toString()}`,
     `hidden: ${assistantBarHidden.toString()}`,
     `mark: ${markAssistantBar.toString()}`,
+    `refresh: ${refreshAssistantBar.toString()}`,
   ].join(', ');
   return `(${renderAssistantBar.toString()})(document, globalThis, ${JSON.stringify(content)}, ${JSON.stringify(PLACES)}, { ${kit} })`;
 }
