@@ -9,6 +9,7 @@ import {
   assistantBarRows,
   buildAssistantBar,
   holdAssistantBarRoom,
+  markAssistantBar,
   noticeAssistantBar,
   renderAssistantBar,
   showAssistantBar,
@@ -75,6 +76,7 @@ const KIT = {
   icon: strokeIcon,
   here: assistantBarHere,
   hidden: assistantBarHidden,
+  mark: markAssistantBar,
 };
 
 interface Stored {

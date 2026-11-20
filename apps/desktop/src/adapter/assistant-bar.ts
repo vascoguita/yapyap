@@ -157,6 +157,7 @@ export interface BarKit {
   readonly notice: (parts: BarParts, notice: BarContent['notice']) => void;
   readonly here: (doc: BarDocument, content: BarContent, places: BarPlaces) => BarContent;
   readonly hidden: (parts: BarParts, typed: boolean) => BarHidden;
+  readonly mark: (parts: BarParts, content: BarContent) => void;
   readonly icon: typeof strokeIcon;
 }
 
@@ -197,6 +198,7 @@ export function renderAssistantBar(
     store.key = key;
     kit.room(scope, places, store.parts.bar, () => {
       kit.update(doc, store.parts, shown);
+      kit.mark(store.parts, shown);
       kit.notice(store.parts, shown.notice);
     });
   }
@@ -444,16 +446,9 @@ export function updateAssistantBar(doc: BarDocument, parts: BarParts, content: B
   named(parts.collapse, labels.collapse);
   named(parts.expand, labels.expand);
   named(parts.close, labels.close);
-  parts.collapse.setAttribute('aria-expanded', 'true');
-  parts.expand.setAttribute('aria-expanded', 'false');
   parts.foldLabel.textContent = labels.folded;
-  parts.bar.dataset['collapsed'] = String(content.collapsed);
   // While suggestions are written, three blank chips hold their place (#703).
   const writing = content.writing && suggestions.length === 0;
-  parts.list.dataset['items'] = String(suggestions.length);
-  parts.list.dataset['writing'] = String(writing);
-  parts.list.setAttribute('aria-busy', String(writing));
-  parts.status.textContent = writing ? labels.writing : '';
   const chip = (text: string, index: number): BarNode => {
     const item = doc.createElement('li');
     const button = doc.createElement('button');
@@ -472,7 +467,26 @@ export function updateAssistantBar(doc: BarDocument, parts: BarParts, content: B
     item.setAttribute('aria-hidden', 'true');
     return item;
   };
-  parts.list.replaceChildren(...(writing ? [blank(), blank(), blank()] : suggestions.map(chip)));
+  const items = writing
+    ? [blank(), blank(), blank()]
+    : suggestions.map((text, index) => chip(text, index));
+  parts.list.replaceChildren(...items);
+}
+
+/**
+ * Marks what the row is doing, for its styles, for the rows that show, and
+ * for screen readers: folded away or not (#729), and how many suggestions
+ * there are, or that they are being written (#703).
+ */
+export function markAssistantBar(parts: BarParts, content: BarContent): void {
+  const writing = content.writing && content.suggestions.length === 0;
+  parts.bar.dataset['collapsed'] = String(content.collapsed);
+  parts.collapse.setAttribute('aria-expanded', 'true');
+  parts.expand.setAttribute('aria-expanded', 'false');
+  parts.list.dataset['items'] = String(content.suggestions.length);
+  parts.list.dataset['writing'] = String(writing);
+  parts.list.setAttribute('aria-busy', String(writing));
+  parts.status.textContent = writing ? content.labels.writing : '';
 }
 
 /** Shows what a rewrite did, or what keeps the assistant from answering, with its one button. */
@@ -599,6 +613,7 @@ export function assistantBarRender(content: BarContent): string {
     `icon: ${strokeIcon.toString()}`,
     `here: ${assistantBarHere.toString()}`,
     `hidden: ${assistantBarHidden.toString()}`,
+    `mark: ${markAssistantBar.toString()}`,
   ].join(', ');
   return `(${renderAssistantBar.toString()})(document, globalThis, ${JSON.stringify(content)}, ${JSON.stringify(PLACES)}, { ${kit} })`;
 }
