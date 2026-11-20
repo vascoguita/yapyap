@@ -78,20 +78,27 @@ describe('followOpenChat', () => {
     expect(t.deps.sent).not.toHaveBeenCalled();
   });
 
-  it('tells when the user sends a message, and asks nothing of a chat whose last message is theirs', async () => {
+  it('tells when the user sends a message, then that it is the chat’s last item (#723)', async () => {
     const t = setup('aaaaaaaa:00000001:-:i:e');
     await t.look();
     t.page().set('aaaaaaaa:00000001:0000000f:o:e');
     await t.look();
     expect(t.deps.sent).toHaveBeenCalledOnce();
+    expect(t.deps.arrived).toHaveBeenLastCalledWith('aaaaaaaa:0000000f');
+    expect(t.deps.sent.mock.invocationCallOrder[0]).toBeLessThan(
+      t.deps.arrived.mock.invocationCallOrder[0] ?? 0,
+    );
     t.page().set('aaaaaaaa:00000001:0000000e:o:e');
     await t.look();
     expect(t.deps.sent).toHaveBeenCalledTimes(2);
-    expect(t.deps.arrived).not.toHaveBeenCalled();
-    // A message that arrived but is not the last, as when the user answered at once, asks nothing.
-    t.page().set('aaaaaaaa:00000002:0000000d:o:e');
+    expect(t.deps.arrived).toHaveBeenLastCalledWith('aaaaaaaa:0000000e');
+    // A message that arrived but is not the last, as when the user answered at once, is no new last item.
+    t.page().set('aaaaaaaa:00000002:0000000e:o:e');
     await t.look();
-    expect(t.deps.arrived).not.toHaveBeenCalled();
+    expect(t.deps.arrived).toHaveBeenCalledTimes(2);
+    // Nothing new: no new last item.
+    await t.look();
+    expect(t.deps.arrived).toHaveBeenCalledTimes(2);
   });
 
   it('tells at every look that the message box is empty, but not when the user just sent what was in it', async () => {
@@ -110,23 +117,25 @@ describe('followOpenChat', () => {
     expect(t.deps.cleared).toHaveBeenCalledTimes(2);
   });
 
-  it('tells another chat or account opened, naming its message only when it is theirs and last', async () => {
+  it('tells another chat or account opened, naming its last item, whoever’s it is (#723)', async () => {
     const t = setup();
     await t.look();
     t.page().set('bbbbbbbb:-:00000003:o:e');
     await t.look();
-    expect(t.deps.opened).toHaveBeenLastCalledWith(null);
+    expect(t.deps.opened).toHaveBeenLastCalledWith('bbbbbbbb:00000003');
     t.page().set(null);
     await t.look();
-    expect(t.deps.opened).toHaveBeenCalledTimes(2);
+    expect(t.deps.opened).toHaveBeenLastCalledWith(null);
     await t.look();
     expect(t.deps.opened).toHaveBeenCalledTimes(2);
     const other = fakePage('bbbbbbbb:00000005:-:i:e');
     t.switchPage(other);
     await t.look();
     expect(t.deps.opened).toHaveBeenLastCalledWith('bbbbbbbb:00000005');
-    t.page().set('bbbbbbbb:-:-:-:e');
+    // A chat with nothing in it yet still has suggestions, to start it.
+    t.page().set('cccccccc:-:-:-:e');
     await t.look();
+    expect(t.deps.opened).toHaveBeenLastCalledWith('cccccccc:-');
     expect(t.deps.arrived).not.toHaveBeenCalled();
     expect(t.deps.sent).not.toHaveBeenCalled();
   });

@@ -178,8 +178,8 @@ test('Main window, with the AI Assistant', async ({ profile }) => {
     await allowAllChats(settings);
     const page = await personalPage(app);
     await focusMainWindow(app);
-    // Suggestions come by themselves, as the chat's last message is someone
-    // else's. They draw in a closed shadow root, so the run waits for them.
+    // Suggestions come by themselves when the chat opens. They draw in a
+    // closed shadow root, so the run waits for them.
     await page.waitForTimeout(3000);
     // Nothing focused, so no focus ring draws on the page.
     await page.evaluate(() => {

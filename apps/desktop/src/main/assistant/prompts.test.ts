@@ -64,6 +64,36 @@ describe('chatContext', () => {
     );
   });
 
+  it('names what was sent when it is not only text, with its caption, and a call with no sender (#723)', () => {
+    const chat: ReadChat = {
+      name: 'Ana',
+      group: false,
+      messages: [
+        { outgoing: false, text: '', kind: 'call', time: '19:00' },
+        { outgoing: false, text: 'Look\nhere', kind: 'photo' },
+        { outgoing: true, text: '', kind: 'sticker' },
+        { outgoing: false, text: '', kind: 'voice' },
+        { outgoing: false, text: '', kind: 'video' },
+        { outgoing: false, text: '', kind: 'animated-emoji' },
+        { outgoing: false, text: '', kind: 'media' },
+        { outgoing: false, text: '', kind: 'other' },
+        { outgoing: false, text: '🖤' },
+      ],
+    };
+    expect(chatContext(chat).split('\n').slice(2, -1)).toEqual([
+      '[19:00] [a call]',
+      'Ana: [a photo] Look',
+      '  here',
+      'Me: [a sticker]',
+      'Ana: [a voice message]',
+      'Ana: [a video]',
+      'Ana: [an animated emoji]',
+      'Ana: [a photo, video or file, not downloaded]',
+      'Ana: [something that is not text, such as a file or a poll]',
+      'Ana: 🖤',
+    ]);
+  });
+
   it('names who wrote each message in a group, and what they reply to', () => {
     const chat: ReadChat = {
       name: 'Book club',

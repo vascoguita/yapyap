@@ -1,8 +1,8 @@
 # AI Assistant
 
 YapYap's AI assistant helps you write, in the message box itself. It
-suggests short replies when someone writes to you, and rewrites what you
-type in the tone you choose.
+suggests what to send next in the open chat, and rewrites what you type in
+the tone you choose.
 
 You stay in charge of every message:
 
@@ -119,7 +119,9 @@ For a suggestion or a rewrite, the model reads the same things:
 - Which chat it is: a chat with a contact, by their name, or a group, by
   its name.
 - The chat's latest messages, each with its time and who sent it. You are
-  "Me". In a group, others go by the names WhatsApp shows; someone known
+  "Me". A photo, video, sticker, voice message or call shows as what it
+  is, such as "[a photo]", with its caption if it has one; the model never
+  gets the photo, video or sound itself. A call says nothing of who called. In a group, others go by the names WhatsApp shows; someone known
   only by their number goes by "Person 1", "Person 2" and so on, and no
   phone number is sent. A reply carries the message it quotes.
 - Today's date and time, so "tomorrow" and "on Friday" mean what you mean.
@@ -139,9 +141,12 @@ and it saves time.
 
 ### Suggested replies
 
-When the last message in the open chat is someone else's, up to three
-short replies appear right above the message box, in the chat's
-language. They are real choices, such as yes, not now, and a question
+When you open a chat, and each time something new appears in it, three
+short messages to send next appear right above the message box, in the
+chat's language. They answer the last thing in the chat, whoever sent it
+and whatever it is: a message, a photo, a sticker, a voice message or a
+call. When your own message is last, they follow it up instead, such as
+something to add or a nudge if a question went unanswered. They are real choices, such as yes, not now, and a question
 back, written the way you write in that chat. Where an answer needs
 something only you know, such as whether you are free, they work without
 it rather than guess:
@@ -150,12 +155,10 @@ it rather than guess:
   you send it. A suggestion never sends itself.
 - They go as soon as you start typing your own reply, and come back if
   you clear it, even after a rewrite.
-- **×** dismisses them until the next message arrives.
-- A chat that needs no reply, such as one that ends in a link or a
-  sticker, gets none.
+- **×** dismisses them until something new appears in the chat.
 
-The AI assistant asks for suggestions once a message settles in, so a burst
-of messages asks once, and only while YapYap's window is in front. Each
+The AI assistant asks for suggestions once the chat settles, so a burst of
+messages asks once, and only while YapYap's window is in front. Each
 time, it reads the chat's latest messages. Turn off **Suggest replies** in
 Settings to stop them.
 
@@ -199,8 +202,8 @@ fixes it: **Set Up…**, **Paste a Key…** or **Open Settings**.
 ## Privacy
 
 - The AI assistant reads a chat only in the chats you chose, or in every chat
-  if you chose **All chats**, to suggest replies when someone else wrote
-  last and to rewrite what you typed. No phone number is sent.
+  if you chose **All chats**, to suggest what to send each time you open
+  one or something new appears in it, and to rewrite what you typed. No phone number is sent.
 - Nothing is sent anywhere until you set up a provider.
 - **Settings → AI Assistant**, under the list of providers, says where what
   you ask about goes right now: nowhere off your computer with a model

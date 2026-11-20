@@ -290,11 +290,10 @@ function dismiss(bar: BarContext, message: string | null): void {
   update(bar, { suggestions: [] });
 }
 
-/** The open chat, if the user wants suggestions there and its last message is someone else's. */
+/** The open chat, if the user wants suggestions there, whoever sent its last item (#723). */
 async function chatToAnswer(bar: BarContext): Promise<ReadChat | undefined> {
   const chat = await bar.deps.accounts.readActiveChat(messagesToRead(bar));
-  const theirs = chat?.messages.at(-1)?.outgoing === false;
-  return chat !== null && theirs && mayRead(bar, chat.name) ? chat : undefined;
+  return chat !== null && mayRead(bar, chat.name) ? chat : undefined;
 }
 
 const isAborted = (signal: AbortSignal): boolean => signal.aborted;
@@ -330,9 +329,9 @@ const settled = (bar: BarContext, signal: AbortSignal): Promise<boolean> =>
   });
 
 /**
- * Suggests replies to `message`, the open chat's newest, from someone
- * else. Suggestions already made for it show again, and none show after
- * the user dismissed them.
+ * Suggests what to send after `message`, the open chat's last item,
+ * whoever sent it. Suggestions already made for it show again, and none
+ * show after the user dismissed them.
  */
 async function suggest(bar: BarContext, message: string): Promise<void> {
   bar.suggesting?.abort();
@@ -369,11 +368,11 @@ export interface AssistantBar {
   readonly use: (index: number) => Promise<void>;
   readonly dismiss: () => void;
   readonly button: (id: BarButtonId) => Promise<void>;
-  /** The open chat was first seen, with `message` its newest from someone else if it is the last one. */
+  /** The open chat was first seen, with `message` its last item, or no chat is open. */
   readonly found: (message: string | null) => void;
-  /** Another chat is open, with `message` its newest from someone else if it is the last one. */
+  /** Another chat is open, with `message` its last item, or none is. */
   readonly opened: (message: string | null) => void;
-  /** A message from someone else arrived in the open chat, and is its last. */
+  /** Another item is the open chat's last: someone else's, or the user's own. */
   readonly arrived: (message: string) => void;
   /** The user sent a message in the open chat. */
   readonly sent: () => void;
@@ -420,7 +419,7 @@ function cleared(bar: BarContext, message: string | null): void {
 function followChat(
   bar: BarContext,
 ): Pick<AssistantBar, 'dismiss' | 'found' | 'opened' | 'arrived' | 'sent' | 'cleared'> {
-  // The open chat's newest message from someone else, while it is the last one.
+  // The open chat's last item, whoever sent it.
   let message: string | null = null;
   const follow = (newest: string | null): void => {
     message = newest;

@@ -16,6 +16,7 @@ import {
   quietPort,
   readyClaude,
   standInKeyring,
+  stickerArrives,
   toolNames,
 } from './assistant-helpers.ts';
 import { chromePage } from './chrome-helpers.ts';
@@ -78,12 +79,41 @@ test('suggests replies when a message arrives, only in a chat the user added in 
   await expect(window.getByTestId('sent')).toHaveCount(0);
 });
 
+test('suggests after a sticker, and after the user’s own message (#723)', async ({
+  app,
+  window,
+}) => {
+  await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
+  // Every request gets this answer: the chat the window opens on may be asked about first.
+  const settings = await readyClaude(app, claudeAnswer('Haha love it'));
+  await allowAllChats(settings);
+  await focusMain(app);
+  await stickerArrives(window, '3EB0F9');
+  await expect(async () => {
+    expect(await barNames(app)).toContain('Haha love it');
+  }).toPass({ timeout: 15_000 });
+  const asked = await claudeRequests(app);
+  expect(asked.at(-1)).toContain('Test Chat One: [a sticker]');
+  // The user's own message is last now, and still has suggestions to follow it.
+  await clickInBar(app, window, 'Haha love it');
+  const composer = window.getByTestId('composer');
+  await expect(composer).toHaveText('Haha love it');
+  await composer.press('Enter');
+  await expect(async () => {
+    expect((await claudeRequests(app)).length).toBeGreaterThan(asked.length);
+  }).toPass({ timeout: 15_000 });
+  await expect(window.getByTestId('sent')).toHaveCount(1);
+});
+
 test('hides suggestions while the user types, and after Dismiss until the next message', async ({
   app,
   window,
 }) => {
   await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
-  const settings = await readyClaude(app, CLAUDE_ANSWER, claudeAnswer('Still on!'));
+  const settings = await readyClaude(app, CLAUDE_ANSWER, {
+    when: 'Hello?',
+    body: claudeAnswer('Still on!'),
+  });
   await allowAllChats(settings);
   await focusMain(app);
   await messageArrives(window, '3EB0F7', 'Are we still on?');
@@ -110,7 +140,10 @@ test('hides suggestions while the user types, and after Dismiss until the next m
   await expect(async () => {
     expect(await barNames(app)).toContain('Still on!');
   }).toPass({ timeout: 15_000 });
-  expect(await claudeRequests(app)).toHaveLength(2);
+  // One request for each message: typing, clearing and Dismiss ask nothing.
+  const asked = await claudeRequests(app);
+  expect(asked.filter((body) => body.includes('Are we still on?'))).toHaveLength(2);
+  expect(asked.filter((body) => body.includes('Hello?'))).toHaveLength(1);
 });
 
 test('brings the suggestions back and drops Undo once the user empties a rewritten draft', async ({
@@ -118,7 +151,10 @@ test('brings the suggestions back and drops Undo once the user empties a rewritt
   window,
 }) => {
   await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
-  const settings = await readyClaude(app, CLAUDE_ANSWER, claudeAnswer('Sure, see you there!'));
+  const settings = await readyClaude(app, CLAUDE_ANSWER, {
+    when: 'Rewrite my draft',
+    body: claudeAnswer('Sure, see you there!'),
+  });
   await allowAllChats(settings);
   await focusMain(app);
   await messageArrives(window, '3EB0F7', 'Are we still on?');
@@ -144,7 +180,9 @@ test('brings the suggestions back and drops Undo once the user empties a rewritt
     expect(await toolNames(app)).toEqual([]);
   }).toPass();
   // The suggestions come back as they were, without asking again.
-  expect(await claudeRequests(app)).toHaveLength(2);
+  const asked = await claudeRequests(app);
+  expect(asked.filter((body) => body.includes('Are we still on?'))).toHaveLength(2);
+  expect(asked.filter((body) => body.includes('Rewrite my draft'))).toHaveLength(1);
 });
 
 test('rewrites the draft in place from the message box, puts it back on Undo, and never sends', async ({

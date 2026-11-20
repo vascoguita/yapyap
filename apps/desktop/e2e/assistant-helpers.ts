@@ -148,26 +148,47 @@ const CLAUDE_MODELS = JSON.stringify({
 });
 
 /**
+ * An answer Claude gives only to a request that contains `when`, such as
+ * a message of the chat or "Rewrite my draft": the chat a window opens on
+ * may be asked about first, so tests that need different answers pick them
+ * by what is asked rather than by order (#723).
+ */
+interface AnswerWhen {
+  readonly when: string;
+  readonly body: string;
+}
+
+/**
  * Plays Claude on the assistant's own session, so nothing reaches the real
- * API: it lists two models, and answers every message with the next of
+ * API: it lists two models, and answers every message with the first
+ * {@link AnswerWhen} it matches, else with the next of the other
  * `answers`, the last one again once they run out, keeping what was asked
  * in `claudeRequests`.
  */
-async function playClaude(app: ElectronApplication, ...answers: readonly string[]): Promise<void> {
+async function playClaude(
+  app: ElectronApplication,
+  ...answers: readonly (string | AnswerWhen)[]
+): Promise<void> {
   await app.evaluate(
-    ({ session }, { bodies, models }) => {
+    ({ session }, { bodies, rules, models }) => {
       const asked: string[] = [];
       Object.assign(globalThis, { claudeRequests: asked });
       session.fromPartition('yapyap-assistant').protocol.handle('https', async (request) => {
         if (new URL(request.url).pathname === '/v1/models') {
           return new Response(models, { headers: { 'content-type': 'application/json' } });
         }
-        asked.push(await request.text());
-        const body = bodies[Math.min(asked.length, bodies.length) - 1] ?? '';
+        const text = await request.text();
+        asked.push(text);
+        const rule = rules.find(({ when }) => text.includes(when));
+        const body = rule?.body ?? bodies[Math.min(asked.length, bodies.length) - 1] ?? '';
         return new Response(body, { headers: { 'content-type': 'text/event-stream' } });
       });
     },
-    { bodies: [...answers], models: CLAUDE_MODELS },
+    {
+      bodies: answers.filter((answer) => typeof answer === 'string'),
+      rules: answers.filter((answer) => typeof answer !== 'string'),
+      models: CLAUDE_MODELS,
+    },
   );
 }
 
@@ -252,7 +273,7 @@ export async function openAssistantSettings(app: ElectronApplication): Promise<P
 /** Saves an API key for Claude in Settings › Assistant, with Claude played by {@link playClaude}. */
 export async function readyClaude(
   app: ElectronApplication,
-  ...answers: readonly string[]
+  ...answers: readonly (string | AnswerWhen)[]
 ): Promise<Page> {
   await standInKeyring(app);
   await playClaude(app, ...answers);
@@ -312,6 +333,29 @@ export async function messageArrives(page: Page, id: string, text: string): Prom
     },
     { id, text },
   );
+}
+
+/**
+ * Adds a sticker from the contact as the chat's last item, as WhatsApp
+ * draws one: a bubble with no text and no copy mark (#723).
+ */
+export async function stickerArrives(page: Page, id: string): Promise<void> {
+  await page.evaluate((id) => {
+    const row = document.createElement('div');
+    row.setAttribute('role', 'row');
+    const message = document.createElement('div');
+    message.dataset['id'] = id;
+    const bubble = document.createElement('div');
+    bubble.dataset['testid'] = 'msg-container';
+    const sticker = document.createElement('div');
+    sticker.dataset['testid'] = 'sticker-container';
+    sticker.append(document.createElement('img'));
+    bubble.append(sticker);
+    message.append(bubble);
+    row.append(message);
+    const rows = document.querySelectorAll('#main [role="row"]');
+    rows[rows.length - 1]?.after(row);
+  }, id);
 }
 
 /**

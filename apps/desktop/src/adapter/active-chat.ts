@@ -12,10 +12,35 @@ const MAX_QUOTE = 512;
 /** Longest copy mark (`[time, date] Sender: `) the reader passes on. */
 const MAX_META = 320;
 
+/**
+ * What a message is when it is not only text, as its markers tell (#723).
+ * A call is neither side's: its row says nothing of who called. Media not
+ * downloaded yet shows no sign of what it is, and `other` is anything with
+ * no words and none of these markers, such as a document or a poll.
+ */
+const ITEM_KINDS = [
+  'call',
+  'sticker',
+  'animated-emoji',
+  'voice',
+  'video',
+  'photo',
+  'media',
+  'other',
+] as const;
+
+/** What a message is when it is not only text. */
+export type ItemKind = (typeof ITEM_KINDS)[number];
+
 interface ReadElement {
   readonly textContent: string | null;
   readonly innerText?: string;
-  readonly dataset?: { readonly id?: string; readonly prePlainText?: string };
+  readonly dataset?: {
+    readonly id?: string;
+    readonly prePlainText?: string;
+    readonly plainText?: string;
+    readonly virtualized?: string;
+  };
   querySelector(selectors: string): unknown;
   querySelectorAll?(selectors: string): Iterable<unknown> & ArrayLike<unknown>;
   closest(selectors: string): unknown;
@@ -35,6 +60,12 @@ interface ChatPlaces {
   readonly outgoing: string;
   readonly author: string;
   readonly quoted: string;
+  /** What is in a message that is not only text, each kind with the marker that tells it, first match wins. */
+  readonly kinds: readonly (readonly [ItemKind, string])[];
+  /** The emoji in a message, drawn as images that keep their text aside. */
+  readonly emoji: string;
+  /** The bubble every message has, which a row WhatsApp has not drawn yet lacks. */
+  readonly bubble: string;
 }
 
 interface Limits {
@@ -45,6 +76,64 @@ interface Limits {
   readonly meta: number;
 }
 
+/** What a row is, beyond its copy mark: its text, its kind, and its sender when it has no mark. */
+interface Item {
+  readonly text: string;
+  readonly kind?: ItemKind;
+  readonly author?: string;
+  readonly quote?: Quote;
+}
+
+/**
+ * Tells what a message row is, given the text read under its copy mark
+ * (#723): a message of emoji alone has no mark, and its emoji are images
+ * that keep their text aside; a row with a marker says what it is, and one
+ * with a bubble but no words and no marker is something else; and without
+ * a mark, a group's message still shows its sender above it. A reply
+ * holds the message it quotes, whose text is not the reply's own. It runs
+ * inside the page beside {@link readActiveChat}, so it stays self-contained.
+ */
+export function describeItem(
+  row: ReadElement,
+  read: string,
+  marked: boolean,
+  places: ChatPlaces,
+  limits: Limits,
+): Item {
+  const all = (selector: string): ReadElement[] =>
+    Array.from(row.querySelectorAll?.(selector) ?? []) as ReadElement[];
+  const textIn = (found: ReadElement | null | undefined): string =>
+    (found?.innerText ?? found?.textContent ?? '').trim();
+  const emoji = (): string =>
+    all(places.emoji)
+      .map((image) => image.dataset?.plainText ?? '')
+      .join('');
+  const kindOf = (text: string): ItemKind | undefined => {
+    const marker = places.kinds.find(([, selector]) => row.querySelector(selector) !== null);
+    if (marker !== undefined) {
+      return marker[0];
+    }
+    return text === '' && row.querySelector(places.bubble) !== null ? 'other' : undefined;
+  };
+  const authorOf = (): string =>
+    marked ? '' : textIn(all(places.author).find((found) => found.closest(places.quoted) === null));
+  const quoteOf = () => {
+    const quoted = row.querySelector(places.quoted) as ReadElement | null;
+    const author = textIn(quoted?.querySelector(places.author) as ReadElement | null);
+    const said = textIn(quoted).replace(author, '').trim();
+    const quote = { author: author.slice(0, limits.name), text: said.slice(0, limits.quote) };
+    return said === '' ? {} : { quote };
+  };
+  const text = (read || emoji()).slice(0, limits.text);
+  const [kind, author] = [kindOf(text), authorOf().slice(0, limits.name)];
+  return {
+    text,
+    ...(kind === undefined ? {} : { kind }),
+    ...(author === '' ? {} : { author }),
+    ...quoteOf(),
+  };
+}
+
 /**
  * Reads the open chat as plain data: its name, whether it is a group, and
  * the text of its last `limits.messages` messages, oldest first, each with
@@ -52,9 +141,17 @@ interface Limits {
  * Unlike the probes, it returns page text, so it runs only when the
  * assistant asks, and its result is never logged.
  * It runs inside the page as source text, so it must stay self-contained.
- * Messages without text, such as photos, are left out.
+ * A message that is not only text, such as a photo, a sticker or a call,
+ * comes with its kind, and its caption as its text if it has one (#723).
+ * Rows WhatsApp has not drawn yet, far up the chat, are left out. The page
+ * gets `describe` as source text beside it (see {@link activeChatReader}).
  */
-export function readActiveChat(doc: ReadDocument, places: ChatPlaces, limits: Limits): unknown {
+export function readActiveChat(
+  doc: ReadDocument,
+  places: ChatPlaces,
+  limits: Limits,
+  describe = describeItem,
+): unknown {
   if (doc.querySelector(places.conversation) === null) {
     return null;
   }
@@ -73,21 +170,15 @@ export function readActiveChat(doc: ReadDocument, places: ChatPlaces, limits: Li
   // A reply holds the message it quotes, whose text is not the reply's own.
   const own = (row: ReadElement, selector: string): ReadElement | null =>
     all(row, selector).find(unquoted) ?? (row.querySelector(selector) as ReadElement | null);
-  const quoteOf = (row: ReadElement) => {
-    const quoted = row.querySelector(places.quoted) as ReadElement | null;
-    const [author, said] = [textOf(quoted?.querySelector(places.author)), textOf(quoted)];
-    const text = said.replace(author, '').trim();
-    const quote = { author: author.slice(0, limits.name), text: text.slice(0, limits.quote) };
-    return text === '' ? {} : { quote };
-  };
   const messageOf = (row: ReadElement) => {
     const body = own(row, places.messageBody) ?? row.querySelector(places.messageText);
-    const text = textOf(body).slice(0, limits.text);
     const meta = (own(row, places.messageText)?.dataset?.prePlainText ?? '').slice(0, limits.meta);
+    const item = describe(row, textOf(body), meta !== '', places, limits);
     const marked = meta === '' ? {} : { meta };
-    return text === '' ? [] : [{ outgoing: outgoing(row), text, ...marked, ...quoteOf(row) }];
+    const wordless = item.text === '' && item.kind === undefined;
+    return wordless ? [] : [{ outgoing: outgoing(row), ...item, ...marked }];
   };
-  const rows = all(doc, places.message);
+  const rows = all(doc, places.message).filter((row) => row.dataset?.virtualized !== 'true');
   return {
     name: textOf(doc.querySelector(places.chatName)).slice(0, limits.name),
     // IDs named a group's chat until WhatsApp made them bare; now only groups
@@ -108,6 +199,17 @@ const PLACES: ChatPlaces = {
   outgoing: LANDMARKS.outgoing,
   author: LANDMARKS.author,
   quoted: LANDMARKS.quoted,
+  kinds: [
+    ['call', LANDMARKS.callLog],
+    ['sticker', LANDMARKS.sticker],
+    ['animated-emoji', LANDMARKS.animatedEmoji],
+    ['voice', LANDMARKS.voiceMessage],
+    ['video', LANDMARKS.video],
+    ['photo', LANDMARKS.photo],
+    ['media', LANDMARKS.mediaToDownload],
+  ],
+  emoji: LANDMARKS.emoji,
+  bubble: LANDMARKS.bubble,
 };
 
 /** The reader as code for `executeJavaScriptInIsolatedWorld`, for the last `messages` messages. */
@@ -119,7 +221,7 @@ export function activeChatReader(messages: number): string {
     quote: MAX_QUOTE,
     meta: MAX_META,
   };
-  return `(${readActiveChat.toString()})(document, ${JSON.stringify(PLACES)}, ${JSON.stringify(limits)})`;
+  return `(${readActiveChat.toString()})(document, ${JSON.stringify(PLACES)}, ${JSON.stringify(limits)}, ${describeItem.toString()})`;
 }
 
 const ActiveChatSchema = Type.Object(
@@ -130,8 +232,12 @@ const ActiveChatSchema = Type.Object(
       Type.Object(
         {
           outgoing: Type.Boolean(),
-          text: Type.String({ minLength: 1, maxLength: MAX_TEXT }),
+          text: Type.String({ maxLength: MAX_TEXT }),
+          kind: Type.Optional(
+            Type.Unsafe<ItemKind>(Type.Union(ITEM_KINDS.map((kind) => Type.Literal(kind)))),
+          ),
           meta: Type.Optional(Type.String({ maxLength: MAX_META })),
+          author: Type.Optional(Type.String({ maxLength: MAX_NAME })),
           quote: Type.Optional(
             Type.Object(
               {
@@ -159,7 +265,10 @@ interface Quote {
 /** One message of the open chat. */
 export interface ReadMessage {
   readonly outgoing: boolean;
+  /** What it says, or its caption; empty for a message with no words, which then has a kind. */
   readonly text: string;
+  /** What it is when it is not only text. */
+  readonly kind?: ItemKind;
   /** When it was sent, as WhatsApp writes it in the user's own format, such as `20:01, 24/10/2026`. */
   readonly time?: string;
   /** Who sent it, as WhatsApp names them; a number is never passed on (see {@link maskNumbers}). */
@@ -227,7 +336,11 @@ export function parseActiveChat(value: unknown, messages: number): ReadChat | nu
   if (value === null) {
     return null;
   }
-  if (!Value.Check(ActiveChatSchema, value) || value.messages.length > messages) {
+  if (
+    !Value.Check(ActiveChatSchema, value) ||
+    value.messages.length > messages ||
+    value.messages.some((message) => message.text === '' && message.kind === undefined)
+  ) {
     return undefined;
   }
   return { ...value, messages: maskNumbers(value.messages.map(fromMeta)) };
