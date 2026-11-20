@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.3.1](https://github.com/vascoguita/yapyap/compare/v0.3.0...v0.3.1) (2026-11-20)
+
+
+### Features
+
+* **accounts:** restyle the multi-account UI to match Settings ([#648](https://github.com/vascoguita/yapyap/issues/648)) ([9410f83](https://github.com/vascoguita/yapyap/commit/9410f834482505515a5c7406f38083850a87c6a4)), closes [#647](https://github.com/vascoguita/yapyap/issues/647)
+* **appearance:** stop zooming with a pinch or Ctrl and the wheel ([#625](https://github.com/vascoguita/yapyap/issues/625)) ([4bfc0aa](https://github.com/vascoguita/yapyap/commit/4bfc0aaf53f9c8e948a825ec344553697dbac65c)), closes [#624](https://github.com/vascoguita/yapyap/issues/624)
+* **assistant:** call it "AI Assistant" wherever people read it ([#646](https://github.com/vascoguita/yapyap/issues/646)) ([3f7edb9](https://github.com/vascoguita/yapyap/commit/3f7edb9e957df7e083d5ac3960cdf6c81eb013f9)), closes [#645](https://github.com/vascoguita/yapyap/issues/645)
+* **assistant:** describe suggestions and every rewrite way, and recover from a cleared draft ([cdf9355](https://github.com/vascoguita/yapyap/commit/cdf9355c8a1a62780f32552a7bae30e36f0ed2f7)), closes [#629](https://github.com/vascoguita/yapyap/issues/629)
+* **assistant:** drop Automatic and the private model, and let the model server be anywhere ([#628](https://github.com/vascoguita/yapyap/issues/628)) ([45642df](https://github.com/vascoguita/yapyap/commit/45642dfad48cc29c2b0cfe4e9bcaa36517947624)), closes [#627](https://github.com/vascoguita/yapyap/issues/627)
+* **assistant:** send the chat with every request, under one cached prompt ([#630](https://github.com/vascoguita/yapyap/issues/630)) ([8830c1b](https://github.com/vascoguita/yapyap/commit/8830c1b81a0b111046a8e4b3bbf426b01b161236)), closes [#629](https://github.com/vascoguita/yapyap/issues/629)
+* **assistant:** suggest what to send next whatever the chat ends in ([#725](https://github.com/vascoguita/yapyap/issues/725)) ([03f543d](https://github.com/vascoguita/yapyap/commit/03f543ddebd95d2ddacd48f963bb0bb55cf9a520)), closes [#723](https://github.com/vascoguita/yapyap/issues/723)
+* choose spelling languages in Settings › Spelling ([#711](https://github.com/vascoguita/yapyap/issues/711)) ([28dee58](https://github.com/vascoguita/yapyap/commit/28dee581f3744cd4a6c11e24b6a6fd5fe0314c0a)), closes [#701](https://github.com/vascoguita/yapyap/issues/701)
+* **menu:** regroup the application menu and drop the Assistant menu ([#636](https://github.com/vascoguita/yapyap/issues/636)) ([91b09ce](https://github.com/vascoguita/yapyap/commit/91b09ce4c41c950646ceb3e1e4ea771060200927)), closes [#635](https://github.com/vascoguita/yapyap/issues/635)
+* record JavaScript call stacks in performance traces ([#698](https://github.com/vascoguita/yapyap/issues/698)) ([712eeba](https://github.com/vascoguita/yapyap/commit/712eebaab9aed8c16e49eb195882fe334a040a32)), closes [#697](https://github.com/vascoguita/yapyap/issues/697)
+* say menu bar on macOS in the Start in the background hint ([1300175](https://github.com/vascoguita/yapyap/commit/13001755104c5dfe74b5fadf54a960f894471159)), closes [#699](https://github.com/vascoguita/yapyap/issues/699)
+* **settings:** show settings a page at a time, in cards of rows ([#623](https://github.com/vascoguita/yapyap/issues/623)) ([e8a631b](https://github.com/vascoguita/yapyap/commit/e8a631b6a001104dfe8f693222be649b5bd7670d)), closes [#622](https://github.com/vascoguita/yapyap/issues/622)
+* start in the background only when YapYap starts at login ([#700](https://github.com/vascoguita/yapyap/issues/700)) ([3054495](https://github.com/vascoguita/yapyap/commit/3054495c305d277bdaadf104a863e19e1779409e)), closes [#699](https://github.com/vascoguita/yapyap/issues/699)
+
+
+### Bug Fixes
+
+* **assistant:** give up on a look at the open chat that never answers ([#722](https://github.com/vascoguita/yapyap/issues/722)) ([dcbf403](https://github.com/vascoguita/yapyap/commit/dcbf403cb5581357a3a39266f833520ec9dbc3df)), closes [#721](https://github.com/vascoguita/yapyap/issues/721)
+* **assistant:** strip echoed draft tags without a backtracking regex ([cf8c985](https://github.com/vascoguita/yapyap/commit/cf8c985668ab17164ac14c4de49e107333e16f47)), closes [#629](https://github.com/vascoguita/yapyap/issues/629)
+* keep no secrets under Chromium's shared Linux key ([#718](https://github.com/vascoguita/yapyap/issues/718)) ([66d2025](https://github.com/vascoguita/yapyap/commit/66d2025dcfdca8ddb8681d71aac0387cc6e71de8)), closes [#717](https://github.com/vascoguita/yapyap/issues/717)
+* **permissions:** ask about the microphone and camera on top of the window that asked ([#726](https://github.com/vascoguita/yapyap/issues/726)) ([9954728](https://github.com/vascoguita/yapyap/commit/9954728e44e319cb353e70c868b058a6ef5d21cf)), closes [#724](https://github.com/vascoguita/yapyap/issues/724)
+
 ## [0.3.0](https://github.com/vascoguita/yapyap/compare/v0.2.0...v0.3.0) (2026-11-14)
 
 
