@@ -566,6 +566,7 @@
       "expand": "Show suggestions",
       "folded": "Suggestions",
       "writing": "Writing suggestions…",
+      "replaced": "Replaced your draft.",
       "close": "Close",
       "undo": "Undo",
       "styles": {

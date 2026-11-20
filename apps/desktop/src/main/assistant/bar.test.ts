@@ -369,15 +369,40 @@ describe('createAssistantBar: suggested replies', () => {
     expect(t.last().suggestions).toEqual(['Yes, 9 works!', 'Can we do 8?']);
   });
 
-  it('puts a suggestion in the message box on click, never sending it, and hides the row', async () => {
+  it('puts a suggestion in the message box on click, never sending it, and keeps the others (#743)', async () => {
     const t = harness();
     t.bar.arrived('m1');
     await t.settle();
     await t.bar.use(5);
     expect(t.deps.accounts.replaceDraft).not.toHaveBeenCalled();
+    vi.mocked(t.deps.accounts.readDraft).mockResolvedValueOnce('');
     await t.bar.use(1);
     expect(t.deps.accounts.replaceDraft).toHaveBeenCalledExactlyOnceWith('Can we do 8?');
-    expect(t.last().suggestions).toEqual([]);
+    expect(t.last().suggestions).toEqual(['Yes, 9 works!', 'Can we do 8?']);
+    // The box was empty, so there is nothing to put back.
+    expect(t.last().notice).toBeNull();
+  });
+
+  it('offers Undo when a suggestion replaces what the user typed, and puts it back', async () => {
+    const t = harness();
+    t.bar.arrived('m1');
+    await t.settle();
+    vi.mocked(t.deps.accounts.readDraft).mockResolvedValueOnce('running late');
+    await t.bar.use(0);
+    expect(t.deps.accounts.replaceDraft).toHaveBeenLastCalledWith('Yes, 9 works!');
+    expect(t.last().notice).toEqual({
+      text: 'Replaced your draft.',
+      button: { id: 'undo', label: 'Undo' },
+    });
+    await t.bar.button('undo');
+    expect(t.deps.accounts.replaceDraft).toHaveBeenLastCalledWith('running late');
+    expect(t.last().notice).toBeNull();
+    // A draft that is the suggestion already, or a box that cannot be read, offers nothing.
+    vi.mocked(t.deps.accounts.readDraft).mockResolvedValueOnce('Can we do 8?');
+    await t.bar.use(1);
+    vi.mocked(t.deps.accounts.readDraft).mockRejectedValueOnce(new Error('gone'));
+    await t.bar.use(1);
+    expect(t.last().notice).toBeNull();
   });
 
   it('puts in no suggestion once another chat is open', async () => {

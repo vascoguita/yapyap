@@ -267,13 +267,26 @@ async function press(bar: BarContext, id: BarButtonId): Promise<void> {
   }
 }
 
-/** Puts the suggestion at `index` in the message box, if its chat is still open; it never sends it. */
+/**
+ * Puts the suggestion at `index` in the message box, if its chat is still
+ * open; it never sends it. The suggestions stay, so the user can pick
+ * another (#743), and a draft the user had typed comes back on Undo, as
+ * after a rewrite.
+ */
 async function use(bar: BarContext, index: number): Promise<void> {
   const suggestion = bar.state.suggestions[index];
   const open = suggestion === undefined ? null : await bar.deps.accounts.readActiveChat(1);
-  if (open !== null && open.name === bar.chat) {
-    update(bar, { suggestions: [] });
-    await bar.deps.accounts.replaceDraft(String(suggestion));
+  if (open?.name !== bar.chat) {
+    return;
+  }
+  const draft = (await bar.deps.accounts.readDraft().catch(() => null)) ?? '';
+  await bar.deps.accounts.replaceDraft(String(suggestion));
+  if (draft.trim() !== '' && draft !== suggestion) {
+    bar.kept = draft;
+    bar.rewritten = true;
+    update(bar, {
+      notice: { text: text.bar.replaced, button: { id: 'undo', label: text.bar.undo } },
+    });
   }
 }
 

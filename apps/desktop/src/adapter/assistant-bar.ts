@@ -161,7 +161,7 @@ export interface BarKit {
     hash: (text: string) => string,
   ) => BarContent;
   readonly fingerprint: (text: string) => string;
-  readonly hidden: (parts: BarParts, typed: boolean) => BarHidden;
+  readonly hidden: (parts: BarParts) => BarHidden;
   readonly mark: (parts: BarParts, content: BarContent) => void;
   readonly icon: typeof strokeIcon;
 }
@@ -346,7 +346,6 @@ export function assistantBarRows(
   notice.setAttribute('role', 'status');
   notice.append(kit.icon(doc, places.icons.sparkle, 'mark'));
   const chips = make('div', 'row chips', bar);
-  chips.append(kit.icon(doc, places.icons.sparkle, 'mark'));
   const folded = make('div', 'row folded', bar);
   const parts: BarParts = {
     bar,
@@ -355,9 +354,10 @@ export function assistantBarRows(
     action: make('button', 'action', notice, 'button'),
     close: make('button', 'icon', notice, 'button'),
     chips,
+    // First in its row, where the button the suggestions fold into is too (#729).
+    collapse: make('button', 'fold', chips, 'collapse'),
     list: make('ul', 'list', chips),
     status: make('span', 'status', chips),
-    collapse: make('button', 'icon', chips, 'collapse'),
     folded,
     expand: make('button', 'fold', folded, 'expand'),
     foldLabel: doc.createElement('span'),
@@ -365,28 +365,29 @@ export function assistantBarRows(
   parts.status.setAttribute('role', 'status');
   parts.foldLabel.setAttribute('class', 'fold-label');
   parts.close.dataset['id'] = 'close';
-  parts.close.append(kit.icon(doc, places.icons.close, 'cross'));
-  parts.collapse.append(kit.icon(doc, places.icons.fold, 'chevron'));
+  const { sparkle, close, fold, unfold } = places.icons;
+  parts.close.append(kit.icon(doc, close, 'cross'));
+  parts.collapse.append(kit.icon(doc, sparkle, 'mark'), kit.icon(doc, fold, 'chevron'));
   parts.expand.append(
-    kit.icon(doc, places.icons.sparkle, 'mark'),
+    kit.icon(doc, sparkle, 'mark'),
     parts.foldLabel,
-    kit.icon(doc, places.icons.unfold, 'chevron'),
+    kit.icon(doc, unfold, 'chevron'),
   );
   return parts;
 }
 
 /**
- * Which of the suggestions' rows hide: both while the user types; the
- * suggestions while they are folded away, or while there are none and
- * none are being written; and the button they fold into unless they are
- * folded and there are some to show again.
+ * Which of the suggestions' rows hide: the suggestions while they are
+ * folded away, or while there are none and none are being written; and the
+ * button they fold into unless they are folded and there are some to show
+ * again. Neither hides while the user types (#743).
  */
-export function assistantBarHidden(parts: BarParts, typed: boolean): BarHidden {
+export function assistantBarHidden(parts: BarParts): BarHidden {
   const { items = '0', writing } = parts.list.dataset;
   const collapsed = parts.bar.dataset['collapsed'] === 'true';
   const nothing = items === '0' && writing !== 'true';
-  const chips = typed || collapsed || nothing;
-  const folded = typed || !collapsed || items === '0';
+  const chips = collapsed || nothing;
+  const folded = !collapsed || items === '0';
   return { chips, folded, bar: [chips, folded, parts.notice.hidden].every(Boolean) };
 }
 
@@ -404,7 +405,9 @@ export function showAssistantBar(
   kit: BarKit,
 ): void {
   const field = doc.querySelector(places.field) as BarNode | null;
-  const hidden = kit.hidden(parts, (field?.textContent ?? '').trim() !== '');
+  // They stay while the user types, a little quieter (#743).
+  parts.bar.dataset['typed'] = String((field?.textContent ?? '').trim() !== '');
+  const hidden = kit.hidden(parts);
   const display = hidden.bar ? 'none' : '';
   const same = parts.chips.hidden === hidden.chips && parts.folded.hidden === hidden.folded;
   if (!same || host.style.display !== display) {
@@ -470,15 +473,15 @@ export function updateAssistantBar(doc: BarDocument, parts: BarParts, content: B
     item.append(button);
     return item;
   };
+  // One chip says they are being written; the status tells screen readers instead (#743).
   const blank = (): BarNode => {
     const item = doc.createElement('li');
     item.setAttribute('class', 'placeholder working');
     item.setAttribute('aria-hidden', 'true');
+    item.textContent = labels.writing;
     return item;
   };
-  const items = writing
-    ? [blank(), blank(), blank()]
-    : suggestions.map((text, index) => chip(text, index));
+  const items = writing ? [blank()] : suggestions.map((text, index) => chip(text, index));
   parts.list.replaceChildren(...items);
 }
 
@@ -511,79 +514,85 @@ export function noticeAssistantBar(parts: BarParts, notice: BarContent['notice']
 }
 
 /**
- * The bar's own styles, inside its shadow root: one slim row at a time,
- * the sparkle in the assistant's own accent (`ASSISTANT_THEME`), then the
- * notice's text and button, or the suggestions as chips that wrap onto
- * more lines, each at most two lines high, so all of them show (#709);
- * blank chips with a light travelling around their edge while they are
- * written (#703), as on everything else that works (`WORKING_EDGE`); and, folded away, one quiet chip that shows them again
- * (#729). Logical properties only, so it mirrors for right-to-left
- * languages (ADR 0012).
+ * The bar's own styles, inside its shadow root. There is no band: the
+ * notice and the suggestions float on the chat's wallpaper above WhatsApp's
+ * message box, as chips with the shadow WhatsApp gives its own floating box,
+ * lined up with its edges (#743). First in the suggestions' row is the one
+ * control that folds them away and, folded, shows them again, in the same
+ * place either way (#729). The chips wrap onto more lines, each at most two
+ * lines high (#709); while they are written, one chip says so with a light
+ * travelling round its edge (#703, `WORKING_EDGE`); while the user types,
+ * they stay, a little quieter. Logical properties only, so it mirrors for
+ * right-to-left languages (ADR 0012).
  */
 const BAR_STYLE = `${ASSISTANT_THEME}${WORKING_EDGE}
 :host { display: block; }
 [hidden] { display: none !important; }
 .bar {
-  display: flex; flex-direction: column; box-sizing: border-box; padding-block: 6px;
-  padding-inline: var(--space-4) var(--space-2); border-block-start: 1px solid var(--area-border);
-  background: var(--area); color: var(--text); font-family: inherit;
-  font-size: var(--font-body);
+  display: flex; flex-direction: column; gap: var(--space-2); box-sizing: border-box;
+  padding-block: 6px var(--space-2); padding-inline: var(--space-4); background: transparent;
+  color: var(--text); font-family: inherit; font-size: var(--font-body);
 }
-.row { display: flex; align-items: center; gap: var(--space-3); min-block-size: 44px; min-inline-size: 0; }
+.row { display: flex; align-items: flex-start; gap: var(--space-2); min-inline-size: 0; }
 svg {
-  flex: none; inline-size: 22px; block-size: 22px; fill: none; stroke: currentColor;
+  flex: none; inline-size: 20px; block-size: 20px; fill: none; stroke: currentColor;
   stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
 }
 .mark { color: var(--ai); }
-.text { flex: 1; min-inline-size: 0; padding-block: var(--space-1); overflow-wrap: anywhere; }
 button { font: inherit; cursor: pointer; }
 button:focus-visible { outline: 2px solid var(--ai); outline-offset: 2px; }
+.notice {
+  align-self: flex-start; align-items: center; gap: var(--space-2); max-inline-size: 100%;
+  min-block-size: 40px; box-sizing: border-box; padding-inline: var(--space-3) var(--space-1);
+  border-radius: 20px; background: var(--chip); box-shadow: var(--float);
+}
+.text { flex: 1; min-inline-size: 0; padding-block: var(--space-2); overflow-wrap: anywhere; }
 .action {
-  flex: none; min-block-size: 40px; padding-inline: var(--space-4);
+  flex: none; min-block-size: 32px; padding-inline: var(--space-3);
   border: 1px solid var(--ai-border); border-radius: var(--radius-pill); background: var(--chip); color: var(--ai); font-weight: 600;
 }
 .action:hover { background: var(--ai-tint); }
 .icon {
-  display: grid; flex: none; place-items: center; inline-size: 44px; block-size: 44px;
-  margin-inline-start: auto; padding: 0; border: 0; border-radius: 50%; background: transparent;
-  color: var(--muted);
+  display: grid; flex: none; place-items: center; inline-size: 36px; block-size: 36px;
+  padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--muted);
 }
 .icon:hover { background: var(--hover); }
-.chips { align-items: flex-start; }
-.chips > .mark { margin-block-start: 11px; }
 .list {
   display: flex; flex: 1; flex-wrap: wrap; gap: var(--space-2); min-inline-size: 0; margin: 0;
-  padding-block: 2px; padding-inline: 0; list-style: none;
+  padding: 0; list-style: none;
 }
 li { display: flex; min-inline-size: 0; max-inline-size: 100%; }
 .chip {
-  display: -webkit-box; min-block-size: 40px; max-inline-size: 100%; padding-block: 8px;
-  padding-inline: var(--space-4); overflow: hidden; border: 1px solid var(--chip-border);
-  border-radius: 20px; background: var(--chip); color: var(--text); font-size: var(--font-body);
-  line-height: 1.3; text-align: start; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
-  line-clamp: 2; overflow-wrap: anywhere;
+  display: -webkit-box; min-block-size: 36px; max-inline-size: 100%; padding-block: 8px;
+  padding-inline: 14px; overflow: hidden; border: 0; border-radius: 18px; background: var(--chip);
+  box-shadow: var(--float); color: var(--text); font-size: var(--font-body); line-height: 1.3;
+  text-align: start; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2;
+  overflow-wrap: anywhere;
 }
-.chip:hover { border-color: var(--ai-border); background: var(--ai-tint); }
+.chip:hover { background: var(--ai-tint); }
 .placeholder {
   --edge: var(--ai); --edge-track: var(--chip-border); --edge-fill: var(--chip);
-  flex: none; block-size: 40px; border: 1px solid var(--chip-border); border-radius: var(--radius-pill);
-  background: var(--chip);
+  --edge-turn: ${edgeTurn(184, 36)};
+  flex: none; align-items: center; box-sizing: border-box; inline-size: 184px; block-size: 36px;
+  padding-inline: 14px; overflow: hidden; border: 0; border-radius: var(--radius-pill);
+  background: var(--chip); box-shadow: var(--float); color: var(--muted); white-space: nowrap;
+  text-overflow: ellipsis;
 }
-.placeholder:nth-child(1) { inline-size: 96px; --edge-turn: ${edgeTurn(96, 40)}; }
-.placeholder:nth-child(2) { inline-size: 128px; --edge-turn: ${edgeTurn(128, 40)}; }
-.placeholder:nth-child(3) { inline-size: 80px; --edge-turn: ${edgeTurn(80, 40)}; }
 .status {
   position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%);
   white-space: nowrap;
 }
 .fold {
-  display: inline-flex; align-items: center; gap: var(--space-2); min-block-size: 40px;
-  padding-inline: var(--space-3) var(--space-2); border: 1px solid var(--chip-border);
-  border-radius: var(--radius-pill); background: var(--chip); color: var(--muted);
-  font-size: var(--font-body);
+  display: inline-flex; flex: none; align-items: center; gap: var(--space-1);
+  min-block-size: 36px; min-inline-size: 36px; box-sizing: border-box; padding-inline: 9px;
+  border: 0; border-radius: var(--radius-pill); background: var(--chip); box-shadow: var(--float);
+  color: var(--muted); font-size: var(--font-body);
 }
-.fold:hover { border-color: var(--ai-border); background: var(--ai-tint); }
+.fold:hover { background: var(--ai-tint); }
 .fold svg { inline-size: 18px; block-size: 18px; }
+.fold-label { padding-inline: 2px 4px; }
+.bar[data-typed='true'] .chips { opacity: 0.7; }
+.bar[data-typed='true'] .chips:hover, .bar[data-typed='true'] .chips:focus-within { opacity: 1; }
 `;
 
 const PLACES: BarPlaces = {

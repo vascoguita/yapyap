@@ -153,16 +153,19 @@ choices, such as yes, not now, and a question back, written the way you write in
 something only you know, such as whether you are free, they work without
 it rather than guess:
 
+- They float just above the message box, like WhatsApp's own.
 - Click one to put it in the message box, where you can edit it before
-  you send it. A suggestion never sends itself.
-- They go as soon as you start typing your own reply, and come back if
-  you clear it, even after a rewrite.
+  you send it. A suggestion never sends itself, and the others stay, so
+  you can pick another.
+- They stay while you type, a little fainter. Picking one then replaces
+  what you typed, and **Undo** puts it back.
 - A long suggestion takes up to two lines, and the row grows so all three
   show.
-- While they are being written, three blank chips hold their place.
-- The arrow at the end of the row, **Hide suggestions**, folds them into
-  one small **Suggestions** chip. They stay folded, in every chat, until
-  you click it to show them again, and showing them asks for nothing new.
+- While they are being written, a **Writing suggestions…** chip says so.
+- The first chip in the row, **Hide suggestions**, folds them into one
+  small **Suggestions** chip in the same place. They stay folded, in every
+  chat, until you click it to show them again, and showing them asks for
+  nothing new.
 
 The AI assistant asks for suggestions once the chat settles, so a burst of
 messages asks once, and only while YapYap's window is in front. Each

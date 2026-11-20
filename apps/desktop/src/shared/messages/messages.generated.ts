@@ -487,6 +487,7 @@ export interface Messages {
       readonly expand: string;
       readonly folded: string;
       readonly writing: string;
+      readonly replaced: string;
       readonly close: string;
       readonly undo: string;
       readonly styles: {
