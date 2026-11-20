@@ -244,8 +244,13 @@ test('keeps suggestions while the user types, and folds them away until the user
   await expect(async () => {
     expect(await barNotice(app)).toBe('Replaced your draft.');
   }).toPass();
+  // Undo shows in place of the suggestions, which come back with the draft (#743).
+  expect(await barNames(app)).not.toContain('See you there');
   await clickInBar(app, window, 'Undo');
   await expect(composer).toHaveText('Sure');
+  await expect(async () => {
+    expect(await barNames(app)).toContain('See you there');
+  }).toPass();
   for (let index = 0; index < 4; index += 1) {
     await window.keyboard.press('Backspace');
   }
@@ -292,8 +297,8 @@ test('brings the suggestions back and drops Undo once the user empties a rewritt
   await expect(async () => {
     expect(await barNotice(app)).toBe('Polished. Edit it or send as is.');
   }).toPass();
-  // The suggestions stay through the rewrite, and through its Undo (#743).
-  expect(await barNames(app)).toContain('See you there');
+  // Undo shows in place of the suggestions, which come back with the draft (#743).
+  expect(await barNames(app)).not.toContain('See you there');
   await clickInBar(app, window, 'Undo');
   await expect(composer).toHaveText('sure c u');
   await expect(async () => {

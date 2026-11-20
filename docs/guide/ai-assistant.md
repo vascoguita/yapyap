@@ -158,7 +158,8 @@ it rather than guess:
   you send it. A suggestion never sends itself, and the others stay, so
   you can pick another.
 - They stay while you type, a little fainter. Picking one then replaces
-  what you typed, and **Undo** puts it back.
+  what you typed, and **Undo** shows in their place. They come back when
+  you undo, clear the message box or close the note.
 - A long suggestion takes up to two lines, and the row grows so all three
   show.
 - While they are being written, a **Writing suggestions…** chip says so.
@@ -199,8 +200,9 @@ it, just left of the microphone. It shows the way it rewrites, such as
 
 Nothing is sent: press Enter to send the rewrite, as usual. A slim line
 above the message box says what was done, such as "Softened. Edit it or
-send as is.", with **Undo** to put your own text back. It goes once you
-send, undo or open another chat. If you change your text while the
+send as is.", with **Undo** to put your own text back, in place of the
+suggestions. It goes once you send, undo, clear the message box or open
+another chat, and the suggestions come back as they were. If you change your text while the
 AI assistant works, your text stays as it is. A rewrite reads the chat too,
 so it fits what was said, and keeps your text's language.
 

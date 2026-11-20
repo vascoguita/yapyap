@@ -88,9 +88,18 @@ const EMPTY: AssistantBarState = {
   writing: false,
 };
 
+/**
+ * What the page shows of `state`: while a notice offers Undo, it alone,
+ * as the row shows one thing at a time. The suggestions, kept meanwhile,
+ * come back once the draft is put back, the box empties or the notice
+ * closes (#743).
+ */
+const shownOf = (state: AssistantBarState): AssistantBarState =>
+  state.notice?.button?.id === 'undo' ? { ...state, suggestions: [], writing: false } : state;
+
 function update(bar: BarContext, next: Partial<AssistantBarState>): void {
   bar.state = { ...bar.state, ...next };
-  bar.deps.publish(bar.state);
+  bar.deps.publish(shownOf(bar.state));
 }
 
 /** Shows `words` above the message box, with its fix as the notice's button. */
@@ -164,7 +173,6 @@ async function putInPlace(
     bar.chat = chat;
     bar.rewritten = true;
     const button = { id: 'undo' as const, label: text.bar.undo };
-    // The suggestions stay through a rewrite and its Undo, as they do while the user types (#743).
     update(bar, { notice: { text: text.bar.done[style], button } });
   }
 }
@@ -280,11 +288,12 @@ async function press(bar: BarContext, id: BarButtonId): Promise<void> {
 /**
  * Puts the suggestion at `index` in the message box, if its chat is still
  * open; it never sends it. The suggestions stay, so the user can pick
- * another (#743), and a draft the user had typed comes back on Undo, as
- * after a rewrite.
+ * another (#743), unless it replaced a draft the user had typed: then
+ * Undo shows in their place, as after a rewrite, until the draft comes
+ * back or the box empties.
  */
 async function use(bar: BarContext, index: number): Promise<void> {
-  const suggestion = bar.state.suggestions[index];
+  const suggestion = shownOf(bar.state).suggestions[index];
   const open = suggestion === undefined ? null : await bar.deps.accounts.readActiveChat(1);
   if (open?.name !== bar.chat) {
     return;
@@ -510,7 +519,7 @@ async function keepNotice(bar: BarContext): Promise<void> {
  * The message box is empty. Once after a rewrite filled it, a rewrite's
  * Undo has nothing left to put back over, and the suggestions for the
  * newest message show, as they do when the user clears what they typed
- * (#629); they stayed through the rewrite, so they show as they were.
+ * (#629); they were kept behind the Undo, so they show as they were.
  */
 function cleared(bar: BarContext, message: string | null): void {
   if (!bar.rewritten) {
@@ -587,7 +596,7 @@ export function createAssistantBar(deps: BarDependencies): AssistantBar {
     unsuggested: false,
   };
   return {
-    state: () => bar.state,
+    state: () => shownOf(bar.state),
     refresh: async () => {
       deps.show(deps.settings.current().assistant.enabled);
       await refresh(bar);

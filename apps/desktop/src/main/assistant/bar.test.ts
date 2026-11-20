@@ -148,8 +148,9 @@ describe('createAssistantBar: the rewrite button', () => {
     expect(t.last().notice?.button).toEqual({ id: 'undo', label: 'Undo' });
     t.bar.found('m1');
     await t.settle();
-    expect(t.last().suggestions).toHaveLength(1);
-    expect(t.last().notice?.button?.id).toBe('undo');
+    // The suggestions made meanwhile wait behind the Undo (#743).
+    expect(t.last()).toMatchObject({ suggestions: [], writing: false });
+    expect(t.bar.state()).toMatchObject({ suggestions: [], notice: { button: { id: 'undo' } } });
     t.bar.opened(null);
     expect(t.last().notice).toBeNull();
     expect(t.last().suggestions).toEqual([]);
@@ -184,18 +185,21 @@ describe('createAssistantBar: the rewrite button', () => {
     expect(t.last().notice?.button?.id).toBe('undo');
   });
 
-  it('keeps the suggestions through a rewrite, and Undo restores nothing in another chat (#743)', async () => {
+  it('shows Undo in place of the suggestions, and Undo restores nothing in another chat (#743)', async () => {
     const t = harness('Shorter.');
     t.bar.arrived('m1');
     await t.settle();
     expect(t.last().suggestions).toEqual(['Shorter.']);
     await t.bar.polish('shorten');
-    expect(t.last().suggestions).toEqual(['Shorter.']);
+    expect(t.last().suggestions).toEqual([]);
     expect(t.last().notice?.text).toBe('Shortened. Edit it or send as is.');
+    // A suggestion out of sight cannot be put in.
+    await t.bar.use(0);
+    expect(t.deps.accounts.replaceDraft).toHaveBeenCalledOnce();
     t.setChat({ ...CHAT, name: 'Ben' });
     await t.bar.button('undo');
     expect(t.deps.accounts.replaceDraft).toHaveBeenCalledOnce();
-    expect(t.last().notice).toBeNull();
+    expect(t.last()).toMatchObject({ notice: null, suggestions: ['Shorter.'] });
     t.setChat(null);
     await t.bar.polish('polish');
     await t.bar.button('undo');
@@ -394,9 +398,13 @@ describe('createAssistantBar: suggested replies', () => {
       text: 'Replaced your draft.',
       button: { id: 'undo', label: 'Undo' },
     });
+    expect(t.last().suggestions).toEqual([]);
     await t.bar.button('undo');
     expect(t.deps.accounts.replaceDraft).toHaveBeenLastCalledWith('running late');
-    expect(t.last().notice).toBeNull();
+    expect(t.last()).toMatchObject({
+      notice: null,
+      suggestions: ['Yes, 9 works!', 'Can we do 8?'],
+    });
     // A draft that is the suggestion already, or a box that cannot be read, offers nothing.
     vi.mocked(t.deps.accounts.readDraft).mockResolvedValueOnce('Can we do 8?');
     await t.bar.use(1);
@@ -565,16 +573,13 @@ describe('createAssistantBar: suggested replies', () => {
     expect(t.last()).toMatchObject({ writing: false, suggestions: ['Sure'] });
   });
 
-  it('keeps the suggestions through a rewrite and its Undo, and takes Undo away once the user empties the box (#743)', async () => {
+  it("keeps the suggestions behind a rewrite's Undo, and shows them again once the user empties the box (#743)", async () => {
     const t = harness('Yes, 9 works!\nCan we do 8?');
     t.bar.arrived('m1');
     await t.settle();
     expect(t.last().suggestions).toHaveLength(2);
     await t.bar.polish('polish');
-    expect(t.last()).toMatchObject({
-      suggestions: ['Yes, 9 works!', 'Can we do 8?'],
-      notice: { button: { id: 'undo' } },
-    });
+    expect(t.last()).toMatchObject({ suggestions: [], notice: { button: { id: 'undo' } } });
     t.bar.cleared();
     // The suggestions made for the message come back without asking the model again.
     await tick();
