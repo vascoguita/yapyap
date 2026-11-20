@@ -78,7 +78,7 @@ function Dictionary(props: {
   }
   return (
     <span class={`dictionary ${props.state}`}>
-      <span role="status">{STATE_WORDS[props.state]}</span>
+      <output>{STATE_WORDS[props.state]}</output>
       {props.state === 'failed' ? (
         <button type="button" onClick={props.onRetry}>
           {text.retry}
