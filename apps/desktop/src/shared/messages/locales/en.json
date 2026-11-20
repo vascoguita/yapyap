@@ -567,6 +567,9 @@
       "folded": "Suggestions",
       "writing": "Writing suggestions…",
       "replaced": "Replaced your draft.",
+      "declined": "The model declined to suggest replies in this chat.",
+      "noSuggestions": "No suggestions this time.",
+      "retry": "Try Again",
       "close": "Close",
       "undo": "Undo",
       "styles": {

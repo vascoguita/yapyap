@@ -644,15 +644,88 @@ describe('createAssistantBar: suggested replies', () => {
     expect(t.deps.core.ask).toHaveBeenCalledTimes(2);
   });
 
-  it('shows nothing when the model found no reply, or failed', async () => {
+  it('says why no suggestions came, instead of showing nothing (#743)', async () => {
     const t = harness('NONE');
     t.bar.arrived('m1');
     await t.settle();
-    expect(t.last().suggestions).toEqual([]);
-    vi.mocked(t.deps.core.ask).mockRejectedValueOnce(new ProviderError('network'));
+    const retry = { id: 'retry', label: 'Try Again' };
+    expect(t.last()).toMatchObject({
+      suggestions: [],
+      writing: false,
+      notice: { text: 'No suggestions this time.', button: retry },
+    });
+    // The model declining the chat is said with no button: asking again will not change it.
+    vi.mocked(t.deps.core.ask).mockRejectedValueOnce(new ProviderError('refused'));
     t.bar.arrived('m2');
     await t.settle();
-    expect(t.last().suggestions).toEqual([]);
+    expect(t.last().notice).toEqual({
+      text: 'The model declined to suggest replies in this chat.',
+      button: null,
+    });
+    // A passing problem offers Try Again, and one a setting mends offers the way there.
+    vi.mocked(t.deps.core.ask).mockRejectedValueOnce(new ProviderError('network'));
+    t.bar.arrived('m3');
+    await t.settle();
+    expect(t.last().notice).toEqual({
+      text: 'Claude (Anthropic) could not be reached.',
+      button: retry,
+    });
+    vi.mocked(t.deps.core.ask).mockRejectedValueOnce(new Error('odd'));
+    t.bar.arrived('m4');
+    await t.settle();
+    expect(t.last().notice).toEqual({ text: 'Something went wrong. Try again.', button: retry });
+    vi.mocked(t.deps.core.ask).mockRejectedValueOnce(new ProviderError('auth'));
+    t.bar.arrived('m5');
+    await t.settle();
+    expect(t.last().notice?.button?.id).toBe('fix');
+  });
+
+  it('asks again on Try Again, and the reason goes as soon as it asks', async () => {
+    const t = harness();
+    vi.mocked(t.deps.core.ask).mockRejectedValueOnce(new ProviderError('timeout'));
+    t.bar.arrived('m1');
+    await t.settle();
+    expect(t.last().notice?.button?.id).toBe('retry');
+    await t.bar.button('retry');
+    expect(t.last().notice).toBeNull();
+    await t.settle();
+    expect(t.last().suggestions).toEqual(['Yes, 9 works!', 'Can we do 8?']);
+    expect(t.deps.core.ask).toHaveBeenCalledTimes(2);
+    // Once the user sent, the reason goes, and with it Try Again.
+    vi.mocked(t.deps.core.ask).mockRejectedValueOnce(new ProviderError('timeout'));
+    t.bar.arrived('m2');
+    await t.settle();
+    t.bar.sent();
+    expect(t.last().notice).toBeNull();
+    await t.bar.button('retry');
+    await t.settle();
+    expect(t.deps.core.ask).toHaveBeenCalledTimes(3);
+  });
+
+  it('stops writing when the chat cannot be read once it settled', async () => {
+    const t = harness();
+    t.bar.arrived('m1');
+    await tick();
+    vi.mocked(t.deps.accounts.readActiveChat).mockRejectedValueOnce(new Error('reloading'));
+    await t.settle();
+    expect(t.deps.core.ask).not.toHaveBeenCalled();
+    expect(t.last()).toMatchObject({ writing: false, suggestions: [], notice: null });
+  });
+
+  it('says nothing about a request another message called off', async () => {
+    let fail: (error: unknown) => void = () => undefined;
+    const t = harness();
+    vi.mocked(t.deps.core.ask).mockImplementationOnce(
+      () =>
+        new Promise((_resolve, reject) => {
+          fail = reject;
+        }),
+    );
+    t.bar.arrived('m1');
+    await t.settle();
+    t.bar.opened('m9');
+    fail(new ProviderError('cancelled'));
+    await t.settle();
     expect(t.last().notice).toBeNull();
   });
 

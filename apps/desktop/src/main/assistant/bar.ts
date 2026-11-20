@@ -61,6 +61,10 @@ interface BarContext {
   suggesting: AbortController | undefined;
   /** Suggestions made for recent messages, by message, so a chat opened again shows the same ones. */
   readonly made: Map<string, readonly string[]>;
+  /** The item the notice's Try Again asks about again. */
+  retryFor: string;
+  /** The notice says why no suggestions came, which goes as soon as they are asked for again. */
+  unsuggested: boolean;
 }
 
 const text = en.assistant;
@@ -235,6 +239,7 @@ function forget(bar: BarContext, writing: boolean): void {
   bar.kept = '';
   bar.blocked = false;
   bar.rewritten = false;
+  bar.unsuggested = false;
   // Suggestions about to be made for the chat that opened keep the blank chips up meanwhile (#741).
   update(bar, { suggestions: [], notice: null, writing: writing && bar.state.writing });
 }
@@ -250,6 +255,10 @@ async function undo(bar: BarContext): Promise<void> {
 
 const BUTTONS: Readonly<Record<BarButtonId, (bar: BarContext) => unknown>> = {
   undo,
+  // It starts asking again, and says so; the answer comes as suggestions or a new reason.
+  retry: (bar) => {
+    void suggest(bar, bar.retryFor);
+  },
   // Every fix the notice offers is in Settings.
   fix: (bar) => {
     bar.deps.openSettings();
@@ -335,15 +344,57 @@ async function makeSuggestions(bar: BarContext, message: string, signal: AbortSi
   }
   bar.chat = chat.name;
   update(bar, { writing: true });
-  const answer = await bar.deps.core.ask(setup, suggestPrompt(chat, bar.deps.now()), signal);
+  const answer = await bar.deps.core
+    .ask(setup, suggestPrompt(chat, bar.deps.now()), signal)
+    .catch((error: unknown) => error);
   // A newer message or another chat may have called the request off while the model answered.
   if (isAborted(signal)) {
     return;
   }
+  if (typeof answer !== 'string') {
+    unsuggested(bar, message, setup, answer);
+    return;
+  }
   const suggestions = suggestionsIn(answer).map((item) => item.slice(0, MAX_SUGGESTION));
+  if (suggestions.length === 0) {
+    unsuggested(bar, message, setup, undefined);
+    return;
+  }
   remember(bar, message, suggestions);
-  bar.chat = chat.name;
   update(bar, { suggestions });
+}
+
+/** Why no suggestions came last time goes as soon as they are asked for again. */
+function forgetReason(bar: BarContext): void {
+  if (bar.unsuggested) {
+    bar.unsuggested = false;
+    update(bar, { notice: null });
+  }
+}
+
+/**
+ * Says why no suggestions came instead of showing nothing (#743): the
+ * model declined the chat, which asking again will not change; a problem a
+ * setting mends, with the way there; or nothing usable, or a passing
+ * problem, with Try Again. `error` is undefined when the model answered
+ * nothing usable.
+ */
+function unsuggested(bar: BarContext, message: string, setup: Setup, error: unknown): void {
+  bar.unsuggested = true;
+  bar.retryFor = message;
+  const retry = { id: 'retry' as const, label: text.bar.retry };
+  if (error === undefined) {
+    update(bar, { notice: { text: text.bar.noSuggestions, button: retry } });
+    return;
+  }
+  const kind = error instanceof ProviderError ? error.kind : 'failed';
+  if (kind === 'refused') {
+    update(bar, { notice: { text: text.bar.declined, button: null } });
+    return;
+  }
+  const words = problemWords(kind, setup.provider);
+  const fix = words.fix === undefined ? retry : { id: 'fix' as const, label: words.fix.label };
+  update(bar, { notice: { text: words.status, button: fix } });
 }
 
 /** Waits until `message` settled as the newest; false if a newer one or another chat came first. */
@@ -366,6 +417,7 @@ const settled = (bar: BarContext, signal: AbortSignal): Promise<boolean> =>
  */
 async function suggest(bar: BarContext, message: string): Promise<void> {
   bar.suggesting?.abort();
+  forgetReason(bar);
   const known = assistantSettings(bar).autoSuggest ? bar.made.get(message) : [];
   if (known !== undefined) {
     update(bar, { suggestions: known, writing: false });
@@ -380,7 +432,7 @@ async function suggest(bar: BarContext, message: string): Promise<void> {
   }
   update(bar, { suggestions: [], writing: ready });
   if (ready && (await settled(bar, controller.signal))) {
-    // A failed request shows nothing: suggestions come on their own, and a rewrite says what fails.
+    // A page between loads can fail to be read; the next message asks again.
     await makeSuggestions(bar, message, controller.signal).catch(() => undefined);
   }
   // A newer request, a send or another chat says for itself whether one is being written.
@@ -487,6 +539,7 @@ function followChat(
     sent: () => {
       message = null;
       bar.rewritten = false;
+      bar.unsuggested = false;
       bar.suggesting?.abort();
       update(bar, { suggestions: [], notice: null, writing: false });
     },
@@ -513,6 +566,8 @@ export function createAssistantBar(deps: BarDependencies): AssistantBar {
     rewritten: false,
     suggesting: undefined,
     made: new Map(),
+    retryFor: '',
+    unsuggested: false,
   };
   return {
     state: () => bar.state,

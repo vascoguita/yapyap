@@ -552,6 +552,33 @@ test('takes suggestions away when another chat opens, never showing them there (
   }).toPass({ timeout: 15_000 });
 });
 
+test('says why no suggestions came, and asks again on Try Again (#743)', async ({
+  app,
+  window,
+}) => {
+  await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
+  // Every answer has nothing usable in it, until the test lets the model answer.
+  const settings = await readyClaude(app, claudeAnswer('NONE'));
+  await allowAllChats(settings);
+  await focusMain(app);
+  await messageArrives(window, '3EB0F7', 'Are we still on?');
+  await expect(async () => {
+    expect(await barNotice(app)).toBe('No suggestions this time.');
+  }).toPass({ timeout: 15_000 });
+  await app.evaluate(({ session }, body) => {
+    const protocol = session.fromPartition('yapyap-assistant').protocol;
+    protocol.unhandle('https');
+    protocol.handle('https', () =>
+      Promise.resolve(new Response(body, { headers: { 'content-type': 'text/event-stream' } })),
+    );
+  }, CLAUDE_ANSWER);
+  await clickInBar(app, window, 'Try Again');
+  await expect(async () => {
+    expect(await barNames(app)).toContain('Can we do 9?');
+    expect(await barNotice(app)).toBeNull();
+  }).toPass({ timeout: 15_000 });
+});
+
 test('keeps the suggestions while the chat’s header lays itself out again (#741)', async ({
   app,
   window,
