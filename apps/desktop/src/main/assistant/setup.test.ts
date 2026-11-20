@@ -20,7 +20,7 @@ const NOTHING: SetupInputs = {
 const SERVER = 'http://192.168.1.20:11434/v1';
 const LISTED = [
   { id: 'claude-opus', label: 'Opus' },
-  { id: 'claude-haiku', label: 'Haiku' },
+  { id: 'claude-sonnet', label: 'Sonnet' },
 ];
 
 const with_ = (change: Partial<SetupInputs>, settings: Partial<SetupInputs['settings']> = {}) => ({
@@ -69,7 +69,7 @@ describe('currentSetup', () => {
       missing: '',
       models: LISTED,
       auto: LISTED[1],
-      model: 'claude-haiku',
+      model: 'claude-sonnet',
       key: 'sk',
       endpoint: '',
     });
@@ -79,7 +79,9 @@ describe('currentSetup', () => {
       model: 'claude-opus',
     });
     const gone = { ...keyed, settings: { ...keyed.settings, model: 'claude-gone' } };
-    await expect(currentSetup(gone, list, fetch)).resolves.toMatchObject({ model: 'claude-haiku' });
+    await expect(currentSetup(gone, list, fetch)).resolves.toMatchObject({
+      model: 'claude-sonnet',
+    });
   });
 
   it('reaches a model server at its address, with its key if it has one, and none needed', async () => {

@@ -137,6 +137,12 @@ const CLAUDE_MODELS = JSON.stringify({
     },
     {
       type: 'model',
+      id: 'claude-sonnet-5-5',
+      display_name: 'Claude Sonnet 5.5',
+      created_at: '2026-01-01T00:00:00Z',
+    },
+    {
+      type: 'model',
       id: 'claude-haiku-5-5',
       display_name: 'Claude Haiku 5.5',
       created_at: '2026-01-01T00:00:00Z',

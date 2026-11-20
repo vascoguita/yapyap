@@ -98,18 +98,22 @@ async function servedModels(
 }
 
 /**
- * The tier of each provider's models made for quick, inexpensive answers,
- * which suits short chat replies: Claude's Haiku and OpenAI's mini models.
- * Naming a tier rather than a model keeps Auto on the newest one.
+ * The tier of each provider's models that writes chat messages best
+ * (#702): Claude's Sonnet, and OpenAI's flagship, named by its number
+ * alone, without mini, nano, pro or another suffix, or with only a date.
+ * The quick tiers wrote noticeably worse replies and rewrites, and Opus
+ * and pro models cost and take more than a short message needs. Naming a
+ * tier rather than a model keeps Auto on the newest one. A model server
+ * has none: on home hardware, the smallest model answers in time.
  */
-const QUICK: Readonly<Record<ProviderId, RegExp | undefined>> = {
-  anthropic: /haiku/i,
-  openai: /mini/i,
+const BEST: Readonly<Record<ProviderId, RegExp | undefined>> = {
+  anthropic: /sonnet/i,
+  openai: /^gpt-\d+(?:\.\d+)?(?:-\d{4}-\d{2}-\d{2})?$/i,
   server: undefined,
 };
 
 /**
- * The model Auto uses (#467): the newest of the provider's quick tier, the
+ * The model Auto uses (#467): the newest of the provider's best tier, the
  * newest model when there is no such tier, or, on a model server, the
  * smallest model Ollama reports, else the first listed. It
  * follows what the provider lists, so a newer model takes over on its own.
@@ -118,9 +122,11 @@ export function autoModel(
   provider: ProviderId,
   options: readonly ModelOption[],
 ): ModelOption | undefined {
-  const quick = QUICK[provider];
+  const best = BEST[provider];
   const fitting =
-    quick === undefined ? undefined : options.find(({ id, label }) => quick.test(`${id} ${label}`));
+    best === undefined
+      ? undefined
+      : options.find(({ id, label }) => best.test(id) || best.test(label));
   return fitting ?? options[0];
 }
 
