@@ -12,7 +12,6 @@ import {
   markAssistantBar,
   noticeAssistantBar,
   refreshAssistantBar,
-  assistantBarPadded,
   renderAssistantBar,
   showAssistantBar,
   updateAssistantBar,
@@ -79,7 +78,6 @@ const KIT = {
   here: assistantBarHere,
   fingerprint,
   refresh: refreshAssistantBar,
-  padded: assistantBarPadded,
   hidden: assistantBarHidden,
   mark: markAssistantBar,
 };
@@ -533,28 +531,30 @@ describe('holdAssistantBarRoom', () => {
     expect(fromEnd(list)).toBe(0);
   });
 
-  it('makes room at the list’s end where it runs on under the bar, as under WhatsApp’s floating message box (#743)', () => {
-    const b = bar(0, 520);
-    const list = scrollingChat(b.height);
-    list.style.paddingBlockEnd = '12px';
-    list.getBoundingClientRect = () => ({ top: 0, bottom: 600 }) as DOMRect;
-    list.scrollTop = 1000;
-    holdAssistantBarRoom({ getComputedStyle }, PLACES, b.node, b.resize(80));
-    expect(list.style.getPropertyValue('padding-block-end')).toBe('calc(12px + 80px)');
-    // Its own padding is kept apart, so the room is never added twice.
-    holdAssistantBarRoom({ getComputedStyle }, PLACES, b.node, b.resize(80));
-    expect(list.style.getPropertyValue('padding-block-end')).toBe('calc(12px + 80px)');
-    // A hidden bar covers nothing.
-    holdAssistantBarRoom({ getComputedStyle }, PLACES, b.node, b.resize(0));
-    expect(list.style.getPropertyValue('padding-block-end')).toBe('calc(12px + 0px)');
-  });
-
   it('makes the change in a chat with no messages', () => {
     document.body.innerHTML = '<div id="main" style="overflow-y: auto"><footer></footer></div>';
     const b = bar(0);
     const change = vi.fn(b.resize(80));
     holdAssistantBarRoom({ getComputedStyle }, PLACES, b.node, change);
     expect(change).toHaveBeenCalledOnce();
+  });
+
+  it('keeps a chat WhatsApp drew anew at its end as the bar comes back into it (#743)', () => {
+    barHeights();
+    const t = setup();
+    const list = scrollingChat(
+      () => (t.scope['bar'] as Stored | undefined)?.parts.bar.offsetHeight ?? 0,
+    );
+    list.scrollTop = 1000;
+    t.render();
+    expect(fromEnd(list)).toBe(0);
+    // WhatsApp draws the chat again, without the bar, and opens it at its end.
+    t.stored().host.remove();
+    list.scrollTop = 1000;
+    expect(fromEnd(list)).toBe(0);
+    // The same suggestions come back: the list gets shorter, and stays at its end.
+    expect(t.render()).toBe('placed');
+    expect(fromEnd(list)).toBe(0);
   });
 
   it('keeps the last message in view as the bar shows, grows, hides and shows again', () => {
@@ -789,29 +789,5 @@ describe('the suggestions folded away, and while they are written', () => {
       notice: { hidden: true },
     } as unknown as Parameters<typeof assistantBarHidden>[0];
     expect(assistantBarHidden(parts)).toEqual({ chips: true, folded: true, bar: true });
-  });
-});
-
-describe('assistantBarPadded', () => {
-  it('finds the room the bar made at the end of the open chat’s list, until WhatsApp draws the list anew (#743)', () => {
-    document.body.innerHTML = '<div id="main"><div class="list" data-yapyap-pad="0px"></div></div>';
-    const list = document.querySelector<HTMLElement>('.list');
-    expect(assistantBarPadded(document, PLACES)).toBe(false);
-    list?.style.setProperty('padding-block-end', 'calc(0px + 80px)');
-    expect(assistantBarPadded(document, PLACES)).toBe(true);
-    // WhatsApp set the list's style again.
-    list?.style.setProperty('padding-block-end', '12px');
-    expect(assistantBarPadded(document, PLACES)).toBe(false);
-    document.body.innerHTML = '<div id="main"><div class="list"></div></div>';
-    expect(assistantBarPadded(document, PLACES)).toBe(false);
-  });
-
-  it('makes the room again on the next render once the list lost it, without new content', () => {
-    const t = setup();
-    t.render();
-    const room = vi.spyOn(KIT, 'room');
-    t.render();
-    expect(room).toHaveBeenCalledOnce();
-    room.mockRestore();
   });
 });

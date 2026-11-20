@@ -82,11 +82,8 @@ interface BarNode {
     position: string;
     zIndex: string;
     display: string;
-    setProperty(name: string, value: string): void;
-    getPropertyValue(name: string): string;
   };
   readonly dataset: Record<string, string | undefined>;
-  getBoundingClientRect(): { readonly top: number; readonly bottom: number };
   setAttribute(name: string, value: string): void;
   append(...nodes: BarNode[]): void;
   replaceChildren(...nodes: BarNode[]): void;
@@ -144,6 +141,14 @@ interface BarStore {
   readonly sync: () => void;
 }
 
+/** What a render changes: the content, and whether the bar goes back above the message box. */
+interface BarRefresh {
+  readonly store: BarStore;
+  readonly shown: BarContent;
+  readonly placed: boolean;
+  readonly place: () => void;
+}
+
 /** The bar's helpers, passed in because each runs as its own source text. */
 export interface BarKit {
   readonly align: (scope: Scope, host: BarNode, footer: BarNode) => void;
@@ -171,12 +176,11 @@ export interface BarKit {
   readonly fingerprint: (text: string) => string;
   readonly hidden: (parts: BarParts) => BarHidden;
   readonly mark: (parts: BarParts, content: BarContent) => void;
-  readonly padded: (doc: BarDocument, places: BarPlaces) => boolean;
   readonly refresh: (
     doc: BarDocument,
     scope: Scope,
     places: BarPlaces,
-    change: { store: BarStore; shown: BarContent; placed: boolean },
+    change: BarRefresh,
     kit: BarKit,
   ) => void;
   readonly icon: typeof strokeIcon;
@@ -211,10 +215,10 @@ export function renderAssistantBar(
   scope[places.store] = store;
   const placed = footer.previousElementSibling !== store.host;
   const shown = kit.here(doc, content, places, kit.fingerprint);
-  if (placed) {
+  const place = (): void => {
     footer.before(store.host);
-  }
-  kit.refresh(doc, scope, places, { store, shown, placed }, kit);
+  };
+  kit.refresh(doc, scope, places, { store, shown, placed, place }, kit);
   store.sync();
   kit.align(scope, store.host, footer);
   kit.paint(scope, store.host, footer);
@@ -245,34 +249,28 @@ export function assistantBarHere(
 }
 
 /**
- * Whether the open chat's message list still has the room the bar made at
- * its end. WhatsApp draws a list anew for a chat opened again, sometimes a
- * moment after the bar came back, and may set its style again; then the
- * room is made again (#743). It reads no layout, so it costs little once a
- * second.
- */
-export function assistantBarPadded(doc: BarDocument, places: BarPlaces): boolean {
-  const list = doc.querySelector(`${places.conversation} [data-yapyap-pad]`) as BarNode | null;
-  return list?.style.getPropertyValue('padding-block-end').startsWith('calc(') === true;
-}
-
-/**
- * Shows new content, making room for it in the chat; or, put back into a
- * chat WhatsApp drew anew, or into a list that lost its room, makes that
- * room again (#743). Content that did not change is left alone.
+ * Shows new content, and puts the bar back above a message box WhatsApp
+ * drew anew, keeping the chat where the user left it. Putting it back
+ * belongs inside that change: the chat's list gets shorter as the bar comes
+ * in, so a chat WhatsApp opened at its end, measured after, read as
+ * scrolled back by the bar's height and stayed there, its last messages
+ * hidden (#743). Content that did not change is left alone.
  */
 export function refreshAssistantBar(
   doc: BarDocument,
   scope: Scope,
   places: BarPlaces,
-  { store, shown, placed }: { store: BarStore; shown: BarContent; placed: boolean },
+  { store, shown, placed, place }: BarRefresh,
   kit: BarKit,
 ): void {
   const key = JSON.stringify(shown);
   const fresh = store.key !== key;
   store.key = key;
-  if (fresh || placed || !kit.padded(doc, places)) {
+  if (fresh || placed) {
     kit.room(scope, places, store.parts.bar, () => {
+      if (placed) {
+        place();
+      }
       if (fresh) {
         kit.update(doc, store.parts, shown);
         kit.mark(store.parts, shown);
@@ -307,10 +305,8 @@ export function alignAssistantBar(scope: Scope, host: BarNode, footer: BarNode):
  * it, whichever way the bar changed. Browsers already pull a list scrolled
  * to its end back as it grows, so moving it by the bar's change in height
  * would move it twice (#616). The list is the nearest scrolling box around a
- * message, inside the open chat. Where WhatsApp lets the list run on under
- * the bar, the list's end gets that much more padding, so the last message
- * can still scroll clear of the bar. Measuring forces a layout, so it
- * measures only around a change.
+ * message, inside the open chat. Measuring forces a layout, so it measures
+ * only around a change.
  */
 export function holdAssistantBarRoom(
   scope: Scope,
@@ -318,10 +314,7 @@ export function holdAssistantBarRoom(
   bar: BarNode,
   change: () => void,
 ): void {
-  const computed = scope['getComputedStyle'] as (node: BarNode) => {
-    readonly overflowY: string;
-    readonly paddingBlockEnd: string;
-  };
+  const computed = scope['getComputedStyle'] as (node: BarNode) => { readonly overflowY: string };
   const inChat = (node: BarNode | null): node is BarNode =>
     node !== null && node.closest(places.conversation) !== null;
   const scrolls = (node: BarNode): boolean =>
@@ -334,19 +327,8 @@ export function holdAssistantBarRoom(
     change();
     return;
   }
-  // Where the list runs on under the bar, as WhatsApp's does under its floating message box,
-  // it gets as much room again at its end, so its last message can scroll clear of the bar (#743).
-  const pad = (scrolled: BarNode): void => {
-    const own = computed.call(scope, scrolled).paddingBlockEnd || '0px';
-    const base = scrolled.dataset['yapyapPad'] ?? own;
-    scrolled.dataset['yapyapPad'] = base;
-    const under = scrolled.getBoundingClientRect().bottom - bar.getBoundingClientRect().top;
-    const covered = bar.offsetHeight === 0 ? 0 : Math.max(0, under);
-    scrolled.style.setProperty('padding-block-end', `calc(${base} + ${String(covered)}px)`);
-  };
   const fromEnd = list.scrollHeight - list.scrollTop - list.clientHeight;
   change();
-  pad(list);
   list.scrollTop = list.scrollHeight - list.clientHeight - fromEnd;
 }
 
@@ -694,7 +676,6 @@ export function assistantBarRender(content: BarContent): string {
     `hidden: ${assistantBarHidden.toString()}`,
     `mark: ${markAssistantBar.toString()}`,
     `refresh: ${refreshAssistantBar.toString()}`,
-    `padded: ${assistantBarPadded.toString()}`,
   ].join(', ');
   return `(${renderAssistantBar.toString()})(document, globalThis, ${JSON.stringify(content)}, ${JSON.stringify(PLACES)}, { ${kit} })`;
 }
