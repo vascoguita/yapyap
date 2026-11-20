@@ -83,6 +83,7 @@ interface BarNode {
     zIndex: string;
     display: string;
     setProperty(name: string, value: string): void;
+    getPropertyValue(name: string): string;
   };
   readonly dataset: Record<string, string | undefined>;
   getBoundingClientRect(): { readonly top: number; readonly bottom: number };
@@ -170,6 +171,7 @@ export interface BarKit {
   readonly fingerprint: (text: string) => string;
   readonly hidden: (parts: BarParts) => BarHidden;
   readonly mark: (parts: BarParts, content: BarContent) => void;
+  readonly padded: (doc: BarDocument, places: BarPlaces) => boolean;
   readonly refresh: (
     doc: BarDocument,
     scope: Scope,
@@ -243,9 +245,21 @@ export function assistantBarHere(
 }
 
 /**
+ * Whether the open chat's message list still has the room the bar made at
+ * its end. WhatsApp draws a list anew for a chat opened again, sometimes a
+ * moment after the bar came back, and may set its style again; then the
+ * room is made again (#743). It reads no layout, so it costs little once a
+ * second.
+ */
+export function assistantBarPadded(doc: BarDocument, places: BarPlaces): boolean {
+  const list = doc.querySelector(`${places.conversation} [data-yapyap-pad]`) as BarNode | null;
+  return list?.style.getPropertyValue('padding-block-end').startsWith('calc(') === true;
+}
+
+/**
  * Shows new content, making room for it in the chat; or, put back into a
- * chat WhatsApp drew anew, whose list has none of the room it made, makes
- * that room again (#743). Content that did not change is left alone.
+ * chat WhatsApp drew anew, or into a list that lost its room, makes that
+ * room again (#743). Content that did not change is left alone.
  */
 export function refreshAssistantBar(
   doc: BarDocument,
@@ -257,7 +271,7 @@ export function refreshAssistantBar(
   const key = JSON.stringify(shown);
   const fresh = store.key !== key;
   store.key = key;
-  if (fresh || placed) {
+  if (fresh || placed || !kit.padded(doc, places)) {
     kit.room(scope, places, store.parts.bar, () => {
       if (fresh) {
         kit.update(doc, store.parts, shown);
@@ -680,6 +694,7 @@ export function assistantBarRender(content: BarContent): string {
     `hidden: ${assistantBarHidden.toString()}`,
     `mark: ${markAssistantBar.toString()}`,
     `refresh: ${refreshAssistantBar.toString()}`,
+    `padded: ${assistantBarPadded.toString()}`,
   ].join(', ');
   return `(${renderAssistantBar.toString()})(document, globalThis, ${JSON.stringify(content)}, ${JSON.stringify(PLACES)}, { ${kit} })`;
 }
