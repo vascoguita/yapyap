@@ -1,4 +1,5 @@
 import { ASSISTANT_BAR_BRIDGE } from '../shared/api/assistant-bar-api.ts';
+import { WORKING_EDGE } from '../shared/working-edge.ts';
 import { ASSISTANT_ICONS, ASSISTANT_THEME } from './assistant-look.ts';
 import {
   paintWhatsAppTheme,
@@ -463,7 +464,7 @@ export function updateAssistantBar(doc: BarDocument, parts: BarParts, content: B
   };
   const blank = (): BarNode => {
     const item = doc.createElement('li');
-    item.setAttribute('class', 'placeholder');
+    item.setAttribute('class', 'placeholder working');
     item.setAttribute('aria-hidden', 'true');
     return item;
   };
@@ -506,12 +507,12 @@ export function noticeAssistantBar(parts: BarParts, notice: BarContent['notice']
  * the sparkle in the assistant's own accent (`ASSISTANT_THEME`), then the
  * notice's text and button, or the suggestions as chips that wrap onto
  * more lines, each at most two lines high, so all of them show (#709);
- * blank chips that shimmer while they are written (#703), still under
- * reduced motion; and, folded away, one quiet chip that shows them again
+ * blank chips with a light travelling around their edge while they are
+ * written (#703), as on everything else that works (`WORKING_EDGE`); and, folded away, one quiet chip that shows them again
  * (#729). Logical properties only, so it mirrors for right-to-left
  * languages (ADR 0012).
  */
-const BAR_STYLE = `${ASSISTANT_THEME}
+const BAR_STYLE = `${ASSISTANT_THEME}${WORKING_EDGE}
 :host { display: block; }
 [hidden] { display: none !important; }
 .bar {
@@ -556,15 +557,13 @@ li { display: flex; min-inline-size: 0; max-inline-size: 100%; }
 }
 .chip:hover { border-color: var(--ai-border); background: var(--ai-tint); }
 .placeholder {
+  --edge: var(--ai); --edge-fill: var(--chip);
   flex: none; block-size: 40px; border: 1px solid var(--chip-border); border-radius: var(--radius-pill);
-  background: linear-gradient(90deg, var(--chip) 30%, var(--ai-tint) 50%, var(--chip) 70%) 0 0 / 300% 100%;
-  animation: shimmer 1.2s linear infinite;
+  background: var(--chip);
 }
 .placeholder:nth-child(1) { inline-size: 96px; }
 .placeholder:nth-child(2) { inline-size: 128px; }
 .placeholder:nth-child(3) { inline-size: 80px; }
-@keyframes shimmer { to { background-position: -200% 0; } }
-@media (prefers-reduced-motion: reduce) { .placeholder { animation: none; } }
 .status {
   position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%);
   white-space: nowrap;

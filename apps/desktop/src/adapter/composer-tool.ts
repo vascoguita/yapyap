@@ -1,4 +1,5 @@
 import { ASSISTANT_BAR_BRIDGE } from '../shared/api/assistant-bar-api.ts';
+import { WORKING_EDGE } from '../shared/working-edge.ts';
 import { ASSISTANT_ICONS, ASSISTANT_THEME } from './assistant-look.ts';
 import {
   paintWhatsAppTheme,
@@ -396,6 +397,7 @@ export function updateComposerTool(
   apply.replaceChildren(kit.icon(doc, modes[shown.value] ?? sparkle, 'mode'), name);
   tool.setAttribute('aria-label', label);
   tool.setAttribute('aria-busy', String(content.working));
+  tool.setAttribute('class', content.working ? 'tool working' : 'tool');
   apply.setAttribute('title', `${shown.label}: ${shown.hint}`);
   apply.disabled = content.working || found === undefined;
   more.setAttribute('aria-label', content.labels.more);
@@ -450,14 +452,15 @@ export function composerToolItem(
  * message box, the selected way's icon and name, then the arrow that opens
  * the menu upwards, over the chat. The assistant has its own accent, apart
  * from WhatsApp's green, in both of WhatsApp's themes (`ASSISTANT_THEME`).
- * The sparkle pulses while the assistant works, and holds still for people
- * who ask for less motion. Logical properties only, so it mirrors for
+ * While the assistant rewrites, a light travels around the pill's edge, as
+ * on everything else that works (`WORKING_EDGE`). Logical properties only,
+ * so it mirrors for
  * right-to-left languages (ADR 0012).
  */
-const TOOL_STYLE = `${ASSISTANT_THEME}
+const TOOL_STYLE = `${ASSISTANT_THEME}${WORKING_EDGE}
 :host { display: flex; flex: none; align-items: center; }
-@keyframes breathe { to { opacity: 0.4; } }
 .tool {
+  --edge: var(--ai); --edge-fill: var(--ai-tint);
   position: relative; display: flex; align-items: stretch; box-sizing: border-box;
   block-size: 40px; margin-inline: 2px 4px; border: 1px solid var(--ai);
   border-radius: var(--radius-pill);
@@ -478,7 +481,6 @@ svg {
   border-end-start-radius: var(--radius-pill); font-size: var(--font-body); font-weight: 600;
   white-space: nowrap;
 }
-.tool[aria-busy='true'] .apply .mode { animation: breathe 0.6s ease-in-out infinite alternate; }
 .apply:disabled .label { opacity: 0.7; }
 .more {
   min-inline-size: 36px; justify-content: center; border-inline-start: 1px solid var(--ai-border);
@@ -512,9 +514,6 @@ svg {
 .check { grid-row: 1 / span 2; grid-column: 3; color: var(--ai); visibility: hidden; }
 .item[aria-checked='true'] .check { visibility: visible; }
 .line { block-size: 1px; margin-block: 6px; margin-inline: 6px; background: var(--border); }
-@media (prefers-reduced-motion: reduce) {
-  .tool[aria-busy='true'] .apply .mode { animation: none; }
-}
 `;
 
 const PLACES: ToolPlaces = {

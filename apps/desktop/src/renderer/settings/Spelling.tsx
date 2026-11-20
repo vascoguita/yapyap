@@ -3,11 +3,12 @@ import { useCallback, useEffect, useState } from 'preact/hooks';
 import {
   MAX_SPELLING_LANGUAGES,
   type ChromeApi,
-  type DictionaryState,
   type SettingsSnapshot,
   type SpellingLanguages,
 } from '../../shared/api/chrome-api.ts';
 import { en } from '../../shared/messages/en.ts';
+import { Icon } from '../shared/icons.tsx';
+import { useShownDictionaries, type ShownDictionary } from './dictionary-states.ts';
 import { fieldsOf, Group, type Change } from './Field.tsx';
 
 const text = en.spellingLanguages;
@@ -60,32 +61,46 @@ interface PickerProps {
   readonly onChoose: (languages: readonly string[]) => void;
   /** Asks again for the dictionaries that could not be downloaded (#704). */
   readonly onRetry: () => void;
+  /** What each language's row shows about its dictionary (#741). */
+  readonly shown: Readonly<Record<string, ShownDictionary>>;
 }
 
-const STATE_WORDS: Readonly<Record<DictionaryState, string>> = {
-  downloading: text.downloading,
-  ready: text.ready,
-  failed: text.failed,
-};
-
-/** How a language's dictionary stands, beside its name, with Try Again when it failed (#704). */
+/**
+ * How a language's dictionary stands, beside its name (#741): a small pill
+ * with the working edge while it downloads, a check and "Downloaded" once
+ * it has, and "Could not download" with Try Again when it failed. Each
+ * change is announced.
+ */
 function Dictionary(props: {
-  readonly state: DictionaryState | undefined;
+  readonly shown: ShownDictionary | undefined;
   readonly onRetry: () => void;
 }): JSX.Element | null {
-  if (props.state === undefined) {
-    return null;
+  switch (props.shown) {
+    case 'downloading':
+      return (
+        <span class="dictionary">
+          <output class="dictionary-pill working">{text.downloading}</output>
+        </span>
+      );
+    case 'downloaded':
+      return (
+        <span class="dictionary downloaded">
+          <Icon name="check" />
+          <output>{text.downloaded}</output>
+        </span>
+      );
+    case 'failed':
+      return (
+        <span class="dictionary failed">
+          <output>{text.failed}</output>
+          <button type="button" onClick={props.onRetry}>
+            {text.retry}
+          </button>
+        </span>
+      );
+    default:
+      return null;
   }
-  return (
-    <span class={`dictionary ${props.state}`}>
-      <output>{STATE_WORDS[props.state]}</output>
-      {props.state === 'failed' ? (
-        <button type="button" onClick={props.onRetry}>
-          {text.retry}
-        </button>
-      ) : null}
-    </span>
-  );
 }
 
 const rowClass = (dimmed: boolean): string => (dimmed ? 'row dimmed' : 'row');
@@ -105,11 +120,16 @@ function summaryOf({ chosen, inUse }: SpellingLanguages): { label: string; hint?
 
 function Summary(props: PickerProps): JSX.Element {
   const { label, hint } = summaryOf(props.state);
+  // Several downloads at once are told here too, as their rows may be scrolled away (#741).
+  const downloading = Object.values(props.shown).filter((shown) => shown === 'downloading').length;
   return (
     <div class={rowClass(props.dimmed)}>
       <div class="row-text">
         <span class="row-label">{label}</span>
         {hint === undefined ? null : <p class="hint">{hint}</p>}
+        {downloading < 2 ? null : (
+          <p class="hint">{text.downloadingCount({ count: downloading })}</p>
+        )}
       </div>
       {props.state.chosen.length === 0 ? null : (
         <div class="row-control">
@@ -158,7 +178,7 @@ function LanguageList(props: PickerProps & { readonly query: string }): JSX.Elem
               <span lang={code}>{own}</span>
               {own === english ? null : <span class="hint">{english}</span>}
             </label>
-            <Dictionary state={props.state.dictionaries[code]} onRetry={props.onRetry} />
+            <Dictionary shown={props.shown[code]} onRetry={props.onRetry} />
           </li>
         );
       })}
@@ -241,11 +261,12 @@ function Dictionaries(props: {
 }
 
 /** The page's languages and dictionaries, and what changes them. */
-function useSpelling(api: ChromeApi) {
+function useSpelling(api: ChromeApi, checking: boolean) {
   const [state, setState] = useState<SpellingLanguages>();
+  // Turning spell checking on starts the downloads, so the page asks again (#741).
   useEffect(() => {
     void api.spelling.languages().then(setState);
-  }, [api]);
+  }, [api, checking]);
   const choose = useCallback(
     (languages: readonly string[]): void => {
       void api.spelling.choose(languages).then(setState);
@@ -287,7 +308,11 @@ export function SpellingSection(props: {
   readonly onChange: Change;
 }): JSX.Element {
   const { api, snapshot, onChange } = props;
-  const { state, setState, choose, retry } = useSpelling(api);
+  const { state, setState, choose, retry } = useSpelling(
+    api,
+    snapshot.values['spelling.enabled'] === true,
+  );
+  const shown = useShownDictionaries(state?.dictionaries ?? {});
   const dimmed = snapshot.values['spelling.enabled'] !== true;
   return (
     <>
@@ -302,7 +327,7 @@ export function SpellingSection(props: {
           {state.available.length === 0 ? (
             <ChosenByMacos dimmed={dimmed} />
           ) : (
-            <Picker state={state} dimmed={dimmed} onChoose={choose} onRetry={retry} />
+            <Picker state={state} dimmed={dimmed} onChoose={choose} onRetry={retry} shown={shown} />
           )}
         </Group>
       )}

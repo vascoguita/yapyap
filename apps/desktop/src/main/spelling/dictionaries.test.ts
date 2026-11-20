@@ -43,15 +43,20 @@ describe('watchDictionaries', () => {
     const page = fakeSession();
     t.watch.watch(page.session);
     expect(t.watch.folder).toBe('/profile/Dictionaries');
-    await expect(t.watch.states(['en-GB', 'de', 'fr-FR'])).resolves.toEqual({ de: 'ready' });
+    await expect(t.watch.states(['en-GB', 'de', 'fr-FR'], false)).resolves.toEqual({ de: 'ready' });
+    // While spell checking is on, one with neither an event nor a file is about to download (#741).
+    await expect(t.watch.states(['en-GB', 'de'], true)).resolves.toEqual({
+      'en-GB': 'downloading',
+      de: 'ready',
+    });
     page.emit('download-begin', 'en-GB');
-    await expect(t.watch.states(['en-GB'])).resolves.toEqual({ 'en-GB': 'downloading' });
+    await expect(t.watch.states(['en-GB'], false)).resolves.toEqual({ 'en-GB': 'downloading' });
     page.emit('download-failure', 'en-GB');
-    await expect(t.watch.states(['en-GB'])).resolves.toEqual({ 'en-GB': 'failed' });
+    await expect(t.watch.states(['en-GB'], false)).resolves.toEqual({ 'en-GB': 'failed' });
     page.emit('download-success', 'en-GB');
-    await expect(t.watch.states(['en-GB'])).resolves.toEqual({ 'en-GB': 'ready' });
+    await expect(t.watch.states(['en-GB'], false)).resolves.toEqual({ 'en-GB': 'ready' });
     page.emit('initialized', 'fr-FR');
-    await expect(t.watch.states(['fr-FR'])).resolves.toEqual({ 'fr-FR': 'ready' });
+    await expect(t.watch.states(['fr-FR'], false)).resolves.toEqual({ 'fr-FR': 'ready' });
   });
 
   it('finds and removes only the files no language in use needs', async () => {

@@ -761,7 +761,8 @@ export interface Messages {
     readonly macosLabel: string;
     readonly macos: string;
     readonly downloading: string;
-    readonly ready: string;
+    readonly downloaded: string;
+    readonly downloadingCount: (params: { readonly count: number }) => string;
     readonly failed: string;
     readonly retry: string;
     readonly dictionaries: string;

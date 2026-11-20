@@ -42,8 +42,16 @@ const serves = (file: string, language: string): boolean =>
 export interface DictionaryWatch {
   /** Follows a session's downloads; every account's session shares the one folder. */
   readonly watch: (session: DictionarySession) => void;
-  /** How each language's dictionary stands: the last event about it, else ready if its file is there. */
-  readonly states: (languages: readonly string[]) => Promise<Record<string, DictionaryState>>;
+  /**
+   * How each language's dictionary stands: the last event about it, else
+   * ready if its file is there. While spell checking is on, a language with
+   * neither is downloading: Chromium starts as soon as it is checked, and
+   * says so a moment after Settings asks (#741).
+   */
+  readonly states: (
+    languages: readonly string[],
+    checking: boolean,
+  ) => Promise<Record<string, DictionaryState>>;
   /** The dictionary files no language in `inUse` needs. */
   readonly unused: (inUse: readonly string[]) => Promise<string[]>;
   readonly removeUnused: (inUse: readonly string[]) => Promise<void>;
@@ -65,10 +73,12 @@ async function statesIn(
   folder: DictionaryFolder,
   seen: ReadonlyMap<string, DictionaryState>,
   languages: readonly string[],
+  checking: boolean,
 ): Promise<Record<string, DictionaryState>> {
   const files = (await folder.files()).flatMap((name) => languageOfFile(name) ?? []);
+  const unknown: DictionaryState | undefined = checking ? 'downloading' : undefined;
   const stateOf = (language: string): DictionaryState | undefined =>
-    seen.get(language) ?? (files.some((file) => serves(file, language)) ? 'ready' : undefined);
+    seen.get(language) ?? (files.some((file) => serves(file, language)) ? 'ready' : unknown);
   return Object.fromEntries(
     languages.flatMap((language) => {
       const state = stateOf(language);
@@ -91,7 +101,7 @@ export function watchDictionaries(folder: DictionaryFolder): DictionaryWatch {
         });
       }
     },
-    states: (languages) => statesIn(folder, seen, languages),
+    states: (languages, checking) => statesIn(folder, seen, languages, checking),
     unused: (inUse) => unusedIn(folder, inUse),
     removeUnused: async (inUse) => {
       for (const name of await unusedIn(folder, inUse)) {

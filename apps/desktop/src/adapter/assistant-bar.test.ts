@@ -726,9 +726,9 @@ describe('the suggestions folded away, and while they are written', () => {
     const { list, status } = t.stored().parts;
     expect(shown(t)).toEqual({ chips: true, folded: false });
     expect([...list.children].map((item) => item.getAttribute('class'))).toEqual([
-      'placeholder',
-      'placeholder',
-      'placeholder',
+      'placeholder working',
+      'placeholder working',
+      'placeholder working',
     ]);
     expect(list.firstElementChild?.getAttribute('aria-hidden')).toBe('true');
     expect(list.getAttribute('aria-busy')).toBe('true');
