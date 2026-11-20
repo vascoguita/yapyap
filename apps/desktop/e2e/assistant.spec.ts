@@ -15,6 +15,7 @@ import {
   openAssistantSettings,
   quietPort,
   readyClaude,
+  settledRequests,
   standInKeyring,
   stickerArrives,
   toolNames,
@@ -120,8 +121,7 @@ test('hides suggestions while the user types, and after Dismiss until the next m
   await expect(async () => {
     expect(await barNames(app)).toContain('See you there');
   }).toPass({ timeout: 15_000 });
-  // The chat the window opened on may have been asked about too, before this message.
-  const beforeTyping = (await claudeRequests(app)).length;
+  const beforeTyping = await settledRequests(app, window);
   const composer = window.getByTestId('composer');
   await composer.click();
   await window.keyboard.type('Sure');
@@ -163,6 +163,7 @@ test('brings the suggestions back and drops Undo once the user empties a rewritt
   await expect(async () => {
     expect(await barNames(app)).toContain('See you there');
   }).toPass({ timeout: 15_000 });
+  await settledRequests(app, window);
   const composer = window.getByTestId('composer');
   await composer.click();
   await window.keyboard.type('sure c u');
