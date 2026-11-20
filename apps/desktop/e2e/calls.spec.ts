@@ -126,3 +126,45 @@ test('lets WhatsApp ask for the microphone and camera instead of finding them de
   ).toBe(1);
   await closeApp(app);
 });
+
+test('asks for the microphone on top of the call’s window, which would wait blank behind it (#724)', async ({
+  fakeWhatsApp,
+  profile,
+}) => {
+  const app = await launchApp(fakeWhatsApp.origin, profile, ['--use-fake-device-for-media-stream']);
+  const page = await whatsAppPage(app);
+  await expect(page.getByTestId('fake-whatsapp')).toBeVisible();
+  await page.waitForLoadState('load');
+  await page.getByTestId('call').click();
+  const isCall = (each: Page) => each.url().endsWith('/call.html');
+  await expect.poll(() => app.windows().some(isCall)).toBe(true);
+  const call = app.windows().find(isCall);
+  if (call === undefined) {
+    throw new Error('No call window.');
+  }
+  // Records which window each question belongs to, and answers Deny.
+  await app.evaluate(({ BrowserWindow, dialog, systemPreferences }) => {
+    const owners: string[] = [];
+    Object.assign(globalThis, { promptOwners: owners });
+    dialog.showMessageBox = (...args: unknown[]) => {
+      const owner = args.length > 1 ? args[0] : undefined;
+      const window = BrowserWindow.getAllWindows().find((each) => each === owner);
+      owners.push(window?.webContents.getURL() ?? 'none');
+      return Promise.resolve({ response: 1, checkboxChecked: false });
+    };
+    systemPreferences.askForMediaAccess = () => Promise.resolve(true);
+  });
+  const refused = await call.evaluate(() =>
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(
+      () => 'granted',
+      (error: unknown) => (error instanceof DOMException ? error.name : 'error'),
+    ),
+  );
+  expect(refused).toBe('NotAllowedError');
+  const owners = await app.evaluate(
+    () => (globalThis as { promptOwners?: string[] }).promptOwners ?? [],
+  );
+  expect(owners).toHaveLength(1);
+  expect(owners[0]).toMatch(/\/call\.html$/);
+  await closeApp(app);
+});

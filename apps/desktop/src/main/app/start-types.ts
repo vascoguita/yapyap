@@ -189,7 +189,11 @@ export interface StartDependencies<Window extends WindowPort> {
   /** `process.versions.chrome`: the identity must match the bundled engine. */
   readonly chromeVersion: string;
   readonly platform: string;
-  readonly askMedia: (view: ViewInfo, mediaTypes: readonly MediaType[]) => Promise<boolean>;
+  readonly askMedia: (
+    view: ViewInfo,
+    mediaTypes: readonly MediaType[],
+    contents: object | null,
+  ) => Promise<boolean>;
   /**
    * Builds screen capture around YapYap's own picker, which only exists once
    * chrome is ready. `wayland` says whether Chromium runs natively on Wayland.
