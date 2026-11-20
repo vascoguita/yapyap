@@ -13,6 +13,17 @@ const PLACES = {
   outgoing: LANDMARKS.outgoing,
   author: LANDMARKS.author,
   quoted: LANDMARKS.quoted,
+  kinds: [
+    ['call', LANDMARKS.callLog],
+    ['sticker', LANDMARKS.sticker],
+    ['animated-emoji', LANDMARKS.animatedEmoji],
+    ['voice', LANDMARKS.voiceMessage],
+    ['video', LANDMARKS.video],
+    ['photo', LANDMARKS.photo],
+    ['media', LANDMARKS.mediaToDownload],
+  ] as const,
+  emoji: LANDMARKS.emoji,
+  bubble: LANDMARKS.bubble,
 };
 const LIMITS = { messages: 2, text: 10, name: 8, quote: 6, meta: 40 };
 
@@ -115,6 +126,49 @@ describe('readActiveChat', () => {
     });
   });
 
+  it('names what a message is when it is not only text, with its caption or sender where it has them', () => {
+    // Rows as WhatsApp draws them (#723): none but a captioned one has a copy mark.
+    const item = (id: string, inside: string, own = '') =>
+      `<div data-id="${id}"><div data-testid="msg-container">${own}${inside}</div></div>`;
+    const chat = `<div id="main"><header><span dir="auto">Ana</span></header>
+      ${item('C1', '<div data-testid="call-log-system-message"><div data-testid="voip_icce_bubble_1on1_call"></div></div>')}
+      ${item('C2', '<span data-testid="author">Rui</span><div data-testid="sticker-container"><img></div>')}
+      ${item('C3', '<div data-testid="lottie-animated-emoji-container"></div>', '<span data-testid="tail-out"></span>')}
+      ${item('C4', '<div role="slider"></div><canvas></canvas>')}
+      ${item('C5', '<video></video>')}
+      ${item('C6', '<div data-testid="image-thumb"><img></div><div data-pre-plain-text="[10:00] Ana: "><span data-testid="selectable-text">Look</span></div>')}
+      ${item('C7', '<div data-testid="media-album-grid-cell"><img></div>')}
+      ${item('C8', '<div data-testid="media-state-download"></div>')}
+      ${item('C9', '<div>a document</div>')}
+      ${item('C10', '<span data-testid="selectable-text"><img data-plain-text="🖤"><img data-plain-text="🔥"></span>')}
+      <div data-id="C11" data-virtualized="true"></div></div>`;
+    expect(readActiveChat(page(chat), PLACES, { ...LIMITS, messages: 20 })).toEqual({
+      name: 'Ana',
+      group: true,
+      messages: [
+        { outgoing: false, text: '', kind: 'call' },
+        { outgoing: false, text: '', kind: 'sticker', author: 'Rui' },
+        { outgoing: true, text: '', kind: 'animated-emoji' },
+        { outgoing: false, text: '', kind: 'voice' },
+        { outgoing: false, text: '', kind: 'video' },
+        { outgoing: false, text: 'Look', kind: 'photo', meta: '[10:00] Ana: ' },
+        { outgoing: false, text: '', kind: 'photo' },
+        { outgoing: false, text: '', kind: 'media' },
+        { outgoing: false, text: '', kind: 'other' },
+        { outgoing: false, text: '🖤🔥' },
+      ],
+    });
+  });
+
+  it('leaves out a row with neither words nor a bubble, and an emoji image without its text', () => {
+    const chat = `<div id="main">
+      <div data-id="D1"><div></div></div>
+      <div data-id="D2"><div data-testid="msg-container"><span data-testid="selectable-text"><img data-plain-text></span></div></div></div>`;
+    expect(readActiveChat(page(chat), PLACES, LIMITS)).toMatchObject({
+      messages: [{ outgoing: false, text: '', kind: 'other' }],
+    });
+  });
+
   it('reads nothing when no chat is open', () => {
     expect(readActiveChat(page('<div id="app"></div>'), PLACES, LIMITS)).toBeNull();
   });
@@ -124,7 +178,9 @@ describe('readActiveChat', () => {
     const message = {
       textContent: null,
       querySelector: (selector: string) =>
-        selector === PLACES.outgoing || selector === PLACES.quoted ? null : { textContent: 'Body' },
+        selector === PLACES.messageBody || selector === PLACES.messageText
+          ? { textContent: 'Body' }
+          : null,
     };
     const doc = {
       querySelector: (selector: string) => (selector === PLACES.chatName ? text : {}),
@@ -140,7 +196,12 @@ describe('readActiveChat', () => {
       ...doc,
       querySelector: (selector: string) => (selector === PLACES.chatName ? null : {}),
     };
-    const blank = { textContent: null, querySelector: () => null };
+    // An emoji image there keeps no text aside, so the message has none.
+    const blank = {
+      textContent: null,
+      querySelector: () => null,
+      querySelectorAll: (selector: string) => (selector === PLACES.emoji ? [{}] : []),
+    };
     const blanks = (selector: string) => (selector.endsWith(PLACES.author) ? [] : [blank]);
     expect(readActiveChat({ ...empty, querySelectorAll: blanks }, PLACES, LIMITS)).toEqual({
       name: '',
@@ -170,6 +231,11 @@ describe('parseActiveChat', () => {
 
   it('takes the reader’s shape and nothing else', () => {
     expect(parseActiveChat(chat, 1)).toEqual(chat);
+    const sticker = { outgoing: false, text: '', kind: 'sticker', author: 'Rui' };
+    expect(parseActiveChat({ ...chat, messages: [sticker] }, 1)?.messages).toEqual([sticker]);
+    expect(
+      parseActiveChat({ ...chat, messages: [{ ...sticker, kind: 'gif' }] }, 1),
+    ).toBeUndefined();
     expect(parseActiveChat(null, 1)).toBeNull();
     expect(parseActiveChat(chat, 0)).toBeUndefined();
     expect(parseActiveChat({ ...chat, html: '<b>' }, 1)).toBeUndefined();

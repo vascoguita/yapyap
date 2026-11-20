@@ -5,13 +5,13 @@ import { suggestionsIn, suggestPrompt, suggestTask } from './replies.ts';
 const NOW = new Date(2026, 10, 15, 14, 3);
 
 describe('suggestTask', () => {
-  it('asks for up to three replies as the instructions describe them, one per line, or NONE', () => {
+  it('always asks for three messages as the instructions describe them, one per line (#723)', () => {
     const task = suggestTask(NOW);
     expect(task).toMatch(/^It is now Sunday, 15 November 2026 at 14:03, the user’s time\./);
-    expect(task).toContain('Suggest up to 3 replies I could send next');
+    expect(task).toContain('Suggest 3 messages I could send next');
     expect(task).toContain('as "Suggesting replies" describes them');
-    expect(task).toContain('one reply per line');
-    expect(task).toContain('answer only NONE');
+    expect(task).toContain('one message per line');
+    expect(task).not.toContain('NONE');
   });
 });
 

@@ -5,21 +5,19 @@ import { cleanRewrite } from './rewrites.ts';
 /** How many replies the assistant offers to choose from. */
 const SUGGESTIONS = 3;
 
-/** The model's answer when no reply makes sense. */
+/** What a model may still answer when it finds no reply, as it was once asked to. */
 const NONE = 'NONE';
 
 /**
  * What the model is asked for reply suggestions, as the instructions
- * describe them: real choices, each ready to send. A chat that calls for
- * no reply, such as one that ends in a link or a sticker, gets none, so no
- * row shows.
+ * describe them: real choices, each ready to send, whatever the chat ends
+ * in and whoever sent it, so the row always has something (#723).
  */
 export function suggestTask(now: Date): string {
   return [
     nowLine(now),
-    `Suggest up to ${String(SUGGESTIONS)} replies I could send next in this chat, as "Suggesting replies" describes them.`,
-    'Write one reply per line, with no numbering, quotes or other text.',
-    `If no reply makes sense, such as after a sticker, a link, a goodbye or a message that needs no answer, answer only ${NONE}.`,
+    `Suggest ${String(SUGGESTIONS)} messages I could send next in this chat, as "Suggesting replies" describes them.`,
+    'Write one message per line, with no numbering, quotes or other text.',
   ].join('\n');
 }
 

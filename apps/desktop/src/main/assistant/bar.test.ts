@@ -529,7 +529,7 @@ describe('createAssistantBar: suggested replies', () => {
     expect(t.deps.core.ask).toHaveBeenCalledTimes(22);
   });
 
-  it('suggests nothing where it may not, or need not', async () => {
+  it('suggests nothing where it may not', async () => {
     const t = harness();
     t.forbid();
     t.bar.arrived('m1');
@@ -538,12 +538,6 @@ describe('createAssistantBar: suggested replies', () => {
     t.bar.arrived('m2');
     await t.settle();
     t.set({ autoSuggest: true });
-    t.setChat({ ...CHAT, messages: [...CHAT.messages, { outgoing: true, text: 'Ok' }] });
-    t.bar.arrived('m3');
-    await t.settle();
-    t.setChat({ ...CHAT, messages: [] });
-    t.bar.arrived('m4');
-    await t.settle();
     t.setChat(null);
     t.bar.arrived('m5');
     await t.settle();
@@ -553,6 +547,18 @@ describe('createAssistantBar: suggested replies', () => {
     await t.settle();
     expect(t.deps.core.ask).not.toHaveBeenCalled();
     expect(t.last().notice).toBeNull();
+  });
+
+  it('suggests whoever sent the chat’s last item, and in a chat with none yet (#723)', async () => {
+    const t = harness();
+    t.setChat({ ...CHAT, messages: [...CHAT.messages, { outgoing: true, text: 'Ok' }] });
+    t.bar.arrived('m3');
+    await t.settle();
+    expect(t.last().suggestions).not.toEqual([]);
+    t.setChat({ ...CHAT, messages: [] });
+    t.bar.arrived('m4');
+    await t.settle();
+    expect(t.deps.core.ask).toHaveBeenCalledTimes(2);
   });
 
   it('shows nothing when the model found no reply, or failed', async () => {

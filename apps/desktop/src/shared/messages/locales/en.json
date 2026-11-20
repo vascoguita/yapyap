@@ -165,7 +165,7 @@
         },
         "autoSuggest": {
           "label": "Suggest replies",
-          "description": "When the last message in the open chat is someone else’s, the AI assistant suggests short replies above the message box."
+          "description": "Each time you open a chat or something new appears in it, the AI assistant reads the chat and suggests what you could send next, right above the message box."
         },
         "chats": {
           "label": "Where the AI assistant works",
@@ -479,7 +479,7 @@
       "server": "Your model server"
     },
     "settings": {
-      "intro": "Suggests replies to the messages you get and rewrites what you type, in the tone you choose. It never sends a message: it only puts text in the message box, for you to send.",
+      "intro": "Suggests what to send next in the open chat and rewrites what you type, in the tone you choose. It never sends a message: it only puts text in the message box, for you to send.",
       "where": "Provider",
       "whereHint": "Where the AI assistant runs.",
       "notSetUp": "Not set up yet. Choose a provider below.",

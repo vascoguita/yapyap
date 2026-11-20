@@ -60,8 +60,8 @@ to delete it.
 
 Only the chats you choose in **Settings → AI Assistant**, or every chat if you
 choose **All chats**. There, it reads a chat's latest messages to suggest
-replies when someone else wrote last, and to rewrite what you typed so it
-fits the conversation. No phone number is sent.
+what to send each time you open a chat or something new appears in it, and
+to rewrite what you typed so it fits the conversation. No phone number is sent.
 With a model server on your computer, nothing leaves your computer; with
 Claude, OpenAI or a server elsewhere, that text goes to the service or
 server you chose. Nothing is sent before you choose one. See the

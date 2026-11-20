@@ -18,11 +18,11 @@ export interface ChatWatchDependencies {
   readonly enabled: () => boolean;
   /** Whether YapYap's window is on screen, where the user can change the chat. */
   readonly onScreen: () => boolean;
-  /** The first look found the open chat, with its newest message from someone else if that is its last. */
+  /** The first look found the open chat, with its last item, or found none open. */
   readonly found: (message: string | null) => unknown;
-  /** Another chat is open, with its newest message from someone else if that is its last. */
+  /** Another chat is open, with its last item, or none is. */
   readonly opened: (message: string | null) => unknown;
-  /** A message from someone else arrived in the open chat. */
+  /** Another item is the open chat's last: someone else's that arrived, or the user's own (#723). */
   readonly arrived: (message: string) => unknown;
   /** The user sent a message in the open chat. */
   readonly sent: () => unknown;
@@ -37,18 +37,26 @@ interface Seen {
   readonly newest: Newest | null;
 }
 
-/** Someone else's newest message, named by its chat and itself, while it is the chat's last. */
-const answerable = (newest: Newest | null): string | null =>
-  newest?.theirsLast === true && newest.theirs !== null ? `${newest.chat}:${newest.theirs}` : null;
+/** The chat's last item, whoever's it is, or null for a chat with none. */
+const lastOf = (newest: Newest): string | null => (newest.theirsLast ? newest.theirs : newest.mine);
 
-/** Someone else's newest message, while it is the chat's last, if it is new since `was`. */
+/**
+ * The open chat's last item, named by its chat and itself, which the
+ * assistant suggests replies to whoever sent it (#723); `-` stands for the
+ * item of a chat with none yet. Null while no chat is open.
+ */
+const answerable = (newest: Newest | null): string | null =>
+  newest === null ? null : `${newest.chat}:${lastOf(newest) ?? '-'}`;
+
+/** The chat's last item, if it is another than at the look before. */
 const newMessage = (was: Newest, now: Newest): string | null =>
-  now.theirs === was.theirs ? null : answerable(now);
+  lastOf(now) === lastOf(was) ? null : answerable(now);
 
 /**
  * Tells what changed in the chat that stayed open: the user sent a
- * message, or a message arrived; and, at every look, that the message box
- * is empty, as a draft a rewrite filled may be cleared between two looks.
+ * message, then that the chat has another last item, theirs or the user's;
+ * and, at every look, that the message box is empty, as a draft a rewrite
+ * filled may be cleared between two looks.
  */
 function inSameChat(was: Newest, now: Newest, deps: ChatWatchDependencies): void {
   if (now.mine !== null && now.mine !== was.mine) {

@@ -2,7 +2,7 @@
  * Bump whenever a landmark below changes, so diagnostics show which table a
  * report came from.
  */
-export const LANDMARKS_VERSION = 10;
+export const LANDMARKS_VERSION = 11;
 
 /**
  * Structural landmarks of WhatsApp Web: element ids and attributes that have
@@ -52,6 +52,22 @@ export const LANDMARKS = {
    */
   author: '[data-testid="author"]',
   quoted: '[data-testid="quoted-message"]',
+  /** A message's bubble, which every message has once WhatsApp draws it. */
+  bubble: '[data-testid="msg-container"]',
+  /** Emoji in a message, drawn as images that keep the emoji's text aside (#723). */
+  emoji: '[data-testid="selectable-text"] img[data-plain-text]',
+  /** A call's entry in the chat, voice or video alike (#723). */
+  callLog: '[data-testid="call-log-system-message"]',
+  sticker: '[data-testid="sticker-container"]',
+  animatedEmoji: '[data-testid="lottie-animated-emoji-container"]',
+  /** A voice message's seek bar; its player has no marker of its own (#723). */
+  voiceMessage: '[role="slider"]',
+  /** A video, round or not, once downloaded; before that it shows only as media to download (#723). */
+  video: 'video',
+  /** A photo, or each photo of an album (#723). */
+  photo: '[data-testid="image-thumb"], [data-testid="media-album-grid-cell"]',
+  /** Media not downloaded yet, whatever its kind (#723). */
+  mediaToDownload: '[data-testid="media-state-download"]',
   /** The account's own profile photo, on the profile button at the foot of the navigation bar (#87). */
   ownAvatar: '[data-testid="navbar-footer-section"] button[data-navbar-item] img',
   /**

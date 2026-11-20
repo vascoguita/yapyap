@@ -979,10 +979,12 @@ describe('startApp', () => {
     );
     await vi.advanceTimersByTimeAsync(1500);
     expect(bar.sent).toHaveBeenCalledOnce();
+    // The user's own message is the chat's last item now, which has suggestions too (#723).
+    expect(bar.arrived).toHaveBeenLastCalledWith('aaaaaaaa:0000000f');
     f.window.isFocused.mockReturnValue(false);
     f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValue('aaaaaaaa:00000003:-:i:e');
     await vi.advanceTimersByTimeAsync(3000);
-    expect(bar.arrived).toHaveBeenCalledOnce();
+    expect(bar.arrived).toHaveBeenCalledTimes(2);
     f.runtime.assistantBarView?.show(false);
     vi.useRealTimers();
   });

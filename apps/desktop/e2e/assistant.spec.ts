@@ -16,6 +16,7 @@ import {
   quietPort,
   readyClaude,
   standInKeyring,
+  stickerArrives,
   toolNames,
 } from './assistant-helpers.ts';
 import { chromePage } from './chrome-helpers.ts';
@@ -76,6 +77,32 @@ test('suggests replies when a message arrives, only in a chat the user added in 
     expect(await barNames(app)).not.toContain('Yes, 8 works!');
   }).toPass();
   await expect(window.getByTestId('sent')).toHaveCount(0);
+});
+
+test('suggests after a sticker, and after the user’s own message (#723)', async ({
+  app,
+  window,
+}) => {
+  await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
+  // Every request gets this answer: the chat the window opens on may be asked about first.
+  const settings = await readyClaude(app, claudeAnswer('Haha love it'));
+  await allowAllChats(settings);
+  await focusMain(app);
+  await stickerArrives(window, '3EB0F9');
+  await expect(async () => {
+    expect(await barNames(app)).toContain('Haha love it');
+  }).toPass({ timeout: 15_000 });
+  const asked = await claudeRequests(app);
+  expect(asked.at(-1)).toContain('Test Chat One: [a sticker]');
+  // The user's own message is last now, and still has suggestions to follow it.
+  await clickInBar(app, window, 'Haha love it');
+  const composer = window.getByTestId('composer');
+  await expect(composer).toHaveText('Haha love it');
+  await composer.press('Enter');
+  await expect(async () => {
+    expect((await claudeRequests(app)).length).toBeGreaterThan(asked.length);
+  }).toPass({ timeout: 15_000 });
+  await expect(window.getByTestId('sent')).toHaveCount(1);
 });
 
 test('hides suggestions while the user types, and after Dismiss until the next message', async ({

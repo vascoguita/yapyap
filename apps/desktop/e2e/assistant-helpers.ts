@@ -315,6 +315,29 @@ export async function messageArrives(page: Page, id: string, text: string): Prom
 }
 
 /**
+ * Adds a sticker from the contact as the chat's last item, as WhatsApp
+ * draws one: a bubble with no text and no copy mark (#723).
+ */
+export async function stickerArrives(page: Page, id: string): Promise<void> {
+  await page.evaluate((id) => {
+    const row = document.createElement('div');
+    row.setAttribute('role', 'row');
+    const message = document.createElement('div');
+    message.dataset['id'] = id;
+    const bubble = document.createElement('div');
+    bubble.dataset['testid'] = 'msg-container';
+    const sticker = document.createElement('div');
+    sticker.dataset['testid'] = 'sticker-container';
+    sticker.append(document.createElement('img'));
+    bubble.append(sticker);
+    message.append(bubble);
+    row.append(message);
+    const rows = document.querySelectorAll('#main [role="row"]');
+    rows[rows.length - 1]?.after(row);
+  }, id);
+}
+
+/**
  * Lets the assistant work in every chat, as the user can in Settings ›
  * Assistant, then closes Settings unless the test still needs it: without
  * a window manager, the main window keeps the focus only once it is the
