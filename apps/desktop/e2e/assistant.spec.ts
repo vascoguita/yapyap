@@ -120,6 +120,8 @@ test('hides suggestions while the user types, and after Dismiss until the next m
   await expect(async () => {
     expect(await barNames(app)).toContain('See you there');
   }).toPass({ timeout: 15_000 });
+  // The chat the window opened on may have been asked about too, before this message.
+  const beforeTyping = (await claudeRequests(app)).length;
   const composer = window.getByTestId('composer');
   await composer.click();
   await window.keyboard.type('Sure');
@@ -140,10 +142,10 @@ test('hides suggestions while the user types, and after Dismiss until the next m
   await expect(async () => {
     expect(await barNames(app)).toContain('Still on!');
   }).toPass({ timeout: 15_000 });
-  // One request for each message: typing, clearing and Dismiss ask nothing.
+  // Typing, clearing and Dismiss ask nothing; only the new message does.
   const asked = await claudeRequests(app);
-  expect(asked.filter((body) => body.includes('Are we still on?'))).toHaveLength(2);
-  expect(asked.filter((body) => body.includes('Hello?'))).toHaveLength(1);
+  expect(asked).toHaveLength(beforeTyping + 1);
+  expect(asked.at(-1)).toContain('Hello?');
 });
 
 test('brings the suggestions back and drops Undo once the user empties a rewritten draft', async ({
@@ -169,6 +171,7 @@ test('brings the suggestions back and drops Undo once the user empties a rewritt
   await expect(async () => {
     expect(await barNotice(app)).toBe('Polished. Edit it or send as is.');
   }).toPass();
+  const beforeClearing = (await claudeRequests(app)).length;
   // As the user clears the box, here at once, as select-all and Delete does.
   await window.keyboard.press('ControlOrMeta+A');
   await window.keyboard.press('Delete');
@@ -181,7 +184,7 @@ test('brings the suggestions back and drops Undo once the user empties a rewritt
   }).toPass();
   // The suggestions come back as they were, without asking again.
   const asked = await claudeRequests(app);
-  expect(asked.filter((body) => body.includes('Are we still on?'))).toHaveLength(2);
+  expect(asked).toHaveLength(beforeClearing);
   expect(asked.filter((body) => body.includes('Rewrite my draft'))).toHaveLength(1);
 });
 
