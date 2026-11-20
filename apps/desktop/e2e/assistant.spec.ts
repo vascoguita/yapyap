@@ -333,12 +333,15 @@ test('rewrites the draft in place from the message box, puts it back on Undo, an
   await expect(async () => {
     expect(await barNotice(app)).toBe('Polished. Edit it or send as is.');
   }).toPass();
-  const asked = await claudeRequests(app);
-  expect(asked[0]).toContain('Rewrite my draft below the Polish way');
-  expect(asked[0]).toContain('<draft>\\nrunning late\\n</draft>');
+  // The chat the window opened on may have been asked about for suggestions first (#725).
+  const rewrites = (await claudeRequests(app)).filter((body) => body.includes('Rewrite my draft'));
+  expect(rewrites).toHaveLength(1);
+  const [asked] = rewrites;
+  expect(asked).toContain('Rewrite my draft below the Polish way');
+  expect(asked).toContain('<draft>\\nrunning late\\n</draft>');
   // The rewrite reads the chat it answers, and the chat is cached for the next request.
-  expect(asked[0]).toContain('[19:58, 24/10/2026] Test Chat One: Dinner tonight?');
-  expect(asked[0]).toContain('"cache_control":{"type":"ephemeral"}');
+  expect(asked).toContain('[19:58, 24/10/2026] Test Chat One: Dinner tonight?');
+  expect(asked).toContain('"cache_control":{"type":"ephemeral"}');
   await clickInBar(app, window, 'Undo');
   await expect(composer).toHaveText('running late');
   await expect(async () => {
@@ -449,9 +452,12 @@ test('finds the model server on this computer, and suggests replies with it', as
     await expect(async () => {
       expect(await barNames(app)).toContain('Can we do 9?');
     }).toPass({ timeout: 15_000 });
-    expect(server.chats).toHaveLength(1);
-    expect(server.chats[0]).toContain('[20:05, 24/10/2026] Test Chat One: Are we still on?');
-    expect(server.chats[0]).toContain('"model":"tiny-e2e"');
+    // The chat the window opened on may have been asked about first (#725).
+    const answered = server.chats.filter((body) =>
+      body.includes('[20:05, 24/10/2026] Test Chat One: Are we still on?'),
+    );
+    expect(answered.length).toBeGreaterThan(0);
+    expect(answered.at(-1)).toContain('"model":"tiny-e2e"');
   } finally {
     await closeApp(app);
     server.close();
