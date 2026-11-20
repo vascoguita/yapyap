@@ -7,18 +7,21 @@
  * the system's. Every text color keeps 4.5:1 or more against the surface
  * it sits on, in both themes. Type, corners and spacing are the windows'
  * tokens too, in pixels, because WhatsApp's root font size is its own.
+ * The rewrite button's menu half (`--ai-split`) is a lighter mix of its
+ * action half's tint, so the pill reads as one control and the menu as its
+ * quieter part; white made it look half filled.
  */
 export const ASSISTANT_THEME = `
 :host {
   --font-body: 14px; --font-hint: 13px; --radius-md: 8px; --radius-lg: 10px;
   --radius-pill: 999px; --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
-  --ai: #3f2fb8; --ai-tint: #eeedfc; --ai-border: #d9d6f7; --ai-split: #ffffff;
+  --ai: #3f2fb8; --ai-tint: #eeedfc; --ai-border: #d9d6f7; --ai-split: color-mix(in srgb, var(--ai-tint) 55%, #ffffff);
   --ai-hover: #e3e1fa; --area: #f7f5f3; --area-border: #e1ddd6; --chip: #ffffff;
   --chip-border: #d6d3cd; --text: #111b21; --muted: #54656f; --menu: #ffffff;
   --hover: #f2f1ef; --border: #e9e6e1; --shadow: rgb(17 27 33 / 18%);
 }
 :host([data-theme='dark']) {
-  --ai: #c9c3ff; --ai-tint: #27264b; --ai-border: #3f3d7a; --ai-split: #1d1f1f;
+  --ai: #c9c3ff; --ai-tint: #27264b; --ai-border: #3f3d7a; --ai-split: color-mix(in srgb, var(--ai-tint) 55%, #1d1f1f);
   --ai-hover: #33325f; --area: #1d1f1f; --area-border: #2f3333; --chip: #242626;
   --chip-border: #3d4242; --text: #e9edef; --muted: #aebac1; --menu: #242626;
   --hover: #2f3232; --border: #383c3c; --shadow: rgb(0 0 0 / 50%);
