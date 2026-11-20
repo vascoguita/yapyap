@@ -387,9 +387,15 @@ test('opens the page to get a key in the default browser', async ({ app }) => {
     .toEqual(['https://console.anthropic.com/settings/keys']);
 });
 
-test('takes suggestions away when another chat opens', async ({ app, window }) => {
+test('takes suggestions away when another chat opens, never showing them there (#730)', async ({
+  app,
+  window,
+}) => {
   await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
-  const settings = await readyClaude(app, CLAUDE_ANSWER);
+  const settings = await readyClaude(app, CLAUDE_ANSWER, {
+    when: 'This is a chat with Test Chat Three.',
+    body: claudeAnswer('Hi there'),
+  });
   await allowAllChats(settings);
   await focusMain(app);
   await messageArrives(window, '3EB0F7', 'Are we still on?');
@@ -403,12 +409,21 @@ test('takes suggestions away when another chat opens', async ({ app, window }) =
         '#main > [data-testid="wallpaper"], #main > header, #main > footer',
       ),
     ].map((part) => part.cloneNode(true) as Element);
-    parts.find((part) => part.matches('header'))?.replaceChildren('Test Chat Three');
+    const name = document.createElement('span');
+    name.dir = 'auto';
+    name.textContent = 'Test Chat Three';
+    parts.find((part) => part.matches('header'))?.replaceChildren(name);
     document.querySelector('#main')?.replaceChildren(...parts);
   });
+  // The bar comes back into the new chat within a second, before the next look tells YapYap
+  // another chat opened: the old chat's suggestions must not come back with it.
+  for (let check = 0; check < 25; check += 1) {
+    expect(await barNames(app)).not.toContain('Can we do 9?');
+    await window.waitForTimeout(100);
+  }
   await expect(async () => {
-    expect(await barNames(app)).toEqual([]);
-  }).toPass({ timeout: 10_000 });
+    expect(await barNames(app)).toContain('Hi there');
+  }).toPass({ timeout: 15_000 });
 });
 
 test('keeps the chat’s last message in view as suggestions come and the bar comes back', async ({

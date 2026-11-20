@@ -6,7 +6,7 @@ import { LANDMARKS } from './page-state.ts';
 /** Longest message text the assistant receives; a longer message is cut. */
 const MAX_TEXT = 4096;
 /** Longest chat or sender name the assistant receives. */
-const MAX_NAME = 256;
+export const MAX_NAME = 256;
 /** Longest quoted text the assistant receives with a reply. */
 const MAX_QUOTE = 512;
 /** Longest copy mark (`[time, date] Sender: `) the reader passes on. */
