@@ -9,6 +9,10 @@ const PLACES = {
   outgoing: LANDMARKS.outgoing,
   chatName: LANDMARKS.chatName,
   composer: LANDMARKS.composer,
+  messageBody: LANDMARKS.messageBody,
+  messageText: LANDMARKS.messageText,
+  emoji: LANDMARKS.emoji,
+  quoted: LANDMARKS.quoted,
 };
 
 /** Their message, with a bare ID as WhatsApp marks it today (#410). */
@@ -33,7 +37,7 @@ describe('newestMessages', () => {
   it('hashes the open chat and its newest message from each side, never handing over a name or an ID', () => {
     chat('Ana', theirs('3EB0A1'), mine('3EB0A2'));
     const seen = probe();
-    expect(seen).toMatch(/^[0-9a-f]{8}:[0-9a-f]{8}:[0-9a-f]{8}:o:e$/);
+    expect(seen).toMatch(/^[0-9a-f]{8}:[0-9a-f]{8}:[0-9a-f]{8}:o:e:[0-9a-f]{8}$/);
     expect(seen).not.toContain('Ana');
     expect(seen).not.toContain('3EB0A1');
     const [chatHash, theirsHash, mineHash] = String(seen).split(':');
@@ -79,7 +83,7 @@ describe('newestMessages', () => {
     chat('Ana', mine('3EB0A2'));
     expect(part(1)).toBe('-');
     chat('Ana');
-    expect(probe()).toMatch(/^[0-9a-f]{8}:-:-:-:e$/);
+    expect(probe()).toMatch(/^[0-9a-f]{8}:-:-:-:e:-$/);
     document.body.innerHTML = '<div id="main"></div>';
     expect(probe()).toBeNull();
     // A row without an ID, should WhatsApp's markup ever match one, still
@@ -87,8 +91,41 @@ describe('newestMessages', () => {
     document.body.innerHTML =
       '<div id="main"><header><span dir="auto"></span></header><p></p></div>';
     expect(newestMessages(document, { ...PLACES, message: '#main p' }, fingerprint)).toBe(
-      '811c9dc5:811c9dc5:-:i:e',
+      '811c9dc5:811c9dc5:-:i:e:811c9dc5',
     );
+  });
+
+  it('hashes what the last message says, so an edit, which keeps its ID, tells apart (#739)', () => {
+    /** Their message as WhatsApp lays out text, after the message it may quote, with `meta` beside it. */
+    const said = (text: string, { quote = '', meta = '' } = {}) =>
+      `<div data-id="3EB0A1">${quote}<div data-pre-plain-text="[15:13] Ana: "><span data-testid="selectable-text">${text}</span></div>${meta}</div>`;
+    chat('Ana', said('See you at 5'));
+    const before = part(5);
+    expect(probe()).not.toContain('See you');
+    chat('Ana', said('See you at 6', { meta: '<span>Edited</span>' }));
+    const edited = part(5);
+    expect(edited).not.toBe(before);
+    // Only the message's own text counts: not the time or a mark beside it, nor the message it quotes.
+    chat('Ana', said('See you at 6', { meta: '<span>Edited 15:14</span>' }));
+    expect(part(5)).toBe(edited);
+    const quote = (text: string) =>
+      `<div data-testid="quoted-message"><div data-pre-plain-text="[15:00] Ben: "><span data-testid="selectable-text">${text}</span></div></div>`;
+    chat('Ana', said('See you at 6', { quote: quote('When?') }));
+    expect(part(5)).toBe(edited);
+    // An emoji is in the text as an image.
+    const emoji = (plain: string) => `<img data-plain-text="${plain}" alt="">`;
+    chat('Ana', said(emoji('👍')));
+    const thumbs = part(5);
+    chat('Ana', said(emoji('❤️'), { quote: quote(emoji('👍')) }));
+    expect(part(5)).not.toBe(thumbs);
+    chat('Ana', said(emoji('👍'), { quote: quote(emoji('❤️')) }));
+    expect(part(5)).toBe(thumbs);
+    // Text without a body of its own, and a row with no text, hash as what they hold.
+    document.body.innerHTML =
+      '<div id="main"><header><span dir="auto">Ana</span></header><div data-id="3EB0A1"><div data-pre-plain-text="[15:13] Ana: ">See you</div></div></div>';
+    expect(part(5)).toBe(fingerprint('See you'));
+    chat('Ana', theirs('3EB0A1'));
+    expect(part(5)).toBe(fingerprint(''));
   });
 
   it('hashes a chat name without text as empty text', () => {
@@ -96,7 +133,7 @@ describe('newestMessages', () => {
       querySelector: () => ({ textContent: null }),
       querySelectorAll: () => [],
     };
-    expect(newestMessages(doc, PLACES, fingerprint)).toBe('811c9dc5:-:-:-:e');
+    expect(newestMessages(doc, PLACES, fingerprint)).toBe('811c9dc5:-:-:-:e:-');
   });
 
   it('pads every hash to eight characters, so the answer always parses', () => {
@@ -124,22 +161,24 @@ describe('newestMessages', () => {
 
 describe('parseNewest', () => {
   it('takes the hashes and whose message is last, or no chat, and refuses anything else', () => {
-    expect(parseNewest('0123abcd:89abcdef:-:i:e')).toEqual({
+    expect(parseNewest('0123abcd:89abcdef:-:i:e:76543210')).toEqual({
       chat: '0123abcd',
       theirs: '89abcdef',
       mine: null,
       theirsLast: true,
       drafting: false,
+      said: '76543210',
     });
-    expect(parseNewest('0123abcd:-:89abcdef:o:e')).toEqual({
+    expect(parseNewest('0123abcd:-:89abcdef:o:e:76543210')).toEqual({
       chat: '0123abcd',
       theirs: null,
       mine: '89abcdef',
       theirsLast: false,
       drafting: false,
+      said: '76543210',
     });
-    expect(parseNewest('0123abcd:-:-:-:d')?.drafting).toBe(true);
-    expect(parseNewest('0123abcd:-:-:-:e')?.theirsLast).toBe(false);
+    expect(parseNewest('0123abcd:-:-:-:d:-')?.drafting).toBe(true);
+    expect(parseNewest('0123abcd:-:-:-:e:-')).toMatchObject({ theirsLast: false, said: null });
     expect(parseNewest(null)).toBeNull();
     // An array would spell the right text, were it ever taken for one.
     const refused = [
@@ -150,11 +189,14 @@ describe('parseNewest', () => {
       '0123abcd:89abcdef:-:x',
       '0123abcd:89abcdef:-:i',
       '0123abcd:89abcdef:-:i:x',
+      '0123abcd:89abcdef:-:i:e',
+      '0123abcd:89abcdef:-:i:e:x',
+      '0123abcd:89abcdef:-:i:e:76543210:',
       'x0123abcd:-:-:i',
       '0123abcd:-:-:i0',
       'ABCDEF01:-:-:i',
       '-:-:-:i',
-      ['0123abcd:-:-:i:e'],
+      ['0123abcd:-:-:i:e:-'],
     ];
     for (const value of refused) {
       expect(parseNewest(value)).toBeUndefined();

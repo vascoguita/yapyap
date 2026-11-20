@@ -12,6 +12,7 @@ import {
   fakeModelServer,
   focusMain,
   messageArrives,
+  messageEdited,
   openAssistantSettings,
   quietPort,
   readyClaude,
@@ -682,4 +683,33 @@ test('keeps the chat’s last message in view as suggestions come and the bar co
   await expect(window.getByTestId('composer')).toHaveText('Can we do 9?');
   await window.waitForTimeout(500);
   expect(await lastMessageInView()).toBe(true);
+});
+
+test('writes the suggestions again when the contact edits the chat’s last message (#739)', async ({
+  app,
+  window,
+}) => {
+  await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
+  const settings = await readyClaude(app, CLAUDE_ANSWER, {
+    when: 'See you at 6',
+    body: claudeAnswer('6 works!'),
+  });
+  await allowAllChats(settings);
+  await focusMain(app);
+  await messageArrives(window, '3EB0F7', 'See you at 5');
+  await expect(async () => {
+    expect(await barNames(app)).toContain('See you there');
+  }).toPass({ timeout: 15_000 });
+  const before = await settledRequests(app, window);
+  // An edit keeps the message's ID; only what it says changed.
+  await messageEdited(window, '3EB0F7', 'See you at 6');
+  await expect(async () => {
+    expect(await barNames(app)).toContain('6 works!');
+  }).toPass({ timeout: 15_000 });
+  const asked = await claudeRequests(app);
+  expect(asked).toHaveLength(before + 1);
+  expect(asked.at(-1)).toContain('See you at 6');
+  // Looking on, the same edit asks nothing more.
+  await window.waitForTimeout(3000);
+  expect(await claudeRequests(app)).toHaveLength(before + 1);
 });

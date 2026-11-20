@@ -41,20 +41,25 @@ interface Seen {
 const lastOf = (newest: Newest): string | null => (newest.theirsLast ? newest.theirs : newest.mine);
 
 /**
- * The open chat's last item, named by its chat and itself, which the
- * assistant suggests replies to whoever sent it (#723); `-` stands for the
- * item of a chat with none yet. Null while no chat is open.
+ * The open chat's last item, named by its chat, itself and what it says,
+ * which the assistant suggests replies to whoever sent it (#723); `-`
+ * stands for the item of a chat with none yet. An edited item says
+ * something else, so it is another, and suggestions are made for it again
+ * (#739). Null while no chat is open.
  */
 const answerable = (newest: Newest | null): string | null =>
-  newest === null ? null : `${newest.chat}:${lastOf(newest) ?? '-'}`;
+  newest === null ? null : `${newest.chat}:${lastOf(newest) ?? '-'}:${newest.said ?? '-'}`;
 
-/** The chat's last item, if it is another than at the look before. */
-const newMessage = (was: Newest, now: Newest): string | null =>
-  lastOf(now) === lastOf(was) ? null : answerable(now);
+/** The chat's last item, if it is another than at the look before, or the same, edited. */
+const newMessage = (was: Newest, now: Newest): string | null => {
+  const message = answerable(now);
+  return message === answerable(was) ? null : message;
+};
 
 /**
  * Tells what changed in the chat that stayed open: the user sent a
- * message, then that the chat has another last item, theirs or the user's;
+ * message, then that the chat has another last item, theirs or the user's,
+ * or that its last was edited;
  * and, at every look, that the message box is empty, as a draft a rewrite
  * filled may be cleared between two looks.
  */

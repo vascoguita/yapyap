@@ -360,6 +360,28 @@ export async function messageArrives(page: Page, id: string, text: string): Prom
 }
 
 /**
+ * The contact edits message `id` in the open chat of the fake WhatsApp
+ * page, as WhatsApp shows an edit: the same row, with the same ID, says
+ * `text` now, and "Edited" shows beside its time (#739).
+ */
+export async function messageEdited(page: Page, id: string, text: string): Promise<void> {
+  await page.evaluate(
+    ({ id, text }) => {
+      const message = document.querySelector(`#main [data-id="${id}"]`);
+      const body = message?.querySelector('[data-pre-plain-text] [data-testid="selectable-text"]');
+      if (message === null || body === null || body === undefined) {
+        throw new Error(`No message ${id} to edit`);
+      }
+      body.textContent = text;
+      const edited = document.createElement('span');
+      edited.textContent = 'Edited';
+      message.append(edited);
+    },
+    { id, text },
+  );
+}
+
+/**
  * Adds a sticker from the contact as the chat's last item, as WhatsApp
  * draws one: a bubble with no text and no copy mark (#723).
  */
