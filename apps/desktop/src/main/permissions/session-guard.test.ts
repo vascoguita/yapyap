@@ -93,7 +93,12 @@ describe('permission requests', () => {
   it('asks before using the camera or microphone, naming the account, and remembers yes', async () => {
     const t = setup();
     expect(await t.ask(t.whatsapp, 'media', { mediaTypes: ['audio', 'video'] })).toBe(true);
-    expect(t.deps.askMedia).toHaveBeenCalledExactlyOnceWith(WHATSAPP, ['audio', 'video']);
+    // With the web contents that asked, so the question shows on top of its window (#724).
+    expect(t.deps.askMedia).toHaveBeenCalledExactlyOnceWith(
+      WHATSAPP,
+      ['audio', 'video'],
+      t.whatsapp,
+    );
     expect(await t.ask(t.whatsapp, 'media', { mediaTypes: ['video'] })).toBe(true);
     expect(t.deps.askMedia).toHaveBeenCalledOnce();
   });
@@ -114,8 +119,8 @@ describe('permission requests', () => {
     await t.ask(t.whatsapp, 'media', { mediaTypes: ['audio'] });
     await t.ask(t.whatsapp, 'media', { mediaTypes: ['audio', 'video'] });
     expect(t.deps.askMedia.mock.calls).toEqual([
-      [WHATSAPP, ['audio']],
-      [WHATSAPP, ['video']],
+      [WHATSAPP, ['audio'], t.whatsapp],
+      [WHATSAPP, ['video'], t.whatsapp],
     ]);
   });
 

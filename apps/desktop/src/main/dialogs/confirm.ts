@@ -1,4 +1,4 @@
-import { dialog, type BrowserWindow } from 'electron';
+import { dialog, type BaseWindow } from 'electron';
 import { PRODUCT_NAME } from '../identity/product.ts';
 
 /** A question with two answers, asked in a native message box. */
@@ -13,8 +13,8 @@ export interface Question {
    * allows, deletes or restarts anything; Escape always answers no.
    */
   readonly enterMeansYes?: boolean;
-  /** The window the box belongs to, when one asked. */
-  readonly parent?: BrowserWindow;
+  /** The window the box belongs to, when one asked, which keeps the box on top of it. */
+  readonly parent?: BaseWindow;
 }
 
 /** True only when the user picks the yes button. */

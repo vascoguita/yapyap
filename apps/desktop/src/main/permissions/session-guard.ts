@@ -73,8 +73,16 @@ export interface DisplayCapturePort {
 
 export interface SessionGuardDependencies {
   readonly views: ViewRegistry;
-  /** Asks the user, naming the view, whether it may use the camera or microphone. */
-  readonly askMedia: (view: ViewInfo, mediaTypes: readonly MediaType[]) => Promise<boolean>;
+  /**
+   * Asks the user, naming the view, whether it may use the camera or
+   * microphone, on top of the window of `contents`, the web contents that
+   * asked (#724).
+   */
+  readonly askMedia: (
+    view: ViewInfo,
+    mediaTypes: readonly MediaType[],
+    contents: object | null,
+  ) => Promise<boolean>;
   readonly openExternal: (url: string) => Promise<unknown>;
   readonly warn: (message: string) => void;
   readonly capture: DisplayCapturePort;
@@ -97,12 +105,13 @@ async function askOnce(
   grants: Grants,
   view: ViewInfo,
   mediaTypes: readonly MediaType[],
+  contents: object | null,
 ): Promise<boolean> {
   const pending = mediaTypes.filter((type) => !grants.has(grantKey(view, type)));
   if (pending.length === 0) {
     return true;
   }
-  const allowed = await deps.askMedia(view, pending);
+  const allowed = await deps.askMedia(view, pending, contents);
   if (allowed) {
     for (const type of pending) {
       grants.add(grantKey(view, type));
@@ -178,7 +187,7 @@ function answer(
   if (decision !== 'ask' || view === undefined) {
     return Promise.resolve(decision === 'allow');
   }
-  return askOnce(deps, grants, view, mediaTypes);
+  return askOnce(deps, grants, view, mediaTypes, contents);
 }
 
 function requestHandler(deps: SessionGuardDependencies, grants: Grants, shares: Shares) {
