@@ -516,8 +516,9 @@ export function noticeAssistantBar(parts: BarParts, notice: BarContent['notice']
 /**
  * The bar's own styles, inside its shadow root. There is no band: the
  * notice and the suggestions float on the chat's wallpaper above WhatsApp's
- * message box, as chips with the shadow WhatsApp gives its own floating box,
- * lined up with its edges (#743). First in the suggestions' row is the one
+ * message box, lined up with its edges (#743). They are flat pills in the
+ * assistant's tint, as its rewrite button is, never white and shadowed:
+ * that is how WhatsApp draws messages, and they read as ones received. First in the suggestions' row is the one
  * control that folds them away and, folded, shows them again, in the same
  * place either way (#729). The chips wrap onto more lines, each at most two
  * lines high (#709); while they are written, one chip says so with a light
@@ -544,7 +545,7 @@ button:focus-visible { outline: 2px solid var(--ai); outline-offset: 2px; }
 .notice {
   align-self: flex-start; align-items: center; gap: var(--space-2); max-inline-size: 100%;
   min-block-size: 40px; box-sizing: border-box; padding-inline: var(--space-3) var(--space-1);
-  border-radius: 20px; background: var(--chip); box-shadow: var(--float);
+  border: 1px solid var(--ai-border); border-radius: 20px; background: var(--ai-tint);
 }
 .text { flex: 1; min-inline-size: 0; padding-block: var(--space-2); overflow-wrap: anywhere; }
 .action {
@@ -563,19 +564,19 @@ button:focus-visible { outline: 2px solid var(--ai); outline-offset: 2px; }
 }
 li { display: flex; min-inline-size: 0; max-inline-size: 100%; }
 .chip {
-  display: -webkit-box; min-block-size: 36px; max-inline-size: 100%; padding-block: 8px;
-  padding-inline: 14px; overflow: hidden; border: 0; border-radius: 18px; background: var(--chip);
-  box-shadow: var(--float); color: var(--text); font-size: var(--font-body); line-height: 1.3;
+  display: -webkit-box; min-block-size: 36px; max-inline-size: 100%; padding-block: 7px;
+  padding-inline: 14px; overflow: hidden; border: 1px solid var(--ai-border); border-radius: 20px;
+  background: var(--ai-tint); color: var(--text); font-size: var(--font-body); line-height: 1.3;
   text-align: start; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2;
   overflow-wrap: anywhere;
 }
-.chip:hover { background: var(--ai-tint); }
+.chip:hover { background: var(--ai-hover); }
 .placeholder {
   --edge: var(--ai); --edge-track: var(--chip-border); --edge-fill: var(--chip);
   --edge-turn: ${edgeTurn(184, 36)};
   flex: none; align-items: center; box-sizing: border-box; inline-size: 184px; block-size: 36px;
   padding-inline: 14px; overflow: hidden; border: 0; border-radius: var(--radius-pill);
-  background: var(--chip); box-shadow: var(--float); color: var(--muted); white-space: nowrap;
+  background: var(--chip); color: var(--muted); white-space: nowrap;
   text-overflow: ellipsis;
 }
 .status {
@@ -585,10 +586,10 @@ li { display: flex; min-inline-size: 0; max-inline-size: 100%; }
 .fold {
   display: inline-flex; flex: none; align-items: center; gap: var(--space-1);
   min-block-size: 36px; min-inline-size: 36px; box-sizing: border-box; padding-inline: 9px;
-  border: 0; border-radius: var(--radius-pill); background: var(--chip); box-shadow: var(--float);
-  color: var(--muted); font-size: var(--font-body);
+  border: 1px solid var(--ai-border); border-radius: var(--radius-pill); background: var(--ai-tint);
+  color: var(--ai); font-size: var(--font-body);
 }
-.fold:hover { background: var(--ai-tint); }
+.fold:hover { background: var(--ai-hover); }
 .fold svg { inline-size: 18px; block-size: 18px; }
 .fold-label { padding-inline: 2px 4px; }
 .bar[data-typed='true'] .chips { opacity: 0.7; }
