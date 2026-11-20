@@ -101,6 +101,17 @@ describe('followOpenChat', () => {
     expect(t.deps.arrived).toHaveBeenCalledTimes(2);
   });
 
+  it('takes the user’s older messages drawn after the chat opened for no send (#743)', async () => {
+    // WhatsApp drew someone else's last message first, then the user's older ones above it.
+    const t = setup('aaaaaaaa:00000001:-:i:e');
+    await t.look();
+    t.page().set('aaaaaaaa:00000001:0000000f:i:e');
+    await t.look();
+    expect(t.deps.sent).not.toHaveBeenCalled();
+    expect(t.deps.arrived).not.toHaveBeenCalled();
+    expect(t.deps.cleared).toHaveBeenCalledOnce();
+  });
+
   it('tells at every look that the message box is empty, but not when the user just sent what was in it', async () => {
     const t = setup('aaaaaaaa:00000001:-:i:d');
     await t.look();
