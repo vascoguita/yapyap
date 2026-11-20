@@ -34,7 +34,7 @@ async function snapshotOf(
     available: sources.available(),
     chosen: settings.spelling.languages,
     inUse,
-    dictionaries: await dictionaries.states(inUse),
+    dictionaries: await dictionaries.states(inUse, settings.spelling.enabled),
     folder: dictionaries.folder,
     unused: (await dictionaries.unused(inUse)).length,
   };

@@ -552,6 +552,39 @@ test('takes suggestions away when another chat opens, never showing them there (
   }).toPass({ timeout: 15_000 });
 });
 
+test('keeps the suggestions while the chat’s header lays itself out again (#741)', async ({
+  app,
+  window,
+}) => {
+  await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
+  // Part of the name is laid out only later, as WhatsApp's header can be: its text stays the same.
+  await window.evaluate(() => {
+    const later = document.createElement('span');
+    later.hidden = true;
+    later.textContent = ' ✓';
+    document.querySelector('#main header span[dir="auto"]')?.append(later);
+  });
+  const settings = await readyClaude(app, CLAUDE_ANSWER);
+  await allowAllChats(settings);
+  await focusMain(app);
+  await messageArrives(window, '3EB0F7', 'Are we still on?');
+  await expect(async () => {
+    expect(await barNames(app)).toContain('Can we do 9?');
+  }).toPass({ timeout: 15_000 });
+  const asked = await settledRequests(app, window);
+  await window.evaluate(() => {
+    document
+      .querySelector<HTMLElement>('#main header span[dir="auto"] span')
+      ?.removeAttribute('hidden');
+  });
+  // The same chat on screen: its suggestions stay, and nothing is asked again.
+  for (let check = 0; check < 25; check += 1) {
+    expect(await barNames(app)).toContain('Can we do 9?');
+    await window.waitForTimeout(100);
+  }
+  expect(await claudeRequests(app)).toHaveLength(asked);
+});
+
 test('keeps the chat’s last message in view as suggestions come and the bar comes back', async ({
   app,
   window,

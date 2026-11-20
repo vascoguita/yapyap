@@ -71,6 +71,7 @@ describe('spellingHandlers', () => {
       available: AVAILABLE,
       chosen: [],
       inUse: ['en-GB'],
+      // Asked as spell checking is on, which makes a missing dictionary one about to download.
       dictionaries: { 'en-GB': 'ready' },
       folder: '/profile/Dictionaries',
       unused: 1,

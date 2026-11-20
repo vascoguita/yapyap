@@ -160,7 +160,7 @@ async function putInPlace(
     bar.chat = chat;
     bar.rewritten = true;
     const button = { id: 'undo' as const, label: text.bar.undo };
-    update(bar, { suggestions: [], notice: { text: text.bar.done[style], button }, chat });
+    update(bar, { suggestions: [], notice: { text: text.bar.done[style], button } });
   }
 }
 
@@ -228,14 +228,15 @@ async function polish(bar: BarContext, value: string): Promise<void> {
 }
 
 /** Takes away what the assistant shows about its chat, and calls off suggestions being made. */
-function forget(bar: BarContext): void {
+function forget(bar: BarContext, writing: boolean): void {
   bar.suggesting?.abort();
   bar.suggesting = undefined;
   bar.chat = null;
   bar.kept = '';
   bar.blocked = false;
   bar.rewritten = false;
-  update(bar, { suggestions: [], notice: null, chat: null, writing: false });
+  // Suggestions about to be made for the chat that opened keep the blank chips up meanwhile (#741).
+  update(bar, { suggestions: [], notice: null, writing: writing && bar.state.writing });
 }
 
 /** Puts back the draft a rewrite replaced, while its chat is still open. */
@@ -285,6 +286,25 @@ function remember(bar: BarContext, message: string, suggestions: readonly string
   }
 }
 
+/**
+ * Names the chat the bar now follows by the fingerprint the look gave its
+ * header, the part of `message` before its colon, so the page shows the
+ * suggestions only while that chat is open and reads it the same way the
+ * look does (#741); null while none is open.
+ */
+function followed(bar: BarContext, message: string | null): void {
+  const chat = message === null ? null : message.replace(/:.*/s, '');
+  if (chat !== bar.state.chat) {
+    update(bar, { chat });
+  }
+}
+
+/** Whether suggestions can be made for the open chat: the setup is ready and the user lets it be read. */
+async function readyToSuggest(bar: BarContext): Promise<boolean> {
+  const setup = await bar.deps.core.setup();
+  return setup.missing === '' && (await chatToAnswer(bar)) !== undefined;
+}
+
 /** The open chat, if the user wants suggestions there, whoever sent its last item (#723). */
 async function chatToAnswer(bar: BarContext): Promise<ReadChat | undefined> {
   const chat = await bar.deps.accounts.readActiveChat(messagesToRead(bar));
@@ -301,7 +321,7 @@ async function makeSuggestions(bar: BarContext, message: string, signal: AbortSi
     return;
   }
   bar.chat = chat.name;
-  update(bar, { writing: true, chat: chat.name });
+  update(bar, { writing: true });
   const answer = await bar.deps.core.ask(setup, suggestPrompt(chat, bar.deps.now()), signal);
   // A newer message or another chat may have called the request off while the model answered.
   if (isAborted(signal)) {
@@ -310,7 +330,7 @@ async function makeSuggestions(bar: BarContext, message: string, signal: AbortSi
   const suggestions = suggestionsIn(answer).map((item) => item.slice(0, MAX_SUGGESTION));
   remember(bar, message, suggestions);
   bar.chat = chat.name;
-  update(bar, { suggestions, chat: chat.name });
+  update(bar, { suggestions });
 }
 
 /** Waits until `message` settled as the newest; false if a newer one or another chat came first. */
@@ -340,8 +360,13 @@ async function suggest(bar: BarContext, message: string): Promise<void> {
   }
   const controller = new AbortController();
   bar.suggesting = controller;
-  update(bar, { suggestions: [] });
-  if (await settled(bar, controller.signal)) {
+  // The blank chips show from the start, so suggestions that start over show no gap (#741).
+  const ready = await readyToSuggest(bar);
+  if (controller.signal.aborted) {
+    return;
+  }
+  update(bar, { suggestions: [], writing: ready });
+  if (ready && (await settled(bar, controller.signal))) {
     // A failed request shows nothing: suggestions come on their own, and a rewrite says what fails.
     await makeSuggestions(bar, message, controller.signal).catch(() => undefined);
   }
@@ -427,6 +452,7 @@ function followChat(
   let message: string | null = null;
   const follow = (newest: string | null): void => {
     message = newest;
+    followed(bar, newest);
     if (newest !== null) {
       void suggest(bar, newest);
     }
@@ -437,11 +463,12 @@ function followChat(
       void keepNotice(bar);
     },
     opened: (newest) => {
-      forget(bar);
+      forget(bar, newest !== null);
       follow(newest);
     },
     arrived: (newest) => {
       message = newest;
+      followed(bar, newest);
       void suggest(bar, newest);
     },
     sent: () => {

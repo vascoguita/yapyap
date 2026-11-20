@@ -27,9 +27,10 @@ export interface AssistantBarState {
   /** The model in use, by name, for the rewrite menu's settings item. */
   readonly model: string;
   /**
-   * The chat the suggestions and notice were made for, by its name as its
-   * header shows it, so the page shows them only while it is open; null
-   * when no one chat is known.
+   * The chat the bar follows, by the fingerprint the look at the page gave
+   * its header (`fingerprint` in the adapter), so the page shows the
+   * suggestions and notice only while that chat is open (#730, #741); null
+   * while no chat is open.
    */
   readonly chat: string | null;
   /** The user folded the suggestions away; they show again only when the user asks (#729). */

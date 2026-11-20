@@ -20,6 +20,7 @@ import {
 } from './assistant-bar.ts';
 import { ASSISTANT_ICONS } from './assistant-look.ts';
 import { paintWhatsAppTheme, shadowPart, strokeIcon } from './page-kit.ts';
+import { fingerprint } from './incoming.ts';
 import { LANDMARKS } from './page-state.ts';
 
 const LABELS = {
@@ -55,7 +56,6 @@ const PLACES = {
   conversation: '#main',
   message: '#main [data-id]',
   chatName: '#main header span',
-  nameLength: 8,
   store: 'bar',
   bridge: 'bridge',
   style: '.bar { display: flex; }',
@@ -75,6 +75,7 @@ const KIT = {
   notice: noticeAssistantBar,
   icon: strokeIcon,
   here: assistantBarHere,
+  fingerprint,
   hidden: assistantBarHidden,
   mark: markAssistantBar,
 };
@@ -663,29 +664,30 @@ describe('assistantBarRender', () => {
 });
 
 describe('assistantBarHere', () => {
-  it('shows another chat’s suggestions and notice nowhere, by the name in the open chat’s header (#730)', () => {
+  it('shows another chat’s suggestions and notice nowhere, by the fingerprint of the open chat’s header (#730, #741)', () => {
     document.body.innerHTML =
       '<div id="main"><header><span> Ana Maria Lopes </span></header></div>';
-    const mine = { ...UNDO, suggestions: ['Hi'], chat: 'Ana Mari' };
-    expect(assistantBarHere(document, mine, PLACES)).toBe(mine);
-    expect(assistantBarHere(document, { ...mine, chat: 'Rui' }, PLACES)).toStrictEqual({
-      ...mine,
-      chat: 'Rui',
+    // The look names the chat by its header's textContent as it is, spaces and all.
+    const mine = { ...UNDO, suggestions: ['Hi'], chat: fingerprint(' Ana Maria Lopes ') };
+    expect(assistantBarHere(document, mine, PLACES, fingerprint)).toBe(mine);
+    const other = { ...mine, chat: fingerprint('Rui') };
+    expect(assistantBarHere(document, other, PLACES, fingerprint)).toStrictEqual({
+      ...other,
       suggestions: [],
       notice: null,
     });
-    // Not known to be one chat's: they show.
-    expect(assistantBarHere(document, CONTENT, PLACES)).toBe(CONTENT);
+    // While no chat is followed, they show.
+    expect(assistantBarHere(document, CONTENT, PLACES, fingerprint)).toBe(CONTENT);
   });
 
-  it('reads a header with no innerText, and none at all', () => {
-    const named = { querySelector: () => ({ textContent: 'Rui' }) };
-    const mine = { ...CONTENT, chat: 'Rui' };
-    expect(assistantBarHere(named as unknown as Document, mine, PLACES)).toBe(mine);
-    const none = { querySelector: () => null };
-    expect(assistantBarHere(none as unknown as Document, mine, PLACES).suggestions).toEqual([]);
+  it('reads a header with no text as empty, and hides them where no chat is open', () => {
+    const mine = { ...CONTENT, chat: fingerprint('') };
     const empty = { querySelector: () => ({ textContent: null }) };
-    expect(assistantBarHere(empty as unknown as Document, mine, PLACES).suggestions).toEqual([]);
+    expect(assistantBarHere(empty as unknown as Document, mine, PLACES, fingerprint)).toBe(mine);
+    const none = { querySelector: () => null };
+    expect(
+      assistantBarHere(none as unknown as Document, mine, PLACES, fingerprint).suggestions,
+    ).toEqual([]);
   });
 
   it('takes another chat’s suggestions away as the bar renders into the new chat', () => {
@@ -693,10 +695,10 @@ describe('assistantBarHere', () => {
     document
       .querySelector('#main')
       ?.prepend(Object.assign(document.createElement('header'), { innerHTML: '<span>Rui</span>' }));
-    t.render({ ...CONTENT, chat: 'Rui' });
+    t.render({ ...CONTENT, chat: fingerprint('Rui') });
     expect(t.stored().parts.list.childElementCount).toBe(2);
     document.querySelector('#main header span')?.replaceChildren('Ana');
-    t.render({ ...CONTENT, chat: 'Rui' });
+    t.render({ ...CONTENT, chat: fingerprint('Rui') });
     expect(t.stored().parts.list.childElementCount).toBe(0);
   });
 });
@@ -726,9 +728,9 @@ describe('the suggestions folded away, and while they are written', () => {
     const { list, status } = t.stored().parts;
     expect(shown(t)).toEqual({ chips: true, folded: false });
     expect([...list.children].map((item) => item.getAttribute('class'))).toEqual([
-      'placeholder',
-      'placeholder',
-      'placeholder',
+      'placeholder working',
+      'placeholder working',
+      'placeholder working',
     ]);
     expect(list.firstElementChild?.getAttribute('aria-hidden')).toBe('true');
     expect(list.getAttribute('aria-busy')).toBe('true');

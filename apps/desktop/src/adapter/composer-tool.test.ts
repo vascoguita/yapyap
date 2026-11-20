@@ -1,4 +1,5 @@
 /** @vitest-environment happy-dom */
+import { edgeTurn } from '../shared/working-edge.ts';
 import { runInNewContext } from 'node:vm';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ASSISTANT_ICONS } from './assistant-look.ts';
@@ -61,6 +62,7 @@ const KIT = {
   update: updateComposerTool,
   item: composerToolItem,
   icon: strokeIcon,
+  turn: edgeTurn,
 };
 
 /** WhatsApp's message box as it lays it out: attach, the field in its own box, then the microphone. */
@@ -282,8 +284,13 @@ describe('renderComposerTool', () => {
     expect(tool.getAttribute('aria-busy')).toBe('false');
     expect(apply.disabled).toBe(false);
     expect(more.disabled).toBe(false);
+    expect(tool.getAttribute('class')).toBe('tool');
+    // Laid out as WhatsApp would, so the light's pace follows the pill's size (#741).
+    Object.defineProperties(tool, { offsetWidth: { value: 150 }, offsetHeight: { value: 40 } });
     t.render({ ...CONTENT, working: true });
     expect(tool.getAttribute('aria-busy')).toBe('true');
+    expect(tool.getAttribute('class')).toBe('tool working');
+    expect(tool.style.getPropertyValue('--edge-turn')).toBe(edgeTurn(150, 40));
     expect(apply.disabled).toBe(true);
     expect(more.disabled).toBe(true);
     t.render({ ...CONTENT, current: 'soften' });

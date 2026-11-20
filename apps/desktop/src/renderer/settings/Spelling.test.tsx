@@ -103,7 +103,9 @@ describe('SpellingSection', () => {
       expect(box('português').checked).toBe(true);
     });
     expect(yapyap.spelling.choose).toHaveBeenLastCalledWith(['pt-PT']);
-    expect(screen.getByText('1 of 10 languages chosen')).toBeTruthy();
+    expect(screen.getByText('1 language chosen')).toBeTruthy();
+    // The limit is said apart from the count, so it cannot read as how many there are.
+    expect(screen.getByText('You can check up to 10 languages at once.')).toBeTruthy();
     fireEvent.click(box('Deutsch'));
     await waitFor(() => {
       expect(yapyap.spelling.choose).toHaveBeenLastCalledWith(['pt-PT', 'de-DE']);
@@ -139,6 +141,11 @@ describe('SpellingSection', () => {
     const boxes = await screen.findAllByRole<HTMLInputElement>('checkbox');
     expect(boxes.slice(0, 10).every((input) => input.checked && !input.disabled)).toBe(true);
     expect(boxes.slice(10).every((input) => !input.checked && input.disabled)).toBe(true);
+    // The greyed boxes say why, and how to choose another.
+    expect(screen.getByText('10 languages chosen')).toBeTruthy();
+    expect(
+      screen.getByText('That is the most you can check at once. Untick one to choose another.'),
+    ).toBeTruthy();
   });
 
   it('fades the languages while spell checking is off, and says when no dictionary fits', async () => {
@@ -178,7 +185,7 @@ describe('SpellingSection’s dictionaries (#704)', () => {
     vi.useRealTimers();
   });
 
-  it('shows how each dictionary in use stands, and asks again for one that failed', async () => {
+  it('shows a download with the working edge, a failure with Try Again, and nothing for one already there (#741)', async () => {
     const yapyap = api({
       chosen: ['pt-PT', 'de-DE', 'sv'],
       inUse: ['pt-PT', 'de-DE', 'sv'],
@@ -186,8 +193,13 @@ describe('SpellingSection’s dictionaries (#704)', () => {
     });
     show(yapyap);
     await screen.findByText('Could not download');
-    expect(screen.getByText('Ready')).toBeTruthy();
-    expect(screen.getByText('Downloading…')).toBeTruthy();
+    const pill = screen.getByText('Downloading…');
+    expect(pill.getAttribute('class')).toBe('dictionary-pill working');
+    // Its light's pace follows its size, as on every working pill.
+    expect(pill.style.getPropertyValue('--edge-turn')).toMatch(/^\d+(\.\d+)?s$/);
+    expect(screen.queryByText('Ready')).toBeNull();
+    // One download alone is told on its row only.
+    expect(screen.queryByText(/Downloading \d dictionar/)).toBeNull();
     yapyap.set({ dictionaries: { 'pt-PT': 'ready', 'de-DE': 'downloading', sv: 'ready' } });
     fireEvent.click(screen.getByRole('button', { name: 'Try Again' }));
     expect(yapyap.spelling.retry).toHaveBeenCalledOnce();
@@ -198,17 +210,45 @@ describe('SpellingSection’s dictionaries (#704)', () => {
     expect(yapyap.spelling.choose).not.toHaveBeenCalled();
   });
 
-  it('asks again every second while a dictionary downloads, and stops once none does', async () => {
+  it('tells several downloads at once in the summary too, as their rows may be out of view', async () => {
+    const yapyap = api({
+      chosen: ['pt-PT', 'sv'],
+      inUse: ['pt-PT', 'sv'],
+      dictionaries: { 'pt-PT': 'downloading', sv: 'downloading' },
+    });
+    show(yapyap);
+    expect(await screen.findByText('Downloading 2 dictionaries…')).toBeTruthy();
+    expect(screen.getAllByText('Downloading…')).toHaveLength(2);
+  });
+
+  it('asks again every second while a dictionary downloads, says Downloaded for a while, then nothing', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const yapyap = api({ inUse: ['en-GB'], dictionaries: { 'en-GB': 'downloading' } });
     show(yapyap);
     await screen.findByText('Downloading…');
     yapyap.set({ dictionaries: { 'en-GB': 'ready' } });
     await vi.advanceTimersByTimeAsync(1000);
-    await screen.findByText('Ready');
+    await screen.findByText('Downloaded');
     const asked = vi.mocked(yapyap.spelling.languages).mock.calls.length;
-    await vi.advanceTimersByTimeAsync(3000);
+    await vi.advanceTimersByTimeAsync(4000);
+    await waitFor(() => {
+      expect(screen.queryByText('Downloaded')).toBeNull();
+    });
     expect(vi.mocked(yapyap.spelling.languages).mock.calls).toHaveLength(asked);
+  });
+
+  it('asks again when spell checking is turned on, which starts the downloads', async () => {
+    const yapyap = api({});
+    const { rerender } = render(
+      <SpellingSection api={yapyap} snapshot={snapshot(false)} onChange={vi.fn()} />,
+    );
+    await waitFor(() => {
+      expect(yapyap.spelling.languages).toHaveBeenCalledOnce();
+    });
+    rerender(<SpellingSection api={yapyap} snapshot={snapshot(true)} onChange={vi.fn()} />);
+    await waitFor(() => {
+      expect(yapyap.spelling.languages).toHaveBeenCalledTimes(2);
+    });
   });
 
   it('says where dictionaries stay, opens the folder, and removes the unused ones', async () => {

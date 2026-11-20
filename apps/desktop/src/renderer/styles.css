@@ -1091,6 +1091,57 @@ ul.languages label .hint {
 }
 
 /*
+ * The working edge, YapYap's one look for something at work, as the AI
+ * assistant's suggestions and rewrite button show it. It is the same rule as
+ * `WORKING_EDGE` in src/shared/working-edge.ts, which this page's content
+ * security policy keeps from being injected; working-edge.test.ts holds the
+ * two alike.
+ */
+.working {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+.working.working {
+  border-color: transparent;
+}
+.working::before {
+  content: '';
+  position: absolute;
+  z-index: -2;
+  inset: -999px;
+  inline-size: 480px;
+  block-size: 480px;
+  margin: auto;
+  background: conic-gradient(
+    var(--edge-track) 0deg 250deg,
+    var(--edge) 330deg,
+    var(--edge-track) 360deg
+  );
+  animation: working-edge var(--edge-turn, 1.6s) linear infinite;
+}
+.working::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 1.5px;
+  border-radius: inherit;
+  background: var(--edge-fill);
+}
+@keyframes working-edge {
+  to {
+    rotate: 1turn;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .working::before {
+    animation: none;
+    background: var(--edge);
+    opacity: 0.5;
+  }
+}
+
+/*
  * A language's dictionary beside its row, after its names: muted while it
  * downloads or once ready, in the danger color with Try Again when it failed
  * (#704). It sits outside the label, so Try Again never ticks the language.
@@ -1140,6 +1191,30 @@ ul.languages li:has(.dictionary) label .hint {
 
 .dictionary.failed {
   color: var(--danger);
+}
+
+.dictionary.downloaded {
+  color: var(--success);
+}
+
+.dictionary .icon {
+  inline-size: 14px;
+  block-size: 14px;
+}
+
+/* While a dictionary downloads: a small pill with the working edge. */
+/* The one neutral fill every working pill has, so its light reads alike everywhere (#741). */
+.dictionary-pill {
+  --edge: var(--accent);
+  --edge-track: var(--border);
+  --edge-fill: var(--raised);
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 28px;
+  padding-inline: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--raised);
 }
 
 /* Faded like a dimmed row, by color rather than opacity, for the same contrast. */

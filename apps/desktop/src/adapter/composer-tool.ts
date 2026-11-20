@@ -1,4 +1,5 @@
 import { ASSISTANT_BAR_BRIDGE } from '../shared/api/assistant-bar-api.ts';
+import { edgeTurn, WORKING_EDGE } from '../shared/working-edge.ts';
 import { ASSISTANT_ICONS, ASSISTANT_THEME } from './assistant-look.ts';
 import {
   paintWhatsAppTheme,
@@ -65,6 +66,8 @@ interface ToolNode {
   readonly parentElement: ToolNode | null;
   readonly lastElementChild: ToolNode | null;
   readonly previousElementSibling: unknown;
+  readonly offsetWidth: number;
+  readonly offsetHeight: number;
   readonly style: { setProperty(name: string, value: string): void; display: string };
   readonly dataset: Record<string, string | undefined>;
   setAttribute(name: string, value: string): void;
@@ -130,6 +133,8 @@ interface ToolSpot {
 /** The button's helpers, passed in because each runs as its own source text. */
 export interface ToolKit {
   readonly slot: (doc: ToolDocument, places: ToolPlaces) => ToolSpot | null;
+  /** How long the working light takes around a pill this size (`edgeTurn`). */
+  readonly turn: (width: number, height: number) => string;
   readonly paint: typeof paintWhatsAppTheme;
   readonly build: (doc: ToolDocument, scope: Scope, places: ToolPlaces, kit: ToolKit) => ToolStore;
   readonly node: typeof shadowPart;
@@ -396,6 +401,11 @@ export function updateComposerTool(
   apply.replaceChildren(kit.icon(doc, modes[shown.value] ?? sparkle, 'mode'), name);
   tool.setAttribute('aria-label', label);
   tool.setAttribute('aria-busy', String(content.working));
+  tool.setAttribute('class', content.working ? 'tool working' : 'tool');
+  if (content.working) {
+    // Measured as it starts working, so its light goes at the same pace as on every other pill (#741).
+    tool.style.setProperty('--edge-turn', kit.turn(tool.offsetWidth, tool.offsetHeight));
+  }
   apply.setAttribute('title', `${shown.label}: ${shown.hint}`);
   apply.disabled = content.working || found === undefined;
   more.setAttribute('aria-label', content.labels.more);
@@ -450,14 +460,15 @@ export function composerToolItem(
  * message box, the selected way's icon and name, then the arrow that opens
  * the menu upwards, over the chat. The assistant has its own accent, apart
  * from WhatsApp's green, in both of WhatsApp's themes (`ASSISTANT_THEME`).
- * The sparkle pulses while the assistant works, and holds still for people
- * who ask for less motion. Logical properties only, so it mirrors for
+ * While the assistant rewrites, a light travels around the pill's edge, as
+ * on everything else that works (`WORKING_EDGE`). Logical properties only,
+ * so it mirrors for
  * right-to-left languages (ADR 0012).
  */
-const TOOL_STYLE = `${ASSISTANT_THEME}
+const TOOL_STYLE = `${ASSISTANT_THEME}${WORKING_EDGE}
 :host { display: flex; flex: none; align-items: center; }
-@keyframes breathe { to { opacity: 0.4; } }
 .tool {
+  --edge: var(--ai); --edge-track: var(--chip-border); --edge-fill: var(--chip);
   position: relative; display: flex; align-items: stretch; box-sizing: border-box;
   block-size: 40px; margin-inline: 2px 4px; border: 1px solid var(--ai);
   border-radius: var(--radius-pill);
@@ -478,7 +489,6 @@ svg {
   border-end-start-radius: var(--radius-pill); font-size: var(--font-body); font-weight: 600;
   white-space: nowrap;
 }
-.tool[aria-busy='true'] .apply .mode { animation: breathe 0.6s ease-in-out infinite alternate; }
 .apply:disabled .label { opacity: 0.7; }
 .more {
   min-inline-size: 36px; justify-content: center; border-inline-start: 1px solid var(--ai-border);
@@ -486,6 +496,9 @@ svg {
   border-end-end-radius: var(--radius-pill); background: var(--ai-split);
 }
 .more svg { inline-size: 18px; block-size: 18px; }
+/* While it works, the whole pill shows the one neutral fill every working pill has (#741). */
+.tool.working { background: var(--chip); }
+.tool.working .more { background: transparent; }
 .apply:hover:not(:disabled), .more:hover:not(:disabled), .more[aria-expanded='true'] {
   background: var(--ai-hover);
 }
@@ -512,9 +525,6 @@ svg {
 .check { grid-row: 1 / span 2; grid-column: 3; color: var(--ai); visibility: hidden; }
 .item[aria-checked='true'] .check { visibility: visible; }
 .line { block-size: 1px; margin-block: 6px; margin-inline: 6px; background: var(--border); }
-@media (prefers-reduced-motion: reduce) {
-  .tool[aria-busy='true'] .apply .mode { animation: none; }
-}
 `;
 
 const PLACES: ToolPlaces = {
@@ -553,6 +563,7 @@ export function composerToolRender(content: ToolContent): string {
     `update: ${updateComposerTool.toString()}`,
     `item: ${composerToolItem.toString()}`,
     `icon: ${strokeIcon.toString()}`,
+    `turn: ${edgeTurn.toString()}`,
   ].join(', ');
   return `(${renderComposerTool.toString()})(document, globalThis, ${JSON.stringify(content)}, ${JSON.stringify(PLACES)}, { ${kit} })`;
 }

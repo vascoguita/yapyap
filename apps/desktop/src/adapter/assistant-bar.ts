@@ -1,4 +1,5 @@
 import { ASSISTANT_BAR_BRIDGE } from '../shared/api/assistant-bar-api.ts';
+import { edgeTurn, WORKING_EDGE } from '../shared/working-edge.ts';
 import { ASSISTANT_ICONS, ASSISTANT_THEME } from './assistant-look.ts';
 import {
   paintWhatsAppTheme,
@@ -7,7 +8,7 @@ import {
   type Actions,
   type Scope,
 } from './page-kit.ts';
-import { MAX_NAME } from './active-chat.ts';
+import { fingerprint } from './incoming.ts';
 import { LANDMARKS } from './page-state.ts';
 
 /** YapYap's own words on the bar, in the user's language. */
@@ -29,7 +30,7 @@ export interface BarContent {
   readonly visible: boolean;
   readonly labels: BarLabels;
   readonly suggestions: readonly string[];
-  /** The chat the suggestions and notice were made for, by name; null when not known. */
+  /** The chat the bar follows, by its header's fingerprint; null while none is open. */
   readonly chat: string | null;
   /** The user folded the suggestions away (#729). */
   readonly collapsed: boolean;
@@ -50,9 +51,8 @@ interface BarPlaces {
   /** The open chat and a message in it, to find the list the bar takes room from. */
   readonly conversation: string;
   readonly message: string;
-  /** The open chat's name in its header, read as the chat reader reads it, to its length. */
+  /** The open chat's name in its header, fingerprinted as the look at the page does. */
   readonly chatName: string;
-  readonly nameLength: number;
   /** The adapter world's global that holds the bar between renders. */
   readonly store: string;
   /** The adapter world's global the WhatsApp preload exposes for the bar's actions. */
@@ -69,7 +69,6 @@ interface BarPlaces {
 /** The few DOM features the bar uses; the main process compiles this without DOM types. */
 interface BarNode {
   textContent: string | null;
-  readonly innerText?: string;
   hidden: boolean;
   scrollTop: number;
   readonly scrollHeight: number;
@@ -155,7 +154,13 @@ export interface BarKit {
   readonly wire: (shadow: BarNode, scope: Scope, places: BarPlaces) => void;
   readonly update: (doc: BarDocument, parts: BarParts, content: BarContent) => void;
   readonly notice: (parts: BarParts, notice: BarContent['notice']) => void;
-  readonly here: (doc: BarDocument, content: BarContent, places: BarPlaces) => BarContent;
+  readonly here: (
+    doc: BarDocument,
+    content: BarContent,
+    places: BarPlaces,
+    hash: (text: string) => string,
+  ) => BarContent;
+  readonly fingerprint: (text: string) => string;
   readonly hidden: (parts: BarParts, typed: boolean) => BarHidden;
   readonly mark: (parts: BarParts, content: BarContent) => void;
   readonly icon: typeof strokeIcon;
@@ -189,7 +194,7 @@ export function renderAssistantBar(
   const store = kept ?? kit.build(doc, scope, places, kit);
   scope[places.store] = store;
   const placed = footer.previousElementSibling !== store.host;
-  const shown = kit.here(doc, content, places);
+  const shown = kit.here(doc, content, places, kit.fingerprint);
   const key = JSON.stringify(shown);
   if (placed) {
     footer.before(store.host);
@@ -213,15 +218,19 @@ export function renderAssistantBar(
  * main process learns that another chat opened only at its next look, up
  * to a second and a half later, while WhatsApp draws the new chat at once
  * and the bar comes back into it within a second, so the page tells
- * itself, by the name in the chat's header (#730).
+ * itself (#730). It names the open chat exactly as the look does, by the
+ * fingerprint of its header's `textContent`: the laid-out `innerText` can
+ * read differently from one moment to the next, which hid suggestions made
+ * for the very chat on screen (#741).
  */
 export function assistantBarHere(
   doc: BarDocument,
   content: BarContent,
   places: BarPlaces,
+  hash: (text: string) => string,
 ): BarContent {
   const header = doc.querySelector(places.chatName) as BarNode | null;
-  const open = (header?.innerText ?? header?.textContent ?? '').trim().slice(0, places.nameLength);
+  const open = header === null ? null : hash(header.textContent ?? '');
   return content.chat === null || content.chat === open
     ? content
     : { ...content, suggestions: [], notice: null };
@@ -463,7 +472,7 @@ export function updateAssistantBar(doc: BarDocument, parts: BarParts, content: B
   };
   const blank = (): BarNode => {
     const item = doc.createElement('li');
-    item.setAttribute('class', 'placeholder');
+    item.setAttribute('class', 'placeholder working');
     item.setAttribute('aria-hidden', 'true');
     return item;
   };
@@ -506,12 +515,12 @@ export function noticeAssistantBar(parts: BarParts, notice: BarContent['notice']
  * the sparkle in the assistant's own accent (`ASSISTANT_THEME`), then the
  * notice's text and button, or the suggestions as chips that wrap onto
  * more lines, each at most two lines high, so all of them show (#709);
- * blank chips that shimmer while they are written (#703), still under
- * reduced motion; and, folded away, one quiet chip that shows them again
+ * blank chips with a light travelling around their edge while they are
+ * written (#703), as on everything else that works (`WORKING_EDGE`); and, folded away, one quiet chip that shows them again
  * (#729). Logical properties only, so it mirrors for right-to-left
  * languages (ADR 0012).
  */
-const BAR_STYLE = `${ASSISTANT_THEME}
+const BAR_STYLE = `${ASSISTANT_THEME}${WORKING_EDGE}
 :host { display: block; }
 [hidden] { display: none !important; }
 .bar {
@@ -556,15 +565,13 @@ li { display: flex; min-inline-size: 0; max-inline-size: 100%; }
 }
 .chip:hover { border-color: var(--ai-border); background: var(--ai-tint); }
 .placeholder {
+  --edge: var(--ai); --edge-track: var(--chip-border); --edge-fill: var(--chip);
   flex: none; block-size: 40px; border: 1px solid var(--chip-border); border-radius: var(--radius-pill);
-  background: linear-gradient(90deg, var(--chip) 30%, var(--ai-tint) 50%, var(--chip) 70%) 0 0 / 300% 100%;
-  animation: shimmer 1.2s linear infinite;
+  background: var(--chip);
 }
-.placeholder:nth-child(1) { inline-size: 96px; }
-.placeholder:nth-child(2) { inline-size: 128px; }
-.placeholder:nth-child(3) { inline-size: 80px; }
-@keyframes shimmer { to { background-position: -200% 0; } }
-@media (prefers-reduced-motion: reduce) { .placeholder { animation: none; } }
+.placeholder:nth-child(1) { inline-size: 96px; --edge-turn: ${edgeTurn(96, 40)}; }
+.placeholder:nth-child(2) { inline-size: 128px; --edge-turn: ${edgeTurn(128, 40)}; }
+.placeholder:nth-child(3) { inline-size: 80px; --edge-turn: ${edgeTurn(80, 40)}; }
 .status {
   position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%);
   white-space: nowrap;
@@ -585,7 +592,6 @@ const PLACES: BarPlaces = {
   conversation: LANDMARKS.conversation,
   message: LANDMARKS.message,
   chatName: LANDMARKS.chatName,
-  nameLength: MAX_NAME,
   store: 'yapyapAssistantBarView',
   bridge: ASSISTANT_BAR_BRIDGE,
   style: BAR_STYLE,
@@ -612,6 +618,7 @@ export function assistantBarRender(content: BarContent): string {
     `notice: ${noticeAssistantBar.toString()}`,
     `icon: ${strokeIcon.toString()}`,
     `here: ${assistantBarHere.toString()}`,
+    `fingerprint: ${fingerprint.toString()}`,
     `hidden: ${assistantBarHidden.toString()}`,
     `mark: ${markAssistantBar.toString()}`,
   ].join(', ');

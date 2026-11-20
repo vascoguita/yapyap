@@ -65,7 +65,7 @@ test(
       ).toBeVisible();
       await languages.getByRole('searchbox', { name: 'Search languages' }).fill('portugues');
       await languages.getByRole('checkbox', { name: /português \(Portugal\)/ }).check();
-      await expect(languages.getByText('1 of 10 languages chosen')).toBeVisible();
+      await expect(languages.getByText('1 language chosen')).toBeVisible();
       await expect
         .poll(async () => {
           const saved = JSON.parse(await readFile(join(profile, 'settings.json'), 'utf8')) as {
@@ -99,7 +99,7 @@ test(
       await portuguese.getByRole('button', { name: 'Try Again' }).click();
       // Trying again keeps the language chosen.
       await expect(portuguese.getByRole('checkbox')).toBeChecked();
-      await expect(settings.getByText('1 of 10 languages chosen')).toBeVisible();
+      await expect(settings.getByText('1 language chosen')).toBeVisible();
       await expect(
         settings.getByText(`in ${join(profile, 'Dictionaries')}. A language you untick`, {
           exact: false,

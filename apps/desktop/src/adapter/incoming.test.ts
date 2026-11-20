@@ -1,7 +1,7 @@
 /** @vitest-environment happy-dom */
 import { runInNewContext } from 'node:vm';
 import { afterEach, describe, expect, it } from 'vitest';
-import { NEWEST_MESSAGES, newestMessages, parseNewest } from './incoming.ts';
+import { fingerprint, NEWEST_MESSAGES, newestMessages, parseNewest } from './incoming.ts';
 import { LANDMARKS } from './page-state.ts';
 
 const PLACES = {
@@ -22,7 +22,7 @@ const chat = (name: string, ...rows: string[]) => {
   document.body.innerHTML = `<div id="main"><header><span dir="auto">${name}</span></header>${rows.join('')}</div>`;
 };
 
-const probe = () => newestMessages(document, PLACES);
+const probe = () => newestMessages(document, PLACES, fingerprint);
 const part = (index: number) => probe()?.split(':')[index];
 
 afterEach(() => {
@@ -86,7 +86,7 @@ describe('newestMessages', () => {
     // counts; with an empty chat name, both hash as empty text.
     document.body.innerHTML =
       '<div id="main"><header><span dir="auto"></span></header><p></p></div>';
-    expect(newestMessages(document, { ...PLACES, message: '#main p' })).toBe(
+    expect(newestMessages(document, { ...PLACES, message: '#main p' }, fingerprint)).toBe(
       '811c9dc5:811c9dc5:-:i:e',
     );
   });
@@ -96,7 +96,7 @@ describe('newestMessages', () => {
       querySelector: () => ({ textContent: null }),
       querySelectorAll: () => [],
     };
-    expect(newestMessages(doc, PLACES)).toBe('811c9dc5:-:-:-:e');
+    expect(newestMessages(doc, PLACES, fingerprint)).toBe('811c9dc5:-:-:-:e');
   });
 
   it('pads every hash to eight characters, so the answer always parses', () => {
@@ -107,7 +107,10 @@ describe('newestMessages', () => {
   });
 
   it('looks in the page with the landmarks the adapter keeps', () => {
-    expect(NEWEST_MESSAGES.endsWith(`(document, ${JSON.stringify(PLACES)})`)).toBe(true);
+    // With the fingerprint beside it, which the assistant's bar shares (#741).
+    expect(
+      NEWEST_MESSAGES.endsWith(`(document, ${JSON.stringify(PLACES)}, ${fingerprint.toString()})`),
+    ).toBe(true);
   });
 
   // Mutation testing instruments the function with helpers from outside it,
