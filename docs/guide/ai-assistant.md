@@ -83,9 +83,11 @@ sends it to that server only.
 There is no model name to type. **Model** lists every model the provider
 offers, with **Auto (recommended)** first, the default:
 
-- With Claude, Auto uses the newest of Claude's fast, inexpensive models
-  (Haiku).
-- With OpenAI, it uses the newest "mini" chat model.
+- With Claude, Auto uses the newest Sonnet, Claude's best model for
+  writing messages. Haiku is quicker but writes noticeably worse replies,
+  and Opus costs and takes more than a short message needs.
+- With OpenAI, it uses the newest flagship model, such as GPT-5.5, rather
+  than a "mini" or "nano" one.
 - With a model server, it uses the smallest model that Ollama reports on a
   server at home, which answers fastest, and otherwise the first model the
   server lists.

@@ -35,9 +35,9 @@ test('sets Claude up in Settings › AI Assistant, with the key encrypted, teste
   expect(kept).not.toContain('sk-ant-e2e-key');
   await settings.getByRole('button', { name: 'Test' }).click();
   await expect(settings.getByText('The key works.')).toBeVisible();
-  // Auto picks the newest of Claude's quick models from what the provider lists.
+  // Auto picks the newest of Claude's best models from what the provider lists (#702).
   await expect(
-    settings.getByRole('option', { name: 'Auto (recommended): Claude Haiku 5.5' }),
+    settings.getByRole('option', { name: 'Auto (recommended): Claude Sonnet 5.5' }),
   ).toBeAttached();
   await settings.getByRole('button', { name: 'Remove' }).click();
   await expect(settings.locator('#provider-anthropic-pill')).toHaveText('Needs key');
@@ -68,7 +68,7 @@ test('suggests replies when a message arrives, only in a chat the user added in 
   const asked = await claudeRequests(app);
   expect(asked).toHaveLength(1);
   expect(asked[0]).toContain('[20:05, 24/10/2026] Test Chat One: Dinner at 8 still?');
-  expect(asked[0]).toContain('"model":"claude-haiku-5-5"');
+  expect(asked[0]).toContain('"model":"claude-sonnet-5-5"');
   // WhatsApp's page cannot read the suggestions.
   expect(await window.evaluate(() => document.body.innerText)).not.toContain('Can we do 9?');
   // A suggestion fills the message box, and never sends.

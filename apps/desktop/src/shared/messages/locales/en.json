@@ -161,7 +161,7 @@
         },
         "model": {
           "label": "Model",
-          "description": "Auto picks a quick, inexpensive model from what the provider lists, and follows its newer models."
+          "description": "Auto picks the best model the provider lists for writing messages, or the quickest one on a model server, and follows its newer models."
         },
         "autoSuggest": {
           "label": "Suggest replies",

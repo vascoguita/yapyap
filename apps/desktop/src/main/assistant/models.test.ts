@@ -138,18 +138,29 @@ describe('keyProblem', () => {
 });
 
 describe('autoModel', () => {
-  it('picks the newest of the provider’s quick models, or else the first listed', () => {
-    expect(autoModel('anthropic', LISTED)?.id).toBe('claude-haiku-5-5');
-    const named = [{ id: 'claude-x', label: 'Claude Haiku 9' }];
+  it('picks the newest Sonnet, or else the first listed (#702)', () => {
+    const claude = [{ id: 'claude-sonnet-5-5', label: 'Claude Sonnet 5.5' }, ...LISTED];
+    expect(autoModel('anthropic', claude)?.id).toBe('claude-sonnet-5-5');
+    const named = [{ id: 'claude-x', label: 'Claude Sonnet 9' }];
     expect(autoModel('anthropic', named)?.id).toBe('claude-x');
-    expect(autoModel('anthropic', LISTED.slice(0, 1))?.id).toBe('claude-opus-5-5');
+    expect(autoModel('anthropic', LISTED)?.id).toBe('claude-opus-5-5');
+  });
+
+  it('picks OpenAI’s newest flagship, or a server’s first listed', () => {
     const openai = [
-      { id: 'gpt-new', label: 'gpt-new' },
-      { id: 'gpt-new-mini', label: 'gpt-new-mini' },
+      { id: 'gpt-5.5-mini', label: 'gpt-5.5-mini' },
+      { id: 'gpt-5.5-pro', label: 'gpt-5.5-pro' },
+      { id: 'gpt-5.5-nano', label: 'gpt-5.5-nano' },
+      { id: 'gpt-5.5', label: 'gpt-5.5' },
+      { id: 'gpt-5', label: 'gpt-5' },
     ];
-    expect(autoModel('openai', openai)?.id).toBe('gpt-new-mini');
+    expect(autoModel('openai', openai)?.id).toBe('gpt-5.5');
+    const dated = [{ id: 'gpt-6-2027-01-01', label: 'gpt-6-2027-01-01' }, ...openai];
+    expect(autoModel('openai', dated)?.id).toBe('gpt-6-2027-01-01');
+    expect(autoModel('openai', openai.slice(0, 3))?.id).toBe('gpt-5.5-mini');
+    expect(autoModel('openai', [{ id: 'x', label: 'GPT-7' }])?.id).toBe('x');
     // On a server at home, the list is smallest first, so the first answers fastest.
-    expect(autoModel('server', openai)?.id).toBe('gpt-new');
+    expect(autoModel('server', openai)?.id).toBe('gpt-5.5-mini');
     expect(autoModel('server', [])).toBeUndefined();
   });
 });
