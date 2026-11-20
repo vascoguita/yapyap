@@ -707,7 +707,7 @@ async function openWindow<Window extends WindowPort>(
     chatList,
     firstUrl: chatLinkOnce(chatLinkInArguments(deps.argv, origin), deps.accounts.active, origin),
     notifiers: listenToNotifications(deps, security.views, origin),
-    spelling: followSpellingSetting(deps.settings, deps.systemLanguages),
+    spelling: followSpellingSetting(deps.settings, deps.systemLanguages, deps.dictionaries),
   });
   chatList.follow(() => ({
     account: running.active().account.id,

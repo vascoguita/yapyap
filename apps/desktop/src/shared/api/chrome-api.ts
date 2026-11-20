@@ -222,6 +222,12 @@ export interface ChromeApi {
     readonly languages: () => Promise<SpellingLanguages>;
     /** Every language must have a dictionary; an empty list means the system's language. */
     readonly choose: (languages: readonly string[]) => Promise<SpellingLanguages>;
+    /** Asks again for the dictionaries that could not be downloaded (#704). */
+    readonly retry: () => Promise<SpellingLanguages>;
+    /** Opens the folder the dictionaries are kept in. */
+    readonly showFolder: () => Promise<void>;
+    /** Deletes the downloaded dictionaries no language in use needs. */
+    readonly removeUnused: () => Promise<SpellingLanguages>;
   };
   readonly customCode: {
     readonly get: () => Promise<CustomCodeView>;
@@ -290,7 +296,16 @@ export interface SpellingLanguages {
   readonly chosen: readonly string[];
   /** What is checked now: the chosen languages, or the system's. */
   readonly inUse: readonly string[];
+  /** How the dictionary of each language in use stands; a language with none known is left out (#704). */
+  readonly dictionaries: Readonly<Record<string, DictionaryState>>;
+  /** Where the downloaded dictionaries are kept. */
+  readonly folder: string;
+  /** How many downloaded dictionaries no language in use needs. */
+  readonly unused: number;
 }
+
+/** A spelling dictionary: being downloaded, ready to use, or failed to download. */
+export type DictionaryState = 'downloading' | 'ready' | 'failed';
 
 /** A proxy asking the user to sign in. */
 export interface ProxyLoginRequest {
@@ -376,6 +391,9 @@ export const CHROME_CHANNELS = {
   downloadsClear: 'downloads:clear',
   spellingLanguages: 'spelling:languages',
   spellingChoose: 'spelling:choose',
+  spellingRetry: 'spelling:retry',
+  spellingShowFolder: 'spelling:show-folder',
+  spellingRemoveUnused: 'spelling:remove-unused',
   customCodeGet: 'custom-code:get',
   customCodeSave: 'custom-code:save',
   customCodePreview: 'custom-code:preview',

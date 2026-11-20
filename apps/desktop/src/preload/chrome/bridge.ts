@@ -159,6 +159,9 @@ function spellingBridge(invoke: Invoke): ChromeApi['spelling'] {
     // A copy, so the page cannot change the list while it is on its way.
     choose: (languages) =>
       invoke(CHROME_CHANNELS.spellingChoose, [...languages]) as Promise<SpellingLanguages>,
+    retry: () => invoke(CHROME_CHANNELS.spellingRetry) as Promise<SpellingLanguages>,
+    showFolder: () => invoke(CHROME_CHANNELS.spellingShowFolder) as Promise<void>,
+    removeUnused: () => invoke(CHROME_CHANNELS.spellingRemoveUnused) as Promise<SpellingLanguages>,
   };
 }
 

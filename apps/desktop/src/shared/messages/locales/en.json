@@ -824,7 +824,17 @@
     "search": "Search languages",
     "noMatch": "No language matches your search.",
     "macosLabel": "Chosen by macOS",
-    "macos": "macOS checks spelling in the languages chosen in System Settings → Keyboard → Text Input."
+    "macos": "macOS checks spelling in the languages chosen in System Settings → Keyboard → Text Input.",
+    "downloading": "Downloading…",
+    "ready": "Ready",
+    "failed": "Could not download",
+    "retry": "Try Again",
+    "dictionaries": "Dictionaries",
+    "dictionariesHint": "Downloaded dictionaries stay on this computer, in {{folder}}. A language you untick keeps its dictionary, so choosing it again needs no download.",
+    "showFolder": "Show Folder",
+    "removeUnused": "Remove Unused",
+    "unused_one": "1 dictionary is not used by any language you check.",
+    "unused_other": "{{count}} dictionaries are not used by any language you check."
   },
   "contextMenu": {
     "noSuggestions": "No Suggestions",

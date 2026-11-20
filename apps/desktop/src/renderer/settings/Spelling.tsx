@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'preact/hooks';
 import {
   MAX_SPELLING_LANGUAGES,
   type ChromeApi,
+  type DictionaryState,
   type SettingsSnapshot,
   type SpellingLanguages,
 } from '../../shared/api/chrome-api.ts';
@@ -57,6 +58,34 @@ interface PickerProps {
   /** Faded while spell checking is off; the choice still applies once it is on. */
   readonly dimmed: boolean;
   readonly onChoose: (languages: readonly string[]) => void;
+  /** Asks again for the dictionaries that could not be downloaded (#704). */
+  readonly onRetry: () => void;
+}
+
+const STATE_WORDS: Readonly<Record<DictionaryState, string>> = {
+  downloading: text.downloading,
+  ready: text.ready,
+  failed: text.failed,
+};
+
+/** How a language's dictionary stands, beside its name, with Try Again when it failed (#704). */
+function Dictionary(props: {
+  readonly state: DictionaryState | undefined;
+  readonly onRetry: () => void;
+}): JSX.Element | null {
+  if (props.state === undefined) {
+    return null;
+  }
+  return (
+    <span class={`dictionary ${props.state}`}>
+      <output>{STATE_WORDS[props.state]}</output>
+      {props.state === 'failed' ? (
+        <button type="button" onClick={props.onRetry}>
+          {text.retry}
+        </button>
+      ) : null}
+    </span>
+  );
 }
 
 const rowClass = (dimmed: boolean): string => (dimmed ? 'row dimmed' : 'row');
@@ -129,6 +158,7 @@ function LanguageList(props: PickerProps & { readonly query: string }): JSX.Elem
               <span lang={code}>{own}</span>
               {own === english ? null : <span class="hint">{english}</span>}
             </label>
+            <Dictionary state={props.state.dictionaries[code]} onRetry={props.onRetry} />
           </li>
         );
       })}
@@ -170,15 +200,48 @@ function ChosenByMacos({ dimmed }: { readonly dimmed: boolean }): JSX.Element {
 }
 
 /**
- * Settings › Spelling: the switch, then the languages it checks; none
- * chosen means the system's (#73).
+ * Where the downloaded dictionaries stay, and the ones no language in use
+ * needs, to remove (#704).
  */
-export function SpellingSection(props: {
+function Dictionaries(props: {
+  readonly state: SpellingLanguages;
   readonly api: ChromeApi;
-  readonly snapshot: SettingsSnapshot;
-  readonly onChange: Change;
+  readonly onState: (state: SpellingLanguages) => void;
 }): JSX.Element {
-  const { api, snapshot, onChange } = props;
+  const { state, api } = props;
+  return (
+    <Group id="spelling-dictionaries" title={text.dictionaries}>
+      <div class="row">
+        <div class="row-text">
+          <p class="hint">{text.dictionariesHint({ folder: state.folder })}</p>
+        </div>
+        <div class="row-control">
+          <button type="button" onClick={() => void api.spelling.showFolder()}>
+            {text.showFolder}
+          </button>
+        </div>
+      </div>
+      {state.unused === 0 ? null : (
+        <div class="row">
+          <div class="row-text">
+            <p class="hint">{text.unused({ count: state.unused })}</p>
+          </div>
+          <div class="row-control">
+            <button
+              type="button"
+              onClick={() => void api.spelling.removeUnused().then(props.onState)}
+            >
+              {text.removeUnused}
+            </button>
+          </div>
+        </div>
+      )}
+    </Group>
+  );
+}
+
+/** The page's languages and dictionaries, and what changes them. */
+function useSpelling(api: ChromeApi) {
   const [state, setState] = useState<SpellingLanguages>();
   useEffect(() => {
     void api.spelling.languages().then(setState);
@@ -189,18 +252,57 @@ export function SpellingSection(props: {
     },
     [api],
   );
+  const retry = useCallback((): void => {
+    void api.spelling.retry().then(setState);
+  }, [api]);
+  useDownloads(api, state, setState);
+  return { state, setState, choose, retry };
+}
+
+/** Asks again how the dictionaries stand every second while one is being downloaded. */
+function useDownloads(
+  api: ChromeApi,
+  state: SpellingLanguages | undefined,
+  setState: (state: SpellingLanguages) => void,
+): void {
+  const downloading = Object.values(state?.dictionaries ?? {}).includes('downloading');
+  useEffect(() => {
+    if (!downloading) {
+      return undefined;
+    }
+    const timer = setInterval(() => void api.spelling.languages().then(setState), 1000);
+    return () => {
+      clearInterval(timer);
+    };
+  }, [api, downloading, setState]);
+}
+
+/**
+ * Settings › Spelling: the switch, then the languages it checks; none
+ * chosen means the system's (#73).
+ */
+export function SpellingSection(props: {
+  readonly api: ChromeApi;
+  readonly snapshot: SettingsSnapshot;
+  readonly onChange: Change;
+}): JSX.Element {
+  const { api, snapshot, onChange } = props;
+  const { state, setState, choose, retry } = useSpelling(api);
   const dimmed = snapshot.values['spelling.enabled'] !== true;
   return (
     <>
       <Group id="spell-checking" title={groups.spellChecking}>
         {fieldsOf(['spelling.enabled'], snapshot, onChange)}
       </Group>
+      {state === undefined || state.available.length === 0 ? null : (
+        <Dictionaries state={state} api={api} onState={setState} />
+      )}
       {state === undefined ? null : (
         <Group id="spelling-languages" title={groups.spellingLanguages}>
           {state.available.length === 0 ? (
             <ChosenByMacos dimmed={dimmed} />
           ) : (
-            <Picker state={state} dimmed={dimmed} onChoose={choose} />
+            <Picker state={state} dimmed={dimmed} onChoose={choose} onRetry={retry} />
           )}
         </Group>
       )}

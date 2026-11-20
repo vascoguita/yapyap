@@ -1,3 +1,4 @@
+import type { DictionaryWatch } from '../spelling/dictionaries.ts';
 import type { AccountAvatars, AvatarPage } from '../accounts/avatars.ts';
 import type { ChromeFeature, ChromeRuntime, WhatsAppContents } from '../chrome/feature.ts';
 import type { SidebarPort } from '../accounts/sidebar-handlers.ts';
@@ -232,6 +233,8 @@ export interface StartDependencies<Window extends WindowPort> {
   readonly globalShortcuts: GlobalShortcutPort;
   /** `app.getPreferredSystemLanguages()`, which picks the spelling language until the user does. */
   readonly systemLanguages: () => readonly string[];
+  /** The spelling dictionaries every account's session downloads (#704). */
+  readonly dictionaries: Pick<DictionaryWatch, 'watch'>;
   /** Shows a context menu where the pointer is. */
   readonly contextMenu: (items: ContextMenuItem[]) => void;
   /** Passwords and other secrets, encrypted by the system's keychain. */

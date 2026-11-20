@@ -1090,6 +1090,58 @@ ul.languages label .hint {
   margin-inline-start: auto;
 }
 
+/*
+ * A language's dictionary beside its row, after its names: muted while it
+ * downloads or once ready, in the danger color with Try Again when it failed
+ * (#704). It sits outside the label, so Try Again never ticks the language.
+ */
+ul.languages li {
+  display: flex;
+  align-items: center;
+}
+
+ul.languages li label {
+  flex: 1;
+  min-inline-size: 0;
+}
+
+/*
+ * A row with a dictionary's state stacks the language's names, its own over
+ * the English one, so the state and Try Again leave them room.
+ */
+ul.languages li:has(.dictionary) label {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-content: center;
+  column-gap: var(--space-3);
+  padding-block: 6px;
+  padding-inline-end: var(--space-3);
+}
+
+ul.languages li:has(.dictionary) label input {
+  grid-row: span 2;
+}
+
+ul.languages li:has(.dictionary) label .hint {
+  grid-column: 2;
+  margin-inline-start: 0;
+}
+
+.dictionary {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-2);
+  padding-inline-end: var(--space-4);
+  color: var(--muted);
+  font-size: var(--font-hint);
+  white-space: nowrap;
+}
+
+.dictionary.failed {
+  color: var(--danger);
+}
+
 /* Faded like a dimmed row, by color rather than opacity, for the same contrast. */
 ul.languages.dimmed label > span {
   color: var(--muted);
