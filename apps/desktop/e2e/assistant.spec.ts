@@ -292,6 +292,16 @@ test('brings the suggestions back and drops Undo once the user empties a rewritt
   await expect(async () => {
     expect(await barNotice(app)).toBe('Polished. Edit it or send as is.');
   }).toPass();
+  // The suggestions stay through the rewrite, and through its Undo (#743).
+  expect(await barNames(app)).toContain('See you there');
+  await clickInBar(app, window, 'Undo');
+  await expect(composer).toHaveText('sure c u');
+  await expect(async () => {
+    expect(await barNotice(app)).toBeNull();
+    expect(await barNames(app)).toContain('See you there');
+  }).toPass();
+  await clickInTool(app, window, 'Polish');
+  await expect(composer).toHaveText('Sure, see you there!');
   const beforeClearing = (await claudeRequests(app)).length;
   // As the user clears the box, here at once, as select-all and Delete does.
   await window.keyboard.press('ControlOrMeta+A');
@@ -306,7 +316,7 @@ test('brings the suggestions back and drops Undo once the user empties a rewritt
   // The suggestions come back as they were, without asking again.
   const asked = await claudeRequests(app);
   expect(asked).toHaveLength(beforeClearing);
-  expect(asked.filter((body) => body.includes('Rewrite my draft'))).toHaveLength(1);
+  expect(asked.filter((body) => body.includes('Rewrite my draft'))).toHaveLength(2);
 });
 
 test('rewrites the draft in place from the message box, puts it back on Undo, and never sends', async ({

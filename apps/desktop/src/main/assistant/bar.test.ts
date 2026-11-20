@@ -184,13 +184,13 @@ describe('createAssistantBar: the rewrite button', () => {
     expect(t.last().notice?.button?.id).toBe('undo');
   });
 
-  it('takes the rewrite’s suggestions away, and Undo restores nothing in another chat', async () => {
+  it('keeps the suggestions through a rewrite, and Undo restores nothing in another chat (#743)', async () => {
     const t = harness('Shorter.');
     t.bar.arrived('m1');
     await t.settle();
     expect(t.last().suggestions).toEqual(['Shorter.']);
     await t.bar.polish('shorten');
-    expect(t.last().suggestions).toEqual([]);
+    expect(t.last().suggestions).toEqual(['Shorter.']);
     expect(t.last().notice?.text).toBe('Shortened. Edit it or send as is.');
     t.setChat({ ...CHAT, name: 'Ben' });
     await t.bar.button('undo');
@@ -565,13 +565,16 @@ describe('createAssistantBar: suggested replies', () => {
     expect(t.last()).toMatchObject({ writing: false, suggestions: ['Sure'] });
   });
 
-  it('takes a rewrite’s Undo away and brings the suggestions back once the user empties the box', async () => {
+  it('keeps the suggestions through a rewrite and its Undo, and takes Undo away once the user empties the box (#743)', async () => {
     const t = harness('Yes, 9 works!\nCan we do 8?');
     t.bar.arrived('m1');
     await t.settle();
     expect(t.last().suggestions).toHaveLength(2);
     await t.bar.polish('polish');
-    expect(t.last()).toMatchObject({ suggestions: [], notice: { button: { id: 'undo' } } });
+    expect(t.last()).toMatchObject({
+      suggestions: ['Yes, 9 works!', 'Can we do 8?'],
+      notice: { button: { id: 'undo' } },
+    });
     t.bar.cleared();
     // The suggestions made for the message come back without asking the model again.
     await tick();

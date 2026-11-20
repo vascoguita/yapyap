@@ -164,7 +164,8 @@ async function putInPlace(
     bar.chat = chat;
     bar.rewritten = true;
     const button = { id: 'undo' as const, label: text.bar.undo };
-    update(bar, { suggestions: [], notice: { text: text.bar.done[style], button } });
+    // The suggestions stay through a rewrite and its Undo, as they do while the user types (#743).
+    update(bar, { notice: { text: text.bar.done[style], button } });
   }
 }
 
@@ -508,8 +509,8 @@ async function keepNotice(bar: BarContext): Promise<void> {
 /**
  * The message box is empty. Once after a rewrite filled it, a rewrite's
  * Undo has nothing left to put back over, and the suggestions for the
- * newest message come back, as they do when the user clears what they
- * typed (#629).
+ * newest message show, as they do when the user clears what they typed
+ * (#629); they stayed through the rewrite, so they show as they were.
  */
 function cleared(bar: BarContext, message: string | null): void {
   if (!bar.rewritten) {
