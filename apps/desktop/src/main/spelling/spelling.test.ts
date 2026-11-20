@@ -32,22 +32,28 @@ describe('spellingLanguagesOf', () => {
 const session = (available = AVAILABLE) => ({
   setSpellCheckerEnabled: vi.fn(),
   setSpellCheckerLanguages: vi.fn(),
+  getSpellCheckerLanguages: vi.fn(() => []),
+  on: vi.fn(),
   availableSpellCheckerLanguages: available,
 });
+
+const DICTIONARIES = { watch: vi.fn() };
 
 describe('followSpellingSetting', () => {
   it('lists no language while spelling is off, so no dictionary is fetched', () => {
     const settings = fakeSettings({ spelling: { languages: ['pt-PT'] } });
     const page = session();
-    followSpellingSetting(settings, () => ['en-GB']).guard(page);
+    followSpellingSetting(settings, () => ['en-GB'], DICTIONARIES).guard(page);
     expect(page.setSpellCheckerLanguages).toHaveBeenCalledExactlyOnceWith([]);
     expect(page.setSpellCheckerEnabled).toHaveBeenCalledExactlyOnceWith(false);
+    // Its dictionaries' downloads are followed for Settings (#704).
+    expect(DICTIONARIES.watch).toHaveBeenCalledWith(page);
   });
 
   it('checks the system language once turned on, and the chosen ones when there are', () => {
     const settings = fakeSettings();
     const page = session();
-    followSpellingSetting(settings, () => ['en-GB']).guard(page);
+    followSpellingSetting(settings, () => ['en-GB'], DICTIONARIES).guard(page);
     settings.change({ spelling: { enabled: true } });
     expect(page.setSpellCheckerLanguages).toHaveBeenLastCalledWith(['en-GB']);
     expect(page.setSpellCheckerEnabled).toHaveBeenLastCalledWith(true);
@@ -58,7 +64,7 @@ describe('followSpellingSetting', () => {
   it('leaves languages to macOS, whose spell checker lists none', () => {
     const settings = fakeSettings({ spelling: { enabled: true } });
     const page = session([]);
-    followSpellingSetting(settings, () => ['en-GB']).guard(page);
+    followSpellingSetting(settings, () => ['en-GB'], DICTIONARIES).guard(page);
     expect(page.setSpellCheckerLanguages).not.toHaveBeenCalled();
     expect(page.setSpellCheckerEnabled).toHaveBeenCalledExactlyOnceWith(true);
   });

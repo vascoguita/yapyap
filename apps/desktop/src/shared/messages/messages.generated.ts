@@ -760,6 +760,15 @@ export interface Messages {
     readonly noMatch: string;
     readonly macosLabel: string;
     readonly macos: string;
+    readonly downloading: string;
+    readonly ready: string;
+    readonly failed: string;
+    readonly retry: string;
+    readonly dictionaries: string;
+    readonly dictionariesHint: (params: { readonly folder: string | number }) => string;
+    readonly showFolder: string;
+    readonly removeUnused: string;
+    readonly unused: (params: { readonly count: number }) => string;
   };
   readonly contextMenu: {
     readonly noSuggestions: string;

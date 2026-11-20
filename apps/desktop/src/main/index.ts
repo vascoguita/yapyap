@@ -34,7 +34,7 @@ import {
   rmSync,
   statSync,
 } from 'node:fs';
-import { readFile, rm } from 'node:fs/promises';
+import { readdir, readFile, rm } from 'node:fs/promises';
 import { textFileAt, writeTextAtomically } from './support/atomic-write.ts';
 import { chatListWidths } from './chat-list/widths.ts';
 import { createCustomCode } from './custom-code/custom-code.ts';
@@ -64,6 +64,7 @@ import { decideUpdatePolicy, settingsIgnoredBy } from './updates/update-policy.t
 import { chooseFolder, electronSettingsFiles } from './settings/transfer-dialogs.ts';
 import { openSettings } from './settings/service.ts';
 import { electronCapture } from './permissions/electron-capture.ts';
+import { watchDictionaries } from './spelling/dictionaries.ts';
 import { askMediaWithDialog } from './permissions/media-prompt.ts';
 import { sandboxDisabled } from './security/sandbox-check.ts';
 import {
@@ -95,6 +96,13 @@ const USER_DATA = app.getPath('userData');
 
 const GPU_CRASH_LOG = join(USER_DATA, 'gpu-crashes.json');
 const WINDOW_STATE = join(USER_DATA, 'window-state.json');
+/** Where Chromium keeps the spelling dictionaries it downloads, shared by every account. */
+const DICTIONARIES = join(USER_DATA, 'Dictionaries');
+const dictionaries = watchDictionaries({
+  path: DICTIONARIES,
+  files: () => readdir(DICTIONARIES).catch(() => []),
+  remove: (name) => rm(join(DICTIONARIES, name), { force: true }),
+});
 const DOWNLOADS_STATE = join(USER_DATA, 'downloads.json');
 // Kept apart from settings, so importing a settings file can never bring code that runs in WhatsApp.
 const CUSTOM_CODE = join(USER_DATA, 'custom-code.json');
@@ -267,6 +275,8 @@ const chrome = createChromeFeature({
   spelling: {
     available: () => session.defaultSession.availableSpellCheckerLanguages,
     system: () => app.getPreferredSystemLanguages(),
+    dictionaries,
+    open: (path) => shell.openPath(path),
   },
   assistant: {
     keys,
@@ -357,6 +367,7 @@ void startAppReporting(
     idleSeconds: () => powerMonitor.getSystemIdleTime(),
     globalShortcuts: globalShortcut,
     systemLanguages: () => app.getPreferredSystemLanguages(),
+    dictionaries,
     contextMenu: (items) => {
       Menu.buildFromTemplate(items).popup();
     },

@@ -207,6 +207,7 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     setUserAgent: vi.fn(),
     setSpellCheckerEnabled: vi.fn(),
     setSpellCheckerLanguages: vi.fn(),
+    getSpellCheckerLanguages: vi.fn(() => []),
     webRequest: { onBeforeSendHeaders: vi.fn() },
     on: vi.fn(),
     clearStorageData: vi.fn(() => Promise.resolve()),
@@ -322,6 +323,7 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     idleSeconds: () => 600,
     globalShortcuts: { register: vi.fn(() => true), unregister: vi.fn(), unregisterAll: vi.fn() },
     systemLanguages: () => ['pt-PT', 'en-GB'],
+    dictionaries: { watch: vi.fn() },
     contextMenu: vi.fn(),
     secrets: {
       canKeep: () => Promise.resolve(true),

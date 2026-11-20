@@ -84,6 +84,9 @@ describe('createChromeBridge', () => {
     const chosen = ['pt-PT'];
     expect(await api.spelling.languages()).toBe('ignored');
     expect(await api.spelling.choose(chosen)).toBe('ignored');
+    expect(await api.spelling.retry()).toBe('ignored');
+    await api.spelling.showFolder();
+    expect(await api.spelling.removeUnused()).toBe('ignored');
     expect(await api.proxyLogin.request()).toBe('ignored');
     const answer = { username: 'ana', password: 'hunter2', remember: true, extra: 'x' };
     await api.proxyLogin.answer(answer);
@@ -149,6 +152,9 @@ describe('createChromeBridge', () => {
       ['report:trace'],
       ['spelling:languages'],
       ['spelling:choose', ['pt-PT']],
+      ['spelling:retry'],
+      ['spelling:show-folder'],
+      ['spelling:remove-unused'],
       ['proxy-login:request'],
       ['proxy-login:answer', { username: 'ana', password: 'hunter2', remember: true }],
       ['proxy-login:answer', null],
@@ -195,7 +201,13 @@ describe('createChromeBridge', () => {
     ]);
     expect(Object.keys(api.shortcuts)).toEqual(['list', 'set']);
     expect(Object.keys(api.downloads)).toEqual(['list', 'act', 'clear']);
-    expect(Object.keys(api.spelling)).toEqual(['languages', 'choose']);
+    expect(Object.keys(api.spelling)).toEqual([
+      'languages',
+      'choose',
+      'retry',
+      'showFolder',
+      'removeUnused',
+    ]);
     expect(Object.keys(api.proxyLogin)).toEqual(['request', 'answer']);
     expect(Object.keys(api.accounts)).toEqual([
       'list',

@@ -1,7 +1,8 @@
+import type { DictionarySession, DictionaryWatch } from './dictionaries.ts';
 import type { Settings } from '../settings/schema.ts';
 import type { SettingsService } from '../settings/service.ts';
 
-export interface SpellingSession {
+export interface SpellingSession extends DictionarySession {
   setSpellCheckerEnabled(enabled: boolean): void;
   setSpellCheckerLanguages(languages: string[]): void;
   /** Empty on macOS, whose own spell checker picks languages itself. */
@@ -59,6 +60,7 @@ export interface SpellingController {
 export function followSpellingSetting(
   settings: Pick<SettingsService, 'current' | 'onChange'>,
   systemLanguages: () => readonly string[],
+  dictionaries: Pick<DictionaryWatch, 'watch'>,
 ): SpellingController {
   const sessions = new Set<SpellingSession>();
   settings.onChange((current) => {
@@ -69,6 +71,7 @@ export function followSpellingSetting(
   return {
     guard: (session) => {
       sessions.add(session);
+      dictionaries.watch(session);
       applyTo(session, settings.current().spelling, systemLanguages());
     },
   };

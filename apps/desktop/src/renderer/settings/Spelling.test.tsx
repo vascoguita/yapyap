@@ -25,13 +25,32 @@ function api(initial: Partial<SpellingLanguages>) {
     available: AVAILABLE,
     chosen: [],
     inUse: ['en-GB'],
+    dictionaries: {},
+    folder: '/profile/Dictionaries',
+    unused: 0,
     ...initial,
   };
   const choose = vi.fn((languages: readonly string[]) => {
     state = { ...state, chosen: languages, inUse: languages.length > 0 ? languages : ['en-GB'] };
     return Promise.resolve(state);
   });
-  return fakeChromeApi({ spelling: { languages: vi.fn(() => Promise.resolve(state)), choose } });
+  const set = (next: Partial<SpellingLanguages>): void => {
+    state = { ...state, ...next };
+  };
+  const answer = vi.fn(() => Promise.resolve(state));
+  const fake = fakeChromeApi({
+    spelling: {
+      languages: vi.fn(() => Promise.resolve(state)),
+      choose,
+      retry: answer,
+      removeUnused: vi.fn(() => {
+        state = { ...state, unused: 0 };
+        return Promise.resolve(state);
+      }),
+      showFolder: vi.fn(() => Promise.resolve()),
+    },
+  });
+  return Object.assign(fake, { set });
 }
 
 const snapshot = (enabled = true): SettingsSnapshot => ({
@@ -150,5 +169,65 @@ describe('SpellingSection', () => {
     show(api({ available: [], inUse: [] }));
     const note = await screen.findByText(/macOS checks spelling/);
     expect(note.closest('.row')?.classList.contains('dimmed')).toBe(false);
+  });
+});
+
+describe('SpellingSection’s dictionaries (#704)', () => {
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+  });
+
+  it('shows how each dictionary in use stands, and asks again for one that failed', async () => {
+    const yapyap = api({
+      chosen: ['pt-PT', 'de-DE', 'sv'],
+      inUse: ['pt-PT', 'de-DE', 'sv'],
+      dictionaries: { 'pt-PT': 'ready', 'de-DE': 'failed', sv: 'downloading' },
+    });
+    show(yapyap);
+    await screen.findByText('Could not download');
+    expect(screen.getByText('Ready')).toBeTruthy();
+    expect(screen.getByText('Downloading…')).toBeTruthy();
+    yapyap.set({ dictionaries: { 'pt-PT': 'ready', 'de-DE': 'downloading', sv: 'ready' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Try Again' }));
+    expect(yapyap.spelling.retry).toHaveBeenCalledOnce();
+    await waitFor(() => {
+      expect(screen.queryByText('Could not download')).toBeNull();
+    });
+    // Trying again does not tick or untick the language.
+    expect(yapyap.spelling.choose).not.toHaveBeenCalled();
+  });
+
+  it('asks again every second while a dictionary downloads, and stops once none does', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const yapyap = api({ inUse: ['en-GB'], dictionaries: { 'en-GB': 'downloading' } });
+    show(yapyap);
+    await screen.findByText('Downloading…');
+    yapyap.set({ dictionaries: { 'en-GB': 'ready' } });
+    await vi.advanceTimersByTimeAsync(1000);
+    await screen.findByText('Ready');
+    const asked = vi.mocked(yapyap.spelling.languages).mock.calls.length;
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(vi.mocked(yapyap.spelling.languages).mock.calls).toHaveLength(asked);
+  });
+
+  it('says where dictionaries stay, opens the folder, and removes the unused ones', async () => {
+    const yapyap = api({ unused: 2 });
+    show(yapyap);
+    await screen.findByText(/in \/profile\/Dictionaries\./);
+    fireEvent.click(screen.getByRole('button', { name: 'Show Folder' }));
+    expect(yapyap.spelling.showFolder).toHaveBeenCalledOnce();
+    expect(screen.getByText('2 dictionaries are not used by any language you check.')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Unused' }));
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: 'Remove Unused' })).toBeNull();
+    });
+  });
+
+  it('shows no dictionaries on macOS, which keeps its own', async () => {
+    const yapyap = api({ available: [], inUse: [] });
+    show(yapyap);
+    await screen.findByText('Chosen by macOS');
+    expect(screen.queryByText('Dictionaries')).toBeNull();
   });
 });
