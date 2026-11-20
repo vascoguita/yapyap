@@ -80,6 +80,8 @@ const EMPTY: AssistantBarState = {
   polish: POLISH_STYLES[0],
   model: '',
   chat: null,
+  collapsed: false,
+  writing: false,
 };
 
 function update(bar: BarContext, next: Partial<AssistantBarState>): void {
@@ -233,7 +235,7 @@ function forget(bar: BarContext): void {
   bar.kept = '';
   bar.blocked = false;
   bar.rewritten = false;
-  update(bar, { suggestions: [], notice: null, chat: null });
+  update(bar, { suggestions: [], notice: null, chat: null, writing: false });
 }
 
 /** Puts back the draft a rewrite replaced, while its chat is still open. */
@@ -283,14 +285,6 @@ function remember(bar: BarContext, message: string, suggestions: readonly string
   }
 }
 
-/** Hides the suggestions until another message arrives, even if this chat is opened again. */
-function dismiss(bar: BarContext, message: string | null): void {
-  if (message !== null) {
-    remember(bar, message, []);
-  }
-  update(bar, { suggestions: [] });
-}
-
 /** The open chat, if the user wants suggestions there, whoever sent its last item (#723). */
 async function chatToAnswer(bar: BarContext): Promise<ReadChat | undefined> {
   const chat = await bar.deps.accounts.readActiveChat(messagesToRead(bar));
@@ -306,6 +300,8 @@ async function makeSuggestions(bar: BarContext, message: string, signal: AbortSi
   if (chat === undefined || signal.aborted) {
     return;
   }
+  bar.chat = chat.name;
+  update(bar, { writing: true, chat: chat.name });
   const answer = await bar.deps.core.ask(setup, suggestPrompt(chat, bar.deps.now()), signal);
   // A newer message or another chat may have called the request off while the model answered.
   if (isAborted(signal)) {
@@ -331,14 +327,15 @@ const settled = (bar: BarContext, signal: AbortSignal): Promise<boolean> =>
 
 /**
  * Suggests what to send after `message`, the open chat's last item,
- * whoever sent it. Suggestions already made for it show again, and none
- * show after the user dismissed them.
+ * whoever sent it. Suggestions already made for it show again. They are
+ * made while the user has folded them away too, so showing them again
+ * needs no wait (#729).
  */
 async function suggest(bar: BarContext, message: string): Promise<void> {
   bar.suggesting?.abort();
   const known = assistantSettings(bar).autoSuggest ? bar.made.get(message) : [];
   if (known !== undefined) {
-    update(bar, { suggestions: known });
+    update(bar, { suggestions: known, writing: false });
     return;
   }
   const controller = new AbortController();
@@ -347,6 +344,10 @@ async function suggest(bar: BarContext, message: string): Promise<void> {
   if (await settled(bar, controller.signal)) {
     // A failed request shows nothing: suggestions come on their own, and a rewrite says what fails.
     await makeSuggestions(bar, message, controller.signal).catch(() => undefined);
+  }
+  // A newer request, a send or another chat says for itself whether one is being written.
+  if (bar.suggesting === controller) {
+    update(bar, { writing: false });
   }
 }
 
@@ -367,7 +368,9 @@ export interface AssistantBar {
   /** Rewrites the draft in place in one of the rewrite button's ways, and keeps that way. */
   readonly polish: (value: string) => Promise<void>;
   readonly use: (index: number) => Promise<void>;
-  readonly dismiss: () => void;
+  /** Folds the suggestions away until the user shows them again; they keep being made (#729). */
+  readonly collapse: () => void;
+  readonly expand: () => void;
   readonly button: (id: BarButtonId) => Promise<void>;
   /** The open chat was first seen, with `message` its last item, or no chat is open. */
   readonly found: (message: string | null) => void;
@@ -416,10 +419,10 @@ function cleared(bar: BarContext, message: string | null): void {
   }
 }
 
-/** What the assistant does as the open chat changes, and with the suggestions' dismiss. */
+/** What the assistant does as the open chat changes. */
 function followChat(
   bar: BarContext,
-): Pick<AssistantBar, 'dismiss' | 'found' | 'opened' | 'arrived' | 'sent' | 'cleared'> {
+): Pick<AssistantBar, 'found' | 'opened' | 'arrived' | 'sent' | 'cleared'> {
   // The open chat's last item, whoever sent it.
   let message: string | null = null;
   const follow = (newest: string | null): void => {
@@ -429,9 +432,6 @@ function followChat(
     }
   };
   return {
-    dismiss: () => {
-      dismiss(bar, message);
-    },
     found: (newest) => {
       follow(newest);
       void keepNotice(bar);
@@ -448,7 +448,7 @@ function followChat(
       message = null;
       bar.rewritten = false;
       bar.suggesting?.abort();
-      update(bar, { suggestions: [], notice: null });
+      update(bar, { suggestions: [], notice: null, writing: false });
     },
     cleared: () => {
       cleared(bar, message);
@@ -483,6 +483,12 @@ export function createAssistantBar(deps: BarDependencies): AssistantBar {
     polish: (value) => polish(bar, value),
     use: (index) => use(bar, index),
     button: (id) => press(bar, id),
+    collapse: () => {
+      update(bar, { collapsed: true });
+    },
+    expand: () => {
+      update(bar, { collapsed: false });
+    },
     ...followChat(bar),
   };
 }

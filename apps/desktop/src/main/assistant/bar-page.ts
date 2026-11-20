@@ -35,12 +35,17 @@ function contentOf(state: AssistantBarState, visible: boolean): BarContent {
       label: text.label,
       suggestions: text.suggestions,
       use: text.use,
-      dismiss: text.dismiss,
+      collapse: text.collapse,
+      expand: text.expand,
+      folded: text.folded,
+      writing: text.writing,
       close: text.close,
     },
     suggestions: state.suggestions,
     notice: state.notice,
     chat: state.chat,
+    collapsed: state.collapsed,
+    writing: state.writing,
   };
 }
 

@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   alignAssistantBar,
   assistantBarHere,
+  assistantBarHidden,
   assistantBarRender,
   assistantBarRows,
   buildAssistantBar,
@@ -24,7 +25,10 @@ const LABELS = {
   label: 'AI Assistant',
   suggestions: 'Suggested replies',
   use: 'Puts this reply in the message box.',
-  dismiss: 'Dismiss suggestions',
+  collapse: 'Hide suggestions',
+  expand: 'Show suggestions',
+  folded: 'Suggestions',
+  writing: 'Writing suggestions…',
   close: 'Close',
 };
 
@@ -34,6 +38,8 @@ const CONTENT: BarContent = {
   suggestions: ['On my way', '<b>Soon</b>'],
   notice: null,
   chat: null,
+  collapsed: false,
+  writing: false,
 };
 
 const UNDO: BarContent = {
@@ -52,7 +58,7 @@ const PLACES = {
   store: 'bar',
   bridge: 'bridge',
   style: '.bar { display: flex; }',
-  icons: { sparkle: 'M1 1z', close: 'M2 2z' },
+  icons: { sparkle: 'M1 1z', close: 'M2 2z', fold: 'M3 3z', unfold: 'M4 4z' },
 };
 
 const KIT = {
@@ -68,6 +74,7 @@ const KIT = {
   notice: noticeAssistantBar,
   icon: strokeIcon,
   here: assistantBarHere,
+  hidden: assistantBarHidden,
 };
 
 interface Stored {
@@ -81,7 +88,11 @@ interface Stored {
     close: HTMLButtonElement;
     chips: HTMLElement;
     list: HTMLElement;
-    dismiss: HTMLButtonElement;
+    status: HTMLElement;
+    collapse: HTMLButtonElement;
+    folded: HTMLElement;
+    expand: HTMLButtonElement;
+    foldLabel: HTMLElement;
   };
 }
 
@@ -92,7 +103,7 @@ const FOOTER =
 /** A chat with its message box, the scope the adapter world would be, and the bar's bridge. */
 function setup() {
   document.body.innerHTML = `<div id="main"><div role="row">Hi</div>${FOOTER}</div>`;
-  const bridge = { use: vi.fn(), dismiss: vi.fn(), button: vi.fn() };
+  const bridge = { use: vi.fn(), collapse: vi.fn(), expand: vi.fn(), button: vi.fn() };
   const scope: Record<string, unknown> = { bridge, getComputedStyle };
   const render = (content: BarContent = CONTENT): BarPlacement =>
     renderAssistantBar(document, scope, content, PLACES, KIT);
@@ -161,8 +172,13 @@ describe('renderAssistantBar', () => {
       ['close', 'icon'],
       ['chips', 'row chips'],
       ['list', 'list'],
-      ['dismiss', 'icon'],
+      ['status', 'status'],
+      ['collapse', 'icon'],
+      ['folded', 'row folded'],
+      ['expand', 'fold'],
+      ['foldLabel', 'fold-label'],
     ]);
+    expect(parts.status.getAttribute('role')).toBe('status');
     expect(parts.list.tagName).toBe('UL');
   });
 
@@ -172,15 +188,16 @@ describe('renderAssistantBar', () => {
     const { parts } = t.stored();
     expect(parts.action.dataset['action']).toBe('button');
     expect(parts.close.dataset).toMatchObject({ action: 'button', id: 'close' });
-    expect(parts.dismiss.dataset['action']).toBe('dismiss');
-    for (const button of [parts.action, parts.close, parts.dismiss]) {
+    expect(parts.collapse.dataset['action']).toBe('collapse');
+    expect(parts.expand.dataset['action']).toBe('expand');
+    for (const button of [parts.action, parts.close, parts.collapse, parts.expand]) {
       expect(button.getAttribute('type')).toBe('button');
     }
     expect(parts.text.hasAttribute('type')).toBe(false);
     expect(parts.text.dataset['action']).toBeUndefined();
   });
 
-  it('starts each row with the sparkle, and draws a cross to close or dismiss', () => {
+  it('starts each row with the sparkle, a cross to close, and chevrons to fold and unfold', () => {
     const t = setup();
     t.render();
     const { parts } = t.stored();
@@ -192,17 +209,27 @@ describe('renderAssistantBar', () => {
     for (const row of [parts.notice, parts.chips]) {
       expect(drawn(row.firstElementChild)).toEqual(['mark', 'true', 'M1 1z']);
     }
-    for (const button of [parts.close, parts.dismiss]) {
-      expect(drawn(button.querySelector('svg'))).toEqual(['cross', 'true', 'M2 2z']);
-    }
+    expect(drawn(parts.close.querySelector('svg'))).toEqual(['cross', 'true', 'M2 2z']);
+    expect(drawn(parts.collapse.querySelector('svg'))).toEqual(['chevron', 'true', 'M3 3z']);
+    const unfold = [...parts.expand.querySelectorAll('svg')];
+    expect(unfold.map(drawn)).toEqual([
+      ['mark', 'true', 'M1 1z'],
+      ['chevron', 'true', 'M4 4z'],
+    ]);
+    expect(parts.expand.children[1]).toBe(parts.foldLabel);
   });
 
   it('names the controls that show only an icon', () => {
     const t = setup();
     t.render();
-    const { close, dismiss } = t.stored().parts;
-    expect(dismiss.getAttribute('aria-label')).toBe('Dismiss suggestions');
-    expect(dismiss.getAttribute('title')).toBe('Dismiss suggestions');
+    const { close, collapse, expand, foldLabel } = t.stored().parts;
+    expect(collapse.getAttribute('aria-label')).toBe('Hide suggestions');
+    expect(collapse.getAttribute('title')).toBe('Hide suggestions');
+    expect(collapse.getAttribute('aria-expanded')).toBe('true');
+    expect(expand.getAttribute('aria-label')).toBe('Show suggestions');
+    expect(expand.getAttribute('title')).toBe('Show suggestions');
+    expect(expand.getAttribute('aria-expanded')).toBe('false');
+    expect(foldLabel.textContent).toBe('Suggestions');
     expect(close.getAttribute('aria-label')).toBe('Close');
     expect(close.getAttribute('title')).toBe('Close');
   });
@@ -536,16 +563,18 @@ describe('the bar’s controls', () => {
     t.render();
     const [, second] = t.chips();
     second?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    t.stored().parts.dismiss.click();
+    t.stored().parts.collapse.click();
     expect(t.bridge.use).not.toHaveBeenCalled();
-    expect(t.bridge.dismiss).not.toHaveBeenCalled();
+    expect(t.bridge.collapse).not.toHaveBeenCalled();
     if (second !== undefined) {
       click(second);
     }
     expect(t.bridge.use).toHaveBeenCalledExactlyOnceWith(1);
-    click(t.stored().parts.dismiss);
-    expect(t.bridge.dismiss).toHaveBeenCalledOnce();
-    expect(t.bridge.dismiss.mock.calls[0]).toEqual([]);
+    click(t.stored().parts.collapse);
+    expect(t.bridge.collapse).toHaveBeenCalledOnce();
+    expect(t.bridge.collapse.mock.calls[0]).toEqual([]);
+    click(t.stored().parts.expand);
+    expect(t.bridge.expand).toHaveBeenCalledExactlyOnceWith();
   });
 
   it('pass on the notice’s button and close by their IDs', () => {
@@ -565,7 +594,9 @@ describe('the bar’s controls', () => {
     click(t.stored().parts.bar);
     expect(t.bridge.button).not.toHaveBeenCalled();
     expect(t.bridge.use).not.toHaveBeenCalled();
-    expect(t.bridge.dismiss).not.toHaveBeenCalled();
+    expect(t.bridge.collapse).not.toHaveBeenCalled();
+    click(t.stored().parts.folded);
+    expect(t.bridge.expand).not.toHaveBeenCalled();
   });
 
   it('keep keys pressed on the bar from reaching WhatsApp’s own keyboard handlers', () => {
@@ -665,5 +696,66 @@ describe('assistantBarHere', () => {
     document.querySelector('#main header span')?.replaceChildren('Ana');
     t.render({ ...CONTENT, chat: 'Rui' });
     expect(t.stored().parts.list.childElementCount).toBe(0);
+  });
+});
+
+describe('the suggestions folded away, and while they are written', () => {
+  const shown = (t: ReturnType<typeof setup>) => {
+    const { chips, folded } = t.stored().parts;
+    return { chips: !chips.hidden, folded: !folded.hidden };
+  };
+
+  it('folds the suggestions into one chip that shows them again, only when there are some (#729)', () => {
+    const t = setup();
+    t.render({ ...CONTENT, collapsed: true });
+    expect(shown(t)).toEqual({ chips: false, folded: true });
+    expect(t.stored().parts.bar.dataset['collapsed']).toBe('true');
+    t.render({ ...CONTENT, collapsed: true, suggestions: [] });
+    expect(shown(t)).toEqual({ chips: false, folded: false });
+    t.render({ ...CONTENT, collapsed: true, suggestions: [], writing: true });
+    expect(shown(t)).toEqual({ chips: false, folded: false });
+    t.render(CONTENT);
+    expect(shown(t)).toEqual({ chips: true, folded: false });
+  });
+
+  it('holds the suggestions’ place with three blank chips while they are written, and says so (#703)', () => {
+    const t = setup();
+    t.render({ ...CONTENT, suggestions: [], writing: true });
+    const { list, status } = t.stored().parts;
+    expect(shown(t)).toEqual({ chips: true, folded: false });
+    expect([...list.children].map((item) => item.getAttribute('class'))).toEqual([
+      'placeholder',
+      'placeholder',
+      'placeholder',
+    ]);
+    expect(list.firstElementChild?.getAttribute('aria-hidden')).toBe('true');
+    expect(list.getAttribute('aria-busy')).toBe('true');
+    expect(status.textContent).toBe('Writing suggestions…');
+    expect(t.chips()).toEqual([]);
+    // Suggestions already there show instead, and the status goes quiet.
+    t.render({ ...CONTENT, writing: true });
+    expect(t.chips()).toHaveLength(2);
+    expect(list.getAttribute('aria-busy')).toBe('false');
+    expect(status.textContent).toBe('');
+  });
+
+  it('hides both while the user types', () => {
+    const t = setup();
+    t.render({ ...CONTENT, collapsed: true });
+    const field = document.querySelector<HTMLElement>('[contenteditable="true"]');
+    if (field !== null) {
+      field.textContent = 'Hi';
+    }
+    document.dispatchEvent(new Event('input'));
+    expect(shown(t)).toEqual({ chips: false, folded: false });
+  });
+
+  it('reads what a bar before any render holds as nothing', () => {
+    const parts = {
+      list: { dataset: {} },
+      bar: { dataset: {} },
+      notice: { hidden: true },
+    } as unknown as Parameters<typeof assistantBarHidden>[0];
+    expect(assistantBarHidden(parts, false)).toEqual({ chips: true, folded: true, bar: true });
   });
 });

@@ -221,7 +221,7 @@ test('asks nothing while the window is hidden or the assistant is off, and catch
   expect(await barNames(app)).toEqual([]);
 });
 
-test('hides suggestions while the user types, and after Dismiss until the next message', async ({
+test('hides suggestions while the user types, and folds them away until the user shows them (#729)', async ({
   app,
   window,
 }) => {
@@ -249,18 +249,23 @@ test('hides suggestions while the user types, and after Dismiss until the next m
   await expect(async () => {
     expect(await barNames(app)).toContain('See you there');
   }).toPass();
-  await clickInBar(app, window, 'Dismiss suggestions');
+  await clickInBar(app, window, 'Hide suggestions');
   await expect(async () => {
-    expect(await barNames(app)).toEqual([]);
+    expect(await barNames(app)).toEqual(['Show suggestions']);
   }).toPass();
+  // Folded away, they stay folded as the next message's are made.
   await messageArrives(window, '3EB0F8', 'Hello?');
   await expect(async () => {
-    expect(await barNames(app)).toContain('Still on!');
+    expect((await claudeRequests(app)).at(-1)).toContain('Hello?');
   }).toPass({ timeout: 15_000 });
-  // Typing, clearing and Dismiss ask nothing; only the new message does.
-  const asked = await claudeRequests(app);
-  expect(asked).toHaveLength(beforeTyping + 1);
-  expect(asked.at(-1)).toContain('Hello?');
+  await window.waitForTimeout(1500);
+  expect(await barNames(app)).toEqual(['Show suggestions']);
+  await clickInBar(app, window, 'Show suggestions');
+  await expect(async () => {
+    expect(await barNames(app)).toEqual(['Still on!', 'Hide suggestions']);
+  }).toPass();
+  // Typing, clearing, folding and showing ask nothing; only the new message does.
+  expect(await claudeRequests(app)).toHaveLength(beforeTyping + 1);
 });
 
 test('brings the suggestions back and drops Undo once the user empties a rewritten draft', async ({

@@ -422,7 +422,7 @@ describe('createAssistantBar: suggested replies', () => {
     expect(t.deps.core.ask).not.toHaveBeenCalled();
   });
 
-  it('shows the same suggestions when the chat opens again, and none once dismissed', async () => {
+  it('shows the same suggestions when the chat opens again, without asking again', async () => {
     const t = harness();
     t.bar.opened('m1');
     await t.settle();
@@ -432,18 +432,55 @@ describe('createAssistantBar: suggested replies', () => {
     t.bar.opened('m1');
     expect(t.last().suggestions).toHaveLength(2);
     expect(t.deps.core.ask).toHaveBeenCalledOnce();
-    t.bar.dismiss();
-    expect(t.last().suggestions).toEqual([]);
-    t.bar.opened('m1');
-    expect(t.last().suggestions).toEqual([]);
-    // The next message gets suggestions again.
+  });
+
+  it('folds the suggestions away and back, still making them while folded (#729)', async () => {
+    const t = harness();
+    t.bar.collapse();
+    expect(t.last().collapsed).toBe(true);
+    t.bar.arrived('m1');
+    await t.settle();
+    expect(t.last()).toMatchObject({
+      collapsed: true,
+      suggestions: ['Yes, 9 works!', 'Can we do 8?'],
+    });
+    t.bar.expand();
+    expect(t.last()).toMatchObject({
+      collapsed: false,
+      suggestions: ['Yes, 9 works!', 'Can we do 8?'],
+    });
+    expect(t.deps.core.ask).toHaveBeenCalledOnce();
+  });
+
+  it('says it is writing while the model answers, and stops when it is done or called off (#703)', async () => {
+    let answer: (text: string) => void = () => undefined;
+    const t = harness();
+    vi.mocked(t.deps.core.ask).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          answer = resolve;
+        }),
+    );
+    t.bar.arrived('m1');
+    await t.settle();
+    expect(t.last()).toMatchObject({ writing: true, suggestions: [] });
+    answer('Sure');
+    await t.settle();
+    expect(t.last()).toMatchObject({ writing: false, suggestions: ['Sure'] });
+    // A send calls the next one off.
     t.bar.arrived('m2');
     await t.settle();
-    expect(t.last().suggestions).toHaveLength(2);
-    // Dismissing with no message known only hides the row.
+    expect(t.last().writing).toBe(true);
     t.bar.sent();
-    t.bar.dismiss();
-    expect(t.last().suggestions).toEqual([]);
+    expect(t.last().writing).toBe(false);
+    answer('Late');
+    await t.settle();
+    expect(t.last()).toMatchObject({ writing: false, suggestions: [] });
+    // Another chat calls it off too, and a chat seen before shows its suggestions at once.
+    t.bar.arrived('m3');
+    await t.settle();
+    t.bar.opened('m1');
+    expect(t.last()).toMatchObject({ writing: false, suggestions: ['Sure'] });
   });
 
   it('takes a rewrite’s Undo away and brings the suggestions back once the user empties the box', async () => {

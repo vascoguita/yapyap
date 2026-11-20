@@ -70,7 +70,8 @@ export function createAssistantBarBridge(ipc: Pick<PreloadIpc, 'send'>): Assista
   return {
     polish: send(channels.polish),
     use: send(channels.use),
-    dismiss: send(channels.dismiss),
+    collapse: send(channels.collapse),
+    expand: send(channels.expand),
     button: send(channels.button),
     settings: send(channels.settings),
   };

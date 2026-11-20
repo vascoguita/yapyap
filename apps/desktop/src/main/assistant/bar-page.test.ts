@@ -9,6 +9,8 @@ const STATE: AssistantBarState = {
   polish: 'soften',
   model: 'Haiku',
   chat: 'Ana',
+  collapsed: false,
+  writing: false,
 };
 
 function fakePage() {
@@ -68,12 +70,17 @@ describe('inPageAssistantBar', () => {
         label: 'AI Assistant',
         suggestions: 'Suggested replies',
         use: 'Puts this reply in the message box, for you to edit or send.',
-        dismiss: 'Dismiss suggestions',
+        collapse: 'Hide suggestions',
+        expand: 'Show suggestions',
+        folded: 'Suggestions',
+        writing: 'Writing suggestions…',
         close: 'Close',
       },
       suggestions: ['On my way'],
       notice: null,
       chat: 'Ana',
+      collapsed: false,
+      writing: false,
     });
     const notice = {
       text: 'Softened. Edit it or send as is.',
