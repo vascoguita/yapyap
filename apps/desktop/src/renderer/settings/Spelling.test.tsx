@@ -207,7 +207,8 @@ describe('SpellingSection’s dictionaries (#704)', () => {
       dictionaries: { 'pt-PT': 'downloading', sv: 'downloading' },
     });
     show(yapyap);
-    await screen.findByText('Downloading 2 dictionaries…');
+    expect(await screen.findByText('Downloading 2 dictionaries…')).toBeTruthy();
+    expect(screen.getAllByText('Downloading…')).toHaveLength(2);
   });
 
   it('asks again every second while a dictionary downloads, says Downloaded for a while, then nothing', async () => {
