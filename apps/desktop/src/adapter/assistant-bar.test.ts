@@ -11,6 +11,7 @@ import {
   holdAssistantBarRoom,
   markAssistantBar,
   noticeAssistantBar,
+  refreshAssistantBar,
   renderAssistantBar,
   showAssistantBar,
   updateAssistantBar,
@@ -76,6 +77,7 @@ const KIT = {
   icon: strokeIcon,
   here: assistantBarHere,
   fingerprint,
+  refresh: refreshAssistantBar,
   hidden: assistantBarHidden,
   mark: markAssistantBar,
 };
@@ -174,9 +176,9 @@ describe('renderAssistantBar', () => {
       ['action', 'action'],
       ['close', 'icon'],
       ['chips', 'row chips'],
+      ['collapse', 'fold'],
       ['list', 'list'],
       ['status', 'status'],
-      ['collapse', 'icon'],
       ['folded', 'row folded'],
       ['expand', 'fold'],
       ['foldLabel', 'fold-label'],
@@ -200,7 +202,7 @@ describe('renderAssistantBar', () => {
     expect(parts.text.dataset['action']).toBeUndefined();
   });
 
-  it('starts each row with the sparkle, a cross to close, and chevrons to fold and unfold', () => {
+  it('starts each row with the sparkle, a cross to close, and chevrons to fold and unfold in one place', () => {
     const t = setup();
     t.render();
     const { parts } = t.stored();
@@ -209,11 +211,15 @@ describe('renderAssistantBar', () => {
       svg?.getAttribute('aria-hidden'),
       svg?.querySelector('path')?.getAttribute('d'),
     ];
-    for (const row of [parts.notice, parts.chips]) {
-      expect(drawn(row.firstElementChild)).toEqual(['mark', 'true', 'M1 1z']);
-    }
+    expect(drawn(parts.notice.firstElementChild)).toEqual(['mark', 'true', 'M1 1z']);
     expect(drawn(parts.close.querySelector('svg'))).toEqual(['cross', 'true', 'M2 2z']);
-    expect(drawn(parts.collapse.querySelector('svg'))).toEqual(['chevron', 'true', 'M3 3z']);
+    // The toggle is first in the suggestions' row, as the one they fold into is in its own (#729).
+    expect(parts.chips.firstElementChild).toBe(parts.collapse);
+    expect(parts.folded.firstElementChild).toBe(parts.expand);
+    expect([...parts.collapse.querySelectorAll('svg')].map(drawn)).toEqual([
+      ['mark', 'true', 'M1 1z'],
+      ['chevron', 'true', 'M3 3z'],
+    ]);
     const unfold = [...parts.expand.querySelectorAll('svg')];
     expect(unfold.map(drawn)).toEqual([
       ['mark', 'true', 'M1 1z'],
@@ -327,22 +333,22 @@ describe('renderAssistantBar', () => {
     expect(t.stored().parts.chips.hidden).toBe(false);
   });
 
-  it('hides the suggestions while the user types, and shows them again once the box is empty', () => {
+  it('keeps the suggestions while the user types, marked so they show a little quieter (#743)', () => {
     const t = setup();
     t.render();
     const { host, parts } = t.stored();
     type('Hello');
-    expect(parts.chips.hidden).toBe(true);
-    expect(host.style.display).toBe('none');
-    type('  ');
     expect(parts.chips.hidden).toBe(false);
+    expect(parts.bar.dataset['typed']).toBe('true');
     expect(host.style.display).toBe('');
-    // A draft already there when the bar renders hides them too, and a notice still shows.
+    type('  ');
+    expect(parts.bar.dataset['typed']).toBe('false');
+    // A draft already there when the bar renders keeps them too, beside a notice.
     field()?.replaceChildren('Hi');
     t.render({ ...UNDO, suggestions: ['Sure'] });
-    expect(parts.chips.hidden).toBe(true);
+    expect(parts.chips.hidden).toBe(false);
     expect(parts.notice.hidden).toBe(false);
-    expect(host.style.display).toBe('');
+    expect(parts.bar.dataset['typed']).toBe('true');
   });
 
   it('shows the suggestions over a message box it cannot find the field of', () => {
@@ -467,8 +473,12 @@ function barHeights() {
 describe('holdAssistantBarRoom', () => {
   type Bar = Parameters<typeof holdAssistantBarRoom>[2];
   /** A bar `height` tall, which the list's layout reads. */
-  function bar(height: number) {
-    const node = { offsetHeight: height, ownerDocument: document } as unknown as Bar;
+  function bar(height: number, top = 10_000) {
+    const node = {
+      offsetHeight: height,
+      ownerDocument: document,
+      getBoundingClientRect: () => ({ top, bottom: top + height }),
+    } as unknown as Bar;
     const resize = (next: number) => () => {
       Object.assign(node, { offsetHeight: next });
     };
@@ -529,6 +539,24 @@ describe('holdAssistantBarRoom', () => {
     expect(change).toHaveBeenCalledOnce();
   });
 
+  it('keeps a chat WhatsApp drew anew at its end as the bar comes back into it (#743)', () => {
+    barHeights();
+    const t = setup();
+    const list = scrollingChat(
+      () => (t.scope['bar'] as Stored | undefined)?.parts.bar.offsetHeight ?? 0,
+    );
+    list.scrollTop = 1000;
+    t.render();
+    expect(fromEnd(list)).toBe(0);
+    // WhatsApp draws the chat again, without the bar, and opens it at its end.
+    t.stored().host.remove();
+    list.scrollTop = 1000;
+    expect(fromEnd(list)).toBe(0);
+    // The same suggestions come back: the list gets shorter, and stays at its end.
+    expect(t.render()).toBe('placed');
+    expect(fromEnd(list)).toBe(0);
+  });
+
   it('keeps the last message in view as the bar shows, grows, hides and shows again', () => {
     const measured = barHeights();
     const t = setup();
@@ -545,14 +573,15 @@ describe('holdAssistantBarRoom', () => {
     expect(list.scrollTop).toBe(450);
     t.render({ ...CONTENT, notice: { text: 'Try again.', button: null } });
     expect([list.scrollTop, fromEnd(list)]).toEqual([500, 0]);
-    type('Hi');
-    expect([list.scrollTop, fromEnd(list)]).toEqual([450, 0]);
-    // Typing more changes nothing that shows, so nothing is measured or scrolled.
+    // Typing changes nothing that shows, as the suggestions stay (#743), so nothing is measured or scrolled.
     measured.mockClear();
+    type('Hi');
     type('Hi there');
-    expect(measured).not.toHaveBeenCalled();
-    expect(list.scrollTop).toBe(450);
     type('');
+    expect(measured).not.toHaveBeenCalled();
+    expect([list.scrollTop, fromEnd(list)]).toEqual([500, 0]);
+    // Folding them away leaves a row as high, the one they fold into.
+    t.render({ ...CONTENT, notice: { text: 'Try again.', button: null }, collapsed: true });
     expect([list.scrollTop, fromEnd(list)]).toEqual([500, 0]);
     // Picking a suggestion takes the row away, and the last message stays in view (#616).
     t.render({ ...CONTENT, suggestions: [], notice: null });
@@ -722,16 +751,15 @@ describe('the suggestions folded away, and while they are written', () => {
     expect(shown(t)).toEqual({ chips: true, folded: false });
   });
 
-  it('holds the suggestions’ place with three blank chips while they are written, and says so (#703)', () => {
+  it('shows one chip saying they are being written, and tells screen readers once (#743)', () => {
     const t = setup();
     t.render({ ...CONTENT, suggestions: [], writing: true });
     const { list, status } = t.stored().parts;
     expect(shown(t)).toEqual({ chips: true, folded: false });
     expect([...list.children].map((item) => item.getAttribute('class'))).toEqual([
       'placeholder working',
-      'placeholder working',
-      'placeholder working',
     ]);
+    expect(list.firstElementChild?.textContent).toBe('Writing suggestions…');
     expect(list.firstElementChild?.getAttribute('aria-hidden')).toBe('true');
     expect(list.getAttribute('aria-busy')).toBe('true');
     expect(status.textContent).toBe('Writing suggestions…');
@@ -743,7 +771,7 @@ describe('the suggestions folded away, and while they are written', () => {
     expect(status.textContent).toBe('');
   });
 
-  it('hides both while the user types', () => {
+  it('keeps the folded chip while the user types', () => {
     const t = setup();
     t.render({ ...CONTENT, collapsed: true });
     const field = document.querySelector<HTMLElement>('[contenteditable="true"]');
@@ -751,7 +779,7 @@ describe('the suggestions folded away, and while they are written', () => {
       field.textContent = 'Hi';
     }
     document.dispatchEvent(new Event('input'));
-    expect(shown(t)).toEqual({ chips: false, folded: false });
+    expect(shown(t)).toEqual({ chips: false, folded: true });
   });
 
   it('reads what a bar before any render holds as nothing', () => {
@@ -760,6 +788,6 @@ describe('the suggestions folded away, and while they are written', () => {
       bar: { dataset: {} },
       notice: { hidden: true },
     } as unknown as Parameters<typeof assistantBarHidden>[0];
-    expect(assistantBarHidden(parts, false)).toEqual({ chips: true, folded: true, bar: true });
+    expect(assistantBarHidden(parts)).toEqual({ chips: true, folded: true, bar: true });
   });
 });

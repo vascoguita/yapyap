@@ -61,6 +61,10 @@ interface BarContext {
   suggesting: AbortController | undefined;
   /** Suggestions made for recent messages, by message, so a chat opened again shows the same ones. */
   readonly made: Map<string, readonly string[]>;
+  /** The item the notice's Try Again asks about again. */
+  retryFor: string;
+  /** The notice says why no suggestions came, which goes as soon as they are asked for again. */
+  unsuggested: boolean;
 }
 
 const text = en.assistant;
@@ -84,9 +88,18 @@ const EMPTY: AssistantBarState = {
   writing: false,
 };
 
+/**
+ * What the page shows of `state`: while a notice offers Undo, it alone,
+ * as the row shows one thing at a time. The suggestions, kept meanwhile,
+ * come back once the draft is put back, the box empties or the notice
+ * closes (#743).
+ */
+const shownOf = (state: AssistantBarState): AssistantBarState =>
+  state.notice?.button?.id === 'undo' ? { ...state, suggestions: [], writing: false } : state;
+
 function update(bar: BarContext, next: Partial<AssistantBarState>): void {
   bar.state = { ...bar.state, ...next };
-  bar.deps.publish(bar.state);
+  bar.deps.publish(shownOf(bar.state));
 }
 
 /** Shows `words` above the message box, with its fix as the notice's button. */
@@ -160,7 +173,7 @@ async function putInPlace(
     bar.chat = chat;
     bar.rewritten = true;
     const button = { id: 'undo' as const, label: text.bar.undo };
-    update(bar, { suggestions: [], notice: { text: text.bar.done[style], button } });
+    update(bar, { notice: { text: text.bar.done[style], button } });
   }
 }
 
@@ -235,6 +248,7 @@ function forget(bar: BarContext, writing: boolean): void {
   bar.kept = '';
   bar.blocked = false;
   bar.rewritten = false;
+  bar.unsuggested = false;
   // Suggestions about to be made for the chat that opened keep the blank chips up meanwhile (#741).
   update(bar, { suggestions: [], notice: null, writing: writing && bar.state.writing });
 }
@@ -250,6 +264,10 @@ async function undo(bar: BarContext): Promise<void> {
 
 const BUTTONS: Readonly<Record<BarButtonId, (bar: BarContext) => unknown>> = {
   undo,
+  // It starts asking again, and says so; the answer comes as suggestions or a new reason.
+  retry: (bar) => {
+    void suggest(bar, bar.retryFor);
+  },
   // Every fix the notice offers is in Settings.
   fix: (bar) => {
     bar.deps.openSettings();
@@ -267,13 +285,27 @@ async function press(bar: BarContext, id: BarButtonId): Promise<void> {
   }
 }
 
-/** Puts the suggestion at `index` in the message box, if its chat is still open; it never sends it. */
+/**
+ * Puts the suggestion at `index` in the message box, if its chat is still
+ * open; it never sends it. The suggestions stay, so the user can pick
+ * another (#743), unless it replaced a draft the user had typed: then
+ * Undo shows in their place, as after a rewrite, until the draft comes
+ * back or the box empties.
+ */
 async function use(bar: BarContext, index: number): Promise<void> {
-  const suggestion = bar.state.suggestions[index];
+  const suggestion = shownOf(bar.state).suggestions[index];
   const open = suggestion === undefined ? null : await bar.deps.accounts.readActiveChat(1);
-  if (open !== null && open.name === bar.chat) {
-    update(bar, { suggestions: [] });
-    await bar.deps.accounts.replaceDraft(String(suggestion));
+  if (open?.name !== bar.chat) {
+    return;
+  }
+  const draft = (await bar.deps.accounts.readDraft().catch(() => null)) ?? '';
+  await bar.deps.accounts.replaceDraft(String(suggestion));
+  if (draft.trim() !== '' && draft !== suggestion) {
+    bar.kept = draft;
+    bar.rewritten = true;
+    update(bar, {
+      notice: { text: text.bar.replaced, button: { id: 'undo', label: text.bar.undo } },
+    });
   }
 }
 
@@ -322,15 +354,73 @@ async function makeSuggestions(bar: BarContext, message: string, signal: AbortSi
   }
   bar.chat = chat.name;
   update(bar, { writing: true });
-  const answer = await bar.deps.core.ask(setup, suggestPrompt(chat, bar.deps.now()), signal);
+  const answer = await bar.deps.core
+    .ask(setup, suggestPrompt(chat, bar.deps.now()), signal)
+    .catch((error: unknown) => error);
   // A newer message or another chat may have called the request off while the model answered.
   if (isAborted(signal)) {
     return;
   }
+  if (typeof answer !== 'string') {
+    unsuggested(bar, message, setup, answer);
+    return;
+  }
   const suggestions = suggestionsIn(answer).map((item) => item.slice(0, MAX_SUGGESTION));
+  if (suggestions.length === 0) {
+    unsuggested(bar, message, setup, undefined);
+    return;
+  }
   remember(bar, message, suggestions);
-  bar.chat = chat.name;
   update(bar, { suggestions });
+}
+
+/**
+ * Shows suggestions made before for the chat open again, naming that chat
+ * as the one they are for: picking one checks it is still open, and it
+ * named the chat suggestions were last written in, or none after a switch,
+ * so a pick did nothing (#743).
+ */
+async function showKnown(bar: BarContext, known: readonly string[], signal: AbortSignal) {
+  const open =
+    known.length === 0 ? null : await bar.deps.accounts.readActiveChat(1).catch(() => null);
+  if (signal.aborted) {
+    return;
+  }
+  bar.chat = open?.name ?? null;
+  update(bar, { suggestions: known, writing: false });
+}
+
+/** Why no suggestions came last time goes as soon as they are asked for again. */
+function forgetReason(bar: BarContext): void {
+  if (bar.unsuggested) {
+    bar.unsuggested = false;
+    update(bar, { notice: null });
+  }
+}
+
+/**
+ * Says why no suggestions came instead of showing nothing (#743): the
+ * model declined the chat, which asking again will not change; a problem a
+ * setting mends, with the way there; or nothing usable, or a passing
+ * problem, with Try Again. `error` is undefined when the model answered
+ * nothing usable.
+ */
+function unsuggested(bar: BarContext, message: string, setup: Setup, error: unknown): void {
+  bar.unsuggested = true;
+  bar.retryFor = message;
+  const retry = { id: 'retry' as const, label: text.bar.retry };
+  if (error === undefined) {
+    update(bar, { notice: { text: text.bar.noSuggestions, button: retry } });
+    return;
+  }
+  const kind = error instanceof ProviderError ? error.kind : 'failed';
+  if (kind === 'refused') {
+    update(bar, { notice: { text: text.bar.declined, button: null } });
+    return;
+  }
+  const words = problemWords(kind, setup.provider);
+  const fix = words.fix === undefined ? retry : { id: 'fix' as const, label: words.fix.label };
+  update(bar, { notice: { text: words.status, button: fix } });
 }
 
 /** Waits until `message` settled as the newest; false if a newer one or another chat came first. */
@@ -353,13 +443,14 @@ const settled = (bar: BarContext, signal: AbortSignal): Promise<boolean> =>
  */
 async function suggest(bar: BarContext, message: string): Promise<void> {
   bar.suggesting?.abort();
+  forgetReason(bar);
   const known = assistantSettings(bar).autoSuggest ? bar.made.get(message) : [];
-  if (known !== undefined) {
-    update(bar, { suggestions: known, writing: false });
-    return;
-  }
   const controller = new AbortController();
   bar.suggesting = controller;
+  if (known !== undefined) {
+    await showKnown(bar, known, controller.signal);
+    return;
+  }
   // The blank chips show from the start, so suggestions that start over show no gap (#741).
   const ready = await readyToSuggest(bar);
   if (controller.signal.aborted) {
@@ -367,7 +458,7 @@ async function suggest(bar: BarContext, message: string): Promise<void> {
   }
   update(bar, { suggestions: [], writing: ready });
   if (ready && (await settled(bar, controller.signal))) {
-    // A failed request shows nothing: suggestions come on their own, and a rewrite says what fails.
+    // A page between loads can fail to be read; the next message asks again.
     await makeSuggestions(bar, message, controller.signal).catch(() => undefined);
   }
   // A newer request, a send or another chat says for itself whether one is being written.
@@ -427,8 +518,8 @@ async function keepNotice(bar: BarContext): Promise<void> {
 /**
  * The message box is empty. Once after a rewrite filled it, a rewrite's
  * Undo has nothing left to put back over, and the suggestions for the
- * newest message come back, as they do when the user clears what they
- * typed (#629).
+ * newest message show, as they do when the user clears what they typed
+ * (#629); they were kept behind the Undo, so they show as they were.
  */
 function cleared(bar: BarContext, message: string | null): void {
   if (!bar.rewritten) {
@@ -474,6 +565,7 @@ function followChat(
     sent: () => {
       message = null;
       bar.rewritten = false;
+      bar.unsuggested = false;
       bar.suggesting?.abort();
       update(bar, { suggestions: [], notice: null, writing: false });
     },
@@ -500,9 +592,11 @@ export function createAssistantBar(deps: BarDependencies): AssistantBar {
     rewritten: false,
     suggesting: undefined,
     made: new Map(),
+    retryFor: '',
+    unsuggested: false,
   };
   return {
-    state: () => bar.state,
+    state: () => shownOf(bar.state),
     refresh: async () => {
       deps.show(deps.settings.current().assistant.enabled);
       await refresh(bar);

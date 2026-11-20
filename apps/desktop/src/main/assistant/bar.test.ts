@@ -148,8 +148,9 @@ describe('createAssistantBar: the rewrite button', () => {
     expect(t.last().notice?.button).toEqual({ id: 'undo', label: 'Undo' });
     t.bar.found('m1');
     await t.settle();
-    expect(t.last().suggestions).toHaveLength(1);
-    expect(t.last().notice?.button?.id).toBe('undo');
+    // The suggestions made meanwhile wait behind the Undo (#743).
+    expect(t.last()).toMatchObject({ suggestions: [], writing: false });
+    expect(t.bar.state()).toMatchObject({ suggestions: [], notice: { button: { id: 'undo' } } });
     t.bar.opened(null);
     expect(t.last().notice).toBeNull();
     expect(t.last().suggestions).toEqual([]);
@@ -184,7 +185,7 @@ describe('createAssistantBar: the rewrite button', () => {
     expect(t.last().notice?.button?.id).toBe('undo');
   });
 
-  it('takes the rewrite’s suggestions away, and Undo restores nothing in another chat', async () => {
+  it('shows Undo in place of the suggestions, and Undo restores nothing in another chat (#743)', async () => {
     const t = harness('Shorter.');
     t.bar.arrived('m1');
     await t.settle();
@@ -192,10 +193,13 @@ describe('createAssistantBar: the rewrite button', () => {
     await t.bar.polish('shorten');
     expect(t.last().suggestions).toEqual([]);
     expect(t.last().notice?.text).toBe('Shortened. Edit it or send as is.');
+    // A suggestion out of sight cannot be put in.
+    await t.bar.use(0);
+    expect(t.deps.accounts.replaceDraft).toHaveBeenCalledOnce();
     t.setChat({ ...CHAT, name: 'Ben' });
     await t.bar.button('undo');
     expect(t.deps.accounts.replaceDraft).toHaveBeenCalledOnce();
-    expect(t.last().notice).toBeNull();
+    expect(t.last()).toMatchObject({ notice: null, suggestions: ['Shorter.'] });
     t.setChat(null);
     await t.bar.polish('polish');
     await t.bar.button('undo');
@@ -369,15 +373,78 @@ describe('createAssistantBar: suggested replies', () => {
     expect(t.last().suggestions).toEqual(['Yes, 9 works!', 'Can we do 8?']);
   });
 
-  it('puts a suggestion in the message box on click, never sending it, and hides the row', async () => {
+  it('puts a suggestion in the message box on click, never sending it, and keeps the others (#743)', async () => {
     const t = harness();
     t.bar.arrived('m1');
     await t.settle();
     await t.bar.use(5);
     expect(t.deps.accounts.replaceDraft).not.toHaveBeenCalled();
+    vi.mocked(t.deps.accounts.readDraft).mockResolvedValueOnce('');
     await t.bar.use(1);
     expect(t.deps.accounts.replaceDraft).toHaveBeenCalledExactlyOnceWith('Can we do 8?');
+    expect(t.last().suggestions).toEqual(['Yes, 9 works!', 'Can we do 8?']);
+    // The box was empty, so there is nothing to put back.
+    expect(t.last().notice).toBeNull();
+  });
+
+  it('offers Undo when a suggestion replaces what the user typed, and puts it back', async () => {
+    const t = harness();
+    t.bar.arrived('m1');
+    await t.settle();
+    vi.mocked(t.deps.accounts.readDraft).mockResolvedValueOnce('running late');
+    await t.bar.use(0);
+    expect(t.deps.accounts.replaceDraft).toHaveBeenLastCalledWith('Yes, 9 works!');
+    expect(t.last().notice).toEqual({
+      text: 'Replaced your draft.',
+      button: { id: 'undo', label: 'Undo' },
+    });
     expect(t.last().suggestions).toEqual([]);
+    await t.bar.button('undo');
+    expect(t.deps.accounts.replaceDraft).toHaveBeenLastCalledWith('running late');
+    expect(t.last()).toMatchObject({
+      notice: null,
+      suggestions: ['Yes, 9 works!', 'Can we do 8?'],
+    });
+    // A draft that is the suggestion already, or a box that cannot be read, offers nothing.
+    vi.mocked(t.deps.accounts.readDraft).mockResolvedValueOnce('Can we do 8?');
+    await t.bar.use(1);
+    vi.mocked(t.deps.accounts.readDraft).mockRejectedValueOnce(new Error('gone'));
+    await t.bar.use(1);
+    expect(t.last().notice).toBeNull();
+  });
+
+  it('puts in a suggestion shown again in a chat opened again (#743)', async () => {
+    const t = harness();
+    t.bar.opened('m1');
+    await t.settle();
+    // Another chat, whose own suggestions are written, then back to the first.
+    t.setChat({ ...CHAT, name: 'Ben' });
+    t.bar.opened('b1');
+    await t.settle();
+    t.setChat(CHAT);
+    t.bar.opened('m1');
+    await tick();
+    expect(t.last().suggestions).toEqual(['Yes, 9 works!', 'Can we do 8?']);
+    vi.mocked(t.deps.accounts.readDraft).mockResolvedValueOnce('');
+    await t.bar.use(1);
+    expect(t.deps.accounts.replaceDraft).toHaveBeenLastCalledWith('Can we do 8?');
+  });
+
+  it('names no chat for suggestions shown again when the chat cannot be read, or another came first', async () => {
+    const t = harness();
+    t.bar.opened('m1');
+    await t.settle();
+    t.bar.opened('x');
+    vi.mocked(t.deps.accounts.readActiveChat).mockRejectedValueOnce(new Error('reloading'));
+    t.bar.opened('m1');
+    await tick();
+    await t.bar.use(0);
+    expect(t.deps.accounts.replaceDraft).not.toHaveBeenCalled();
+    // A newer message calls showing them off.
+    t.bar.opened('m1');
+    t.bar.arrived('m2');
+    await t.settle();
+    expect(t.last().suggestions).toEqual(['Yes, 9 works!', 'Can we do 8?']);
   });
 
   it('puts in no suggestion once another chat is open', async () => {
@@ -451,6 +518,7 @@ describe('createAssistantBar: suggested replies', () => {
     t.bar.opened(null);
     expect(t.last().suggestions).toEqual([]);
     t.bar.opened('m1');
+    await tick();
     expect(t.last().suggestions).toHaveLength(2);
     expect(t.deps.core.ask).toHaveBeenCalledOnce();
   });
@@ -501,10 +569,11 @@ describe('createAssistantBar: suggested replies', () => {
     t.bar.arrived('m3');
     await t.settle();
     t.bar.opened('m1');
+    await tick();
     expect(t.last()).toMatchObject({ writing: false, suggestions: ['Sure'] });
   });
 
-  it('takes a rewrite’s Undo away and brings the suggestions back once the user empties the box', async () => {
+  it("keeps the suggestions behind a rewrite's Undo, and shows them again once the user empties the box (#743)", async () => {
     const t = harness('Yes, 9 works!\nCan we do 8?');
     t.bar.arrived('m1');
     await t.settle();
@@ -513,6 +582,7 @@ describe('createAssistantBar: suggested replies', () => {
     expect(t.last()).toMatchObject({ suggestions: [], notice: { button: { id: 'undo' } } });
     t.bar.cleared();
     // The suggestions made for the message come back without asking the model again.
+    await tick();
     expect(t.last()).toMatchObject({
       suggestions: ['Yes, 9 works!', 'Can we do 8?'],
       notice: null,
@@ -535,6 +605,7 @@ describe('createAssistantBar: suggested replies', () => {
     await t.bar.button('undo');
     expect(t.last().notice).toBeNull();
     t.bar.cleared();
+    await tick();
     expect(t.last().suggestions).toHaveLength(2);
     // With no message from someone else to answer, emptying the box only takes Undo away.
     const quiet = harness();
@@ -619,15 +690,88 @@ describe('createAssistantBar: suggested replies', () => {
     expect(t.deps.core.ask).toHaveBeenCalledTimes(2);
   });
 
-  it('shows nothing when the model found no reply, or failed', async () => {
+  it('says why no suggestions came, instead of showing nothing (#743)', async () => {
     const t = harness('NONE');
     t.bar.arrived('m1');
     await t.settle();
-    expect(t.last().suggestions).toEqual([]);
-    vi.mocked(t.deps.core.ask).mockRejectedValueOnce(new ProviderError('network'));
+    const retry = { id: 'retry', label: 'Try Again' };
+    expect(t.last()).toMatchObject({
+      suggestions: [],
+      writing: false,
+      notice: { text: 'No suggestions this time.', button: retry },
+    });
+    // The model declining the chat is said with no button: asking again will not change it.
+    vi.mocked(t.deps.core.ask).mockRejectedValueOnce(new ProviderError('refused'));
     t.bar.arrived('m2');
     await t.settle();
-    expect(t.last().suggestions).toEqual([]);
+    expect(t.last().notice).toEqual({
+      text: 'The model declined to suggest replies in this chat.',
+      button: null,
+    });
+    // A passing problem offers Try Again, and one a setting mends offers the way there.
+    vi.mocked(t.deps.core.ask).mockRejectedValueOnce(new ProviderError('network'));
+    t.bar.arrived('m3');
+    await t.settle();
+    expect(t.last().notice).toEqual({
+      text: 'Claude (Anthropic) could not be reached.',
+      button: retry,
+    });
+    vi.mocked(t.deps.core.ask).mockRejectedValueOnce(new Error('odd'));
+    t.bar.arrived('m4');
+    await t.settle();
+    expect(t.last().notice).toEqual({ text: 'Something went wrong. Try again.', button: retry });
+    vi.mocked(t.deps.core.ask).mockRejectedValueOnce(new ProviderError('auth'));
+    t.bar.arrived('m5');
+    await t.settle();
+    expect(t.last().notice?.button?.id).toBe('fix');
+  });
+
+  it('asks again on Try Again, and the reason goes as soon as it asks', async () => {
+    const t = harness();
+    vi.mocked(t.deps.core.ask).mockRejectedValueOnce(new ProviderError('timeout'));
+    t.bar.arrived('m1');
+    await t.settle();
+    expect(t.last().notice?.button?.id).toBe('retry');
+    await t.bar.button('retry');
+    expect(t.last().notice).toBeNull();
+    await t.settle();
+    expect(t.last().suggestions).toEqual(['Yes, 9 works!', 'Can we do 8?']);
+    expect(t.deps.core.ask).toHaveBeenCalledTimes(2);
+    // Once the user sent, the reason goes, and with it Try Again.
+    vi.mocked(t.deps.core.ask).mockRejectedValueOnce(new ProviderError('timeout'));
+    t.bar.arrived('m2');
+    await t.settle();
+    t.bar.sent();
+    expect(t.last().notice).toBeNull();
+    await t.bar.button('retry');
+    await t.settle();
+    expect(t.deps.core.ask).toHaveBeenCalledTimes(3);
+  });
+
+  it('stops writing when the chat cannot be read once it settled', async () => {
+    const t = harness();
+    t.bar.arrived('m1');
+    await tick();
+    vi.mocked(t.deps.accounts.readActiveChat).mockRejectedValueOnce(new Error('reloading'));
+    await t.settle();
+    expect(t.deps.core.ask).not.toHaveBeenCalled();
+    expect(t.last()).toMatchObject({ writing: false, suggestions: [], notice: null });
+  });
+
+  it('says nothing about a request another message called off', async () => {
+    let fail: (error: unknown) => void = () => undefined;
+    const t = harness();
+    vi.mocked(t.deps.core.ask).mockImplementationOnce(
+      () =>
+        new Promise((_resolve, reject) => {
+          fail = reject;
+        }),
+    );
+    t.bar.arrived('m1');
+    await t.settle();
+    t.bar.opened('m9');
+    fail(new ProviderError('cancelled'));
+    await t.settle();
     expect(t.last().notice).toBeNull();
   });
 

@@ -3,9 +3,9 @@
  * a rewrite replaced, fix mends the setup in one click, close takes the
  * notice away.
  */
-export type BarButtonId = 'undo' | 'fix' | 'close';
+export type BarButtonId = 'undo' | 'fix' | 'retry' | 'close';
 
-export const BAR_BUTTON_IDS: readonly BarButtonId[] = ['undo', 'fix', 'close'];
+export const BAR_BUTTON_IDS: readonly BarButtonId[] = ['undo', 'fix', 'retry', 'close'];
 
 /** A short line above the message box, with the one button that goes with it. */
 interface BarNotice {

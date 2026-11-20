@@ -59,7 +59,7 @@ const newMessage = (was: Newest, now: Newest): string | null =>
  * filled may be cleared between two looks.
  */
 function inSameChat(was: Newest, now: Newest, deps: ChatWatchDependencies): void {
-  if (now.mine !== null && now.mine !== was.mine) {
+  if (sentNow(was, now)) {
     deps.sent();
   } else if (!now.drafting) {
     deps.cleared();
@@ -69,6 +69,16 @@ function inSameChat(was: Newest, now: Newest, deps: ChatWatchDependencies): void
     deps.arrived(message);
   }
 }
+
+/**
+ * Whether the user sent a message since the last look: their newest is
+ * another one, and it is the chat's last. WhatsApp draws a chat it opens a
+ * little at a time, so the user's older messages appear after its last one
+ * did; taking that for a send called off the suggestions being made for
+ * it, and none came (#743).
+ */
+const sentNow = (was: Newest, now: Newest): boolean =>
+  !now.theirsLast && now.mine !== null && now.mine !== was.mine;
 
 /** Whether the same chat is open as at the last look, or still none; never at the first look. */
 const sameChat = (was: Newest | null | undefined, now: Newest | null): boolean =>

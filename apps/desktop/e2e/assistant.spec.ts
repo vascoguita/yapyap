@@ -71,12 +71,11 @@ test('suggests replies when a message arrives, only in a chat the user added in 
   expect(asked[0]).toContain('"model":"claude-sonnet-5-5"');
   // WhatsApp's page cannot read the suggestions.
   expect(await window.evaluate(() => document.body.innerText)).not.toContain('Can we do 9?');
-  // A suggestion fills the message box, and never sends.
+  // A suggestion fills the message box, and never sends; the others stay to pick from (#743).
   await clickInBar(app, window, 'Can we do 9?');
   await expect(window.getByTestId('composer')).toHaveText('Can we do 9?');
-  await expect(async () => {
-    expect(await barNames(app)).not.toContain('Yes, 8 works!');
-  }).toPass();
+  await clickInBar(app, window, 'Yes, 8 works!');
+  await expect(window.getByTestId('composer')).toHaveText('Yes, 8 works!');
   await expect(window.getByTestId('sent')).toHaveCount(0);
 });
 
@@ -145,7 +144,7 @@ test('replaces the suggestions when a newer message arrives, asking once for a b
   expect(asked.at(-1)).toContain('Third?');
 });
 
-test('keeps new suggestions out of sight while the user drafts, then shows them (#707)', async ({
+test('makes the new message’s suggestions while the user drafts, and shows them there (#707, #743)', async ({
   app,
   window,
 }) => {
@@ -167,14 +166,11 @@ test('keeps new suggestions out of sight while the user drafts, then shows them 
   await expect(async () => {
     expect((await claudeRequests(app)).some((body) => body.includes('Hello?'))).toBe(true);
   }).toPass({ timeout: 15_000 });
-  await window.waitForTimeout(1500);
-  expect(await barNames(app)).toEqual([]);
-  for (let index = 0; index < 4; index += 1) {
-    await window.keyboard.press('Backspace');
-  }
+  // They stay while the user drafts, so the new message's show there too.
   await expect(async () => {
     expect(await barNames(app)).toContain('Still on!');
   }).toPass({ timeout: 10_000 });
+  await expect(composer).toHaveText('Sure');
 });
 
 test('asks nothing while the window is hidden or the assistant is off, and catches up when shown (#707)', async ({
@@ -221,7 +217,7 @@ test('asks nothing while the window is hidden or the assistant is off, and catch
   expect(await barNames(app)).toEqual([]);
 });
 
-test('hides suggestions while the user types, and folds them away until the user shows them (#729)', async ({
+test('keeps suggestions while the user types, and folds them away until the user shows them (#729, #743)', async ({
   app,
   window,
 }) => {
@@ -240,15 +236,24 @@ test('hides suggestions while the user types, and folds them away until the user
   const composer = window.getByTestId('composer');
   await composer.click();
   await window.keyboard.type('Sure');
+  await window.waitForTimeout(500);
+  expect(await barNames(app)).toContain('See you there');
+  // Picking one over a draft replaces it, with Undo.
+  await clickInBar(app, window, 'See you there');
+  await expect(composer).toHaveText('See you there');
   await expect(async () => {
-    expect(await barNames(app)).toEqual([]);
+    expect(await barNotice(app)).toBe('Replaced your draft.');
+  }).toPass();
+  // Undo shows in place of the suggestions, which come back with the draft (#743).
+  expect(await barNames(app)).not.toContain('See you there');
+  await clickInBar(app, window, 'Undo');
+  await expect(composer).toHaveText('Sure');
+  await expect(async () => {
+    expect(await barNames(app)).toContain('See you there');
   }).toPass();
   for (let index = 0; index < 4; index += 1) {
     await window.keyboard.press('Backspace');
   }
-  await expect(async () => {
-    expect(await barNames(app)).toContain('See you there');
-  }).toPass();
   await clickInBar(app, window, 'Hide suggestions');
   await expect(async () => {
     expect(await barNames(app)).toEqual(['Show suggestions']);
@@ -262,7 +267,7 @@ test('hides suggestions while the user types, and folds them away until the user
   expect(await barNames(app)).toEqual(['Show suggestions']);
   await clickInBar(app, window, 'Show suggestions');
   await expect(async () => {
-    expect(await barNames(app)).toEqual(['Still on!', 'Hide suggestions']);
+    expect(await barNames(app)).toEqual(['Hide suggestions', 'Still on!']);
   }).toPass();
   // Typing, clearing, folding and showing ask nothing; only the new message does.
   expect(await claudeRequests(app)).toHaveLength(beforeTyping + 1);
@@ -292,6 +297,16 @@ test('brings the suggestions back and drops Undo once the user empties a rewritt
   await expect(async () => {
     expect(await barNotice(app)).toBe('Polished. Edit it or send as is.');
   }).toPass();
+  // Undo shows in place of the suggestions, which come back with the draft (#743).
+  expect(await barNames(app)).not.toContain('See you there');
+  await clickInBar(app, window, 'Undo');
+  await expect(composer).toHaveText('sure c u');
+  await expect(async () => {
+    expect(await barNotice(app)).toBeNull();
+    expect(await barNames(app)).toContain('See you there');
+  }).toPass();
+  await clickInTool(app, window, 'Polish');
+  await expect(composer).toHaveText('Sure, see you there!');
   const beforeClearing = (await claudeRequests(app)).length;
   // As the user clears the box, here at once, as select-all and Delete does.
   await window.keyboard.press('ControlOrMeta+A');
@@ -306,7 +321,7 @@ test('brings the suggestions back and drops Undo once the user empties a rewritt
   // The suggestions come back as they were, without asking again.
   const asked = await claudeRequests(app);
   expect(asked).toHaveLength(beforeClearing);
-  expect(asked.filter((body) => body.includes('Rewrite my draft'))).toHaveLength(1);
+  expect(asked.filter((body) => body.includes('Rewrite my draft'))).toHaveLength(2);
 });
 
 test('rewrites the draft in place from the message box, puts it back on Undo, and never sends', async ({
@@ -552,6 +567,33 @@ test('takes suggestions away when another chat opens, never showing them there (
   }).toPass({ timeout: 15_000 });
 });
 
+test('says why no suggestions came, and asks again on Try Again (#743)', async ({
+  app,
+  window,
+}) => {
+  await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
+  // Every answer has nothing usable in it, until the test lets the model answer.
+  const settings = await readyClaude(app, claudeAnswer('NONE'));
+  await allowAllChats(settings);
+  await focusMain(app);
+  await messageArrives(window, '3EB0F7', 'Are we still on?');
+  await expect(async () => {
+    expect(await barNotice(app)).toBe('No suggestions this time.');
+  }).toPass({ timeout: 15_000 });
+  await app.evaluate(({ session }, body) => {
+    const protocol = session.fromPartition('yapyap-assistant').protocol;
+    protocol.unhandle('https');
+    protocol.handle('https', () =>
+      Promise.resolve(new Response(body, { headers: { 'content-type': 'text/event-stream' } })),
+    );
+  }, CLAUDE_ANSWER);
+  await clickInBar(app, window, 'Try Again');
+  await expect(async () => {
+    expect(await barNames(app)).toContain('Can we do 9?');
+    expect(await barNotice(app)).toBeNull();
+  }).toPass({ timeout: 15_000 });
+});
+
 test('keeps the suggestions while the chat’s header lays itself out again (#741)', async ({
   app,
   window,
@@ -635,11 +677,9 @@ test('keeps the chat’s last message in view as suggestions come and the bar co
     expect(await barNames(app)).toContain('Can we do 9?');
   }).toPass();
   expect(await lastMessageInView()).toBe(true);
-  // Picking a suggestion takes the row away, and the chat stays at its last message (#616).
+  // Picking a suggestion keeps the others, and the chat stays at its last message (#616, #743).
   await clickInBar(app, window, 'Can we do 9?');
   await expect(window.getByTestId('composer')).toHaveText('Can we do 9?');
-  await expect(async () => {
-    expect(await barNames(app)).toEqual([]);
-  }).toPass();
+  await window.waitForTimeout(500);
   expect(await lastMessageInView()).toBe(true);
 });

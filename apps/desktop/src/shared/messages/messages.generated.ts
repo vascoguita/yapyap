@@ -487,6 +487,10 @@ export interface Messages {
       readonly expand: string;
       readonly folded: string;
       readonly writing: string;
+      readonly replaced: string;
+      readonly declined: string;
+      readonly noSuggestions: string;
+      readonly retry: string;
       readonly close: string;
       readonly undo: string;
       readonly styles: {
