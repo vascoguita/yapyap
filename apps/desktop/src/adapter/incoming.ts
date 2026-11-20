@@ -19,6 +19,21 @@ interface IncomingPlaces {
 }
 
 /**
+ * FNV-1a over the UTF-8 bytes, 32 bits, as eight hex digits: short, and
+ * enough to tell two names or IDs apart. The probe names the open chat by
+ * the fingerprint of its header's `textContent`, and the assistant's bar
+ * checks the chat it shows suggestions in by the same one (#741). It runs
+ * inside the page as source text, so it stays self-contained.
+ */
+export function fingerprint(text: string): string {
+  let value = 0x811c9dc5;
+  for (const byte of new TextEncoder().encode(text)) {
+    value = Math.imul(value ^ byte, 0x01000193) >>> 0;
+  }
+  return value.toString(16).padStart(8, '0');
+}
+
+/**
  * Which chat is open, its newest message from someone else, the account's
  * own newest, and whose is last, so the assistant can tell a message
  * arrived or the user sent one (#468). A message is the account's own when
@@ -31,21 +46,15 @@ interface IncomingPlaces {
  * it (#629). Runs inside the page as source text, so it stays
  * self-contained; null while no chat is open.
  */
-export function newestMessages(doc: IncomingDocument, places: IncomingPlaces): string | null {
+export function newestMessages(
+  doc: IncomingDocument,
+  places: IncomingPlaces,
+  hash: (text: string) => string,
+): string | null {
   const name = doc.querySelector(places.chatName);
   if (name === null) {
     return null;
   }
-  // FNV-1a over the UTF-8 bytes, 32 bits: short, and enough to tell two names or IDs apart.
-  const offsetBasis = 0x811c9dc5;
-  const prime = 0x01000193;
-  const hash = (text: string): string => {
-    let value = offsetBasis;
-    for (const byte of new TextEncoder().encode(text)) {
-      value = Math.imul(value ^ byte, prime) >>> 0;
-    }
-    return value.toString(16).padStart(8, '0');
-  };
   const rows = Array.from(doc.querySelectorAll(places.message));
   const own = (row: IncomingRow): boolean =>
     row.dataset['id']?.startsWith('true_') === true || row.querySelector(places.outgoing) !== null;
@@ -63,13 +72,13 @@ export function newestMessages(doc: IncomingDocument, places: IncomingPlaces): s
   return `${hash(name.textContent ?? '')}:${theirs}:${newest(rows.filter(own))}:${whose}:${draft}`;
 }
 
-/** The probe as code for `executeJavaScriptInIsolatedWorld`. */
+/** The probe as code for `executeJavaScriptInIsolatedWorld`, with the fingerprint beside it. */
 export const NEWEST_MESSAGES = `(${newestMessages.toString()})(document, ${JSON.stringify({
   message: LANDMARKS.message,
   outgoing: LANDMARKS.outgoing,
   chatName: LANDMARKS.chatName,
   composer: LANDMARKS.composer,
-})})`;
+})}, ${fingerprint.toString()})`;
 
 /** What the probe saw, as hashes: the open chat, and its newest messages from each side. */
 export interface Newest {

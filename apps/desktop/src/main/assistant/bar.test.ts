@@ -355,7 +355,10 @@ describe('createAssistantBar: suggested replies', () => {
   it('suggests replies once a message from someone else settled, with the chat’s latest messages', async () => {
     const t = harness('1. Yes, 9 works!\n2. Can we do 8?');
     t.bar.arrived('m1');
+    // It settles once it knows it may answer there, so the blank chips show from the start.
+    await tick();
     expect(t.timers[0]?.ms).toBe(SETTLE_MS);
+    expect(t.last()).toMatchObject({ writing: true, suggestions: [] });
     await t.settle();
     expect(t.deps.accounts.readActiveChat).toHaveBeenCalledWith(50);
     expect(t.deps.core.ask).toHaveBeenCalledExactlyOnceWith(
@@ -392,9 +395,16 @@ describe('createAssistantBar: suggested replies', () => {
     const t = harness();
     t.bar.arrived('m1');
     t.bar.arrived('m2');
-    expect(t.timers[0]?.cancel).toHaveBeenCalledOnce();
     await t.settle();
+    // The first was called off before it even settled.
+    expect(t.timers).toHaveLength(1);
     expect(t.deps.core.ask).toHaveBeenCalledOnce();
+    t.bar.arrived('m4');
+    await tick();
+    t.bar.arrived('m5');
+    expect(t.timers[1]?.cancel).toHaveBeenCalledOnce();
+    await t.settle();
+    expect(t.deps.core.ask).toHaveBeenCalledTimes(2);
     // A request already made shows nothing once a newer message came.
     let answer: (text: string) => void = () => undefined;
     vi.mocked(t.deps.core.ask).mockImplementationOnce(
@@ -409,6 +419,17 @@ describe('createAssistantBar: suggested replies', () => {
     answer('Too late');
     await tick();
     expect(t.last().suggestions).toEqual([]);
+  });
+
+  it('asks nothing when the setup or the chat stopped fitting while the message settled', async () => {
+    const t = harness();
+    t.bar.arrived('m1');
+    await tick();
+    expect(t.last().writing).toBe(true);
+    t.setSetup({ ...READY, missing: 'key' });
+    await t.settle();
+    expect(t.deps.core.ask).not.toHaveBeenCalled();
+    expect(t.last()).toMatchObject({ writing: false, suggestions: [] });
   });
 
   it('drops a request that went stale before the chat was read', async () => {

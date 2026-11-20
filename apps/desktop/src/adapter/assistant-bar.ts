@@ -8,7 +8,7 @@ import {
   type Actions,
   type Scope,
 } from './page-kit.ts';
-import { MAX_NAME } from './active-chat.ts';
+import { fingerprint } from './incoming.ts';
 import { LANDMARKS } from './page-state.ts';
 
 /** YapYap's own words on the bar, in the user's language. */
@@ -30,7 +30,7 @@ export interface BarContent {
   readonly visible: boolean;
   readonly labels: BarLabels;
   readonly suggestions: readonly string[];
-  /** The chat the suggestions and notice were made for, by name; null when not known. */
+  /** The chat the bar follows, by its header's fingerprint; null while none is open. */
   readonly chat: string | null;
   /** The user folded the suggestions away (#729). */
   readonly collapsed: boolean;
@@ -51,9 +51,8 @@ interface BarPlaces {
   /** The open chat and a message in it, to find the list the bar takes room from. */
   readonly conversation: string;
   readonly message: string;
-  /** The open chat's name in its header, read as the chat reader reads it, to its length. */
+  /** The open chat's name in its header, fingerprinted as the look at the page does. */
   readonly chatName: string;
-  readonly nameLength: number;
   /** The adapter world's global that holds the bar between renders. */
   readonly store: string;
   /** The adapter world's global the WhatsApp preload exposes for the bar's actions. */
@@ -70,7 +69,6 @@ interface BarPlaces {
 /** The few DOM features the bar uses; the main process compiles this without DOM types. */
 interface BarNode {
   textContent: string | null;
-  readonly innerText?: string;
   hidden: boolean;
   scrollTop: number;
   readonly scrollHeight: number;
@@ -156,7 +154,13 @@ export interface BarKit {
   readonly wire: (shadow: BarNode, scope: Scope, places: BarPlaces) => void;
   readonly update: (doc: BarDocument, parts: BarParts, content: BarContent) => void;
   readonly notice: (parts: BarParts, notice: BarContent['notice']) => void;
-  readonly here: (doc: BarDocument, content: BarContent, places: BarPlaces) => BarContent;
+  readonly here: (
+    doc: BarDocument,
+    content: BarContent,
+    places: BarPlaces,
+    hash: (text: string) => string,
+  ) => BarContent;
+  readonly fingerprint: (text: string) => string;
   readonly hidden: (parts: BarParts, typed: boolean) => BarHidden;
   readonly mark: (parts: BarParts, content: BarContent) => void;
   readonly icon: typeof strokeIcon;
@@ -190,7 +194,7 @@ export function renderAssistantBar(
   const store = kept ?? kit.build(doc, scope, places, kit);
   scope[places.store] = store;
   const placed = footer.previousElementSibling !== store.host;
-  const shown = kit.here(doc, content, places);
+  const shown = kit.here(doc, content, places, kit.fingerprint);
   const key = JSON.stringify(shown);
   if (placed) {
     footer.before(store.host);
@@ -214,15 +218,19 @@ export function renderAssistantBar(
  * main process learns that another chat opened only at its next look, up
  * to a second and a half later, while WhatsApp draws the new chat at once
  * and the bar comes back into it within a second, so the page tells
- * itself, by the name in the chat's header (#730).
+ * itself (#730). It names the open chat exactly as the look does, by the
+ * fingerprint of its header's `textContent`: the laid-out `innerText` can
+ * read differently from one moment to the next, which hid suggestions made
+ * for the very chat on screen (#741).
  */
 export function assistantBarHere(
   doc: BarDocument,
   content: BarContent,
   places: BarPlaces,
+  hash: (text: string) => string,
 ): BarContent {
   const header = doc.querySelector(places.chatName) as BarNode | null;
-  const open = (header?.innerText ?? header?.textContent ?? '').trim().slice(0, places.nameLength);
+  const open = header === null ? null : hash(header.textContent ?? '');
   return content.chat === null || content.chat === open
     ? content
     : { ...content, suggestions: [], notice: null };
@@ -584,7 +592,6 @@ const PLACES: BarPlaces = {
   conversation: LANDMARKS.conversation,
   message: LANDMARKS.message,
   chatName: LANDMARKS.chatName,
-  nameLength: MAX_NAME,
   store: 'yapyapAssistantBarView',
   bridge: ASSISTANT_BAR_BRIDGE,
   style: BAR_STYLE,
@@ -611,6 +618,7 @@ export function assistantBarRender(content: BarContent): string {
     `notice: ${noticeAssistantBar.toString()}`,
     `icon: ${strokeIcon.toString()}`,
     `here: ${assistantBarHere.toString()}`,
+    `fingerprint: ${fingerprint.toString()}`,
     `hidden: ${assistantBarHidden.toString()}`,
     `mark: ${markAssistantBar.toString()}`,
   ].join(', ');
