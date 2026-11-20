@@ -1,7 +1,7 @@
 /** @vitest-environment happy-dom */
 import { runInNewContext } from 'node:vm';
 import { describe, expect, it } from 'vitest';
-import { activeChatReader, parseActiveChat, readActiveChat } from './active-chat.ts';
+import { activeChatReader, describeItem, parseActiveChat, readActiveChat } from './active-chat.ts';
 import { LANDMARKS } from './page-state.ts';
 
 const PLACES = {
@@ -160,6 +160,40 @@ describe('readActiveChat', () => {
     });
   });
 
+  it('reads a sender above a message only without a copy mark, never a quote’s, within limits', () => {
+    const chat = `<div id="main">
+      <div data-id="E1"><div data-testid="msg-container"><span data-testid="author">Ana Maria Lopes</span><div data-testid="sticker-container"></div></div></div>
+      <div data-id="E2"><div data-testid="msg-container"><div data-testid="quoted-message"><span data-testid="author">Rui</span></div><div data-testid="sticker-container"></div></div></div>
+      <div data-id="E3"><span data-testid="author">Rui</span><div data-pre-plain-text="[09:30] "><span data-testid="selectable-text">Hi</span></div></div>
+      <div data-id="E4" data-virtualized="true"><div data-testid="msg-container"><div data-pre-plain-text="[09:31] "><span data-testid="selectable-text">Old</span></div></div></div>
+      <div data-id="E5" data-virtualized="false"><span data-testid="selectable-text"><img data-plain-text="🖤"></span></div></div>`;
+    expect(readActiveChat(page(chat), PLACES, { ...LIMITS, messages: 9 })).toStrictEqual({
+      name: '',
+      group: true,
+      messages: [
+        { outgoing: false, text: '', kind: 'sticker', author: 'Ana Mari' },
+        { outgoing: false, text: '', kind: 'sticker' },
+        { outgoing: false, text: 'Hi', meta: '[09:30] ' },
+        { outgoing: false, text: '🖤' },
+      ],
+    });
+  });
+
+  it('trims a sender read from a page without innerText', () => {
+    const author = { textContent: ' Rui ', closest: () => null, querySelector: () => null };
+    const row = {
+      textContent: null,
+      closest: () => null,
+      querySelector: (selector: string) => (selector === LANDMARKS.sticker ? {} : null),
+      querySelectorAll: (selector: string) => (selector === PLACES.author ? [author] : []),
+    };
+    expect(describeItem(row, '', false, PLACES, LIMITS)).toStrictEqual({
+      text: '',
+      kind: 'sticker',
+      author: 'Rui',
+    });
+  });
+
   it('leaves out a row with neither words nor a bubble, and an emoji image without its text', () => {
     const chat = `<div id="main">
       <div data-id="D1"><div></div></div>
@@ -226,6 +260,19 @@ describe('activeChatReader', () => {
   });
 });
 
+describe('activeChatReader’s places', () => {
+  it('gives the page every kind with its marker, the first that matches winning', () => {
+    const source = activeChatReader(1);
+    for (const [kind, selector] of PLACES.kinds) {
+      expect(source).toContain(JSON.stringify([kind, selector]));
+    }
+    expect(source).toContain(JSON.stringify(PLACES.kinds));
+    for (const selector of [PLACES.emoji, PLACES.bubble, PLACES.conversation, PLACES.quoted]) {
+      expect(source).toContain(JSON.stringify(selector));
+    }
+  });
+});
+
 describe('parseActiveChat', () => {
   const chat = { name: 'Team', group: true, messages: [{ outgoing: false, text: 'Hi' }] };
 
@@ -256,6 +303,16 @@ describe('parseActiveChat', () => {
       ),
     ).toBeUndefined();
     expect(parseActiveChat('Team', 1)).toBeUndefined();
+    const hi = { outgoing: false, text: 'Hi' };
+    for (const message of [
+      { ...hi, text: 'x'.repeat(4097) },
+      { ...hi, author: 'x'.repeat(257) },
+      { ...hi, quote: { author: 'x'.repeat(257), text: 'a' } },
+      { ...hi, html: '<b>' },
+      { ...hi, quote: { author: 'A', text: 'a', html: '<b>' } },
+    ]) {
+      expect(parseActiveChat({ ...chat, messages: [message] }, 1)).toBeUndefined();
+    }
   });
 
   it('reads the time and sender from WhatsApp’s copy mark, where it has them', () => {
@@ -271,6 +328,9 @@ describe('parseActiveChat', () => {
     ]);
     expect(parseActiveChat(marked('[09:30] '), 1)?.messages).toEqual([
       { outgoing: false, text: 'Hi', time: '09:30' },
+    ]);
+    expect(parseActiveChat(marked('[1] Ana: '), 1)?.messages).toEqual([
+      { outgoing: false, text: 'Hi', time: '1', author: 'Ana' },
     ]);
     for (const mark of ['no mark', '[] Ana: ', '[09:30 Ana: ', 'x [09:30] Ana: ']) {
       expect(parseActiveChat(marked(mark), 1)?.messages).toEqual([{ outgoing: false, text: 'Hi' }]);

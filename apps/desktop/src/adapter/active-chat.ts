@@ -93,7 +93,7 @@ interface Item {
  * holds the message it quotes, whose text is not the reply's own. It runs
  * inside the page beside {@link readActiveChat}, so it stays self-contained.
  */
-function describeItem(
+export function describeItem(
   row: ReadElement,
   read: string,
   marked: boolean,
