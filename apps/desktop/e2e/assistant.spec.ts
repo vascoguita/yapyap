@@ -21,7 +21,7 @@ import {
   toolNames,
 } from './assistant-helpers.ts';
 import { chromePage } from './chrome-helpers.ts';
-import { closeApp, expect, launchApp, test, whatsAppPage } from './fixtures.ts';
+import { closeApp, expect, launchApp, mainWindow, test, whatsAppPage } from './fixtures.ts';
 
 test('sets Claude up in Settings › AI Assistant, with the key encrypted, tested and in use', async ({
   app,
@@ -104,6 +104,121 @@ test('suggests after a sticker, and after the user’s own message (#723)', asyn
     expect((await claudeRequests(app)).length).toBeGreaterThan(asked.length);
   }).toPass({ timeout: 15_000 });
   await expect(window.getByTestId('sent')).toHaveCount(1);
+});
+
+test('replaces the suggestions when a newer message arrives, asking once for a burst (#707)', async ({
+  app,
+  window,
+}) => {
+  await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
+  const settings = await readyClaude(
+    app,
+    CLAUDE_ANSWER,
+    { when: 'Third?', body: claudeAnswer('All three, yes') },
+    { when: 'Hello?', body: claudeAnswer('Still on!') },
+  );
+  await allowAllChats(settings);
+  await focusMain(app);
+  await messageArrives(window, '3EB0F7', 'Are we still on?');
+  await expect(async () => {
+    expect(await barNames(app)).toContain('See you there');
+  }).toPass({ timeout: 15_000 });
+  await settledRequests(app, window);
+  await messageArrives(window, '3EB0F8', 'Hello?');
+  await expect(async () => {
+    const names = await barNames(app);
+    expect(names).toContain('Still on!');
+    expect(names).not.toContain('See you there');
+  }).toPass({ timeout: 15_000 });
+  const before = await settledRequests(app, window);
+  // Three messages at once ask once, for the last of them.
+  await messageArrives(window, '3EB0F9', 'First?');
+  await messageArrives(window, '3EB0FA', 'Second?');
+  await messageArrives(window, '3EB0FB', 'Third?');
+  await expect(async () => {
+    const names = await barNames(app);
+    expect(names).toContain('All three, yes');
+    expect(names).not.toContain('Still on!');
+  }).toPass({ timeout: 15_000 });
+  const asked = await claudeRequests(app);
+  expect(await settledRequests(app, window)).toBe(before + 1);
+  expect(asked.at(-1)).toContain('Third?');
+});
+
+test('keeps new suggestions out of sight while the user drafts, then shows them (#707)', async ({
+  app,
+  window,
+}) => {
+  await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
+  const settings = await readyClaude(app, CLAUDE_ANSWER, {
+    when: 'Hello?',
+    body: claudeAnswer('Still on!'),
+  });
+  await allowAllChats(settings);
+  await focusMain(app);
+  await messageArrives(window, '3EB0F7', 'Are we still on?');
+  await expect(async () => {
+    expect(await barNames(app)).toContain('See you there');
+  }).toPass({ timeout: 15_000 });
+  const composer = window.getByTestId('composer');
+  await composer.click();
+  await window.keyboard.type('Sure');
+  await messageArrives(window, '3EB0F8', 'Hello?');
+  await expect(async () => {
+    expect((await claudeRequests(app)).some((body) => body.includes('Hello?'))).toBe(true);
+  }).toPass({ timeout: 15_000 });
+  await window.waitForTimeout(1500);
+  expect(await barNames(app)).toEqual([]);
+  for (let index = 0; index < 4; index += 1) {
+    await window.keyboard.press('Backspace');
+  }
+  await expect(async () => {
+    expect(await barNames(app)).toContain('Still on!');
+  }).toPass({ timeout: 10_000 });
+});
+
+test('asks nothing while the window is hidden or the assistant is off, and catches up when shown (#707)', async ({
+  app,
+  window,
+}) => {
+  await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
+  const settings = await readyClaude(app, CLAUDE_ANSWER, {
+    when: 'Hello?',
+    body: claudeAnswer('Still on!'),
+  });
+  await allowAllChats(settings);
+  await focusMain(app);
+  await messageArrives(window, '3EB0F7', 'Are we still on?');
+  await expect(async () => {
+    expect(await barNames(app)).toContain('See you there');
+  }).toPass({ timeout: 15_000 });
+  const shown = await settledRequests(app, window);
+  const main = await mainWindow(app);
+  await main.evaluate((owner) => {
+    owner.hide();
+  });
+  await messageArrives(window, '3EB0F8', 'Hello?');
+  await window.waitForTimeout(3500);
+  expect(await claudeRequests(app)).toHaveLength(shown);
+  await main.evaluate((owner) => {
+    owner.show();
+  });
+  await focusMain(app);
+  await expect(async () => {
+    expect(await barNames(app)).toContain('Still on!');
+  }).toPass({ timeout: 15_000 });
+  const assistantSettings = await openAssistantSettings(app);
+  await assistantSettings.getByRole('switch', { name: 'Show the AI assistant in chats' }).click();
+  await expect(
+    assistantSettings.getByRole('switch', { name: 'Show the AI assistant in chats' }),
+  ).not.toBeChecked();
+  await assistantSettings.close();
+  await focusMain(app);
+  const off = await settledRequests(app, window);
+  await messageArrives(window, '3EB0F9', 'Bye?');
+  await window.waitForTimeout(3500);
+  expect(await claudeRequests(app)).toHaveLength(off);
+  expect(await barNames(app)).toEqual([]);
 });
 
 test('hides suggestions while the user types, and after Dismiss until the next message', async ({
