@@ -364,6 +364,22 @@ async function makeSuggestions(bar: BarContext, message: string, signal: AbortSi
   update(bar, { suggestions });
 }
 
+/**
+ * Shows suggestions made before for the chat open again, naming that chat
+ * as the one they are for: picking one checks it is still open, and it
+ * named the chat suggestions were last written in, or none after a switch,
+ * so a pick did nothing (#743).
+ */
+async function showKnown(bar: BarContext, known: readonly string[], signal: AbortSignal) {
+  const open =
+    known.length === 0 ? null : await bar.deps.accounts.readActiveChat(1).catch(() => null);
+  if (signal.aborted) {
+    return;
+  }
+  bar.chat = open?.name ?? null;
+  update(bar, { suggestions: known, writing: false });
+}
+
 /** Why no suggestions came last time goes as soon as they are asked for again. */
 function forgetReason(bar: BarContext): void {
   if (bar.unsuggested) {
@@ -419,12 +435,12 @@ async function suggest(bar: BarContext, message: string): Promise<void> {
   bar.suggesting?.abort();
   forgetReason(bar);
   const known = assistantSettings(bar).autoSuggest ? bar.made.get(message) : [];
-  if (known !== undefined) {
-    update(bar, { suggestions: known, writing: false });
-    return;
-  }
   const controller = new AbortController();
   bar.suggesting = controller;
+  if (known !== undefined) {
+    await showKnown(bar, known, controller.signal);
+    return;
+  }
   // The blank chips show from the start, so suggestions that start over show no gap (#741).
   const ready = await readyToSuggest(bar);
   if (controller.signal.aborted) {

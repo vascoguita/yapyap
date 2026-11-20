@@ -405,6 +405,40 @@ describe('createAssistantBar: suggested replies', () => {
     expect(t.last().notice).toBeNull();
   });
 
+  it('puts in a suggestion shown again in a chat opened again (#743)', async () => {
+    const t = harness();
+    t.bar.opened('m1');
+    await t.settle();
+    // Another chat, whose own suggestions are written, then back to the first.
+    t.setChat({ ...CHAT, name: 'Ben' });
+    t.bar.opened('b1');
+    await t.settle();
+    t.setChat(CHAT);
+    t.bar.opened('m1');
+    await tick();
+    expect(t.last().suggestions).toEqual(['Yes, 9 works!', 'Can we do 8?']);
+    vi.mocked(t.deps.accounts.readDraft).mockResolvedValueOnce('');
+    await t.bar.use(1);
+    expect(t.deps.accounts.replaceDraft).toHaveBeenLastCalledWith('Can we do 8?');
+  });
+
+  it('names no chat for suggestions shown again when the chat cannot be read, or another came first', async () => {
+    const t = harness();
+    t.bar.opened('m1');
+    await t.settle();
+    t.bar.opened('x');
+    vi.mocked(t.deps.accounts.readActiveChat).mockRejectedValueOnce(new Error('reloading'));
+    t.bar.opened('m1');
+    await tick();
+    await t.bar.use(0);
+    expect(t.deps.accounts.replaceDraft).not.toHaveBeenCalled();
+    // A newer message calls showing them off.
+    t.bar.opened('m1');
+    t.bar.arrived('m2');
+    await t.settle();
+    expect(t.last().suggestions).toEqual(['Yes, 9 works!', 'Can we do 8?']);
+  });
+
   it('puts in no suggestion once another chat is open', async () => {
     const t = harness();
     t.bar.arrived('m1');
@@ -476,6 +510,7 @@ describe('createAssistantBar: suggested replies', () => {
     t.bar.opened(null);
     expect(t.last().suggestions).toEqual([]);
     t.bar.opened('m1');
+    await tick();
     expect(t.last().suggestions).toHaveLength(2);
     expect(t.deps.core.ask).toHaveBeenCalledOnce();
   });
@@ -526,6 +561,7 @@ describe('createAssistantBar: suggested replies', () => {
     t.bar.arrived('m3');
     await t.settle();
     t.bar.opened('m1');
+    await tick();
     expect(t.last()).toMatchObject({ writing: false, suggestions: ['Sure'] });
   });
 
@@ -538,6 +574,7 @@ describe('createAssistantBar: suggested replies', () => {
     expect(t.last()).toMatchObject({ suggestions: [], notice: { button: { id: 'undo' } } });
     t.bar.cleared();
     // The suggestions made for the message come back without asking the model again.
+    await tick();
     expect(t.last()).toMatchObject({
       suggestions: ['Yes, 9 works!', 'Can we do 8?'],
       notice: null,
@@ -560,6 +597,7 @@ describe('createAssistantBar: suggested replies', () => {
     await t.bar.button('undo');
     expect(t.last().notice).toBeNull();
     t.bar.cleared();
+    await tick();
     expect(t.last().suggestions).toHaveLength(2);
     // With no message from someone else to answer, emptying the box only takes Undo away.
     const quiet = harness();
