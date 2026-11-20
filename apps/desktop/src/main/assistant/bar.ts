@@ -79,6 +79,7 @@ const EMPTY: AssistantBarState = {
   notice: null,
   polish: POLISH_STYLES[0],
   model: '',
+  chat: null,
 };
 
 function update(bar: BarContext, next: Partial<AssistantBarState>): void {
@@ -157,7 +158,7 @@ async function putInPlace(
     bar.chat = chat;
     bar.rewritten = true;
     const button = { id: 'undo' as const, label: text.bar.undo };
-    update(bar, { suggestions: [], notice: { text: text.bar.done[style], button } });
+    update(bar, { suggestions: [], notice: { text: text.bar.done[style], button }, chat });
   }
 }
 
@@ -232,7 +233,7 @@ function forget(bar: BarContext): void {
   bar.kept = '';
   bar.blocked = false;
   bar.rewritten = false;
-  update(bar, { suggestions: [], notice: null });
+  update(bar, { suggestions: [], notice: null, chat: null });
 }
 
 /** Puts back the draft a rewrite replaced, while its chat is still open. */
@@ -313,7 +314,7 @@ async function makeSuggestions(bar: BarContext, message: string, signal: AbortSi
   const suggestions = suggestionsIn(answer).map((item) => item.slice(0, MAX_SUGGESTION));
   remember(bar, message, suggestions);
   bar.chat = chat.name;
-  update(bar, { suggestions });
+  update(bar, { suggestions, chat: chat.name });
 }
 
 /** Waits until `message` settled as the newest; false if a newer one or another chat came first. */

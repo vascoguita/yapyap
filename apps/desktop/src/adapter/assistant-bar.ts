@@ -7,6 +7,7 @@ import {
   type Actions,
   type Scope,
 } from './page-kit.ts';
+import { MAX_NAME } from './active-chat.ts';
 import { LANDMARKS } from './page-state.ts';
 
 /** YapYap's own words on the bar, in the user's language. */
@@ -23,6 +24,8 @@ export interface BarContent {
   readonly visible: boolean;
   readonly labels: BarLabels;
   readonly suggestions: readonly string[];
+  /** The chat the suggestions and notice were made for, by name; null when not known. */
+  readonly chat: string | null;
   /** What a rewrite did, or what keeps the assistant from answering, with its one button. */
   readonly notice: {
     readonly text: string;
@@ -38,6 +41,9 @@ interface BarPlaces {
   /** The open chat and a message in it, to find the list the bar takes room from. */
   readonly conversation: string;
   readonly message: string;
+  /** The open chat's name in its header, read as the chat reader reads it, to its length. */
+  readonly chatName: string;
+  readonly nameLength: number;
   /** The adapter world's global that holds the bar between renders. */
   readonly store: string;
   /** The adapter world's global the WhatsApp preload exposes for the bar's actions. */
@@ -49,6 +55,7 @@ interface BarPlaces {
 /** The few DOM features the bar uses; the main process compiles this without DOM types. */
 interface BarNode {
   textContent: string | null;
+  readonly innerText?: string;
   hidden: boolean;
   scrollTop: number;
   readonly scrollHeight: number;
@@ -121,6 +128,7 @@ export interface BarKit {
   readonly wire: (shadow: BarNode, scope: Scope, places: BarPlaces) => void;
   readonly update: (doc: BarDocument, parts: BarParts, content: BarContent) => void;
   readonly notice: (parts: BarParts, notice: BarContent['notice']) => void;
+  readonly here: (doc: BarDocument, content: BarContent, places: BarPlaces) => BarContent;
   readonly icon: typeof strokeIcon;
 }
 
@@ -152,21 +160,41 @@ export function renderAssistantBar(
   const store = kept ?? kit.build(doc, scope, places, kit);
   scope[places.store] = store;
   const placed = footer.previousElementSibling !== store.host;
-  const key = JSON.stringify(content);
+  const shown = kit.here(doc, content, places);
+  const key = JSON.stringify(shown);
   if (placed) {
     footer.before(store.host);
   }
   if (store.key !== key) {
     store.key = key;
     kit.room(scope, places, store.parts.bar, () => {
-      kit.update(doc, store.parts, content);
-      kit.notice(store.parts, content.notice);
+      kit.update(doc, store.parts, shown);
+      kit.notice(store.parts, shown.notice);
     });
   }
   store.sync();
   kit.align(scope, store.host, footer);
   kit.paint(scope, store.host, footer);
   return placed ? 'placed' : 'kept';
+}
+
+/**
+ * What the bar shows in the chat open now: nothing of another chat's. The
+ * main process learns that another chat opened only at its next look, up
+ * to a second and a half later, while WhatsApp draws the new chat at once
+ * and the bar comes back into it within a second, so the page tells
+ * itself, by the name in the chat's header (#730).
+ */
+export function assistantBarHere(
+  doc: BarDocument,
+  content: BarContent,
+  places: BarPlaces,
+): BarContent {
+  const header = doc.querySelector(places.chatName) as BarNode | null;
+  const open = (header?.innerText ?? header?.textContent ?? '').trim().slice(0, places.nameLength);
+  return content.chat === null || content.chat === open
+    ? content
+    : { ...content, suggestions: [], notice: null };
 }
 
 /**
@@ -437,6 +465,8 @@ const PLACES: BarPlaces = {
   field: LANDMARKS.composer,
   conversation: LANDMARKS.conversation,
   message: LANDMARKS.message,
+  chatName: LANDMARKS.chatName,
+  nameLength: MAX_NAME,
   store: 'yapyapAssistantBarView',
   bridge: ASSISTANT_BAR_BRIDGE,
   style: BAR_STYLE,
@@ -457,6 +487,7 @@ export function assistantBarRender(content: BarContent): string {
     `update: ${updateAssistantBar.toString()}`,
     `notice: ${noticeAssistantBar.toString()}`,
     `icon: ${strokeIcon.toString()}`,
+    `here: ${assistantBarHere.toString()}`,
   ].join(', ');
   return `(${renderAssistantBar.toString()})(document, globalThis, ${JSON.stringify(content)}, ${JSON.stringify(PLACES)}, { ${kit} })`;
 }

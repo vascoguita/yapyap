@@ -8,6 +8,7 @@ const STATE: AssistantBarState = {
   notice: null,
   polish: 'soften',
   model: 'Haiku',
+  chat: 'Ana',
 };
 
 function fakePage() {
@@ -72,6 +73,7 @@ describe('inPageAssistantBar', () => {
       },
       suggestions: ['On my way'],
       notice: null,
+      chat: 'Ana',
     });
     const notice = {
       text: 'Softened. Edit it or send as is.',

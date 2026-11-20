@@ -3,6 +3,7 @@ import { runInNewContext } from 'node:vm';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   alignAssistantBar,
+  assistantBarHere,
   assistantBarRender,
   assistantBarRows,
   buildAssistantBar,
@@ -32,6 +33,7 @@ const CONTENT: BarContent = {
   labels: LABELS,
   suggestions: ['On my way', '<b>Soon</b>'],
   notice: null,
+  chat: null,
 };
 
 const UNDO: BarContent = {
@@ -45,6 +47,8 @@ const PLACES = {
   field: '#main footer [contenteditable="true"]',
   conversation: '#main',
   message: '#main [data-id]',
+  chatName: '#main header span',
+  nameLength: 8,
   store: 'bar',
   bridge: 'bridge',
   style: '.bar { display: flex; }',
@@ -63,6 +67,7 @@ const KIT = {
   update: updateAssistantBar,
   notice: noticeAssistantBar,
   icon: strokeIcon,
+  here: assistantBarHere,
 };
 
 interface Stored {
@@ -622,4 +627,43 @@ describe('assistantBarRender', () => {
       ]);
     },
   );
+});
+
+describe('assistantBarHere', () => {
+  it('shows another chat’s suggestions and notice nowhere, by the name in the open chat’s header (#730)', () => {
+    document.body.innerHTML =
+      '<div id="main"><header><span> Ana Maria Lopes </span></header></div>';
+    const mine = { ...UNDO, suggestions: ['Hi'], chat: 'Ana Mari' };
+    expect(assistantBarHere(document, mine, PLACES)).toBe(mine);
+    expect(assistantBarHere(document, { ...mine, chat: 'Rui' }, PLACES)).toStrictEqual({
+      ...mine,
+      chat: 'Rui',
+      suggestions: [],
+      notice: null,
+    });
+    // Not known to be one chat's: they show.
+    expect(assistantBarHere(document, CONTENT, PLACES)).toBe(CONTENT);
+  });
+
+  it('reads a header with no innerText, and none at all', () => {
+    const named = { querySelector: () => ({ textContent: 'Rui' }) };
+    const mine = { ...CONTENT, chat: 'Rui' };
+    expect(assistantBarHere(named as unknown as Document, mine, PLACES)).toBe(mine);
+    const none = { querySelector: () => null };
+    expect(assistantBarHere(none as unknown as Document, mine, PLACES).suggestions).toEqual([]);
+    const empty = { querySelector: () => ({ textContent: null }) };
+    expect(assistantBarHere(empty as unknown as Document, mine, PLACES).suggestions).toEqual([]);
+  });
+
+  it('takes another chat’s suggestions away as the bar renders into the new chat', () => {
+    const t = setup();
+    document
+      .querySelector('#main')
+      ?.prepend(Object.assign(document.createElement('header'), { innerHTML: '<span>Rui</span>' }));
+    t.render({ ...CONTENT, chat: 'Rui' });
+    expect(t.stored().parts.list.childElementCount).toBe(2);
+    document.querySelector('#main header span')?.replaceChildren('Ana');
+    t.render({ ...CONTENT, chat: 'Rui' });
+    expect(t.stored().parts.list.childElementCount).toBe(0);
+  });
 });

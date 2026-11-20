@@ -40,6 +40,7 @@ function contentOf(state: AssistantBarState, visible: boolean): BarContent {
     },
     suggestions: state.suggestions,
     notice: state.notice,
+    chat: state.chat,
   };
 }
 

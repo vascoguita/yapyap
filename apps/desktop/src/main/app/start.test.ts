@@ -142,6 +142,7 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
         notice: null,
         polish: 'polish',
         model: 'Haiku',
+        chat: null,
       })),
       refresh: vi.fn(() => Promise.resolve()),
       polish: vi.fn(() => Promise.resolve()),

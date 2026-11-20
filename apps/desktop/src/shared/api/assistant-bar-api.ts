@@ -26,6 +26,12 @@ export interface AssistantBarState {
   readonly polish: string;
   /** The model in use, by name, for the rewrite menu's settings item. */
   readonly model: string;
+  /**
+   * The chat the suggestions and notice were made for, by its name as its
+   * header shows it, so the page shows them only while it is open; null
+   * when no one chat is known.
+   */
+  readonly chat: string | null;
 }
 
 /**
