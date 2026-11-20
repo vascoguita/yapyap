@@ -1,5 +1,5 @@
 import { ASSISTANT_BAR_BRIDGE } from '../shared/api/assistant-bar-api.ts';
-import { WORKING_EDGE } from '../shared/working-edge.ts';
+import { edgeTurn, WORKING_EDGE } from '../shared/working-edge.ts';
 import { ASSISTANT_ICONS, ASSISTANT_THEME } from './assistant-look.ts';
 import {
   paintWhatsAppTheme,
@@ -565,13 +565,13 @@ li { display: flex; min-inline-size: 0; max-inline-size: 100%; }
 }
 .chip:hover { border-color: var(--ai-border); background: var(--ai-tint); }
 .placeholder {
-  --edge: var(--ai); --edge-fill: var(--chip);
+  --edge: var(--ai); --edge-track: var(--chip-border); --edge-fill: var(--chip);
   flex: none; block-size: 40px; border: 1px solid var(--chip-border); border-radius: var(--radius-pill);
   background: var(--chip);
 }
-.placeholder:nth-child(1) { inline-size: 96px; }
-.placeholder:nth-child(2) { inline-size: 128px; }
-.placeholder:nth-child(3) { inline-size: 80px; }
+.placeholder:nth-child(1) { inline-size: 96px; --edge-turn: ${edgeTurn(96, 40)}; }
+.placeholder:nth-child(2) { inline-size: 128px; --edge-turn: ${edgeTurn(128, 40)}; }
+.placeholder:nth-child(3) { inline-size: 80px; --edge-turn: ${edgeTurn(80, 40)}; }
 .status {
   position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%);
   white-space: nowrap;

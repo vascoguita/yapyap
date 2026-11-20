@@ -1,5 +1,5 @@
 import { ASSISTANT_BAR_BRIDGE } from '../shared/api/assistant-bar-api.ts';
-import { WORKING_EDGE } from '../shared/working-edge.ts';
+import { edgeTurn, WORKING_EDGE } from '../shared/working-edge.ts';
 import { ASSISTANT_ICONS, ASSISTANT_THEME } from './assistant-look.ts';
 import {
   paintWhatsAppTheme,
@@ -66,6 +66,8 @@ interface ToolNode {
   readonly parentElement: ToolNode | null;
   readonly lastElementChild: ToolNode | null;
   readonly previousElementSibling: unknown;
+  readonly offsetWidth: number;
+  readonly offsetHeight: number;
   readonly style: { setProperty(name: string, value: string): void; display: string };
   readonly dataset: Record<string, string | undefined>;
   setAttribute(name: string, value: string): void;
@@ -131,6 +133,8 @@ interface ToolSpot {
 /** The button's helpers, passed in because each runs as its own source text. */
 export interface ToolKit {
   readonly slot: (doc: ToolDocument, places: ToolPlaces) => ToolSpot | null;
+  /** How long the working light takes around a pill this size (`edgeTurn`). */
+  readonly turn: (width: number, height: number) => string;
   readonly paint: typeof paintWhatsAppTheme;
   readonly build: (doc: ToolDocument, scope: Scope, places: ToolPlaces, kit: ToolKit) => ToolStore;
   readonly node: typeof shadowPart;
@@ -398,6 +402,10 @@ export function updateComposerTool(
   tool.setAttribute('aria-label', label);
   tool.setAttribute('aria-busy', String(content.working));
   tool.setAttribute('class', content.working ? 'tool working' : 'tool');
+  if (content.working) {
+    // Measured as it starts working, so its light goes at the same pace as on every other pill (#741).
+    tool.style.setProperty('--edge-turn', kit.turn(tool.offsetWidth, tool.offsetHeight));
+  }
   apply.setAttribute('title', `${shown.label}: ${shown.hint}`);
   apply.disabled = content.working || found === undefined;
   more.setAttribute('aria-label', content.labels.more);
@@ -460,7 +468,7 @@ export function composerToolItem(
 const TOOL_STYLE = `${ASSISTANT_THEME}${WORKING_EDGE}
 :host { display: flex; flex: none; align-items: center; }
 .tool {
-  --edge: var(--ai); --edge-fill: var(--ai-tint);
+  --edge: var(--ai); --edge-track: var(--chip-border); --edge-fill: var(--chip);
   position: relative; display: flex; align-items: stretch; box-sizing: border-box;
   block-size: 40px; margin-inline: 2px 4px; border: 1px solid var(--ai);
   border-radius: var(--radius-pill);
@@ -488,6 +496,9 @@ svg {
   border-end-end-radius: var(--radius-pill); background: var(--ai-split);
 }
 .more svg { inline-size: 18px; block-size: 18px; }
+/* While it works, the whole pill shows the one neutral fill every working pill has (#741). */
+.tool.working { background: var(--chip); }
+.tool.working .more { background: transparent; }
 .apply:hover:not(:disabled), .more:hover:not(:disabled), .more[aria-expanded='true'] {
   background: var(--ai-hover);
 }
@@ -552,6 +563,7 @@ export function composerToolRender(content: ToolContent): string {
     `update: ${updateComposerTool.toString()}`,
     `item: ${composerToolItem.toString()}`,
     `icon: ${strokeIcon.toString()}`,
+    `turn: ${edgeTurn.toString()}`,
   ].join(', ');
   return `(${renderComposerTool.toString()})(document, globalThis, ${JSON.stringify(content)}, ${JSON.stringify(PLACES)}, { ${kit} })`;
 }

@@ -1101,6 +1101,8 @@ ul.languages label .hint {
   position: relative;
   isolation: isolate;
   overflow: hidden;
+}
+.working.working {
   border-color: transparent;
 }
 .working::before {
@@ -1111,8 +1113,12 @@ ul.languages label .hint {
   inline-size: 480px;
   block-size: 480px;
   margin: auto;
-  background: conic-gradient(transparent 0deg 250deg, var(--edge) 330deg, transparent 360deg);
-  animation: working-edge 1.6s linear infinite;
+  background: conic-gradient(
+    var(--edge-track) 0deg 250deg,
+    var(--edge) 330deg,
+    var(--edge-track) 360deg
+  );
+  animation: working-edge var(--edge-turn, 1.6s) linear infinite;
 }
 .working::after {
   content: '';
@@ -1197,16 +1203,18 @@ ul.languages li:has(.dictionary) label .hint {
 }
 
 /* While a dictionary downloads: a small pill with the working edge. */
+/* The one neutral fill every working pill has, so its light reads alike everywhere (#741). */
 .dictionary-pill {
   --edge: var(--accent);
-  --edge-fill: var(--card);
+  --edge-track: var(--border);
+  --edge-fill: var(--raised);
   display: inline-flex;
   align-items: center;
   min-block-size: 28px;
   padding-inline: 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
-  background: var(--card);
+  background: var(--raised);
 }
 
 /* Faded like a dimmed row, by color rather than opacity, for the same contrast. */

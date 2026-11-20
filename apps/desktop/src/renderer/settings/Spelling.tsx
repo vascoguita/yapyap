@@ -1,5 +1,5 @@
 import type { JSX } from 'preact';
-import { useCallback, useEffect, useState } from 'preact/hooks';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import {
   MAX_SPELLING_LANGUAGES,
   type ChromeApi,
@@ -7,6 +7,7 @@ import {
   type SpellingLanguages,
 } from '../../shared/api/chrome-api.ts';
 import { en } from '../../shared/messages/en.ts';
+import { edgeTurn } from '../../shared/working-edge.ts';
 import { Icon } from '../shared/icons.tsx';
 import { useShownDictionaries, type ShownDictionary } from './dictionary-states.ts';
 import { fieldsOf, Group, type Change } from './Field.tsx';
@@ -65,6 +66,20 @@ interface PickerProps {
   readonly shown: Readonly<Record<string, ShownDictionary>>;
 }
 
+/** The pill that works while a dictionary downloads, its light at the pace of every other (#741). */
+function Downloading(): JSX.Element {
+  const pill = useRef<HTMLOutputElement>(null);
+  useLayoutEffect(() => {
+    const node = pill.current;
+    node?.style.setProperty('--edge-turn', edgeTurn(node.offsetWidth, node.offsetHeight));
+  }, []);
+  return (
+    <output ref={pill} class="dictionary-pill working">
+      {text.downloading}
+    </output>
+  );
+}
+
 /**
  * How a language's dictionary stands, beside its name (#741): a small pill
  * with the working edge while it downloads, a check and "Downloaded" once
@@ -79,7 +94,7 @@ function Dictionary(props: {
     case 'downloading':
       return (
         <span class="dictionary">
-          <output class="dictionary-pill working">{text.downloading}</output>
+          <Downloading />
         </span>
       );
     case 'downloaded':

@@ -6,7 +6,9 @@
  * does a spelling dictionary while it downloads, so all three look alike.
  *
  * An element with the `working` class gets it, given `--edge`, the light's
- * color, and `--edge-fill`, its own background. A pseudo-element larger
+ * color, `--edge-track`, the faint ring it travels on, which keeps the
+ * pill's shape on a background as light as its own, and `--edge-fill`, its
+ * own background. A pseudo-element larger
  * than the pill carries the light and turns, and another, inset by the
  * ring's width, paints the fill back over its middle. The light is a
  * square centered by equal insets, so it turns about the pill's middle in
@@ -14,7 +16,10 @@
  * every angle. Chromium ignores
  * `@property` in shadow roots, so the gradient's angle cannot animate on
  * its own there. For people who ask for less motion, the whole ring shows
- * still, faded. Settings' stylesheet carries the same rule, which its
+ * still, faded. The pill's own border gives way to the ring, by a doubled
+ * class that outweighs the pill's own rules wherever they come, so every
+ * ring is the same 1.5px of light and nothing else (#741). Settings'
+ * stylesheet carries the same rule, which its
  * content security policy keeps from being injected; a test holds the two
  * alike.
  */
@@ -23,6 +28,8 @@ export const WORKING_EDGE = `
   position: relative;
   isolation: isolate;
   overflow: hidden;
+}
+.working.working {
   border-color: transparent;
 }
 .working::before {
@@ -33,8 +40,12 @@ export const WORKING_EDGE = `
   inline-size: 480px;
   block-size: 480px;
   margin: auto;
-  background: conic-gradient(transparent 0deg 250deg, var(--edge) 330deg, transparent 360deg);
-  animation: working-edge 1.6s linear infinite;
+  background: conic-gradient(
+    var(--edge-track) 0deg 250deg,
+    var(--edge) 330deg,
+    var(--edge-track) 360deg
+  );
+  animation: working-edge var(--edge-turn, 1.6s) linear infinite;
 }
 .working::after {
   content: '';
@@ -57,3 +68,16 @@ export const WORKING_EDGE = `
   }
 }
 `;
+
+/**
+ * How long the light takes to go once around a pill `width` by `height`
+ * pixels, as a CSS time, so it travels at the same 150 px/s along every
+ * edge whatever the pill's size: one turn per 1.6 s ran visibly faster on
+ * a wide pill than on a small one (#741). A 96 by 40 chip keeps about 1.6 s.
+ * Pages run it as source text too, so it stays self-contained; a pill not
+ * laid out yet keeps the rule's own 1.6 s.
+ */
+export function edgeTurn(width: number, height: number): string {
+  const perimeter = 2 * Math.max(0, width - height) + Math.PI * height;
+  return perimeter > 0 ? `${(perimeter / 150).toFixed(2)}s` : '1.6s';
+}

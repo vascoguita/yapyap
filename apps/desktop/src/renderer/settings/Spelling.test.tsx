@@ -193,7 +193,10 @@ describe('SpellingSection’s dictionaries (#704)', () => {
     });
     show(yapyap);
     await screen.findByText('Could not download');
-    expect(screen.getByText('Downloading…').getAttribute('class')).toBe('dictionary-pill working');
+    const pill = screen.getByText('Downloading…');
+    expect(pill.getAttribute('class')).toBe('dictionary-pill working');
+    // Its light's pace follows its size, as on every working pill.
+    expect(pill.style.getPropertyValue('--edge-turn')).toMatch(/^\d+(\.\d+)?s$/);
     expect(screen.queryByText('Ready')).toBeNull();
     // One download alone is told on its row only.
     expect(screen.queryByText(/Downloading \d dictionar/)).toBeNull();
