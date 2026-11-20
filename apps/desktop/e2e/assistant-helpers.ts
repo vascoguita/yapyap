@@ -197,6 +197,24 @@ export const claudeRequests = (app: ElectronApplication): Promise<string[]> =>
   app.evaluate(() => (globalThis as { claudeRequests?: string[] }).claudeRequests ?? []);
 
 /**
+ * How many requests Claude got once none came for three seconds, longer
+ * than a look at the chat and a message settling take together. The chat
+ * a window opens on may be asked about too, and on a slow start its
+ * request can come after a test's message, so a test counts from here
+ * (#725).
+ */
+export async function settledRequests(app: ElectronApplication, page: Page): Promise<number> {
+  let count = 0;
+  await expect(async () => {
+    const before = (await claudeRequests(app)).length;
+    await page.waitForTimeout(3000);
+    count = (await claudeRequests(app)).length;
+    expect(count).toBe(before);
+  }).toPass({ timeout: 30_000 });
+  return count;
+}
+
+/**
  * Runs in the adapter's isolated world, where YapYap keeps the message box's
  * rewrite button (#609): its controls that show, named as the user hears them.
  */
