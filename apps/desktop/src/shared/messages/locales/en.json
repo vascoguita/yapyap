@@ -562,7 +562,10 @@
       "label": "AI Assistant",
       "suggestions": "Suggested replies",
       "use": "Puts this reply in the message box, for you to edit or send.",
-      "dismiss": "Dismiss suggestions",
+      "collapse": "Hide suggestions",
+      "expand": "Show suggestions",
+      "folded": "Suggestions",
+      "writing": "Writing suggestions…",
       "close": "Close",
       "undo": "Undo",
       "styles": {

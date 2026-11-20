@@ -32,6 +32,10 @@ export interface AssistantBarState {
    * when no one chat is known.
    */
   readonly chat: string | null;
+  /** The user folded the suggestions away; they show again only when the user asks (#729). */
+  readonly collapsed: boolean;
+  /** The model is writing suggestions, which take seconds (#703). */
+  readonly writing: boolean;
 }
 
 /**
@@ -44,7 +48,8 @@ export const ASSISTANT_BAR_BRIDGE = 'yapyapAssistantBar';
 export const ASSISTANT_BAR_CHANNELS = {
   polish: 'whatsapp:assistant-bar-polish',
   use: 'whatsapp:assistant-bar-use',
-  dismiss: 'whatsapp:assistant-bar-dismiss',
+  collapse: 'whatsapp:assistant-bar-collapse',
+  expand: 'whatsapp:assistant-bar-expand',
   button: 'whatsapp:assistant-bar-button',
   settings: 'whatsapp:assistant-bar-settings',
 } as const;
@@ -58,8 +63,10 @@ export interface AssistantBarBridge {
   readonly polish: (value: string) => void;
   /** Puts the suggestion in the message box; it never sends it. */
   readonly use: (index: number) => void;
-  /** Hides the suggestions until the next message arrives. */
-  readonly dismiss: () => void;
+  /** Folds the suggestions away, until the user shows them again (#729). */
+  readonly collapse: () => void;
+  /** Shows the suggestions again, as they were. */
+  readonly expand: () => void;
   /** Presses the notice's button. */
   readonly button: (id: string) => void;
   /** Opens Settings, at the assistant. */

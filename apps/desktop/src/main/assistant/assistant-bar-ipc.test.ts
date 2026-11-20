@@ -14,7 +14,8 @@ function setup() {
   const bar = {
     polish: vi.fn(() => Promise.resolve()),
     use: vi.fn(() => Promise.resolve()),
-    dismiss: vi.fn(),
+    collapse: vi.fn(),
+    expand: vi.fn(),
     button: vi.fn(() => Promise.resolve()),
   };
   const openSettings = vi.fn();
@@ -55,12 +56,14 @@ describe('listenToAssistantBar', () => {
     const t = setup();
     await t.hear('polish', t.fromBar, 'soften');
     await t.hear('use', t.fromBar, 0);
-    await t.hear('dismiss', t.fromBar);
+    await t.hear('collapse', t.fromBar);
+    await t.hear('expand', t.fromBar);
     await t.hear('button', t.fromBar, 'undo');
     await t.hear('settings', t.fromBar);
     expect(t.bar.polish).toHaveBeenCalledExactlyOnceWith('soften');
     expect(t.bar.use).toHaveBeenCalledExactlyOnceWith(0);
-    expect(t.bar.dismiss).toHaveBeenCalledOnce();
+    expect(t.bar.collapse).toHaveBeenCalledOnce();
+    expect(t.bar.expand).toHaveBeenCalledOnce();
     expect(t.bar.button).toHaveBeenCalledExactlyOnceWith('undo');
     expect(t.openSettings).toHaveBeenCalledOnce();
     expect(t.warn).not.toHaveBeenCalled();
@@ -96,14 +99,16 @@ describe('listenToAssistantBar', () => {
     for (const args of [[], ['press'], ['allow'], ['undo', 'twice']]) {
       await t.hear('button', t.fromBar, ...args);
     }
-    await t.hear('dismiss', t.fromBar, 1);
+    await t.hear('collapse', t.fromBar, 1);
+    await t.hear('expand', t.fromBar, true);
     await t.hear('settings', t.fromBar, 'now');
     expect(t.bar.use).not.toHaveBeenCalled();
     expect(t.bar.polish).not.toHaveBeenCalled();
     expect(t.bar.button).not.toHaveBeenCalled();
-    expect(t.bar.dismiss).not.toHaveBeenCalled();
+    expect(t.bar.collapse).not.toHaveBeenCalled();
+    expect(t.bar.expand).not.toHaveBeenCalled();
     expect(t.openSettings).not.toHaveBeenCalled();
-    expect(t.warn).toHaveBeenCalledTimes(17);
+    expect(t.warn).toHaveBeenCalledTimes(18);
   });
 
   it('warns, without the error, when an action fails', async () => {

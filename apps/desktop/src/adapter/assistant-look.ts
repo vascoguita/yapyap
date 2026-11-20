@@ -44,6 +44,8 @@ export const ASSISTANT_ICONS = {
     'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM10.4 3h3.2l.5 2.3 1.8 1 2.2-.7 1.6 2.8-1.7 1.6v2l1.7 1.6-1.6 2.8-2.2-.7-1.8 1-.5 2.3h-3.2l-.5-2.3-1.8-1-2.2.7-1.6-2.8L5.8 13v-2L4.1 9.4l1.6-2.8 2.2.7 1.8-1z',
   /** A chevron pointing up, since the menu opens upwards, above the message box. */
   caret: 'M6 15l6-6 6 6',
+  /** A chevron pointing down, to fold the suggestions away towards the message box. */
+  fold: 'M6 9l6 6 6-6',
   check: 'M5 12.5l4.5 4.5L19 7.5',
   /** A cross, to dismiss. */
   close: 'M6 6l12 12M18 6L6 18',

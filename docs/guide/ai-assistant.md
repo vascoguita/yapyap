@@ -148,8 +148,8 @@ short messages to send next appear right above the message box, in the
 chat's language. They answer the last thing in the chat, whoever sent it
 and whatever it is: a message, a photo, a sticker, a voice message or a
 call. When your own message is last, they follow it up instead, such as
-something to add or a nudge if a question went unanswered. They are real choices, such as yes, not now, and a question
-back, written the way you write in that chat. Where an answer needs
+something to add or a nudge if a question went unanswered. They are real
+choices, such as yes, not now, and a question back, written the way you write in that chat. Where an answer needs
 something only you know, such as whether you are free, they work without
 it rather than guess:
 
@@ -157,7 +157,12 @@ it rather than guess:
   you send it. A suggestion never sends itself.
 - They go as soon as you start typing your own reply, and come back if
   you clear it, even after a rewrite.
-- **×** dismisses them until something new appears in the chat.
+- A long suggestion takes up to two lines, and the row grows so all three
+  show.
+- While they are being written, three blank chips hold their place.
+- The arrow at the end of the row, **Hide suggestions**, folds them into
+  one small **Suggestions** chip. They stay folded, in every chat, until
+  you click it to show them again, and showing them asks for nothing new.
 
 The AI assistant asks for suggestions once the chat settles, so a burst of
 messages asks once, and only while YapYap's window is in front. Each

@@ -67,13 +67,15 @@ describe('createAssistantBarBridge', () => {
     const bridge = createAssistantBarBridge(ipc);
     bridge.polish('soften');
     bridge.use(1);
-    bridge.dismiss();
+    bridge.collapse();
+    bridge.expand();
     bridge.button('undo');
     bridge.settings();
     expect(ipc.send.mock.calls).toEqual([
       ['whatsapp:assistant-bar-polish', 'soften'],
       ['whatsapp:assistant-bar-use', 1],
-      ['whatsapp:assistant-bar-dismiss'],
+      ['whatsapp:assistant-bar-collapse'],
+      ['whatsapp:assistant-bar-expand'],
       ['whatsapp:assistant-bar-button', 'undo'],
       ['whatsapp:assistant-bar-settings'],
     ]);

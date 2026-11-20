@@ -483,7 +483,10 @@ export interface Messages {
       readonly label: string;
       readonly suggestions: string;
       readonly use: string;
-      readonly dismiss: string;
+      readonly collapse: string;
+      readonly expand: string;
+      readonly folded: string;
+      readonly writing: string;
       readonly close: string;
       readonly undo: string;
       readonly styles: {

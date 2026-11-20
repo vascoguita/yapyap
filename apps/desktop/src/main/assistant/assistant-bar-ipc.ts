@@ -26,7 +26,7 @@ const isStyle = (value: unknown): boolean => (POLISH_STYLES as readonly unknown[
 
 const isButton = (id: unknown): boolean => (BAR_BUTTON_IDS as readonly unknown[]).includes(id);
 
-type BarActions = Pick<AssistantBar, 'polish' | 'use' | 'dismiss' | 'button'>;
+type BarActions = Pick<AssistantBar, 'polish' | 'use' | 'collapse' | 'expand' | 'button'>;
 
 /**
  * Hears the assistant's clicks from WhatsApp's page (ADR 0013). Only the active
@@ -61,7 +61,8 @@ export function listenToAssistantBar(
   registerWhatsAppListeners(ipc, deps, [
     on(channels.polish, argumentsOf(isStyle), bar.polish),
     on(channels.use, argumentsOf(isIndex), bar.use),
-    on(channels.dismiss, noArguments, bar.dismiss),
+    on(channels.collapse, noArguments, bar.collapse),
+    on(channels.expand, noArguments, bar.expand),
     on(channels.button, argumentsOf(isButton), bar.button),
     on(channels.settings, noArguments, deps.openSettings),
   ]);
