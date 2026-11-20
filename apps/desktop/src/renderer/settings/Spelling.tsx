@@ -106,10 +106,12 @@ function Dictionary(props: {
 const rowClass = (dimmed: boolean): string => (dimmed ? 'row dimmed' : 'row');
 
 /** What is checked now, in words, as the row's name and its hint. */
-function summaryOf({ chosen, inUse }: SpellingLanguages): { label: string; hint?: string } {
+function summaryOf({ chosen, inUse }: SpellingLanguages): { label: string; hint: string } {
   const max = MAX_SPELLING_LANGUAGES;
   if (chosen.length > 0) {
-    return { label: text.chosen({ count: chosen.length, max }) };
+    // The count and the limit apart, so the limit cannot read as how many languages there are.
+    const hint = chosen.length >= max ? text.limitReached : text.limit({ max });
+    return { label: text.chosen({ count: chosen.length }), hint };
   }
   if (inUse.length === 0) {
     return { label: text.noSystem, hint: text.noSystemHint({ max }) };
@@ -126,7 +128,7 @@ function Summary(props: PickerProps): JSX.Element {
     <div class={rowClass(props.dimmed)}>
       <div class="row-text">
         <span class="row-label">{label}</span>
-        {hint === undefined ? null : <p class="hint">{hint}</p>}
+        <p class="hint">{hint}</p>
         {downloading < 2 ? null : (
           <p class="hint">{text.downloadingCount({ count: downloading })}</p>
         )}

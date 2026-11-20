@@ -103,7 +103,9 @@ describe('SpellingSection', () => {
       expect(box('português').checked).toBe(true);
     });
     expect(yapyap.spelling.choose).toHaveBeenLastCalledWith(['pt-PT']);
-    expect(screen.getByText('1 of 10 languages chosen')).toBeTruthy();
+    expect(screen.getByText('1 language chosen')).toBeTruthy();
+    // The limit is said apart from the count, so it cannot read as how many there are.
+    expect(screen.getByText('You can check up to 10 languages at once.')).toBeTruthy();
     fireEvent.click(box('Deutsch'));
     await waitFor(() => {
       expect(yapyap.spelling.choose).toHaveBeenLastCalledWith(['pt-PT', 'de-DE']);
@@ -139,6 +141,11 @@ describe('SpellingSection', () => {
     const boxes = await screen.findAllByRole<HTMLInputElement>('checkbox');
     expect(boxes.slice(0, 10).every((input) => input.checked && !input.disabled)).toBe(true);
     expect(boxes.slice(10).every((input) => !input.checked && input.disabled)).toBe(true);
+    // The greyed boxes say why, and how to choose another.
+    expect(screen.getByText('10 languages chosen')).toBeTruthy();
+    expect(
+      screen.getByText('That is the most you can check at once. Untick one to choose another.'),
+    ).toBeTruthy();
   });
 
   it('fades the languages while spell checking is off, and says when no dictionary fits', async () => {

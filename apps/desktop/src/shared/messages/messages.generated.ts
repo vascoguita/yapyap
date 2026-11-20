@@ -754,7 +754,9 @@ export interface Messages {
     readonly systemHint: (params: { readonly max: string | number }) => string;
     readonly noSystem: string;
     readonly noSystemHint: (params: { readonly max: string | number }) => string;
-    readonly chosen: (params: { readonly count: number; readonly max: string | number }) => string;
+    readonly chosen: (params: { readonly count: number }) => string;
+    readonly limit: (params: { readonly max: string | number }) => string;
+    readonly limitReached: string;
     readonly useSystem: string;
     readonly search: string;
     readonly noMatch: string;
