@@ -14,20 +14,22 @@ interface IncomingRow {
 }
 
 interface IncomingDocument {
-  querySelectorAll(selectors: string): ArrayLike<IncomingRow>;
+  querySelectorAll(selectors: string): ArrayLike<IncomingRow & IncomingText>;
   querySelector(selectors: string): { readonly textContent: string | null } | null;
 }
 
 /**
  * Where the probe looks: the open chat's messages, the marks on the
- * account's own, its name, its message box, and in a message, its text,
- * its emoji and the message it quotes.
+ * account's own, its name, its message box and the message the user
+ * replies to above it, and in a message, its text, its emoji and the
+ * message it quotes.
  */
 interface IncomingPlaces {
   readonly message: string;
   readonly outgoing: string;
   readonly chatName: string;
   readonly composer: string;
+  readonly composerQuote: string;
   readonly messageBody: string;
   readonly messageText: string;
   readonly emoji: string;
@@ -50,6 +52,26 @@ export function fingerprint(text: string): string {
 }
 
 /**
+ * The hash of the message the user chose to reply to, quoted above the
+ * message box, or `-` while they reply to none (#740): of what the quote
+ * shows, its sender's name and text. It goes by no ID, as an element
+ * with one in the open chat is a message row by the `message` landmark.
+ * A message row may quote a message too, so a quote inside one is never
+ * taken for the message box's. Runs inside the page as source text beside
+ * {@link newestMessages}, so it stays self-contained.
+ */
+export function replyingTo(
+  doc: IncomingDocument,
+  places: IncomingPlaces,
+  hash: (text: string) => string,
+): string {
+  const quote = Array.from(doc.querySelectorAll(places.composerQuote)).find(
+    (found) => found.closest(places.message) === null,
+  );
+  return quote === undefined ? '-' : hash(quote.textContent ?? '');
+}
+
+/**
  * Which chat is open, its newest message from someone else, the account's
  * own newest, and whose is last, so the assistant can tell a message
  * arrived or the user sent one (#468). A message is the account's own when
@@ -59,16 +81,19 @@ export function fingerprint(text: string): string {
  * message there is none of, then `i` when the last is someone else's, `o`
  * when it is the account's own, and last `d` while the message box holds a
  * draft, `e` while it is empty, so the assistant can tell the user cleared
- * it (#629), and last the hash of what the chat's last message says. An
+ * it (#629), then the hash of what the chat's last message says. An
  * edit keeps a message's ID, so only its text tells that its sender
  * changed it (#739); a reply's text leaves out the message it quotes, as
- * the chat reader's does. Runs inside the page as source text, so it
- * stays self-contained; null while no chat is open.
+ * the chat reader's does. Last comes `quoting`'s hash of the message the
+ * user chose to reply to, so choosing or removing one counts as a change
+ * (#740). Runs inside the page as source text, so it stays
+ * self-contained; null while no chat is open.
  */
 export function newestMessages(
   doc: IncomingDocument,
   places: IncomingPlaces,
   hash: (text: string) => string,
+  quoting: typeof replyingTo,
 ): string | null {
   const name = doc.querySelector(places.chatName);
   if (name === null) {
@@ -98,20 +123,22 @@ export function newestMessages(
   const [whose, saying] = last === undefined ? ['-', '-'] : about(last);
   const theirs = newest(rows.filter((row) => !own(row)));
   const draft = (doc.querySelector(places.composer)?.textContent ?? '').trim() === '' ? 'e' : 'd';
-  return `${hash(name.textContent ?? '')}:${theirs}:${newest(rows.filter(own))}:${whose}:${draft}:${saying}`;
+  const quote = quoting(doc, places, hash);
+  return `${hash(name.textContent ?? '')}:${theirs}:${newest(rows.filter(own))}:${whose}:${draft}:${saying}:${quote}`;
 }
 
-/** The probe as code for `executeJavaScriptInIsolatedWorld`, with the fingerprint beside it. */
+/** The probe as code for `executeJavaScriptInIsolatedWorld`, with the fingerprint and the quote's probe beside it. */
 export const NEWEST_MESSAGES = `(${newestMessages.toString()})(document, ${JSON.stringify({
   message: LANDMARKS.message,
   outgoing: LANDMARKS.outgoing,
   chatName: LANDMARKS.chatName,
   composer: LANDMARKS.composer,
+  composerQuote: LANDMARKS.composerQuote,
   messageBody: LANDMARKS.messageBody,
   messageText: LANDMARKS.messageText,
   emoji: LANDMARKS.emoji,
   quoted: LANDMARKS.quoted,
-})}, ${fingerprint.toString()})`;
+})}, ${fingerprint.toString()}, ${replyingTo.toString()})`;
 
 /** What the probe saw, as hashes: the open chat, and its newest messages from each side. */
 export interface Newest {
@@ -126,10 +153,12 @@ export interface Newest {
   readonly drafting: boolean;
   /** What the chat's last message says, or null for a chat with none; another after an edit (#739). */
   readonly said: string | null;
+  /** The message the user chose to reply to, above the message box, or null for none (#740). */
+  readonly quote: string | null;
 }
 
 const HASH = '([0-9a-f]{8}|-)';
-const ANSWER = new RegExp(`^([0-9a-f]{8}):${HASH}:${HASH}:([io-]):([de]):${HASH}$`);
+const ANSWER = new RegExp(`^([0-9a-f]{8}):${HASH}:${HASH}:([io-]):([de]):${HASH}:${HASH}$`);
 
 const hashOrNull = (value: string | undefined): string | null =>
   value === undefined || value === '-' ? null : value;
@@ -150,5 +179,6 @@ export function parseNewest(value: unknown): Newest | null | undefined {
     theirsLast: match[4] === 'i',
     drafting: match[5] === 'd',
     said: hashOrNull(match[6]),
+    quote: hashOrNull(match[7]),
   };
 }

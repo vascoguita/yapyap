@@ -1,7 +1,13 @@
 /** @vitest-environment happy-dom */
 import { runInNewContext } from 'node:vm';
 import { describe, expect, it } from 'vitest';
-import { activeChatReader, describeItem, parseActiveChat, readActiveChat } from './active-chat.ts';
+import {
+  activeChatReader,
+  describeItem,
+  parseActiveChat,
+  readActiveChat,
+  readReplyingTo,
+} from './active-chat.ts';
 import { LANDMARKS } from './page-state.ts';
 
 const PLACES = {
@@ -13,6 +19,7 @@ const PLACES = {
   outgoing: LANDMARKS.outgoing,
   author: LANDMARKS.author,
   quoted: LANDMARKS.quoted,
+  composerQuote: LANDMARKS.composerQuote,
   kinds: [
     ['call', LANDMARKS.callLog],
     ['sticker', LANDMARKS.sticker],
@@ -218,8 +225,9 @@ describe('readActiveChat', () => {
     };
     const doc = {
       querySelector: (selector: string) => (selector === PLACES.chatName ? text : {}),
-      // No sender names on this page: it is no group.
-      querySelectorAll: (selector: string) => (selector.endsWith(PLACES.author) ? [] : [message]),
+      // No sender names on this page: it is no group, and the user replies to no message.
+      querySelectorAll: (selector: string) =>
+        selector.endsWith(PLACES.author) || selector === PLACES.composerQuote ? [] : [message],
     };
     expect(readActiveChat(doc, PLACES, LIMITS)).toEqual({
       name: 'Plain',
@@ -236,7 +244,8 @@ describe('readActiveChat', () => {
       querySelector: () => null,
       querySelectorAll: (selector: string) => (selector === PLACES.emoji ? [{}] : []),
     };
-    const blanks = (selector: string) => (selector.endsWith(PLACES.author) ? [] : [blank]);
+    const blanks = (selector: string) =>
+      selector.endsWith(PLACES.author) || selector === PLACES.composerQuote ? [] : [blank];
     expect(readActiveChat({ ...empty, querySelectorAll: blanks }, PLACES, LIMITS)).toEqual({
       name: '',
       group: false,
@@ -245,17 +254,72 @@ describe('readActiveChat', () => {
   });
 });
 
+describe('readReplyingTo', () => {
+  /** The message box, with `quote` above it as WhatsApp shows the message being replied to. */
+  const box = (quote: string) => `<footer>${quote}<div contenteditable="true"></div></footer>`;
+  const quoting = (author: string, text: string) =>
+    `<div data-testid="quoted-message"><span data-testid="author">${author}</span><span>${text}</span></div>`;
+
+  it('reads the message the user replies to above the message box, with the chat (#740)', () => {
+    const chat = `<div id="main"><header><span dir="auto">Ana</span></header>${row('R1', 'Hi')}${box(quoting('Ana', 'Dinner at 8?'))}</div>`;
+    expect(readActiveChat(page(chat), PLACES, { ...LIMITS, quote: 50 })).toEqual({
+      name: 'Ana',
+      group: false,
+      messages: [{ outgoing: false, text: 'Hi', meta: '[08:00, 24/10/2026] Someone: ' }],
+      replyingTo: { author: 'Ana', text: 'Dinner at 8?' },
+    });
+  });
+
+  it('cuts the quote and its sender to the limits, and reads one that names no sender', () => {
+    page(`<div id="main">${box(quoting('Ana Lima Costa', 'Dinner at 8?'))}</div>`);
+    expect(readReplyingTo(document, PLACES, LIMITS)).toEqual({
+      replyingTo: { author: 'Ana Lima', text: 'Dinner' },
+    });
+    page(`<div id="main">${box('<div data-testid="quoted-message">Dinner?</div>')}</div>`);
+    expect(readReplyingTo(document, PLACES, LIMITS)).toEqual({
+      replyingTo: { author: '', text: 'Dinner' },
+    });
+  });
+
+  it('reads nothing while the user replies to none, or to a message without words', () => {
+    page(`<div id="main">${box('')}</div>`);
+    expect(readReplyingTo(document, PLACES, LIMITS)).toEqual({});
+    page(`<div id="main">${box(quoting('Ana', ''))}</div>`);
+    expect(readReplyingTo(document, PLACES, LIMITS)).toEqual({});
+  });
+
+  it('never takes a message’s own quote for the message the user replies to', () => {
+    const reply = `<div data-id="R2">${quoting('Ana', 'Dinner?')}<div data-pre-plain-text="[08:01] Me: "><span>Yes</span></div></div>`;
+    page(`<div id="main"><footer>${reply}</footer>${box('')}</div>`);
+    expect(readReplyingTo(document, PLACES, LIMITS)).toEqual({});
+  });
+
+  it('reads a quote from a page without innerText', () => {
+    const author = { textContent: null };
+    const quote = { textContent: ' Ana Hi ', closest: () => null, querySelector: () => author };
+    const doc = { querySelector: () => null, querySelectorAll: () => [quote] };
+    expect(readReplyingTo(doc, PLACES, LIMITS)).toEqual({
+      replyingTo: { author: '', text: 'Ana Hi' },
+    });
+  });
+});
+
 describe('activeChatReader', () => {
   // Mutation testing instruments the function with helpers from outside it,
   // so only uninstrumented source can run on its own.
   it.skipIf(activeChatReader(1).includes('stryMutAct'))('runs as standalone source text', () => {
-    const result = runInNewContext(activeChatReader(1), { document: page(CHAT) }) as unknown;
+    const quoted = CHAT.replace(
+      '</header>',
+      '</header><footer><div data-testid="quoted-message">Lunch?</div></footer>',
+    );
+    const result = runInNewContext(activeChatReader(1), { document: page(quoted) }) as unknown;
     expect(parseActiveChat(result, 1)).toEqual({
       name: 'Test Chat One',
       group: false,
       messages: [
         { outgoing: false, text: 'See you', time: '08:00, 24/10/2026', author: 'Someone' },
       ],
+      replyingTo: { author: '', text: 'Lunch?' },
     });
   });
 });
@@ -267,7 +331,13 @@ describe('activeChatReader’s places', () => {
       expect(source).toContain(JSON.stringify([kind, selector]));
     }
     expect(source).toContain(JSON.stringify(PLACES.kinds));
-    for (const selector of [PLACES.emoji, PLACES.bubble, PLACES.conversation, PLACES.quoted]) {
+    for (const selector of [
+      PLACES.emoji,
+      PLACES.bubble,
+      PLACES.conversation,
+      PLACES.quoted,
+      PLACES.composerQuote,
+    ]) {
       expect(source).toContain(JSON.stringify(selector));
     }
   });
@@ -303,6 +373,16 @@ describe('parseActiveChat', () => {
       ),
     ).toBeUndefined();
     expect(parseActiveChat('Team', 1)).toBeUndefined();
+    const replying = { ...chat, replyingTo: { author: '', text: 'Lunch?' } };
+    expect(parseActiveChat(replying, 1)).toEqual(replying);
+    for (const replyingTo of [
+      { author: '', text: '' },
+      { author: '', text: 'x'.repeat(513) },
+      { author: 'A', text: 'a', html: '<b>' },
+      'Lunch?',
+    ]) {
+      expect(parseActiveChat({ ...chat, replyingTo }, 1)).toBeUndefined();
+    }
     const hi = { outgoing: false, text: 'Hi' };
     for (const message of [
       { ...hi, text: 'x'.repeat(4097) },
@@ -368,5 +448,18 @@ describe('parseActiveChat', () => {
       ['Person 1', 'Ana'],
     ]);
     expect(JSON.stringify(found)).not.toMatch(/7700/);
+  });
+
+  it('names the sender of the message the user replies to as the chat does (#740)', () => {
+    const found = parseActiveChat(
+      {
+        name: 'Team',
+        group: true,
+        messages: [{ outgoing: false, text: 'a', meta: '[1:00] +44 7700 900456: ' }],
+        replyingTo: { author: '+44 7700 900123', text: 'b' },
+      },
+      1,
+    );
+    expect(found?.replyingTo).toEqual({ author: 'Person 2', text: 'b' });
   });
 });

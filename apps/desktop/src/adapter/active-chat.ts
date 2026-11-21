@@ -60,6 +60,8 @@ interface ChatPlaces {
   readonly outgoing: string;
   readonly author: string;
   readonly quoted: string;
+  /** The message the user chose to reply to, quoted above the message box (#740). */
+  readonly composerQuote: string;
   /** What is in a message that is not only text, each kind with the marker that tells it, first match wins. */
   readonly kinds: readonly (readonly [ItemKind, string])[];
   /** The emoji in a message, drawn as images that keep their text aside. */
@@ -135,22 +137,51 @@ export function describeItem(
 }
 
 /**
+ * The message the user chose to reply to, quoted above the message box
+ * (#740), as the quote shows it: its sender, when it names one, and its
+ * text; nothing while they reply to none, or to a message without words.
+ * A message row may quote a message too, so a quote inside one is never
+ * taken for the message box's. It runs inside the page beside
+ * {@link readActiveChat}, so it stays self-contained.
+ */
+export function readReplyingTo(
+  doc: ReadDocument,
+  places: ChatPlaces,
+  limits: Limits,
+): { readonly replyingTo?: Quote } {
+  const textIn = (element: unknown): string => {
+    const found = element as ReadElement | null | undefined;
+    return (found?.innerText ?? found?.textContent ?? '').trim();
+  };
+  const quote = (Array.from(doc.querySelectorAll(places.composerQuote)) as ReadElement[]).find(
+    (found) => found.closest(places.message) === null,
+  );
+  const author = textIn(quote?.querySelector(places.author));
+  const said = textIn(quote).replace(author, '').trim();
+  const replyingTo = { author: author.slice(0, limits.name), text: said.slice(0, limits.quote) };
+  return said === '' ? {} : { replyingTo };
+}
+
+/**
  * Reads the open chat as plain data: its name, whether it is a group, and
  * the text of its last `limits.messages` messages, oldest first, each with
- * WhatsApp's copy mark (its time and sender) and the message it quotes.
+ * WhatsApp's copy mark (its time and sender) and the message it quotes,
+ * and the message the user replies to, through `replying`.
  * Unlike the probes, it returns page text, so it runs only when the
  * assistant asks, and its result is never logged.
  * It runs inside the page as source text, so it must stay self-contained.
  * A message that is not only text, such as a photo, a sticker or a call,
  * comes with its kind, and its caption as its text if it has one (#723).
  * Rows WhatsApp has not drawn yet, far up the chat, are left out. The page
- * gets `describe` as source text beside it (see {@link activeChatReader}).
+ * gets `describe` and `replying` as source text beside it (see
+ * {@link activeChatReader}).
  */
 export function readActiveChat(
   doc: ReadDocument,
   places: ChatPlaces,
   limits: Limits,
   describe = describeItem,
+  replying = readReplyingTo,
 ): unknown {
   if (doc.querySelector(places.conversation) === null) {
     return null;
@@ -187,6 +218,7 @@ export function readActiveChat(
       rows.some((row) => idOf(row).includes('@g.us')) ||
       all(doc, `${places.message} ${places.author}`).some(unquoted),
     messages: rows.flatMap(messageOf).slice(-limits.messages),
+    ...replying(doc, places, limits),
   };
 }
 
@@ -199,6 +231,7 @@ const PLACES: ChatPlaces = {
   outgoing: LANDMARKS.outgoing,
   author: LANDMARKS.author,
   quoted: LANDMARKS.quoted,
+  composerQuote: LANDMARKS.composerQuote,
   kinds: [
     ['call', LANDMARKS.callLog],
     ['sticker', LANDMARKS.sticker],
@@ -221,8 +254,16 @@ export function activeChatReader(messages: number): string {
     quote: MAX_QUOTE,
     meta: MAX_META,
   };
-  return `(${readActiveChat.toString()})(document, ${JSON.stringify(PLACES)}, ${JSON.stringify(limits)}, ${describeItem.toString()})`;
+  return `(${readActiveChat.toString()})(document, ${JSON.stringify(PLACES)}, ${JSON.stringify(limits)}, ${describeItem.toString()}, ${readReplyingTo.toString()})`;
 }
+
+const QuoteSchema = Type.Object(
+  {
+    author: Type.String({ maxLength: MAX_NAME }),
+    text: Type.String({ minLength: 1, maxLength: MAX_QUOTE }),
+  },
+  { additionalProperties: false },
+);
 
 const ActiveChatSchema = Type.Object(
   {
@@ -238,25 +279,18 @@ const ActiveChatSchema = Type.Object(
           ),
           meta: Type.Optional(Type.String({ maxLength: MAX_META })),
           author: Type.Optional(Type.String({ maxLength: MAX_NAME })),
-          quote: Type.Optional(
-            Type.Object(
-              {
-                author: Type.String({ maxLength: MAX_NAME }),
-                text: Type.String({ minLength: 1, maxLength: MAX_QUOTE }),
-              },
-              { additionalProperties: false },
-            ),
-          ),
+          quote: Type.Optional(QuoteSchema),
         },
         { additionalProperties: false },
       ),
     ),
+    replyingTo: Type.Optional(QuoteSchema),
   },
   { additionalProperties: false },
 );
 
 /** The message a reply quotes. */
-interface Quote {
+export interface Quote {
   /** Its sender as the quote names them, or '' when it names none. */
   readonly author: string;
   readonly text: string;
@@ -281,6 +315,11 @@ export interface ReadChat {
   readonly name: string;
   readonly group: boolean;
   readonly messages: readonly ReadMessage[];
+  /**
+   * The message the user chose to reply to, quoted above the message box,
+   * which suggestions answer (#740); absent while they reply to none.
+   */
+  readonly replyingTo?: Quote;
 }
 
 /**
@@ -288,7 +327,7 @@ export interface ReadChat {
  * phone number, the same person under the same name, so no number reaches
  * a model or an agent (root CLAUDE.md, rule 8).
  */
-function maskNumbers(messages: readonly ReadMessage[]): ReadMessage[] {
+function maskNumbers(chat: ReadChat): ReadChat {
   const people = new Map<string, string>();
   const named = (name: string): string => {
     if (parseInternationalNumber(name) === undefined) {
@@ -298,13 +337,18 @@ function maskNumbers(messages: readonly ReadMessage[]): ReadMessage[] {
     people.set(name, known);
     return known;
   };
-  return messages.map((message) => ({
+  const masked = (quote: Quote): Quote => ({ ...quote, author: named(quote.author) });
+  const messages = chat.messages.map((message) => ({
     ...message,
     ...(message.author === undefined ? {} : { author: named(message.author) }),
-    ...(message.quote === undefined
-      ? {}
-      : { quote: { ...message.quote, author: named(message.quote.author) } }),
+    ...(message.quote === undefined ? {} : { quote: masked(message.quote) }),
   }));
+  const { replyingTo } = chat;
+  return {
+    ...chat,
+    messages,
+    ...(replyingTo === undefined ? {} : { replyingTo: masked(replyingTo) }),
+  };
 }
 
 type RawMessage = Omit<ReadMessage, 'time' | 'author'> & { readonly meta?: string };
@@ -343,5 +387,5 @@ export function parseActiveChat(value: unknown, messages: number): ReadChat | nu
   ) {
     return undefined;
   }
-  return { ...value, messages: maskNumbers(value.messages.map(fromMeta)) };
+  return maskNumbers({ ...value, messages: value.messages.map(fromMeta) });
 }

@@ -4,6 +4,7 @@ import {
   allowAllChats,
   barNames,
   barNotice,
+  chooseReply,
   CLAUDE_ANSWER,
   claudeAnswer,
   claudeRequests,
@@ -16,6 +17,7 @@ import {
   openAssistantSettings,
   quietPort,
   readyClaude,
+  removeReply,
   settledRequests,
   standInKeyring,
   stickerArrives,
@@ -710,6 +712,43 @@ test('writes the suggestions again when the contact edits the chat’s last mess
   expect(asked).toHaveLength(before + 1);
   expect(asked.at(-1)).toContain('See you at 6');
   // Looking on, the same edit asks nothing more.
+  await window.waitForTimeout(3000);
+  expect(await claudeRequests(app)).toHaveLength(before + 1);
+});
+
+test('suggests replies to the message the user replies to, and the last one’s again without it (#740)', async ({
+  app,
+  window,
+}) => {
+  await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
+  const settings = await readyClaude(app, CLAUDE_ANSWER, {
+    when: 'I am replying to',
+    body: claudeAnswer('Dinner sounds great!'),
+  });
+  await allowAllChats(settings);
+  await focusMain(app);
+  await messageArrives(window, '3EB0F7', 'See you at 5');
+  await expect(async () => {
+    expect(await barNames(app)).toContain('See you there');
+  }).toPass({ timeout: 15_000 });
+  const before = await settledRequests(app, window);
+  // An older message than the chat's last, quoted above the message box.
+  await chooseReply(window, '3EB0F1', 'Test Chat One');
+  await expect(async () => {
+    expect(await barNames(app)).toContain('Dinner sounds great!');
+  }).toPass({ timeout: 15_000 });
+  const asked = await claudeRequests(app);
+  expect(asked).toHaveLength(before + 1);
+  expect(asked.at(-1)).toContain(
+    String.raw`<reply-to>\nTest Chat One: “Dinner tonight?”\n</reply-to>`,
+  );
+  // Removing the quote brings back the last message's suggestions, made before.
+  await removeReply(window);
+  await expect(async () => {
+    const names = await barNames(app);
+    expect(names).toContain('See you there');
+    expect(names).not.toContain('Dinner sounds great!');
+  }).toPass({ timeout: 15_000 });
   await window.waitForTimeout(3000);
   expect(await claudeRequests(app)).toHaveLength(before + 1);
 });
