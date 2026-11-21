@@ -7,7 +7,7 @@ import type { AdapterPage } from '../../adapter/world.ts';
 import type { ReadChat } from '../../adapter/active-chat.ts';
 import { folderChoiceHandlers } from '../settings/folder-choice.ts';
 import { shortcutHandlers } from '../shortcuts/shortcuts-handlers.ts';
-import { CUSTOM_CODE_PAGE, customCodeHandlers } from '../custom-code/custom-code-handlers.ts';
+import { customCodeHandlers } from '../custom-code/custom-code-handlers.ts';
 import type { CustomCodeController } from '../custom-code/custom-code.ts';
 import { spellingHandlers, type SpellingSources } from '../spelling/spelling-languages-handlers.ts';
 import { DOWNLOADS_PAGE, downloadsHandlers } from '../downloads/downloads-handlers.ts';
@@ -404,13 +404,7 @@ function plainOpener(windows: ChromeWindowDependencies, page: ChromePage): () =>
 /** YapYap's own windows, one each: opening one again focuses it. */
 type ChromeOpeners = Pick<
   MenuActions,
-  | 'openAccounts'
-  | 'openAbout'
-  | 'openSettings'
-  | 'openShortcuts'
-  | 'openCustomCode'
-  | 'openDownloads'
-  | 'openReport'
+  'openAccounts' | 'openAbout' | 'openSettings' | 'openShortcuts' | 'openDownloads' | 'openReport'
 >;
 
 function chromeOpeners(
@@ -423,7 +417,6 @@ function chromeOpeners(
     openAccounts: opener(ACCOUNTS_PAGE),
     openAbout: opener(ABOUT_PAGE),
     openShortcuts: standby.openShortcuts,
-    openCustomCode: opener(CUSTOM_CODE_PAGE),
     openDownloads: opener(DOWNLOADS_PAGE),
     openReport: opener(REPORT_PAGE),
   };

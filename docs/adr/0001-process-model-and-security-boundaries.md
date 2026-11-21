@@ -224,7 +224,9 @@ stops nothing else. The feature is labelled "Advanced", warns that the code
 can read chats, and stays off until the user enables it. The code lives in
 `custom-code.json`, not in settings, so an imported settings file can never
 bring code that runs in WhatsApp, and logs only ever say that a script
-failed, never what it holds.
+failed, never what it holds. The user edits it in Settings › Custom code
+(#710), through the `customCode` IPC calls; it has no window or menu item
+of its own.
 
 ### Electron fuses (applied at package time with `@electron/fuses`)
 

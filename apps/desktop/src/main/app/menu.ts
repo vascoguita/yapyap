@@ -34,7 +34,6 @@ export interface MenuActions {
   readonly setMuted: (muted: boolean) => void;
   readonly openAbout: () => void;
   readonly openSettings: () => void;
-  readonly openCustomCode: () => void;
   /** Reloads the active account's WhatsApp, wherever the focus is. */
   readonly reload: () => void;
   readonly clearCache: () => void;
@@ -106,7 +105,11 @@ function editMenu(keys: Keys): MenuItemConstructorOptions {
   };
 }
 
-/** The window, and the Downloads window YapYap keeps for this session (#74). */
+/**
+ * The window, and the Downloads window YapYap keeps for this session (#74).
+ * Close is in File, where each platform puts it; Downloads stays here, where
+ * Chrome has it on macOS (#710).
+ */
 function windowMenu(actions: MenuActions, keys: Keys): MenuItemConstructorOptions {
   const mac: MenuItemConstructorOptions[] =
     keys.platform === 'darwin' ? [{ role: 'zoom' }, { type: 'separator' }, { role: 'front' }] : [];
@@ -116,7 +119,6 @@ function windowMenu(actions: MenuActions, keys: Keys): MenuItemConstructorOption
     ...(keys.platform === 'darwin' ? { role: 'windowMenu' as const } : {}),
     submenu: [
       { role: 'minimize', ...keyed('minimize', keys) },
-      { role: 'close', ...keyed('close', keys) },
       ...mac,
       { type: 'separator' },
       { label: en.menu.downloads, ...keyed('downloads', keys), click: actions.openDownloads },
@@ -208,11 +210,12 @@ function accountMenu(actions: MenuActions, keys: Keys): MenuItemConstructorOptio
 interface PlacedItems {
   readonly about: MenuItemConstructorOptions;
   /**
-   * Settings, and beside it the user's own code. The assistant needs no
+   * Settings, the user's own code included (#710). The assistant needs no
    * item: it works in the message box, and its rewrite menu opens Settings
    * at its page (ADR 0017).
    */
-  readonly settings: MenuItemConstructorOptions[];
+  readonly settings: MenuItemConstructorOptions;
+  readonly close: MenuItemConstructorOptions;
   /** The shortcuts and reporting a problem, which also copies diagnostics and records traces. */
   readonly help: MenuItemConstructorOptions[];
   readonly quit: MenuItemConstructorOptions;
@@ -221,10 +224,8 @@ interface PlacedItems {
 function placedItems(actions: MenuActions, keys: Keys): PlacedItems {
   return {
     about: { label: en.menu.about({ product: PRODUCT_NAME }), click: actions.openAbout },
-    settings: [
-      { label: en.menu.settings, ...keyed('settings', keys), click: actions.openSettings },
-      { label: en.menu.customCode, click: actions.openCustomCode },
-    ],
+    settings: { label: en.menu.settings, ...keyed('settings', keys), click: actions.openSettings },
+    close: { role: 'close', ...keyed('close', keys) },
     help: [
       { label: en.menu.shortcuts, ...keyed('shortcuts', keys), click: actions.openShortcuts },
       { label: en.menu.reportProblem, click: actions.openReport },
@@ -235,8 +236,8 @@ function placedItems(actions: MenuActions, keys: Keys): PlacedItems {
 
 /**
  * The application menu: the platform's standard menus, with About opening
- * YapYap's own window instead of the stock panel. Settings sits where each
- * platform expects it, on the conventional shortcut.
+ * YapYap's own window instead of the stock panel. Settings and Close
+ * Window sit where each platform expects them, on the conventional shortcuts.
  */
 export function buildMenuTemplate(
   platform: string,
@@ -255,7 +256,7 @@ export function buildMenuTemplate(
     return [
       {
         label: en.menu.file,
-        submenu: [...placed.settings, { type: 'separator' }, placed.quit],
+        submenu: [placed.settings, { type: 'separator' }, placed.close, placed.quit],
       },
       ...menus,
       { role: 'help', submenu: [placed.about, { type: 'separator' }, ...placed.help] },
@@ -263,7 +264,7 @@ export function buildMenuTemplate(
   }
   return [
     macAppMenu(placed, keys),
-    { label: en.menu.file, submenu: [{ role: 'close' }] },
+    { label: en.menu.file, submenu: [placed.close] },
     ...menus,
     { role: 'help', submenu: placed.help },
   ];
@@ -275,7 +276,7 @@ function macAppMenu(placed: PlacedItems, keys: Keys): MenuItemConstructorOptions
     submenu: [
       placed.about,
       { type: 'separator' },
-      ...placed.settings,
+      placed.settings,
       { type: 'separator' },
       { role: 'services' },
       { type: 'separator' },

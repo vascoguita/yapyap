@@ -3,11 +3,13 @@ import { useEffect, useState } from 'preact/hooks';
 import type { ChromeApi, SettingsSnapshot, TransferResult } from '../../shared/api/chrome-api.ts';
 import { en } from '../../shared/messages/en.ts';
 import { SETTING_FIELDS } from '../../shared/settings-fields.ts';
-import { useEscapeToClose } from '../shared/escape.ts';
+import { DiscardPrompt } from '../shared/discard.tsx';
 import { AgentsSection } from './Agents.tsx';
 import { AssistantSection } from './Assistant.tsx';
+import { CustomCodeSection } from './CustomCode.tsx';
 import { Field, Group, type Change } from './Field.tsx';
 import { ShortcutsSection } from './Shortcuts.tsx';
+import { useLeaving } from './leaving.ts';
 import { SpellingSection } from './Spelling.tsx';
 import { Icon } from '../shared/icons.tsx';
 import {
@@ -26,6 +28,8 @@ interface PageProps {
   readonly snapshot: SettingsSnapshot;
   readonly onChange: Change;
   readonly reload: () => void;
+  /** Whether the page holds edits that leaving it would lose. */
+  readonly onUnsaved: (unsaved: boolean) => void;
 }
 
 /** A group's settings that show on this platform and in this state; none hides the group. */
@@ -68,6 +72,8 @@ function PageBody(props: PageProps & { readonly page: SettingsPage }): JSX.Eleme
       return <AssistantSection {...props} />;
     case 'agents':
       return <AgentsSection {...props} />;
+    case 'customCode':
+      return <CustomCodeSection api={props.api} onUnsaved={props.onUnsaved} />;
     case 'backup':
       return <Backup api={props.api} onImported={props.reload} />;
     default:
@@ -280,69 +286,51 @@ export function useSnapshot(
   return [snapshot, error, change, load];
 }
 
-/** The page the address names, such as `#assistant`, which the assistant's menu opens at. */
-const pageInAddress = (): string => globalThis.location.hash.slice(1) || 'general';
-
-/**
- * Shows a page, and keeps it in the address without a new history entry, so
- * opening the same page from a menu again is a change the window hears.
- */
-function showPage(id: string): void {
-  globalThis.history.replaceState(null, '', `#${id}`);
-  globalThis.dispatchEvent(new Event('hashchange'));
-}
-
-/** The page in the address, followed as the menus or the list change it. */
-function usePageInAddress(): string {
-  const [page, setPage] = useState(pageInAddress);
-  useEffect(() => {
-    const follow = (): void => {
-      setPage(pageInAddress());
-    };
-    globalThis.addEventListener('hashchange', follow);
-    return () => {
-      globalThis.removeEventListener('hashchange', follow);
-    };
-  }, []);
-  return page;
+/** Settings while they load, or once they could not be read. */
+function NoSettings({ loading }: { readonly loading: boolean }): JSX.Element {
+  return (
+    <main class="settings-pane" aria-busy={loading}>
+      <div class="settings-content">
+        <h1>{text.title}</h1>
+        <p>{loading ? en.common.loading : text.unavailable}</p>
+      </div>
+    </main>
+  );
 }
 
 /**
  * Settings: the pages in a list beside the open one, which keeps its place
  * while the window stays open; a change that needs a restart offers one at
- * the bottom.
+ * the bottom. A page with unsaved edits asks before the user leaves it.
  */
 export function Settings({ api }: { readonly api: ChromeApi }): JSX.Element {
-  useEscapeToClose();
   const [snapshot, error, change, reload] = useSnapshot(api);
-  const current = usePageInAddress();
+  const [unsaved, setUnsaved] = useState(false);
+  const leaving = useLeaving(unsaved);
   if (snapshot == null) {
-    return (
-      <main class="settings-pane" aria-busy={snapshot === undefined}>
-        <div class="settings-content">
-          <h1>{text.title}</h1>
-          <p>{snapshot === undefined ? en.common.loading : text.unavailable}</p>
-        </div>
-      </main>
-    );
+    return <NoSettings loading={snapshot === undefined} />;
   }
   const pages = [...shownPages(snapshot), BACKUP_PAGE] as const;
   // The first page opens until another is picked, and stands in for one this platform lacks.
-  const page = pages.find(({ id }) => id === current) ?? pages[0];
+  const page = pages.find(({ id }) => id === leaving.page) ?? pages[0];
   return (
     <div class="settings-window">
-      <SectionNav pages={pages} current={page.id} onSelect={showPage} />
+      <SectionNav pages={pages} current={page.id} onSelect={leaving.select} />
       <main class="settings-pane" aria-labelledby="page-title">
-        <SectionSelect pages={pages} current={page.id} onSelect={showPage} />
+        <SectionSelect pages={pages} current={page.id} onSelect={leaving.select} />
         <div class={`settings-content page-${page.id}`}>
           <h1 id="page-title">{page.title}</h1>
           {page.intro === undefined ? null : <p class="intro">{page.intro}</p>}
+          {leaving.asking ? (
+            <DiscardPrompt message={en.customCode.discard} onSettle={leaving.settle} />
+          ) : null}
           <PageBody
             key={page.id}
             api={api}
             snapshot={snapshot}
             onChange={change}
             reload={reload}
+            onUnsaved={setUnsaved}
             page={page}
           />
           <p role="alert">{error}</p>

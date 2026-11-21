@@ -17,6 +17,8 @@ const PATHS = {
     'M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM3 10h14M10 3c2 2 2.8 4.5 2.8 7S12 15 10 17c-2-2-2.8-4.5-2.8-7S8 5 10 3z',
   advanced:
     'M3.5 6.5h13M3.5 13.5h13M12.5 4.5a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7.5 11.5a2 2 0 1 0 0 4 2 2 0 0 0 0-4z',
+  /** Angle brackets around a slash: the user's own CSS and JavaScript. */
+  code: 'M7 6.5L3.5 10 7 13.5M13 6.5l3.5 3.5-3.5 3.5M11.25 4.5l-2.5 11',
   backup: 'M3 4.5h14v3H3zM4.5 7.5v8a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-8M8 10.5h4',
   restart: 'M15.5 10a5.5 5.5 0 1 1-1.6-3.9M15.5 3.5v3h-3',
   check: 'M4.5 10.5l3.5 3.5 7.5-8',

@@ -158,12 +158,13 @@ never notify.
 
 ## Custom CSS and JavaScript
 
-**Custom CSS and JavaScript…** (beside Settings) lets you restyle WhatsApp
-or add small scripts of your own. It is meant for people who write code:
+Settings → Custom code lets you restyle WhatsApp or add small scripts of
+your own. It is meant for people who write code:
 anything you add here runs in WhatsApp and can read your chats, so only add
 code you understand, and never paste code someone sent you.
 
-- It stays off until you tick **Use custom CSS and JavaScript**.
+- It stays off until you turn on **Use custom CSS and JavaScript** and
+  **Save**.
 - **Applies to** picks **All accounts** or one account; an account's own
   code comes after the code for all accounts.
 - CSS shows in WhatsApp as you type, and is kept only when you **Save**.
@@ -172,6 +173,9 @@ code you understand, and never paste code someone sent you.
   stops only itself. Reload WhatsApp to run a change.
 - The code is kept apart from your settings and never travels in an
   exported settings file.
+- If you pick another page of Settings, or press <kbd>Esc</kbd>, with
+  changes you have not saved, YapYap asks whether to discard them first.
+  Leaving the page takes back CSS you have not saved.
 
 ## Accounts
 
@@ -248,6 +252,12 @@ Settings → Appearance hides the menu until you press <kbd>Alt</kbd>.
 <kbd>Ctrl</kbd>+<kbd>,</kbd> opens Settings either way. On macOS, closing
 the window keeps YapYap running, as other Mac apps do: click its Dock icon
 to bring the window back, and choose **Quit** to quit.
+
+The **File** menu holds **Settings…**, **Close Window**
+(<kbd>Ctrl</kbd>+<kbd>W</kbd>) and **Quit**; on macOS, Settings and Quit are
+in the **YapYap** menu and File holds **Close Window**. The **Window** menu
+has **Minimize** and **Downloads…**, and everything about your accounts is
+in the **Account** menu.
 
 YapYap's tray icon shows the window again; on macOS it sits in the menu bar
 and opens its menu. The menu shows or hides the window, lists your running

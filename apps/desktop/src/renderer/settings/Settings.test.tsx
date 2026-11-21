@@ -2,12 +2,18 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fakeChromeApi } from '../../../test/chrome-api.ts';
-import type { ChromeApi, SettingsSnapshot } from '../../shared/api/chrome-api.ts';
+import type { ChromeApi, CustomCodeView, SettingsSnapshot } from '../../shared/api/chrome-api.ts';
+import { NO_CUSTOM_CODE, type CustomCode } from '../../shared/custom-code.ts';
 import { SETTING_FIELDS, type SettingValue } from '../../shared/settings-fields.ts';
 import { Settings } from './Settings.tsx';
 
 const HARDWARE = 'reliability.hardwareAcceleration';
 const THEME = 'appearance.theme';
+
+const CUSTOM_CODE: CustomCodeView = {
+  code: NO_CUSTOM_CODE,
+  scopes: [{ id: 'all', label: 'All accounts' }],
+};
 
 const snapshot = (overrides: Partial<SettingsSnapshot> = {}): SettingsSnapshot => ({
   values: { [THEME]: 'system', [HARDWARE]: true },
@@ -42,6 +48,11 @@ function api(overrides: Partial<ChromeApi['settings']> = {}, first = snapshot())
     // Keyboard shortcuts and the spelling languages have tests of their own.
     shortcuts: { list: vi.fn(() => new Promise<never>(() => undefined)), set: vi.fn() },
     spelling: { languages: vi.fn(() => new Promise<never>(() => undefined)), choose: vi.fn() },
+    customCode: {
+      get: vi.fn(() => Promise.resolve(CUSTOM_CODE)),
+      save: vi.fn((code: CustomCode) => Promise.resolve({ ...CUSTOM_CODE, code })),
+      preview: vi.fn(() => Promise.resolve()),
+    },
   });
 }
 
@@ -78,7 +89,7 @@ describe('Settings', () => {
       within(list)
         .getAllByRole('button')
         .map((button) => button.textContent),
-    ).toEqual(['Appearance', 'Keyboard shortcuts', 'Advanced', 'Backup']);
+    ).toEqual(['Appearance', 'Keyboard shortcuts', 'Custom code', 'Advanced', 'Backup']);
     expect(title()).toBe('Appearance');
     const current = within(list).getByRole('button', { name: 'Appearance' });
     expect(current.getAttribute('aria-current')).toBe('page');
@@ -118,6 +129,7 @@ describe('Settings', () => {
       'AI Assistant',
       'Agents',
       'Network',
+      'Custom code',
       'Advanced',
       'Backup',
     ]);
@@ -174,14 +186,14 @@ describe('Settings', () => {
     expect(SETTING_FIELDS.map(({ id }) => id).filter((id) => !seen.has(id))).toEqual(own);
   });
 
-  it('shows Keyboard shortcuts and Backup on every platform', async () => {
+  it('shows Keyboard shortcuts, Custom code and Backup on every platform', async () => {
     render(<Settings api={api({}, snapshot({ values: {} }))} />);
     const list = await screen.findByRole('navigation', { name: 'Settings sections' });
     expect(
       within(list)
         .getAllByRole('button')
         .map((button) => button.textContent),
-    ).toEqual(['Keyboard shortcuts', 'Backup']);
+    ).toEqual(['Keyboard shortcuts', 'Custom code', 'Backup']);
     expect(title()).toBe('Keyboard shortcuts');
   });
 
@@ -210,6 +222,8 @@ describe('Settings', () => {
     expect(document.activeElement?.textContent).toBe('Keyboard shortcuts');
     fireEvent.keyDown(first, { key: 'Tab' });
     expect(title()).toBe('Keyboard shortcuts');
+    fireEvent.keyDown(first, { key: 'ArrowDown' });
+    expect(title()).toBe('Custom code');
     fireEvent.keyDown(first, { key: 'ArrowDown' });
     expect(title()).toBe('Advanced');
     fireEvent.keyDown(first, { key: 'ArrowDown' });
@@ -449,5 +463,86 @@ describe('Settings › Assistant and Agents', () => {
     expect(settings.settings.set).toHaveBeenCalledWith('assistant.enabled', false);
     await open('Agents');
     expect(screen.getByRole('switch', { name: 'Let AI agents connect' })).toBeTruthy();
+  });
+});
+
+describe('Settings › Custom code', () => {
+  afterEach(() => {
+    cleanup();
+    forgetPage();
+  });
+
+  const css = () => screen.getByLabelText<HTMLTextAreaElement>('CSS');
+  const prompt = () => screen.queryByRole('alertdialog');
+
+  /** Opens Custom code and types CSS the user has not saved. */
+  async function edited(chrome = api()) {
+    window.history.replaceState(null, '', '#custom-code');
+    render(<Settings api={chrome} />);
+    await vi.waitFor(() => {
+      expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Save' }).disabled).toBe(false);
+    });
+    fireEvent.input(css(), { target: { value: 'p {}' } });
+    await vi.waitFor(() => {
+      fireEvent.click(within(nav()).getByRole('button', { name: 'Backup' }));
+      expect(prompt()).not.toBeNull();
+    });
+    return chrome;
+  }
+
+  it('lets the user leave at once while nothing is unsaved', async () => {
+    window.history.replaceState(null, '', '#custom-code');
+    render(<Settings api={api()} />);
+    expect(await screen.findByText(/can read your chats/)).toBeTruthy();
+    await open('Backup');
+    expect(title()).toBe('Backup');
+    expect(prompt()).toBeNull();
+  });
+
+  it('asks before another page throws away an edit, and keeps it on Keep Editing', async () => {
+    const chrome = await edited();
+    expect(prompt()?.textContent).toContain('Discard your unsaved changes to the code?');
+    expect(title()).toBe('Custom code');
+    fireEvent.click(screen.getByRole('button', { name: 'Keep Editing' }));
+    expect(prompt()).toBeNull();
+    expect(css().value).toBe('p {}');
+    expect(window.location.hash).toBe('#custom-code');
+    fireEvent.click(within(nav()).getByRole('button', { name: 'Custom code' }));
+    expect(prompt()).toBeNull();
+    fireEvent.click(within(nav()).getByRole('button', { name: 'Backup' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
+    expect(title()).toBe('Backup');
+    expect(window.location.hash).toBe('#backup');
+    await vi.waitFor(() => {
+      expect(chrome.customCode.preview).toHaveBeenLastCalledWith('all', null);
+    });
+    await open('Appearance');
+    expect(prompt()).toBeNull();
+  });
+
+  it('asks too when a menu opens another page, and keeps the address on the edit', async () => {
+    await edited();
+    fireEvent.click(screen.getByRole('button', { name: 'Keep Editing' }));
+    window.history.replaceState(null, '', '#shortcuts');
+    window.dispatchEvent(new Event('hashchange'));
+    expect(window.location.hash).toBe('#custom-code');
+    await vi.waitFor(() => {
+      expect(prompt()).not.toBeNull();
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
+    expect(title()).toBe('Keyboard shortcuts');
+    expect(window.location.hash).toBe('#shortcuts');
+  });
+
+  it('asks before Escape closes the window on an edit, and closes once discarded', async () => {
+    const close = vi.spyOn(window, 'close').mockImplementation(() => undefined);
+    await edited();
+    fireEvent.click(screen.getByRole('button', { name: 'Keep Editing' }));
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(close).not.toHaveBeenCalled();
+    expect(prompt()).not.toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
+    expect(close).toHaveBeenCalledOnce();
+    close.mockRestore();
   });
 });

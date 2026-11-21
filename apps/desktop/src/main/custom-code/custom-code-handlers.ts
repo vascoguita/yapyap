@@ -4,18 +4,6 @@ import { en } from '../../shared/messages/en.ts';
 import { isCustomCode, type CustomCodeController } from './custom-code.ts';
 import { argumentsOf, isString, noArguments } from '../ipc/arguments.ts';
 import type { ChromeHandler } from '../ipc/chrome.ts';
-import type { ChromePage } from '../chrome/window-opener.ts';
-import { WINDOW_SIZES } from '../chrome/window-sizes.ts';
-
-/** Where the user edits their own CSS and JavaScript (#72). */
-export const CUSTOM_CODE_PAGE: ChromePage = {
-  path: 'custom-code.html',
-  window: {
-    title: en.windows.customCode,
-    ...WINDOW_SIZES.medium,
-    minimizable: false,
-  },
-};
 
 type AccountList = () => readonly { readonly id: string; readonly name: string }[];
 
@@ -38,7 +26,7 @@ function tidy(code: CustomCode, known: ReadonlySet<string>): CustomCode {
 }
 
 /**
- * The Custom CSS and JavaScript window's operations (#72): read the code
+ * Settings › Custom code's operations (#72, #710): read the code
  * and its scopes, save it, and preview unsaved CSS. Only whole, well-formed
  * code within its size limits gets through.
  */

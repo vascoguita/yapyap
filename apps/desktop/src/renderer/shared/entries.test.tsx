@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { en } from '../../shared/messages/en.ts';
 import { About } from '../about/About.tsx';
 import { Accounts } from '../accounts/Accounts.tsx';
-import { CustomCodeEditor } from '../custom-code/CustomCode.tsx';
 import { Downloads } from '../downloads/Downloads.tsx';
 import { Picker } from '../picker/Picker.tsx';
 import { ProxyLogin } from '../proxy-login/ProxyLogin.tsx';
@@ -27,12 +26,6 @@ const windows = en.windows;
 const ENTRIES = [
   ['about', () => import('../about/main.tsx'), About, { title: windows.about }],
   ['accounts', () => import('../accounts/main.tsx'), Accounts, { title: windows.accounts }],
-  [
-    'custom code',
-    () => import('../custom-code/main.tsx'),
-    CustomCodeEditor,
-    { title: windows.customCode },
-  ],
   ['downloads', () => import('../downloads/main.tsx'), Downloads, { title: windows.downloads }],
   ['picker', () => import('../picker/main.tsx'), Picker, { title: windows.picker }],
   [
