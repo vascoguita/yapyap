@@ -155,6 +155,11 @@ something only you know, such as whether you are free, they work without
 it rather than guess:
 
 - They float just above the message box, like WhatsApp's own.
+- When you choose **Reply** on a message, they answer that message
+  instead, in the light of the rest of the chat, however far up it is.
+  Remove the quote with its **×** and the suggestions for the chat's last
+  message come back, without asking again. Each quoted message is asked
+  about once.
 - Click one to put it in the message box, where you can edit it before
   you send it. A suggestion never sends itself, and the others stay, so
   you can pick another.

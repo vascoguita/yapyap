@@ -437,7 +437,9 @@ const settled = (bar: BarContext, signal: AbortSignal): Promise<boolean> =>
 
 /**
  * Suggests what to send after `message`, the open chat's last item,
- * whoever sent it. Suggestions already made for it show again. They are
+ * whoever sent it, or in reply to the message the user chose, which
+ * `message` names too (#740). Suggestions already made for it show again,
+ * so removing the quote brings back the last item's without asking. They are
  * made while the user has folded them away too, so showing them again
  * needs no wait (#729).
  */
@@ -492,7 +494,7 @@ export interface AssistantBar {
   readonly found: (message: string | null) => void;
   /** Another chat is open, with `message` its last item, or none is. */
   readonly opened: (message: string | null) => void;
-  /** Another item is the open chat's last: someone else's, or the user's own. */
+  /** Another item is the open chat's last, someone else's or the user's own, or the user replies to another message (#740). */
   readonly arrived: (message: string) => void;
   /** The user sent a message in the open chat. */
   readonly sent: () => void;

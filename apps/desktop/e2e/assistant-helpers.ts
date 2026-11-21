@@ -382,6 +382,49 @@ export async function messageEdited(page: Page, id: string, text: string): Promi
 }
 
 /**
+ * The user chooses Reply on message `id` in the open chat of the fake
+ * WhatsApp page, which quotes it above the message box, as WhatsApp does,
+ * with its sender's name, its text and a × that removes it (#740).
+ */
+export async function chooseReply(page: Page, id: string, author: string): Promise<void> {
+  await page.evaluate(
+    ({ id, author }) => {
+      const body = document.querySelector(
+        `#main [data-id="${id}"] [data-pre-plain-text] [data-testid="selectable-text"]`,
+      );
+      if (body === null) {
+        throw new Error(`No message ${id} to reply to`);
+      }
+      document.querySelector('[data-testid="reply-preview"]')?.remove();
+      const preview = document.createElement('div');
+      preview.dataset['testid'] = 'reply-preview';
+      const quote = document.createElement('div');
+      quote.dataset['testid'] = 'quoted-message';
+      const sender = document.createElement('span');
+      sender.dataset['testid'] = 'author';
+      sender.textContent = author;
+      const text = document.createElement('span');
+      text.textContent = body.textContent;
+      quote.append(sender, text);
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.dataset['testid'] = 'cancel-reply';
+      remove.setAttribute('aria-label', 'Cancel reply');
+      remove.textContent = '×';
+      preview.append(quote, remove);
+      document.querySelector('#main footer')?.prepend(preview);
+    },
+    { id, author },
+  );
+}
+
+/** The user removes the message they chose to reply to with its ×, as on WhatsApp (#740). */
+export async function removeReply(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Cancel reply' }).click();
+  await expect(page.getByTestId('reply-preview')).toHaveCount(0);
+}
+
+/**
  * Adds a sticker from the contact as the chat's last item, as WhatsApp
  * draws one: a bubble with no text and no copy mark (#723).
  */
