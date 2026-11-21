@@ -382,6 +382,77 @@ export async function messageEdited(page: Page, id: string, text: string): Promi
 }
 
 /**
+ * The user chooses Reply on message `id` in the open chat of the fake
+ * WhatsApp page, which quotes it above the message box, as WhatsApp does,
+ * with its sender's name, its text and a × that removes it (#740).
+ */
+export async function chooseReply(page: Page, id: string, author: string): Promise<void> {
+  await page.evaluate(
+    ({ id, author }) => {
+      const body = document.querySelector(
+        `#main [data-id="${id}"] [data-pre-plain-text] [data-testid="selectable-text"]`,
+      );
+      if (body === null) {
+        throw new Error(`No message ${id} to reply to`);
+      }
+      document.querySelector('[data-testid="reply-preview"]')?.remove();
+      const preview = document.createElement('div');
+      preview.dataset['testid'] = 'reply-preview';
+      const quote = document.createElement('div');
+      quote.dataset['testid'] = 'quoted-message';
+      const sender = document.createElement('span');
+      sender.dataset['testid'] = 'author';
+      sender.textContent = author;
+      const text = document.createElement('span');
+      text.textContent = body.textContent;
+      quote.append(sender, text);
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.dataset['testid'] = 'cancel-reply';
+      remove.setAttribute('aria-label', 'Cancel reply');
+      remove.textContent = '×';
+      preview.append(quote, remove);
+      // WhatsApp puts it after the message box, and draws it over the space above it.
+      document.querySelector('#main footer')?.append(preview);
+    },
+    { id, author },
+  );
+}
+
+/**
+ * Where the fake page lays out the chat's end, the assistant's bar, the
+ * quote of the message the user replies to and the message box, as the
+ * top or bottom edges that meet (#740); 0 for one that is not there.
+ */
+export async function replyLayout(page: Page): Promise<{
+  readonly chatEnd: number;
+  readonly barTop: number;
+  readonly barEnd: number;
+  readonly quoteTop: number;
+  readonly boxTop: number;
+}> {
+  return page.evaluate(() => {
+    const box = (selector: string) =>
+      document.querySelector(selector)?.getBoundingClientRect() ?? new DOMRect();
+    const footer = document.querySelector('#main footer');
+    const bar = footer?.previousElementSibling?.getBoundingClientRect() ?? new DOMRect();
+    return {
+      chatEnd: box('[data-testid="conversation-panel-body"]').bottom,
+      barTop: bar.top,
+      barEnd: bar.bottom,
+      quoteTop: box('[data-testid="reply-preview"]').top,
+      boxTop: box('#main footer').top,
+    };
+  });
+}
+
+/** The user removes the message they chose to reply to with its ×, as on WhatsApp (#740). */
+export async function removeReply(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Cancel reply' }).click();
+  await expect(page.getByTestId('reply-preview')).toHaveCount(0);
+}
+
+/**
  * Adds a sticker from the contact as the chat's last item, as WhatsApp
  * draws one: a bubble with no text and no copy mark (#723).
  */

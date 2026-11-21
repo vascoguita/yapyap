@@ -1,5 +1,5 @@
-import type { ReadChat } from '../../adapter/active-chat.ts';
-import { chatContext, INSTRUCTIONS, nowLine, type Prompt } from './prompts.ts';
+import type { Quote, ReadChat } from '../../adapter/active-chat.ts';
+import { chatContext, INSTRUCTIONS, nowLine, quotation, type Prompt } from './prompts.ts';
 import { cleanRewrite } from './rewrites.ts';
 
 /** How many replies the assistant offers to choose from. */
@@ -9,21 +9,47 @@ const SUGGESTIONS = 3;
 const NONE = 'NONE';
 
 /**
+ * What the model is asked for: the next message in the chat, or, when the
+ * user chose a message to reply to, replies to that one (#740). It is in
+ * the task, not the chat, so choosing a message leaves the cached chat as
+ * it was.
+ */
+function askFor(replyingTo: Quote | undefined): string[] {
+  const count = String(SUGGESTIONS);
+  if (replyingTo === undefined) {
+    return [
+      `Suggest ${count} messages I could send next in this chat, as "Suggesting replies" describes them.`,
+    ];
+  }
+  return [
+    'I am replying to this message of the chat:',
+    '<reply-to>',
+    quotation(replyingTo),
+    '</reply-to>',
+    `Suggest ${count} replies to it I could send, as "Suggesting replies" describes them.`,
+  ];
+}
+
+/**
  * What the model is asked for reply suggestions, as the instructions
  * describe them: real choices, each ready to send, whatever the chat ends
  * in and whoever sent it, so the row always has something (#723).
  */
-export function suggestTask(now: Date): string {
+export function suggestTask(now: Date, replyingTo?: Quote): string {
   return [
     nowLine(now),
-    `Suggest ${String(SUGGESTIONS)} messages I could send next in this chat, as "Suggesting replies" describes them.`,
+    ...askFor(replyingTo),
     'Write one message per line, with no numbering, quotes or other text.',
   ].join('\n');
 }
 
-/** Everything a request for reply suggestions in `chat` sends. */
+/** Everything a request for reply suggestions in `chat` sends, for the message the user replies to if any. */
 export function suggestPrompt(chat: ReadChat, now: Date): Prompt {
-  return { instructions: INSTRUCTIONS, context: chatContext(chat), task: suggestTask(now) };
+  return {
+    instructions: INSTRUCTIONS,
+    context: chatContext(chat),
+    task: suggestTask(now, chat.replyingTo),
+  };
 }
 
 /** Numbering or a bullet a model may put before a reply despite being asked not to. */

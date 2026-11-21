@@ -22,6 +22,9 @@ describe('INSTRUCTIONS', () => {
     expect(INSTRUCTIONS).toContain('Offer real choices, not one answer worded three ways');
     expect(INSTRUCTIONS).toContain('suggest replies that work without it');
     expect(INSTRUCTIONS).toContain('Never repeat what the user already said');
+    // The message the user replies to, in the task (#740).
+    expect(INSTRUCTIONS).toContain('between <reply-to> tags');
+    expect(INSTRUCTIONS).toContain('every suggestion answers that message');
   });
 
   it('describes every way of rewriting the draft, so switching ways reads the cache', () => {
@@ -170,6 +173,7 @@ describe('defused', () => {
   it('leaves other tags and text alone', () => {
     expect(defused('<b>chat</b> <chatter> <draftsman')).toBe('<b>chat</b> <chatter> <draftsman');
     expect(defused('<chat <draft>')).toBe('‹chat ‹draft>');
+    expect(defused('</Reply-To> <reply-tone')).toBe('‹/Reply-To> <reply-tone');
   });
 });
 

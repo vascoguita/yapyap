@@ -22,7 +22,11 @@ export interface ChatWatchDependencies {
   readonly found: (message: string | null) => unknown;
   /** Another chat is open, with its last item, or none is. */
   readonly opened: (message: string | null) => unknown;
-  /** Another item is the open chat's last: someone else's that arrived, or the user's own (#723). */
+  /**
+   * Another item is the open chat's last: someone else's that arrived, or
+   * the user's own (#723); or the user chose another message to reply to,
+   * or removed it (#740).
+   */
   readonly arrived: (message: string) => unknown;
   /** The user sent a message in the open chat. */
   readonly sent: () => unknown;
@@ -41,16 +45,24 @@ interface Seen {
 const lastOf = (newest: Newest): string | null => (newest.theirsLast ? newest.theirs : newest.mine);
 
 /**
- * The open chat's last item, named by its chat, itself and what it says,
- * which the assistant suggests replies to whoever sent it (#723); `-`
- * stands for the item of a chat with none yet. An edited item says
- * something else, so it is another, and suggestions are made for it again
- * (#739). Null while no chat is open.
+ * What the assistant suggests replies to, named by the open chat, its last
+ * item and what that says, and the message the user chose to reply to:
+ * that message, if there is one (#740), else the last item, whoever sent
+ * it (#723). `-` stands for the item of a chat with none yet, and for no
+ * message replied to. An edited item says something else, so it is
+ * another, and suggestions are made for it again (#739); choosing a
+ * message to reply to, or removing it, names another too. Null while no
+ * chat is open.
  */
 const answerable = (newest: Newest | null): string | null =>
-  newest === null ? null : `${newest.chat}:${lastOf(newest) ?? '-'}:${newest.said ?? '-'}`;
+  newest === null
+    ? null
+    : `${newest.chat}:${lastOf(newest) ?? '-'}:${newest.said ?? '-'}:${newest.quote ?? '-'}`;
 
-/** The chat's last item, if it is another than at the look before, or the same, edited. */
+/**
+ * What to suggest replies to, if it is another than at the look before:
+ * another last item, the same edited, or another message replied to.
+ */
 const newMessage = (was: Newest, now: Newest): string | null => {
   const message = answerable(now);
   return message === answerable(was) ? null : message;
@@ -59,7 +71,8 @@ const newMessage = (was: Newest, now: Newest): string | null => {
 /**
  * Tells what changed in the chat that stayed open: the user sent a
  * message, then that the chat has another last item, theirs or the user's,
- * or that its last was edited;
+ * that its last was edited, or that the user chose another message to
+ * reply to or removed it;
  * and, at every look, that the message box is empty, as a draft a rewrite
  * filled may be cleared between two looks.
  */

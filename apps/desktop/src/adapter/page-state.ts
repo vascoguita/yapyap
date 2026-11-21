@@ -2,7 +2,7 @@
  * Bump whenever a landmark below changes, so diagnostics show which table a
  * report came from.
  */
-export const LANDMARKS_VERSION = 11;
+export const LANDMARKS_VERSION = 12;
 
 /**
  * Structural landmarks of WhatsApp Web: element ids and attributes that have
@@ -52,6 +52,14 @@ export const LANDMARKS = {
    */
   author: '[data-testid="author"]',
   quoted: '[data-testid="quoted-message"]',
+  /**
+   * The message the user chose to reply to, quoted above the message box
+   * until they send or remove it (#740). WhatsApp draws it in the footer,
+   * in a popup panel beside the compose box, with the quoted sender and
+   * text, and no `data-id` anywhere in the footer, so the `message`
+   * landmark never takes it for a message of the chat.
+   */
+  composerQuote: '#main footer [data-testid="quoted-message"]',
   /** A message's bubble, which every message has once WhatsApp draws it. */
   bubble: '[data-testid="msg-container"]',
   /** Emoji in a message, drawn as images that keep the emoji's text aside (#723). */

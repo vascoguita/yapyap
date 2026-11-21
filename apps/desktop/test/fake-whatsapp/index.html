@@ -48,6 +48,21 @@
         position: relative;
         z-index: 2;
       }
+      /* As WhatsApp draws the message the user replies to: in the footer,
+         after the message box, but over the space above it, which it leaves
+         free at the end of the chat (#740). */
+      #main:has([data-testid='reply-preview']) > [data-testid='conversation-panel-body'] {
+        margin-block-end: 64px;
+      }
+      [data-testid='reply-preview'] {
+        position: absolute;
+        inset-inline: 0;
+        inset-block-end: 100%;
+        display: flex;
+        block-size: 64px;
+        border-radius: 16px 16px 0 0;
+        background: #fff;
+      }
       [data-testid='compose-row'] {
         display: flex;
         align-items: center;
@@ -134,6 +149,10 @@
                 </div>
               </div>
               <footer>
+                <!-- The message the user replies to goes last in the footer, drawn
+                     over the space above the message box, as
+                     [data-testid="reply-preview"] around a quoted message and its ×
+                     (#740); see `chooseReply` in e2e/assistant-helpers.ts. -->
                 <!-- As WhatsApp lays out its message box: one row of attach, the
                      field in a box of its own, then the microphone, which Send
                      takes the place of (#609). -->

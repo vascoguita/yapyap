@@ -523,6 +523,35 @@ describe('createAssistantBar: suggested replies', () => {
     expect(t.deps.core.ask).toHaveBeenCalledOnce();
   });
 
+  it('answers the message the user replies to once, and the last item’s again when it goes (#740)', async () => {
+    const t = harness();
+    t.bar.found('aaaaaaaa:m1:s1:-');
+    await t.settle();
+    const forLast = t.last().suggestions;
+    const replying = { ...CHAT, replyingTo: { author: 'Ana', text: 'See you at 8' } };
+    t.setChat(replying);
+    vi.mocked(t.deps.core.ask).mockResolvedValueOnce('Sure!\nMaybe 9?');
+    t.bar.arrived('aaaaaaaa:m1:s1:q1');
+    await t.settle();
+    expect(t.deps.core.ask).toHaveBeenLastCalledWith(
+      READY,
+      suggestPrompt(replying, NOW),
+      expect.any(AbortSignal),
+    );
+    expect(vi.mocked(t.deps.core.ask).mock.lastCall?.[1].task).toContain('Ana: “See you at 8”');
+    expect(t.last()).toMatchObject({ chat: 'aaaaaaaa', suggestions: ['Sure!', 'Maybe 9?'] });
+    // Removing the quote, then choosing it again, shows what was made for each without asking.
+    t.setChat(CHAT);
+    t.bar.arrived('aaaaaaaa:m1:s1:-');
+    await tick();
+    expect(t.last().suggestions).toEqual(forLast);
+    t.setChat(replying);
+    t.bar.arrived('aaaaaaaa:m1:s1:q1');
+    await tick();
+    expect(t.last().suggestions).toEqual(['Sure!', 'Maybe 9?']);
+    expect(t.deps.core.ask).toHaveBeenCalledTimes(2);
+  });
+
   it('folds the suggestions away and back, still making them while folded (#729)', async () => {
     const t = harness();
     t.bar.collapse();

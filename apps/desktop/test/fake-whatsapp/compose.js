@@ -29,4 +29,13 @@ composer.addEventListener('keydown', (event) => {
   // message box, with the assistant bar between them (#466).
   [...composer.closest('#main').querySelectorAll('[role="row"]')].at(-1).after(row);
   composer.textContent = '';
+  document.querySelector('[data-testid="reply-preview"]')?.remove();
+});
+
+// As WhatsApp shows the message the user chose to reply to above the message
+// box, until they send or remove it with its × (#740).
+document.querySelector('#main footer').addEventListener('click', (event) => {
+  if (event.target.closest('[data-testid="cancel-reply"]') !== null) {
+    document.querySelector('[data-testid="reply-preview"]')?.remove();
+  }
 });

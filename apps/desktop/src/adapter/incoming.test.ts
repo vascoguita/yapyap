@@ -1,7 +1,13 @@
 /** @vitest-environment happy-dom */
 import { runInNewContext } from 'node:vm';
 import { afterEach, describe, expect, it } from 'vitest';
-import { fingerprint, NEWEST_MESSAGES, newestMessages, parseNewest } from './incoming.ts';
+import {
+  fingerprint,
+  NEWEST_MESSAGES,
+  newestMessages,
+  parseNewest,
+  replyingTo,
+} from './incoming.ts';
 import { LANDMARKS } from './page-state.ts';
 
 const PLACES = {
@@ -9,6 +15,7 @@ const PLACES = {
   outgoing: LANDMARKS.outgoing,
   chatName: LANDMARKS.chatName,
   composer: LANDMARKS.composer,
+  composerQuote: LANDMARKS.composerQuote,
   messageBody: LANDMARKS.messageBody,
   messageText: LANDMARKS.messageText,
   emoji: LANDMARKS.emoji,
@@ -26,7 +33,7 @@ const chat = (name: string, ...rows: string[]) => {
   document.body.innerHTML = `<div id="main"><header><span dir="auto">${name}</span></header>${rows.join('')}</div>`;
 };
 
-const probe = () => newestMessages(document, PLACES, fingerprint);
+const probe = () => newestMessages(document, PLACES, fingerprint, replyingTo);
 const part = (index: number) => probe()?.split(':')[index];
 
 afterEach(() => {
@@ -37,7 +44,7 @@ describe('newestMessages', () => {
   it('hashes the open chat and its newest message from each side, never handing over a name or an ID', () => {
     chat('Ana', theirs('3EB0A1'), mine('3EB0A2'));
     const seen = probe();
-    expect(seen).toMatch(/^[0-9a-f]{8}:[0-9a-f]{8}:[0-9a-f]{8}:o:e:[0-9a-f]{8}$/);
+    expect(seen).toMatch(/^[0-9a-f]{8}:[0-9a-f]{8}:[0-9a-f]{8}:o:e:[0-9a-f]{8}:-$/);
     expect(seen).not.toContain('Ana');
     expect(seen).not.toContain('3EB0A1');
     const [chatHash, theirsHash, mineHash] = String(seen).split(':');
@@ -83,16 +90,16 @@ describe('newestMessages', () => {
     chat('Ana', mine('3EB0A2'));
     expect(part(1)).toBe('-');
     chat('Ana');
-    expect(probe()).toMatch(/^[0-9a-f]{8}:-:-:-:e:-$/);
+    expect(probe()).toMatch(/^[0-9a-f]{8}:-:-:-:e:-:-$/);
     document.body.innerHTML = '<div id="main"></div>';
     expect(probe()).toBeNull();
     // A row without an ID, should WhatsApp's markup ever match one, still
     // counts; with an empty chat name, both hash as empty text.
     document.body.innerHTML =
       '<div id="main"><header><span dir="auto"></span></header><p></p></div>';
-    expect(newestMessages(document, { ...PLACES, message: '#main p' }, fingerprint)).toBe(
-      '811c9dc5:811c9dc5:-:i:e:811c9dc5',
-    );
+    expect(
+      newestMessages(document, { ...PLACES, message: '#main p' }, fingerprint, replyingTo),
+    ).toBe('811c9dc5:811c9dc5:-:i:e:811c9dc5:-');
   });
 
   it('hashes what the last message says, so an edit, which keeps its ID, tells apart (#739)', () => {
@@ -133,7 +140,40 @@ describe('newestMessages', () => {
       querySelector: () => ({ textContent: null }),
       querySelectorAll: () => [],
     };
-    expect(newestMessages(doc, PLACES, fingerprint)).toBe('811c9dc5:-:-:-:e:-');
+    expect(newestMessages(doc, PLACES, fingerprint, replyingTo)).toBe('811c9dc5:-:-:-:e:-:-');
+  });
+
+  it('hashes the message the user replies to above the message box, never what it says (#740)', () => {
+    /** The message box, with `quote` above it as WhatsApp shows the message being replied to. */
+    const box = (quote: string) => `<footer>${quote}<div contenteditable="true"></div></footer>`;
+    const quoting = (text: string) =>
+      `<div data-testid="quoted-message"><span data-testid="author">Ana</span><span>${text}</span></div>`;
+    chat('Ana', theirs('3EB0A1'), box(''));
+    expect(part(6)).toBe('-');
+    const unquoted = String(probe());
+    chat('Ana', theirs('3EB0A1'), box(quoting('See you at 5')));
+    const quoted = part(6);
+    expect(quoted).toBe(fingerprint('AnaSee you at 5'));
+    expect(probe()).not.toContain('See you');
+    // Only the quote changed: what the chat holds stays as it was.
+    expect(String(probe()).replace(/:[^:]*$/, ':-')).toBe(unquoted);
+    chat('Ana', theirs('3EB0A1'), box(quoting('Dinner?')));
+    expect(part(6)).not.toBe(quoted);
+  });
+
+  it('never takes a message’s own quote for the message the user replies to (#740)', () => {
+    const reply = `<div role="row"><div data-id="3EB0A2"><div data-testid="quoted-message"><span>Dinner?</span></div>Yes</div></div>`;
+    chat('Ana', theirs('3EB0A1'), reply);
+    expect(part(6)).toBe('-');
+    // Should WhatsApp ever put the message box inside a row, its quote still is no message's.
+    document.body.innerHTML = `<div id="main"><header><span dir="auto">Ana</span></header><footer><div data-id="3EB0A3"><div data-testid="quoted-message">Dinner?</div></div></footer></div>`;
+    expect(part(6)).toBe('-');
+  });
+
+  it('hashes a quote without text as empty text', () => {
+    const quote = { textContent: null, closest: () => null };
+    const doc = { querySelector: () => null, querySelectorAll: () => [quote] };
+    expect(replyingTo(doc as never, PLACES, fingerprint)).toBe('811c9dc5');
   });
 
   it('pads every hash to eight characters, so the answer always parses', () => {
@@ -146,14 +186,21 @@ describe('newestMessages', () => {
   it('looks in the page with the landmarks the adapter keeps', () => {
     // With the fingerprint beside it, which the assistant's bar shares (#741).
     expect(
-      NEWEST_MESSAGES.endsWith(`(document, ${JSON.stringify(PLACES)}, ${fingerprint.toString()})`),
+      NEWEST_MESSAGES.endsWith(
+        `(document, ${JSON.stringify(PLACES)}, ${fingerprint.toString()}, ${replyingTo.toString()})`,
+      ),
     ).toBe(true);
   });
 
   // Mutation testing instruments the function with helpers from outside it,
   // so only uninstrumented source can run on its own.
   it.skipIf(NEWEST_MESSAGES.includes('stryMutAct'))('runs as standalone source text', () => {
-    chat('Ana', theirs('3EB0A1'));
+    chat(
+      'Ana',
+      theirs('3EB0A1'),
+      '<footer><div data-testid="quoted-message">Hi</div><div contenteditable="true"></div></footer>',
+    );
+    expect(part(6)).not.toBe('-');
     // As in the adapter's isolated world, which has the page's document and the browser's TextEncoder.
     expect(runInNewContext(NEWEST_MESSAGES, { document, TextEncoder })).toBe(probe());
   });
@@ -161,24 +208,30 @@ describe('newestMessages', () => {
 
 describe('parseNewest', () => {
   it('takes the hashes and whose message is last, or no chat, and refuses anything else', () => {
-    expect(parseNewest('0123abcd:89abcdef:-:i:e:76543210')).toEqual({
+    expect(parseNewest('0123abcd:89abcdef:-:i:e:76543210:-')).toEqual({
       chat: '0123abcd',
       theirs: '89abcdef',
       mine: null,
       theirsLast: true,
       drafting: false,
       said: '76543210',
+      quote: null,
     });
-    expect(parseNewest('0123abcd:-:89abcdef:o:e:76543210')).toEqual({
+    expect(parseNewest('0123abcd:-:89abcdef:o:e:76543210:fedcba98')).toEqual({
       chat: '0123abcd',
       theirs: null,
       mine: '89abcdef',
       theirsLast: false,
       drafting: false,
       said: '76543210',
+      quote: 'fedcba98',
     });
-    expect(parseNewest('0123abcd:-:-:-:d:-')?.drafting).toBe(true);
-    expect(parseNewest('0123abcd:-:-:-:e:-')).toMatchObject({ theirsLast: false, said: null });
+    expect(parseNewest('0123abcd:-:-:-:d:-:-')?.drafting).toBe(true);
+    expect(parseNewest('0123abcd:-:-:-:e:-:-')).toMatchObject({
+      theirsLast: false,
+      said: null,
+      quote: null,
+    });
     expect(parseNewest(null)).toBeNull();
     // An array would spell the right text, were it ever taken for one.
     const refused = [
@@ -191,12 +244,15 @@ describe('parseNewest', () => {
       '0123abcd:89abcdef:-:i:x',
       '0123abcd:89abcdef:-:i:e',
       '0123abcd:89abcdef:-:i:e:x',
+      '0123abcd:89abcdef:-:i:e:76543210',
       '0123abcd:89abcdef:-:i:e:76543210:',
+      '0123abcd:89abcdef:-:i:e:76543210:x',
+      '0123abcd:89abcdef:-:i:e:76543210:-:',
       'x0123abcd:-:-:i',
       '0123abcd:-:-:i0',
       'ABCDEF01:-:-:i',
       '-:-:-:i',
-      ['0123abcd:-:-:i:e:-'],
+      ['0123abcd:-:-:i:e:-:-'],
     ];
     for (const value of refused) {
       expect(parseNewest(value)).toBeUndefined();
