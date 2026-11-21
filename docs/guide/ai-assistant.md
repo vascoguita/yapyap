@@ -143,7 +143,8 @@ and it saves time.
 
 ### Suggested replies
 
-When you open a chat, and each time something new appears in it, three
+When you open a chat, each time something new appears in it, and when
+the last message is edited, three
 short messages to send next appear right above the message box, in the
 chat's language. They answer the last thing in the chat, whoever sent it
 and whatever it is: a message, a photo, a sticker, a voice message or a
