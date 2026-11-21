@@ -419,6 +419,33 @@ export async function chooseReply(page: Page, id: string, author: string): Promi
   );
 }
 
+/**
+ * Where the fake page lays out the chat's end, the assistant's bar, the
+ * quote of the message the user replies to and the message box, as the
+ * top or bottom edges that meet (#740); 0 for one that is not there.
+ */
+export async function replyLayout(page: Page): Promise<{
+  readonly chatEnd: number;
+  readonly barTop: number;
+  readonly barEnd: number;
+  readonly quoteTop: number;
+  readonly boxTop: number;
+}> {
+  return page.evaluate(() => {
+    const box = (selector: string) =>
+      document.querySelector(selector)?.getBoundingClientRect() ?? new DOMRect();
+    const footer = document.querySelector('#main footer');
+    const bar = footer?.previousElementSibling?.getBoundingClientRect() ?? new DOMRect();
+    return {
+      chatEnd: box('[data-testid="conversation-panel-body"]').bottom,
+      barTop: bar.top,
+      barEnd: bar.bottom,
+      quoteTop: box('[data-testid="reply-preview"]').top,
+      boxTop: box('#main footer').top,
+    };
+  });
+}
+
 /** The user removes the message they chose to reply to with its ×, as on WhatsApp (#740). */
 export async function removeReply(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Cancel reply' }).click();

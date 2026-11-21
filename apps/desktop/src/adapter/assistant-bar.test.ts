@@ -153,24 +153,23 @@ afterEach(() => {
 });
 
 describe('renderAssistantBar', () => {
-  it('rises above the quote of the message the user replies to, keeping the chat in place, and comes back down (#740)', () => {
+  it('is drawn above the quote of the message the user replies to, and comes back down, moving nothing else (#740)', () => {
     const t = setup();
     let lift = 0;
     const room = vi.fn(holdAssistantBarRoom);
     const kit = { ...KIT, lift: () => lift, room };
     const render = () => renderAssistantBar(document, t.scope, CONTENT, PLACES, kit);
     render();
-    expect(t.stored().host.style.marginBlockEnd).toBe('0px');
+    expect(t.stored().host.style.insetBlockStart).toBe('0px');
     room.mockClear();
-    render();
-    expect(room).not.toHaveBeenCalled();
     lift = 72;
     render();
-    expect(t.stored().host.style.marginBlockEnd).toBe('72px');
-    expect(room).toHaveBeenCalledOnce();
+    expect(t.stored().host.style.insetBlockStart).toBe('-72px');
+    // WhatsApp left the room for the quote already, so the chat is not moved.
+    expect(room).not.toHaveBeenCalled();
     lift = 0;
     render();
-    expect(t.stored().host.style.marginBlockEnd).toBe('0px');
+    expect(t.stored().host.style.insetBlockStart).toBe('0px');
   });
 
   it('puts the bar right above the message box, in a closed shadow root', () => {

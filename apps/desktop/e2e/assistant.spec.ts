@@ -18,6 +18,7 @@ import {
   quietPort,
   readyClaude,
   removeReply,
+  replyLayout,
   settledRequests,
   standInKeyring,
   stickerArrives,
@@ -737,15 +738,12 @@ test('suggests replies to the message the user replies to, and the last one’s 
   await expect(async () => {
     expect(await barNames(app)).toContain('Dinner sounds great!');
   }).toPass({ timeout: 15_000 });
-  // The suggestions rise above the quote, which WhatsApp draws over the space above the box.
+  // The suggestions show above the quote, which WhatsApp draws over the space above the
+  // box, and the chat ends right above them, with no room left empty between.
   await expect(async () => {
-    const [barEnd, quoteTop] = await window.evaluate(() => {
-      const footer = document.querySelector('#main footer');
-      const bar = footer?.previousElementSibling?.getBoundingClientRect();
-      const quote = document.querySelector('[data-testid="reply-preview"]');
-      return [bar?.bottom ?? Infinity, quote?.getBoundingClientRect().top ?? 0];
-    });
-    expect(barEnd).toBeLessThanOrEqual(quoteTop);
+    const layout = await replyLayout(window);
+    expect(layout.barEnd).toBeLessThanOrEqual(layout.quoteTop + 1);
+    expect(Math.abs(layout.barTop - layout.chatEnd)).toBeLessThan(1);
   }).toPass();
   const asked = await claudeRequests(app);
   expect(asked).toHaveLength(before + 1);
@@ -761,12 +759,8 @@ test('suggests replies to the message the user replies to, and the last one’s 
   }).toPass({ timeout: 15_000 });
   // And they come back down onto the message box.
   await expect(async () => {
-    const gap = await window.evaluate(() => {
-      const footer = document.querySelector('#main footer');
-      const bar = footer?.previousElementSibling?.getBoundingClientRect();
-      return (footer?.getBoundingClientRect().top ?? 0) - (bar?.bottom ?? 0);
-    });
-    expect(Math.abs(gap)).toBeLessThan(1);
+    const layout = await replyLayout(window);
+    expect(Math.abs(layout.boxTop - layout.barEnd)).toBeLessThan(1);
   }).toPass();
   await window.waitForTimeout(3000);
   expect(await claudeRequests(app)).toHaveLength(before + 1);

@@ -84,7 +84,7 @@ interface BarNode {
     position: string;
     zIndex: string;
     display: string;
-    marginBlockEnd: string;
+    insetBlockStart: string;
   };
   readonly dataset: Record<string, string | undefined>;
   setAttribute(name: string, value: string): void;
@@ -224,12 +224,8 @@ export function renderAssistantBar(
     footer.before(store.host);
   };
   kit.refresh(doc, scope, places, { store, shown, placed, place }, kit);
-  const lift = `${String(kit.lift(footer, places))}px`;
-  if (store.host.style.marginBlockEnd !== lift) {
-    kit.room(scope, places, store.parts.bar, () => {
-      store.host.style.marginBlockEnd = lift;
-    });
-  }
+  // Only drawn higher: WhatsApp already leaves the quote's height free above the box, so the chat keeps its own.
+  store.host.style.insetBlockStart = `${String(-kit.lift(footer, places))}px`;
   store.sync();
   kit.align(scope, store.host, footer);
   kit.paint(scope, store.host, footer);
@@ -312,7 +308,8 @@ export function alignAssistantBar(scope: Scope, host: BarNode, footer: BarNode):
  * How far above the message box WhatsApp's quote of the message the user
  * replies to reaches, in whole pixels, or 0 without one. WhatsApp draws it
  * over the space above the box, where the bar sits, which hid the
- * suggestions; the bar rises by as much (#740). The quote's own panel is
+ * suggestions, and leaves as much free at the end of the chat for it; the
+ * bar is drawn that much higher, into that free space (#740). The quote's own panel is
  * one of its ancestors in the box's footer, which may be taller than the
  * quote, so the highest of them counts; one not laid out counts for none.
  */

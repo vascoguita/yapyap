@@ -49,13 +49,17 @@
         z-index: 2;
       }
       /* As WhatsApp draws the message the user replies to: in the footer,
-         after the message box, but over the space above it (#740). */
+         after the message box, but over the space above it, which it leaves
+         free at the end of the chat (#740). */
+      #main:has([data-testid='reply-preview']) > [data-testid='conversation-panel-body'] {
+        margin-block-end: 64px;
+      }
       [data-testid='reply-preview'] {
         position: absolute;
         inset-inline: 0;
         inset-block-end: 100%;
         display: flex;
-        min-block-size: 64px;
+        block-size: 64px;
         border-radius: 16px 16px 0 0;
         background: #fff;
       }
