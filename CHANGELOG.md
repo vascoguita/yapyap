@@ -1,5 +1,40 @@
 # Changelog
 
+## [0.3.2](https://github.com/vascoguita/yapyap/compare/v0.3.1...v0.3.2) (2026-11-21)
+
+
+### Features
+
+* **assistant:** float the suggestions above WhatsApp's message box ([e4e6999](https://github.com/vascoguita/yapyap/commit/e4e69994965d4dbe81834b8e3735d393256c36e2)), closes [#743](https://github.com/vascoguita/yapyap/issues/743)
+* **assistant:** float the suggestions above WhatsApp's message box ([#744](https://github.com/vascoguita/yapyap/issues/744)) ([6f54cbc](https://github.com/vascoguita/yapyap/commit/6f54cbcc55bd03794ae483d196ae983175234c5c))
+* **assistant:** let Auto pick the provider's best model for writing ([0d50cae](https://github.com/vascoguita/yapyap/commit/0d50caee1281783904dc89aa0e306e0f8a45c73d)), closes [#702](https://github.com/vascoguita/yapyap/issues/702)
+* **assistant:** let Auto pick the provider's best model for writing ([#732](https://github.com/vascoguita/yapyap/issues/732)) ([9193ce5](https://github.com/vascoguita/yapyap/commit/9193ce55199e77ae3f7e6f05b32201233bd73e19))
+* **assistant:** say why no suggestions came, instead of showing nothing ([76f5ddd](https://github.com/vascoguita/yapyap/commit/76f5dddb6b3cd1b47a86419210f83a6e0afb2992))
+* **assistant:** wrap the suggestions, fold them away, and show them being written ([a853629](https://github.com/vascoguita/yapyap/commit/a853629d0aa7a606e439abc2535061f8d18ff7a1)), closes [#729](https://github.com/vascoguita/yapyap/issues/729) [#709](https://github.com/vascoguita/yapyap/issues/709) [#703](https://github.com/vascoguita/yapyap/issues/703)
+* **assistant:** wrap the suggestions, fold them away, and show them being written ([#735](https://github.com/vascoguita/yapyap/issues/735)) ([d3c2a1b](https://github.com/vascoguita/yapyap/commit/d3c2a1b7c1432c672c26bb627a328da056c7ab4d))
+* one working look for dictionary downloads, suggestions and rewrites ([42966c1](https://github.com/vascoguita/yapyap/commit/42966c14162233e11d08f81182dd628ca7251b10)), closes [#741](https://github.com/vascoguita/yapyap/issues/741)
+* one working look for dictionary downloads, suggestions and rewrites ([#742](https://github.com/vascoguita/yapyap/issues/742)) ([7c1fc55](https://github.com/vascoguita/yapyap/commit/7c1fc5519ae87e3318ae97a9d0b925f41957b7a6))
+* **spelling:** show each dictionary's download, where they stay, and remove unused ones ([2df517d](https://github.com/vascoguita/yapyap/commit/2df517d4a2ea46ffd2e12de3f37ce03a6108375d)), closes [#704](https://github.com/vascoguita/yapyap/issues/704)
+* **spelling:** show each dictionary's download, where they stay, and remove unused ones ([#736](https://github.com/vascoguita/yapyap/issues/736)) ([4d996d0](https://github.com/vascoguita/yapyap/commit/4d996d02604535a13bd2c5d10fc471e8bc33e936))
+
+
+### Bug Fixes
+
+* **assistant:** keep a reopened chat at its end as the suggestions come back ([0430ffa](https://github.com/vascoguita/yapyap/commit/0430ffaa1297ad597118bf4e5ea625bee6ae4454))
+* **assistant:** keep the last messages clear of the floating suggestions ([71b2827](https://github.com/vascoguita/yapyap/commit/71b2827ae2d645a54a768dca09a1ae9d25ff21bd))
+* **assistant:** keep the suggestions through a rewrite and its Undo ([58ee085](https://github.com/vascoguita/yapyap/commit/58ee085da618eba5a57c092b49104971442d03fa))
+* **assistant:** make room for the suggestions again in a chat opened again ([8fc67bc](https://github.com/vascoguita/yapyap/commit/8fc67bc08509e8c0e49489263e6d914f9168adf8))
+* **assistant:** name the open chat one way everywhere, and keep the blank chips up ([5b044a1](https://github.com/vascoguita/yapyap/commit/5b044a16f99f2a942b700d56373f640e2cbaa262))
+* **assistant:** put in a suggestion shown again in a chat opened again ([0961d03](https://github.com/vascoguita/yapyap/commit/0961d03feaffc345916a431c65fc18a82231161a))
+* **assistant:** show suggestions only in the chat they were made for ([0d449ec](https://github.com/vascoguita/yapyap/commit/0d449ec5fbb15a707614fcadeceba623593c6bd7)), closes [#730](https://github.com/vascoguita/yapyap/issues/730)
+* **assistant:** show suggestions only in the chat they were made for ([#731](https://github.com/vascoguita/yapyap/issues/731)) ([f231b99](https://github.com/vascoguita/yapyap/commit/f231b997647c2a3bc00121ea9d191b8d001b5bc0))
+* **assistant:** show Undo in place of the suggestions ([0f5c1a1](https://github.com/vascoguita/yapyap/commit/0f5c1a110204ae8239ab18c4f6b6007f2c073ee0))
+* **assistant:** take only the user's message becoming the chat's last for a send ([79ac580](https://github.com/vascoguita/yapyap/commit/79ac5801444adc44eeda7034e0c45b1dc8f46dff))
+* **assistant:** write suggestions again when the last message is edited ([b72a95c](https://github.com/vascoguita/yapyap/commit/b72a95c4a780d05a541b62db8e4d274fd1c723b0)), closes [#739](https://github.com/vascoguita/yapyap/issues/739)
+* **assistant:** write suggestions again when the last message is edited ([#745](https://github.com/vascoguita/yapyap/issues/745)) ([8eae9dd](https://github.com/vascoguita/yapyap/commit/8eae9dd86965f1f1d528e5aa3ef6d89924591e7b))
+* **spelling:** announce a dictionary's state with an output element ([0eca5d6](https://github.com/vascoguita/yapyap/commit/0eca5d6fbcc971ac343f7fa07ecc27a78d7912b1))
+* **spelling:** say how many languages are chosen apart from the limit ([ca8c75a](https://github.com/vascoguita/yapyap/commit/ca8c75a9f8ba94d38016eb166f1782f5c37b9d73))
+
 ## [0.3.1](https://github.com/vascoguita/yapyap/compare/v0.3.0...v0.3.1) (2026-11-20)
 
 
