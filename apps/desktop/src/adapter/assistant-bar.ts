@@ -48,6 +48,8 @@ interface BarPlaces {
   /** The open chat's message box row, which the bar sits right above, and the box itself. */
   readonly footer: string;
   readonly field: string;
+  /** The message the user replies to, which WhatsApp quotes over the space above the message box. */
+  readonly quote: string;
   /** The open chat and a message in it, to find the list the bar takes room from. */
   readonly conversation: string;
   readonly message: string;
@@ -82,6 +84,7 @@ interface BarNode {
     position: string;
     zIndex: string;
     display: string;
+    marginBlockEnd: string;
   };
   readonly dataset: Record<string, string | undefined>;
   setAttribute(name: string, value: string): void;
@@ -89,6 +92,7 @@ interface BarNode {
   replaceChildren(...nodes: BarNode[]): void;
   addEventListener(type: string, listener: (event: BarEvent) => void): void;
   closest(selectors: string): BarNode | null;
+  getBoundingClientRect(): { readonly top: number; readonly height: number };
   before(node: BarNode): void;
   remove(): void;
   attachShadow(init: { readonly mode: 'closed' }): BarNode;
@@ -152,6 +156,7 @@ interface BarRefresh {
 /** The bar's helpers, passed in because each runs as its own source text. */
 export interface BarKit {
   readonly align: (scope: Scope, host: BarNode, footer: BarNode) => void;
+  readonly lift: (footer: BarNode, places: BarPlaces) => number;
   readonly paint: typeof paintWhatsAppTheme;
   readonly room: (scope: Scope, places: BarPlaces, bar: BarNode, change: () => void) => void;
   readonly build: (doc: BarDocument, scope: Scope, places: BarPlaces, kit: BarKit) => BarStore;
@@ -219,6 +224,12 @@ export function renderAssistantBar(
     footer.before(store.host);
   };
   kit.refresh(doc, scope, places, { store, shown, placed, place }, kit);
+  const lift = `${String(kit.lift(footer, places))}px`;
+  if (store.host.style.marginBlockEnd !== lift) {
+    kit.room(scope, places, store.parts.bar, () => {
+      store.host.style.marginBlockEnd = lift;
+    });
+  }
   store.sync();
   kit.align(scope, store.host, footer);
   kit.paint(scope, store.host, footer);
@@ -295,6 +306,28 @@ export function alignAssistantBar(scope: Scope, host: BarNode, footer: BarNode):
   host.style.order = order;
   host.style.position = 'relative';
   host.style.zIndex = zIndex;
+}
+
+/**
+ * How far above the message box WhatsApp's quote of the message the user
+ * replies to reaches, in whole pixels, or 0 without one. WhatsApp draws it
+ * over the space above the box, where the bar sits, which hid the
+ * suggestions; the bar rises by as much (#740). The quote's own panel is
+ * one of its ancestors in the box's footer, which may be taller than the
+ * quote, so the highest of them counts; one not laid out counts for none.
+ */
+export function assistantBarLift(footer: BarNode, places: BarPlaces): number {
+  const bottom = footer.getBoundingClientRect().top;
+  let top = bottom;
+  for (
+    let node = footer.ownerDocument.querySelector(places.quote) as BarNode | null;
+    node !== null && node !== footer;
+    node = node.parentElement
+  ) {
+    const box = node.getBoundingClientRect();
+    top = box.height > 0 ? Math.min(top, box.top) : top;
+  }
+  return Math.round(bottom - top);
 }
 
 /**
@@ -643,6 +676,7 @@ li { display: flex; min-inline-size: 0; max-inline-size: 100%; }
 const PLACES: BarPlaces = {
   footer: LANDMARKS.composerFooter,
   field: LANDMARKS.composer,
+  quote: LANDMARKS.composerQuote,
   conversation: LANDMARKS.conversation,
   message: LANDMARKS.message,
   chatName: LANDMARKS.chatName,
@@ -661,6 +695,7 @@ const PLACES: BarPlaces = {
 export function assistantBarRender(content: BarContent): string {
   const kit = [
     `align: ${alignAssistantBar.toString()}`,
+    `lift: ${assistantBarLift.toString()}`,
     `paint: ${paintWhatsAppTheme.toString()}`,
     `room: ${holdAssistantBarRoom.toString()}`,
     `build: ${buildAssistantBar.toString()}`,

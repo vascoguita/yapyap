@@ -3,6 +3,7 @@ import { runInNewContext } from 'node:vm';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   alignAssistantBar,
+  assistantBarLift,
   assistantBarHere,
   assistantBarHidden,
   assistantBarRender,
@@ -54,6 +55,7 @@ const UNDO: BarContent = {
 const PLACES = {
   footer: '#main footer',
   field: '#main footer [contenteditable="true"]',
+  quote: '#main footer [data-testid="quoted-message"]',
   conversation: '#main',
   message: '#main [data-id]',
   chatName: '#main header span',
@@ -65,6 +67,7 @@ const PLACES = {
 
 const KIT = {
   align: alignAssistantBar,
+  lift: assistantBarLift,
   paint: paintWhatsAppTheme,
   room: holdAssistantBarRoom,
   build: buildAssistantBar,
@@ -150,6 +153,26 @@ afterEach(() => {
 });
 
 describe('renderAssistantBar', () => {
+  it('rises above the quote of the message the user replies to, keeping the chat in place, and comes back down (#740)', () => {
+    const t = setup();
+    let lift = 0;
+    const room = vi.fn(holdAssistantBarRoom);
+    const kit = { ...KIT, lift: () => lift, room };
+    const render = () => renderAssistantBar(document, t.scope, CONTENT, PLACES, kit);
+    render();
+    expect(t.stored().host.style.marginBlockEnd).toBe('0px');
+    room.mockClear();
+    render();
+    expect(room).not.toHaveBeenCalled();
+    lift = 72;
+    render();
+    expect(t.stored().host.style.marginBlockEnd).toBe('72px');
+    expect(room).toHaveBeenCalledOnce();
+    lift = 0;
+    render();
+    expect(t.stored().host.style.marginBlockEnd).toBe('0px');
+  });
+
   it('puts the bar right above the message box, in a closed shadow root', () => {
     const t = setup();
     expect(t.render()).toBe('placed');
@@ -470,6 +493,47 @@ function barHeights() {
   });
 }
 
+describe('assistantBarLift', () => {
+  /** Lays `node` out at `top`, `height` tall, as the browser would. */
+  const at = (node: Element | null, top: number, height: number): void => {
+    if (node === null) {
+      throw new Error('Nothing to lay out.');
+    }
+    vi.spyOn(node, 'getBoundingClientRect').mockReturnValue({
+      top,
+      height,
+    } as DOMRect);
+  };
+
+  it('rises as high as the panel of the quote WhatsApp draws over the space above the box (#740)', () => {
+    document.body.innerHTML = `<div id="main"><footer><div contenteditable="true"></div><div><div class="panel"><div><div data-testid="quoted-message"></div></div></div></div></footer></div>`;
+    const box = document.querySelector<HTMLElement>('#main footer');
+    if (box === null) {
+      throw new Error('No footer.');
+    }
+    at(box, 600, 64);
+    // The panel reaches above the quote; the wrapper around it is not laid out at all.
+    at(box.querySelector('.panel'), 520, 70);
+    at(box.querySelector('.panel > div'), 0, 0);
+    at(box.querySelector('[data-testid="quoted-message"]'), 528.4, 50);
+    at(box.querySelector('footer > div:last-child'), 600, 0);
+    expect(assistantBarLift(box as never, PLACES)).toBe(80);
+  });
+
+  it('stays down with no quote, and with one inside the box', () => {
+    document.body.innerHTML = `<div id="main">${FOOTER}</div>`;
+    const box = document.querySelector<HTMLElement>('#main footer');
+    if (box === null) {
+      throw new Error('No footer.');
+    }
+    at(box, 600, 64);
+    expect(assistantBarLift(box as never, PLACES)).toBe(0);
+    box.insertAdjacentHTML('beforeend', '<div data-testid="quoted-message"></div>');
+    at(box.querySelector('[data-testid="quoted-message"]'), 610, 40);
+    expect(assistantBarLift(box as never, PLACES)).toBe(0);
+  });
+});
+
 describe('holdAssistantBarRoom', () => {
   type Bar = Parameters<typeof holdAssistantBarRoom>[2];
   /** A bar `height` tall, which the list's layout reads. */
@@ -655,11 +719,12 @@ describe('assistantBarRender', () => {
   it('sends the bar’s helpers, its place, icons and its own styles along with the content', () => {
     const code = assistantBarRender(CONTENT);
     expect(code).toMatch(
-      /\{ align: [\s\S]+, paint: [\s\S]+, room: [\s\S]+, build: [\s\S]+, rows: [\s\S]+, node: [\s\S]+, show: [\s\S]+, wire: [\s\S]+, update: [\s\S]+, notice: [\s\S]+, icon: [\s\S]+ \}\)$/,
+      /\{ align: [\s\S]+, lift: [\s\S]+, paint: [\s\S]+, room: [\s\S]+, build: [\s\S]+, rows: [\s\S]+, node: [\s\S]+, show: [\s\S]+, wire: [\s\S]+, update: [\s\S]+, notice: [\s\S]+, icon: [\s\S]+ \}\)$/,
     );
     expect(code).toContain('"store":"yapyapAssistantBarView"');
     expect(code).toContain('"bridge":"yapyapAssistantBar"');
     expect(code).toContain(`"field":${JSON.stringify(LANDMARKS.composer)}`);
+    expect(code).toContain(`"quote":${JSON.stringify(LANDMARKS.composerQuote)}`);
     expect(code).toContain(`"conversation":${JSON.stringify(LANDMARKS.conversation)}`);
     expect(code).toContain(`"message":${JSON.stringify(LANDMARKS.message)}`);
     expect(code).toContain(`"sparkle":${JSON.stringify(ASSISTANT_ICONS.sparkle)}`);

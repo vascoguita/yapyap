@@ -737,6 +737,16 @@ test('suggests replies to the message the user replies to, and the last one’s 
   await expect(async () => {
     expect(await barNames(app)).toContain('Dinner sounds great!');
   }).toPass({ timeout: 15_000 });
+  // The suggestions rise above the quote, which WhatsApp draws over the space above the box.
+  await expect(async () => {
+    const [barEnd, quoteTop] = await window.evaluate(() => {
+      const footer = document.querySelector('#main footer');
+      const bar = footer?.previousElementSibling?.getBoundingClientRect();
+      const quote = document.querySelector('[data-testid="reply-preview"]');
+      return [bar?.bottom ?? Infinity, quote?.getBoundingClientRect().top ?? 0];
+    });
+    expect(barEnd).toBeLessThanOrEqual(quoteTop);
+  }).toPass();
   const asked = await claudeRequests(app);
   expect(asked).toHaveLength(before + 1);
   expect(asked.at(-1)).toContain(
@@ -749,6 +759,15 @@ test('suggests replies to the message the user replies to, and the last one’s 
     expect(names).toContain('See you there');
     expect(names).not.toContain('Dinner sounds great!');
   }).toPass({ timeout: 15_000 });
+  // And they come back down onto the message box.
+  await expect(async () => {
+    const gap = await window.evaluate(() => {
+      const footer = document.querySelector('#main footer');
+      const bar = footer?.previousElementSibling?.getBoundingClientRect();
+      return (footer?.getBoundingClientRect().top ?? 0) - (bar?.bottom ?? 0);
+    });
+    expect(Math.abs(gap)).toBeLessThan(1);
+  }).toPass();
   await window.waitForTimeout(3000);
   expect(await claudeRequests(app)).toHaveLength(before + 1);
 });

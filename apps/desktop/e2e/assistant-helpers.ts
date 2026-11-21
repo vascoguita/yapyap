@@ -412,7 +412,8 @@ export async function chooseReply(page: Page, id: string, author: string): Promi
       remove.setAttribute('aria-label', 'Cancel reply');
       remove.textContent = '×';
       preview.append(quote, remove);
-      document.querySelector('#main footer')?.prepend(preview);
+      // WhatsApp puts it after the message box, and draws it over the space above it.
+      document.querySelector('#main footer')?.append(preview);
     },
     { id, author },
   );
