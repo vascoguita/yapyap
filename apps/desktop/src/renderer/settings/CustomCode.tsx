@@ -175,10 +175,82 @@ interface FieldsProps {
   readonly onEdit: (part: Partial<Snippet>) => void;
 }
 
-/** The scope picker and the code for the scope picked. */
-function CodeGroup(props: Omit<FieldsProps, 'onEnabled'>): JSX.Element {
-  const { onEdit } = props;
-  const snippet = props.draft.snippets[props.scope] ?? EMPTY;
+/** Which parts of `shared` hold code, and their name as one hint. */
+function sharedParts(shared: Snippet): { readonly parts: ('css' | 'js')[]; readonly hint: string } {
+  const parts = (['css', 'js'] as const).filter((part) => shared[part] !== '');
+  const [only] = parts;
+  return {
+    parts,
+    hint: parts.length === 2 ? text.sharedParts.both : text.sharedParts[only ?? 'css'],
+  };
+}
+
+/** The code for all accounts, opened: plain text, which nothing mistakes for a field, and the way to edit it. */
+function SharedCode(props: {
+  readonly shared: Snippet;
+  readonly parts: readonly ('css' | 'js')[];
+  readonly onEdit: () => void;
+}): JSX.Element {
+  return (
+    <div class="row stacked shared-code" id="custom-code-shared">
+      {props.parts.map((part) => (
+        <figure key={part}>
+          <figcaption class="hint">{text[part]}</figcaption>
+          <pre class="code">{props.shared[part]}</pre>
+        </figure>
+      ))}
+      <div>
+        <button type="button" onClick={props.onEdit}>
+          {text.editShared}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * What the code for all accounts runs in the account picked, after that
+ * account's own boxes and folded away: shown open in the card, it read as
+ * more boxes to edit (#748). Opened, it is plain text, which nothing
+ * mistakes for a field. Nothing shows while that
+ * code is empty.
+ */
+function SharedRows(props: {
+  readonly shared: Snippet;
+  readonly onEdit: () => void;
+}): JSX.Element | null {
+  const [open, setOpen] = useState(false);
+  const { parts, hint } = sharedParts(props.shared);
+  if (parts.length === 0) {
+    return null;
+  }
+  return (
+    <>
+      <div class="row">
+        <div class="row-text">
+          <span class="row-label">{text.shared}</span>
+          <p class="hint">{hint}</p>
+        </div>
+        <div class="row-control">
+          <button
+            type="button"
+            aria-expanded={open}
+            aria-controls="custom-code-shared"
+            onClick={() => {
+              setOpen(!open);
+            }}
+          >
+            {open ? text.hide : text.show}
+          </button>
+        </div>
+      </div>
+      {open ? <SharedCode shared={props.shared} parts={parts} onEdit={props.onEdit} /> : null}
+    </>
+  );
+}
+
+/** An edit to each part of the snippet, kept the same across renders. */
+function usePartEdits(onEdit: (part: Partial<Snippet>) => void) {
   const editCss = useCallback(
     (css: string): void => {
       onEdit({ css });
@@ -191,17 +263,49 @@ function CodeGroup(props: Omit<FieldsProps, 'onEnabled'>): JSX.Element {
     },
     [onEdit],
   );
+  return { editCss, editJs };
+}
+
+/** The name of the scope picked, as the code boxes' labels end with it. */
+const scopeName = (scopes: CustomCodeView['scopes'], scope: string): string =>
+  scope === ALL_ACCOUNTS ? text.scopeAll : (scopes.find(({ id }) => id === scope)?.label ?? '');
+
+/**
+ * The scope picker, the code for the scope picked, named by it so it is
+ * plain which code is being edited, and in an account, what all accounts
+ * run there too.
+ */
+function CodeGroup(props: Omit<FieldsProps, 'onEnabled'>): JSX.Element {
+  const { onScope } = props;
+  const snippet = props.draft.snippets[props.scope] ?? EMPTY;
+  const name = scopeName(props.scopes, props.scope);
+  const { editCss, editJs } = usePartEdits(props.onEdit);
   return (
     <Group id="custom-code-code" title={text.groups.code}>
-      <ScopeRow scopes={props.scopes} value={props.scope} onChange={props.onScope} />
+      <ScopeRow scopes={props.scopes} value={props.scope} onChange={onScope} />
       <CodeRow
         part="css"
-        label={text.css}
+        label={text.cssFor({ scope: name })}
         hint={text.cssHint}
         value={snippet.css}
         onChange={editCss}
       />
-      <CodeRow part="js" label={text.js} hint={text.jsHint} value={snippet.js} onChange={editJs} />
+      <CodeRow
+        part="js"
+        label={text.jsFor({ scope: name })}
+        hint={text.jsHint}
+        value={snippet.js}
+        onChange={editJs}
+      />
+      {props.scope === ALL_ACCOUNTS ? null : (
+        <SharedRows
+          key={props.scope}
+          shared={props.draft.snippets[ALL_ACCOUNTS] ?? EMPTY}
+          onEdit={() => {
+            onScope(ALL_ACCOUNTS);
+          }}
+        />
+      )}
     </Group>
   );
 }

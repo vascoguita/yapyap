@@ -1711,6 +1711,28 @@ main.settings-pane {
   align-items: center;
 }
 
+/* What all accounts run in an account: plain text on a muted fill, never a field. */
+.custom-code .shared-code figure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+}
+
+.custom-code .shared-code pre {
+  max-block-size: 8lh;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  overflow: auto;
+  border-radius: var(--radius-sm);
+  background: var(--sidebar);
+  font-family: ui-monospace, monospace;
+  font-size: var(--font-hint);
+  tab-size: 2;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .custom-code .actions output {
   margin: 0;
   color: var(--muted);

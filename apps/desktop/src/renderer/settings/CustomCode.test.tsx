@@ -30,8 +30,8 @@ function api(get: () => Promise<CustomCodeView> = () => Promise.resolve(VIEW)) {
 }
 
 const saveButton = () => screen.getByRole<HTMLButtonElement>('button', { name: 'Save' });
-const css = () => screen.getByLabelText<HTMLTextAreaElement>('CSS');
-const js = () => screen.getByLabelText<HTMLTextAreaElement>('JavaScript');
+const css = () => screen.getByLabelText<HTMLTextAreaElement>(/^CSS for/);
+const js = () => screen.getByLabelText<HTMLTextAreaElement>(/^JavaScript for/);
 const enabled = () =>
   screen.getByRole<HTMLInputElement>('switch', { name: 'Use custom CSS and JavaScript' });
 const scope = () => screen.getByLabelText<HTMLSelectElement>('Applies to');
@@ -60,6 +60,70 @@ describe('CustomCodeSection', () => {
     fireEvent.change(scope(), { target: { value: WORK } });
     expect(css().value).toBe('#app { margin: 0 }');
     expect(js().value).toBe('console.log(1);');
+  });
+
+  it('names the code being edited by its scope, and folds what all accounts run in an account under it (#748)', async () => {
+    const shared = { css: 'header { color: purple }', js: '' };
+    await opened(
+      api(() =>
+        Promise.resolve({
+          ...VIEW,
+          code: { ...VIEW.code, snippets: { ...VIEW.code.snippets, all: shared } },
+        }),
+      ),
+    );
+    expect(screen.getByLabelText('CSS for all accounts')).toBe(css());
+    expect(screen.getByLabelText('JavaScript for all accounts')).toBe(js());
+    // Under All accounts, nothing is shown twice.
+    expect(screen.queryByText('Runs after the code for all accounts')).toBeNull();
+    fireEvent.change(scope(), { target: { value: WORK } });
+    expect(css().value).toBe('#app { margin: 0 }');
+    expect(screen.getByLabelText('CSS for Work')).toBe(css());
+    // Folded: the parts it has, and no code until asked.
+    expect(screen.getByText('Runs after the code for all accounts')).toBeTruthy();
+    expect(screen.getByText('CSS', { selector: '.hint' })).toBeTruthy();
+    expect(screen.queryByText('header { color: purple }')).toBeNull();
+    const toggle = screen.getByRole('button', { name: 'Show' });
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(toggle);
+    // Open, it is text, never a field, with the way to edit it.
+    const code = screen.getByText('header { color: purple }');
+    expect(code.tagName).toBe('PRE');
+    expect(screen.getByRole('button', { name: 'Hide' }).getAttribute('aria-expanded')).toBe('true');
+    fireEvent.click(screen.getByRole('button', { name: 'Edit for All Accounts' }));
+    expect(scope().value).toBe('all');
+    expect(css().value).toBe('header { color: purple }');
+  });
+
+  it('names both parts when all accounts have CSS and JavaScript, and folds them again', async () => {
+    const shared = { css: 'p {}', js: 'void 0;' };
+    await opened(
+      api(() =>
+        Promise.resolve({
+          ...VIEW,
+          code: { ...VIEW.code, snippets: { ...VIEW.code.snippets, all: shared } },
+        }),
+      ),
+    );
+    fireEvent.change(scope(), { target: { value: WORK } });
+    expect(screen.getByText('CSS and JavaScript')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Show' }));
+    expect(screen.getByText('void 0;').tagName).toBe('PRE');
+    fireEvent.click(screen.getByRole('button', { name: 'Hide' }));
+    expect(screen.queryByText('void 0;')).toBeNull();
+  });
+
+  it('shows nothing of all accounts in an account while their code is empty, nor a scope gone', async () => {
+    await opened();
+    fireEvent.change(scope(), { target: { value: WORK } });
+    expect(screen.queryByText('Runs after the code for all accounts')).toBeNull();
+    // An account no longer listed leaves the label without a name.
+    cleanup();
+    await opened(
+      api(() => Promise.resolve({ ...VIEW, scopes: [{ id: 'all', label: 'All accounts' }] })),
+    );
+    fireEvent.change(scope(), { target: { value: WORK } });
+    expect(screen.getByLabelText('CSS for')).toBe(css());
   });
 
   it('shows CSS in WhatsApp as the user types, once custom code is on', async () => {
