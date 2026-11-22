@@ -569,18 +569,6 @@ async function offerSummary(bar: BarContext, count: number): Promise<void> {
   }
 }
 
-/**
- * A new message takes the offer away, and one about to be made: what was
- * unread is no longer what is newest. A summary being written or shown
- * stays, until the user closes it, sends or opens another chat.
- */
-function withdrawOffer(bar: BarContext): void {
-  const stage = bar.state.summary?.stage ?? 'offer';
-  if (stage === 'offer') {
-    dropSummary(bar);
-  }
-}
-
 /** What a summary is made from: the setup, the open chat as the history limit reads it, and the unread count. */
 interface SummaryWork {
   readonly setup: Setup;
@@ -721,9 +709,6 @@ function cleared(bar: BarContext, message: string | null): void {
   }
 }
 
-/** What the follow loop names a chat with no item yet by, before WhatsApp drew its messages. */
-const EMPTY_CHAT = /^[^:]*:-:/;
-
 /** What the assistant does as the open chat changes. */
 function followChat(
   bar: BarContext,
@@ -748,11 +733,9 @@ function followChat(
       follow(newest);
       offer(bar, unread);
     },
+    // An offer stays as messages arrive: WhatsApp draws a chat with many
+    // unread a row at a time, and each row looks like a new last message.
     arrived: (newest) => {
-      // A chat opened before WhatsApp drew its messages gets its last item now, which is not new.
-      if (last.message !== null && !EMPTY_CHAT.test(last.message)) {
-        withdrawOffer(bar);
-      }
       last.message = newest;
       followed(bar, newest);
       void suggest(bar, newest);

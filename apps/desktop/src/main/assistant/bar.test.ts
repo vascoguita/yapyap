@@ -944,26 +944,23 @@ describe('createAssistantBar: summaries of unread messages (#705)', () => {
     expect(first.last().summary).toBeNull();
   });
 
-  it('takes the offer away when a message arrives, another chat opens or the user sends', async () => {
+  it('keeps the offer as WhatsApp draws the chat, until another chat opens or the user sends', async () => {
     const t = summarizing();
     await t.open();
     t.bar.arrived('aaaaaaaa:m2:s2:-');
-    expect(t.last().summary).toBeNull();
-    // A chat opened before WhatsApp drew its messages gets its last item, which is not new.
-    await t.open(12, 'aaaaaaaa:-:-:-');
-    t.bar.arrived('aaaaaaaa:m1:s1:-');
+    t.bar.arrived('aaaaaaaa:m3:s3:-');
     expect(t.last().summary).toEqual(OFFER);
     t.bar.sent();
     expect(t.last().summary).toBeNull();
     await t.open();
     await t.open(0, 'bbbbbbbb:m3:s3:-');
     expect(t.last().summary).toBeNull();
-    // An offer still being made is called off by a newer message too.
+    // An offer still being made shows once WhatsApp drew more of the chat.
     t.bar.opened('aaaaaaaa:m1:s1:-', 12);
     t.bar.arrived('aaaaaaaa:m2:s2:-');
     await tick();
     await tick();
-    expect(t.last().summary).toBeNull();
+    expect(t.last().summary).toEqual(OFFER);
   });
 
   it('keeps a summary written or shown as messages arrive, until another chat opens or the user sends', async () => {
