@@ -472,7 +472,7 @@ describe('Settings › Custom code', () => {
     forgetPage();
   });
 
-  const css = () => screen.getByLabelText<HTMLTextAreaElement>('CSS');
+  const css = () => screen.getByLabelText<HTMLTextAreaElement>(/^CSS for/);
   const prompt = () => screen.queryByRole('alertdialog');
 
   /** Opens Custom code and types CSS the user has not saved. */
