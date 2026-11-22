@@ -18,6 +18,13 @@ interface IncomingDocument {
   querySelector(selectors: string): { readonly textContent: string | null } | null;
 }
 
+/** Where the badges' probe looks: the chat list's rows, and in a row its unread badge and name. */
+interface BadgePlaces {
+  readonly chatRow: string;
+  readonly unreadCount: string;
+  readonly chatTitle: string;
+}
+
 /**
  * Where the probe looks: the open chat's messages, the marks on the
  * account's own, its name, its message box and the message the user
@@ -127,8 +134,56 @@ export function newestMessages(
   return `${hash(name.textContent ?? '')}:${theirs}:${newest(rows.filter(own))}:${whose}:${draft}:${saying}:${quote}`;
 }
 
-/** The probe as code for `executeJavaScriptInIsolatedWorld`, with the fingerprint and the quote's probe beside it. */
-export const NEWEST_MESSAGES = `(${newestMessages.toString()})(document, ${JSON.stringify({
+/** The most chat list rows whose badges a look hands over. */
+const MAX_BADGES = 20;
+
+/**
+ * The unread counts the chat list's badges show, at most `limit` of them,
+ * each named by the fingerprint of its row's name, the same one
+ * {@link newestMessages} gives the open chat's header, so the assistant can
+ * tell how many messages were unread in the chat the user opens (#705):
+ * WhatsApp marks them read as it opens the chat. It hands over only
+ * `hash:count` pairs, joined by commas, or `-` for none, never a name. A
+ * badge holds the count alone, in digits whatever the language; a row
+ * without one of digits is not unread. Runs inside the page as source
+ * text, so it stays self-contained.
+ */
+export function unreadBadges(
+  doc: IncomingDocument,
+  places: BadgePlaces,
+  hash: (text: string) => string,
+  limit: number,
+): string {
+  const pairs = Array.from(doc.querySelectorAll(places.chatRow)).flatMap((row) => {
+    const digits = (row.querySelector(places.unreadCount)?.textContent ?? '').trim();
+    const title = row.querySelector(places.chatTitle);
+    const unread = /^[1-9]\d{0,5}$/.test(digits) && title !== null;
+    return unread ? [`${hash(title.textContent ?? '')}:${digits}`] : [];
+  });
+  return pairs.length === 0 ? '-' : pairs.slice(0, limit).join(',');
+}
+
+/**
+ * One look at the page for the assistant: the open chat's hashes, or `-`
+ * while none is open, then `|` and the chat list's badges. Runs inside the
+ * page as source text, with the probes it joins passed in.
+ */
+export function lookAtChats(
+  doc: IncomingDocument,
+  places: IncomingPlaces & BadgePlaces,
+  hash: (text: string) => string,
+  probes: {
+    readonly newest: typeof newestMessages;
+    readonly quoting: typeof replyingTo;
+    readonly badges: typeof unreadBadges;
+    readonly limit: number;
+  },
+): string {
+  const open = probes.newest(doc, places, hash, probes.quoting) ?? '-';
+  return `${open}|${probes.badges(doc, places, hash, probes.limit)}`;
+}
+
+const LOOK_PLACES: IncomingPlaces & BadgePlaces = {
   message: LANDMARKS.message,
   outgoing: LANDMARKS.outgoing,
   chatName: LANDMARKS.chatName,
@@ -138,7 +193,13 @@ export const NEWEST_MESSAGES = `(${newestMessages.toString()})(document, ${JSON.
   messageText: LANDMARKS.messageText,
   emoji: LANDMARKS.emoji,
   quoted: LANDMARKS.quoted,
-})}, ${fingerprint.toString()}, ${replyingTo.toString()})`;
+  chatRow: LANDMARKS.chatRow,
+  unreadCount: LANDMARKS.unreadCount,
+  chatTitle: LANDMARKS.chatTitle,
+};
+
+/** The look as code for `executeJavaScriptInIsolatedWorld`, with the fingerprint and the probes it joins beside it. */
+export const NEWEST_MESSAGES = `(${lookAtChats.toString()})(document, ${JSON.stringify(LOOK_PLACES)}, ${fingerprint.toString()}, { newest: ${newestMessages.toString()}, quoting: ${replyingTo.toString()}, badges: ${unreadBadges.toString()}, limit: ${String(MAX_BADGES)} })`;
 
 /** What the probe saw, as hashes: the open chat, and its newest messages from each side. */
 export interface Newest {
@@ -181,4 +242,36 @@ export function parseNewest(value: unknown): Newest | null | undefined {
     said: hashOrNull(match[6]),
     quote: hashOrNull(match[7]),
   };
+}
+
+/** What a look saw: the open chat, or null for none, and the unread counts of the chat list's badges. */
+export interface Look {
+  readonly newest: Newest | null;
+  /** Each badge's count, by the fingerprint of its chat's name. */
+  readonly unread: ReadonlyMap<string, number>;
+}
+
+const PAIR = String.raw`[0-9a-f]{8}:[1-9]\d{0,5}`;
+const BADGES = new RegExp(`^(?:-|${PAIR}(?:,${PAIR}){0,${String(MAX_BADGES - 1)}})$`);
+
+/** The badges' counts by chat, or undefined for anything the badges' probe never answers. */
+function parseBadges(value: string): ReadonlyMap<string, number> | undefined {
+  if (!BADGES.test(value)) {
+    return undefined;
+  }
+  const pairs = value === '-' ? [] : value.split(',');
+  return new Map(
+    pairs.map((pair): [string, number] => {
+      const [chat = '', count = ''] = pair.split(':');
+      return [chat, Number(count)];
+    }),
+  );
+}
+
+/** The look's answer; undefined for anything else. */
+export function parseLook(value: unknown): Look | undefined {
+  const [open = '', badges = '', ...rest] = typeof value === 'string' ? value.split('|') : [];
+  const newest = parseNewest(open === '-' ? null : open);
+  const unread = rest.length === 0 ? parseBadges(badges) : undefined;
+  return newest === undefined || unread === undefined ? undefined : { newest, unread };
 }

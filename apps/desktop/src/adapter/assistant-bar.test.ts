@@ -2,7 +2,14 @@
 import { runInNewContext } from 'node:vm';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  actOnAssistantBar,
   alignAssistantBar,
+  assistantSummaryCard,
+  assistantSummarySections,
+  closeAssistantSummary,
+  fitAssistantSummary,
+  showFirstUnread,
+  summaryAssistantBar,
   assistantBarLift,
   assistantBarHere,
   assistantBarHidden,
@@ -34,6 +41,8 @@ const LABELS = {
   folded: 'Suggestions',
   writing: 'Writing suggestions…',
   close: 'Close',
+  summarizing: 'Summarizing…',
+  firstUnread: 'Show First Unread',
 };
 
 const CONTENT: BarContent = {
@@ -44,6 +53,7 @@ const CONTENT: BarContent = {
   chat: null,
   collapsed: false,
   writing: false,
+  summary: null,
 };
 
 const UNDO: BarContent = {
@@ -83,6 +93,13 @@ const KIT = {
   refresh: refreshAssistantBar,
   hidden: assistantBarHidden,
   mark: markAssistantBar,
+  card: assistantSummaryCard,
+  summary: summaryAssistantBar,
+  sections: assistantSummarySections,
+  fit: fitAssistantSummary,
+  act: actOnAssistantBar,
+  firstUnread: showFirstUnread,
+  close: closeAssistantSummary,
 };
 
 interface Stored {
@@ -111,7 +128,14 @@ const FOOTER =
 /** A chat with its message box, the scope the adapter world would be, and the bar's bridge. */
 function setup() {
   document.body.innerHTML = `<div id="main"><div role="row">Hi</div>${FOOTER}</div>`;
-  const bridge = { use: vi.fn(), collapse: vi.fn(), expand: vi.fn(), button: vi.fn() };
+  const bridge = {
+    use: vi.fn(),
+    collapse: vi.fn(),
+    expand: vi.fn(),
+    button: vi.fn(),
+    summarize: vi.fn(),
+    closeSummary: vi.fn(),
+  };
   const scope: Record<string, unknown> = { bridge, getComputedStyle };
   const render = (content: BarContent = CONTENT): BarPlacement =>
     renderAssistantBar(document, scope, content, PLACES, KIT);
@@ -204,6 +228,12 @@ describe('renderAssistantBar', () => {
       ['folded', 'row folded'],
       ['expand', 'fold'],
       ['foldLabel', 'fold-label'],
+      ['card', 'card'],
+      ['cardTitle', 'card-title'],
+      ['cardClose', 'icon'],
+      ['cardBody', 'card-body'],
+      ['covers', 'covers'],
+      ['firstUnread', 'action'],
     ]);
     expect(parts.status.getAttribute('role')).toBe('status');
     expect(parts.list.tagName).toBe('UL');
@@ -852,6 +882,202 @@ describe('the suggestions folded away, and while they are written', () => {
       bar: { dataset: {} },
       notice: { hidden: true },
     } as unknown as Parameters<typeof assistantBarHidden>[0];
-    expect(assistantBarHidden(parts)).toEqual({ chips: true, folded: true, bar: true });
+    expect(assistantBarHidden(parts)).toEqual({ chips: true, folded: true, card: true, bar: true });
+  });
+});
+
+/** The summary as the main process words it, offered, being written or shown (#705). */
+const SUMMARY = {
+  stage: 'shown',
+  count: 3,
+  offer: 'Summarize 3 unread',
+  title: 'Summary of 3 unread messages',
+  sections: [
+    { title: 'For you', items: ['Ben asks you to <b>drive</b>.'] },
+    { title: 'Everything else', items: ['Ana sent a photo.', 'Cy is late.'] },
+  ],
+  covers: 'Covers the newest 2, as your history limit allows.',
+} as const;
+
+const offered = (stage: 'offer' | 'working' | 'shown', more: Partial<BarContent> = {}) => ({
+  ...CONTENT,
+  summary: { ...SUMMARY, stage },
+  ...more,
+});
+
+/** Messages in the open chat, each a row with an ID, which Show First Unread scrolls to, and their scrolls. */
+function messages(count: number) {
+  const main = document.querySelector('#main');
+  const drawn = Array.from({ length: count }, (_, at) => {
+    const row = document.createElement('div');
+    row.dataset['id'] = `3EB0${String(at)}`;
+    const scroll = vi.fn();
+    row.scrollIntoView = scroll;
+    return { row, scroll };
+  });
+  main?.prepend(...drawn.map(({ row }) => row));
+  return drawn;
+}
+
+describe('the summary of unread messages (#705)', () => {
+  const rows = (t: ReturnType<typeof setup>) => {
+    const { chips, folded, card } = t.stored().parts as unknown as Record<string, HTMLElement>;
+    return { chips: !chips?.hidden, folded: !folded?.hidden, card: !card?.hidden };
+  };
+  const card = (t: ReturnType<typeof setup>) =>
+    (t.stored().parts as unknown as { card: HTMLElement }).card;
+
+  it('offers it first in the suggestions’ row, as a chip with the sparkle, and asks for it on click', () => {
+    const t = setup();
+    t.render(offered('offer'));
+    const { list } = t.stored().parts;
+    const chip = list.querySelector<HTMLButtonElement>('.chip.offer');
+    expect(list.firstElementChild?.firstElementChild).toBe(chip);
+    expect(chip?.textContent).toBe('Summarize 3 unread');
+    expect(chip?.querySelector('svg')?.getAttribute('class')).toBe('mark');
+    expect(chip?.dataset['action']).toBe('summarize');
+    expect(list.dataset['items']).toBe('3');
+    expect(rows(t)).toEqual({ chips: true, folded: false, card: false });
+    if (chip !== null) {
+      click(chip);
+    }
+    expect(t.bridge.summarize).toHaveBeenCalledExactlyOnceWith();
+    // Alone, it still shows the row; folded away, it counts among what shows again.
+    t.render(offered('offer', { suggestions: [] }));
+    expect(rows(t)).toEqual({ chips: true, folded: false, card: false });
+    t.render(offered('offer', { suggestions: [], collapsed: true }));
+    expect(rows(t)).toEqual({ chips: false, folded: true, card: false });
+  });
+
+  it('says it is being written in one chip, with the light round its edge, and to screen readers', () => {
+    const t = setup();
+    t.render(offered('working', { suggestions: [] }));
+    const { list, status } = t.stored().parts;
+    expect(list.firstElementChild?.getAttribute('class')).toBe('placeholder working');
+    expect(list.firstElementChild?.getAttribute('aria-hidden')).toBe('true');
+    expect(list.firstElementChild?.textContent).toBe('Summarizing…');
+    expect(list.getAttribute('aria-busy')).toBe('true');
+    expect(status.textContent).toBe('Summarizing…');
+    expect(rows(t)).toEqual({ chips: true, folded: false, card: false });
+  });
+
+  it('shows it in a card named by its heading, in the suggestions’ place, as text, and focuses it', () => {
+    const t = setup();
+    t.render(offered('shown'));
+    const region = card(t);
+    expect(rows(t)).toEqual({ chips: false, folded: false, card: true });
+    expect(t.stored().host.style.display).toBe('');
+    expect(region.getAttribute('role')).toBe('region');
+    expect(region.getAttribute('tabindex')).toBe('-1');
+    const title = t.shadow().querySelector(`#${String(region.getAttribute('aria-labelledby'))}`);
+    expect(title?.textContent).toBe('Summary of 3 unread messages');
+    expect(title?.tagName).toBe('H2');
+    expect([...region.querySelectorAll('h3')].map((heading) => heading.textContent)).toEqual([
+      'For you',
+      'Everything else',
+    ]);
+    const items = [...region.querySelectorAll('.card-body li')];
+    expect(items.map((item) => item.textContent)).toEqual([
+      'Ben asks you to <b>drive</b>.',
+      'Ana sent a photo.',
+      'Cy is late.',
+    ]);
+    expect(region.querySelector('b')).toBeNull();
+    const covers = region.querySelector<HTMLElement>('.covers');
+    expect([covers?.hidden, covers?.textContent]).toEqual([false, SUMMARY.covers]);
+    const first = region.querySelector<HTMLButtonElement>('[data-action="firstUnread"]');
+    expect([first?.textContent, first?.dataset['count']]).toEqual(['Show First Unread', '3']);
+    const close = region.querySelector('[data-action="closeSummary"]');
+    expect(close?.getAttribute('aria-label')).toBe('Close');
+  });
+
+  it('takes the focus as the card opens, and keeps it where the user moves it', () => {
+    const t = setup();
+    t.render(offered('shown'));
+    const region = card(t);
+    const first = region.querySelector<HTMLButtonElement>('[data-action="firstUnread"]');
+    expect(t.shadow().activeElement).toBe(region);
+    first?.focus();
+    t.render(offered('shown', { writing: true }));
+    expect(t.shadow().activeElement).toBe(first);
+    // Covering every unread message, it says nothing of how much.
+    t.render(offered('shown', { summary: { ...SUMMARY, covers: '' } }));
+    expect(region.querySelector<HTMLElement>('.covers')?.hidden).toBe(true);
+    t.render(CONTENT);
+    expect(rows(t)).toEqual({ chips: true, folded: false, card: false });
+  });
+
+  it('keeps the card at most about 40% as high as the chat, measuring only while it shows', () => {
+    const t = setup();
+    const main = document.querySelector('#main');
+    Object.defineProperty(main, 'clientHeight', { value: 501 });
+    t.render(CONTENT);
+    expect(card(t).style.maxBlockSize).toBe('');
+    t.render(offered('shown'));
+    expect(card(t).style.maxBlockSize).toBe('200px');
+    const parts = { card: { hidden: false, style: { maxBlockSize: '' } } };
+    const doc = { querySelector: () => null };
+    fitAssistantSummary(doc as never, PLACES, parts as never);
+    expect(parts.card.style.maxBlockSize).toBe('');
+  });
+
+  it('closes on Close or Escape in the card, and gives the message box the focus back', () => {
+    const t = setup();
+    t.render(offered('shown'));
+    const close = card(t).querySelector<HTMLElement>('[data-action="closeSummary"]');
+    if (close !== null) {
+      click(close);
+    }
+    expect(t.bridge.closeSummary).toHaveBeenCalledOnce();
+    expect(document.activeElement).toBe(field());
+    const escape = (target: Element, key = 'Escape') => {
+      target.dispatchEvent(trusted(new KeyboardEvent('keydown', { key, bubbles: true })));
+    };
+    escape(card(t));
+    expect(t.bridge.closeSummary).toHaveBeenCalledTimes(2);
+    // Not another key, nor Escape outside the card, nor one a page script made up.
+    escape(card(t), 'Enter');
+    escape(t.stored().parts.bar);
+    card(t).dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(t.bridge.closeSummary).toHaveBeenCalledTimes(2);
+    // Without a bridge or a message box, it still closes what it can.
+    delete t.scope['bridge'];
+    field()?.remove();
+    expect(() => {
+      escape(card(t));
+    }).not.toThrow();
+  });
+
+  it('scrolls the chat to the first unread message, the count-th from its end, reading no text', () => {
+    const t = setup();
+    const drawn = messages(5);
+    t.render(offered('shown'));
+    const first = card(t).querySelector<HTMLElement>('[data-action="firstUnread"]');
+    if (first !== null) {
+      click(first);
+    }
+    expect(drawn[2]?.scroll).toHaveBeenCalledExactlyOnceWith({ block: 'start' });
+    // With fewer messages drawn than were unread, the oldest drawn; rows not drawn yet do not count.
+    const [oldest, later] = drawn;
+    if (later !== undefined) {
+      later.row.dataset['virtualized'] = 'true';
+    }
+    showFirstUnread(document, PLACES, 12);
+    expect(oldest?.scroll).toHaveBeenCalledExactlyOnceWith({ block: 'start' });
+    document.querySelectorAll('[data-id]').forEach((row) => {
+      row.remove();
+    });
+    expect(() => {
+      showFirstUnread(document, PLACES, 3);
+    }).not.toThrow();
+  });
+
+  it('shows another chat’s summary nowhere', () => {
+    const t = setup();
+    document
+      .querySelector('#main')
+      ?.prepend(Object.assign(document.createElement('header'), { innerHTML: '<span>Ana</span>' }));
+    t.render(offered('offer', { chat: fingerprint('Rui') }));
+    expect(t.stored().parts.list.querySelector('.offer')).toBeNull();
   });
 });

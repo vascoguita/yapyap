@@ -402,6 +402,7 @@ describe('createChromeFeature', () => {
         'assistant.chats': 'chosen',
         'assistant.messages': '50',
         'assistant.server': '',
+        'assistant.summaries': true,
         'agents.enabled': false,
         'appearance.theme': 'system',
         'appearance.autoHideMenuBar': false,

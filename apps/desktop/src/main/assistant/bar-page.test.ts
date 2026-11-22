@@ -11,6 +11,7 @@ const STATE: AssistantBarState = {
   chat: 'Ana',
   collapsed: false,
   writing: false,
+  summary: null,
 };
 
 function fakePage() {
@@ -75,12 +76,15 @@ describe('inPageAssistantBar', () => {
         folded: 'Suggestions',
         writing: 'Writing suggestions…',
         close: 'Close',
+        summarizing: 'Summarizing…',
+        firstUnread: 'Show First Unread',
       },
       suggestions: ['On my way'],
       notice: null,
       chat: 'Ana',
       collapsed: false,
       writing: false,
+      summary: null,
     });
     const notice = {
       text: 'Softened. Edit it or send as is.',
@@ -91,6 +95,40 @@ describe('inPageAssistantBar', () => {
     expect(contentOf(t.page())).toEqual(expect.objectContaining({ notice }));
     t.view.show(false);
     expect(contentOf(t.page())).toEqual(expect.objectContaining({ visible: false }));
+  });
+
+  it('words the summary in the user’s language, with only the sections that have something (#705)', () => {
+    const t = setup();
+    const sections = {
+      forYou: ['Ben asks you to drive.'],
+      decisions: [],
+      rest: ['Ana sent a photo.'],
+    };
+    t.setState({ ...STATE, summary: { stage: 'shown', count: 12, sections, covered: 2 } });
+    t.view.show(true);
+    expect(contentOf(t.page())).toEqual(
+      expect.objectContaining({
+        summary: {
+          stage: 'shown',
+          count: 12,
+          offer: 'Summarize 12 unread',
+          title: 'Summary of 12 unread messages',
+          sections: [
+            { title: 'For you', items: ['Ben asks you to drive.'] },
+            { title: 'Everything else', items: ['Ana sent a photo.'] },
+          ],
+          covers: 'Covers the newest 2, as your history limit allows.',
+        },
+      }),
+    );
+    const none = { forYou: [], decisions: ['Sat at 10.'], rest: [] };
+    t.setState({ ...STATE, summary: { stage: 'offer', count: 10, sections: none, covered: 0 } });
+    t.view.publish(STATE);
+    expect((contentOf(t.page()) as { summary: unknown }).summary).toMatchObject({
+      offer: 'Summarize 10 unread',
+      sections: [{ title: 'Decisions and dates', items: ['Sat at 10.'] }],
+      covers: '',
+    });
   });
 
   it('renders the message box’s rewrite button with the bar, each on its own', () => {

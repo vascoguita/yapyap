@@ -151,6 +151,7 @@ export interface Messages {
         };
         readonly model: { readonly label: string; readonly description: string };
         readonly autoSuggest: { readonly label: string; readonly description: string };
+        readonly summaries: { readonly label: string; readonly description: string };
         readonly chats: {
           readonly label: string;
           readonly description: string;
@@ -488,6 +489,18 @@ export interface Messages {
       readonly expand: string;
       readonly folded: string;
       readonly writing: string;
+      readonly summarize: (params: { readonly count: number }) => string;
+      readonly summarizing: string;
+      readonly summaryTitle: (params: { readonly count: number }) => string;
+      readonly summarySections: {
+        readonly forYou: string;
+        readonly decisions: string;
+        readonly rest: string;
+      };
+      readonly summaryCovers: (params: { readonly count: number }) => string;
+      readonly firstUnread: string;
+      readonly summaryDeclined: string;
+      readonly nothingToSummarize: string;
       readonly replaced: string;
       readonly declined: string;
       readonly noSuggestions: string;

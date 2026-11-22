@@ -4,6 +4,7 @@ import type { AssistantBarState } from '../../shared/api/assistant-bar-api.ts';
 import { createAssistantBar, SETTLE_MS, type BarDependencies } from './bar.ts';
 import { ProviderError } from './providers/provider.ts';
 import { suggestPrompt } from './replies.ts';
+import { summaryPrompt } from './summaries.ts';
 import { rewritePrompt } from './rewrites.ts';
 import type { Setup } from './setup.ts';
 
@@ -35,6 +36,7 @@ const SETTINGS = {
   provider: 'anthropic',
   model: 'auto',
   autoSuggest: true,
+  summaries: true,
   chats: 'chosen',
   messages: '50',
   server: '',
@@ -143,15 +145,15 @@ describe('createAssistantBar: the rewrite button', () => {
     const t = harness('Running late, sorry!');
     await t.bar.polish('polish');
     // The first look at the chat came after the rewrite, which is still in the message box.
-    t.bar.found(null);
+    t.bar.found(null, 0);
     await tick();
     expect(t.last().notice?.button).toEqual({ id: 'undo', label: 'Undo' });
-    t.bar.found('m1');
+    t.bar.found('m1', 0);
     await t.settle();
     // The suggestions made meanwhile wait behind the Undo (#743).
     expect(t.last()).toMatchObject({ suggestions: [], writing: false });
     expect(t.bar.state()).toMatchObject({ suggestions: [], notice: { button: { id: 'undo' } } });
-    t.bar.opened(null);
+    t.bar.opened(null, 0);
     expect(t.last().notice).toBeNull();
     expect(t.last().suggestions).toEqual([]);
   });
@@ -160,7 +162,7 @@ describe('createAssistantBar: the rewrite button', () => {
     const t = harness('Running late, sorry!');
     await t.bar.polish('polish');
     t.setDraft('');
-    t.bar.found(null);
+    t.bar.found(null, 0);
     await tick();
     expect(t.last().notice).toBeNull();
     // With no chat open, the draft is gone too.
@@ -168,19 +170,19 @@ describe('createAssistantBar: the rewrite button', () => {
     await t.bar.polish('polish');
     t.setChat(null);
     t.setDraft(null);
-    t.bar.found(null);
+    t.bar.found(null, 0);
     await tick();
     expect(t.last().notice).toBeNull();
   });
 
   it('keeps the notice when the message box cannot be read, and reads nothing without a notice', async () => {
     const t = harness('Running late, sorry!');
-    t.bar.found(null);
+    t.bar.found(null, 0);
     await tick();
     expect(t.deps.accounts.readDraft).not.toHaveBeenCalled();
     await t.bar.polish('polish');
     vi.mocked(t.deps.accounts.readDraft).mockRejectedValueOnce(new Error('loading'));
-    t.bar.found(null);
+    t.bar.found(null, 0);
     await tick();
     expect(t.last().notice?.button?.id).toBe('undo');
   });
@@ -415,14 +417,14 @@ describe('createAssistantBar: suggested replies', () => {
 
   it('puts in a suggestion shown again in a chat opened again (#743)', async () => {
     const t = harness();
-    t.bar.opened('m1');
+    t.bar.opened('m1', 0);
     await t.settle();
     // Another chat, whose own suggestions are written, then back to the first.
     t.setChat({ ...CHAT, name: 'Ben' });
-    t.bar.opened('b1');
+    t.bar.opened('b1', 0);
     await t.settle();
     t.setChat(CHAT);
-    t.bar.opened('m1');
+    t.bar.opened('m1', 0);
     await tick();
     expect(t.last().suggestions).toEqual(['Yes, 9 works!', 'Can we do 8?']);
     vi.mocked(t.deps.accounts.readDraft).mockResolvedValueOnce('');
@@ -432,16 +434,16 @@ describe('createAssistantBar: suggested replies', () => {
 
   it('names no chat for suggestions shown again when the chat cannot be read, or another came first', async () => {
     const t = harness();
-    t.bar.opened('m1');
+    t.bar.opened('m1', 0);
     await t.settle();
-    t.bar.opened('x');
+    t.bar.opened('x', 0);
     vi.mocked(t.deps.accounts.readActiveChat).mockRejectedValueOnce(new Error('reloading'));
-    t.bar.opened('m1');
+    t.bar.opened('m1', 0);
     await tick();
     await t.bar.use(0);
     expect(t.deps.accounts.replaceDraft).not.toHaveBeenCalled();
     // A newer message calls showing them off.
-    t.bar.opened('m1');
+    t.bar.opened('m1', 0);
     t.bar.arrived('m2');
     await t.settle();
     expect(t.last().suggestions).toEqual(['Yes, 9 works!', 'Can we do 8?']);
@@ -512,12 +514,12 @@ describe('createAssistantBar: suggested replies', () => {
 
   it('shows the same suggestions when the chat opens again, without asking again', async () => {
     const t = harness();
-    t.bar.opened('m1');
+    t.bar.opened('m1', 0);
     await t.settle();
     expect(t.last().suggestions).toHaveLength(2);
-    t.bar.opened(null);
+    t.bar.opened(null, 0);
     expect(t.last().suggestions).toEqual([]);
-    t.bar.opened('m1');
+    t.bar.opened('m1', 0);
     await tick();
     expect(t.last().suggestions).toHaveLength(2);
     expect(t.deps.core.ask).toHaveBeenCalledOnce();
@@ -525,7 +527,7 @@ describe('createAssistantBar: suggested replies', () => {
 
   it('answers the message the user replies to once, and the last item’s again when it goes (#740)', async () => {
     const t = harness();
-    t.bar.found('aaaaaaaa:m1:s1:-');
+    t.bar.found('aaaaaaaa:m1:s1:-', 0);
     await t.settle();
     const forLast = t.last().suggestions;
     const replying = { ...CHAT, replyingTo: { author: 'Ana', text: 'See you at 8' } };
@@ -597,7 +599,7 @@ describe('createAssistantBar: suggested replies', () => {
     // Another chat calls it off too, and a chat seen before shows its suggestions at once.
     t.bar.arrived('m3');
     await t.settle();
-    t.bar.opened('m1');
+    t.bar.opened('m1', 0);
     await tick();
     expect(t.last()).toMatchObject({ writing: false, suggestions: ['Sure'] });
   });
@@ -656,7 +658,7 @@ describe('createAssistantBar: suggested replies', () => {
     t.bar.cleared();
     expect(t.last()).toMatchObject({ suggestions: [], notice: null });
     await t.bar.polish('polish');
-    t.bar.opened(null);
+    t.bar.opened(null, 0);
     t.bar.cleared();
     expect(t.last()).toMatchObject({ suggestions: [], notice: null });
   });
@@ -798,7 +800,7 @@ describe('createAssistantBar: suggested replies', () => {
     );
     t.bar.arrived('m1');
     await t.settle();
-    t.bar.opened('m9');
+    t.bar.opened('m9', 0);
     fail(new ProviderError('cancelled'));
     await t.settle();
     expect(t.last().notice).toBeNull();
@@ -822,9 +824,265 @@ describe('createAssistantBar: suggested replies', () => {
     await t.settle();
     t.forbid();
     await t.bar.polish('polish');
-    t.bar.opened(null);
+    t.bar.opened(null, 0);
     expect(t.last()).toMatchObject({ suggestions: [], notice: null });
     await t.bar.button('undo');
     expect(t.deps.accounts.replaceDraft).toHaveBeenCalledOnce();
+  });
+});
+
+/** The model's summary, fenced as the task asks. */
+const SUMMARY =
+  '<for-you>Ana asks if 9 works.</for-you>\n<decisions>Dinner at 9.</decisions>\n<rest></rest>';
+
+const SECTIONS = { forYou: ['Ana asks if 9 works.'], decisions: ['Dinner at 9.'], rest: [] };
+
+const NO_SECTIONS = { forYou: [], decisions: [], rest: [] };
+
+const OFFER = { stage: 'offer', count: 12, sections: NO_SECTIONS, covered: 0 };
+
+/** The assistant with Claude answering a summary with `summary`, and anything else with replies. */
+function summarizing(summary: unknown = SUMMARY) {
+  const t = harness();
+  vi.mocked(t.deps.core.ask).mockImplementation((_setup, prompt) => {
+    if (!prompt.task.includes('unread messages in this chat')) {
+      return Promise.resolve('Yes, 9 works!\nCan we do 8?');
+    }
+    return summary instanceof Error ? Promise.reject(summary) : Promise.resolve(String(summary));
+  });
+  /** Opens a chat with `unread` messages unread, and lets the offer be made. */
+  const open = async (unread = 12, message = 'aaaaaaaa:m1:s1:-') => {
+    t.bar.opened(message, unread);
+    await tick();
+    await tick();
+  };
+  const asked = () =>
+    vi
+      .mocked(t.deps.core.ask)
+      .mock.calls.filter(([, prompt]) => prompt.task.includes('unread messages in this chat'));
+  return { ...t, open, asked };
+}
+
+/** A promise and how to settle it, for a request still under way. */
+function deferred<T>() {
+  let resolve: (value: T) => void = () => undefined;
+  const promise = new Promise<T>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+}
+
+describe('createAssistantBar: summaries of unread messages (#705)', () => {
+  it('offers a summary of a chat opened with many unread messages, and shows it on click', async () => {
+    const t = summarizing();
+    await t.open();
+    expect(t.last().summary).toEqual(OFFER);
+    await t.settle();
+    // The offer shows with the suggestions, which keep being made.
+    expect(t.last().suggestions).toEqual(['Yes, 9 works!', 'Can we do 8?']);
+    const done = t.bar.summarize();
+    expect(t.last().summary).toEqual({ ...OFFER, stage: 'working' });
+    // While it is written, it takes the suggestions' place.
+    expect(t.last()).toMatchObject({ suggestions: [], writing: false });
+    await done;
+    expect(t.deps.accounts.readActiveChat).toHaveBeenLastCalledWith(50);
+    expect(t.asked()).toEqual([[READY, summaryPrompt(CHAT, 12, NOW), expect.any(AbortSignal)]]);
+    // The history limit read two messages of twelve unread, which it says it covers.
+    expect(t.last().summary).toEqual({ stage: 'shown', count: 12, sections: SECTIONS, covered: 2 });
+    expect(t.last().suggestions).toEqual([]);
+    t.bar.closeSummary();
+    expect(t.last().summary).toBeNull();
+    expect(t.last().suggestions).toEqual(['Yes, 9 works!', 'Can we do 8?']);
+  });
+
+  it('covers every unread message the history limit read, and says nothing of it', async () => {
+    const t = summarizing();
+    await t.open(2);
+    expect(t.last().summary).toEqual({ ...OFFER, count: 2 });
+    await t.bar.summarize();
+    expect(t.last().summary).toMatchObject({ stage: 'shown', covered: 0 });
+    // A summary already shown, or none offered, is not asked for again.
+    await t.bar.summarize();
+    t.bar.closeSummary();
+    t.bar.closeSummary();
+    await t.bar.summarize();
+    expect(t.asked()).toHaveLength(1);
+  });
+
+  it('offers nothing for no unread count, with summaries off, before setup or where it may not read', async () => {
+    const t = summarizing();
+    await t.open(0);
+    expect(t.last().summary).toBeNull();
+    t.set({ summaries: false });
+    await t.open();
+    expect(t.last().summary).toBeNull();
+    t.set({ summaries: true });
+    t.setSetup({ ...READY, missing: 'key' });
+    await t.open();
+    expect(t.last().summary).toBeNull();
+    t.setSetup(READY);
+    t.setChat(null);
+    await t.open();
+    expect(t.last().summary).toBeNull();
+    t.setChat(CHAT);
+    t.forbid();
+    await t.open();
+    expect(t.last().summary).toBeNull();
+    t.set({ chats: 'all' });
+    await t.open();
+    expect(t.last().summary).toEqual(OFFER);
+    // The first look offers it too, and a page that cannot be read offers nothing.
+    const first = summarizing();
+    first.bar.found('aaaaaaaa:m1:s1:-', 15);
+    await tick();
+    await tick();
+    expect(first.last().summary).toEqual({ ...OFFER, count: 15 });
+    vi.mocked(first.deps.accounts.readActiveChat).mockImplementation((messages) =>
+      messages === 1 ? Promise.reject(new Error('loading')) : Promise.resolve(CHAT),
+    );
+    await first.open();
+    expect(first.last().summary).toBeNull();
+  });
+
+  it('takes the offer away when a message arrives, another chat opens or the user sends', async () => {
+    const t = summarizing();
+    await t.open();
+    t.bar.arrived('aaaaaaaa:m2:s2:-');
+    expect(t.last().summary).toBeNull();
+    // A chat opened before WhatsApp drew its messages gets its last item, which is not new.
+    await t.open(12, 'aaaaaaaa:-:-:-');
+    t.bar.arrived('aaaaaaaa:m1:s1:-');
+    expect(t.last().summary).toEqual(OFFER);
+    t.bar.sent();
+    expect(t.last().summary).toBeNull();
+    await t.open();
+    await t.open(0, 'bbbbbbbb:m3:s3:-');
+    expect(t.last().summary).toBeNull();
+    // An offer still being made is called off by a newer message too.
+    t.bar.opened('aaaaaaaa:m1:s1:-', 12);
+    t.bar.arrived('aaaaaaaa:m2:s2:-');
+    await tick();
+    await tick();
+    expect(t.last().summary).toBeNull();
+  });
+
+  it('keeps a summary written or shown as messages arrive, until another chat opens or the user sends', async () => {
+    const t = summarizing();
+    await t.open();
+    await t.bar.summarize();
+    t.bar.arrived('aaaaaaaa:m2:s2:-');
+    expect(t.last().summary?.stage).toBe('shown');
+    t.bar.sent();
+    expect(t.last().summary).toBeNull();
+    await t.open();
+    await t.bar.summarize();
+    await t.open(0, 'bbbbbbbb:m3:s3:-');
+    expect(t.last().summary).toBeNull();
+  });
+
+  it('drops a summary another chat or a send made stale while it was read or written', async () => {
+    const t = summarizing();
+    const answer = deferred<string>();
+    await t.open();
+    vi.mocked(t.deps.core.ask).mockReturnValueOnce(answer.promise);
+    const done = t.bar.summarize();
+    await tick();
+    await tick();
+    t.bar.opened('bbbbbbbb:m3:s3:-', 0);
+    answer.resolve(SUMMARY);
+    await done;
+    expect(t.last().summary).toBeNull();
+    const read = deferred<ReadChat | null>();
+    await t.open();
+    vi.mocked(t.deps.accounts.readActiveChat).mockReturnValueOnce(read.promise);
+    const reading = t.bar.summarize();
+    await tick();
+    t.bar.sent();
+    read.resolve(CHAT);
+    await reading;
+    expect(t.last().summary).toBeNull();
+    expect(t.asked()).toHaveLength(1);
+  });
+
+  it('says why no summary came, and summarizes again on Try Again', async () => {
+    const t = summarizing(new ProviderError('refused'));
+    await t.open();
+    await t.bar.summarize();
+    expect(t.last().summary).toBeNull();
+    expect(t.last().notice).toEqual({
+      text: 'The model declined to summarize this chat.',
+      button: null,
+    });
+    const retry = { id: 'retry', label: 'Try Again' };
+    vi.mocked(t.deps.core.ask).mockRejectedValueOnce(new ProviderError('network'));
+    await t.open();
+    await t.bar.summarize();
+    expect(t.last().notice).toEqual({
+      text: 'Claude (Anthropic) could not be reached.',
+      button: retry,
+    });
+    vi.mocked(t.deps.core.ask).mockResolvedValueOnce(SUMMARY);
+    await t.bar.button('retry');
+    expect(t.last().notice).toBeNull();
+    await tick();
+    await tick();
+    expect(t.last().summary).toEqual({ stage: 'shown', count: 12, sections: SECTIONS, covered: 2 });
+    vi.mocked(t.deps.core.ask).mockRejectedValueOnce(new ProviderError('auth'));
+    await t.open();
+    await t.bar.summarize();
+    expect(t.last().notice?.button?.id).toBe('fix');
+    // A new message takes the reason away, as it does for suggestions.
+    t.bar.arrived('aaaaaaaa:m2:s2:-');
+    expect(t.last().notice).toBeNull();
+  });
+
+  it('says there is nothing to summarize when the model fenced nothing or the messages have no text', async () => {
+    const t = summarizing('Nothing much happened.');
+    await t.open();
+    await t.bar.summarize();
+    const nothing = { text: 'Nothing to summarize: these messages have no text.', button: null };
+    expect(t.last()).toMatchObject({ summary: null, notice: nothing });
+    t.setChat({
+      ...CHAT,
+      messages: [
+        { outgoing: true, text: 'See you at 8' },
+        { outgoing: false, text: '', kind: 'photo' },
+      ],
+    });
+    await t.open(1);
+    await t.bar.summarize();
+    expect(t.last()).toMatchObject({ summary: null, notice: nothing });
+    expect(t.asked()).toHaveLength(1);
+  });
+
+  it('summarizes nothing once the setup broke, the chat may not be read or cannot be', async () => {
+    const t = summarizing();
+    await t.open();
+    t.setSetup({ ...READY, missing: 'key' });
+    await t.bar.summarize();
+    expect(t.last().summary).toBeNull();
+    expect(t.last().notice?.text).toBe('Paste your API key for Claude (Anthropic) to start.');
+    t.setSetup(READY);
+    await t.open();
+    t.forbid();
+    await t.bar.summarize();
+    expect(t.last().summary).toBeNull();
+    t.set({ chats: 'all' });
+    await t.open();
+    vi.mocked(t.deps.accounts.readActiveChat).mockRejectedValueOnce(new Error('loading'));
+    await t.bar.summarize();
+    expect(t.last().summary).toBeNull();
+    expect(t.asked()).toHaveLength(0);
+  });
+
+  it('shows a rewrite’s Undo alone, and the summary again once it goes (#743)', async () => {
+    const t = summarizing();
+    await t.open();
+    await t.bar.summarize();
+    await t.bar.polish('soften');
+    expect(t.last().notice?.button?.id).toBe('undo');
+    expect(t.last().summary).toBeNull();
+    await t.bar.button('undo');
+    expect(t.last().summary?.stage).toBe('shown');
   });
 });

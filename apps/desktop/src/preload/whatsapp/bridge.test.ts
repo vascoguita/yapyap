@@ -71,6 +71,8 @@ describe('createAssistantBarBridge', () => {
     bridge.expand();
     bridge.button('undo');
     bridge.settings();
+    bridge.summarize();
+    bridge.closeSummary();
     expect(ipc.send.mock.calls).toEqual([
       ['whatsapp:assistant-bar-polish', 'soften'],
       ['whatsapp:assistant-bar-use', 1],
@@ -78,6 +80,8 @@ describe('createAssistantBarBridge', () => {
       ['whatsapp:assistant-bar-expand'],
       ['whatsapp:assistant-bar-button', 'undo'],
       ['whatsapp:assistant-bar-settings'],
+      ['whatsapp:assistant-bar-summarize'],
+      ['whatsapp:assistant-bar-close-summary'],
     ]);
   });
 });

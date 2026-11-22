@@ -33,6 +33,7 @@ const SNAPSHOT: SettingsSnapshot = {
     'assistant.provider': 'anthropic',
     'assistant.model': 'claude-opus',
     'assistant.autoSuggest': true,
+    'assistant.summaries': true,
     'assistant.chats': 'chosen',
     'assistant.messages': '10',
     'assistant.server': '',

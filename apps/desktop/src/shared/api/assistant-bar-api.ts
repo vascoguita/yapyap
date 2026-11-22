@@ -14,6 +14,30 @@ interface BarNotice {
   readonly button: { readonly id: Exclude<BarButtonId, 'close'>; readonly label: string } | null;
 }
 
+/** The summary's bullets, by section, as plain text, never markup (#705). */
+export interface SummarySections {
+  /** What concerns the user: mentions of them, replies to them, questions to them. */
+  readonly forYou: readonly string[];
+  /** Decisions, dates, times and tasks. */
+  readonly decisions: readonly string[];
+  /** Everything else, at most three bullets. */
+  readonly rest: readonly string[];
+}
+
+/**
+ * The summary of the messages the open chat opened with unread (#705):
+ * offered, being written, or shown. It is held only in memory.
+ */
+export interface BarSummary {
+  readonly stage: 'offer' | 'working' | 'shown';
+  /** How many messages were unread, as the chat list's badge counted them. */
+  readonly count: number;
+  /** Empty until it shows. */
+  readonly sections: SummarySections;
+  /** How many of the newest messages it covers when the history limit read fewer than `count`; else 0. */
+  readonly covered: number;
+}
+
 /** What the assistant shows in and above the open chat's message box (ADR 0013, ADR 0017). */
 export interface AssistantBarState {
   /** Waiting for the model to rewrite the draft. */
@@ -37,6 +61,8 @@ export interface AssistantBarState {
   readonly collapsed: boolean;
   /** The model is writing suggestions, which take seconds (#703). */
   readonly writing: boolean;
+  /** The summary of the unread messages, offered, being written or shown; null for none (#705). */
+  readonly summary: BarSummary | null;
 }
 
 /**
@@ -53,6 +79,8 @@ export const ASSISTANT_BAR_CHANNELS = {
   expand: 'whatsapp:assistant-bar-expand',
   button: 'whatsapp:assistant-bar-button',
   settings: 'whatsapp:assistant-bar-settings',
+  summarize: 'whatsapp:assistant-bar-summarize',
+  closeSummary: 'whatsapp:assistant-bar-close-summary',
 } as const;
 
 /**
@@ -72,4 +100,8 @@ export interface AssistantBarBridge {
   readonly button: (id: string) => void;
   /** Opens Settings, at the assistant. */
   readonly settings: () => void;
+  /** Summarizes the messages the open chat opened with unread (#705). */
+  readonly summarize: () => void;
+  /** Closes the summary. */
+  readonly closeSummary: () => void;
 }

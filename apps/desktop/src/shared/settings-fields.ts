@@ -107,6 +107,7 @@ export const SETTING_FIELDS: readonly SettingField[] = [
     text: { placeholder: en.assistant.settings.model.auto },
   },
   { ...described('assistant', 'autoSuggest'), restart: false },
+  { ...described('assistant', 'summaries'), restart: false },
   {
     ...described('assistant', 'chats'),
     restart: false,

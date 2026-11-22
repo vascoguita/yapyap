@@ -1,7 +1,7 @@
 import { assistantBarRender, type BarContent } from '../../adapter/assistant-bar.ts';
 import { composerToolRender, type ToolContent } from '../../adapter/composer-tool.ts';
 import { runInAdapterWorld, type AdapterPage } from '../../adapter/world.ts';
-import type { AssistantBarState } from '../../shared/api/assistant-bar-api.ts';
+import type { AssistantBarState, BarSummary } from '../../shared/api/assistant-bar-api.ts';
 import { en } from '../../shared/messages/en.ts';
 import { POLISH_STYLES } from './rewrites.ts';
 
@@ -40,12 +40,39 @@ function contentOf(state: AssistantBarState, visible: boolean): BarContent {
       folded: text.folded,
       writing: text.writing,
       close: text.close,
+      summarizing: text.summarizing,
+      firstUnread: text.firstUnread,
     },
     suggestions: state.suggestions,
     notice: state.notice,
     chat: state.chat,
     collapsed: state.collapsed,
     writing: state.writing,
+    summary: summaryContentOf(state.summary),
+  };
+}
+
+/** The summary in the user's words, with only the sections that have something (#705). */
+function summaryContentOf(summary: BarSummary | null): BarContent['summary'] {
+  if (summary === null) {
+    return null;
+  }
+  const text = en.assistant.bar;
+  const { count, sections, covered } = summary;
+  const titled = (
+    [
+      [text.summarySections.forYou, sections.forYou],
+      [text.summarySections.decisions, sections.decisions],
+      [text.summarySections.rest, sections.rest],
+    ] as const
+  ).map(([title, items]) => ({ title, items }));
+  return {
+    stage: summary.stage,
+    count,
+    offer: text.summarize({ count }),
+    title: text.summaryTitle({ count }),
+    sections: titled.filter(({ items }) => items.length > 0),
+    covers: covered === 0 ? '' : text.summaryCovers({ count: covered }),
   };
 }
 

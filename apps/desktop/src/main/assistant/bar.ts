@@ -1,5 +1,10 @@
 import type { ReadChat } from '../../adapter/active-chat.ts';
-import type { AssistantBarState, BarButtonId } from '../../shared/api/assistant-bar-api.ts';
+import type {
+  AssistantBarState,
+  BarButtonId,
+  BarSummary,
+  SummarySections,
+} from '../../shared/api/assistant-bar-api.ts';
 import { en } from '../../shared/messages/en.ts';
 import type { SettingsService } from '../settings/service.ts';
 import { problemWords, setupWords, type Words } from './bar-words.ts';
@@ -15,6 +20,7 @@ import {
   type PolishStyle,
 } from './rewrites.ts';
 import type { Setup } from './setup.ts';
+import { isEmptySummary, summaryIn, summaryPrompt } from './summaries.ts';
 
 /** What the assistant needs of the account on screen; nothing here sends a message. */
 export interface BarAccounts {
@@ -63,8 +69,15 @@ interface BarContext {
   readonly made: Map<string, readonly string[]>;
   /** The item the notice's Try Again asks about again. */
   retryFor: string;
-  /** The notice says why no suggestions came, which goes as soon as they are asked for again. */
+  /** How many unread messages the notice's Try Again summarizes again; 0 when it asks for suggestions. */
+  retrySummary: number;
+  /**
+   * The notice says why no suggestions or no summary came, which goes as
+   * soon as suggestions are asked for again.
+   */
   unsuggested: boolean;
+  /** The summary being offered or written, called off when another chat opens or the user sends (#705). */
+  summarizing: AbortController | undefined;
 }
 
 const text = en.assistant;
@@ -86,16 +99,25 @@ const EMPTY: AssistantBarState = {
   chat: null,
   collapsed: false,
   writing: false,
+  summary: null,
 };
 
+const NO_SECTIONS: SummarySections = { forYou: [], decisions: [], rest: [] };
+
 /**
- * What the page shows of `state`: while a notice offers Undo, it alone,
- * as the row shows one thing at a time. The suggestions, kept meanwhile,
- * come back once the draft is put back, the box empties or the notice
- * closes (#743).
+ * What the page shows of `state`, as the row shows one thing at a time:
+ * while a notice offers Undo, it alone; the suggestions and the summary,
+ * kept meanwhile, come back once the draft is put back, the box empties or
+ * the notice closes (#743). While a summary is written or shows, it takes
+ * the suggestions' place, and they come back once it closes (#705).
  */
-const shownOf = (state: AssistantBarState): AssistantBarState =>
-  state.notice?.button?.id === 'undo' ? { ...state, suggestions: [], writing: false } : state;
+function shownOf(state: AssistantBarState): AssistantBarState {
+  if (state.notice?.button?.id === 'undo') {
+    return { ...state, suggestions: [], writing: false, summary: null };
+  }
+  const summarizing = state.summary !== null && state.summary.stage !== 'offer';
+  return summarizing ? { ...state, suggestions: [], writing: false } : state;
+}
 
 function update(bar: BarContext, next: Partial<AssistantBarState>): void {
   bar.state = { ...bar.state, ...next };
@@ -244,13 +266,20 @@ async function polish(bar: BarContext, value: string): Promise<void> {
 function forget(bar: BarContext, writing: boolean): void {
   bar.suggesting?.abort();
   bar.suggesting = undefined;
+  bar.summarizing?.abort();
+  bar.summarizing = undefined;
   bar.chat = null;
   bar.kept = '';
   bar.blocked = false;
   bar.rewritten = false;
   bar.unsuggested = false;
   // Suggestions about to be made for the chat that opened keep the blank chips up meanwhile (#741).
-  update(bar, { suggestions: [], notice: null, writing: writing && bar.state.writing });
+  update(bar, {
+    suggestions: [],
+    notice: null,
+    writing: writing && bar.state.writing,
+    summary: null,
+  });
 }
 
 /** Puts back the draft a rewrite replaced, while its chat is still open. */
@@ -264,9 +293,9 @@ async function undo(bar: BarContext): Promise<void> {
 
 const BUTTONS: Readonly<Record<BarButtonId, (bar: BarContext) => unknown>> = {
   undo,
-  // It starts asking again, and says so; the answer comes as suggestions or a new reason.
+  // It starts asking again, and says so; the answer comes as suggestions, a summary or a new reason.
   retry: (bar) => {
-    void suggest(bar, bar.retryFor);
+    void (bar.retrySummary === 0 ? suggest(bar, bar.retryFor) : summarizeAgain(bar));
   },
   // Every fix the notice offers is in Settings.
   fix: (bar) => {
@@ -398,29 +427,55 @@ function forgetReason(bar: BarContext): void {
   }
 }
 
+/** What a notice says when the model wrote nothing to show: suggestions' words, or a summary's. */
+interface NoAnswerWords {
+  readonly declined: string;
+  readonly nothing: string;
+  /** Whether Try Again goes with `nothing`: asking again may bring suggestions, never text to summarize. */
+  readonly again: boolean;
+}
+
+const UNSUGGESTED: NoAnswerWords = {
+  declined: text.bar.declined,
+  nothing: text.bar.noSuggestions,
+  again: true,
+};
+
+const UNSUMMARIZED: NoAnswerWords = {
+  declined: text.bar.summaryDeclined,
+  nothing: text.bar.nothingToSummarize,
+  again: false,
+};
+
 /**
- * Says why no suggestions came instead of showing nothing (#743): the
- * model declined the chat, which asking again will not change; a problem a
- * setting mends, with the way there; or nothing usable, or a passing
- * problem, with Try Again. `error` is undefined when the model answered
- * nothing usable.
+ * Says why the model wrote nothing to show instead of showing nothing
+ * (#743): the model declined the chat, which asking again will not change;
+ * a problem a setting mends, with the way there; or nothing usable, or a
+ * passing problem, with Try Again. `error` is undefined when the model
+ * answered nothing usable.
  */
-function unsuggested(bar: BarContext, message: string, setup: Setup, error: unknown): void {
+function noAnswer(bar: BarContext, setup: Setup, error: unknown, words: NoAnswerWords): void {
   bar.unsuggested = true;
-  bar.retryFor = message;
   const retry = { id: 'retry' as const, label: text.bar.retry };
   if (error === undefined) {
-    update(bar, { notice: { text: text.bar.noSuggestions, button: retry } });
+    update(bar, { notice: { text: words.nothing, button: words.again ? retry : null } });
     return;
   }
   const kind = error instanceof ProviderError ? error.kind : 'failed';
   if (kind === 'refused') {
-    update(bar, { notice: { text: text.bar.declined, button: null } });
+    update(bar, { notice: { text: words.declined, button: null } });
     return;
   }
-  const words = problemWords(kind, setup.provider);
-  const fix = words.fix === undefined ? retry : { id: 'fix' as const, label: words.fix.label };
-  update(bar, { notice: { text: words.status, button: fix } });
+  const problem = problemWords(kind, setup.provider);
+  const fix = problem.fix === undefined ? retry : { id: 'fix' as const, label: problem.fix.label };
+  update(bar, { notice: { text: problem.status, button: fix } });
+}
+
+/** Says why no suggestions came for `message`, which Try Again asks about again. */
+function unsuggested(bar: BarContext, message: string, setup: Setup, error: unknown): void {
+  bar.retryFor = message;
+  bar.retrySummary = 0;
+  noAnswer(bar, setup, error, UNSUGGESTED);
 }
 
 /** Waits until `message` settled as the newest; false if a newer one or another chat came first. */
@@ -478,6 +533,127 @@ async function refresh(bar: BarContext): Promise<void> {
   }
 }
 
+/** The summary of `count` unread messages at `stage`, with what it says once it shows. */
+const summaryAt = (
+  stage: BarSummary['stage'],
+  count: number,
+  sections = NO_SECTIONS,
+  covered = 0,
+): BarSummary => ({ stage, count, sections, covered });
+
+/** Takes the summary away, and calls off one being offered or written. */
+function dropSummary(bar: BarContext): void {
+  bar.summarizing?.abort();
+  bar.summarizing = undefined;
+  if (bar.state.summary !== null) {
+    update(bar, { summary: null });
+  }
+}
+
+/**
+ * Offers to summarize the `count` messages the chat that opened had
+ * unread, if any (#705): only while the user wants summaries offered, the
+ * setup is ready and the user lets the assistant read the chat. Another
+ * chat opening meanwhile calls it off.
+ */
+async function offerSummary(bar: BarContext, count: number): Promise<void> {
+  if (count === 0 || !assistantSettings(bar).summaries) {
+    return;
+  }
+  const controller = new AbortController();
+  bar.summarizing = controller;
+  const setup = await bar.deps.core.setup();
+  const chat = setup.missing === '' ? await bar.deps.accounts.readActiveChat(1) : null;
+  if (chat !== null && mayRead(bar, chat.name) && !controller.signal.aborted) {
+    update(bar, { summary: summaryAt('offer', count) });
+  }
+}
+
+/**
+ * A new message takes the offer away, and one about to be made: what was
+ * unread is no longer what is newest. A summary being written or shown
+ * stays, until the user closes it, sends or opens another chat.
+ */
+function withdrawOffer(bar: BarContext): void {
+  const stage = bar.state.summary?.stage ?? 'offer';
+  if (stage === 'offer') {
+    dropSummary(bar);
+  }
+}
+
+/** What a summary is made from: the setup, the open chat as the history limit reads it, and the unread count. */
+interface SummaryWork {
+  readonly setup: Setup;
+  readonly chat: ReadChat;
+  readonly count: number;
+}
+
+/** Says why no summary came, and takes the working chip away; Try Again summarizes again. */
+function unsummarized(bar: BarContext, { setup, count }: SummaryWork, error: unknown): void {
+  bar.retrySummary = count;
+  update(bar, { summary: null });
+  noAnswer(bar, setup, error, UNSUMMARIZED);
+}
+
+/**
+ * Asks the model for the summary and shows it, unless another chat opened
+ * or the user sent meanwhile. Unread messages with no text, such as only
+ * photos, give it nothing to summarize, so nothing is asked.
+ */
+async function answerSummary(bar: BarContext, work: SummaryWork, signal: AbortSignal) {
+  const { setup, chat, count } = work;
+  const read = chat.messages.length;
+  if (chat.messages.slice(-count).every((message) => message.text.trim() === '')) {
+    unsummarized(bar, work, undefined);
+    return;
+  }
+  const answer = await bar.deps.core
+    .ask(setup, summaryPrompt(chat, count, bar.deps.now()), signal)
+    .catch((error: unknown) => error);
+  if (isAborted(signal)) {
+    return;
+  }
+  const sections = typeof answer === 'string' ? summaryIn(answer) : NO_SECTIONS;
+  if (isEmptySummary(sections)) {
+    unsummarized(bar, work, typeof answer === 'string' ? undefined : answer);
+    return;
+  }
+  update(bar, { summary: summaryAt('shown', count, sections, count > read ? read : 0) });
+}
+
+/**
+ * Summarizes the unread messages on the user's click on the offer, which
+ * turns into a chip that says so while the model writes (#705). It reads
+ * the open chat as far as the history limit allows, and keeps the summary
+ * only in memory.
+ */
+async function summarize(bar: BarContext): Promise<void> {
+  const offered = bar.state.summary;
+  if (offered?.stage !== 'offer') {
+    return;
+  }
+  const controller = new AbortController();
+  bar.summarizing = controller;
+  forgetReason(bar);
+  update(bar, { summary: summaryAt('working', offered.count) });
+  const setup = await ready(bar);
+  const chat = setup === undefined ? undefined : await chatToAnswer(bar).catch(() => undefined);
+  if (controller.signal.aborted) {
+    return;
+  }
+  if (setup === undefined || chat === undefined) {
+    update(bar, { summary: null });
+    return;
+  }
+  await answerSummary(bar, { setup, chat, count: offered.count }, controller.signal);
+}
+
+/** The notice's Try Again: the same summary, written again. */
+async function summarizeAgain(bar: BarContext): Promise<void> {
+  update(bar, { notice: null, summary: summaryAt('offer', bar.retrySummary) });
+  await summarize(bar);
+}
+
 /** What the assistant does with the user's clicks, and with the open chat as it changes. */
 export interface AssistantBar {
   readonly state: () => AssistantBarState;
@@ -490,16 +666,24 @@ export interface AssistantBar {
   readonly collapse: () => void;
   readonly expand: () => void;
   readonly button: (id: BarButtonId) => Promise<void>;
-  /** The open chat was first seen, with `message` its last item, or no chat is open. */
-  readonly found: (message: string | null) => void;
-  /** Another chat is open, with `message` its last item, or none is. */
-  readonly opened: (message: string | null) => void;
+  /**
+   * The open chat was first seen, with `message` its last item, or no chat
+   * is open; it opened with `unread` messages unread, or 0 for too few to
+   * summarize (#705).
+   */
+  readonly found: (message: string | null, unread: number) => void;
+  /** Another chat is open, with `message` its last item and `unread` as for `found`, or none is. */
+  readonly opened: (message: string | null, unread: number) => void;
   /** Another item is the open chat's last, someone else's or the user's own, or the user replies to another message (#740). */
   readonly arrived: (message: string) => void;
   /** The user sent a message in the open chat. */
   readonly sent: () => void;
   /** The user emptied the open chat's message box without sending. */
   readonly cleared: () => void;
+  /** Summarizes the unread messages the summary was offered for (#705). */
+  readonly summarize: () => Promise<void>;
+  /** Takes the summary away. */
+  readonly closeSummary: () => void;
 }
 
 /**
@@ -537,42 +721,71 @@ function cleared(bar: BarContext, message: string | null): void {
   }
 }
 
+/** What the follow loop names a chat with no item yet by, before WhatsApp drew its messages. */
+const EMPTY_CHAT = /^[^:]*:-:/;
+
 /** What the assistant does as the open chat changes. */
 function followChat(
   bar: BarContext,
 ): Pick<AssistantBar, 'found' | 'opened' | 'arrived' | 'sent' | 'cleared'> {
-  // The open chat's last item, whoever sent it.
-  let message: string | null = null;
+  const last: LastItem = { message: null };
   const follow = (newest: string | null): void => {
-    message = newest;
+    last.message = newest;
     followed(bar, newest);
     if (newest !== null) {
       void suggest(bar, newest);
     }
   };
   return {
-    found: (newest) => {
+    ...sendAndClear(bar, last),
+    found: (newest, unread) => {
       follow(newest);
       void keepNotice(bar);
+      offer(bar, unread);
     },
-    opened: (newest) => {
+    opened: (newest, unread) => {
       forget(bar, newest !== null);
       follow(newest);
+      offer(bar, unread);
     },
     arrived: (newest) => {
-      message = newest;
+      // A chat opened before WhatsApp drew its messages gets its last item now, which is not new.
+      if (last.message !== null && !EMPTY_CHAT.test(last.message)) {
+        withdrawOffer(bar);
+      }
+      last.message = newest;
       followed(bar, newest);
       void suggest(bar, newest);
     },
+  };
+}
+
+/** The open chat's last item, whoever sent it, as the follow loop names it; null for none. */
+interface LastItem {
+  message: string | null;
+}
+
+/** Offers a summary of a chat opened with many unread messages; a page between loads can fail to be read. */
+function offer(bar: BarContext, unread: number): void {
+  offerSummary(bar, unread).catch(() => undefined);
+}
+
+/**
+ * What the assistant does when the user sends, which takes away all it
+ * showed about the chat, a summary too, and when they empty the message box.
+ */
+function sendAndClear(bar: BarContext, last: LastItem): Pick<AssistantBar, 'sent' | 'cleared'> {
+  return {
     sent: () => {
-      message = null;
+      last.message = null;
       bar.rewritten = false;
       bar.unsuggested = false;
       bar.suggesting?.abort();
-      update(bar, { suggestions: [], notice: null, writing: false });
+      bar.summarizing?.abort();
+      update(bar, { suggestions: [], notice: null, writing: false, summary: null });
     },
     cleared: () => {
-      cleared(bar, message);
+      cleared(bar, last.message);
     },
   };
 }
@@ -595,7 +808,9 @@ export function createAssistantBar(deps: BarDependencies): AssistantBar {
     suggesting: undefined,
     made: new Map(),
     retryFor: '',
+    retrySummary: 0,
     unsuggested: false,
+    summarizing: undefined,
   };
   return {
     state: () => shownOf(bar.state),
@@ -606,6 +821,10 @@ export function createAssistantBar(deps: BarDependencies): AssistantBar {
     polish: (value) => polish(bar, value),
     use: (index) => use(bar, index),
     button: (id) => press(bar, id),
+    summarize: () => summarize(bar),
+    closeSummary: () => {
+      dropSummary(bar);
+    },
     collapse: () => {
       update(bar, { collapsed: true });
     },

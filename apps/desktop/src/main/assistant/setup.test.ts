@@ -7,6 +7,7 @@ const SETTINGS: SetupInputs['settings'] = {
   provider: 'none',
   model: 'auto',
   autoSuggest: true,
+  summaries: true,
   chats: 'chosen',
   messages: '50',
   server: '',

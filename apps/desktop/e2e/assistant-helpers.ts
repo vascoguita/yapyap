@@ -71,6 +71,51 @@ export const barNotice = async (app: ElectronApplication): Promise<string | null
   return typeof notice === 'string' ? notice : null;
 };
 
+/** What the summary's card shows (#705). */
+interface ShownSummary {
+  readonly title: string;
+  readonly headings: string[];
+  readonly items: string[];
+  readonly covers: string | null;
+}
+
+/**
+ * Runs in the adapter's isolated world, as {@link readBarControls} does:
+ * the summary's card while it shows, or null.
+ */
+function readBarSummary(): ShownSummary | null {
+  const kept = (globalThis as { yapyapAssistantBarView?: { parts: { card: HTMLElement } } })
+    .yapyapAssistantBarView;
+  const card = kept?.parts.card;
+  if (card === undefined || card.getClientRects().length === 0) {
+    return null;
+  }
+  const texts = (selector: string) =>
+    [...card.querySelectorAll(selector)].map((node) => node.textContent);
+  const covers = card.querySelector<HTMLElement>('.covers');
+  return {
+    title: String(card.querySelector('h2')?.textContent),
+    headings: texts('h3'),
+    items: texts('li'),
+    covers: covers === null || covers.hidden ? null : covers.textContent,
+  };
+}
+
+/** Runs in the adapter's isolated world: what the bar tells screen readers is under way. */
+function readBarStatus(): string | null {
+  const kept = (globalThis as { yapyapAssistantBarView?: { parts: { status: HTMLElement } } })
+    .yapyapAssistantBarView;
+  return kept?.parts.status.textContent ?? null;
+}
+
+/** The summary's card in the active account's WhatsApp, or null while none shows (#705). */
+export const barSummary = async (app: ElectronApplication): Promise<ShownSummary | null> =>
+  ((await inBarWorld(app, readBarSummary)) ?? null) as ShownSummary | null;
+
+/** What the bar tells screen readers is under way, such as a summary being written. */
+export const barStatus = async (app: ElectronApplication): Promise<string | null> =>
+  ((await inBarWorld(app, readBarStatus)) ?? null) as string | null;
+
 /** The assistant bar's controls that show in the active account's WhatsApp, or null while it is not there. */
 const assistantBarControls = async (app: ElectronApplication): Promise<BarControl[] | null> =>
   ((await inBarWorld(app, readBarControls)) ?? null) as BarControl[] | null;
@@ -162,6 +207,8 @@ const CLAUDE_MODELS = JSON.stringify({
 interface AnswerWhen {
   readonly when: string;
   readonly body: string;
+  /** How long Claude takes to answer, so a test can see the assistant wait. */
+  readonly delay?: number;
 }
 
 /**
@@ -186,6 +233,7 @@ async function playClaude(
         const text = await request.text();
         asked.push(text);
         const rule = rules.find(({ when }) => text.includes(when));
+        await new Promise((resolve) => setTimeout(resolve, rule?.delay ?? 0));
         const body = rule?.body ?? bodies[Math.min(asked.length, bodies.length) - 1] ?? '';
         return new Response(body, { headers: { 'content-type': 'text/event-stream' } });
       });
@@ -556,4 +604,54 @@ export async function quietPort(): Promise<number> {
     });
   });
   return port;
+}
+
+/**
+ * `count` messages from someone else arrive in the open chat of the fake
+ * WhatsApp page, each as tall as a short bubble, so the chat scrolls.
+ */
+export async function messagesArrive(page: Page, count: number): Promise<void> {
+  await page.evaluate((count) => {
+    for (let at = 0; at < count; at += 1) {
+      const row = document.createElement('div');
+      row.setAttribute('role', 'row');
+      row.style.minBlockSize = '60px';
+      const message = document.createElement('div');
+      message.dataset['id'] = `3EB0U${String(at)}`;
+      const copyable = document.createElement('div');
+      copyable.dataset['prePlainText'] = '[21:00, 24/10/2026] Test Chat Two: ';
+      const body = document.createElement('span');
+      body.dataset['testid'] = 'selectable-text';
+      body.textContent = `Unread message ${String(at + 1)}`;
+      copyable.append(body);
+      message.append(copyable);
+      row.append(message);
+      const rows = document.querySelectorAll('#main [role="row"]');
+      rows[rows.length - 1]?.after(row);
+    }
+  }, count);
+}
+
+/** The chat list row named `name` in the fake WhatsApp page shows `count` unread messages (#705). */
+export async function unreadBadge(page: Page, name: string, count: number): Promise<void> {
+  await page.evaluate(
+    ({ name, count }) => {
+      const row = [...document.querySelectorAll('#pane-side [role="row"]')].find(
+        (each) => each.querySelector('[data-testid="cell-frame-title"]')?.textContent === name,
+      );
+      const secondary = row?.querySelector('[data-testid="cell-frame-secondary"]');
+      row?.querySelector('[data-testid="icon-unread-count"]')?.remove();
+      const badge = document.createElement('span');
+      badge.dataset['testid'] = 'icon-unread-count';
+      badge.textContent = String(count);
+      secondary?.append(badge);
+    },
+    { name, count },
+  );
+}
+
+/** The user opens the chat named `name` from the fake WhatsApp page's chat list. */
+export async function openChat(page: Page, name: string): Promise<void> {
+  await page.locator('#pane-side [role="row"]', { hasText: name }).dispatchEvent('mousedown');
+  await expect(page.locator('#main header')).toHaveText(name);
 }

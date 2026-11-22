@@ -647,7 +647,11 @@ function AssistantDetails(props: Omit<PlaceProps, 'model'>) {
     <>
       <Places {...props} model={model} />
       <Group id="assistant-replies" title={text.groups.replies}>
-        {fieldsOf(['assistant.autoSuggest', 'assistant.messages'], snapshot, onChange)}
+        {fieldsOf(
+          ['assistant.autoSuggest', 'assistant.summaries', 'assistant.messages'],
+          snapshot,
+          onChange,
+        )}
       </Group>
       <ChatsGroup {...props} model={model} />
     </>

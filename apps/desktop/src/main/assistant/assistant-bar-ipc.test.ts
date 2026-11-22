@@ -17,6 +17,8 @@ function setup() {
     collapse: vi.fn(),
     expand: vi.fn(),
     button: vi.fn(() => Promise.resolve()),
+    summarize: vi.fn(() => Promise.resolve()),
+    closeSummary: vi.fn(),
   };
   const openSettings = vi.fn();
   const active = {};
@@ -60,6 +62,10 @@ describe('listenToAssistantBar', () => {
     await t.hear('expand', t.fromBar);
     await t.hear('button', t.fromBar, 'undo');
     await t.hear('settings', t.fromBar);
+    await t.hear('summarize', t.fromBar);
+    await t.hear('close-summary', t.fromBar);
+    expect(t.bar.summarize).toHaveBeenCalledOnce();
+    expect(t.bar.closeSummary).toHaveBeenCalledOnce();
     expect(t.bar.polish).toHaveBeenCalledExactlyOnceWith('soften');
     expect(t.bar.use).toHaveBeenCalledExactlyOnceWith(0);
     expect(t.bar.collapse).toHaveBeenCalledOnce();
@@ -102,13 +108,17 @@ describe('listenToAssistantBar', () => {
     await t.hear('collapse', t.fromBar, 1);
     await t.hear('expand', t.fromBar, true);
     await t.hear('settings', t.fromBar, 'now');
+    await t.hear('summarize', t.fromBar, 12);
+    await t.hear('close-summary', t.fromBar, 'now');
+    expect(t.bar.summarize).not.toHaveBeenCalled();
+    expect(t.bar.closeSummary).not.toHaveBeenCalled();
     expect(t.bar.use).not.toHaveBeenCalled();
     expect(t.bar.polish).not.toHaveBeenCalled();
     expect(t.bar.button).not.toHaveBeenCalled();
     expect(t.bar.collapse).not.toHaveBeenCalled();
     expect(t.bar.expand).not.toHaveBeenCalled();
     expect(t.openSettings).not.toHaveBeenCalled();
-    expect(t.warn).toHaveBeenCalledTimes(18);
+    expect(t.warn).toHaveBeenCalledTimes(20);
   });
 
   it('warns, without the error, when an action fails', async () => {

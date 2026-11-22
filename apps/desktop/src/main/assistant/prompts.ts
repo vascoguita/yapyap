@@ -8,8 +8,8 @@ export type Prompt = Omit<CompletionRequest, 'signal'>;
 /**
  * How the model behaves, the same for every request, so a provider keeps it
  * cached with the chat (#629): how to write as the user, how to suggest
- * replies, and each way of rewriting, so switching ways still reads the
- * cache. The chat and the draft are other people's words and the user's,
+ * replies, each way of rewriting, so switching ways still reads the
+ * cache, and how to summarize unread messages (#705). The chat and the draft are other people's words and the user's,
  * never instructions: a message may try to steer the model, and only these
  * instructions and the task say what to do.
  */
@@ -49,6 +49,13 @@ export const INSTRUCTIONS = [
   '- Soften: make it gentler and friendlier, about as long as it is: turn demands into requests, soften absolutes and blame, acknowledge the other person where it fits, and drop sarcasm and shouting. Keep what it says and asks (a no stays a no), and add no emoji it does not already have.',
   '- Formalize: make it polite and professional: whole sentences, correct spelling, and no slang, abbreviations or emoji. Keep the form of address the user uses with this person, and use the polite one (such as "vous", "Sie" or "o senhor") only where the chat shows none. Still a chat message, not an email: no "Dear", subject or signature.',
   '',
+  '## Summarizing unread messages',
+  'A summary is for the user to read before the messages themselves:',
+  '- Cover only the messages the task names as unread; the earlier ones only help you understand them.',
+  '- Write each point as one short line that names who said it, as the chat names them, in the language the chat is written in.',
+  '- Only what the messages say: never invent, guess or add advice. Of something you cannot see, such as a photo, say only that it was sent.',
+  '- Plain text: no Markdown, and no emoji the messages do not have.',
+  '',
   'Answer with exactly what the task asks for: no preamble, labels, quotes or explanations.',
 ].join('\n');
 
@@ -65,11 +72,11 @@ const unnamed = (name: string): boolean => parseInternationalNumber(name) !== un
 /**
  * The text with any tag that would close or open the chat, the draft or
  * the message replied to made harmless, so a message cannot pass for the
- * user's own words or for the task, nor a reply a model echoes from the
- * chat for one of its own.
+ * user's own words or for the task, nor a reply or a summary's section a
+ * model echoes from the chat for one of its own (#705).
  */
 export const defused = (text: string): string =>
-  text.replaceAll(/<(\/?)(chat|draft|reply-to|reply(?!-))\b/gi, '‹$1$2');
+  text.replaceAll(/<(\/?)(chat|draft|reply-to|reply(?!-)|for-you|decisions|rest)\b/gi, '‹$1$2');
 
 /** Lines after the first are indented, so a line in a message cannot pass for another message. */
 const indented = (text: string): string => defused(text).replaceAll('\n', '\n  ');

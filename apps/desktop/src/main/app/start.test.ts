@@ -145,6 +145,7 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
         chat: null,
         collapsed: false,
         writing: false,
+        summary: null,
       })),
       refresh: vi.fn(() => Promise.resolve()),
       polish: vi.fn(() => Promise.resolve()),
@@ -157,6 +158,8 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
       arrived: vi.fn(),
       sent: vi.fn(),
       cleared: vi.fn(),
+      summarize: vi.fn(() => Promise.resolve()),
+      closeSummary: vi.fn(),
     } satisfies AssistantBar,
     assistantBarView: undefined as AssistantBarView | undefined,
     attachAssistantBar: vi.fn((create: (bar: AssistantBar) => AssistantBarView) => {
@@ -975,17 +978,17 @@ describe('startApp', () => {
     f.runtime.assistantBarView?.show(true);
     const bar = f.runtime.assistantBar;
     f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValue(
-      'aaaaaaaa:00000001:-:i:e:-:-',
+      'aaaaaaaa:00000001:-:i:e:-:-|-',
     );
     await vi.advanceTimersByTimeAsync(1500);
-    expect(bar.found).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000001:-:-');
+    expect(bar.found).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000001:-:-', 0);
     f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValue(
-      'aaaaaaaa:00000002:-:i:e:-:-',
+      'aaaaaaaa:00000002:-:i:e:-:-|-',
     );
     await vi.advanceTimersByTimeAsync(1500);
     expect(bar.arrived).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000002:-:-');
     f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValue(
-      'aaaaaaaa:00000002:0000000f:o:e:-:-',
+      'aaaaaaaa:00000002:0000000f:o:e:-:-|-',
     );
     await vi.advanceTimersByTimeAsync(1500);
     expect(bar.sent).toHaveBeenCalledOnce();
@@ -993,7 +996,7 @@ describe('startApp', () => {
     expect(bar.arrived).toHaveBeenLastCalledWith('aaaaaaaa:0000000f:-:-');
     f.window.isFocused.mockReturnValue(false);
     f.web.contents.executeJavaScriptInIsolatedWorld.mockResolvedValue(
-      'aaaaaaaa:00000003:-:i:e:-:-',
+      'aaaaaaaa:00000003:-:i:e:-:-|-',
     );
     await vi.advanceTimersByTimeAsync(3000);
     expect(bar.arrived).toHaveBeenCalledTimes(2);

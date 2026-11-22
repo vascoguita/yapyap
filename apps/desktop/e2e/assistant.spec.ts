@@ -4,6 +4,8 @@ import {
   allowAllChats,
   barNames,
   barNotice,
+  barStatus,
+  barSummary,
   chooseReply,
   CLAUDE_ANSWER,
   claudeAnswer,
@@ -14,6 +16,8 @@ import {
   focusMain,
   messageArrives,
   messageEdited,
+  messagesArrive,
+  openChat,
   openAssistantSettings,
   quietPort,
   readyClaude,
@@ -23,6 +27,7 @@ import {
   standInKeyring,
   stickerArrives,
   toolNames,
+  unreadBadge,
 } from './assistant-helpers.ts';
 import { chromePage } from './chrome-helpers.ts';
 import { closeApp, expect, launchApp, mainWindow, test, whatsAppPage } from './fixtures.ts';
@@ -764,4 +769,94 @@ test('suggests replies to the message the user replies to, and the last one’s 
   }).toPass();
   await window.waitForTimeout(3000);
   expect(await claudeRequests(app)).toHaveLength(before + 1);
+});
+
+/** Claude's summary, fenced as the task asks (#705). */
+const SUMMARY = claudeAnswer(
+  '<for-you>Test Chat Two asks if you can drive.</for-you>\n<decisions>Climbing on Saturday at 10.</decisions>\n<rest></rest>',
+);
+
+test('offers a summary of a chat opened with many unread messages, and shows it over the chat (#705)', async ({
+  app,
+  window,
+}) => {
+  await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
+  const settings = await readyClaude(app, CLAUDE_ANSWER, {
+    when: 'unread messages in this chat',
+    body: SUMMARY,
+    delay: 1500,
+  });
+  await allowAllChats(settings);
+  await focusMain(app);
+  await messagesArrive(window, 20);
+  await unreadBadge(window, 'Test Chat Two', 12);
+  // A look sees the badge before the chat opens, as WhatsApp takes it away on opening.
+  await settledRequests(app, window);
+  await openChat(window, 'Test Chat Two');
+  await expect(window.getByTestId('icon-unread-count')).toHaveCount(0);
+  await expect(async () => {
+    // First in the row, after only the button that folds it away.
+    expect((await barNames(app)).slice(0, 2)).toEqual(['Hide suggestions', 'Summarize 12 unread']);
+  }).toPass({ timeout: 15_000 });
+  await clickInBar(app, window, 'Summarize 12 unread');
+  await expect(async () => {
+    expect(await barStatus(app)).toBe('Summarizing…');
+    expect(await barNames(app)).not.toContain('Can we do 9?');
+  }).toPass();
+  await expect(async () => {
+    expect(await barSummary(app)).toEqual({
+      title: 'Summary of 12 unread messages',
+      headings: ['For you', 'Decisions and dates'],
+      items: ['Test Chat Two asks if you can drive.', 'Climbing on Saturday at 10.'],
+      covers: null,
+    });
+  }).toPass({ timeout: 15_000 });
+  const asked = (await claudeRequests(app)).filter((body) => body.includes('unread messages in'));
+  expect(asked).toHaveLength(1);
+  expect(asked[0]).toContain('There are 12 unread messages in this chat');
+  expect(asked[0]).toContain('Unread message 20');
+  // The card lies over the end of the chat, which keeps its height.
+  const list = window.getByTestId('conversation-panel-body');
+  const height = await list.evaluate((node) => node.getBoundingClientRect().height);
+  // The fake page scrolls as a whole, where WhatsApp scrolls the chat's own list.
+  const scrolled = await window.evaluate(() => globalThis.scrollY);
+  await clickInBar(app, window, 'Show First Unread');
+  await expect(async () => {
+    const first = await window.evaluate(
+      () => [...document.querySelectorAll('#main [data-id]')].at(-12)?.getBoundingClientRect().top,
+    );
+    expect(Math.abs(Number(first))).toBeLessThan(2);
+  }).toPass();
+  expect(await window.evaluate(() => globalThis.scrollY)).toBeLessThan(scrolled);
+  expect(await list.evaluate((node) => node.getBoundingClientRect().height)).toBe(height);
+  // Closing it brings back the suggestions it took the place of.
+  await clickInBar(app, window, 'Close');
+  await expect(async () => {
+    expect(await barSummary(app)).toBeNull();
+    expect(await barNames(app)).toContain('Can we do 9?');
+  }).toPass({ timeout: 15_000 });
+  expect(await barNames(app)).not.toContain('Summarize 12 unread');
+});
+
+test('offers no summary with the switch off in Settings › AI Assistant (#705)', async ({
+  app,
+  window,
+}) => {
+  await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
+  const settings = await readyClaude(app, CLAUDE_ANSWER);
+  await allowAllChats(settings, false);
+  const offer = settings.getByRole('switch', { name: 'Offer summaries of unread messages' });
+  await expect(offer).toBeChecked();
+  await offer.uncheck();
+  await expect(offer).not.toBeChecked();
+  await settings.close();
+  await focusMain(app);
+  await unreadBadge(window, 'Test Chat Two', 12);
+  await settledRequests(app, window);
+  await openChat(window, 'Test Chat Two');
+  await expect(async () => {
+    expect(await barNames(app)).toContain('Can we do 9?');
+  }).toPass({ timeout: 15_000 });
+  expect(await barNames(app)).not.toContain('Summarize 12 unread');
+  expect((await claudeRequests(app)).join('\n')).not.toContain('unread messages in this chat');
 });
