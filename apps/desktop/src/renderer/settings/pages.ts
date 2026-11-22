@@ -23,7 +23,7 @@ export interface SettingsPage {
   readonly icon: IconName;
   readonly intro?: string;
   /** A page with more than settings has a component of its own instead of groups. */
-  readonly own?: 'spelling' | 'shortcuts' | 'assistant' | 'agents' | 'backup';
+  readonly own?: 'spelling' | 'shortcuts' | 'assistant' | 'agents' | 'customCode' | 'backup';
   readonly groups: readonly SettingsGroup[];
   /** Comes after a divider, as a page for when something goes wrong. */
   readonly apart?: boolean;
@@ -127,6 +127,13 @@ const PAGES: readonly SettingsPage[] = [
     groups: [group('proxy', groups.proxy, ['network.proxyMode', 'network.proxyServer'])],
   },
   {
+    id: 'custom-code',
+    title: text.pages.customCode,
+    icon: 'code',
+    own: 'customCode',
+    groups: [],
+  },
+  {
     id: 'advanced',
     title: text.pages.advanced,
     icon: 'advanced',
@@ -174,12 +181,12 @@ export const isDimmed = (id: string, values: Values): boolean => DIMMED_WHEN[id]
 
 /**
  * The pages before Backup this platform has: those with a setting here, and
- * those of their own. Keyboard shortcuts work everywhere; the spelling,
- * assistant's and agents' pages show where their switch does.
+ * those of their own. Keyboard shortcuts and custom code work everywhere;
+ * the spelling, assistant's and agents' pages show where their switch does.
  */
 export function shownPages(snapshot: SettingsSnapshot): readonly SettingsPage[] {
   return PAGES.filter((page) => {
-    if (page.own === 'shortcuts') {
+    if (page.own === 'shortcuts' || page.own === 'customCode') {
       return true;
     }
     if (page.own !== undefined) {

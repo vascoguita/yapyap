@@ -9,8 +9,7 @@ import {
   type Snippet,
 } from '../../shared/custom-code.ts';
 import { en } from '../../shared/messages/en.ts';
-import { DiscardPrompt } from '../shared/discard.tsx';
-import { useEscapeToClose } from '../shared/escape.ts';
+import { Group } from './Field.tsx';
 
 const text = en.customCode;
 const EMPTY: Snippet = { css: '', js: '' };
@@ -29,83 +28,110 @@ function isChanged(draft: CustomCode, saved: CustomCode): boolean {
   );
 }
 
-function CodeField(props: {
-  readonly id: 'css' | 'js';
+/** A code box as a stacked row: its name, the box as wide as the card, and its hint. */
+function CodeRow(props: {
+  readonly part: 'css' | 'js';
   readonly label: string;
   readonly hint: string;
   readonly value: string;
   readonly onChange: (value: string) => void;
 }): JSX.Element {
+  const id = `custom-code-${props.part}`;
   return (
-    <div class="field">
-      <label htmlFor={props.id}>{props.label}</label>
+    <div class="row stacked">
+      <label class="row-label" htmlFor={id}>
+        {props.label}
+      </label>
       <textarea
-        id={props.id}
+        id={id}
         class="code"
         rows={10}
         maxLength={MAX_SNIPPET}
         spellcheck={false}
         autocomplete="off"
-        aria-describedby={`${props.id}-hint`}
+        aria-describedby={`${id}-hint`}
         value={props.value}
         onInput={(event) => {
           props.onChange(event.currentTarget.value);
         }}
       />
-      <p class="hint" id={`${props.id}-hint`}>
+      <p class="hint" id={`${id}-hint`}>
         {props.hint}
       </p>
     </div>
   );
 }
 
-function ScopeField(props: {
+function ScopeRow(props: {
   readonly scopes: CustomCodeView['scopes'];
   readonly value: string;
   readonly onChange: (scope: string) => void;
 }): JSX.Element {
   return (
-    <div class="field">
-      <label htmlFor="scope">{text.scope}</label>
-      <select
-        id="scope"
-        value={props.value}
-        onChange={(event) => {
-          props.onChange(event.currentTarget.value);
-        }}
-      >
-        {props.scopes.map((scope) => (
-          <option key={scope.id} value={scope.id}>
-            {scope.label}
-          </option>
-        ))}
-      </select>
+    <div class="row">
+      <div class="row-text">
+        <label class="row-label" htmlFor="custom-code-scope">
+          {text.scope}
+        </label>
+      </div>
+      <div class="row-control">
+        <select
+          id="custom-code-scope"
+          value={props.value}
+          onChange={(event) => {
+            props.onChange(event.currentTarget.value);
+          }}
+        >
+          {props.scopes.map((scope) => (
+            <option key={scope.id} value={scope.id}>
+              {scope.label}
+            </option>
+          ))}
+        </select>
+      </div>
     </div>
   );
 }
 
-function EnabledField(props: {
+/**
+ * The switch for all custom code, drawn as every Settings switch is. Unlike
+ * theirs, it changes the draft, which applies when saved with the code.
+ */
+function EnabledRow(props: {
   readonly checked: boolean;
   readonly onChange: (enabled: boolean) => void;
 }): JSX.Element {
   return (
-    <div class="field">
-      <input
-        id="enabled"
-        type="checkbox"
-        checked={props.checked}
-        onChange={(event) => {
-          props.onChange(event.currentTarget.checked);
-        }}
-      />
-      <label htmlFor="enabled">{text.enabled}</label>
+    <div class="row">
+      <div class="row-text">
+        <label class="row-label" htmlFor="custom-code-enabled">
+          {text.enabled}
+        </label>
+        <p id="custom-code-enabled-hint" class="hint">
+          {text.enabledHint}
+        </p>
+      </div>
+      <div class="row-control">
+        <input
+          id="custom-code-enabled"
+          type="checkbox"
+          role="switch"
+          class="switch"
+          checked={props.checked}
+          aria-describedby="custom-code-enabled-hint"
+          onChange={(event) => {
+            props.onChange(event.currentTarget.checked);
+          }}
+        />
+      </div>
     </div>
   );
 }
 
 /**
  * The draft and what it shows: CSS appears in WhatsApp as the user types,
- * and the window takes its previews back when it closes unsaved.
+ * and the page takes its previews back when it goes unsaved, whether the
+ * user picks another page or closes the window.
  */
 function useDraft(api: ChromeApi) {
   const [view, setView] = useState<CustomCodeView>();
@@ -134,19 +160,23 @@ function useDraft(api: ChromeApi) {
     globalThis.addEventListener('pagehide', drop);
     return () => {
       globalThis.removeEventListener('pagehide', drop);
+      drop();
     };
   }, [api, loaded]);
   return { view, draft, setDraft, show, loaded };
 }
 
-function Fields(props: {
+interface FieldsProps {
   readonly draft: CustomCode;
   readonly scopes: CustomCodeView['scopes'];
   readonly scope: string;
   readonly onScope: (scope: string) => void;
   readonly onEnabled: (enabled: boolean) => void;
   readonly onEdit: (part: Partial<Snippet>) => void;
-}): JSX.Element {
+}
+
+/** The scope picker and the code for the scope picked. */
+function CodeGroup(props: Omit<FieldsProps, 'onEnabled'>): JSX.Element {
   const { onEdit } = props;
   const snippet = props.draft.snippets[props.scope] ?? EMPTY;
   const editCss = useCallback(
@@ -162,17 +192,27 @@ function Fields(props: {
     [onEdit],
   );
   return (
-    <>
-      <EnabledField checked={props.draft.enabled} onChange={props.onEnabled} />
-      <ScopeField scopes={props.scopes} value={props.scope} onChange={props.onScope} />
-      <CodeField
-        id="css"
+    <Group id="custom-code-code" title={text.groups.code}>
+      <ScopeRow scopes={props.scopes} value={props.scope} onChange={props.onScope} />
+      <CodeRow
+        part="css"
         label={text.css}
         hint={text.cssHint}
         value={snippet.css}
         onChange={editCss}
       />
-      <CodeField id="js" label={text.js} hint={text.jsHint} value={snippet.js} onChange={editJs} />
+      <CodeRow part="js" label={text.js} hint={text.jsHint} value={snippet.js} onChange={editJs} />
+    </Group>
+  );
+}
+
+function Fields(props: FieldsProps): JSX.Element {
+  return (
+    <>
+      <Group id="custom-code-use" title={text.groups.use}>
+        <EnabledRow checked={props.draft.enabled} onChange={props.onEnabled} />
+      </Group>
+      <CodeGroup {...props} />
     </>
   );
 }
@@ -212,18 +252,30 @@ function useEditor(api: ChromeApi) {
   return { view, draft, dirty, scope, setScope, status, enable, edit, save };
 }
 
+/** Tells Settings whether leaving now would lose an edit, and that it would not once gone. */
+function useReportUnsaved(dirty: boolean, onUnsaved: (unsaved: boolean) => void): void {
+  useEffect(() => {
+    onUnsaved(dirty);
+    return () => {
+      onUnsaved(false);
+    };
+  }, [dirty, onUnsaved]);
+}
+
 /**
- * The window behind the menu's Custom CSS and JavaScript… (#72). It is off
- * until the user turns it on, and says plainly that the code can read chats.
+ * Settings › Custom code (#72, #710). It is off until the user turns it on,
+ * and says first, plainly, that the code can read chats. Edits stay a draft
+ * until saved, and Settings asks before a page change or closing loses one.
  */
-export function CustomCodeEditor({ api }: { readonly api: ChromeApi }): JSX.Element {
-  const { view, draft, dirty, scope, setScope, status, enable, edit, save } = useEditor(api);
-  const leaving = useEscapeToClose({ dirty });
+export function CustomCodeSection(props: {
+  readonly api: ChromeApi;
+  readonly onUnsaved: (unsaved: boolean) => void;
+}): JSX.Element {
+  const { view, draft, dirty, scope, setScope, status, enable, edit, save } = useEditor(props.api);
+  useReportUnsaved(dirty, props.onUnsaved);
   return (
-    <main class="custom-code">
-      <h1>{text.title}</h1>
+    <div class="custom-code">
       <p class="notice danger">{text.warning}</p>
-      {leaving.asking ? <DiscardPrompt message={text.discard} onSettle={leaving.settle} /> : null}
       <form onSubmit={save}>
         <Fields
           draft={draft}
@@ -234,12 +286,12 @@ export function CustomCodeEditor({ api }: { readonly api: ChromeApi }): JSX.Elem
           onEdit={edit}
         />
         <div class="actions">
-          <output>{status}</output>
+          <output aria-live="polite">{status}</output>
           <button type="submit" disabled={view === undefined}>
             {text.save}
           </button>
         </div>
       </form>
-    </main>
+    </div>
   );
 }

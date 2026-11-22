@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fakeChromeApi } from '../../../test/chrome-api.ts';
 import type { CustomCodeView } from '../../shared/api/chrome-api.ts';
 import type { CustomCode } from '../../shared/custom-code.ts';
-import { CustomCodeEditor } from './CustomCode.tsx';
+import { CustomCodeSection } from './CustomCode.tsx';
 
 const WORK = '6f1c2a5e-0b1d-4c8e-9a3f-2d4b6c8e0a1b';
 
@@ -32,25 +32,29 @@ function api(get: () => Promise<CustomCodeView> = () => Promise.resolve(VIEW)) {
 const saveButton = () => screen.getByRole<HTMLButtonElement>('button', { name: 'Save' });
 const css = () => screen.getByLabelText<HTMLTextAreaElement>('CSS');
 const js = () => screen.getByLabelText<HTMLTextAreaElement>('JavaScript');
-const enabled = () => screen.getByLabelText<HTMLInputElement>('Use custom CSS and JavaScript');
+const enabled = () =>
+  screen.getByRole<HTMLInputElement>('switch', { name: 'Use custom CSS and JavaScript' });
 const scope = () => screen.getByLabelText<HTMLSelectElement>('Applies to');
 
-async function opened(chrome = api()) {
-  render(<CustomCodeEditor api={chrome} />);
+async function opened(chrome = api(), onUnsaved = vi.fn()) {
+  render(<CustomCodeSection api={chrome} onUnsaved={onUnsaved} />);
   await waitFor(() => {
     expect(saveButton().disabled).toBe(false);
   });
   return chrome;
 }
 
-describe('CustomCodeEditor', () => {
+describe('CustomCodeSection', () => {
   afterEach(() => {
     cleanup();
   });
 
   it('warns first, starts off, and shows each scope’s code', async () => {
     await opened();
-    expect(screen.getByText(/can read your chats/)).toBeTruthy();
+    const warning = screen.getByText(/can read your chats/);
+    expect(warning.parentElement?.firstElementChild).toBe(warning);
+    expect(screen.getByRole('group', { name: 'In WhatsApp' })).toBeTruthy();
+    expect(screen.getByRole('group', { name: 'Your code' })).toBeTruthy();
     expect(enabled().checked).toBe(false);
     expect(css().value).toBe('');
     fireEvent.change(scope(), { target: { value: WORK } });
@@ -110,47 +114,46 @@ describe('CustomCodeEditor', () => {
     expect(chrome.customCode.preview).not.toHaveBeenCalled();
   });
 
-  it('closes on Escape while nothing changed, and asks before losing a change', async () => {
-    const close = vi.spyOn(window, 'close').mockImplementation(() => undefined);
-    await opened();
-    fireEvent.input(css(), { target: { value: 'p {}' } });
-    fireEvent.input(css(), { target: { value: '' } });
-    fireEvent.keyDown(document, { key: 'Enter' });
-    fireEvent.keyDown(document, { key: 'Escape' });
-    expect(close).toHaveBeenCalledOnce();
+  it('takes back unsaved CSS when the user leaves the page for another', async () => {
+    const chrome = await opened();
     fireEvent.change(scope(), { target: { value: WORK } });
-    fireEvent.input(js(), { target: { value: 'alert(1)' } });
-    fireEvent.keyDown(document, { key: 'Escape' });
-    expect(close).toHaveBeenCalledOnce();
-    expect(screen.getByRole('alertdialog').textContent).toContain(
-      'Discard your unsaved changes to the code?',
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Keep Editing' }));
-    expect(screen.queryByRole('alertdialog')).toBeNull();
-    expect(js().value).toBe('alert(1)');
-    expect(close).toHaveBeenCalledOnce();
-    fireEvent.keyDown(document, { key: 'Escape' });
-    fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
-    expect(close).toHaveBeenCalledTimes(2);
-    close.mockRestore();
+    fireEvent.input(css(), { target: { value: 'p {}' } });
+    chrome.customCode.preview.mockClear();
+    cleanup();
+    await waitFor(() => {
+      expect(chrome.customCode.preview).toHaveBeenCalledExactlyOnceWith(WORK, null);
+    });
   });
 
-  it('counts turning the code on as a change, until it is saved', async () => {
-    const close = vi.spyOn(window, 'close').mockImplementation(() => undefined);
-    await opened();
+  it('tells Settings while a change is unsaved, and that none is once it goes', async () => {
+    const onUnsaved = vi.fn();
+    await opened(api(), onUnsaved);
+    expect(onUnsaved).toHaveBeenLastCalledWith(false);
+    fireEvent.input(css(), { target: { value: 'p {}' } });
+    expect(onUnsaved).toHaveBeenLastCalledWith(true);
+    fireEvent.input(css(), { target: { value: '' } });
+    expect(onUnsaved).toHaveBeenLastCalledWith(false);
     fireEvent.click(enabled());
-    fireEvent.keyDown(document, { key: 'Escape' });
-    expect(screen.getByRole('alertdialog')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Keep Editing' }));
+    expect(onUnsaved).toHaveBeenLastCalledWith(true);
     fireEvent.click(saveButton());
-    await screen.findByText('Saved.');
-    fireEvent.keyDown(document, { key: 'Escape' });
-    expect(close).toHaveBeenCalledOnce();
-    close.mockRestore();
+    await waitFor(() => {
+      expect(onUnsaved).toHaveBeenLastCalledWith(false);
+    });
+    fireEvent.input(js(), { target: { value: 'alert(1)' } });
+    expect(onUnsaved).toHaveBeenLastCalledWith(true);
+    cleanup();
+    await waitFor(() => {
+      expect(onUnsaved).toHaveBeenLastCalledWith(false);
+    });
   });
 
   it('cannot save before the code has loaded', () => {
-    render(<CustomCodeEditor api={api(() => Promise.reject(new Error('gone')))} />);
+    render(
+      <CustomCodeSection
+        api={api(() => Promise.reject(new Error('gone')))}
+        onUnsaved={() => undefined}
+      />,
+    );
     expect(saveButton().disabled).toBe(true);
   });
 });

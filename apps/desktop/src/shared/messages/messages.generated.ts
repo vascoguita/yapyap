@@ -87,6 +87,7 @@ export interface Messages {
       readonly assistant: string;
       readonly agents: string;
       readonly network: string;
+      readonly customCode: string;
       readonly advanced: string;
       readonly backup: string;
     };
@@ -699,9 +700,10 @@ export interface Messages {
     readonly kept: string;
   };
   readonly customCode: {
-    readonly title: string;
     readonly warning: string;
     readonly enabled: string;
+    readonly enabledHint: string;
+    readonly groups: { readonly use: string; readonly code: string };
     readonly scope: string;
     readonly allAccounts: string;
     readonly css: string;
@@ -821,7 +823,6 @@ export interface Messages {
     readonly logOut: string;
     readonly addAccount: string;
     readonly manageAccounts: string;
-    readonly customCode: string;
     readonly removeAccount: string;
     readonly doNotDisturb: string;
     readonly muteAccount: string;
@@ -839,7 +840,6 @@ export interface Messages {
     readonly settings: string;
     readonly picker: string;
     readonly accounts: string;
-    readonly customCode: string;
     readonly downloads: string;
     readonly welcome: string;
     readonly report: string;

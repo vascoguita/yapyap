@@ -10,6 +10,7 @@ import {
   type ChromeFeatureDependencies,
 } from './feature.ts';
 import type { IpcInvokeEvent } from '../ipc/chrome.ts';
+import { NO_CUSTOM_CODE } from '../../shared/custom-code.ts';
 
 type Listener = (event: IpcInvokeEvent, ...args: unknown[]) => unknown;
 
@@ -298,17 +299,6 @@ describe('createChromeFeature', () => {
       ...fixed,
       show: false,
     });
-    clickLabel('Custom CSS and JavaScript…');
-    expect(lastOptions()).toEqual({
-      autoHideMenuBar: true,
-      title: 'Custom CSS and JavaScript',
-      width: 600,
-      height: 640,
-      minWidth: 440,
-      minHeight: 400,
-      minimizable: false,
-      show: false,
-    });
     clickLabel('Manage Accounts…');
     expect(lastOptions()).toEqual({
       autoHideMenuBar: true,
@@ -343,6 +333,22 @@ describe('createChromeFeature', () => {
       minimizable: false,
       maximizable: false,
       show: false,
+    });
+  });
+
+  it('edits custom code in Settings, with no window or menu item of its own', () => {
+    const t = setup();
+    t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
+    const labels = t
+      .menu()
+      .flatMap((menu) => (Array.isArray(menu.submenu) ? menu.submenu : []))
+      .map((entry) => entry.label);
+    expect(labels).not.toContain('Custom CSS and JavaScript…');
+    t.clickSettings();
+    t.deps.customCode.current.mockReturnValue(NO_CUSTOM_CODE);
+    expect(t.call('custom-code:get')).toEqual({
+      code: NO_CUSTOM_CODE,
+      scopes: [{ id: 'all', label: 'All accounts' }],
     });
   });
 

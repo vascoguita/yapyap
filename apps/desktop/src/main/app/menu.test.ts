@@ -15,7 +15,6 @@ function actions(accounts: AccountSummary[] = []) {
     setMuted: vi.fn(),
     openAbout: vi.fn(),
     openSettings: vi.fn(),
-    openCustomCode: vi.fn(),
     reload: vi.fn(),
     clearCache: vi.fn(),
     logOut: vi.fn(),
@@ -153,7 +152,7 @@ describe('buildMenuTemplate', () => {
     expect(reload).not.toHaveProperty('role');
   });
 
-  it('puts Settings in the File menu and About in Help on Windows and Linux', () => {
+  it('puts Settings, Close Window and Quit in the File menu and About in Help on Linux', () => {
     const a = actions();
     const template = buildMenuTemplate('linux', a);
     expect(template.map((item) => item.role ?? item.label)).toEqual([
@@ -166,8 +165,8 @@ describe('buildMenuTemplate', () => {
     ]);
     expect(items(template[0])).toEqual([
       { label: 'Settings…', accelerator: 'CmdOrCtrl+,', click: a.openSettings },
-      { label: 'Custom CSS and JavaScript…', click: a.openCustomCode },
       { type: 'separator' },
+      { role: 'close', accelerator: 'CmdOrCtrl+W' },
       { role: 'quit', accelerator: 'CmdOrCtrl+Q' },
     ]);
     expect(items(template.at(-1))).toEqual([
@@ -203,7 +202,7 @@ describe('buildMenuTemplate', () => {
     expect(on.setMuted).toHaveBeenCalledWith(false);
   });
 
-  it('puts About, Settings and custom code in the app menu on macOS', () => {
+  it('puts About and Settings in the app menu, and only Close Window in File, on macOS', () => {
     const a = actions();
     const [appMenu, ...rest] = buildMenuTemplate('darwin', a);
     expect(appMenu?.label).toBe('YapYap');
@@ -214,11 +213,9 @@ describe('buildMenuTemplate', () => {
       accelerator: 'CmdOrCtrl+,',
       click: a.openSettings,
     });
-    expect(entries[3]).toEqual({ label: 'Custom CSS and JavaScript…', click: a.openCustomCode });
     expect(entries.map((item) => item.role ?? item.type)).toEqual([
       undefined,
       'separator',
-      undefined,
       undefined,
       'separator',
       'services',
@@ -238,7 +235,7 @@ describe('buildMenuTemplate', () => {
       'windowMenu',
       'help',
     ]);
-    expect(items(rest[0])).toEqual([{ role: 'close' }]);
+    expect(items(rest[0])).toEqual([{ role: 'close', accelerator: 'CmdOrCtrl+W' }]);
     expect(items(rest.at(-1))).toEqual(HELP(a));
     expect(rest[1]).toEqual(ACCOUNT(a));
   });
@@ -264,13 +261,12 @@ describe('the standard menus', () => {
     expect(keys(mac)[1]).toEqual(['redo', 'Shift+Cmd+Z']);
   });
 
-  it('keeps the window list in the Window menu on macOS only, and Downloads in every one', () => {
+  it('keeps the window list in the Window menu on macOS only, Downloads in every one, Close in none', () => {
     const a = actions();
     const linux = buildMenuTemplate('linux', a).find((menu) => menu.label === '&Window');
     expect(linux?.role).toBeUndefined();
     expect(keys(linux)).toEqual([
       ['minimize', 'CmdOrCtrl+M'],
-      ['close', 'CmdOrCtrl+W'],
       ['separator', undefined],
       [undefined, 'CmdOrCtrl+J'],
     ]);
@@ -279,7 +275,6 @@ describe('the standard menus', () => {
     expect(mac?.role).toBe('windowMenu');
     expect(keys(mac)).toEqual([
       ['minimize', 'CmdOrCtrl+M'],
-      ['close', 'CmdOrCtrl+W'],
       ['zoom', undefined],
       ['separator', undefined],
       ['front', undefined],
@@ -289,8 +284,14 @@ describe('the standard menus', () => {
   });
 
   it('quits with a key on Linux and macOS, and leaves Windows its own Alt+F4', () => {
-    const windows = buildMenuTemplate('win32', actions())[0];
-    expect(items(windows).at(-1)).toEqual({ role: 'quit' });
+    const a = actions();
+    const windows = buildMenuTemplate('win32', a)[0];
+    expect(items(windows)).toEqual([
+      { label: 'Settings…', accelerator: 'CmdOrCtrl+,', click: a.openSettings },
+      { type: 'separator' },
+      { role: 'close', accelerator: 'CmdOrCtrl+W' },
+      { role: 'quit' },
+    ]);
   });
 });
 

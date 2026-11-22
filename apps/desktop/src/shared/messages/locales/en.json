@@ -92,6 +92,7 @@
       "assistant": "AI Assistant",
       "agents": "Agents",
       "network": "Network",
+      "customCode": "Custom code",
       "advanced": "Advanced",
       "backup": "Backup"
     },
@@ -764,9 +765,13 @@
     "kept": "YapYap keeps this list only while it runs."
   },
   "customCode": {
-    "title": "Custom CSS and JavaScript",
     "warning": "Advanced. This code runs in WhatsApp and can read your chats. Only add code you understand, and never paste code someone sent you.",
     "enabled": "Use custom CSS and JavaScript",
+    "enabledHint": "For every account. Takes effect when you save.",
+    "groups": {
+      "use": "In WhatsApp",
+      "code": "Your code"
+    },
     "scope": "Applies to",
     "allAccounts": "All accounts",
     "css": "CSS",
@@ -893,7 +898,6 @@
     "logOut": "Log Out and Delete Data…",
     "addAccount": "Add Account",
     "manageAccounts": "Manage Accounts…",
-    "customCode": "Custom CSS and JavaScript…",
     "removeAccount": "Remove Account…",
     "doNotDisturb": "Do Not Disturb",
     "muteAccount": "Mute This Account",
@@ -911,7 +915,6 @@
     "settings": "YapYap Settings",
     "picker": "Choose What to Share",
     "accounts": "Accounts",
-    "customCode": "Custom CSS and JavaScript",
     "downloads": "Downloads",
     "welcome": "Welcome",
     "report": "Report a Problem",

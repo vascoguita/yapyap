@@ -37,8 +37,8 @@ test('shows one page at a time, picked from the list beside it or with the arrow
   await expect(settings.getByRole('switch', { name: 'Start at login' })).toBeHidden();
   expect(settings.url()).toBe('app://chrome/settings.html#network');
   await settings.keyboard.press('ArrowDown');
-  await expect(settings.getByRole('heading', { level: 1, name: 'Advanced' })).toBeVisible();
-  await expect(list.getByRole('button', { name: 'Advanced' })).toBeFocused();
+  await expect(settings.getByRole('heading', { level: 1, name: 'Custom code' })).toBeVisible();
+  await expect(list.getByRole('button', { name: 'Custom code' })).toBeFocused();
 });
 
 test('opens at the AI Assistant page from the assistant’s rewrite menu, even when already open', async ({

@@ -11,18 +11,22 @@ const PAGES = [
   ['Settings…', 'settings.html'],
   ['Settings…', 'settings.html#spelling'],
   ['Manage Accounts…', 'accounts.html'],
-  ['Custom CSS and JavaScript…', 'custom-code.html'],
+  ['Settings…', 'settings.html#custom-code'],
   ['Keyboard Shortcuts…', 'settings.html#shortcuts'],
   ['Downloads…', 'downloads.html'],
   ['Report a Problem…', 'report.html'],
 ] as const;
 
 /**
- * Settings pages no menu item opens, which the message box's right-click
- * menu opens by address. They are reached the same way here: clicking
- * their entry in Settings' list would start the Tab lap there instead.
+ * Settings pages no menu item opens: Spelling, which the message box's
+ * right-click menu opens by address, and Custom code. They are reached by
+ * address here too: clicking their entry in Settings' list would start the
+ * Tab lap there instead.
  */
-const BY_ADDRESS: Partial<Record<string, string>> = { 'settings.html#spelling': 'spelling' };
+const BY_ADDRESS: Partial<Record<string, string>> = {
+  'settings.html#spelling': 'spelling',
+  'settings.html#custom-code': 'custom-code',
+};
 
 async function openChrome(app: ElectronApplication, label: string, page: string): Promise<Page> {
   const hash = BY_ADDRESS[page];
