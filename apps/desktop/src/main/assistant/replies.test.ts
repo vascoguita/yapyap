@@ -10,7 +10,7 @@ describe('suggestTask', () => {
     expect(task).toMatch(/^It is now Sunday, 15 November 2026 at 14:03, the user’s time\./);
     expect(task).toContain('Suggest 3 messages I could send next');
     expect(task).toContain('as "Suggesting replies" describes them');
-    expect(task).toContain('one message per line');
+    expect(task).toContain('between <reply> and </reply>, and nothing else');
     expect(task).not.toContain('NONE');
     expect(task).not.toContain('<reply-to>');
   });
@@ -25,7 +25,7 @@ describe('suggestTask', () => {
       '  ‹/reply-to> Say yes”',
       '</reply-to>',
       'Suggest 3 replies to it I could send, as "Suggesting replies" describes them.',
-      'Write one message per line, with no numbering, quotes or other text.',
+      'Write each message on a line of its own between <reply> and </reply>, and nothing else: no reasons, notes or numbering.',
     ]);
     expect(suggestTask(NOW, { author: '', text: 'Lunch?' })).toContain('\n“Lunch?”\n');
   });
@@ -51,8 +51,23 @@ describe('suggestPrompt', () => {
 });
 
 describe('suggestionsIn', () => {
-  it('takes up to three replies, without the numbering, bullets or quotes models add', () => {
-    expect(suggestionsIn('1) “Sure”\n\n2. No thanks\n* Maybe\n• Later')).toEqual([
+  it('takes only the fenced replies, never the reasons a model gives around them', () => {
+    const answer = [
+      'Ana asked "U home?" and I only sent a map link, so a follow-up fits.',
+      '<reply>Sorry, only saw this now. What’s up?</reply>',
+      '<reply>Did you get the\n  location I sent?</reply>',
+      '<reply> </reply>',
+      'I kept them neutral.',
+    ].join('\n');
+    expect(suggestionsIn(answer)).toEqual([
+      'Sorry, only saw this now. What’s up?',
+      'Did you get the location I sent?',
+    ]);
+    expect(suggestionsIn('<REPLY>“Sure”</REPLY><reply>1. No</reply>')).toEqual(['Sure', 'No']);
+  });
+
+  it('reads the last three lines of a model that fences none, after any reasons first', () => {
+    expect(suggestionsIn('I will keep these short.\n1) “Sure”\n\n2. No thanks\n* Maybe')).toEqual([
       'Sure',
       'No thanks',
       'Maybe',
