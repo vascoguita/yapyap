@@ -39,7 +39,7 @@ export function suggestTask(now: Date, replyingTo?: Quote): string {
   return [
     nowLine(now),
     ...askFor(replyingTo),
-    'Write one message per line, with no numbering, quotes or other text.',
+    'Write each message on a line of its own between <reply> and </reply>, and nothing else: no reasons, notes or numbering.',
   ].join('\n');
 }
 
@@ -63,11 +63,29 @@ const SPEAKER = /^Me:\s*/i;
 const clean = (line: string): string =>
   cleanRewrite(line.trim().replace(MARKER, '').replace(SPEAKER, ''));
 
+/** A reply as the model is asked to fence it; one spread over lines is still one reply. */
+const TAGGED = /<reply>([\s\S]*?)<\/reply>/gi;
+
+/**
+ * What the model offered as replies: the fenced ones, and anything else it
+ * wrote left out, as a model may say first why it chose them, which showed
+ * as a reply to send. A model that fences none still gets its lines read,
+ * the last ones, after any such reasons.
+ */
+function offered(answer: string): string[] {
+  const fenced = Array.from(answer.matchAll(TAGGED), ([, reply]) =>
+    String(reply)
+      .split('\n')
+      .map((part) => part.trim())
+      .join(' '),
+  );
+  return fenced.length > 0 ? fenced : answer.split('\n');
+}
+
 /** The replies in the model's answer, at most {@link SUGGESTIONS}. */
 export function suggestionsIn(answer: string): string[] {
-  return answer
-    .split('\n')
+  return offered(answer)
     .map(clean)
     .filter((line) => line !== '' && line.toUpperCase() !== NONE)
-    .slice(0, SUGGESTIONS);
+    .slice(-SUGGESTIONS);
 }

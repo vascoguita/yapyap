@@ -65,10 +65,11 @@ const unnamed = (name: string): boolean => parseInternationalNumber(name) !== un
 /**
  * The text with any tag that would close or open the chat, the draft or
  * the message replied to made harmless, so a message cannot pass for the
- * user's own words or for the task.
+ * user's own words or for the task, nor a reply a model echoes from the
+ * chat for one of its own.
  */
 export const defused = (text: string): string =>
-  text.replaceAll(/<(\/?)(chat|draft|reply-to)\b/gi, '‹$1$2');
+  text.replaceAll(/<(\/?)(chat|draft|reply-to|reply(?!-))\b/gi, '‹$1$2');
 
 /** Lines after the first are indented, so a line in a message cannot pass for another message. */
 const indented = (text: string): string => defused(text).replaceAll('\n', '\n  ');
