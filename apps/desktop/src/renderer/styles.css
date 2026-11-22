@@ -1711,6 +1711,13 @@ main.settings-pane {
   align-items: center;
 }
 
+/* What all accounts run, shown read only above an account's own code. */
+.custom-code .shared-code {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
 .custom-code .actions output {
   margin: 0;
   color: var(--muted);

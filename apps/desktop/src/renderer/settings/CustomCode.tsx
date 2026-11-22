@@ -34,6 +34,8 @@ function CodeRow(props: {
   readonly label: string;
   readonly hint: string;
   readonly value: string;
+  /** Says, in an account's empty box, that its code is its own. */
+  readonly placeholder: string | undefined;
   readonly onChange: (value: string) => void;
 }): JSX.Element {
   const id = `custom-code-${props.part}`;
@@ -50,6 +52,7 @@ function CodeRow(props: {
         spellcheck={false}
         autocomplete="off"
         aria-describedby={`${id}-hint`}
+        placeholder={props.placeholder}
         value={props.value}
         onInput={(event) => {
           props.onChange(event.currentTarget.value);
@@ -175,10 +178,35 @@ interface FieldsProps {
   readonly onEdit: (part: Partial<Snippet>) => void;
 }
 
-/** The scope picker and the code for the scope picked. */
+/**
+ * What the code for all accounts already does in the account picked, read
+ * only: an account's own boxes start empty, which read as the code being
+ * lost (#710). Nothing shows while that code is empty.
+ */
+function SharedRow({ shared }: { readonly shared: Snippet }): JSX.Element | null {
+  const parts = (['css', 'js'] as const).filter((part) => shared[part] !== '');
+  if (parts.length === 0) {
+    return null;
+  }
+  return (
+    <div class="row stacked">
+      <span class="row-label">{text.shared}</span>
+      <p class="hint">{text.sharedHint}</p>
+      {parts.map((part) => (
+        <label key={part} class="shared-code">
+          <span class="hint">{text.sharedParts[part]}</span>
+          <textarea class="code" rows={4} readOnly spellcheck={false} value={shared[part]} />
+        </label>
+      ))}
+    </div>
+  );
+}
+
+/** The scope picker, what all accounts run in an account picked, and the code for the scope picked. */
 function CodeGroup(props: Omit<FieldsProps, 'onEnabled'>): JSX.Element {
   const { onEdit } = props;
   const snippet = props.draft.snippets[props.scope] ?? EMPTY;
+  const account = props.scope !== ALL_ACCOUNTS;
   const editCss = useCallback(
     (css: string): void => {
       onEdit({ css });
@@ -194,14 +222,23 @@ function CodeGroup(props: Omit<FieldsProps, 'onEnabled'>): JSX.Element {
   return (
     <Group id="custom-code-code" title={text.groups.code}>
       <ScopeRow scopes={props.scopes} value={props.scope} onChange={props.onScope} />
+      {account ? <SharedRow shared={props.draft.snippets[ALL_ACCOUNTS] ?? EMPTY} /> : null}
       <CodeRow
         part="css"
         label={text.css}
         hint={text.cssHint}
         value={snippet.css}
+        placeholder={account ? text.cssPlaceholder : undefined}
         onChange={editCss}
       />
-      <CodeRow part="js" label={text.js} hint={text.jsHint} value={snippet.js} onChange={editJs} />
+      <CodeRow
+        part="js"
+        label={text.js}
+        hint={text.jsHint}
+        value={snippet.js}
+        placeholder={account ? text.jsPlaceholder : undefined}
+        onChange={editJs}
+      />
     </Group>
   );
 }

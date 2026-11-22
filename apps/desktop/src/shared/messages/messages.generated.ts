@@ -706,10 +706,15 @@ export interface Messages {
     readonly groups: { readonly use: string; readonly code: string };
     readonly scope: string;
     readonly allAccounts: string;
+    readonly shared: string;
+    readonly sharedHint: string;
+    readonly sharedParts: { readonly css: string; readonly js: string };
     readonly css: string;
     readonly cssHint: string;
+    readonly cssPlaceholder: string;
     readonly js: string;
     readonly jsHint: string;
+    readonly jsPlaceholder: string;
     readonly save: string;
     readonly saved: string;
     readonly failed: string;

@@ -774,10 +774,18 @@
     },
     "scope": "Applies to",
     "allAccounts": "All accounts",
+    "shared": "Also runs in this account",
+    "sharedHint": "The code for all accounts runs here first. To change it, choose All accounts.",
+    "sharedParts": {
+      "css": "CSS for all accounts",
+      "js": "JavaScript for all accounts"
+    },
     "css": "CSS",
     "cssHint": "WhatsApp shows your CSS as you type. It is kept only when you save.",
+    "cssPlaceholder": "CSS for this account only",
     "js": "JavaScript",
     "jsHint": "Runs when WhatsApp loads, after the code for all accounts, apart from WhatsApp’s own scripts. Reload WhatsApp to run a change.",
+    "jsPlaceholder": "JavaScript for this account only",
     "save": "Save",
     "saved": "Saved.",
     "failed": "Could not save the code. Try again.",

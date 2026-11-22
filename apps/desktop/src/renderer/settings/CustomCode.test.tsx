@@ -62,6 +62,35 @@ describe('CustomCodeSection', () => {
     expect(js().value).toBe('console.log(1);');
   });
 
+  it('shows an account what the code for all accounts runs there, read only, above its own (#710)', async () => {
+    const shared = { css: 'header { color: purple }', js: '' };
+    await opened(
+      api(() =>
+        Promise.resolve({
+          ...VIEW,
+          code: { ...VIEW.code, snippets: { ...VIEW.code.snippets, all: shared } },
+        }),
+      ),
+    );
+    // Under All accounts, the code is in its own boxes, with nothing shown twice.
+    expect(screen.queryByText('Also runs in this account')).toBeNull();
+    expect(css().placeholder).toBe('');
+    fireEvent.change(scope(), { target: { value: WORK } });
+    expect(screen.getByText('Also runs in this account')).toBeTruthy();
+    const sharedCss = screen.getByLabelText<HTMLTextAreaElement>('CSS for all accounts');
+    expect([sharedCss.value, sharedCss.readOnly]).toEqual(['header { color: purple }', true]);
+    // Only the parts it has.
+    expect(screen.queryByLabelText('JavaScript for all accounts')).toBeNull();
+    expect(css().placeholder).toBe('CSS for this account only');
+    expect(js().placeholder).toBe('JavaScript for this account only');
+  });
+
+  it('shows nothing of all accounts in an account while their code is empty', async () => {
+    await opened();
+    fireEvent.change(scope(), { target: { value: WORK } });
+    expect(screen.queryByText('Also runs in this account')).toBeNull();
+  });
+
   it('shows CSS in WhatsApp as the user types, once custom code is on', async () => {
     const chrome = await opened();
     fireEvent.input(css(), { target: { value: 'p { color: red }' } });
