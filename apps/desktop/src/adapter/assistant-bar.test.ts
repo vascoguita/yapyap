@@ -41,7 +41,7 @@ const LABELS = {
   folded: 'Suggestions',
   writing: 'Writing suggestions…',
   close: 'Close',
-  summarizing: 'Summarizing…',
+  summarizing: 'Writing the summary…',
   closeSummary: 'Close Summary',
 };
 
@@ -891,12 +891,9 @@ describe('the suggestions folded away, and while they are written', () => {
 /** The summary as the main process words it, being written, shown or failed (#705). */
 const SUMMARY = {
   stage: 'shown',
-  title: '3 unread messages',
+  title: 'Summary of 3 unread messages',
   ready: 'The summary of 3 unread messages is ready.',
-  sections: [
-    { title: 'For you', items: ['Ben asks you to <b>drive</b>.'] },
-    { title: 'Everything else', items: ['Ana sent a photo.', 'Cy is late.'] },
-  ],
+  points: ['Ben asks you to <b>drive</b>.', 'Ana sent a photo.', 'Cy is late.'],
   covers: 'Covers the newest 2, as your history limit allows.',
   problem: '',
   retry: '',
@@ -905,7 +902,7 @@ const SUMMARY = {
 const summarized = (
   stage: 'working' | 'shown' | 'failed',
   more: Partial<BarContent> = {},
-  summary: Partial<typeof SUMMARY> | Record<string, string> = {},
+  summary: Partial<typeof SUMMARY> | Record<string, unknown> = {},
 ) => ({
   ...CONTENT,
   summary: { ...SUMMARY, stage, ...summary },
@@ -929,7 +926,7 @@ describe('the summary of unread messages (#705)', () => {
     expect(rows(t)).toEqual({ chips: true, folded: false, card: true });
     expect(card(t).getAttribute('class')).toBe('card working');
     expect(card(t).getAttribute('aria-busy')).toBe('true');
-    expect(line(t)).toBe('Summarizing…');
+    expect(line(t)).toBe('Writing the summary…');
     expect(retry(t)?.hidden).toBe(true);
     // The suggestions' row says nothing of it.
     expect(t.stored().parts.list.dataset['items']).toBe(String(CONTENT.suggestions.length));
@@ -951,13 +948,10 @@ describe('the summary of unread messages (#705)', () => {
     expect(region.hasAttribute('tabindex')).toBe(false);
     expect(document.activeElement).toBe(field());
     const title = t.shadow().querySelector(`#${String(region.getAttribute('aria-labelledby'))}`);
-    expect(title?.textContent).toBe('3 unread messages');
+    expect(title?.textContent).toBe('Summary of 3 unread messages');
     expect(title?.tagName).toBe('H2');
     expect(region.querySelector('[role="status"]')?.textContent).toBe(SUMMARY.ready);
-    expect([...region.querySelectorAll('h3')].map((heading) => heading.textContent)).toEqual([
-      'For you',
-      'Everything else',
-    ]);
+    expect(region.querySelectorAll('h3')).toHaveLength(0);
     const items = [...region.querySelectorAll('.card-body li')];
     expect(items.map((item) => item.textContent)).toEqual([
       'Ben asks you to <b>drive</b>.',

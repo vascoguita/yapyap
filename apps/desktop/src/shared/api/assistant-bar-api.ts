@@ -14,16 +14,6 @@ interface BarNotice {
   readonly button: { readonly id: Exclude<BarButtonId, 'close'>; readonly label: string } | null;
 }
 
-/** The summary's bullets, by section, as plain text, never markup (#705). */
-export interface SummarySections {
-  /** What concerns the user: mentions of them, replies to them, questions to them. */
-  readonly forYou: readonly string[];
-  /** Decisions, dates, times and tasks. */
-  readonly decisions: readonly string[];
-  /** Everything else, at most three bullets. */
-  readonly rest: readonly string[];
-}
-
 /**
  * The summary of the messages the open chat opened with unread (#705):
  * being written, shown, or why none came. It is held only in memory.
@@ -32,8 +22,8 @@ export interface BarSummary {
   readonly stage: 'working' | 'shown' | 'failed';
   /** How many messages were unread, as the chat list's badge counted them. */
   readonly count: number;
-  /** Empty until it shows. */
-  readonly sections: SummarySections;
+  /** Its points, what concerns the user first, as plain text, never markup; empty until it shows. */
+  readonly points: readonly string[];
   /** How many of the newest messages it covers when the history limit read fewer than `count`; else 0. */
   readonly covered: number;
   /** Why no summary came, and whether Try Again may bring one; null unless it failed. */

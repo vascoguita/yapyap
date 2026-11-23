@@ -185,11 +185,14 @@ When you open a chat with 10 or more unread messages, such as a busy
 group, the AI assistant summarizes them for you, with no click, in a box
 at the top of the chat, on the right:
 
-- While it is written, the box says **Summarizing…**.
-- The box has up to three parts: **For you** (messages that mention you,
-  reply to or quote you, or ask you something), **Decisions and dates**
-  (decisions, dates, times and tasks) and **Everything else**, in at most
-  three lines. Each line names who said it, in the chat's language.
+- While it is written, the box says **Writing the summary…**.
+- Its title, **Summary of 12 unread messages**, says how many it covers.
+  Below it come at most six short points, each naming who said it, in the
+  chat's language. Anything that needs you comes first and says so: a
+  message to you, such as one in a group that mentions you or replies to
+  you, a question to you, or a request for everyone to answer, such as
+  "Who is coming to my birthday? Please reply here." Then come decisions,
+  dates and tasks, then the rest.
 - If no summary comes, the box says why, with **Try Again** when asking
   again may help.
 - Close it with its **×**, or Esc while it has the focus. It also goes

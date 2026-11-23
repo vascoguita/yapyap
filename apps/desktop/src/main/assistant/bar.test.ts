@@ -832,17 +832,23 @@ describe('createAssistantBar: suggested replies', () => {
 });
 
 /** The model's summary, fenced as the task asks. */
-const SUMMARY =
-  '<for-you>Ana asks if 9 works.</for-you>\n<decisions>Dinner at 9.</decisions>\n<rest></rest>';
+const SUMMARY = '<summary>\nAna asks if 9 works.\nDinner at 9.\n</summary>';
 
-const SECTIONS = { forYou: ['Ana asks if 9 works.'], decisions: ['Dinner at 9.'], rest: [] };
-
-const NO_SECTIONS = { forYou: [], decisions: [], rest: [] };
-
-const WORKING = { stage: 'working', count: 12, sections: NO_SECTIONS, covered: 0, problem: null };
+const WORKING = {
+  stage: 'working',
+  count: 12,
+  points: [],
+  covered: 0,
+  problem: null,
+};
 
 /** The summary of twelve unread messages, of which the history limit read two. */
-const SHOWN = { ...WORKING, stage: 'shown', sections: SECTIONS, covered: 2 };
+const SHOWN = {
+  ...WORKING,
+  stage: 'shown',
+  points: ['Ana asks if 9 works.', 'Dinner at 9.'],
+  covered: 2,
+};
 
 /** The summary that failed, saying `text`, with Try Again when `retry`. */
 const failed = (text: string, retry: boolean) => ({

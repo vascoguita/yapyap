@@ -52,25 +52,18 @@ function contentOf(state: AssistantBarState, visible: boolean): BarContent {
   };
 }
 
-/** The summary in the user's words, with only the sections that have something (#705). */
+/** The summary in the user's words (#705). */
 function summaryContentOf(summary: BarSummary | null): BarContent['summary'] {
   if (summary === null) {
     return null;
   }
   const text = en.assistant.bar;
-  const { count, sections, covered, problem } = summary;
-  const titled = (
-    [
-      [text.summarySections.forYou, sections.forYou],
-      [text.summarySections.decisions, sections.decisions],
-      [text.summarySections.rest, sections.rest],
-    ] as const
-  ).map(([title, items]) => ({ title, items }));
+  const { count, points, covered, problem } = summary;
   return {
     stage: summary.stage,
     title: text.summaryTitle({ count }),
     ready: text.summaryReady({ count }),
-    sections: titled.filter(({ items }) => items.length > 0),
+    points,
     covers: covered === 0 ? '' : text.summaryCovers({ count: covered }),
     problem: problem?.text ?? '',
     retry: problem?.retry === true ? text.retry : '',

@@ -76,7 +76,7 @@ describe('inPageAssistantBar', () => {
         folded: 'Suggestions',
         writing: 'Writing suggestions…',
         close: 'Close',
-        summarizing: 'Summarizing…',
+        summarizing: 'Writing the summary…',
         closeSummary: 'Close Summary',
       },
       suggestions: ['On my way'],
@@ -97,67 +97,48 @@ describe('inPageAssistantBar', () => {
     expect(contentOf(t.page())).toEqual(expect.objectContaining({ visible: false }));
   });
 
-  it('words the summary in the user’s language, with only the sections that have something (#705)', () => {
+  it('words the summary in the user’s language (#705)', () => {
     const t = setup();
-    const sections = {
-      forYou: ['Ben asks you to drive.'],
-      decisions: [],
-      rest: ['Ana sent a photo.'],
-    };
-    t.setState({
-      ...STATE,
-      summary: { stage: 'shown', count: 12, sections, covered: 2, problem: null },
-    });
+    const points = ['Ben asks you to drive.', 'Ana sent a photo.'];
+    const shown = { stage: 'shown', count: 12, points, covered: 2, problem: null } as const;
+    t.setState({ ...STATE, summary: shown });
     t.view.show(true);
     expect(contentOf(t.page())).toEqual(
       expect.objectContaining({
         summary: {
           stage: 'shown',
-          title: '12 unread messages',
+          title: 'Summary of 12 unread messages',
           ready: 'The summary of 12 unread messages is ready.',
-          sections: [
-            { title: 'For you', items: ['Ben asks you to drive.'] },
-            { title: 'Everything else', items: ['Ana sent a photo.'] },
-          ],
+          points,
           covers: 'Covers the newest 2, as your history limit allows.',
           problem: '',
           retry: '',
         },
       }),
     );
-    const none = { forYou: [], decisions: ['Sat at 10.'], rest: [] };
-    t.setState({
-      ...STATE,
-      summary: { stage: 'shown', count: 10, sections: none, covered: 0, problem: null },
-    });
+    const summaryOf = () => (contentOf(t.page()) as { summary: unknown }).summary;
+    t.setState({ ...STATE, summary: { ...shown, count: 10, covered: 0 } });
     t.view.publish(STATE);
-    expect((contentOf(t.page()) as { summary: unknown }).summary).toMatchObject({
-      sections: [{ title: 'Decisions and dates', items: ['Sat at 10.'] }],
-      covers: '',
-    });
+    expect(summaryOf()).toMatchObject({ covers: '' });
     const problem = { text: 'Claude (Anthropic) could not be reached.', retry: true };
-    t.setState({
-      ...STATE,
-      summary: { stage: 'failed', count: 1, sections: none, covered: 0, problem },
-    });
+    const failed = {
+      ...shown,
+      stage: 'failed',
+      count: 1,
+      points: [],
+      covered: 0,
+      problem,
+    } as const;
+    t.setState({ ...STATE, summary: failed });
     t.view.publish(STATE);
-    expect((contentOf(t.page()) as { summary: unknown }).summary).toMatchObject({
-      title: '1 unread message',
+    expect(summaryOf()).toMatchObject({
+      title: 'Summary of 1 unread message',
       problem: problem.text,
       retry: 'Try Again',
     });
-    t.setState({
-      ...STATE,
-      summary: {
-        stage: 'failed',
-        count: 12,
-        sections: none,
-        covered: 0,
-        problem: { ...problem, retry: false },
-      },
-    });
+    t.setState({ ...STATE, summary: { ...failed, problem: { ...problem, retry: false } } });
     t.view.publish(STATE);
-    expect((contentOf(t.page()) as { summary: unknown }).summary).toMatchObject({ retry: '' });
+    expect(summaryOf()).toMatchObject({ retry: '' });
   });
 
   it('renders the message box’s rewrite button with the bar, each on its own', () => {

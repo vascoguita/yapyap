@@ -493,11 +493,6 @@ export interface Messages {
       readonly summaryTitle: (params: { readonly count: number }) => string;
       readonly summaryReady: (params: { readonly count: number }) => string;
       readonly closeSummary: string;
-      readonly summarySections: {
-        readonly forYou: string;
-        readonly decisions: string;
-        readonly rest: string;
-      };
       readonly summaryCovers: (params: { readonly count: number }) => string;
       readonly summaryDeclined: string;
       readonly nothingToSummarize: string;

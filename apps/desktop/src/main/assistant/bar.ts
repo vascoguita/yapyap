@@ -3,7 +3,6 @@ import type {
   AssistantBarState,
   BarButtonId,
   BarSummary,
-  SummarySections,
 } from '../../shared/api/assistant-bar-api.ts';
 import { en } from '../../shared/messages/en.ts';
 import type { SettingsService } from '../settings/service.ts';
@@ -20,7 +19,7 @@ import {
   type PolishStyle,
 } from './rewrites.ts';
 import type { Setup } from './setup.ts';
-import { isEmptySummary, summaryIn, summaryPrompt } from './summaries.ts';
+import { summaryIn, summaryPrompt } from './summaries.ts';
 
 /** What the assistant needs of the account on screen; nothing here sends a message. */
 export interface BarAccounts {
@@ -99,8 +98,6 @@ const EMPTY: AssistantBarState = {
   writing: false,
   summary: null,
 };
-
-const NO_SECTIONS: SummarySections = { forYou: [], decisions: [], rest: [] };
 
 /**
  * What the page shows of `state`, as the row shows one thing at a time:
@@ -509,8 +506,8 @@ async function refresh(bar: BarContext): Promise<void> {
 const summaryAt = (
   stage: BarSummary['stage'],
   count: number,
-  { sections = NO_SECTIONS, covered = 0, problem = null }: Partial<BarSummary> = {},
-): BarSummary => ({ stage, count, sections, covered, problem });
+  { points = [], covered = 0, problem = null }: Partial<BarSummary> = {},
+): BarSummary => ({ stage, count, points, covered, problem });
 
 /** Takes the summary away, and calls off one being written. */
 function dropSummary(bar: BarContext): void {
@@ -564,13 +561,13 @@ async function answerSummary(bar: BarContext, work: SummaryWork, signal: AbortSi
   if (isAborted(signal)) {
     return;
   }
-  const sections = typeof answer === 'string' ? summaryIn(answer) : NO_SECTIONS;
-  if (isEmptySummary(sections)) {
+  const points = typeof answer === 'string' ? summaryIn(answer) : [];
+  if (points.length === 0) {
     unsummarized(bar, work, typeof answer === 'string' ? undefined : answer);
     return;
   }
   const covered = count > read ? read : 0;
-  update(bar, { summary: summaryAt('shown', count, { sections, covered }) });
+  update(bar, { summary: summaryAt('shown', count, { points, covered }) });
 }
 
 /**

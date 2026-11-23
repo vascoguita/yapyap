@@ -772,7 +772,7 @@ test('suggests replies to the message the user replies to, and the last one’s 
 
 /** Claude's summary, fenced as the task asks (#705). */
 const SUMMARY = claudeAnswer(
-  '<for-you>Test Chat Two asks if you can drive.</for-you>\n<decisions>Climbing on Saturday at 10.</decisions>\n<rest></rest>',
+  '<summary>\nTest Chat Two asks if you can drive.\nClimbing on Saturday at 10.\n</summary>',
 );
 
 test('summarizes a chat opened with many unread messages in a box at its top, on its own (#705)', async ({
@@ -798,17 +798,16 @@ test('summarizes a chat opened with many unread messages in a box at its top, on
   // It hangs 12px below the chat's header, 16px from its end, while it is written.
   await expect(async () => {
     expect(await barSummary(app)).toMatchObject({
-      title: '12 unread messages',
-      line: 'Summarizing…',
+      title: 'Summary of 12 unread messages',
+      line: 'Writing the summary…',
       below: 12,
       end: 16,
     });
   }).toPass({ timeout: 15_000 });
   await expect(async () => {
     expect(await barSummary(app)).toEqual({
-      title: '12 unread messages',
+      title: 'Summary of 12 unread messages',
       line: null,
-      headings: ['For you', 'Decisions and dates'],
       items: ['Test Chat Two asks if you can drive.', 'Climbing on Saturday at 10.'],
       covers: null,
       below: 12,

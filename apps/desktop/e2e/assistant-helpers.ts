@@ -87,7 +87,6 @@ export const barNotice = async (app: ElectronApplication): Promise<string | null
 interface ShownSummary {
   readonly title: string;
   readonly line: string | null;
-  readonly headings: string[];
   readonly items: string[];
   readonly covers: string | null;
   readonly below: number;
@@ -107,14 +106,14 @@ function readBarSummary(): ShownSummary | null {
   }
   const texts = (selector: string) =>
     [...card.querySelectorAll(selector)].map((node) => node.textContent);
+  const first = (selector: string) => texts(selector).at(0) ?? null;
   const covers = card.querySelector<HTMLElement>('.covers');
   const box = card.getBoundingClientRect();
   const edge = (selector: string, side: 'bottom' | 'right') =>
     document.querySelector(selector)?.getBoundingClientRect()[side] ?? 0;
   return {
     title: String(card.querySelector('h2')?.textContent),
-    line: texts('.card-line')[0] ?? null,
-    headings: texts('h3'),
+    line: first('.card-line'),
     items: texts('li'),
     covers: covers === null || covers.hidden ? null : covers.textContent,
     below: Math.round(box.top - edge('#main header', 'bottom')),

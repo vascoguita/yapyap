@@ -28,12 +28,6 @@ interface BarLabels {
   readonly closeSummary: string;
 }
 
-/** A section of the summary: its heading, and its bullets, of which there is at least one. */
-interface SummarySection {
-  readonly title: string;
-  readonly items: readonly string[];
-}
-
 /** The summary of the unread messages, with its words in the user's language (#705). */
 interface SummaryContent {
   readonly stage: 'working' | 'shown' | 'failed';
@@ -41,7 +35,8 @@ interface SummaryContent {
   readonly title: string;
   /** What screen readers hear once it shows. */
   readonly ready: string;
-  readonly sections: readonly SummarySection[];
+  /** Its points, what needs the user first. */
+  readonly points: readonly string[];
   /** That it covers only the newest messages, as the history limit allows; empty when it covers all. */
   readonly covers: string;
   /** Why no summary came; empty unless it failed. */
@@ -797,29 +792,19 @@ export function summaryAssistantBar(
   parts.retry.textContent = summary.retry;
 }
 
-/**
- * Fills the summary's box: only the sections that have something, each a
- * list, as text, never markup, and its foot.
- */
+/** Fills the summary's box: its points as one list, as text, never markup, and its foot. */
 export function assistantSummarySections(
   doc: BarDocument,
   parts: BarParts,
   summary: SummaryContent,
 ): void {
-  const sectionOf = ({ title, items }: SummarySection): BarNode => {
-    const section = doc.createElement('div');
-    const heading = doc.createElement('h3');
-    heading.textContent = title;
-    const list = doc.createElement('ul');
-    for (const text of items) {
-      const item = doc.createElement('li');
-      item.textContent = text;
-      list.append(item);
-    }
-    section.append(heading, list);
-    return section;
-  };
-  parts.cardBody.replaceChildren(...summary.sections.map(sectionOf));
+  const list = doc.createElement('ul');
+  for (const text of summary.points) {
+    const item = doc.createElement('li');
+    item.textContent = text;
+    list.append(item);
+  }
+  parts.cardBody.replaceChildren(list);
   parts.cardBody.scrollTop = 0;
   parts.covers.textContent = summary.covers;
   parts.covers.hidden = summary.covers === '';
@@ -937,8 +922,6 @@ li { display: flex; min-inline-size: 0; max-inline-size: 100%; }
   flex: 1 1 auto; min-block-size: 0; overflow-y: auto; padding-inline: var(--space-3); padding-block-end: var(--space-2);
   scrollbar-width: thin; scrollbar-color: var(--ai-border) transparent;
 }
-.card-body h3 { margin-block: var(--space-2) var(--space-1); color: var(--ai); font-size: var(--font-hint); font-weight: 600; }
-.card-body h3:first-child { margin-block-start: 0; }
 .card-body ul { margin: 0; padding-inline-start: var(--space-4); }
 .card-body li { display: list-item; margin-block-end: var(--space-1); overflow-wrap: anywhere; line-height: 1.35; }
 .card-line { margin: 0; color: var(--muted); line-height: 1.35; overflow-wrap: anywhere; }

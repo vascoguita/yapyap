@@ -52,6 +52,8 @@ export const INSTRUCTIONS = [
   '## Summarizing unread messages',
   'A summary is for the user to read before the messages themselves:',
   '- Cover only the messages the task names as unread; the earlier ones only help you understand them.',
+  '- Never leave out anything that needs the user: a message to them, such as one in a group that names or mentions them, replies to or quotes their message, or asks them something; and a request for everyone to answer or act, such as "Who is coming to my birthday? Please reply here." Put these first, and say plainly that they ask for the user\'s reply or action.',
+  '- Then decisions, dates, times and tasks; then anything else worth knowing.',
   '- Write each point as one short line that names who said it, as the chat names them, in the language the chat is written in.',
   '- Only what the messages say: never invent, guess or add advice. Of something you cannot see, such as a photo, say only that it was sent.',
   '- Plain text: no Markdown, and no emoji the messages do not have.',
@@ -76,7 +78,7 @@ const unnamed = (name: string): boolean => parseInternationalNumber(name) !== un
  * model echoes from the chat for one of its own (#705).
  */
 export const defused = (text: string): string =>
-  text.replaceAll(/<(\/?)(chat|draft|reply-to|reply(?!-)|for-you|decisions|rest)\b/gi, '‹$1$2');
+  text.replaceAll(/<(\/?)(chat|draft|reply-to|reply(?!-)|summary)\b/gi, '‹$1$2');
 
 /** Lines after the first are indented, so a line in a message cannot pass for another message. */
 const indented = (text: string): string => defused(text).replaceAll('\n', '\n  ');
