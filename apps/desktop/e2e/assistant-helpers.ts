@@ -25,23 +25,31 @@ interface KeptBar {
 /**
  * Runs in the adapter's isolated world, where YapYap keeps the bar: its
  * shadow root is closed, so nothing else, Playwright included, can look in.
- * A suggestion is named by its text, an icon button by its label.
+ * A suggestion is named by its text, an icon button by its label. The fake
+ * page scrolls as a whole, so the control named `shown`, or else the bar,
+ * is scrolled into view first: the summary's box hangs below the chat's
+ * header, far above the bar.
  */
-function readBarControls(): BarControl[] | null {
+function readBarControls(shown: string | null): BarControl[] | null {
   const kept = (globalThis as { yapyapAssistantBarView?: KeptBar }).yapyapAssistantBarView;
   if (kept?.host.isConnected !== true) {
     return null;
   }
-  kept.host.scrollIntoView({ block: 'center' });
   const root = kept.parts.bar.getRootNode() as ShadowRoot;
+  const nameOf = (control: HTMLButtonElement) =>
+    control.getAttribute('aria-label') ?? control.textContent;
+  const buttons = [...root.querySelectorAll<HTMLButtonElement>('button')];
+  (buttons.find((control) => nameOf(control) === shown) ?? kept.host).scrollIntoView({
+    block: 'center',
+  });
   return (
-    [...root.querySelectorAll<HTMLButtonElement>('button')]
+    buttons
       // Controls in a hidden row take no room, and cannot be clicked.
       .filter((control) => control.getClientRects().length > 0)
       .map((control) => {
         const box = control.getBoundingClientRect();
         return {
-          name: control.getAttribute('aria-label') ?? control.textContent,
+          name: nameOf(control),
           disabled: control.disabled,
           x: box.x + box.width / 2,
           y: box.y + box.height / 2,
@@ -57,12 +65,16 @@ function readBarNotice(): string | null {
   return shown ? kept.parts.text.textContent : null;
 }
 
-/** Runs `read` in the adapter's isolated world of WhatsApp's page, where the bar lives. */
-const inBarWorld = async (app: ElectronApplication, read: () => unknown): Promise<unknown> =>
+/** Runs `read` in the adapter's isolated world of WhatsApp's page, where the bar lives, given `value`. */
+const inBarWorld = async (
+  app: ElectronApplication,
+  read: (value: string | null) => unknown,
+  value: string | null = null,
+): Promise<unknown> =>
   (await whatsAppContents(app)).evaluate(
     (page, { code, world }): Promise<unknown> =>
       page.executeJavaScriptInIsolatedWorld(world, [{ code }]),
-    { code: `(${read.toString()})()`, world: ADAPTER_WORLD_ID },
+    { code: `(${read.toString()})(${JSON.stringify(value)})`, world: ADAPTER_WORLD_ID },
   );
 
 /** The notice above the message box in the active account's WhatsApp, or null while none shows. */
@@ -71,17 +83,20 @@ export const barNotice = async (app: ElectronApplication): Promise<string | null
   return typeof notice === 'string' ? notice : null;
 };
 
-/** What the summary's card shows (#705). */
+/** What the summary's box shows, and where it hangs: its distances from the chat's header and inline end (#705). */
 interface ShownSummary {
   readonly title: string;
+  readonly line: string | null;
   readonly headings: string[];
   readonly items: string[];
   readonly covers: string | null;
+  readonly below: number;
+  readonly end: number;
 }
 
 /**
  * Runs in the adapter's isolated world, as {@link readBarControls} does:
- * the summary's card while it shows, or null.
+ * the summary's box while it shows, or null.
  */
 function readBarSummary(): ShownSummary | null {
   const kept = (globalThis as { yapyapAssistantBarView?: { parts: { card: HTMLElement } } })
@@ -93,32 +108,30 @@ function readBarSummary(): ShownSummary | null {
   const texts = (selector: string) =>
     [...card.querySelectorAll(selector)].map((node) => node.textContent);
   const covers = card.querySelector<HTMLElement>('.covers');
+  const box = card.getBoundingClientRect();
+  const edge = (selector: string, side: 'bottom' | 'right') =>
+    document.querySelector(selector)?.getBoundingClientRect()[side] ?? 0;
   return {
     title: String(card.querySelector('h2')?.textContent),
+    line: texts('.card-line')[0] ?? null,
     headings: texts('h3'),
     items: texts('li'),
     covers: covers === null || covers.hidden ? null : covers.textContent,
+    below: Math.round(box.top - edge('#main header', 'bottom')),
+    end: Math.round(edge('#main', 'right') - box.right),
   };
 }
 
-/** Runs in the adapter's isolated world: what the bar tells screen readers is under way. */
-function readBarStatus(): string | null {
-  const kept = (globalThis as { yapyapAssistantBarView?: { parts: { status: HTMLElement } } })
-    .yapyapAssistantBarView;
-  return kept?.parts.status.textContent ?? null;
-}
-
-/** The summary's card in the active account's WhatsApp, or null while none shows (#705). */
+/** The summary's box in the active account's WhatsApp, or null while none shows (#705). */
 export const barSummary = async (app: ElectronApplication): Promise<ShownSummary | null> =>
   ((await inBarWorld(app, readBarSummary)) ?? null) as ShownSummary | null;
 
-/** What the bar tells screen readers is under way, such as a summary being written. */
-export const barStatus = async (app: ElectronApplication): Promise<string | null> =>
-  ((await inBarWorld(app, readBarStatus)) ?? null) as string | null;
-
 /** The assistant bar's controls that show in the active account's WhatsApp, or null while it is not there. */
-const assistantBarControls = async (app: ElectronApplication): Promise<BarControl[] | null> =>
-  ((await inBarWorld(app, readBarControls)) ?? null) as BarControl[] | null;
+const assistantBarControls = async (
+  app: ElectronApplication,
+  shown: string | null = null,
+): Promise<BarControl[] | null> =>
+  ((await inBarWorld(app, readBarControls, shown)) ?? null) as BarControl[] | null;
 
 /**
  * Clicks a control of the assistant bar as the user would, with the mouse:
@@ -131,7 +144,7 @@ export async function clickInBar(
 ): Promise<void> {
   let control: BarControl | undefined;
   await expect(async () => {
-    control = (await assistantBarControls(app))?.find(
+    control = (await assistantBarControls(app, name))?.find(
       (each) => each.name === name && !each.disabled,
     );
     expect(control, `the bar’s ${name}`).toBeDefined();

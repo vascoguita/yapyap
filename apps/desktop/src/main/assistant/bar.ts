@@ -69,14 +69,12 @@ interface BarContext {
   readonly made: Map<string, readonly string[]>;
   /** The item the notice's Try Again asks about again. */
   retryFor: string;
-  /** How many unread messages the notice's Try Again summarizes again; 0 when it asks for suggestions. */
-  retrySummary: number;
   /**
    * The notice says why no suggestions or no summary came, which goes as
    * soon as suggestions are asked for again.
    */
   unsuggested: boolean;
-  /** The summary being offered or written, called off when another chat opens or the user sends (#705). */
+  /** The summary being written, called off when another chat opens or the user sends (#705). */
   summarizing: AbortController | undefined;
 }
 
@@ -106,18 +104,13 @@ const NO_SECTIONS: SummarySections = { forYou: [], decisions: [], rest: [] };
 
 /**
  * What the page shows of `state`, as the row shows one thing at a time:
- * while a notice offers Undo, it alone; the suggestions and the summary,
- * kept meanwhile, come back once the draft is put back, the box empties or
- * the notice closes (#743). While a summary is written or shows, it takes
- * the suggestions' place, and they come back once it closes (#705).
+ * while a notice offers Undo, it alone; the suggestions, kept meanwhile,
+ * come back once the draft is put back, the box empties or the notice
+ * closes (#743). The summary has its own box at the top of the chat, so it
+ * stays (#705).
  */
-function shownOf(state: AssistantBarState): AssistantBarState {
-  if (state.notice?.button?.id === 'undo') {
-    return { ...state, suggestions: [], writing: false, summary: null };
-  }
-  const summarizing = state.summary !== null && state.summary.stage !== 'offer';
-  return summarizing ? { ...state, suggestions: [], writing: false } : state;
-}
+const shownOf = (state: AssistantBarState): AssistantBarState =>
+  state.notice?.button?.id === 'undo' ? { ...state, suggestions: [], writing: false } : state;
 
 function update(bar: BarContext, next: Partial<AssistantBarState>): void {
   bar.state = { ...bar.state, ...next };
@@ -293,9 +286,9 @@ async function undo(bar: BarContext): Promise<void> {
 
 const BUTTONS: Readonly<Record<BarButtonId, (bar: BarContext) => unknown>> = {
   undo,
-  // It starts asking again, and says so; the answer comes as suggestions, a summary or a new reason.
+  // It starts asking again, and says so; the answer comes as suggestions or a new reason.
   retry: (bar) => {
-    void (bar.retrySummary === 0 ? suggest(bar, bar.retryFor) : summarizeAgain(bar));
+    void suggest(bar, bar.retryFor);
   },
   // Every fix the notice offers is in Settings.
   fix: (bar) => {
@@ -427,26 +420,6 @@ function forgetReason(bar: BarContext): void {
   }
 }
 
-/** What a notice says when the model wrote nothing to show: suggestions' words, or a summary's. */
-interface NoAnswerWords {
-  readonly declined: string;
-  readonly nothing: string;
-  /** Whether Try Again goes with `nothing`: asking again may bring suggestions, never text to summarize. */
-  readonly again: boolean;
-}
-
-const UNSUGGESTED: NoAnswerWords = {
-  declined: text.bar.declined,
-  nothing: text.bar.noSuggestions,
-  again: true,
-};
-
-const UNSUMMARIZED: NoAnswerWords = {
-  declined: text.bar.summaryDeclined,
-  nothing: text.bar.nothingToSummarize,
-  again: false,
-};
-
 /**
  * Says why the model wrote nothing to show instead of showing nothing
  * (#743): the model declined the chat, which asking again will not change;
@@ -454,16 +427,16 @@ const UNSUMMARIZED: NoAnswerWords = {
  * passing problem, with Try Again. `error` is undefined when the model
  * answered nothing usable.
  */
-function noAnswer(bar: BarContext, setup: Setup, error: unknown, words: NoAnswerWords): void {
+function noAnswer(bar: BarContext, setup: Setup, error: unknown): void {
   bar.unsuggested = true;
   const retry = { id: 'retry' as const, label: text.bar.retry };
   if (error === undefined) {
-    update(bar, { notice: { text: words.nothing, button: words.again ? retry : null } });
+    update(bar, { notice: { text: text.bar.noSuggestions, button: retry } });
     return;
   }
   const kind = error instanceof ProviderError ? error.kind : 'failed';
   if (kind === 'refused') {
-    update(bar, { notice: { text: words.declined, button: null } });
+    update(bar, { notice: { text: text.bar.declined, button: null } });
     return;
   }
   const problem = problemWords(kind, setup.provider);
@@ -474,8 +447,7 @@ function noAnswer(bar: BarContext, setup: Setup, error: unknown, words: NoAnswer
 /** Says why no suggestions came for `message`, which Try Again asks about again. */
 function unsuggested(bar: BarContext, message: string, setup: Setup, error: unknown): void {
   bar.retryFor = message;
-  bar.retrySummary = 0;
-  noAnswer(bar, setup, error, UNSUGGESTED);
+  noAnswer(bar, setup, error);
 }
 
 /** Waits until `message` settled as the newest; false if a newer one or another chat came first. */
@@ -533,39 +505,19 @@ async function refresh(bar: BarContext): Promise<void> {
   }
 }
 
-/** The summary of `count` unread messages at `stage`, with what it says once it shows. */
+/** The summary of `count` unread messages at `stage`, with what it says once it shows, or why it does not. */
 const summaryAt = (
   stage: BarSummary['stage'],
   count: number,
-  sections = NO_SECTIONS,
-  covered = 0,
-): BarSummary => ({ stage, count, sections, covered });
+  { sections = NO_SECTIONS, covered = 0, problem = null }: Partial<BarSummary> = {},
+): BarSummary => ({ stage, count, sections, covered, problem });
 
-/** Takes the summary away, and calls off one being offered or written. */
+/** Takes the summary away, and calls off one being written. */
 function dropSummary(bar: BarContext): void {
   bar.summarizing?.abort();
   bar.summarizing = undefined;
   if (bar.state.summary !== null) {
     update(bar, { summary: null });
-  }
-}
-
-/**
- * Offers to summarize the `count` messages the chat that opened had
- * unread, if any (#705): only while the user wants summaries offered, the
- * setup is ready and the user lets the assistant read the chat. Another
- * chat opening meanwhile calls it off.
- */
-async function offerSummary(bar: BarContext, count: number): Promise<void> {
-  if (count === 0 || !assistantSettings(bar).summaries) {
-    return;
-  }
-  const controller = new AbortController();
-  bar.summarizing = controller;
-  const setup = await bar.deps.core.setup();
-  const chat = setup.missing === '' ? await bar.deps.accounts.readActiveChat(1) : null;
-  if (chat !== null && mayRead(bar, chat.name) && !controller.signal.aborted) {
-    update(bar, { summary: summaryAt('offer', count) });
   }
 }
 
@@ -576,11 +528,22 @@ interface SummaryWork {
   readonly count: number;
 }
 
-/** Says why no summary came, and takes the working chip away; Try Again summarizes again. */
+/**
+ * Says in the summary's box why no summary came (#705): the model declined
+ * the chat, or the messages gave it nothing to summarize, which asking
+ * again will not change; or a problem with the provider, with Try Again.
+ * `error` is undefined when the model answered nothing usable.
+ */
 function unsummarized(bar: BarContext, { setup, count }: SummaryWork, error: unknown): void {
-  bar.retrySummary = count;
-  update(bar, { summary: null });
-  noAnswer(bar, setup, error, UNSUMMARIZED);
+  const kind = error instanceof ProviderError ? error.kind : 'failed';
+  const problem =
+    error === undefined || kind === 'refused'
+      ? {
+          text: error === undefined ? text.bar.nothingToSummarize : text.bar.summaryDeclined,
+          retry: false,
+        }
+      : { text: problemWords(kind, setup.provider).status, retry: true };
+  update(bar, { summary: summaryAt('failed', count, { problem }) });
 }
 
 /**
@@ -606,24 +569,20 @@ async function answerSummary(bar: BarContext, work: SummaryWork, signal: AbortSi
     unsummarized(bar, work, typeof answer === 'string' ? undefined : answer);
     return;
   }
-  update(bar, { summary: summaryAt('shown', count, sections, count > read ? read : 0) });
+  const covered = count > read ? read : 0;
+  update(bar, { summary: summaryAt('shown', count, { sections, covered }) });
 }
 
 /**
- * Summarizes the unread messages on the user's click on the offer, which
- * turns into a chip that says so while the model writes (#705). It reads
- * the open chat as far as the history limit allows, and keeps the summary
- * only in memory.
+ * Writes the summary of the `count` unread messages, saying so in its box
+ * meanwhile (#705). It reads the open chat as far as the history limit
+ * allows, and keeps the summary only in memory.
  */
-async function summarize(bar: BarContext): Promise<void> {
-  const offered = bar.state.summary;
-  if (offered?.stage !== 'offer') {
-    return;
-  }
+async function writeSummary(bar: BarContext, count: number): Promise<void> {
+  bar.summarizing?.abort();
   const controller = new AbortController();
   bar.summarizing = controller;
-  forgetReason(bar);
-  update(bar, { summary: summaryAt('working', offered.count) });
+  update(bar, { summary: summaryAt('working', count) });
   const setup = await ready(bar);
   const chat = setup === undefined ? undefined : await chatToAnswer(bar).catch(() => undefined);
   if (controller.signal.aborted) {
@@ -633,13 +592,34 @@ async function summarize(bar: BarContext): Promise<void> {
     update(bar, { summary: null });
     return;
   }
-  await answerSummary(bar, { setup, chat, count: offered.count }, controller.signal);
+  await answerSummary(bar, { setup, chat, count }, controller.signal);
 }
 
-/** The notice's Try Again: the same summary, written again. */
+/**
+ * Summarizes the `count` messages the chat that opened had unread, if any
+ * (#705), with no click: only while the user wants unread messages
+ * summarized, the setup is ready and the user lets the assistant read the
+ * chat. Another chat opening meanwhile calls it off.
+ */
+async function summarizeOnOpening(bar: BarContext, count: number): Promise<void> {
+  if (count === 0 || !assistantSettings(bar).summaries) {
+    return;
+  }
+  const controller = new AbortController();
+  bar.summarizing = controller;
+  const setup = await bar.deps.core.setup();
+  const chat = setup.missing === '' ? await bar.deps.accounts.readActiveChat(1) : null;
+  if (chat !== null && mayRead(bar, chat.name) && !controller.signal.aborted) {
+    await writeSummary(bar, count);
+  }
+}
+
+/** The box's Try Again: the summary that failed, written again. */
 async function summarizeAgain(bar: BarContext): Promise<void> {
-  update(bar, { notice: null, summary: summaryAt('offer', bar.retrySummary) });
-  await summarize(bar);
+  const failed = bar.state.summary;
+  if (failed?.stage === 'failed' && failed.problem?.retry === true) {
+    await writeSummary(bar, failed.count);
+  }
 }
 
 /** What the assistant does with the user's clicks, and with the open chat as it changes. */
@@ -668,7 +648,7 @@ export interface AssistantBar {
   readonly sent: () => void;
   /** The user emptied the open chat's message box without sending. */
   readonly cleared: () => void;
-  /** Summarizes the unread messages the summary was offered for (#705). */
+  /** Writes the summary again, after one that failed (#705). */
   readonly summarize: () => Promise<void>;
   /** Takes the summary away. */
   readonly closeSummary: () => void;
@@ -726,14 +706,14 @@ function followChat(
     found: (newest, unread) => {
       follow(newest);
       void keepNotice(bar);
-      offer(bar, unread);
+      summarizeUnread(bar, unread);
     },
     opened: (newest, unread) => {
       forget(bar, newest !== null);
       follow(newest);
-      offer(bar, unread);
+      summarizeUnread(bar, unread);
     },
-    // An offer stays as messages arrive: WhatsApp draws a chat with many
+    // The summary stays as messages arrive: WhatsApp draws a chat with many
     // unread a row at a time, and each row looks like a new last message.
     arrived: (newest) => {
       last.message = newest;
@@ -748,9 +728,9 @@ interface LastItem {
   message: string | null;
 }
 
-/** Offers a summary of a chat opened with many unread messages; a page between loads can fail to be read. */
-function offer(bar: BarContext, unread: number): void {
-  offerSummary(bar, unread).catch(() => undefined);
+/** Summarizes a chat opened with many unread messages; a page between loads can fail to be read. */
+function summarizeUnread(bar: BarContext, unread: number): void {
+  summarizeOnOpening(bar, unread).catch(() => undefined);
 }
 
 /**
@@ -791,7 +771,6 @@ export function createAssistantBar(deps: BarDependencies): AssistantBar {
     suggesting: undefined,
     made: new Map(),
     retryFor: '',
-    retrySummary: 0,
     unsuggested: false,
     summarizing: undefined,
   };
@@ -804,7 +783,7 @@ export function createAssistantBar(deps: BarDependencies): AssistantBar {
     polish: (value) => polish(bar, value),
     use: (index) => use(bar, index),
     button: (id) => press(bar, id),
-    summarize: () => summarize(bar),
+    summarize: () => summarizeAgain(bar),
     closeSummary: () => {
       dropSummary(bar);
     },

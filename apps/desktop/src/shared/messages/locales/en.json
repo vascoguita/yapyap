@@ -169,8 +169,8 @@
           "description": "Each time you open a chat or something new appears in it, the AI assistant reads the chat and suggests what you could send next, right above the message box."
         },
         "summaries": {
-          "label": "Offer summaries of unread messages",
-          "description": "Offers a summary when you open a chat with 10 or more unread messages. Only in chats the AI assistant may read."
+          "label": "Summarize unread messages",
+          "description": "When you open a chat with 10 or more unread messages, the AI assistant summarizes them in a box at the top of the chat. Only in chats the AI assistant may read."
         },
         "chats": {
           "label": "Where the AI assistant works",
@@ -571,11 +571,12 @@
       "expand": "Show suggestions",
       "folded": "Suggestions",
       "writing": "Writing suggestions…",
-      "summarize_one": "Summarize {{count}} unread",
-      "summarize_other": "Summarize {{count}} unread",
       "summarizing": "Summarizing…",
-      "summaryTitle_one": "Summary of {{count}} unread message",
-      "summaryTitle_other": "Summary of {{count}} unread messages",
+      "summaryTitle_one": "{{count}} unread message",
+      "summaryTitle_other": "{{count}} unread messages",
+      "summaryReady_one": "The summary of {{count}} unread message is ready.",
+      "summaryReady_other": "The summary of {{count}} unread messages is ready.",
+      "closeSummary": "Close Summary",
       "summarySections": {
         "forYou": "For you",
         "decisions": "Decisions and dates",
@@ -583,7 +584,6 @@
       },
       "summaryCovers_one": "Covers the newest {{count}}, as your history limit allows.",
       "summaryCovers_other": "Covers the newest {{count}}, as your history limit allows.",
-      "firstUnread": "Show First Unread",
       "summaryDeclined": "The model declined to summarize this chat.",
       "nothingToSummarize": "Nothing to summarize: these messages have no text.",
       "replaced": "Replaced your draft.",

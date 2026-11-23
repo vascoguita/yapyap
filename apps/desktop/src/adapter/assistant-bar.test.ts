@@ -8,7 +8,6 @@ import {
   assistantSummarySections,
   closeAssistantSummary,
   fitAssistantSummary,
-  showFirstUnread,
   summaryAssistantBar,
   assistantBarLift,
   assistantBarHere,
@@ -27,6 +26,7 @@ import {
   type BarContent,
   type BarPlacement,
 } from './assistant-bar.ts';
+import { edgeTurn } from '../shared/working-edge.ts';
 import { ASSISTANT_ICONS } from './assistant-look.ts';
 import { paintWhatsAppTheme, shadowPart, strokeIcon } from './page-kit.ts';
 import { fingerprint } from './incoming.ts';
@@ -42,7 +42,7 @@ const LABELS = {
   writing: 'Writing suggestions…',
   close: 'Close',
   summarizing: 'Summarizing…',
-  firstUnread: 'Show First Unread',
+  closeSummary: 'Close Summary',
 };
 
 const CONTENT: BarContent = {
@@ -67,6 +67,7 @@ const PLACES = {
   field: '#main footer [contenteditable="true"]',
   quote: '#main footer [data-testid="quoted-message"]',
   conversation: '#main',
+  header: '#main header',
   message: '#main [data-id]',
   chatName: '#main header span',
   store: 'bar',
@@ -98,7 +99,7 @@ const KIT = {
   sections: assistantSummarySections,
   fit: fitAssistantSummary,
   act: actOnAssistantBar,
-  firstUnread: showFirstUnread,
+  turn: edgeTurn,
   close: closeAssistantSummary,
 };
 
@@ -231,9 +232,10 @@ describe('renderAssistantBar', () => {
       ['card', 'card'],
       ['cardTitle', 'card-title'],
       ['cardClose', 'icon'],
+      ['ready', 'status'],
       ['cardBody', 'card-body'],
       ['covers', 'covers'],
-      ['firstUnread', 'action'],
+      ['retry', 'action'],
     ]);
     expect(parts.status.getAttribute('role')).toBe('status');
     expect(parts.list.tagName).toBe('UL');
@@ -886,38 +888,29 @@ describe('the suggestions folded away, and while they are written', () => {
   });
 });
 
-/** The summary as the main process words it, offered, being written or shown (#705). */
+/** The summary as the main process words it, being written, shown or failed (#705). */
 const SUMMARY = {
   stage: 'shown',
-  count: 3,
-  offer: 'Summarize 3 unread',
-  title: 'Summary of 3 unread messages',
+  title: '3 unread messages',
+  ready: 'The summary of 3 unread messages is ready.',
   sections: [
     { title: 'For you', items: ['Ben asks you to <b>drive</b>.'] },
     { title: 'Everything else', items: ['Ana sent a photo.', 'Cy is late.'] },
   ],
   covers: 'Covers the newest 2, as your history limit allows.',
+  problem: '',
+  retry: '',
 } as const;
 
-const offered = (stage: 'offer' | 'working' | 'shown', more: Partial<BarContent> = {}) => ({
+const summarized = (
+  stage: 'working' | 'shown' | 'failed',
+  more: Partial<BarContent> = {},
+  summary: Partial<typeof SUMMARY> | Record<string, string> = {},
+) => ({
   ...CONTENT,
-  summary: { ...SUMMARY, stage },
+  summary: { ...SUMMARY, stage, ...summary },
   ...more,
 });
-
-/** Messages in the open chat, each a row with an ID, which Show First Unread scrolls to, and their scrolls. */
-function messages(count: number) {
-  const main = document.querySelector('#main');
-  const drawn = Array.from({ length: count }, (_, at) => {
-    const row = document.createElement('div');
-    row.dataset['id'] = `3EB0${String(at)}`;
-    const scroll = vi.fn();
-    row.scrollIntoView = scroll;
-    return { row, scroll };
-  });
-  main?.prepend(...drawn.map(({ row }) => row));
-  return drawn;
-}
 
 describe('the summary of unread messages (#705)', () => {
   const rows = (t: ReturnType<typeof setup>) => {
@@ -926,52 +919,41 @@ describe('the summary of unread messages (#705)', () => {
   };
   const card = (t: ReturnType<typeof setup>) =>
     (t.stored().parts as unknown as { card: HTMLElement }).card;
+  const line = (t: ReturnType<typeof setup>) => card(t).querySelector('.card-line')?.textContent;
+  const retry = (t: ReturnType<typeof setup>) =>
+    card(t).querySelector<HTMLButtonElement>('[data-action="summarize"]');
 
-  it('offers it first in the suggestions’ row, as a chip with the sparkle, and asks for it on click', () => {
+  it('says in its box that it is being written, with the light round its edge, beside the suggestions', () => {
     const t = setup();
-    t.render(offered('offer'));
-    const { list } = t.stored().parts;
-    const chip = list.querySelector<HTMLButtonElement>('.chip.offer');
-    expect(list.firstElementChild?.firstElementChild).toBe(chip);
-    expect(chip?.textContent).toBe('Summarize 3 unread');
-    expect(chip?.querySelector('svg')?.getAttribute('class')).toBe('mark');
-    expect(chip?.dataset['action']).toBe('summarize');
-    expect(list.dataset['items']).toBe('3');
-    expect(rows(t)).toEqual({ chips: true, folded: false, card: false });
-    if (chip !== null) {
-      click(chip);
-    }
-    expect(t.bridge.summarize).toHaveBeenCalledExactlyOnceWith();
-    // Alone, it still shows the row; folded away, it counts among what shows again.
-    t.render(offered('offer', { suggestions: [] }));
-    expect(rows(t)).toEqual({ chips: true, folded: false, card: false });
-    t.render(offered('offer', { suggestions: [], collapsed: true }));
-    expect(rows(t)).toEqual({ chips: false, folded: true, card: false });
-  });
-
-  it('says it is being written in one chip, with the light round its edge, and to screen readers', () => {
-    const t = setup();
-    t.render(offered('working', { suggestions: [] }));
-    const { list, status } = t.stored().parts;
-    expect(list.firstElementChild?.getAttribute('class')).toBe('placeholder working');
-    expect(list.firstElementChild?.getAttribute('aria-hidden')).toBe('true');
-    expect(list.firstElementChild?.textContent).toBe('Summarizing…');
-    expect(list.getAttribute('aria-busy')).toBe('true');
-    expect(status.textContent).toBe('Summarizing…');
-    expect(rows(t)).toEqual({ chips: true, folded: false, card: false });
-  });
-
-  it('shows it in a card named by its heading, in the suggestions’ place, as text, and focuses it', () => {
-    const t = setup();
-    t.render(offered('shown'));
-    const region = card(t);
+    t.render(summarized('working'));
+    expect(rows(t)).toEqual({ chips: true, folded: false, card: true });
+    expect(card(t).getAttribute('class')).toBe('card working');
+    expect(card(t).getAttribute('aria-busy')).toBe('true');
+    expect(line(t)).toBe('Summarizing…');
+    expect(retry(t)?.hidden).toBe(true);
+    // The suggestions' row says nothing of it.
+    expect(t.stored().parts.list.dataset['items']).toBe(String(CONTENT.suggestions.length));
+    expect(t.stored().parts.status.textContent).toBe('');
+    // Alone, it still shows the bar.
+    t.render(summarized('working', { suggestions: [] }));
     expect(rows(t)).toEqual({ chips: false, folded: false, card: true });
     expect(t.stored().host.style.display).toBe('');
+  });
+
+  it('shows it in a box named by its heading, as text, never taking the focus', () => {
+    const t = setup();
+    field()?.focus();
+    t.render(summarized('shown'));
+    const region = card(t);
+    expect(region.getAttribute('class')).toBe('card');
+    expect(region.getAttribute('aria-busy')).toBe('false');
     expect(region.getAttribute('role')).toBe('region');
-    expect(region.getAttribute('tabindex')).toBe('-1');
+    expect(region.hasAttribute('tabindex')).toBe(false);
+    expect(document.activeElement).toBe(field());
     const title = t.shadow().querySelector(`#${String(region.getAttribute('aria-labelledby'))}`);
-    expect(title?.textContent).toBe('Summary of 3 unread messages');
+    expect(title?.textContent).toBe('3 unread messages');
     expect(title?.tagName).toBe('H2');
+    expect(region.querySelector('[role="status"]')?.textContent).toBe(SUMMARY.ready);
     expect([...region.querySelectorAll('h3')].map((heading) => heading.textContent)).toEqual([
       'For you',
       'Everything else',
@@ -985,45 +967,76 @@ describe('the summary of unread messages (#705)', () => {
     expect(region.querySelector('b')).toBeNull();
     const covers = region.querySelector<HTMLElement>('.covers');
     expect([covers?.hidden, covers?.textContent]).toEqual([false, SUMMARY.covers]);
-    const first = region.querySelector<HTMLButtonElement>('[data-action="firstUnread"]');
-    expect([first?.textContent, first?.dataset['count']]).toEqual(['Show First Unread', '3']);
-    const close = region.querySelector('[data-action="closeSummary"]');
-    expect(close?.getAttribute('aria-label')).toBe('Close');
   });
 
-  it('takes the focus as the card opens, and keeps it where the user moves it', () => {
+  it('offers only its close, and says nothing of how much it covers when it covers all, nor once gone', () => {
     const t = setup();
-    t.render(offered('shown'));
+    t.render(summarized('shown'));
     const region = card(t);
-    const first = region.querySelector<HTMLButtonElement>('[data-action="firstUnread"]');
-    expect(t.shadow().activeElement).toBe(region);
-    first?.focus();
-    t.render(offered('shown', { writing: true }));
-    expect(t.shadow().activeElement).toBe(first);
-    // Covering every unread message, it says nothing of how much.
-    t.render(offered('shown', { summary: { ...SUMMARY, covers: '' } }));
+    expect(retry(t)?.hidden).toBe(true);
+    const close = region.querySelector('[data-action="closeSummary"]');
+    expect(close?.getAttribute('aria-label')).toBe('Close Summary');
+    t.render(summarized('shown', {}, { covers: '' }));
     expect(region.querySelector<HTMLElement>('.covers')?.hidden).toBe(true);
     t.render(CONTENT);
     expect(rows(t)).toEqual({ chips: true, folded: false, card: false });
+    expect(region.querySelector('[role="status"]')?.textContent).toBe('');
   });
 
-  it('keeps the card at most about 40% as high as the chat, measuring only while it shows', () => {
+  it('says why none came, and writes it again on Try Again only when that may help', () => {
     const t = setup();
-    const main = document.querySelector('#main');
-    Object.defineProperty(main, 'clientHeight', { value: 501 });
+    const problem = 'Claude (Anthropic) could not be reached.';
+    t.render(summarized('failed', {}, { problem, retry: 'Try Again' }));
+    expect(line(t)).toBe(problem);
+    expect(card(t).querySelector<HTMLElement>('.covers')?.hidden).toBe(true);
+    expect([retry(t)?.hidden, retry(t)?.textContent]).toEqual([false, 'Try Again']);
+    const button = retry(t);
+    if (button !== null) {
+      click(button);
+    }
+    expect(t.bridge.summarize).toHaveBeenCalledExactlyOnceWith();
+    t.render(summarized('failed', {}, { problem: 'The model declined to summarize this chat.' }));
+    expect(retry(t)?.hidden).toBe(true);
+    expect(card(t).querySelector('[role="status"]')?.textContent).toBe('');
+  });
+
+  it('hangs the box below the chat’s header, at most half as high as the room down to the bar', () => {
+    const t = setup();
+    const header = document.createElement('header');
+    document.querySelector('#main')?.prepend(header);
+    const at = (node: Element, top: number, bottom: number, width = 0) => {
+      vi.spyOn(node, 'getBoundingClientRect').mockReturnValue({
+        top,
+        bottom,
+        width,
+        height: bottom - top,
+      } as DOMRect);
+    };
+    at(header, 0, 60);
     t.render(CONTENT);
-    expect(card(t).style.maxBlockSize).toBe('');
-    t.render(offered('shown'));
-    expect(card(t).style.maxBlockSize).toBe('200px');
-    const parts = { card: { hidden: false, style: { maxBlockSize: '' } } };
-    const doc = { querySelector: () => null };
-    fitAssistantSummary(doc as never, PLACES, parts as never);
-    expect(parts.card.style.maxBlockSize).toBe('');
+    expect(card(t).style.insetBlockStart).toBe('');
+    at(t.stored().parts.bar, 700, 760);
+    at(card(t), 0, 96, 360);
+    t.render(summarized('shown'));
+    expect(card(t).style.insetBlockStart).toBe('-628px');
+    expect(card(t).style.maxBlockSize).toBe('314px');
+    expect(card(t).style.getPropertyValue('--edge-turn')).toBe(edgeTurn(360, 96));
+    // Never higher than 420px, nor lower than 96px.
+    at(t.stored().parts.bar, 1400, 1460);
+    t.render(summarized('shown', { writing: true }));
+    expect(card(t).style.maxBlockSize).toBe('420px');
+    at(t.stored().parts.bar, 100, 160);
+    t.render(summarized('shown', { collapsed: true }));
+    expect(card(t).style.maxBlockSize).toBe('96px');
+    // Without a header, it is left where it was.
+    header.remove();
+    t.render(summarized('working'));
+    expect(card(t).style.maxBlockSize).toBe('96px');
   });
 
-  it('closes on Close or Escape in the card, and gives the message box the focus back', () => {
+  it('closes on Close or Escape in the box, and gives the message box the focus back', () => {
     const t = setup();
-    t.render(offered('shown'));
+    t.render(summarized('shown'));
     const close = card(t).querySelector<HTMLElement>('[data-action="closeSummary"]');
     if (close !== null) {
       click(close);
@@ -1035,7 +1048,7 @@ describe('the summary of unread messages (#705)', () => {
     };
     escape(card(t));
     expect(t.bridge.closeSummary).toHaveBeenCalledTimes(2);
-    // Not another key, nor Escape outside the card, nor one a page script made up.
+    // Not another key, nor Escape outside the box, nor one a page script made up.
     escape(card(t), 'Enter');
     escape(t.stored().parts.bar);
     card(t).dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
@@ -1048,36 +1061,12 @@ describe('the summary of unread messages (#705)', () => {
     }).not.toThrow();
   });
 
-  it('scrolls the chat to the first unread message, the count-th from its end, reading no text', () => {
-    const t = setup();
-    const drawn = messages(5);
-    t.render(offered('shown'));
-    const first = card(t).querySelector<HTMLElement>('[data-action="firstUnread"]');
-    if (first !== null) {
-      click(first);
-    }
-    expect(drawn[2]?.scroll).toHaveBeenCalledExactlyOnceWith({ block: 'start' });
-    // With fewer messages drawn than were unread, the oldest drawn; rows not drawn yet do not count.
-    const [oldest, later] = drawn;
-    if (later !== undefined) {
-      later.row.dataset['virtualized'] = 'true';
-    }
-    showFirstUnread(document, PLACES, 12);
-    expect(oldest?.scroll).toHaveBeenCalledExactlyOnceWith({ block: 'start' });
-    document.querySelectorAll('[data-id]').forEach((row) => {
-      row.remove();
-    });
-    expect(() => {
-      showFirstUnread(document, PLACES, 3);
-    }).not.toThrow();
-  });
-
   it('shows another chat’s summary nowhere', () => {
     const t = setup();
     document
       .querySelector('#main')
       ?.prepend(Object.assign(document.createElement('header'), { innerHTML: '<span>Ana</span>' }));
-    t.render(offered('offer', { chat: fingerprint('Rui') }));
-    expect(t.stored().parts.list.querySelector('.offer')).toBeNull();
+    t.render(summarized('shown', { chat: fingerprint('Rui') }));
+    expect(card(t).hidden).toBe(true);
   });
 });

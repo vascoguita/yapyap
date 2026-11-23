@@ -182,31 +182,30 @@ Settings to stop them.
 ### Summaries of unread messages
 
 When you open a chat with 10 or more unread messages, such as a busy
-group, a **Summarize 12 unread** chip shows first in the row above the
-message box. Click it for a short summary of those messages before you
-read them:
+group, the AI assistant summarizes them for you, with no click, in a box
+at the top of the chat, on the right:
 
-- While it is written, a **Summarizing…** chip says so.
-- It shows in a card over the end of the chat, which keeps its place. The
-  card has up to three parts: **For you** (messages that mention you,
+- While it is written, the box says **Summarizing…**.
+- The box has up to three parts: **For you** (messages that mention you,
   reply to or quote you, or ask you something), **Decisions and dates**
   (decisions, dates, times and tasks) and **Everything else**, in at most
   three lines. Each line names who said it, in the chat's language.
-- **Show First Unread** scrolls the chat to the first unread message.
-- Close it with its **×** or Esc, and the suggestions come back. It also
-  goes when you send a message or open another chat.
+- If no summary comes, the box says why, with **Try Again** when asking
+  again may help.
+- Close it with its **×**, or Esc while it has the focus. It also goes
+  when you send a message or open another chat. Your suggestions stay
+  at the bottom meanwhile.
 
 The count comes from the chat list's unread badge, which WhatsApp takes
 away as you open the chat. The summary covers only as many of the newest
 messages as **Messages it reads** allows; when there were more unread,
-the card says how many it covers. Opening a chat already marks its
+the box says how many it covers. Opening a chat already marks its
 messages read on WhatsApp, so the summary offers no **Mark all as
 read**.
 
-The chip shows only in the chats the AI assistant works in, once it is
-set up, and nothing is read until you click it. The summary is kept only
-while it shows. Turn off **Offer summaries of unread messages** in
-Settings to stop the chip.
+Summaries are written only in the chats the AI assistant works in, once
+it is set up, and are kept only while they show. Turn off **Summarize
+unread messages** in Settings to stop them.
 
 ### Rewrite what you type
 

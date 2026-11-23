@@ -26,16 +26,18 @@ export interface SummarySections {
 
 /**
  * The summary of the messages the open chat opened with unread (#705):
- * offered, being written, or shown. It is held only in memory.
+ * being written, shown, or why none came. It is held only in memory.
  */
 export interface BarSummary {
-  readonly stage: 'offer' | 'working' | 'shown';
+  readonly stage: 'working' | 'shown' | 'failed';
   /** How many messages were unread, as the chat list's badge counted them. */
   readonly count: number;
   /** Empty until it shows. */
   readonly sections: SummarySections;
   /** How many of the newest messages it covers when the history limit read fewer than `count`; else 0. */
   readonly covered: number;
+  /** Why no summary came, and whether Try Again may bring one; null unless it failed. */
+  readonly problem: { readonly text: string; readonly retry: boolean } | null;
 }
 
 /** What the assistant shows in and above the open chat's message box (ADR 0013, ADR 0017). */
@@ -61,7 +63,7 @@ export interface AssistantBarState {
   readonly collapsed: boolean;
   /** The model is writing suggestions, which take seconds (#703). */
   readonly writing: boolean;
-  /** The summary of the unread messages, offered, being written or shown; null for none (#705). */
+  /** The summary of the unread messages, being written, shown or failed; null for none (#705). */
   readonly summary: BarSummary | null;
 }
 
@@ -100,7 +102,7 @@ export interface AssistantBarBridge {
   readonly button: (id: string) => void;
   /** Opens Settings, at the assistant. */
   readonly settings: () => void;
-  /** Summarizes the messages the open chat opened with unread (#705). */
+  /** Writes the summary again, after one that failed (#705). */
   readonly summarize: () => void;
   /** Closes the summary. */
   readonly closeSummary: () => void;

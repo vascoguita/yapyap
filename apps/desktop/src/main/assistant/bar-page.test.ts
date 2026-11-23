@@ -77,7 +77,7 @@ describe('inPageAssistantBar', () => {
         writing: 'Writing suggestions…',
         close: 'Close',
         summarizing: 'Summarizing…',
-        firstUnread: 'Show First Unread',
+        closeSummary: 'Close Summary',
       },
       suggestions: ['On my way'],
       notice: null,
@@ -104,31 +104,60 @@ describe('inPageAssistantBar', () => {
       decisions: [],
       rest: ['Ana sent a photo.'],
     };
-    t.setState({ ...STATE, summary: { stage: 'shown', count: 12, sections, covered: 2 } });
+    t.setState({
+      ...STATE,
+      summary: { stage: 'shown', count: 12, sections, covered: 2, problem: null },
+    });
     t.view.show(true);
     expect(contentOf(t.page())).toEqual(
       expect.objectContaining({
         summary: {
           stage: 'shown',
-          count: 12,
-          offer: 'Summarize 12 unread',
-          title: 'Summary of 12 unread messages',
+          title: '12 unread messages',
+          ready: 'The summary of 12 unread messages is ready.',
           sections: [
             { title: 'For you', items: ['Ben asks you to drive.'] },
             { title: 'Everything else', items: ['Ana sent a photo.'] },
           ],
           covers: 'Covers the newest 2, as your history limit allows.',
+          problem: '',
+          retry: '',
         },
       }),
     );
     const none = { forYou: [], decisions: ['Sat at 10.'], rest: [] };
-    t.setState({ ...STATE, summary: { stage: 'offer', count: 10, sections: none, covered: 0 } });
+    t.setState({
+      ...STATE,
+      summary: { stage: 'shown', count: 10, sections: none, covered: 0, problem: null },
+    });
     t.view.publish(STATE);
     expect((contentOf(t.page()) as { summary: unknown }).summary).toMatchObject({
-      offer: 'Summarize 10 unread',
       sections: [{ title: 'Decisions and dates', items: ['Sat at 10.'] }],
       covers: '',
     });
+    const problem = { text: 'Claude (Anthropic) could not be reached.', retry: true };
+    t.setState({
+      ...STATE,
+      summary: { stage: 'failed', count: 1, sections: none, covered: 0, problem },
+    });
+    t.view.publish(STATE);
+    expect((contentOf(t.page()) as { summary: unknown }).summary).toMatchObject({
+      title: '1 unread message',
+      problem: problem.text,
+      retry: 'Try Again',
+    });
+    t.setState({
+      ...STATE,
+      summary: {
+        stage: 'failed',
+        count: 12,
+        sections: none,
+        covered: 0,
+        problem: { ...problem, retry: false },
+      },
+    });
+    t.view.publish(STATE);
+    expect((contentOf(t.page()) as { summary: unknown }).summary).toMatchObject({ retry: '' });
   });
 
   it('renders the message box’s rewrite button with the bar, each on its own', () => {

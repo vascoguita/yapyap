@@ -489,16 +489,16 @@ export interface Messages {
       readonly expand: string;
       readonly folded: string;
       readonly writing: string;
-      readonly summarize: (params: { readonly count: number }) => string;
       readonly summarizing: string;
       readonly summaryTitle: (params: { readonly count: number }) => string;
+      readonly summaryReady: (params: { readonly count: number }) => string;
+      readonly closeSummary: string;
       readonly summarySections: {
         readonly forYou: string;
         readonly decisions: string;
         readonly rest: string;
       };
       readonly summaryCovers: (params: { readonly count: number }) => string;
-      readonly firstUnread: string;
       readonly summaryDeclined: string;
       readonly nothingToSummarize: string;
       readonly replaced: string;

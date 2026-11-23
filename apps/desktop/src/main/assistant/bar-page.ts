@@ -41,7 +41,7 @@ function contentOf(state: AssistantBarState, visible: boolean): BarContent {
       writing: text.writing,
       close: text.close,
       summarizing: text.summarizing,
-      firstUnread: text.firstUnread,
+      closeSummary: text.closeSummary,
     },
     suggestions: state.suggestions,
     notice: state.notice,
@@ -58,7 +58,7 @@ function summaryContentOf(summary: BarSummary | null): BarContent['summary'] {
     return null;
   }
   const text = en.assistant.bar;
-  const { count, sections, covered } = summary;
+  const { count, sections, covered, problem } = summary;
   const titled = (
     [
       [text.summarySections.forYou, sections.forYou],
@@ -68,11 +68,12 @@ function summaryContentOf(summary: BarSummary | null): BarContent['summary'] {
   ).map(([title, items]) => ({ title, items }));
   return {
     stage: summary.stage,
-    count,
-    offer: text.summarize({ count }),
     title: text.summaryTitle({ count }),
+    ready: text.summaryReady({ count }),
     sections: titled.filter(({ items }) => items.length > 0),
     covers: covered === 0 ? '' : text.summaryCovers({ count: covered }),
+    problem: problem?.text ?? '',
+    retry: problem?.retry === true ? text.retry : '',
   };
 }
 

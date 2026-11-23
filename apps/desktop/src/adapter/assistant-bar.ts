@@ -23,9 +23,9 @@ interface BarLabels {
   /** Said to screen readers while suggestions are being written. */
   readonly writing: string;
   readonly close: string;
-  /** The working chip's text while the summary is written, also said to screen readers (#705). */
+  /** What the summary's box says while it is written (#705). */
   readonly summarizing: string;
-  readonly firstUnread: string;
+  readonly closeSummary: string;
 }
 
 /** A section of the summary: its heading, and its bullets, of which there is at least one. */
@@ -36,16 +36,18 @@ interface SummarySection {
 
 /** The summary of the unread messages, with its words in the user's language (#705). */
 interface SummaryContent {
-  readonly stage: 'offer' | 'working' | 'shown';
-  /** How many messages were unread, which Show First Unread counts back from the end of the chat. */
-  readonly count: number;
-  /** The offer's chip. */
-  readonly offer: string;
-  /** The card's heading, which names it. */
+  readonly stage: 'working' | 'shown' | 'failed';
+  /** The box's heading, which names it. */
   readonly title: string;
+  /** What screen readers hear once it shows. */
+  readonly ready: string;
   readonly sections: readonly SummarySection[];
   /** That it covers only the newest messages, as the history limit allows; empty when it covers all. */
   readonly covers: string;
+  /** Why no summary came; empty unless it failed. */
+  readonly problem: string;
+  /** Try Again's label, or empty when asking again will not help. */
+  readonly retry: string;
 }
 
 /** Everything the bar shows, as plain JSON: YapYap's labels and the assistant's text. */
@@ -64,7 +66,7 @@ export interface BarContent {
     readonly text: string;
     readonly button: { readonly id: string; readonly label: string } | null;
   } | null;
-  /** The summary of the unread messages, offered, being written or shown; null for none (#705). */
+  /** The summary of the unread messages, being written, shown or failed; null for none (#705). */
   readonly summary: SummaryContent | null;
 }
 
@@ -77,6 +79,8 @@ interface BarPlaces {
   readonly quote: string;
   /** The open chat and a message in it, to find the list the bar takes room from. */
   readonly conversation: string;
+  /** The open chat's header, which the summary's box hangs below (#705). */
+  readonly header: string;
   readonly message: string;
   /** The open chat's name in its header, fingerprinted as the look at the page does. */
   readonly chatName: string;
@@ -112,6 +116,7 @@ interface BarNode {
     display: string;
     insetBlockStart: string;
     maxBlockSize: string;
+    setProperty(name: string, value: string): void;
   };
   readonly dataset: Record<string, string | undefined>;
   setAttribute(name: string, value: string): void;
@@ -122,7 +127,12 @@ interface BarNode {
   scrollIntoView(options: { readonly block: 'start' }): void;
   addEventListener(type: string, listener: (event: BarEvent) => void): void;
   closest(selectors: string): BarNode | null;
-  getBoundingClientRect(): { readonly top: number; readonly height: number };
+  getBoundingClientRect(): {
+    readonly top: number;
+    readonly bottom: number;
+    readonly width: number;
+    readonly height: number;
+  };
   before(node: BarNode): void;
   remove(): void;
   attachShadow(init: { readonly mode: 'closed' }): BarNode;
@@ -151,15 +161,17 @@ interface BarHidden {
   readonly bar: boolean;
 }
 
-/** The summary's card, over the end of the chat (#705). */
+/** The summary's box, at the top of the chat (#705). */
 interface SummaryParts {
   readonly card: BarNode;
   readonly cardTitle: BarNode;
   readonly cardClose: BarNode;
-  /** The sections, which scroll inside the card. */
+  /** Tells screen readers once the summary shows. */
+  readonly ready: BarNode;
+  /** The sections, which scroll inside the box, or what it says while it is written or why none came. */
   readonly cardBody: BarNode;
   readonly covers: BarNode;
-  readonly firstUnread: BarNode;
+  readonly retry: BarNode;
 }
 
 /** The parts of the bar that change with its content. */
@@ -211,20 +223,10 @@ export interface BarKit {
     kit: BarKit,
   ) => Omit<BarParts, keyof SummaryParts>;
   readonly card: (doc: BarDocument, bar: BarNode, places: BarPlaces, kit: BarKit) => SummaryParts;
-  readonly summary: (
-    doc: BarDocument,
-    parts: BarParts,
-    content: BarContent,
-    places: BarPlaces,
-    kit: BarKit,
-  ) => void;
-  readonly sections: (
-    doc: BarDocument,
-    parts: BarParts,
-    summary: SummaryContent,
-    labels: BarLabels,
-  ) => void;
-  readonly fit: (doc: BarDocument, places: BarPlaces, parts: BarParts) => void;
+  readonly summary: (doc: BarDocument, parts: BarParts, content: BarContent, kit: BarKit) => void;
+  readonly sections: (doc: BarDocument, parts: BarParts, summary: SummaryContent) => void;
+  readonly fit: (doc: BarDocument, places: BarPlaces, parts: BarParts, kit: BarKit) => void;
+  readonly turn: (width: number, height: number) => string;
   readonly act: (
     doc: BarDocument,
     scope: Scope,
@@ -232,7 +234,6 @@ export interface BarKit {
     control: BarNode,
     kit: BarKit,
   ) => void;
-  readonly firstUnread: (doc: BarDocument, places: BarPlaces, count: number) => void;
   readonly close: (doc: BarDocument, scope: Scope, places: BarPlaces) => void;
   readonly node: typeof shadowPart;
   readonly show: (
@@ -300,7 +301,7 @@ export function renderAssistantBar(
   // Only drawn higher: WhatsApp already leaves the quote's height free above the box, so the chat keeps its own.
   store.host.style.insetBlockStart = `${String(-kit.lift(footer, places))}px`;
   store.sync();
-  kit.fit(doc, places, store.parts);
+  kit.fit(doc, places, store.parts, kit);
   kit.align(scope, store.host, footer);
   kit.paint(scope, store.host, footer);
   return placed ? 'placed' : 'kept';
@@ -354,7 +355,7 @@ export function refreshAssistantBar(
       }
       if (fresh) {
         kit.update(doc, store.parts, shown);
-        kit.summary(doc, store.parts, shown, places, kit);
+        kit.summary(doc, store.parts, shown, kit);
         kit.mark(store.parts, shown);
         kit.notice(store.parts, shown.notice);
       }
@@ -530,11 +531,11 @@ export function assistantBarRows(
 }
 
 /**
- * The summary's card (#705): a region named by its heading, which starts
+ * The summary's box (#705): a region named by its heading, which starts
  * with the sparkle and ends with a cross to close it; the sections, which
- * scroll inside it; and its foot, which says how much it covers and shows
- * the first unread message. It takes the focus when it opens, so it can
- * be focused itself.
+ * scroll inside it; and its foot, which says how much it covers, or offers
+ * Try Again. It opens on its own, so it never takes the focus from the
+ * message box; screen readers hear once that it is ready.
  */
 export function assistantSummaryCard(
   doc: BarDocument,
@@ -545,36 +546,37 @@ export function assistantSummaryCard(
   const card = kit.node(doc, 'section', 'card', bar);
   card.setAttribute('role', 'region');
   card.setAttribute('aria-labelledby', 'summary-title');
-  card.setAttribute('tabindex', '-1');
   card.dataset['card'] = 'true';
   const head = kit.node(doc, 'div', 'card-head', card);
   head.append(kit.icon(doc, places.icons.sparkle, 'mark'));
   const cardTitle = kit.node(doc, 'h2', 'card-title', head);
   cardTitle.setAttribute('id', 'summary-title');
+  const ready = kit.node(doc, 'span', 'status', head);
+  ready.setAttribute('role', 'status');
   const cardClose = kit.node(doc, 'button', 'icon', head, 'closeSummary');
   cardClose.append(kit.icon(doc, places.icons.close, 'cross'));
   const cardBody = kit.node(doc, 'div', 'card-body', card);
   const foot = kit.node(doc, 'div', 'card-foot', card);
   const covers = kit.node(doc, 'p', 'covers', foot);
-  const firstUnread = kit.node(doc, 'button', 'action', foot, 'firstUnread');
-  return { card, cardTitle, cardClose, cardBody, covers, firstUnread };
+  const retry = kit.node(doc, 'button', 'action', foot, 'summarize');
+  return { card, cardTitle, cardClose, ready, cardBody, covers, retry };
 }
 
 /**
  * Which of the bar's rows hide: the suggestions while they are folded
  * away, or while there are none and none are being written; the button
  * they fold into unless they are folded and there are some to show again;
- * and the summary's card unless it shows, in their place (#705). The offer
- * of a summary counts as one of the suggestions. Neither hides while the
- * user types (#743).
+ * and the summary's box while there is none (#705), which has its own
+ * place at the top of the chat. Neither row hides while the user types
+ * (#743).
  */
 export function assistantBarHidden(parts: BarParts): BarHidden {
   const { items = '0', writing } = parts.list.dataset;
   const collapsed = parts.bar.dataset['collapsed'] === 'true';
-  const card = parts.bar.dataset['summary'] !== 'shown';
+  const card = (parts.bar.dataset['summary'] ?? 'none') === 'none';
   const nothing = items === '0' && writing !== 'true';
-  const chips = collapsed || nothing || !card;
-  const folded = !collapsed || items === '0' || !card;
+  const chips = collapsed || nothing;
+  const folded = !collapsed || items === '0';
   return { chips, folded, card, bar: [chips, folded, card, parts.notice.hidden].every(Boolean) };
 }
 
@@ -607,17 +609,12 @@ export function showAssistantBar(
       host.style.display = display;
     });
   }
-  // The card takes the focus as it opens (#705).
-  if (parts.card.dataset['fresh'] === 'true' && !parts.card.hidden) {
-    parts.card.dataset['fresh'] = 'false';
-    parts.card.focus();
-  }
 }
 
 /**
  * Acts on the user's clicks and keys, never on ones a page script made up,
  * and keeps keys pressed on the bar from reaching WhatsApp's own
- * shortcuts. Escape in the summary's card closes it (#705).
+ * shortcuts. Escape in the summary's box closes it (#705).
  */
 export function wireAssistantBar(
   shadow: BarNode,
@@ -642,10 +639,10 @@ export function wireAssistantBar(
 }
 
 /**
- * Does what the user clicked: Show First Unread scrolls the chat, in the
- * page alone; closing the summary also gives the message box the focus
- * back; anything else goes to the main process. A suggestion is named by
- * its index, the notice's button by its ID; folding takes nothing.
+ * Does what the user clicked: closing the summary also gives the message
+ * box the focus back; anything else goes to the main process. A
+ * suggestion is named by its index, the notice's button by its ID;
+ * folding takes nothing.
  */
 export function actOnAssistantBar(
   doc: BarDocument,
@@ -654,18 +651,9 @@ export function actOnAssistantBar(
   control: BarNode,
   kit: BarKit,
 ): void {
-  const { action, index, id, count } = control.dataset;
-  const inPage: Readonly<Record<string, () => void>> = {
-    firstUnread: () => {
-      kit.firstUnread(doc, places, Number(count));
-    },
-    closeSummary: () => {
-      kit.close(doc, scope, places);
-    },
-  };
-  const own = Object.hasOwn(inPage, String(action)) ? inPage[String(action)] : undefined;
-  if (own !== undefined) {
-    own();
+  const { action, index, id } = control.dataset;
+  if (action === 'closeSummary') {
+    kit.close(doc, scope, places);
     return;
   }
   const act = (...value: [unknown?]): void => {
@@ -681,8 +669,8 @@ export function actOnAssistantBar(
 }
 
 /**
- * Closes the summary, and gives the message box the focus back, as the
- * card had taken it (#705).
+ * Closes the summary, and gives the message box the focus back, which a
+ * click on the box's cross had taken (#705).
  */
 export function closeAssistantSummary(doc: BarDocument, scope: Scope, places: BarPlaces): void {
   ((scope[places.bridge] ?? {}) as Actions)['closeSummary']?.();
@@ -690,29 +678,31 @@ export function closeAssistantSummary(doc: BarDocument, scope: Scope, places: Ba
 }
 
 /**
- * Scrolls the chat so its first unread message shows at the top (#705):
- * the `count`-th message from the end among those WhatsApp drew, or the
- * oldest it drew when the chat holds fewer. It goes by the messages' rows
- * alone, and reads none of their text.
+ * Hangs the summary's box just below the open chat's header, at its
+ * inline end, at most half as high as the space down to the bar (and
+ * 420px), so the chat shows around it; the box scrolls inside (#705). It
+ * is drawn over the chat, which keeps its height. The box is the bar's,
+ * so it is placed from the bar's own top. Measuring forces a layout, so it
+ * measures only while the box shows; it also times the working light to
+ * the box's size.
  */
-export function showFirstUnread(doc: BarDocument, places: BarPlaces, count: number): void {
-  const rows = Array.from(doc.querySelectorAll(places.message)).filter(
-    (row) => row.dataset['virtualized'] !== 'true',
-  );
-  (rows.at(-count) ?? rows[0])?.scrollIntoView({ block: 'start' });
-}
-
-/**
- * Keeps the summary's card at most about 40% as high as the open chat, so
- * the chat shows above it; the card scrolls inside. It is drawn over the
- * end of the chat, which keeps its height. Measuring forces a layout, so
- * it measures only while the card shows.
- */
-export function fitAssistantSummary(doc: BarDocument, places: BarPlaces, parts: BarParts): void {
-  const chat = doc.querySelector(places.conversation) as BarNode | null;
-  if (!parts.card.hidden && chat !== null) {
-    parts.card.style.maxBlockSize = `${String(Math.round(chat.clientHeight * 0.4))}px`;
+export function fitAssistantSummary(
+  doc: BarDocument,
+  places: BarPlaces,
+  parts: BarParts,
+  kit: Pick<BarKit, 'turn'>,
+): void {
+  const header = doc.querySelector(places.header) as BarNode | null;
+  if (parts.card.hidden || header === null) {
+    return;
   }
+  const below = header.getBoundingClientRect().bottom + 12;
+  const top = parts.bar.getBoundingClientRect().top;
+  parts.card.style.insetBlockStart = `${String(Math.round(below - top))}px`;
+  const room = Math.min(420, Math.max(96, (top - below) / 2));
+  parts.card.style.maxBlockSize = `${String(Math.round(room))}px`;
+  const box = parts.card.getBoundingClientRect();
+  parts.card.style.setProperty('--edge-turn', kit.turn(box.width, box.height));
 }
 
 /** Shows new content, writing the assistant's text only as text, never as markup. */
@@ -760,72 +750,62 @@ export function updateAssistantBar(doc: BarDocument, parts: BarParts, content: B
  * there are, or that they are being written (#703).
  */
 export function markAssistantBar(parts: BarParts, content: BarContent): void {
-  const { summary, labels } = content;
   const writing = content.writing && content.suggestions.length === 0;
-  const offered = summary !== null && summary.stage !== 'shown';
-  const summarizing = summary?.stage === 'working';
   parts.bar.dataset['collapsed'] = String(content.collapsed);
   parts.collapse.setAttribute('aria-expanded', 'true');
   parts.expand.setAttribute('aria-expanded', 'false');
-  parts.list.dataset['items'] = String(content.suggestions.length + Number(offered));
+  parts.list.dataset['items'] = String(content.suggestions.length);
   parts.list.dataset['writing'] = String(writing);
-  parts.list.setAttribute('aria-busy', String(writing || summarizing));
-  const status = summarizing ? labels.summarizing : labels.writing;
-  parts.status.textContent = writing || summarizing ? status : '';
+  parts.list.setAttribute('aria-busy', String(writing));
+  parts.status.textContent = writing ? content.labels.writing : '';
 }
 
 /**
- * Shows the summary (#705): offered, as a chip with the sparkle, first in
- * the suggestions' row; being written, as one chip that says so, with the
- * light round its edge; shown, in its card. The card marks itself fresh as
- * it opens, so the look at what shows that follows gives it the focus.
+ * Shows the summary's box (#705): while it is written, its heading and a
+ * line that says so, with the light round its edge; then its sections; or
+ * why none came, with Try Again when asking again may help. Screen readers
+ * hear once that it is ready.
  */
 export function summaryAssistantBar(
   doc: BarDocument,
   parts: BarParts,
   content: BarContent,
-  places: BarPlaces,
   kit: BarKit,
 ): void {
-  const { summary } = content;
-  const stage = summary?.stage ?? 'none';
-  const opened = stage === 'shown' && parts.bar.dataset['summary'] !== 'shown';
-  parts.card.dataset['fresh'] = String(opened);
-  parts.bar.dataset['summary'] = stage;
+  const { summary, labels } = content;
+  parts.bar.dataset['summary'] = summary?.stage ?? 'none';
   if (summary === null) {
+    parts.ready.textContent = '';
     return;
   }
+  parts.card.setAttribute('class', summary.stage === 'working' ? 'card working' : 'card');
+  parts.card.setAttribute('aria-busy', String(summary.stage === 'working'));
+  parts.cardTitle.textContent = summary.title;
+  parts.cardClose.setAttribute('aria-label', labels.closeSummary);
+  parts.cardClose.setAttribute('title', labels.closeSummary);
+  parts.ready.textContent = summary.stage === 'shown' ? summary.ready : '';
   if (summary.stage === 'shown') {
-    kit.sections(doc, parts, summary, content.labels);
+    kit.sections(doc, parts, summary);
     return;
   }
-  const item = doc.createElement('li');
-  if (summary.stage === 'offer') {
-    const chip = kit.node(doc, 'button', 'chip offer', item, 'summarize');
-    const words = doc.createElement('span');
-    words.textContent = summary.offer;
-    chip.append(kit.icon(doc, places.icons.sparkle, 'mark'), words);
-  } else {
-    item.setAttribute('class', 'placeholder working');
-    item.setAttribute('aria-hidden', 'true');
-    item.textContent = content.labels.summarizing;
-  }
-  parts.list.prepend(item);
+  const line = doc.createElement('p');
+  line.setAttribute('class', 'card-line');
+  line.textContent = summary.stage === 'working' ? labels.summarizing : summary.problem;
+  parts.cardBody.replaceChildren(line);
+  parts.covers.hidden = true;
+  parts.retry.hidden = summary.retry === '';
+  parts.retry.textContent = summary.retry;
 }
 
 /**
- * Fills the summary's card: its heading, only the sections that have
- * something, each a list, as text, never markup, and its foot.
+ * Fills the summary's box: only the sections that have something, each a
+ * list, as text, never markup, and its foot.
  */
 export function assistantSummarySections(
   doc: BarDocument,
   parts: BarParts,
   summary: SummaryContent,
-  labels: BarLabels,
 ): void {
-  parts.cardTitle.textContent = summary.title;
-  parts.cardClose.setAttribute('aria-label', labels.close);
-  parts.cardClose.setAttribute('title', labels.close);
   const sectionOf = ({ title, items }: SummarySection): BarNode => {
     const section = doc.createElement('div');
     const heading = doc.createElement('h3');
@@ -843,8 +823,7 @@ export function assistantSummarySections(
   parts.cardBody.scrollTop = 0;
   parts.covers.textContent = summary.covers;
   parts.covers.hidden = summary.covers === '';
-  parts.firstUnread.textContent = labels.firstUnread;
-  parts.firstUnread.dataset['count'] = String(summary.count);
+  parts.retry.hidden = true;
 }
 
 /** Shows what a rewrite did, or what keeps the assistant from answering, with its one button. */
@@ -940,14 +919,13 @@ li { display: flex; min-inline-size: 0; max-inline-size: 100%; }
 .fold-label { padding-inline: 2px 4px; }
 .bar[data-typed='true'] .chips { opacity: 0.7; }
 .bar[data-typed='true'] .chips:hover, .bar[data-typed='true'] .chips:focus-within { opacity: 1; }
-.offer { display: inline-flex; align-items: center; gap: var(--space-1); color: var(--ai); font-weight: 600; }
-.offer svg { inline-size: 18px; block-size: 18px; }
 .bar { position: relative; }
-.bar[data-summary='shown'] { padding-block-start: 0; }
 .card {
-  position: absolute; inset-inline: var(--space-4); inset-block-end: 100%; display: flex;
-  flex-direction: column; box-sizing: border-box; overflow: hidden;
-  border: 1px solid var(--ai-border); border-radius: 20px; background: var(--ai-tint);
+  position: absolute; inset-inline-end: var(--space-4); inline-size: min(360px, calc(100% - 2 * var(--space-4)));
+  display: flex; flex-direction: column; box-sizing: border-box; overflow: hidden;
+  border: 1px solid var(--ai-border); border-radius: 16px; background: var(--ai-tint);
+  box-shadow: 0 4px 16px var(--shadow);
+  --edge: var(--ai); --edge-track: var(--ai-border); --edge-fill: var(--ai-tint);
 }
 .card:focus-visible { outline: 2px solid var(--ai); outline-offset: 2px; }
 .card-head {
@@ -955,14 +933,20 @@ li { display: flex; min-inline-size: 0; max-inline-size: 100%; }
   padding-block: var(--space-1); padding-inline: var(--space-3) var(--space-1);
 }
 .card-title { flex: 1; min-inline-size: 0; margin: 0; font-size: var(--font-body); font-weight: 600; }
-.card-body { flex: 1 1 auto; min-block-size: 0; overflow-y: auto; padding-inline: var(--space-3); }
+.card-body {
+  flex: 1 1 auto; min-block-size: 0; overflow-y: auto; padding-inline: var(--space-3); padding-block-end: var(--space-2);
+  scrollbar-width: thin; scrollbar-color: var(--ai-border) transparent;
+}
 .card-body h3 { margin-block: var(--space-2) var(--space-1); color: var(--ai); font-size: var(--font-hint); font-weight: 600; }
+.card-body h3:first-child { margin-block-start: 0; }
 .card-body ul { margin: 0; padding-inline-start: var(--space-4); }
 .card-body li { display: list-item; margin-block-end: var(--space-1); overflow-wrap: anywhere; line-height: 1.35; }
+.card-line { margin: 0; color: var(--muted); line-height: 1.35; overflow-wrap: anywhere; }
 .card-foot {
   display: flex; flex: none; flex-wrap: wrap; align-items: center; justify-content: space-between;
-  gap: var(--space-2); padding-block: var(--space-2); padding-inline: var(--space-3);
+  gap: var(--space-2); padding-block: 0 var(--space-2); padding-inline: var(--space-3);
 }
+.card-foot:not(:has(> :not([hidden]))) { display: none; }
 .covers { flex: 1 1 12em; margin: 0; color: var(--muted); font-size: var(--font-hint); }
 .card-foot .action { margin-inline-start: auto; }
 `;
@@ -972,6 +956,7 @@ const PLACES: BarPlaces = {
   field: LANDMARKS.composer,
   quote: LANDMARKS.composerQuote,
   conversation: LANDMARKS.conversation,
+  header: LANDMARKS.conversationHeader,
   message: LANDMARKS.message,
   chatName: LANDMARKS.chatName,
   store: 'yapyapAssistantBarView',
@@ -1010,7 +995,7 @@ export function assistantBarRender(content: BarContent): string {
     `sections: ${assistantSummarySections.toString()}`,
     `fit: ${fitAssistantSummary.toString()}`,
     `act: ${actOnAssistantBar.toString()}`,
-    `firstUnread: ${showFirstUnread.toString()}`,
+    `turn: ${edgeTurn.toString()}`,
     `close: ${closeAssistantSummary.toString()}`,
   ].join(', ');
   return `(${renderAssistantBar.toString()})(document, globalThis, ${JSON.stringify(content)}, ${JSON.stringify(PLACES)}, { ${kit} })`;
