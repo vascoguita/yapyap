@@ -2,7 +2,7 @@
  * Bump whenever a landmark below changes, so diagnostics show which table a
  * report came from.
  */
-export const LANDMARKS_VERSION = 12;
+export const LANDMARKS_VERSION = 13;
 
 /**
  * Structural landmarks of WhatsApp Web: element ids and attributes that have
@@ -87,6 +87,13 @@ export const LANDMARKS = {
   unreadCount: '[data-testid="icon-unread-count"]',
   /** A chat row's name. */
   chatTitle: '[data-testid="cell-frame-title"]',
+  /**
+   * A chat row's name alone, which reads as the open chat's header does.
+   * The row's title holds more before it, which WhatsApp takes away as the
+   * row is hovered or opened, so the whole title reads differently from one
+   * look to the next (#705).
+   */
+  chatListName: '[data-testid="cell-frame-title"] span[title]',
   /** A chat row's preview of its last message. */
   chatPreview: '[data-testid="cell-frame-secondary"]',
   /** A chat row's time of its last message. */

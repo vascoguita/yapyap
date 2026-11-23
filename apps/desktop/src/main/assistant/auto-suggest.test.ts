@@ -30,6 +30,7 @@ function setup(first: unknown = 'aaaaaaaa:00000001:-:i:e:-:-') {
   let enabled = true;
   let onScreen = true;
   let tick = (): void => undefined;
+  let focus = (): void => undefined;
   const deps = {
     activePage: () => page,
     enabled: () => enabled,
@@ -41,6 +42,9 @@ function setup(first: unknown = 'aaaaaaaa:00000001:-:i:e:-:-') {
     cleared: vi.fn(),
     every: vi.fn((callback: () => void) => {
       tick = callback;
+    }),
+    focused: vi.fn((callback: () => void) => {
+      focus = callback;
     }),
   };
   followOpenChat(deps);
@@ -61,6 +65,10 @@ function setup(first: unknown = 'aaaaaaaa:00000001:-:i:e:-:-') {
       page.executeJavaScriptInIsolatedWorld.mockClear();
       tick();
       return page.executeJavaScriptInIsolatedWorld.mock.calls.length > 0;
+    },
+    /** The window gets the focus. */
+    focus: () => {
+      focus();
     },
     look: async () => {
       page.executeJavaScriptInIsolatedWorld.mockClear();
@@ -356,6 +364,26 @@ describe('followOpenChat', () => {
     await t.look();
     expect(t.deps.arrived).toHaveBeenLastCalledWith('eeeeeeee:00000006:-:-');
     expect(t.deps.opened).toHaveBeenCalledTimes(5);
+  });
+
+  it('looks as the window gets the focus, so a click on a chat from another window still sees its badge (#705)', async () => {
+    const t = setup('aaaaaaaa:00000001:-:i:e:-:-');
+    await t.look();
+    expect(t.deps.focused).toHaveBeenCalledExactlyOnceWith(expect.any(Function));
+    t.setOnScreen(false);
+    t.page().set('aaaaaaaa:00000001:-:i:e:-:-|bbbbbbbb:12');
+    expect(t.looked()).toBe(false);
+    // The click that focuses the window opens the chat a moment later.
+    t.setOnScreen(true);
+    t.page().executeJavaScriptInIsolatedWorld.mockClear();
+    t.focus();
+    await vi.waitFor(() => {
+      expect(t.page().executeJavaScriptInIsolatedWorld).toHaveBeenCalledOnce();
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    t.page().set('bbbbbbbb:00000002:-:i:e:-:-');
+    await t.look();
+    expect(t.deps.opened).toHaveBeenLastCalledWith('bbbbbbbb:00000002:-:-', 12);
   });
 
   it('counts a badge still drawn as the chat opens, as at the first look, but never another page’s', async () => {

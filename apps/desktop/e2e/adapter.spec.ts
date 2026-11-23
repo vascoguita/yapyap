@@ -10,7 +10,7 @@ const TYPED_TEXT = 'The quick brown fox jumps over the lazy dog';
 test('describes the chat list and the open chat in the diagnostics', async ({ app, window }) => {
   await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
   expect(await reportedDiagnostics(app)).toContain(
-    '\nWhatsApp view=chats, chat_open=true (landmarks v12)\n',
+    '\nWhatsApp view=chats, chat_open=true (landmarks v13)\n',
   );
 });
 
@@ -20,7 +20,7 @@ test.describe('when the account is logged out', () => {
   test('reports the login screen in the diagnostics', async ({ app, window }) => {
     await expect(window.getByTestId('fake-whatsapp')).toBeVisible();
     expect(await reportedDiagnostics(app)).toContain(
-      '\nWhatsApp view=logged-out, chat_open=false (landmarks v12)\n',
+      '\nWhatsApp view=logged-out, chat_open=false (landmarks v13)\n',
     );
   });
 });

@@ -650,7 +650,8 @@ export async function unreadBadge(page: Page, name: string, count: number): Prom
   await page.evaluate(
     ({ name, count }) => {
       const row = [...document.querySelectorAll('#pane-side [role="row"]')].find(
-        (each) => each.querySelector('[data-testid="cell-frame-title"]')?.textContent === name,
+        (each) =>
+          each.querySelector('[data-testid="cell-frame-title"] span[title]')?.textContent === name,
       );
       const secondary = row?.querySelector('[data-testid="cell-frame-secondary"]');
       row?.querySelector('[data-testid="icon-unread-count"]')?.remove();

@@ -18,7 +18,7 @@ interface IncomingDocument {
   querySelector(selectors: string): { readonly textContent: string | null } | null;
 }
 
-/** Where the badges' probe looks: the chat list's rows, and in a row its unread badge and name. */
+/** Where the badges' probe looks: the chat list's rows, and in a row its unread badge and its name alone. */
 interface BadgePlaces {
   readonly chatRow: string;
   readonly unreadCount: string;
@@ -195,7 +195,7 @@ const LOOK_PLACES: IncomingPlaces & BadgePlaces = {
   quoted: LANDMARKS.quoted,
   chatRow: LANDMARKS.chatRow,
   unreadCount: LANDMARKS.unreadCount,
-  chatTitle: LANDMARKS.chatTitle,
+  chatTitle: LANDMARKS.chatListName,
 };
 
 /** The look as code for `executeJavaScriptInIsolatedWorld`, with the fingerprint and the probes it joins beside it. */

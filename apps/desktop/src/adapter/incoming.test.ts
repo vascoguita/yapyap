@@ -192,7 +192,7 @@ describe('newestMessages', () => {
       ...PLACES,
       chatRow: LANDMARKS.chatRow,
       unreadCount: LANDMARKS.unreadCount,
-      chatTitle: LANDMARKS.chatTitle,
+      chatTitle: LANDMARKS.chatListName,
     };
     expect(NEWEST_MESSAGES).toBe(
       `(${lookAtChats.toString()})(document, ${JSON.stringify(places)}, ${fingerprint.toString()}, { newest: ${newestMessages.toString()}, quoting: ${replyingTo.toString()}, badges: ${unreadBadges.toString()}, limit: 20 })`,
@@ -222,19 +222,19 @@ describe('newestMessages', () => {
 const BADGES = {
   chatRow: LANDMARKS.chatRow,
   unreadCount: LANDMARKS.unreadCount,
-  chatTitle: LANDMARKS.chatTitle,
+  chatTitle: LANDMARKS.chatListName,
 };
 
 /** A chat list row as WhatsApp lays it out, with an unread badge when `count` is given (#100). */
 function row(name: string, count?: string, index = 0): string {
   const badge = count === undefined ? '' : `<span data-testid="icon-unread-count">${count}</span>`;
-  return `<div role="row" data-testid="list-item-${String(index)}"><div data-testid="cell-frame-title"><span dir="auto">${name}</span></div><div data-testid="cell-frame-secondary"><span>Hi</span>${badge}</div></div>`;
+  return `<div role="row" data-testid="list-item-${String(index)}"><div data-testid="cell-frame-title"><span>Chat details</span><span dir="auto" title="${name}">${name}</span></div><div data-testid="cell-frame-secondary"><span>Hi</span>${badge}</div></div>`;
 }
 
 const list = (...rows: string[]) => `<div id="pane-side">${rows.join('')}</div>`;
 
 describe('unreadBadges', () => {
-  it('hands over each unread chat’s count by the fingerprint of its name, never the name (#705)', () => {
+  it('hands over each unread chat’s count by the fingerprint of its name alone, never the name (#705)', () => {
     document.body.innerHTML = list(row('Ana', '12'), row('Ben'), row('Cy', ' 3 '));
     const badges = unreadBadges(document, BADGES, fingerprint, 20);
     expect(badges).toBe(`${fingerprint('Ana')}:12,${fingerprint('Cy')}:3`);

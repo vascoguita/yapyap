@@ -99,15 +99,22 @@
           <div data-testid="list-column">
             <div id="side">
               <!-- As WhatsApp lays out the chat list (#100): only an unread chat has
-                   a badge, whose text is the count alone. -->
+                   a badge, whose text is the count alone. A row's title holds more
+                   than the name, which goes as the chat opens (#705). -->
               <div id="pane-side" aria-label="Chat list">
                 <div role="row" data-testid="list-item-0">
-                  <div data-testid="cell-frame-title"><span dir="auto">Test Chat One</span></div>
+                  <div data-testid="cell-frame-title">
+                    <span hidden>Chat details</span
+                    ><span dir="auto" title="Test Chat One">Test Chat One</span>
+                  </div>
                   <span data-testid="chat-list-timestamp">20:01</span>
                   <div data-testid="cell-frame-secondary"><span dir="ltr">See you at 8</span></div>
                 </div>
                 <div role="row" data-testid="list-item-1">
-                  <div data-testid="cell-frame-title"><span dir="auto">Test Chat Two</span></div>
+                  <div data-testid="cell-frame-title">
+                    <span hidden>Chat details</span
+                    ><span dir="auto" title="Test Chat Two">Test Chat Two</span>
+                  </div>
                   <span data-testid="chat-list-timestamp">21:15</span>
                   <div data-testid="cell-frame-secondary">
                     <span dir="ltr">Are you coming tomorrow?</span>

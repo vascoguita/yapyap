@@ -40,6 +40,13 @@ export interface ChatWatchDependencies {
   /** The open chat's message box is empty, and the user sent nothing since the last look. */
   readonly cleared: () => unknown;
   readonly every: (callback: () => void, ms: number) => unknown;
+  /**
+   * Calls `callback` as YapYap's window gets the focus. A click on a chat
+   * in a window that had none focuses it and opens the chat at once, and
+   * WhatsApp takes the chat's unread badge away as it opens, so a look
+   * right then still sees the badge (#705).
+   */
+  readonly focused: (callback: () => void) => unknown;
 }
 
 /**
@@ -180,7 +187,7 @@ export function followOpenChat(deps: ChatWatchDependencies): void {
     waited += 1;
     return current !== 0 && waited <= GIVE_UP_AFTER;
   };
-  deps.every(() => {
+  const tick = (): void => {
     if (busy() || !deps.enabled() || (seen !== undefined && !deps.onScreen())) {
       return;
     }
@@ -196,5 +203,7 @@ export function followOpenChat(deps: ChatWatchDependencies): void {
           current = 0;
         }
       });
-  }, LOOK_EVERY_MS);
+  };
+  deps.every(tick, LOOK_EVERY_MS);
+  deps.focused(tick);
 }
