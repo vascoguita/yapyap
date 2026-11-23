@@ -187,7 +187,7 @@ at the top of the chat, on the right:
 
 - While it is written, the box says **Writing the summary…**.
 - Its title, **Summary of 12 unread messages**, says how many it covers.
-  Below it come at most six short points, in the order things were said,
+  Below it come at most four short points, which fit without scrolling, in the order things were said,
   each naming who said it, in the chat's language. It never leaves out
   anything that needs you, and says so plainly: a message to you, such as
   one in a group that mentions you or replies to you, a question to you,

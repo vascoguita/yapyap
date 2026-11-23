@@ -53,6 +53,7 @@ export const INSTRUCTIONS = [
   'A summary is for the user to read before the messages themselves:',
   '- Cover only the messages the task names as unread; the earlier ones only help you understand them.',
   '- Keep the order in which things were said.',
+  '- Be brief: the summary must fit in a small box. Merge repeated messages into one point, and never mention what is not there, such as that nothing needs the user.',
   '- Never leave out anything that needs the user, and say plainly that it asks for their reply or action: a message to them, such as one in a group that names or mentions them, replies to or quotes their message, or asks them something; and a request for everyone to answer or act, such as "Who is coming to my birthday? Please reply here." Decisions, dates, times and tasks matter too.',
   '- Write each point as one short line that names who said it, as the chat names them, in the language the chat is written in.',
   '- Only what the messages say: never invent, guess or add advice. Of something you cannot see, such as a photo, say only that it was sent.',

@@ -28,7 +28,7 @@ describe('summaryPrompt', () => {
     expect(summaryTask(10, 50, NOW)).toContain('the newest 10 of the messages above');
     expect(summaryTask(10, 50, NOW)).toContain('Sunday, 22 November 2026');
     expect(summaryTask(10, 50, NOW)).toContain('<summary>');
-    expect(summaryTask(10, 50, NOW)).toContain('in at most 6 points');
+    expect(summaryTask(10, 50, NOW)).toContain('in at most 4 points of at most 15 words each');
   });
 
   it('says how to summarize in the instructions every request shares', () => {
@@ -36,6 +36,7 @@ describe('summaryPrompt', () => {
     expect(INSTRUCTIONS).toContain('- Never leave out anything that needs the user');
     expect(INSTRUCTIONS).toContain('Who is coming to my birthday?');
     expect(INSTRUCTIONS).toContain('- Keep the order in which things were said.');
+    expect(INSTRUCTIONS).toContain('never mention what is not there');
     expect(INSTRUCTIONS.trimEnd().endsWith('quotes or explanations.')).toBe(true);
   });
 
@@ -68,25 +69,25 @@ describe('summaryIn', () => {
       '• Cy: **great** news',
       '## Dee: _maybe_ ~not~ `late`',
       '* Eve: snake_case_name stays',
-      '-5 degrees, says Fay',
-      '10.30 works for Gus',
       '</summary>',
     ].join('\n');
     expect(summaryIn(answer)).toEqual([
       'Cy: great news',
       'Dee: maybe not late',
       'Eve: snake_case_name stays',
+    ]);
+    expect(summaryIn('<summary>-5 degrees, says Fay\n10.30 works for Gus</summary>')).toEqual([
       '-5 degrees, says Fay',
       '10.30 works for Gus',
     ]);
   });
 
-  it('keeps at most six points, each at most 500 characters', () => {
+  it('keeps at most four points, each at most 500 characters', () => {
     const lines = Array.from({ length: 10 }, (_, at) => `Ana ${String(at)}`);
     const points = summaryIn(`<summary>${'x'.repeat(600)}\n${lines.join('\n')}</summary>`);
-    expect(points).toHaveLength(6);
+    expect(points).toHaveLength(4);
     expect(points[0]).toHaveLength(500);
-    expect(points[5]).toBe('Ana 4');
+    expect(points[3]).toBe('Ana 2');
   });
 
   it('joins a summary fenced twice, whatever its tags’ case', () => {

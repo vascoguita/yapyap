@@ -1,8 +1,13 @@
 import type { ReadChat } from '../../adapter/active-chat.ts';
 import { chatContext, INSTRUCTIONS, nowLine, type Prompt } from './prompts.ts';
 
-/** The most points a summary shows, as the model is asked. */
-const MAX_POINTS = 6;
+/**
+ * The most points a summary shows, and the most words in each, as the
+ * model is asked: about eight lines, which the box shows whole, without
+ * scrolling.
+ */
+const MAX_POINTS = 4;
+const MAX_WORDS = 15;
 /** The longest point shown; a longer one is cut. */
 const MAX_POINT = 500;
 
@@ -17,7 +22,7 @@ export function summaryTask(count: number, read: number, now: Date): string {
   return [
     nowLine(now),
     `There are ${String(count)} unread messages in this chat: the newest ${newest} of the messages above are unread.`,
-    `Summarize them for me as "Summarizing unread messages" describes, in at most ${String(MAX_POINTS)} points, each on a line of its own between <summary> and </summary>, and write nothing else.`,
+    `Summarize them for me as "Summarizing unread messages" describes, in at most ${String(MAX_POINTS)} points of at most ${String(MAX_WORDS)} words each, fewer when there is less to say, each on a line of its own between <summary> and </summary>, and write nothing else.`,
   ].join('\n');
 }
 
