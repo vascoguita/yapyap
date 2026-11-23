@@ -36,7 +36,7 @@ overrides:
   # asar 4's glob 13 has its own advisory (GHSA-3g3m-2fjr-6pw4), fixed in 14.
   '@electron/asar>glob': 14.0.6
   filelist@1: 2.0.2
-  minimatch@<11.0.1: 11.0.8
+  minimatch@<11.0.1: 11.0.9
   # YapYap builds no Squirrel.Windows installer (NSIS instead), and this
   # optional peer of electron-builder only brings an old glob and rimraf.
   electron-builder-squirrel-windows: '-'
