@@ -187,12 +187,12 @@ at the top of the chat, on the right:
 
 - While it is written, the box says **Writing the summary…**.
 - Its title, **Summary of 12 unread messages**, says how many it covers.
-  Below it come at most six short points, each naming who said it, in the
-  chat's language. Anything that needs you comes first and says so: a
-  message to you, such as one in a group that mentions you or replies to
-  you, a question to you, or a request for everyone to answer, such as
-  "Who is coming to my birthday? Please reply here." Then come decisions,
-  dates and tasks, then the rest.
+  Below it come at most six short points, in the order things were said,
+  each naming who said it, in the chat's language. It never leaves out
+  anything that needs you, and says so plainly: a message to you, such as
+  one in a group that mentions you or replies to you, a question to you,
+  or a request for everyone to answer, such as "Who is coming to my
+  birthday? Please reply here."
 - If no summary comes, the box says why, with **Try Again** when asking
   again may help.
 - Close it with its **×**, or Esc while it has the focus. It also goes

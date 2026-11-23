@@ -35,6 +35,7 @@ describe('summaryPrompt', () => {
     expect(INSTRUCTIONS).toContain('## Summarizing unread messages');
     expect(INSTRUCTIONS).toContain('- Never leave out anything that needs the user');
     expect(INSTRUCTIONS).toContain('Who is coming to my birthday?');
+    expect(INSTRUCTIONS).toContain('- Keep the order in which things were said.');
     expect(INSTRUCTIONS.trimEnd().endsWith('quotes or explanations.')).toBe(true);
   });
 
