@@ -15,7 +15,7 @@ runtime=$(command -v docker || command -v podman)
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 
-BREW=ghcr.io/homebrew/brew@sha256:6c82981323b11a72e0949e40bf0ba25587870fd81314d4b1a62e531201c1238f
+BREW=ghcr.io/homebrew/brew@sha256:77bda6c35c8dedcbbd7472ee566025f33aba2aebbf3af18537d67e5b3c3ca20b
 SUFFIXES=(mac-universal.dmg win-x64-setup.exe win-arm64-setup.exe win-x64-portable.exe win-arm64-portable.exe)
 
 generate() {
@@ -47,5 +47,13 @@ cp "$work/10.20.31-beta.1/out/homebrew/Casks/"*.rb "$work/casks/beta/"
       cp /casks/$set/*.rb "$tap/Casks/"
       brew style --cask vascoguita/yapyap/yapyap vascoguita/yapyap/yapyap@beta
       brew audit --cask --strict vascoguita/yapyap/yapyap vascoguita/yapyap/yapyap@beta
+      # Audit passes casks that print deprecation warnings on install, such
+      # as the url stanza'"'"'s verified parameter in Homebrew 7 (#755); loading
+      # them shows those warnings.
+      warnings=$(brew info --cask vascoguita/yapyap/yapyap vascoguita/yapyap/yapyap@beta 2>&1 > /dev/null)
+      if [ -n "$warnings" ]; then
+        echo "$warnings" >&2
+        exit 1
+      fi
     done'
 echo 'The Homebrew, winget and Scoop manifests pass their checks.'

@@ -18,8 +18,8 @@ function cask(channel: Channel, release: DistributionRelease): string {
     `  version "${release.version}"`,
     `  sha256 "${dmg.sha256}"`,
     '',
-    `  url "${url}",`,
-    '      verified: "github.com/vascoguita/yapyap/"',
+    // Homebrew 7 checks the URL on its own and warns on `verified:` (#755).
+    `  url "${url}"`,
     `  name "${packageName(channel)}"`,
     `  desc "${ABOUT.summary}"`,
     `  homepage "${ABOUT.homepage}"`,
