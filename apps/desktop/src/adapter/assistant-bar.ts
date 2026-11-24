@@ -460,7 +460,8 @@ export function joinAssistantBar(
   kit.square(store, tray && !replying ? box : null);
   // By its exact height, which a scaled display makes fractional, less the pixel the tray
   // overlaps it by, so no hairline of wallpaper shows between the two.
-  kit.raise(store, layer, tray ? host.getBoundingClientRect().height - 1 : 0);
+  // A quote the user closed drops back behind the tray, where its way out goes unseen.
+  kit.raise(store, layer, tray && replying ? host.getBoundingClientRect().height - 1 : 0);
 }
 
 /**
@@ -629,19 +630,22 @@ export function buildAssistantBar(
 }
 
 /**
- * Looks again as the user types, and right after a click, which may start
- * or close a reply that WhatsApp shows at once and then animates (#764),
- * rather than at the next render, up to a second later.
+ * Looks again as the user types, and after a click, which may start or
+ * close a reply that WhatsApp shows at once and then animates (#764):
+ * before the next frame is drawn, once WhatsApp has answered the click,
+ * and again as its animation ends, rather than at the next render, up to
+ * a second later.
  */
 export function listenToAssistantPage(doc: BarDocument, scope: Scope, sync: () => void): void {
   doc.addEventListener('input', sync, true);
   // WhatsApp's editor deletes without an `input` event, so a key let go looks again.
   doc.addEventListener('keyup', sync, true);
+  const frame = scope['requestAnimationFrame'] as (callback: () => void) => unknown;
   const later = scope['setTimeout'] as (callback: () => void, ms: number) => unknown;
   doc.addEventListener(
     'click',
     () => {
-      later.call(scope, sync, 50);
+      frame.call(scope, sync);
       later.call(scope, sync, 400);
     },
     true,
