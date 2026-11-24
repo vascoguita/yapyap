@@ -222,10 +222,12 @@ still should.
   message box.
 - 2026-11-24 (#764, the maintainer's decision): the bar becomes a tray
   joined to the message box, as WhatsApp joins the quote of a message
-  being replied to: as wide as the box, in its fill, reaching behind its
-  rounded top, with WhatsApp's neutral chips under a "Suggested replies"
-  heading; the sparkle alone marks the assistant. While the user replies,
-  WhatsApp's quote layer moves up by the tray's height, so the quote comes
-  first, then the suggestions, then the box. That layer's `translate` is
-  the only style the assistant sets on WhatsApp's own elements, and it is
-  put back once the tray goes.
+  being replied to: on the box's exact edges, in its fill and shadow,
+  drawn just over it so the box's own shadow is hidden where they meet,
+  with WhatsApp's neutral chips under a "Suggested replies" heading; the
+  sparkle alone marks the assistant. The box's top corners go square while
+  the tray sits on it; while the user replies, WhatsApp squares them
+  itself and its quote layer moves up by the tray's height, so the quote
+  comes first, then the suggestions, then the box. Those corners and that
+  layer's `translate` are the only styles the assistant sets on WhatsApp's
+  own elements, and both are put back once the tray goes.

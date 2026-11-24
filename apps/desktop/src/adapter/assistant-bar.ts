@@ -112,8 +112,9 @@ interface BarNode {
     insetBlockStart: string;
     maxBlockSize: string;
     marginInline: string;
-    marginBlockEnd: string;
     translate: string;
+    borderStartStartRadius: string;
+    borderStartEndRadius: string;
     setProperty(name: string, value: string): void;
   };
   readonly dataset: Record<string, string | undefined>;
@@ -205,6 +206,8 @@ interface BarStore {
   key: string | null;
   /** WhatsApp's layer of the quote of the message the user replies to, while the tray moved it up (#764). */
   raised: BarNode | undefined;
+  /** WhatsApp's message box, while the tray squared its top corners (#764). */
+  squared: BarNode | undefined;
   /** Shows the suggestions only while the message box is empty, and the bar only with something in it. */
   readonly sync: () => void;
 }
@@ -224,9 +227,16 @@ export interface BarKit {
     scope: Scope,
     footer: BarNode,
     places: BarPlaces,
-    store: Pick<BarStore, 'host' | 'parts' | 'raised'>,
+    store: Pick<BarStore, 'host' | 'parts' | 'raised' | 'squared'>,
     kit: BarKit,
   ) => void;
+  readonly fitTray: (
+    scope: Scope,
+    footer: BarNode,
+    store: Pick<BarStore, 'host' | 'parts'>,
+    box: BarNode,
+  ) => void;
+  readonly square: (store: Pick<BarStore, 'squared'>, box: BarNode | null) => void;
   readonly box: (scope: Scope, footer: BarNode, places: BarPlaces) => BarNode | null;
   readonly raise: (store: Pick<BarStore, 'raised'>, layer: BarNode | undefined, by: number) => void;
   readonly paint: typeof paintWhatsAppTheme;
@@ -415,12 +425,13 @@ export function assistantTrayBox(scope: Scope, footer: BarNode, places: BarPlace
 }
 
 /**
- * Joins the tray of suggestions to WhatsApp's message box, as WhatsApp
- * joins the quote of the message the user replies to (#764): the tray
- * takes the box's width and fill, and reaches down behind the box's top,
- * so its rounded corners show the tray's own fill and the two read as one.
- * While the user replies, WhatsApp draws that quote right on top of the
- * box; it goes up by the tray's height, so the quote comes first, then the
+ * Joins the tray of suggestions to WhatsApp's message box, which grows
+ * upward to hold them, as it does for the quote of a message the user
+ * replies to (#764): the tray takes the box's edges, fill and shadow, and
+ * the box's top corners go square while the tray sits on it; the tray is
+ * drawn over the box's own shadow there, so the two read as one box. While
+ * the user replies, WhatsApp draws that quote right on top of the box; it
+ * goes up by the tray's height, so the quote comes first, then the
  * suggestions, then the box. Measuring forces a layout, as every render
  * already does to put the bar in place.
  */
@@ -428,34 +439,68 @@ export function joinAssistantBar(
   scope: Scope,
   footer: BarNode,
   places: BarPlaces,
-  store: Pick<BarStore, 'host' | 'parts' | 'raised'>,
+  store: Pick<BarStore, 'host' | 'parts' | 'raised' | 'squared'>,
   kit: BarKit,
 ): void {
-  // As far as the box's rounded corners reach down, which the tray fills in behind it.
-  const behind = 26;
   const { host, parts } = store;
   const box = kit.box(scope, footer, places);
-  if (box !== null) {
-    const [inner, outer] = [box.getBoundingClientRect(), footer.getBoundingClientRect()];
-    const ltr =
-      (scope['getComputedStyle'] as (node: BarNode) => { direction: string }).call(scope, footer)
-        .direction !== 'rtl';
-    const [left, right] = [inner.left - outer.left, outer.right - inner.right];
-    parts.bar.style.marginInline = `${String(ltr ? left : right)}px ${String(ltr ? right : left)}px`;
-    host.style.setProperty(
-      '--tray',
-      (scope['getComputedStyle'] as (node: BarNode) => { backgroundColor: string }).call(scope, box)
-        .backgroundColor,
-    );
-  }
   const tray = host.style.display !== 'none' && parts.bar.dataset['tray'] === 'true';
   const quote = footer.ownerDocument.querySelector(places.quote);
   const layer = Array.from(footer.children).find(
     (child) => quote !== null && child.contains(quote),
   );
   parts.bar.dataset['joined'] = layer === undefined ? 'box' : 'quote';
-  host.style.marginBlockEnd = tray ? `-${String(behind)}px` : '';
-  kit.raise(store, layer, tray ? host.offsetHeight - behind : 0);
+  if (box !== null) {
+    kit.fitTray(scope, footer, store, box);
+  }
+  // While the user replies, WhatsApp squares the box's top itself, under its quote.
+  kit.square(store, tray && layer === undefined ? box : null);
+  kit.raise(store, layer, tray ? host.offsetHeight : 0);
+}
+
+/**
+ * Gives the tray the message box's exact edges, fill and shadow, and draws
+ * it just over the box, whose shadow it hides where they meet (#764).
+ */
+export function fitAssistantTray(
+  scope: Scope,
+  footer: BarNode,
+  { host, parts }: Pick<BarStore, 'host' | 'parts'>,
+  box: BarNode,
+): void {
+  const style = (node: BarNode) =>
+    (
+      scope['getComputedStyle'] as (node: BarNode) => {
+        readonly backgroundColor: string;
+        readonly boxShadow: string;
+        readonly direction: string;
+        readonly zIndex: string;
+      }
+    ).call(scope, node);
+  const [inner, outer] = [box.getBoundingClientRect(), host.getBoundingClientRect()];
+  const [left, right] = [inner.left - outer.left, outer.right - inner.right];
+  const ltr = style(footer).direction !== 'rtl';
+  parts.bar.style.marginInline = `${String(ltr ? left : right)}px ${String(ltr ? right : left)}px`;
+  const { backgroundColor, boxShadow } = style(box);
+  host.style.setProperty('--tray', backgroundColor);
+  host.style.setProperty('--tray-shadow', boxShadow);
+  host.style.zIndex = String((Number.parseInt(style(footer).zIndex, 10) || 0) + 1);
+}
+
+/**
+ * Squares the top corners of the message box the tray sits on, and puts
+ * back those of one it squared before that it no longer sits on (#764).
+ */
+export function squareAssistantBox(store: Pick<BarStore, 'squared'>, box: BarNode | null): void {
+  if (store.squared !== undefined && store.squared !== box) {
+    store.squared.style.borderStartStartRadius = '';
+    store.squared.style.borderStartEndRadius = '';
+  }
+  if (box !== null) {
+    box.style.borderStartStartRadius = '0';
+    box.style.borderStartEndRadius = '0';
+  }
+  store.squared = box ?? undefined;
 }
 
 /**
@@ -546,6 +591,7 @@ export function buildAssistantBar(
     parts,
     key: null,
     raised: undefined,
+    squared: undefined,
     sync: () => {
       kit.show(doc, scope, places, store, kit);
     },
@@ -937,12 +983,16 @@ const BAR_STYLE = `${ASSISTANT_THEME}${WORKING_EDGE}
   color: var(--text); font-family: inherit; font-size: var(--font-body);
 }
 .bar[data-tray='true'] {
-  padding-block: var(--space-2) calc(26px + 10px); padding-inline: var(--space-4) var(--space-2);
-  border-start-start-radius: 26px; border-start-end-radius: 26px; background: var(--tray);
+  isolation: isolate; padding-block: var(--space-2) 10px; padding-inline: var(--space-4) var(--space-2);
 }
-.bar[data-tray='true'][data-joined='quote'] { border-radius: 0; }
+.bar[data-tray='true']::before {
+  content: ''; position: absolute; inset: 0; z-index: -1;
+  border-start-start-radius: 26px; border-start-end-radius: 26px; background: var(--tray);
+  box-shadow: var(--tray-shadow, none); clip-path: inset(-16px -16px 0 -16px);
+}
+.bar[data-tray='true'][data-joined='quote']::before { border-radius: 0; clip-path: inset(0 -16px); }
 .bar[data-tray='true']::after {
-  content: ''; position: absolute; inset-inline: var(--space-4); inset-block-end: 26px;
+  content: ''; position: absolute; inset-inline: var(--space-4); inset-block-end: 0;
   block-size: 1px; background: var(--tray-line);
 }
 .row { display: flex; align-items: center; gap: var(--space-2); min-inline-size: 0; }
@@ -1058,6 +1108,8 @@ export function assistantBarRender(content: BarContent): string {
     `join: ${joinAssistantBar.toString()}`,
     `box: ${assistantTrayBox.toString()}`,
     `raise: ${raiseAssistantQuote.toString()}`,
+    `fitTray: ${fitAssistantTray.toString()}`,
+    `square: ${squareAssistantBox.toString()}`,
     `paint: ${paintWhatsAppTheme.toString()}`,
     `room: ${holdAssistantBarRoom.toString()}`,
     `build: ${buildAssistantBar.toString()}`,

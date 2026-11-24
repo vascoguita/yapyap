@@ -2,7 +2,9 @@
 import { runInNewContext } from 'node:vm';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  fitAssistantTray,
   joinAssistantBar,
+  squareAssistantBox,
   raiseAssistantQuote,
   actOnAssistantBar,
   alignAssistantBar,
@@ -83,6 +85,8 @@ const KIT = {
   join: joinAssistantBar,
   box: assistantTrayBox,
   raise: raiseAssistantQuote,
+  fitTray: fitAssistantTray,
+  square: squareAssistantBox,
   paint: paintWhatsAppTheme,
   room: holdAssistantBarRoom,
   build: buildAssistantBar,
@@ -546,24 +550,51 @@ describe('joining the tray to the message box (#764)', () => {
     expect(assistantTrayBox(window as never, footer, PLACES)).toBeNull();
   });
 
-  it('takes the box’s width and fill, and reaches down behind its rounded top', () => {
+  it('takes the box’s edges, fill and shadow, and squares the box’s top while it sits on it', () => {
     page();
+    const box = document.querySelector<HTMLElement>('.box') ?? document.body;
+    box.style.setProperty('box-shadow', 'rgba(0, 0, 0, 0.12) 0px 1px 6px 0px');
     const scope: Record<string, unknown> = { getComputedStyle };
     renderAssistantBar(document, scope, CONTENT, PLACES, KIT);
     const { host, parts } = scope['bar'] as Stored;
+    // The tray's edges are the box's, measured from the tray's own frame.
+    across(host, 100, 1100);
+    renderAssistantBar(document, scope, { ...CONTENT, writing: true }, PLACES, KIT);
     expect(parts.bar.dataset['tray']).toBe('true');
     expect(parts.bar.style.marginInline).toBe('12px 12px');
     expect(host.style.getPropertyValue('--tray')).toBe('rgb(255, 255, 255)');
-    expect(host.style.marginBlockEnd).toBe('-26px');
+    expect(host.style.getPropertyValue('--tray-shadow')).toBe(
+      'rgba(0, 0, 0, 0.12) 0px 1px 6px 0px',
+    );
+    // Over the box, whose own shadow it hides where they meet.
+    expect(host.style.zIndex).toBe('3');
     expect(parts.bar.dataset['joined']).toBe('box');
+    expect([box.style.borderStartStartRadius, box.style.borderStartEndRadius]).toEqual(['0', '0']);
+  });
+
+  it('lines up right to left, and gives the box its corners back once the tray goes', () => {
+    page();
+    const box = document.querySelector<HTMLElement>('.box') ?? document.body;
+    const scope: Record<string, unknown> = { getComputedStyle };
+    renderAssistantBar(document, scope, CONTENT, PLACES, KIT);
+    const { parts } = scope['bar'] as Stored;
+    across((scope['bar'] as Stored).host, 100, 1100);
     // Right to left, the box's start is on its right.
     across(document.querySelector('.box'), 120, 1088);
     document.querySelector<HTMLElement>('#main footer')?.style.setProperty('direction', 'rtl');
     renderAssistantBar(document, scope, CONTENT, PLACES, KIT);
     expect(parts.bar.style.marginInline).toBe('12px 20px');
-    // With nothing in the tray, it reaches nowhere.
+    // With nothing in the tray, the box gets its own corners back.
     renderAssistantBar(document, scope, { ...CONTENT, suggestions: [] }, PLACES, KIT);
-    expect(host.style.marginBlockEnd).toBe('');
+    expect([box.style.borderStartStartRadius, box.style.borderStartEndRadius]).toEqual(['', '']);
+  });
+
+  it('draws over a footer of no stacking order of its own', () => {
+    page();
+    document.querySelector<HTMLElement>('#main footer')?.style.removeProperty('z-index');
+    const scope: Record<string, unknown> = { getComputedStyle };
+    renderAssistantBar(document, scope, CONTENT, PLACES, KIT);
+    expect((scope['bar'] as Stored).host.style.zIndex).toBe('1');
   });
 
   it('moves WhatsApp’s quote up over the tray while the user replies, and back once it goes', () => {
@@ -572,10 +603,12 @@ describe('joining the tray to the message box (#764)', () => {
     const layer = document.querySelector<HTMLElement>('.layer');
     renderAssistantBar(document, scope, CONTENT, PLACES, KIT);
     const { host, parts } = scope['bar'] as Stored;
-    Object.defineProperty(host, 'offsetHeight', { configurable: true, value: 126 });
+    Object.defineProperty(host, 'offsetHeight', { configurable: true, value: 100 });
     renderAssistantBar(document, scope, { ...CONTENT, writing: true }, PLACES, KIT);
     expect(parts.bar.dataset['joined']).toBe('quote');
     expect(layer?.style.translate).toBe('0 -100px');
+    // WhatsApp squares the box's top itself under its quote.
+    expect(document.querySelector<HTMLElement>('.box')?.style.borderStartStartRadius).toBe('');
     renderAssistantBar(document, scope, { ...CONTENT, suggestions: [] }, PLACES, KIT);
     expect(layer?.style.translate).toBe('');
     // A quote WhatsApp drew anew is moved, and the old layer put back.
@@ -588,6 +621,18 @@ describe('joining the tray to the message box (#764)', () => {
     renderAssistantBar(document, scope, { ...CONTENT, writing: true }, PLACES, KIT);
     expect(layer?.style.translate).toBe('');
     expect(document.querySelector<HTMLElement>('.layer2')?.style.translate).toBe('0 -100px');
+  });
+
+  it('gives a box it squared its corners back once it sits on another', () => {
+    const [first, second] = [document.createElement('div'), document.createElement('div')];
+    const store: { squared: HTMLElement | undefined } = { squared: undefined };
+    squareAssistantBox(store as never, first as never);
+    squareAssistantBox(store as never, second as never);
+    expect([first.style.borderStartStartRadius, second.style.borderStartStartRadius]).toEqual([
+      '',
+      '0',
+    ]);
+    expect(store.squared).toBe(second);
   });
 
   it('puts back a layer it moved, and moves none while nothing is raised', () => {

@@ -483,7 +483,6 @@ export async function chooseReply(page: Page, id: string, author: string): Promi
  * Where the fake page lays out the chat's end, the assistant's tray, the
  * quote of the message the user replies to and the message box, as the
  * top or bottom edges that meet (#740, #764); 0 for one that is not there.
- * The tray reaches 26px down behind the message box's rounded top.
  */
 export async function replyLayout(page: Page): Promise<{
   readonly chatEnd: number;
