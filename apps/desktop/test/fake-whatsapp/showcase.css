@@ -434,8 +434,11 @@ svg {
 
 /* The message box */
 
+/* As WhatsApp's: raised over the chat, with the message box at its top (#764). */
 footer {
-  padding: 8px 16px 14px;
+  position: relative;
+  z-index: 2;
+  padding: 0 16px 14px;
 }
 
 .compose-row {

@@ -111,6 +111,11 @@ interface BarNode {
     display: string;
     insetBlockStart: string;
     maxBlockSize: string;
+    marginInline: string;
+    translate: string;
+    borderStartStartRadius: string;
+    borderStartEndRadius: string;
+    transition: string;
     setProperty(name: string, value: string): void;
   };
   readonly dataset: Record<string, string | undefined>;
@@ -122,9 +127,13 @@ interface BarNode {
   scrollIntoView(options: { readonly block: 'start' }): void;
   addEventListener(type: string, listener: (event: BarEvent) => void): void;
   closest(selectors: string): BarNode | null;
+  readonly children: ArrayLike<BarNode>;
+  contains(node: unknown): boolean;
   getBoundingClientRect(): {
     readonly top: number;
     readonly bottom: number;
+    readonly left: number;
+    readonly right: number;
     readonly width: number;
     readonly height: number;
   };
@@ -153,6 +162,8 @@ interface BarHidden {
   readonly chips: boolean;
   readonly folded: boolean;
   readonly card: boolean;
+  /** The tray, which shows only with something in it: the summary's box alone has its own place (#764). */
+  readonly tray: boolean;
   readonly bar: boolean;
 }
 
@@ -181,6 +192,8 @@ interface BarParts extends SummaryParts {
   /** Tells screen readers that suggestions are being written. */
   readonly status: BarNode;
   readonly collapse: BarNode;
+  /** The suggestions' heading, beside the sparkle. */
+  readonly heading: BarNode;
   /** The row the suggestions fold into, with the button that shows them again. */
   readonly folded: BarNode;
   readonly expand: BarNode;
@@ -192,8 +205,14 @@ interface BarStore {
   readonly host: BarNode;
   readonly parts: BarParts;
   key: string | null;
+  /** WhatsApp's layer of the quote of the message the user replies to, while the tray moved it up (#764). */
+  raised: BarNode | undefined;
+  /** WhatsApp's message box, while the tray squared its top corners (#764). */
+  squared: BarNode | undefined;
   /** Shows the suggestions only while the message box is empty, and the bar only with something in it. */
   readonly sync: () => void;
+  /** Follows the page before every frame for a second, to join the message box as WhatsApp builds it (#764). */
+  readonly follow: () => void;
 }
 
 /** What a render changes: the content, and whether the bar goes back above the message box. */
@@ -207,7 +226,25 @@ interface BarRefresh {
 /** The bar's helpers, passed in because each runs as its own source text. */
 export interface BarKit {
   readonly align: (scope: Scope, host: BarNode, footer: BarNode) => void;
-  readonly lift: (footer: BarNode, places: BarPlaces) => number;
+  readonly join: (
+    scope: Scope,
+    footer: BarNode,
+    places: BarPlaces,
+    store: Pick<BarStore, 'host' | 'parts' | 'raised' | 'squared'>,
+    kit: BarKit,
+  ) => void;
+  readonly fitTray: (
+    scope: Scope,
+    footer: BarNode,
+    store: Pick<BarStore, 'host' | 'parts'>,
+    box: BarNode,
+  ) => void;
+  readonly square: (store: Pick<BarStore, 'squared'>, box: BarNode | null) => void;
+  readonly squaredBy: (scope: Scope, box: BarNode | null, layer: BarNode | undefined) => boolean;
+  readonly layer: (footer: BarNode, places: BarPlaces) => BarNode | undefined;
+  readonly watchPage: (doc: BarDocument, scope: Scope, sync: () => void) => () => void;
+  readonly box: (scope: Scope, footer: BarNode, places: BarPlaces) => BarNode | null;
+  readonly raise: (store: Pick<BarStore, 'raised'>, layer: BarNode | undefined, by: number) => void;
   readonly paint: typeof paintWhatsAppTheme;
   readonly room: (scope: Scope, places: BarPlaces, bar: BarNode, change: () => void) => void;
   readonly build: (doc: BarDocument, scope: Scope, places: BarPlaces, kit: BarKit) => BarStore;
@@ -293,12 +330,15 @@ export function renderAssistantBar(
     footer.before(store.host);
   };
   kit.refresh(doc, scope, places, { store, shown, placed, place }, kit);
-  // Only drawn higher: WhatsApp already leaves the quote's height free above the box, so the chat keeps its own.
-  store.host.style.insetBlockStart = `${String(-kit.lift(footer, places))}px`;
   store.sync();
   kit.fit(doc, places, store.parts, kit);
   kit.align(scope, store.host, footer);
   kit.paint(scope, store.host, footer);
+  kit.join(scope, footer, places, store, kit);
+  if (placed) {
+    // Into a chat that opened: WhatsApp may still be building its message box.
+    store.follow();
+  }
   return placed ? 'placed' : 'kept';
 }
 
@@ -376,26 +416,155 @@ export function alignAssistantBar(scope: Scope, host: BarNode, footer: BarNode):
 }
 
 /**
- * How far above the message box WhatsApp's quote of the message the user
- * replies to reaches, in whole pixels, or 0 without one. WhatsApp draws it
- * over the space above the box, where the bar sits, which hid the
- * suggestions, and leaves as much free at the end of the chat for it; the
- * bar is drawn that much higher, into that free space (#740). The quote's own panel is
- * one of its ancestors in the box's footer, which may be taller than the
- * quote, so the highest of them counts; one not laid out counts for none.
+ * WhatsApp's message box: the field's nearest box with a fill of its own,
+ * whose width, fill and corners the tray takes on (#764); null without one.
  */
-export function assistantBarLift(footer: BarNode, places: BarPlaces): number {
-  const bottom = footer.getBoundingClientRect().top;
-  let top = bottom;
-  for (
-    let node = footer.ownerDocument.querySelector(places.quote) as BarNode | null;
-    node !== null && node !== footer;
-    node = node.parentElement
-  ) {
-    const box = node.getBoundingClientRect();
-    top = box.height > 0 ? Math.min(top, box.top) : top;
+export function assistantTrayBox(scope: Scope, footer: BarNode, places: BarPlaces): BarNode | null {
+  const computed = scope['getComputedStyle'] as (node: BarNode) => {
+    readonly backgroundColor: string;
+  };
+  // A box without a fill of its own reads as no colour, transparent, or one with no alpha.
+  const clear = (node: BarNode): boolean =>
+    /^(transparent|rgba\(.*,\s*0\))?$/.test(computed.call(scope, node).backgroundColor);
+  const field = footer.ownerDocument.querySelector(places.field) as BarNode | null;
+  let box = field?.parentElement ?? null;
+  while (box !== null && box !== footer && clear(box)) {
+    box = box.parentElement;
   }
-  return Math.round(bottom - top);
+  return box === footer ? null : box;
+}
+
+/**
+ * Joins the tray of suggestions to WhatsApp's message box, which grows
+ * upward to hold them, as it does for the quote of a message the user
+ * replies to (#764): the tray takes the box's edges, fill and shadow, and
+ * the box's top corners go square while the tray sits on it; the tray is
+ * drawn over the box's own shadow there, so the two read as one box. While
+ * the user replies, WhatsApp draws that quote right on top of the box; it
+ * goes up by the tray's height, so the quote comes first, then the
+ * suggestions, then the box. Measuring forces a layout, as every render
+ * already does to put the bar in place.
+ */
+export function joinAssistantBar(
+  scope: Scope,
+  footer: BarNode,
+  places: BarPlaces,
+  store: Pick<BarStore, 'host' | 'parts' | 'raised' | 'squared'>,
+  kit: BarKit,
+): void {
+  const { host, parts } = store;
+  const box = kit.box(scope, footer, places);
+  // Hidden, the bar's tray holds nothing either.
+  const tray = parts.bar.dataset['tray'] === 'true';
+  const layer = kit.layer(footer, places);
+  // The user replies while WhatsApp squares the box's top under its quote; a quote it is
+  // still taking away, as the user closed it, leaves the box rounded already.
+  const replying = kit.squaredBy(scope, box, layer);
+  parts.bar.dataset['joined'] = replying ? 'quote' : 'box';
+  if (box !== null) {
+    kit.fitTray(scope, footer, store, box);
+  }
+  // Square under the tray whether or not WhatsApp squares it too, so a quote on its way out
+  // never shows the box's rounded top under the tray.
+  kit.square(store, tray ? box : null);
+  // By its exact height, which a scaled display makes fractional, less the pixel the tray
+  // overlaps it by, so no hairline of wallpaper shows between the two.
+  // A quote the user closed drops back behind the tray, where its way out goes unseen.
+  kit.raise(store, layer, tray && replying ? host.getBoundingClientRect().height - 1 : 0);
+}
+
+/**
+ * Whether the user replies: WhatsApp shows its quote of the message, in
+ * `layer`, and itself squared the message box's top corners under it
+ * (#764). The tray's own squaring is set aside for a moment to tell.
+ */
+export function assistantBoxSquared(
+  scope: Scope,
+  box: BarNode | null,
+  layer: BarNode | undefined,
+): boolean {
+  if (box === null || layer === undefined) {
+    return false;
+  }
+  const { style } = box;
+  const kept = [style.borderStartStartRadius, style.borderStartEndRadius] as const;
+  style.borderStartStartRadius = '';
+  style.borderStartEndRadius = '';
+  // WhatsApp squares both top corners together, so one tells, whichever way the text runs.
+  const computed = scope['getComputedStyle'] as (node: BarNode) => {
+    readonly borderTopLeftRadius: string;
+  };
+  const radius = computed.call(scope, box).borderTopLeftRadius;
+  [style.borderStartStartRadius, style.borderStartEndRadius] = kept;
+  return Number.parseFloat(radius) === 0;
+}
+
+/**
+ * Gives the tray the message box's exact edges, fill and shadow, and draws
+ * it just over the box, whose shadow it hides where they meet (#764).
+ */
+export function fitAssistantTray(
+  scope: Scope,
+  footer: BarNode,
+  { host, parts }: Pick<BarStore, 'host' | 'parts'>,
+  box: BarNode,
+): void {
+  const style = (node: BarNode) =>
+    (
+      scope['getComputedStyle'] as (node: BarNode) => {
+        readonly backgroundColor: string;
+        readonly boxShadow: string;
+        readonly direction: string;
+        readonly zIndex: string;
+      }
+    ).call(scope, node);
+  const [inner, outer] = [box.getBoundingClientRect(), host.getBoundingClientRect()];
+  const [left, right] = [inner.left - outer.left, outer.right - inner.right];
+  const ltr = style(footer).direction !== 'rtl';
+  parts.bar.style.marginInline = `${String(ltr ? left : right)}px ${String(ltr ? right : left)}px`;
+  const { backgroundColor, boxShadow } = style(box);
+  host.style.setProperty('--tray', backgroundColor);
+  host.style.setProperty('--tray-shadow', boxShadow);
+  host.style.zIndex = String((Number.parseInt(style(footer).zIndex, 10) || 0) + 1);
+}
+
+/**
+ * Squares the top corners of the message box the tray sits on, and puts
+ * back those of one it squared before that it no longer sits on (#764).
+ * WhatsApp eases the box's corners over about half a second, which left
+ * them rounded under the tray as it first showed, so the box goes without
+ * transitions while the tray sits on it.
+ */
+export function squareAssistantBox(store: Pick<BarStore, 'squared'>, box: BarNode | null): void {
+  if (store.squared !== undefined && store.squared !== box) {
+    store.squared.style.borderStartStartRadius = '';
+    store.squared.style.borderStartEndRadius = '';
+    store.squared.style.transition = '';
+  }
+  if (box !== null) {
+    box.style.transition = 'none';
+    box.style.borderStartStartRadius = '0';
+    box.style.borderStartEndRadius = '0';
+  }
+  store.squared = box ?? undefined;
+}
+
+/**
+ * Moves WhatsApp's layer of the quote up `by` pixels, over the tray, and
+ * puts back one it moved before that is no longer the quote's (#764).
+ */
+export function raiseAssistantQuote(
+  store: Pick<BarStore, 'raised'>,
+  layer: BarNode | undefined,
+  by: number,
+): void {
+  if (store.raised !== undefined && store.raised !== layer) {
+    store.raised.style.translate = '';
+  }
+  if (layer !== undefined) {
+    layer.style.translate = by > 0 ? `0 ${String(-by)}px` : '';
+  }
+  store.raised = by > 0 ? layer : undefined;
 }
 
 /**
@@ -463,25 +632,78 @@ export function buildAssistantBar(
   parts.card.hidden = true;
   host.style.display = 'none';
   kit.wire(shadow, scope, places, kit);
+  const sync = (): void => {
+    kit.show(doc, scope, places, store, kit);
+    const footer = doc.querySelector(places.footer) as BarNode | null;
+    if (footer !== null) {
+      kit.join(scope, footer, places, store, kit);
+    }
+  };
   const store: BarStore = {
     host,
     parts,
     key: null,
-    sync: () => {
-      kit.show(doc, scope, places, store, kit);
-    },
+    raised: undefined,
+    squared: undefined,
+    sync,
+    follow: kit.watchPage(doc, scope, sync),
   };
-  doc.addEventListener('input', store.sync, true);
-  // WhatsApp's editor deletes without an `input` event, so a key let go looks again.
-  doc.addEventListener('keyup', store.sync, true);
   return store;
 }
 
 /**
+ * Looks again as the user types, and after a click, which may start or
+ * close a reply that WhatsApp shows at once and then animates (#764):
+ * before every frame drawn in the second after it, so the tray follows
+ * WhatsApp through its animation rather than at the next render, up to a
+ * second later. It then stops. It returns that following, for the render
+ * to start as the tray goes into a chat whose message box WhatsApp is
+ * still building; following again starts the second anew.
+ */
+export function listenToAssistantPage(
+  doc: BarDocument,
+  scope: Scope,
+  sync: () => void,
+): () => void {
+  doc.addEventListener('input', sync, true);
+  // WhatsApp's editor deletes without an `input` event, so a key let go looks again.
+  doc.addEventListener('keyup', sync, true);
+  const frame = scope['requestAnimationFrame'] as (callback: (now: number) => void) => unknown;
+  let start: number | undefined;
+  let running = false;
+  const step = (now: number): void => {
+    start ??= now;
+    sync();
+    running = now - start < 1000;
+    if (running) {
+      frame.call(scope, step);
+    }
+  };
+  const follow = (): void => {
+    start = undefined;
+    if (!running) {
+      running = true;
+      frame.call(scope, step);
+    }
+  };
+  doc.addEventListener('click', follow, true);
+  return follow;
+}
+
+/** WhatsApp's layer in the footer that holds the quote of the message the user replies to; none without one. */
+export function assistantQuoteLayer(footer: BarNode, places: BarPlaces): BarNode | undefined {
+  const quote = footer.ownerDocument.querySelector(places.quote);
+  return quote === null
+    ? undefined
+    : Array.from(footer.children).find((child) => child.contains(quote));
+}
+
+/**
  * The bar's rows, each starting with the sparkle: the notice, with its
- * text, its button and close; the suggestions, with what tells screen
- * readers they are being written, and the button that folds them away;
- * and the one button they fold into, which shows them again (#729).
+ * text, its button and close; the suggestions, under their heading, which
+ * ends with the button that folds them away, with what tells screen
+ * readers they are being written; and the one button they fold into, which
+ * shows them again (#729, #764).
  */
 export function assistantBarRows(
   doc: BarDocument,
@@ -491,10 +713,14 @@ export function assistantBarRows(
 ): Omit<BarParts, keyof SummaryParts> {
   const make = (tag: string, name: string, parent: BarNode, action?: string): BarNode =>
     kit.node(doc, tag, name, parent, action);
+  const icon = (name: keyof BarPlaces['icons'], role: string): BarNode =>
+    kit.icon(doc, places.icons[name], role);
   const notice = make('div', 'row notice', bar);
   notice.setAttribute('role', 'status');
-  notice.append(kit.icon(doc, places.icons.sparkle, 'mark'));
-  const chips = make('div', 'row chips', bar);
+  notice.append(icon('sparkle', 'mark'));
+  const chips = make('div', 'chips', bar);
+  const head = make('div', 'row head', chips);
+  head.append(icon('sparkle', 'mark'));
   const folded = make('div', 'row folded', bar);
   const parts = {
     bar,
@@ -503,8 +729,8 @@ export function assistantBarRows(
     action: make('button', 'action', notice, 'button'),
     close: make('button', 'icon', notice, 'button'),
     chips,
-    // First in its row, where the button the suggestions fold into is too (#729).
-    collapse: make('button', 'fold', chips, 'collapse'),
+    heading: make('span', 'heading', head),
+    collapse: make('button', 'icon', head, 'collapse'),
     list: make('ul', 'list', chips),
     status: make('span', 'status', chips),
     folded,
@@ -514,14 +740,9 @@ export function assistantBarRows(
   parts.status.setAttribute('role', 'status');
   parts.foldLabel.setAttribute('class', 'fold-label');
   parts.close.dataset['id'] = 'close';
-  const { sparkle, close, fold, unfold } = places.icons;
-  parts.close.append(kit.icon(doc, close, 'cross'));
-  parts.collapse.append(kit.icon(doc, sparkle, 'mark'), kit.icon(doc, fold, 'chevron'));
-  parts.expand.append(
-    kit.icon(doc, sparkle, 'mark'),
-    parts.foldLabel,
-    kit.icon(doc, unfold, 'chevron'),
-  );
+  parts.close.append(icon('close', 'cross'));
+  parts.collapse.append(icon('fold', 'chevron'));
+  parts.expand.append(icon('sparkle', 'mark'), parts.foldLabel, icon('unfold', 'chevron'));
   return parts;
 }
 
@@ -572,7 +793,8 @@ export function assistantBarHidden(parts: BarParts): BarHidden {
   const nothing = items === '0' && writing !== 'true';
   const chips = collapsed || nothing;
   const folded = !collapsed || items === '0';
-  return { chips, folded, card, bar: [chips, folded, card, parts.notice.hidden].every(Boolean) };
+  const tray = [chips, folded, parts.notice.hidden].every(Boolean);
+  return { chips, folded, card, tray, bar: tray && card };
 }
 
 /**
@@ -596,11 +818,16 @@ export function showAssistantBar(
   const same = (['chips', 'folded', 'card'] as const).every(
     (row) => parts[row].hidden === hidden[row],
   );
-  if (!same || host.style.display !== display) {
+  const tray = String(!hidden.tray);
+  if (
+    !same ||
+    `${host.style.display}/${String(parts.bar.dataset['tray'])}` !== `${display}/${tray}`
+  ) {
     kit.room(scope, places, parts.bar, () => {
       parts.chips.hidden = hidden.chips;
       parts.folded.hidden = hidden.folded;
       parts.card.hidden = hidden.card;
+      parts.bar.dataset['tray'] = tray;
       host.style.display = display;
     });
   }
@@ -709,6 +936,7 @@ export function updateAssistantBar(doc: BarDocument, parts: BarParts, content: B
   };
   parts.bar.setAttribute('aria-label', labels.label);
   parts.chips.setAttribute('aria-label', labels.suggestions);
+  parts.heading.textContent = labels.suggestions;
   named(parts.collapse, labels.collapse);
   named(parts.expand, labels.expand);
   named(parts.close, labels.close);
@@ -837,14 +1065,34 @@ export function noticeAssistantBar(parts: BarParts, notice: BarContent['notice']
  * right-to-left languages (ADR 0012).
  */
 const BAR_STYLE = `${ASSISTANT_THEME}${WORKING_EDGE}
-:host { display: block; }
+:host {
+  display: block;
+  --tray: var(--chip);
+  --tray-chip: color-mix(in srgb, var(--text) 6%, var(--tray));
+  --tray-chip-hover: color-mix(in srgb, var(--text) 11%, var(--tray));
+  --tray-line: color-mix(in srgb, var(--text) 10%, var(--tray));
+}
 [hidden] { display: none !important; }
 .bar {
-  display: flex; flex-direction: column; gap: var(--space-2); box-sizing: border-box;
+  position: relative; display: flex; flex-direction: column; gap: var(--space-1); box-sizing: border-box;
   padding-block: 6px var(--space-2); padding-inline: var(--space-4); background: transparent;
   color: var(--text); font-family: inherit; font-size: var(--font-body);
 }
-.row { display: flex; align-items: flex-start; gap: var(--space-2); min-inline-size: 0; }
+/* The sparkle and the arrow centred 26px in from the box's edges, over its first and last buttons. */
+.bar[data-tray='true'] {
+  isolation: isolate; padding-block: var(--space-2) 10px; padding-inline: 18px 10px;
+}
+.bar[data-tray='true']::before {
+  content: ''; position: absolute; inset: 0; z-index: -1;
+  border-start-start-radius: 26px; border-start-end-radius: 26px; background: var(--tray);
+  box-shadow: var(--tray-shadow, none); clip-path: inset(-16px -16px 0 -16px);
+}
+.bar[data-tray='true'][data-joined='quote']::before { border-radius: 0; clip-path: inset(0 -16px); }
+.bar[data-tray='true']::after {
+  content: ''; position: absolute; inset-inline: var(--space-4); inset-block-end: 0;
+  block-size: 1px; background: var(--tray-line);
+}
+.row { display: flex; align-items: center; gap: var(--space-2); min-inline-size: 0; }
 svg {
   flex: none; inline-size: 20px; block-size: 20px; fill: none; stroke: currentColor;
   stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
@@ -852,41 +1100,41 @@ svg {
 .mark { color: var(--ai); }
 button { font: inherit; cursor: pointer; }
 button:focus-visible { outline: 2px solid var(--ai); outline-offset: 2px; }
-.notice {
-  align-self: flex-start; align-items: center; gap: var(--space-2); max-inline-size: 100%;
-  min-block-size: 40px; box-sizing: border-box; padding-inline: var(--space-3) var(--space-1);
-  border: 1px solid var(--ai-border); border-radius: 20px; background: var(--ai-tint);
-}
-.text { flex: 1; min-inline-size: 0; padding-block: var(--space-2); overflow-wrap: anywhere; }
+.notice { min-block-size: 36px; }
+.text { flex: 1; min-inline-size: 0; padding-block: 6px; overflow-wrap: anywhere; }
 .action {
   flex: none; min-block-size: 32px; padding-inline: var(--space-3);
-  border: 1px solid var(--ai-border); border-radius: var(--radius-pill); background: var(--chip); color: var(--ai); font-weight: 600;
+  border: 0; border-radius: var(--radius-pill); background: var(--tray-chip); color: var(--ai); font-weight: 600;
 }
-.action:hover { background: var(--ai-tint); }
+.action:hover { background: var(--tray-chip-hover); }
 .icon {
-  display: grid; flex: none; place-items: center; inline-size: 36px; block-size: 36px;
+  display: grid; flex: none; place-items: center; inline-size: 32px; block-size: 32px;
   padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--muted);
 }
 .icon:hover { background: var(--hover); }
+.chips { display: flex; flex-direction: column; gap: var(--space-1); }
+.head { min-block-size: 32px; }
+.head .mark, .folded .mark { inline-size: 16px; block-size: 16px; }
+.heading { flex: 1; min-inline-size: 0; color: var(--muted); font-size: var(--font-hint); }
 .list {
-  display: flex; flex: 1; flex-wrap: wrap; gap: var(--space-2); min-inline-size: 0; margin: 0;
-  padding: 0; list-style: none;
+  display: flex; flex-wrap: wrap; gap: var(--space-2); min-inline-size: 0; margin: 0;
+  padding: var(--space-1) var(--space-2) 0 0; list-style: none;
 }
 li { display: flex; min-inline-size: 0; max-inline-size: 100%; }
 .chip {
   display: -webkit-box; min-block-size: 36px; max-inline-size: 100%; padding-block: 7px;
-  padding-inline: 14px; overflow: hidden; border: 1px solid var(--ai-border); border-radius: 20px;
-  background: var(--ai-tint); color: var(--text); font-size: var(--font-body); line-height: 1.3;
+  padding-inline: 14px; overflow: hidden; border: 0; border-radius: 18px;
+  background: var(--tray-chip); color: var(--text); font-size: var(--font-body); line-height: 1.3;
   text-align: start; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2;
   overflow-wrap: anywhere;
 }
-.chip:hover { background: var(--ai-hover); }
+.chip:hover { background: var(--tray-chip-hover); }
 .placeholder {
-  --edge: var(--ai); --edge-track: var(--chip-border); --edge-fill: var(--chip);
+  --edge: var(--ai); --edge-track: var(--tray-line); --edge-fill: var(--tray-chip);
   --edge-turn: ${edgeTurn(184, 36)};
   flex: none; align-items: center; box-sizing: border-box; inline-size: 184px; block-size: 36px;
   padding-inline: 14px; overflow: hidden; border: 0; border-radius: var(--radius-pill);
-  background: var(--chip); color: var(--muted); white-space: nowrap;
+  background: var(--tray-chip); color: var(--muted); white-space: nowrap;
   text-overflow: ellipsis;
 }
 .status {
@@ -894,17 +1142,16 @@ li { display: flex; min-inline-size: 0; max-inline-size: 100%; }
   white-space: nowrap;
 }
 .fold {
-  display: inline-flex; flex: none; align-items: center; gap: var(--space-1);
-  min-block-size: 36px; min-inline-size: 36px; box-sizing: border-box; padding-inline: 9px;
-  border: 1px solid var(--ai-border); border-radius: var(--radius-pill); background: var(--ai-tint);
-  color: var(--ai); font-size: var(--font-body);
+  display: flex; flex: 1; align-items: center; gap: var(--space-2); min-block-size: 32px;
+  padding: 0; border: 0; background: transparent; color: var(--muted);
+  font-size: var(--font-hint); text-align: start;
 }
-.fold:hover { background: var(--ai-hover); }
-.fold svg { inline-size: 18px; block-size: 18px; }
-.fold-label { padding-inline: 2px 4px; }
+/* As big as the fold button's, and in the 32px it has, so the arrow keeps its place as they fold (#764). */
+.head .chevron, .fold .chevron { inline-size: 18px; block-size: 18px; }
+.fold .chevron { margin-inline: 7px; }
+.fold-label { flex: 1; }
 .bar[data-typed='true'] .chips { opacity: 0.7; }
 .bar[data-typed='true'] .chips:hover, .bar[data-typed='true'] .chips:focus-within { opacity: 1; }
-.bar { position: relative; }
 .card {
   position: absolute; inset-inline-end: var(--space-4); inline-size: min(360px, calc(100% - 2 * var(--space-4)));
   display: flex; flex-direction: column; box-sizing: border-box; overflow: hidden;
@@ -957,7 +1204,14 @@ const PLACES: BarPlaces = {
 export function assistantBarRender(content: BarContent): string {
   const kit = [
     `align: ${alignAssistantBar.toString()}`,
-    `lift: ${assistantBarLift.toString()}`,
+    `join: ${joinAssistantBar.toString()}`,
+    `box: ${assistantTrayBox.toString()}`,
+    `raise: ${raiseAssistantQuote.toString()}`,
+    `fitTray: ${fitAssistantTray.toString()}`,
+    `square: ${squareAssistantBox.toString()}`,
+    `squaredBy: ${assistantBoxSquared.toString()}`,
+    `layer: ${assistantQuoteLayer.toString()}`,
+    `watchPage: ${listenToAssistantPage.toString()}`,
     `paint: ${paintWhatsAppTheme.toString()}`,
     `room: ${holdAssistantBarRoom.toString()}`,
     `build: ${buildAssistantBar.toString()}`,

@@ -146,7 +146,7 @@ and it saves time.
 
 When you open a chat, each time something new appears in it, and when
 the last message is edited, three
-short messages to send next appear right above the message box, in the
+short messages to send next appear in the message box, above where you type, in the
 chat's language. They answer the last thing in the chat, whoever sent it
 and whatever it is: a message, a photo, a sticker, a voice message or a
 call. When your own message is last, they follow it up instead, such as
@@ -155,9 +155,11 @@ choices, such as yes, not now, and a question back, written the way you write in
 something only you know, such as whether you are free, they work without
 it rather than guess:
 
-- They float just above the message box, like WhatsApp's own.
+- They sit in a tray that is part of the message box, under **Suggested
+  replies**, in WhatsApp's own colors, light or dark.
 - When you choose **Reply** on a message, they answer that message
   instead, in the light of the rest of the chat, however far up it is.
+  The quote stays on top, then the suggestions, then where you type.
   Remove the quote with its **×** and the suggestions for the chat's last
   message come back, without asking again. Each quoted message is asked
   about once.
@@ -170,8 +172,8 @@ it rather than guess:
 - A long suggestion takes up to two lines, and the row grows so all three
   show.
 - While they are being written, a **Writing suggestions…** chip says so.
-- The first chip in the row, **Hide suggestions**, folds them into one
-  small **Suggestions** chip in the same place. They stay folded, in every
+- The arrow at the end of **Suggested replies** folds them away, leaving
+  one slim **Suggestions** line in the tray. They stay folded, in every
   chat, until you click it to show them again, and showing them asks for
   nothing new.
 
@@ -237,7 +239,7 @@ it, just left of the microphone. It shows the way it rewrites, such as
   use and opens Settings at the AI assistant.
 
 Nothing is sent: press Enter to send the rewrite, as usual. A slim line
-above the message box says what was done, such as "Softened. Edit it or
+in the message box's tray says what was done, such as "Softened. Edit it or
 send as is.", with **Undo** to put your own text back, in place of the
 suggestions. It goes once you send, undo, clear the message box or open
 another chat, and the suggestions come back as they were. If you change your text while the

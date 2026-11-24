@@ -480,15 +480,16 @@ export async function chooseReply(page: Page, id: string, author: string): Promi
 }
 
 /**
- * Where the fake page lays out the chat's end, the assistant's bar, the
+ * Where the fake page lays out the chat's end, the assistant's tray, the
  * quote of the message the user replies to and the message box, as the
- * top or bottom edges that meet (#740); 0 for one that is not there.
+ * top or bottom edges that meet (#740, #764); 0 for one that is not there.
  */
 export async function replyLayout(page: Page): Promise<{
   readonly chatEnd: number;
   readonly barTop: number;
   readonly barEnd: number;
   readonly quoteTop: number;
+  readonly quoteEnd: number;
   readonly boxTop: number;
 }> {
   return page.evaluate(() => {
@@ -501,6 +502,7 @@ export async function replyLayout(page: Page): Promise<{
       barTop: bar.top,
       barEnd: bar.bottom,
       quoteTop: box('[data-testid="reply-preview"]').top,
+      quoteEnd: box('[data-testid="reply-preview"]').bottom,
       boxTop: box('#main footer').top,
     };
   });
