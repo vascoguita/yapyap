@@ -182,9 +182,10 @@ function middle(box: { x: number; y: number; width: number; height: number } | n
 }
 
 /** Clicks Send, then moves the pointer out of the way while the message lands. */
-async function send(page: Page): Promise<void> {
+async function send(page: Page, then?: () => Promise<void>): Promise<void> {
   const at = middle(await page.locator('#voice-or-send').boundingBox());
   await click(page, at.x, at.y);
+  await then?.();
   await glide(page, at.x - 380, at.y - 260);
 }
 
@@ -212,15 +213,16 @@ async function tellStory(app: ElectronApplication, page: Page): Promise<void> {
   // 2. One is picked and sent.
   await click(page, pick.x, pick.y);
   await page.waitForTimeout(800);
-  await send(page);
-  await page.waitForTimeout(500);
-  // 3. Priya writes, and new suggestions come.
-  await page.evaluate((text) => {
-    (window as unknown as { showcaseReceive: (who: string, text: string) => void }).showcaseReceive(
-      'Priya',
-      text,
-    );
-  }, PRIYA);
+  // 3. Priya writes, and new suggestions come. She writes as the pick is sent, so the
+  // assistant sees both at one look and asks once: a look between them would ask for the
+  // sent message too, and replace those suggestions a moment later, for no reason seen.
+  await send(page, async () => {
+    await page.evaluate((text) => {
+      (
+        window as unknown as { showcaseReceive: (who: string, text: string) => void }
+      ).showcaseReceive('Priya', text);
+    }, PRIYA);
+  });
   await find(app, 'Let’s try Alfama');
   await page.waitForTimeout(1500);
   // 4. A draft of one's own instead, made fuller by the AI Assistant, then sent.
