@@ -167,6 +167,10 @@ async function click(page: Page, x: number, y: number): Promise<void> {
     { x, y },
   );
   await page.mouse.click(x, y);
+  // The real pointer, which the recording does not show, leaves at once: resting on a
+  // control, it would bring up the browser's tooltip.
+  const messages = await page.locator('#messages').boundingBox();
+  await page.mouse.move(Math.round((messages?.x ?? 0) + 12), Math.round((messages?.y ?? 0) + 12));
 }
 
 /** The middle of an element's box, where the user would click it. */
@@ -238,13 +242,49 @@ async function tellStory(app: ElectronApplication, page: Page): Promise<void> {
   await summarize(app, page);
 }
 
-/** 5. A busy group opens with 16 unread messages, and the AI Assistant summarizes them on its own. */
+/** Runs in the adapter's isolated world: where each of the summary's lines is, once it shows. */
+function readSummaryLines(): { x: number; y: number }[] {
+  const kept = (globalThis as { yapyapAssistantBarView?: { parts: { card: HTMLElement } } })
+    .yapyapAssistantBarView;
+  return [...(kept?.parts.card.querySelectorAll('.card-body li') ?? [])].flatMap((item) =>
+    [...item.getClientRects()].map((line) => ({ x: line.x, y: line.y + line.height / 2 })),
+  );
+}
+
+/** Where the summary's lines are, once it shows in the Personal account's page. */
+async function summaryLines(app: ElectronApplication): Promise<{ x: number; y: number }[]> {
+  const deadline = Date.now() + 15_000;
+  while (Date.now() < deadline) {
+    const lines = (await app.evaluate(
+      async ({ webContents }, { id, code, world }) =>
+        webContents
+          .getAllWebContents()
+          .find((page) => page.session.storagePath?.endsWith(`account-${id}`) === true)
+          ?.executeJavaScriptInIsolatedWorld(world, [{ code }]) as Promise<unknown> | undefined,
+      { id: PERSONAL, code: `(${readSummaryLines.toString()})()`, world: ADAPTER_WORLD_ID },
+    )) as { x: number; y: number }[] | undefined;
+    if (lines !== undefined && lines.length > 0) {
+      return lines;
+    }
+    await new Promise((done) => setTimeout(done, 100));
+  }
+  throw new Error('No summary showed.');
+}
+
+/**
+ * 5. A busy group opens with 16 unread messages, and the AI Assistant
+ * summarizes them on its own; the pointer follows the summary down, as
+ * someone reading it would.
+ */
 async function summarize(app: ElectronApplication, page: Page): Promise<void> {
   const group = middle(await page.getByRole('row', { name: /Climbing crew/ }).boundingBox());
   await click(page, group.x, group.y);
   const close = await find(app, 'Close Summary');
-  await glide(page, close.x - 420, close.y + 330);
-  await page.waitForTimeout(SUMMARY_DELAY_MS + 5200);
+  await glide(page, close.x - 200, close.y + 40);
+  for (const line of await summaryLines(app)) {
+    await glide(page, line.x + 24, line.y + 10);
+  }
+  await page.waitForTimeout(1200);
 }
 
 test('README animation', async ({ profile }) => {
