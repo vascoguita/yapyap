@@ -3,7 +3,10 @@ import { runInNewContext } from 'node:vm';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   fitAssistantTray,
+  assistantBoxSquared,
+  assistantQuoteLayer,
   joinAssistantBar,
+  listenToAssistantPage,
   squareAssistantBox,
   raiseAssistantQuote,
   actOnAssistantBar,
@@ -87,6 +90,9 @@ const KIT = {
   raise: raiseAssistantQuote,
   fitTray: fitAssistantTray,
   square: squareAssistantBox,
+  squaredBy: assistantBoxSquared,
+  layer: assistantQuoteLayer,
+  watchPage: listenToAssistantPage,
   paint: paintWhatsAppTheme,
   room: holdAssistantBarRoom,
   build: buildAssistantBar,
@@ -146,7 +152,7 @@ function setup() {
     summarize: vi.fn(),
     closeSummary: vi.fn(),
   };
-  const scope: Record<string, unknown> = { bridge, getComputedStyle };
+  const scope: Record<string, unknown> = { bridge, getComputedStyle, setTimeout };
   const render = (content: BarContent = CONTENT): BarPlacement =>
     renderAssistantBar(document, scope, content, PLACES, KIT);
   const stored = (): Stored => scope['bar'] as Stored;
@@ -405,15 +411,36 @@ describe('renderAssistantBar', () => {
     expect(t.stored().parts.chips.hidden).toBe(false);
   });
 
-  it('listens to the page’s typing only once, however often it renders', () => {
+  it('listens to the page’s typing and clicks only once, however often it renders', () => {
     const listen = vi.spyOn(document, 'addEventListener');
     const t = setup();
     t.render();
     t.render(UNDO);
     // Typing, and a key let go, which is all a deletion in WhatsApp's editor gives.
-    expect(listen).toHaveBeenCalledTimes(2);
+    expect(listen).toHaveBeenCalledTimes(3);
     expect(listen).toHaveBeenCalledWith('input', expect.any(Function), true);
     expect(listen).toHaveBeenCalledWith('keyup', expect.any(Function), true);
+    expect(listen).toHaveBeenCalledWith('click', expect.any(Function), true);
+  });
+
+  it('looks again right after a click, and once more after WhatsApp’s animation (#764)', () => {
+    vi.useFakeTimers();
+    const t = setup();
+    const show = vi.fn(showAssistantBar);
+    renderAssistantBar(document, t.scope, CONTENT, PLACES, { ...KIT, show });
+    show.mockClear();
+    document.body.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(show).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(50);
+    expect(show).toHaveBeenCalledOnce();
+    vi.advanceTimersByTime(350);
+    expect(show).toHaveBeenCalledTimes(2);
+    // With no message box left, it only shows what it has.
+    footer()?.remove();
+    document.body.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    vi.advanceTimersByTime(400);
+    expect(show).toHaveBeenCalledTimes(4);
+    vi.useRealTimers();
   });
 
   it('changes nothing when nothing changed, and updates in place when something did', () => {
@@ -534,7 +561,9 @@ describe('joining the tray to the message box (#764)', () => {
   };
   /** WhatsApp's message box, with its fill, inside the footer, and the layer it quotes a message in. */
   const page = (quote = '') => {
-    document.body.innerHTML = `<div id="main"><footer style="order: 3; z-index: 2; color: rgb(17, 27, 33)"><div><div class="box" style="background-color: rgb(255, 255, 255)"><span><div contenteditable="true"></div></span></div></div><div class="layer">${quote}</div></footer></div>`;
+    // WhatsApp squares the box's top under a quote of the message the user replies to.
+    const corners = quote === '' ? '' : '; border-radius: 0 0 26px 26px';
+    document.body.innerHTML = `<div id="main"><footer style="order: 3; z-index: 2; color: rgb(17, 27, 33)"><div><div class="box" style="background-color: rgb(255, 255, 255)${corners}"><span><div contenteditable="true"></div></span></div></div><div class="layer">${quote}</div></footer></div>`;
     across(document.querySelector('#main footer'), 100, 1100);
     across(document.querySelector('.box'), 112, 1088);
   };
@@ -554,7 +583,7 @@ describe('joining the tray to the message box (#764)', () => {
     page();
     const box = document.querySelector<HTMLElement>('.box') ?? document.body;
     box.style.setProperty('box-shadow', 'rgba(0, 0, 0, 0.12) 0px 1px 6px 0px');
-    const scope: Record<string, unknown> = { getComputedStyle };
+    const scope: Record<string, unknown> = { getComputedStyle, setTimeout };
     renderAssistantBar(document, scope, CONTENT, PLACES, KIT);
     const { host, parts } = scope['bar'] as Stored;
     // The tray's edges are the box's, measured from the tray's own frame.
@@ -575,7 +604,7 @@ describe('joining the tray to the message box (#764)', () => {
   it('lines up right to left, and gives the box its corners back once the tray goes', () => {
     page();
     const box = document.querySelector<HTMLElement>('.box') ?? document.body;
-    const scope: Record<string, unknown> = { getComputedStyle };
+    const scope: Record<string, unknown> = { getComputedStyle, setTimeout };
     renderAssistantBar(document, scope, CONTENT, PLACES, KIT);
     const { parts } = scope['bar'] as Stored;
     across((scope['bar'] as Stored).host, 100, 1100);
@@ -592,14 +621,14 @@ describe('joining the tray to the message box (#764)', () => {
   it('draws over a footer of no stacking order of its own', () => {
     page();
     document.querySelector<HTMLElement>('#main footer')?.style.removeProperty('z-index');
-    const scope: Record<string, unknown> = { getComputedStyle };
+    const scope: Record<string, unknown> = { getComputedStyle, setTimeout };
     renderAssistantBar(document, scope, CONTENT, PLACES, KIT);
     expect((scope['bar'] as Stored).host.style.zIndex).toBe('1');
   });
 
   it('moves WhatsApp’s quote up over the tray while the user replies, and back once it goes', () => {
     page(quoted);
-    const scope: Record<string, unknown> = { getComputedStyle };
+    const scope: Record<string, unknown> = { getComputedStyle, setTimeout };
     const layer = document.querySelector<HTMLElement>('.layer') ?? document.body;
     const box = document.querySelector<HTMLElement>('.box') ?? document.body;
     renderAssistantBar(document, scope, CONTENT, PLACES, KIT);
@@ -622,6 +651,23 @@ describe('joining the tray to the message box (#764)', () => {
     renderAssistantBar(document, scope, { ...CONTENT, writing: true }, PLACES, KIT);
     expect(layer.style.translate).toBe('');
     expect(document.querySelector<HTMLElement>('.layer2')?.style.translate).toBe('0 -99.6px');
+  });
+
+  it('joins the box again at once as the user closes the quote, which WhatsApp still takes away', () => {
+    page(quoted);
+    const box = document.querySelector<HTMLElement>('.box') ?? document.body;
+    const scope: Record<string, unknown> = { getComputedStyle, setTimeout };
+    renderAssistantBar(document, scope, CONTENT, PLACES, KIT);
+    const { parts } = scope['bar'] as Stored;
+    expect(parts.bar.dataset['joined']).toBe('quote');
+    // WhatsApp gives the box its rounded top back while the quote is still on its way out.
+    box.style.removeProperty('border-radius');
+    renderAssistantBar(document, scope, { ...CONTENT, writing: true }, PLACES, KIT);
+    expect(parts.bar.dataset['joined']).toBe('box');
+    expect(box.style.borderStartStartRadius).toBe('0');
+    // Telling whose corners are square sets the tray's own aside only for a moment.
+    expect(assistantBoxSquared(window as never, box as never)).toBe(false);
+    expect(box.style.borderStartStartRadius).toBe('0');
   });
 
   it('gives a box it squared its corners back once it sits on another', () => {

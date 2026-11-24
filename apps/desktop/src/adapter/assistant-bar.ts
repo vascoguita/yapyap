@@ -237,6 +237,9 @@ export interface BarKit {
     box: BarNode,
   ) => void;
   readonly square: (store: Pick<BarStore, 'squared'>, box: BarNode | null) => void;
+  readonly squaredBy: (scope: Scope, box: BarNode) => boolean;
+  readonly layer: (footer: BarNode, places: BarPlaces) => BarNode | undefined;
+  readonly watchPage: (doc: BarDocument, scope: Scope, sync: () => void) => void;
   readonly box: (scope: Scope, footer: BarNode, places: BarPlaces) => BarNode | null;
   readonly raise: (store: Pick<BarStore, 'raised'>, layer: BarNode | undefined, by: number) => void;
   readonly paint: typeof paintWhatsAppTheme;
@@ -444,20 +447,39 @@ export function joinAssistantBar(
 ): void {
   const { host, parts } = store;
   const box = kit.box(scope, footer, places);
-  const tray = host.style.display !== 'none' && parts.bar.dataset['tray'] === 'true';
-  const quote = footer.ownerDocument.querySelector(places.quote);
-  const layer = Array.from(footer.children).find(
-    (child) => quote !== null && child.contains(quote),
-  );
-  parts.bar.dataset['joined'] = layer === undefined ? 'box' : 'quote';
+  // Hidden, the bar's tray holds nothing either.
+  const tray = parts.bar.dataset['tray'] === 'true';
+  const layer = kit.layer(footer, places);
+  // The user replies while WhatsApp squares the box's top under its quote; a quote it is
+  // still taking away, as the user closed it, leaves the box rounded already.
+  const replying = box !== null && layer !== undefined && kit.squaredBy(scope, box);
+  parts.bar.dataset['joined'] = replying ? 'quote' : 'box';
   if (box !== null) {
     kit.fitTray(scope, footer, store, box);
   }
-  // While the user replies, WhatsApp squares the box's top itself, under its quote.
-  kit.square(store, tray && layer === undefined ? box : null);
+  kit.square(store, tray && !replying ? box : null);
   // By its exact height, which a scaled display makes fractional, less the pixel the tray
   // overlaps it by, so no hairline of wallpaper shows between the two.
   kit.raise(store, layer, tray ? host.getBoundingClientRect().height - 1 : 0);
+}
+
+/**
+ * Whether WhatsApp itself squared the message box's top corners, as it
+ * does under its quote of a message the user replies to (#764). The
+ * tray's own squaring is set aside for a moment to tell.
+ */
+export function assistantBoxSquared(scope: Scope, box: BarNode): boolean {
+  const { style } = box;
+  const kept = [style.borderStartStartRadius, style.borderStartEndRadius] as const;
+  style.borderStartStartRadius = '';
+  style.borderStartEndRadius = '';
+  // WhatsApp squares both top corners together, so one tells, whichever way the text runs.
+  const computed = scope['getComputedStyle'] as (node: BarNode) => {
+    readonly borderTopLeftRadius: string;
+  };
+  const radius = computed.call(scope, box).borderTopLeftRadius;
+  [style.borderStartStartRadius, style.borderStartEndRadius] = kept;
+  return Number.parseFloat(radius) === 0;
 }
 
 /**
@@ -596,12 +618,42 @@ export function buildAssistantBar(
     squared: undefined,
     sync: () => {
       kit.show(doc, scope, places, store, kit);
+      const footer = doc.querySelector(places.footer) as BarNode | null;
+      if (footer !== null) {
+        kit.join(scope, footer, places, store, kit);
+      }
     },
   };
-  doc.addEventListener('input', store.sync, true);
-  // WhatsApp's editor deletes without an `input` event, so a key let go looks again.
-  doc.addEventListener('keyup', store.sync, true);
+  kit.watchPage(doc, scope, store.sync);
   return store;
+}
+
+/**
+ * Looks again as the user types, and right after a click, which may start
+ * or close a reply that WhatsApp shows at once and then animates (#764),
+ * rather than at the next render, up to a second later.
+ */
+export function listenToAssistantPage(doc: BarDocument, scope: Scope, sync: () => void): void {
+  doc.addEventListener('input', sync, true);
+  // WhatsApp's editor deletes without an `input` event, so a key let go looks again.
+  doc.addEventListener('keyup', sync, true);
+  const later = scope['setTimeout'] as (callback: () => void, ms: number) => unknown;
+  doc.addEventListener(
+    'click',
+    () => {
+      later.call(scope, sync, 50);
+      later.call(scope, sync, 400);
+    },
+    true,
+  );
+}
+
+/** WhatsApp's layer in the footer that holds the quote of the message the user replies to; none without one. */
+export function assistantQuoteLayer(footer: BarNode, places: BarPlaces): BarNode | undefined {
+  const quote = footer.ownerDocument.querySelector(places.quote);
+  return quote === null
+    ? undefined
+    : Array.from(footer.children).find((child) => child.contains(quote));
 }
 
 /**
@@ -1112,6 +1164,9 @@ export function assistantBarRender(content: BarContent): string {
     `raise: ${raiseAssistantQuote.toString()}`,
     `fitTray: ${fitAssistantTray.toString()}`,
     `square: ${squareAssistantBox.toString()}`,
+    `squaredBy: ${assistantBoxSquared.toString()}`,
+    `layer: ${assistantQuoteLayer.toString()}`,
+    `watchPage: ${listenToAssistantPage.toString()}`,
     `paint: ${paintWhatsAppTheme.toString()}`,
     `room: ${holdAssistantBarRoom.toString()}`,
     `build: ${buildAssistantBar.toString()}`,
