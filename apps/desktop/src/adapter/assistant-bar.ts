@@ -1055,8 +1055,9 @@ const BAR_STYLE = `${ASSISTANT_THEME}${WORKING_EDGE}
   padding-block: 6px var(--space-2); padding-inline: var(--space-4); background: transparent;
   color: var(--text); font-family: inherit; font-size: var(--font-body);
 }
+/* The sparkle and the arrow centred 26px in from the box's edges, over its first and last buttons. */
 .bar[data-tray='true'] {
-  isolation: isolate; padding-block: var(--space-2) 10px; padding-inline: var(--space-4) var(--space-2);
+  isolation: isolate; padding-block: var(--space-2) 10px; padding-inline: 18px 10px;
 }
 .bar[data-tray='true']::before {
   content: ''; position: absolute; inset: 0; z-index: -1;
@@ -1122,7 +1123,9 @@ li { display: flex; min-inline-size: 0; max-inline-size: 100%; }
   padding: 0; border: 0; background: transparent; color: var(--muted);
   font-size: var(--font-hint); text-align: start;
 }
-.fold .chevron { inline-size: 18px; block-size: 18px; }
+/* As big as the fold button's, and in the 32px it has, so the arrow keeps its place as they fold (#764). */
+.head .chevron, .fold .chevron { inline-size: 18px; block-size: 18px; }
+.fold .chevron { margin-inline: 7px; }
 .fold-label { flex: 1; }
 .bar[data-typed='true'] .chips { opacity: 0.7; }
 .bar[data-typed='true'] .chips:hover, .bar[data-typed='true'] .chips:focus-within { opacity: 1; }
