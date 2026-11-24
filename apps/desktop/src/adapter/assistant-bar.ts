@@ -457,7 +457,9 @@ export function joinAssistantBar(
   if (box !== null) {
     kit.fitTray(scope, footer, store, box);
   }
-  kit.square(store, tray && !replying ? box : null);
+  // Square under the tray whether or not WhatsApp squares it too, so a quote on its way out
+  // never shows the box's rounded top under the tray.
+  kit.square(store, tray ? box : null);
   // By its exact height, which a scaled display makes fractional, less the pixel the tray
   // overlaps it by, so no hairline of wallpaper shows between the two.
   // A quote the user closed drops back behind the tray, where its way out goes unseen.
@@ -639,21 +641,27 @@ export function buildAssistantBar(
 /**
  * Looks again as the user types, and after a click, which may start or
  * close a reply that WhatsApp shows at once and then animates (#764):
- * before the next frame is drawn, once WhatsApp has answered the click,
- * and again as its animation ends, rather than at the next render, up to
- * a second later.
+ * before every frame drawn in the second after it, so the tray follows
+ * WhatsApp through its animation rather than at the next render, up to a
+ * second later. It then stops.
  */
 export function listenToAssistantPage(doc: BarDocument, scope: Scope, sync: () => void): void {
   doc.addEventListener('input', sync, true);
   // WhatsApp's editor deletes without an `input` event, so a key let go looks again.
   doc.addEventListener('keyup', sync, true);
-  const frame = scope['requestAnimationFrame'] as (callback: () => void) => unknown;
-  const later = scope['setTimeout'] as (callback: () => void, ms: number) => unknown;
+  const frame = scope['requestAnimationFrame'] as (callback: (now: number) => void) => unknown;
   doc.addEventListener(
     'click',
     () => {
-      frame.call(scope, sync);
-      later.call(scope, sync, 400);
+      let start: number | undefined;
+      const follow = (now: number): void => {
+        start ??= now;
+        sync();
+        if (now - start < 1000) {
+          frame.call(scope, follow);
+        }
+      };
+      frame.call(scope, follow);
     },
     true,
   );

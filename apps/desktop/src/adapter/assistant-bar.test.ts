@@ -428,27 +428,28 @@ describe('renderAssistantBar', () => {
     expect(listen).toHaveBeenCalledWith('click', expect.any(Function), true);
   });
 
-  it('looks again before the next frame after a click, and once more after WhatsApp’s animation (#764)', () => {
-    const frames: (() => void)[] = [];
-    vi.useFakeTimers();
+  it('follows the page before every frame for a second after a click, then stops (#764)', () => {
+    const frames: ((now: number) => void)[] = [];
     const t = setup();
-    t.scope['requestAnimationFrame'] = (callback: () => void) => frames.push(callback);
+    t.scope['requestAnimationFrame'] = (callback: (now: number) => void) => frames.push(callback);
     const show = vi.fn(showAssistantBar);
     renderAssistantBar(document, t.scope, CONTENT, PLACES, { ...KIT, show });
     show.mockClear();
     document.body.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     expect(show).not.toHaveBeenCalled();
-    frames.shift()?.();
-    expect(show).toHaveBeenCalledOnce();
-    vi.advanceTimersByTime(400);
-    expect(show).toHaveBeenCalledTimes(2);
+    for (const now of [5000, 5016, 5500, 5999]) {
+      frames.shift()?.(now);
+    }
+    expect(show).toHaveBeenCalledTimes(4);
+    expect(frames).toHaveLength(1);
+    frames.shift()?.(6000);
+    expect(show).toHaveBeenCalledTimes(5);
+    expect(frames).toHaveLength(0);
     // With no message box left, it only shows what it has.
     footer()?.remove();
     document.body.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    frames.shift()?.();
-    vi.advanceTimersByTime(400);
-    expect(show).toHaveBeenCalledTimes(4);
-    vi.useRealTimers();
+    frames.shift()?.(9000);
+    expect(show).toHaveBeenCalledTimes(6);
   });
 
   it('changes nothing when nothing changed, and updates in place when something did', () => {
@@ -645,8 +646,8 @@ describe('joining the tray to the message box (#764)', () => {
     renderAssistantBar(document, scope, { ...CONTENT, writing: true }, PLACES, KIT);
     expect(parts.bar.dataset['joined']).toBe('quote');
     expect(layer.style.translate).toBe('0 -99.6px');
-    // WhatsApp squares the box's top itself under its quote.
-    expect(box.style.borderStartStartRadius).toBe('');
+    // Squared under the tray too, so a quote on its way out never shows the box's rounded top.
+    expect(box.style.borderStartStartRadius).toBe('0');
     renderAssistantBar(document, scope, { ...CONTENT, suggestions: [] }, PLACES, KIT);
     expect(layer.style.translate).toBe('');
     // A quote WhatsApp drew anew is moved, and the old layer put back.
