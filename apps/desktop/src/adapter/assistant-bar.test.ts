@@ -604,24 +604,24 @@ describe('joining the tray to the message box (#764)', () => {
     const box = document.querySelector<HTMLElement>('.box') ?? document.body;
     renderAssistantBar(document, scope, CONTENT, PLACES, KIT);
     const { host, parts } = scope['bar'] as Stored;
-    Object.defineProperty(host, 'offsetHeight', { configurable: true, value: 100 });
+    vi.spyOn(host, 'getBoundingClientRect').mockReturnValue({ height: 100.6 } as DOMRect);
     renderAssistantBar(document, scope, { ...CONTENT, writing: true }, PLACES, KIT);
     expect(parts.bar.dataset['joined']).toBe('quote');
-    expect(layer.style.translate).toBe('0 -100px');
+    expect(layer.style.translate).toBe('0 -99.6px');
     // WhatsApp squares the box's top itself under its quote.
     expect(box.style.borderStartStartRadius).toBe('');
     renderAssistantBar(document, scope, { ...CONTENT, suggestions: [] }, PLACES, KIT);
     expect(layer.style.translate).toBe('');
     // A quote WhatsApp drew anew is moved, and the old layer put back.
     renderAssistantBar(document, scope, CONTENT, PLACES, KIT);
-    expect(layer.style.translate).toBe('0 -100px');
+    expect(layer.style.translate).toBe('0 -99.6px');
     layer.remove();
     document
       .querySelector('#main footer')
       ?.insertAdjacentHTML('beforeend', `<div class="layer2">${quoted}</div>`);
     renderAssistantBar(document, scope, { ...CONTENT, writing: true }, PLACES, KIT);
     expect(layer.style.translate).toBe('');
-    expect(document.querySelector<HTMLElement>('.layer2')?.style.translate).toBe('0 -100px');
+    expect(document.querySelector<HTMLElement>('.layer2')?.style.translate).toBe('0 -99.6px');
   });
 
   it('gives a box it squared its corners back once it sits on another', () => {

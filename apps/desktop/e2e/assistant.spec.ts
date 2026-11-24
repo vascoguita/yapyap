@@ -746,9 +746,10 @@ test('suggests replies to the message the user replies to, and the last one’s 
   // right above the quote, with no room left empty (#764).
   await expect(async () => {
     const layout = await replyLayout(window);
-    expect(Math.abs(layout.quoteEnd - layout.barTop)).toBeLessThan(1);
+    // The tray overlaps the quote by a pixel, so no hairline of wallpaper shows between them.
+    expect(Math.abs(layout.quoteEnd - 1 - layout.barTop)).toBeLessThan(0.5);
     expect(Math.abs(layout.barEnd - layout.boxTop)).toBeLessThan(1);
-    expect(Math.abs(layout.quoteTop - layout.chatEnd)).toBeLessThan(1);
+    expect(Math.abs(layout.quoteTop - 1 - layout.chatEnd)).toBeLessThan(0.5);
   }).toPass();
   const asked = await claudeRequests(app);
   expect(asked).toHaveLength(before + 1);

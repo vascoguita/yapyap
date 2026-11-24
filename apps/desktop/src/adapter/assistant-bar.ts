@@ -455,7 +455,9 @@ export function joinAssistantBar(
   }
   // While the user replies, WhatsApp squares the box's top itself, under its quote.
   kit.square(store, tray && layer === undefined ? box : null);
-  kit.raise(store, layer, tray ? host.offsetHeight : 0);
+  // By its exact height, which a scaled display makes fractional, less the pixel the tray
+  // overlaps it by, so no hairline of wallpaper shows between the two.
+  kit.raise(store, layer, tray ? host.getBoundingClientRect().height - 1 : 0);
 }
 
 /**
