@@ -210,6 +210,8 @@ interface BarStore {
   squared: BarNode | undefined;
   /** Shows the suggestions only while the message box is empty, and the bar only with something in it. */
   readonly sync: () => void;
+  /** Follows the page before every frame for a second, to join the message box as WhatsApp builds it (#764). */
+  readonly follow: () => void;
 }
 
 /** What a render changes: the content, and whether the bar goes back above the message box. */
@@ -239,7 +241,7 @@ export interface BarKit {
   readonly square: (store: Pick<BarStore, 'squared'>, box: BarNode | null) => void;
   readonly squaredBy: (scope: Scope, box: BarNode | null, layer: BarNode | undefined) => boolean;
   readonly layer: (footer: BarNode, places: BarPlaces) => BarNode | undefined;
-  readonly watchPage: (doc: BarDocument, scope: Scope, sync: () => void) => void;
+  readonly watchPage: (doc: BarDocument, scope: Scope, sync: () => void) => () => void;
   readonly box: (scope: Scope, footer: BarNode, places: BarPlaces) => BarNode | null;
   readonly raise: (store: Pick<BarStore, 'raised'>, layer: BarNode | undefined, by: number) => void;
   readonly paint: typeof paintWhatsAppTheme;
@@ -332,6 +334,10 @@ export function renderAssistantBar(
   kit.align(scope, store.host, footer);
   kit.paint(scope, store.host, footer);
   kit.join(scope, footer, places, store, kit);
+  if (placed) {
+    // Into a chat that opened: WhatsApp may still be building its message box.
+    store.follow();
+  }
   return placed ? 'placed' : 'kept';
 }
 
@@ -620,21 +626,22 @@ export function buildAssistantBar(
   parts.card.hidden = true;
   host.style.display = 'none';
   kit.wire(shadow, scope, places, kit);
+  const sync = (): void => {
+    kit.show(doc, scope, places, store, kit);
+    const footer = doc.querySelector(places.footer) as BarNode | null;
+    if (footer !== null) {
+      kit.join(scope, footer, places, store, kit);
+    }
+  };
   const store: BarStore = {
     host,
     parts,
     key: null,
     raised: undefined,
     squared: undefined,
-    sync: () => {
-      kit.show(doc, scope, places, store, kit);
-      const footer = doc.querySelector(places.footer) as BarNode | null;
-      if (footer !== null) {
-        kit.join(scope, footer, places, store, kit);
-      }
-    },
+    sync,
+    follow: kit.watchPage(doc, scope, sync),
   };
-  kit.watchPage(doc, scope, store.sync);
   return store;
 }
 
@@ -643,28 +650,38 @@ export function buildAssistantBar(
  * close a reply that WhatsApp shows at once and then animates (#764):
  * before every frame drawn in the second after it, so the tray follows
  * WhatsApp through its animation rather than at the next render, up to a
- * second later. It then stops.
+ * second later. It then stops. It returns that following, for the render
+ * to start as the tray goes into a chat whose message box WhatsApp is
+ * still building; following again starts the second anew.
  */
-export function listenToAssistantPage(doc: BarDocument, scope: Scope, sync: () => void): void {
+export function listenToAssistantPage(
+  doc: BarDocument,
+  scope: Scope,
+  sync: () => void,
+): () => void {
   doc.addEventListener('input', sync, true);
   // WhatsApp's editor deletes without an `input` event, so a key let go looks again.
   doc.addEventListener('keyup', sync, true);
   const frame = scope['requestAnimationFrame'] as (callback: (now: number) => void) => unknown;
-  doc.addEventListener(
-    'click',
-    () => {
-      let start: number | undefined;
-      const follow = (now: number): void => {
-        start ??= now;
-        sync();
-        if (now - start < 1000) {
-          frame.call(scope, follow);
-        }
-      };
-      frame.call(scope, follow);
-    },
-    true,
-  );
+  let start: number | undefined;
+  let running = false;
+  const step = (now: number): void => {
+    start ??= now;
+    sync();
+    running = now - start < 1000;
+    if (running) {
+      frame.call(scope, step);
+    }
+  };
+  const follow = (): void => {
+    start = undefined;
+    if (!running) {
+      running = true;
+      frame.call(scope, step);
+    }
+  };
+  doc.addEventListener('click', follow, true);
+  return follow;
 }
 
 /** WhatsApp's layer in the footer that holds the quote of the message the user replies to; none without one. */

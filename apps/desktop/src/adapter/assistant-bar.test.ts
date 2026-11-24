@@ -120,6 +120,7 @@ const KIT = {
 interface Stored {
   host: HTMLElement;
   key: string | null;
+  follow: () => void;
   parts: {
     bar: HTMLElement;
     notice: HTMLElement;
@@ -426,6 +427,27 @@ describe('renderAssistantBar', () => {
     expect(listen).toHaveBeenCalledWith('input', expect.any(Function), true);
     expect(listen).toHaveBeenCalledWith('keyup', expect.any(Function), true);
     expect(listen).toHaveBeenCalledWith('click', expect.any(Function), true);
+  });
+
+  it('follows the page for a second as it goes into a chat that opened, starting the second anew (#764)', () => {
+    const frames: ((now: number) => void)[] = [];
+    const t = setup();
+    t.scope['requestAnimationFrame'] = (callback: (now: number) => void) => frames.push(callback);
+    expect(t.render()).toBe('placed');
+    expect(frames).toHaveLength(1);
+    // Kept in the same chat, it follows nothing new.
+    t.render({ ...CONTENT, writing: true });
+    expect(frames).toHaveLength(1);
+    frames.shift()?.(1000);
+    frames.shift()?.(1900);
+    // Following again while it follows starts the second anew, with no second loop.
+    t.stored().follow();
+    expect(frames).toHaveLength(1);
+    frames.shift()?.(2500);
+    frames.shift()?.(3400);
+    expect(frames).toHaveLength(1);
+    frames.shift()?.(3500);
+    expect(frames).toHaveLength(0);
   });
 
   it('follows the page before every frame for a second after a click, then stops (#764)', () => {
@@ -915,12 +937,13 @@ describe('assistantBarRender', () => {
       const code = assistantBarRender(CONTENT);
       expect(code).toContain(JSON.stringify(LANDMARKS.composerFooter));
       // Only the page's document and the window's own functions are in scope, as in the adapter's isolated world.
-      const world: Record<string, unknown> = { document, getComputedStyle };
+      const world: Record<string, unknown> = { document, getComputedStyle, requestAnimationFrame };
       expect(runInNewContext(code, world)).toBe('placed');
       expect(footer()?.previousElementSibling?.tagName).toBe('DIV');
       expect(Object.keys(world)).toEqual([
         'document',
         'getComputedStyle',
+        'requestAnimationFrame',
         'yapyapAssistantBarView',
       ]);
     },
