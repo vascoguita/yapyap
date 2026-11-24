@@ -26,7 +26,7 @@ const SYSTEM_DEVICES = { audio: 'microphone', video: 'camera' } as const;
  */
 async function systemAllows(
   mediaTypes: readonly MediaType[],
-  parent: BaseWindow | undefined,
+  parent: Electron.BaseWindow | undefined,
 ): Promise<boolean> {
   if (process.platform !== 'darwin') {
     return true;
@@ -55,7 +55,7 @@ async function systemAllows(
  * window can open behind a call's window, which then waits for it blank
  * (#724).
  */
-function windowFor(contents: object | null): BaseWindow | undefined {
+function windowFor(contents: object | null): Electron.BaseWindow | undefined {
   const owner = contents === null ? null : BrowserWindow.fromWebContents(contents as WebContents);
   return owner ?? BaseWindow.getFocusedWindow() ?? undefined;
 }

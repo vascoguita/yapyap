@@ -55,11 +55,13 @@ test('keeps the account’s WhatsApp session in its own partition across restart
 
 /** The WhatsApp pages, and which one the window shows. */
 const accountPages = (app: ElectronApplication) =>
-  app.evaluate(({ BaseWindow, webContents }) => {
+  app.evaluate(({ BaseWindow, WebContentsView, webContents }) => {
     // A view's page keeps its window after the view is taken out, so ask the window.
     const shown = new Set(
       BaseWindow.getAllWindows().flatMap((window) =>
-        window.contentView.children.map((view) => (view as Electron.WebContentsView).webContents),
+        window.contentView.children
+          .filter((view) => view instanceof WebContentsView)
+          .map((view) => view.webContents),
       ),
     );
     return webContents
