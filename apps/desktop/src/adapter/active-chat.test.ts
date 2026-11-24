@@ -2,6 +2,7 @@
 import { runInNewContext } from 'node:vm';
 import { describe, expect, it } from 'vitest';
 import {
+  authoredBy,
   activeChatReader,
   describeItem,
   parseActiveChat,
@@ -119,6 +120,35 @@ describe('readActiveChat', () => {
         }
       ).messages[0],
     ).not.toHaveProperty('quote');
+  });
+
+  it('names someone not in the contacts by their ~name, never their number, in a message and its quote (#761)', () => {
+    // WhatsApp shows such a sender as their own name and their number, each an author of its own.
+    const header =
+      '<span data-testid="author" dir="auto">Livia</span><span data-testid="author">+44 7700 900123</span>';
+    const quote = `<div data-testid="quoted-message">${header}<span>Who won?</span></div>`;
+    const livia = `<div data-id="3EB0D1">${header}${quote}<div data-pre-plain-text="[20:31] +44 7700 900123: "><span data-testid="selectable-text">I’m not joining</span></div></div>`;
+    const roomy = { ...LIMITS, text: 100, quote: 100 };
+    const chat = readActiveChat(page(`<div id="main">${livia}</div>`), PLACES, roomy);
+    expect(chat).toMatchObject({
+      group: true,
+      messages: [
+        {
+          text: 'I’m not joining',
+          author: '~Livia',
+          meta: '[20:31] +44 7700 900123: ',
+          quote: { author: '~Livia', text: 'Who won?' },
+        },
+      ],
+    });
+    expect(parseActiveChat(chat, 1)?.messages[0]).toEqual({
+      outgoing: false,
+      text: 'I’m not joining',
+      time: '20:31',
+      author: '~Livia',
+      quote: { author: '~Livia', text: 'Who won?' },
+    });
+    expect(JSON.stringify(parseActiveChat(chat, 1))).not.toMatch(/7700/);
   });
 
   it('knows a group by the sender names WhatsApp shows only in groups, but not by a quote’s', () => {
@@ -281,6 +311,17 @@ describe('readReplyingTo', () => {
     });
   });
 
+  it('names the sender the user replies to by their ~name, and keeps their number out of the quote (#761)', () => {
+    const header =
+      '<span data-testid="author" dir="auto">Livia</span><span data-testid="author">+44 7700 900123</span>';
+    page(
+      `<div id="main">${box(`<div data-testid="quoted-message">${header}<span>Who won?</span></div>`)}</div>`,
+    );
+    expect(readReplyingTo(document, PLACES, { ...LIMITS, quote: 100 })).toEqual({
+      replyingTo: { author: '~Livia', text: 'Who won?' },
+    });
+  });
+
   it('reads nothing while the user replies to none, or to a message without words', () => {
     page(`<div id="main">${box('')}</div>`);
     expect(readReplyingTo(document, PLACES, LIMITS)).toEqual({});
@@ -415,6 +456,16 @@ describe('parseActiveChat', () => {
     for (const mark of ['no mark', '[] Ana: ', '[09:30 Ana: ', 'x [09:30] Ana: ']) {
       expect(parseActiveChat(marked(mark), 1)?.messages).toEqual([{ outgoing: false, text: 'Hi' }]);
     }
+  });
+
+  it('tells a sender from the names in a header: a contact, a ~name, or only a number (#761)', () => {
+    expect(authoredBy(['Ana'], 'Ana Hi')).toEqual({ author: 'Ana', said: 'Hi' });
+    expect(authoredBy(['Livia', '+44 7700 900123'], 'Livia +44 7700 900123 Hi')).toEqual({
+      author: '~Livia',
+      said: 'Hi',
+    });
+    expect(authoredBy(['+44 7700 900123'])).toEqual({ author: '+44 7700 900123', said: '' });
+    expect(authoredBy([], ' Hi ')).toEqual({ author: '', said: 'Hi' });
   });
 
   it('names senders known only by their number Person 1, Person 2…, the same person alike', () => {

@@ -123,9 +123,10 @@ For a suggestion, a rewrite or a summary, the model reads the same things:
 - The chat's latest messages, each with its time and who sent it. You are
   "Me". A photo, video, sticker, voice message or call shows as what it
   is, such as "[a photo]", with its caption if it has one; the model never
-  gets the photo, video or sound itself. A call says nothing of who called. In a group, others go by the names WhatsApp shows; someone known
-  only by their number goes by "Person 1", "Person 2" and so on, and no
-  phone number is sent. A reply carries the message it quotes.
+  gets the photo, video or sound itself. A call says nothing of who called. In a group, others go by the names WhatsApp shows: someone not in your
+  contacts by the name they chose, as WhatsApp shows it with a "~", such
+  as "~Livia", and someone with no name at all by "Person 1", "Person 2"
+  and so on. No phone number is sent. A reply carries the message it quotes.
 - Today's date and time, so "tomorrow" and "on Friday" mean what you mean.
 - For a rewrite, your text.
 

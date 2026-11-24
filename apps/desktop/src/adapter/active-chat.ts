@@ -87,12 +87,34 @@ interface Item {
 }
 
 /**
+ * Who wrote a message or a quote, from the names in its header, and its
+ * `text` without them. Someone not in the user's contacts shows as their
+ * own name and their number, each an author of its own; they go by the
+ * name as WhatsApp shows it, `~Name`, and their number goes nowhere, not
+ * even inside the text (#761). A sender shown only by number keeps it, for
+ * the main process to put a stand-in in its place. It runs inside the page
+ * beside {@link readActiveChat}, so it stays self-contained.
+ */
+export function authoredBy(
+  names: readonly string[],
+  text = '',
+): { readonly author: string; readonly said: string } {
+  const phone = /^\+?[\d\s().-]{7,}$/;
+  const name = names.find((found) => !phone.test(found)) ?? '';
+  const numbered = name !== '' && names.some((found) => phone.test(found));
+  const said = names.reduce((left, found) => left.replace(found, ''), text).trim();
+  return { author: numbered ? `~${name}` : name || (names[0] ?? ''), said };
+}
+
+/**
  * Tells what a message row is, given the text read under its copy mark
  * (#723): a message of emoji alone has no mark, and its emoji are images
  * that keep their text aside; a row with a marker says what it is, and one
  * with a bubble but no words and no marker is something else; and without
- * a mark, a group's message still shows its sender above it. A reply
- * holds the message it quotes, whose text is not the reply's own. It runs
+ * a mark, a group's message still shows its sender above it; a mark names
+ * a contact, but someone else only by number, so their `~Name` goes
+ * instead (#761). A reply holds the message it quotes, whose text is not
+ * the reply's own. It runs
  * inside the page beside {@link readActiveChat}, so it stays self-contained.
  */
 export function describeItem(
@@ -101,28 +123,28 @@ export function describeItem(
   marked: boolean,
   places: ChatPlaces,
   limits: Limits,
+  authored = authoredBy,
 ): Item {
   const all = (selector: string): ReadElement[] =>
     Array.from(row.querySelectorAll?.(selector) ?? []) as ReadElement[];
   const textIn = (found: ReadElement | null | undefined): string =>
     (found?.innerText ?? found?.textContent ?? '').trim();
+  const unquoted = (found: ReadElement): boolean => found.closest(places.quoted) === null;
   const emoji = (): string =>
     all(places.emoji)
       .map((image) => image.dataset?.plainText ?? '')
       .join('');
-  const kindOf = (text: string): ItemKind | undefined => {
-    const marker = places.kinds.find(([, selector]) => row.querySelector(selector) !== null);
-    if (marker !== undefined) {
-      return marker[0];
-    }
-    return text === '' && row.querySelector(places.bubble) !== null ? 'other' : undefined;
+  const kindOf = (text: string): ItemKind | undefined =>
+    places.kinds.find(([, selector]) => row.querySelector(selector) !== null)?.[0] ??
+    (text === '' && row.querySelector(places.bubble) !== null ? 'other' : undefined);
+  const authorOf = (): string => {
+    const { author } = authored(all(places.author).filter(unquoted).map(textIn));
+    return marked && !author.startsWith('~') ? '' : author;
   };
-  const authorOf = (): string =>
-    marked ? '' : textIn(all(places.author).find((found) => found.closest(places.quoted) === null));
   const quoteOf = () => {
     const quoted = row.querySelector(places.quoted) as ReadElement | null;
-    const author = textIn(quoted?.querySelector(places.author) as ReadElement | null);
-    const said = textIn(quoted).replace(author, '').trim();
+    const names = Array.from(quoted?.querySelectorAll?.(places.author) ?? []) as ReadElement[];
+    const { author, said } = authored(names.map(textIn), textIn(quoted));
     const quote = { author: author.slice(0, limits.name), text: said.slice(0, limits.quote) };
     return said === '' ? {} : { quote };
   };
@@ -148,6 +170,7 @@ export function readReplyingTo(
   doc: ReadDocument,
   places: ChatPlaces,
   limits: Limits,
+  authored = authoredBy,
 ): { readonly replyingTo?: Quote } {
   const textIn = (element: unknown): string => {
     const found = element as ReadElement | null | undefined;
@@ -156,8 +179,8 @@ export function readReplyingTo(
   const quote = (Array.from(doc.querySelectorAll(places.composerQuote)) as ReadElement[]).find(
     (found) => found.closest(places.message) === null,
   );
-  const author = textIn(quote?.querySelector(places.author));
-  const said = textIn(quote).replace(author, '').trim();
+  const names = Array.from(quote?.querySelectorAll?.(places.author) ?? []).map(textIn);
+  const { author, said } = authored(names, textIn(quote));
   const replyingTo = { author: author.slice(0, limits.name), text: said.slice(0, limits.quote) };
   return said === '' ? {} : { replyingTo };
 }
@@ -172,7 +195,10 @@ export function readReplyingTo(
  * It runs inside the page as source text, so it must stay self-contained.
  * A message that is not only text, such as a photo, a sticker or a call,
  * comes with its kind, and its caption as its text if it has one (#723).
- * Rows WhatsApp has not drawn yet, far up the chat, are left out. The page
+ * Rows WhatsApp has not drawn yet, far up the chat, are left out, and a
+ * reply's own text and mark are never those of the message it quotes.
+ * WhatsApp once marked the account's own messages by their ID, and now
+ * only by the tail and delivery status they alone have (#410). The page
  * gets `describe` and `replying` as source text beside it (see
  * {@link activeChatReader}).
  */
@@ -194,11 +220,8 @@ export function readActiveChat(
   const all = (from: ReadElement | ReadDocument, selector: string): ReadElement[] =>
     Array.from(from.querySelectorAll?.(selector) ?? []) as ReadElement[];
   const unquoted = (found: ReadElement): boolean => found.closest(places.quoted) === null;
-  // WhatsApp once marked the account's own messages by their ID, and now
-  // only by the tail and delivery status they alone have (#410).
   const outgoing = (row: ReadElement): boolean =>
     idOf(row).startsWith('true_') || row.querySelector(places.outgoing) !== null;
-  // A reply holds the message it quotes, whose text is not the reply's own.
   const own = (row: ReadElement, selector: string): ReadElement | null =>
     all(row, selector).find(unquoted) ?? (row.querySelector(selector) as ReadElement | null);
   const messageOf = (row: ReadElement) => {
@@ -254,7 +277,11 @@ export function activeChatReader(messages: number): string {
     quote: MAX_QUOTE,
     meta: MAX_META,
   };
-  return `(${readActiveChat.toString()})(document, ${JSON.stringify(PLACES)}, ${JSON.stringify(limits)}, ${describeItem.toString()}, ${readReplyingTo.toString()})`;
+  // Each part runs as source text, so the one they share is handed to them beside it.
+  const authored = authoredBy.toString();
+  const describe = `(...args) => (${describeItem.toString()})(...args, ${authored})`;
+  const replying = `(...args) => (${readReplyingTo.toString()})(...args, ${authored})`;
+  return `(${readActiveChat.toString()})(document, ${JSON.stringify(PLACES)}, ${JSON.stringify(limits)}, ${describe}, ${replying})`;
 }
 
 const QuoteSchema = Type.Object(
@@ -351,7 +378,7 @@ function maskNumbers(chat: ReadChat): ReadChat {
   };
 }
 
-type RawMessage = Omit<ReadMessage, 'time' | 'author'> & { readonly meta?: string };
+type RawMessage = Omit<ReadMessage, 'time'> & { readonly meta?: string };
 
 /**
  * The time and sender in WhatsApp's copy mark, `[time, date] Sender: `,
@@ -364,10 +391,11 @@ function fromMeta({ meta = '', ...message }: RawMessage): ReadMessage {
   }
   const rest = meta.slice(end + 1).trim();
   const author = rest.endsWith(':') ? rest.slice(0, -1).trim() : '';
+  // The name the page read wins over the mark's, which is only a number for someone not in the contacts (#761).
   return {
     ...message,
     time: meta.slice(1, end).trim(),
-    ...(author === '' ? {} : { author }),
+    ...(author === '' || message.author !== undefined ? {} : { author }),
   };
 }
 
