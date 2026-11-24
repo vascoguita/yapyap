@@ -60,6 +60,9 @@ const SENDERS = {
   Inês: '#53bdeb',
   Lena: '#c7a8e8',
   Marta: '#21c063',
+  Aiko: '#f2a541',
+  Daniel: '#53bdeb',
+  Sam: '#c7a8e8',
 };
 
 const PERSONAS = {
@@ -88,8 +91,42 @@ const PERSONAS = {
         name: 'Climbing crew',
         emoji: '🧗',
         tint: '#2f6f9f',
-        last: 'Aiko: Wall opens at 7',
-        time: 'Tuesday',
+        last: 'Aiko: Please reply by tonight so I can book',
+        time: '09:38',
+        unread: 16,
+        status: 'Aiko, Daniel, Marta, Sam, Tomás, You',
+        // A busy group the README's animation opens, for the summary of its unread messages (#757).
+        messages: [
+          { day: 'Today' },
+          {
+            who: 'Aiko',
+            text: 'Morning climbers! The wall has a new bouldering area 🎉',
+            time: '08:02',
+          },
+          { who: 'Daniel', text: 'Finally! The old one was getting boring', time: '08:05' },
+          { who: 'Sam', text: 'Have they changed the opening hours too?', time: '08:07' },
+          { who: 'Aiko', text: 'Yes, Saturdays it opens at 7 now', time: '08:09' },
+          { who: 'Marta', text: '7 is early but I could do it', time: '08:15' },
+          { who: 'Tomás', text: 'I can only come after 9', time: '08:16' },
+          { who: 'Daniel', text: 'Same, 7 is brutal 😅', time: '08:18' },
+          { who: 'Aiko', text: 'Let’s say 9 then, at the main entrance', time: '08:21' },
+          { who: 'Sam', text: 'Works for me', time: '08:22' },
+          {
+            who: 'Marta',
+            text: 'Day passes are 12 € with the student card, by the way',
+            time: '08:40',
+          },
+          { who: 'Daniel', text: 'Nice, I still have mine', time: '08:44' },
+          { who: 'Tomás', text: 'Is anyone bringing a rope for the top-rope wall?', time: '09:02' },
+          { who: 'Tomás', text: 'You had one last time, can you bring it again?', time: '09:03' },
+          { who: 'Sam', text: 'I can bring chalk for everyone', time: '09:10' },
+          {
+            who: 'Aiko',
+            text: 'Who is in for Saturday at 9? I need to book the group slot',
+            time: '09:36',
+          },
+          { who: 'Aiko', text: 'Please reply by tonight so I can book', time: '09:38' },
+        ],
       },
       { name: 'Aiko Tanaka', face: 'aiko', last: 'Thanks for the recipe!', time: 'Monday' },
       {
@@ -232,12 +269,19 @@ for (const [index, chat] of persona.chats.entries()) {
   const row = document.createElement('div');
   row.className = `row${index === 0 ? ' open' : ''}${chat.unread ? ' unread' : ''}`;
   row.setAttribute('role', 'row');
+  // WhatsApp's landmarks, which the AI Assistant reads for a chat's unread count (#705).
+  row.dataset.testid = `list-item-${String(index)}`;
   const avatar = document.createElement('span');
   face(avatar, chat);
   const text = document.createElement('div');
   text.style.minWidth = '0';
   const name = document.createElement('strong');
-  name.textContent = chat.name;
+  name.dataset.testid = 'cell-frame-title';
+  const nameText = document.createElement('span');
+  nameText.dir = 'auto';
+  nameText.title = chat.name;
+  nameText.textContent = chat.name;
+  name.append(nameText);
   const last = document.createElement('span');
   last.className = 'last';
   last.textContent = chat.last;
@@ -250,11 +294,17 @@ for (const [index, chat] of persona.chats.entries()) {
   if (chat.unread) {
     const count = document.createElement('span');
     count.className = 'count';
+    count.dataset.testid = 'icon-unread-count';
     count.textContent = String(chat.unread);
     meta.append(count);
   }
   row.append(avatar, text, meta);
   list.append(row);
+  if (chat.messages) {
+    row.addEventListener('mousedown', () => {
+      openChat(row, chat);
+    });
+  }
 }
 
 face(document.getElementById('chat-face'), persona.chats[0]);
@@ -334,16 +384,30 @@ function addMessage(message) {
   messages.scrollTop = messages.scrollHeight;
 }
 
-for (const message of persona.messages) {
-  if (message.day) {
-    const day = document.createElement('div');
-    day.className = 'day';
-    day.textContent = message.day;
-    messages.append(day);
-    continue;
+/** Draws a chat's messages, with WhatsApp's divider above the first unread one. */
+function showMessages(chatMessages, unread = 0) {
+  messages.replaceChildren();
+  const firstUnread = chatMessages.filter((message) => !message.day).length - unread;
+  let drawn = 0;
+  for (const message of chatMessages) {
+    if (message.day) {
+      const day = document.createElement('div');
+      day.className = 'day';
+      day.textContent = message.day;
+      messages.append(day);
+      continue;
+    }
+    if (unread > 0 && drawn === firstUnread) {
+      const divider = document.createElement('div');
+      divider.className = 'day';
+      divider.textContent = `${String(unread)} unread messages`;
+      messages.append(divider);
+    }
+    addMessage(message);
+    drawn += 1;
   }
-  addMessage(message);
 }
+showMessages(persona.messages);
 
 /** The open chat's row in the list shows its newest message, as WhatsApp's does. */
 function preview(text, time) {
@@ -397,5 +461,22 @@ window.showcaseReceive = (who, text) => {
 };
 
 // WhatsApp's title counts unread chats, not messages.
-const unread = persona.chats.filter((chat) => chat.unread).length;
-document.title = unread > 0 ? `(${String(unread)}) WhatsApp` : 'WhatsApp';
+function countUnread() {
+  const unread = persona.chats.filter((chat) => chat.unread).length;
+  document.title = unread > 0 ? `(${String(unread)}) WhatsApp` : 'WhatsApp';
+}
+countUnread();
+
+/** Opens a chat from the list, as WhatsApp does on the press: its messages are read at once. */
+function openChat(row, chat) {
+  list.querySelector('.row.open')?.classList.remove('open');
+  row.classList.add('open');
+  row.classList.remove('unread');
+  row.querySelector('.count')?.remove();
+  face(document.getElementById('chat-face'), chat);
+  document.getElementById('chat-name').textContent = chat.name;
+  document.getElementById('chat-status').textContent = chat.status ?? '';
+  showMessages(chat.messages, chat.unread ?? 0);
+  chat.unread = 0;
+  countUnread();
+}

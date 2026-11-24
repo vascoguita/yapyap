@@ -375,6 +375,47 @@ describe('createAssistantBar: suggested replies', () => {
     expect(t.last().suggestions).toEqual(['Yes, 9 works!', 'Can we do 8?']);
   });
 
+  it('suggests for the open chat once it is set up or allowed there, though nothing new arrives (#757)', async () => {
+    const t = harness('1. Yes, 9 works!\n2. Can we do 8?');
+    t.setSetup({ ...READY, missing: 'key' });
+    t.bar.found('m1', 0);
+    await t.settle();
+    expect(t.deps.core.ask).not.toHaveBeenCalled();
+    // Set up, it suggests for the chat's last item, once.
+    t.setSetup(READY);
+    await t.bar.refresh();
+    await t.settle();
+    expect(t.last().suggestions).toEqual(['Yes, 9 works!', 'Can we do 8?']);
+    await t.bar.refresh();
+    expect(t.deps.core.ask).toHaveBeenCalledOnce();
+    // A chat the user had not allowed gets them once it is.
+    t.forbid();
+    t.bar.opened('m2', 0);
+    await t.settle();
+    expect(t.deps.core.ask).toHaveBeenCalledOnce();
+    t.set({ chats: 'all' });
+    await t.bar.refresh();
+    await t.settle();
+    expect(t.deps.core.ask).toHaveBeenCalledTimes(2);
+    // Nothing waits once the user sent, or another chat opened.
+    t.forbid();
+    t.set({ chats: 'chosen' });
+    t.bar.opened('m3', 0);
+    await t.settle();
+    t.bar.sent();
+    t.set({ chats: 'all' });
+    await t.bar.refresh();
+    t.forbid();
+    t.set({ chats: 'chosen' });
+    t.bar.opened('m4', 0);
+    await t.settle();
+    t.bar.opened(null, 0);
+    t.set({ chats: 'all' });
+    await t.bar.refresh();
+    await t.settle();
+    expect(t.deps.core.ask).toHaveBeenCalledTimes(2);
+  });
+
   it('puts a suggestion in the message box on click, never sending it, and keeps the others (#743)', async () => {
     const t = harness();
     t.bar.arrived('m1');
