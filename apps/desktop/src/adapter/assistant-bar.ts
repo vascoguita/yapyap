@@ -115,6 +115,7 @@ interface BarNode {
     translate: string;
     borderStartStartRadius: string;
     borderStartEndRadius: string;
+    transition: string;
     setProperty(name: string, value: string): void;
   };
   readonly dataset: Record<string, string | undefined>;
@@ -530,13 +531,18 @@ export function fitAssistantTray(
 /**
  * Squares the top corners of the message box the tray sits on, and puts
  * back those of one it squared before that it no longer sits on (#764).
+ * WhatsApp eases the box's corners over about half a second, which left
+ * them rounded under the tray as it first showed, so the box goes without
+ * transitions while the tray sits on it.
  */
 export function squareAssistantBox(store: Pick<BarStore, 'squared'>, box: BarNode | null): void {
   if (store.squared !== undefined && store.squared !== box) {
     store.squared.style.borderStartStartRadius = '';
     store.squared.style.borderStartEndRadius = '';
+    store.squared.style.transition = '';
   }
   if (box !== null) {
+    box.style.transition = 'none';
     box.style.borderStartStartRadius = '0';
     box.style.borderStartEndRadius = '0';
   }

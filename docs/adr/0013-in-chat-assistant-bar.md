@@ -228,6 +228,9 @@ still should.
   sparkle alone marks the assistant. The box's top corners go square while
   the tray sits on it; while the user replies, WhatsApp squares them
   itself and its quote layer moves up by the tray's height, so the quote
-  comes first, then the suggestions, then the box. Those corners and that
+  comes first, then the suggestions, then the box. WhatsApp eases the
+  box's corners over about half a second, so the box goes without
+  transitions while the tray sits on it, or its rounded top shows under
+  the tray as it first appears. Those corners, that transition and that
   layer's `translate` are the only styles the assistant sets on WhatsApp's
-  own elements, and both are put back once the tray goes.
+  own elements, and all are put back once the tray goes.

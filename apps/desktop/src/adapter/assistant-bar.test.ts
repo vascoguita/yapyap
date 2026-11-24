@@ -630,6 +630,8 @@ describe('joining the tray to the message box (#764)', () => {
     expect(host.style.zIndex).toBe('3');
     expect(parts.bar.dataset['joined']).toBe('box');
     expect([box.style.borderStartStartRadius, box.style.borderStartEndRadius]).toEqual(['0', '0']);
+    // At once, not eased in by WhatsApp's own transition, which left them round under the tray.
+    expect(box.style.transition).toBe('none');
   });
 
   it('lines up right to left, and gives the box its corners back once the tray goes', () => {
@@ -647,6 +649,7 @@ describe('joining the tray to the message box (#764)', () => {
     // With nothing in the tray, the box gets its own corners back.
     renderAssistantBar(document, scope, { ...CONTENT, suggestions: [] }, PLACES, KIT);
     expect([box.style.borderStartStartRadius, box.style.borderStartEndRadius]).toEqual(['', '']);
+    expect(box.style.transition).toBe('');
   });
 
   it('draws over a footer of no stacking order of its own', () => {
@@ -714,6 +717,7 @@ describe('joining the tray to the message box (#764)', () => {
       '0',
     ]);
     expect(store.squared).toBe(second);
+    expect([first.style.transition, second.style.transition]).toEqual(['', 'none']);
   });
 
   it('puts back a layer it moved, and moves none while nothing is raised', () => {
