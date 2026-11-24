@@ -37,6 +37,12 @@
       "automerge": true
     },
     {
+      "description": "scorecard-action v2.6.0's image cannot be pulled (ossf/scorecard-action#1752, #759); a later release can come.",
+      "matchManagers": ["github-actions"],
+      "matchPackageNames": ["ossf/scorecard-action"],
+      "allowedVersions": "!/^v2\\.6\\.0$/"
+    },
+    {
       "description": "Renovate itself, which the workflow runs and CI validates this file with.",
       "matchPackageNames": ["ghcr.io/renovatebot/renovate", "renovatebot/renovate"],
       "semanticCommitType": "ci",
