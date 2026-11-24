@@ -233,4 +233,7 @@ still should.
   transitions while the tray sits on it, or its rounded top shows under
   the tray as it first appears. Those corners, that transition and that
   layer's `translate` are the only styles the assistant sets on WhatsApp's
-  own elements, and all are put back once the tray goes.
+  own elements, and all are put back once the tray goes. While the
+  rewrite button's menu is open, the tray stands level with WhatsApp's
+  footer instead of over it, so the menu, which lives in the message box,
+  shows over the tray (#770).

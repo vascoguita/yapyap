@@ -11,6 +11,7 @@ import {
   claudeRequests,
   clickInBar,
   clickInTool,
+  toolOnTop,
   fakeModelServer,
   focusMain,
   messageArrives,
@@ -365,6 +366,17 @@ test('rewrites the draft in place from the message box, puts it back on Undo, an
   // The rewrite reads the chat it answers, and the chat is cached for the next request.
   expect(asked).toContain('[19:58, 24/10/2026] Test Chat One: Dinner tonight?');
   expect(asked).toContain('"cache_control":{"type":"ephemeral"}');
+  // The menu opens up over the tray that holds the notice (#770), with the message box at the
+  // bottom of the window, as in WhatsApp.
+  await window.evaluate(() => {
+    const main = document.querySelector<HTMLElement>('#main');
+    main?.style.setProperty('min-block-size', `${String(innerHeight - main.offsetTop)}px`);
+  });
+  await clickInTool(app, window, 'Choose how to rewrite');
+  await expect(async () => {
+    expect(await toolOnTop(app)).toBe(true);
+  }).toPass();
+  await window.keyboard.press('Escape');
   await clickInBar(app, window, 'Undo');
   await expect(composer).toHaveText('running late');
   await expect(async () => {

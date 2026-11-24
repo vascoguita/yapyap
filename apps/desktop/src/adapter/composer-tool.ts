@@ -277,6 +277,8 @@ export function wireComposerTool(store: ToolStore, scope: Scope, kit: ToolKit): 
   const open = (shown: boolean): void => {
     menu.hidden = !shown;
     more.setAttribute('aria-expanded', String(shown));
+    // The suggestions tray draws over the message box, so it steps back while this menu is open (#770).
+    store.host.dataset['yapyapMenu'] = String(shown);
     if (shown) {
       kit.place(scope, store.places, tool, menu);
       (
@@ -346,6 +348,7 @@ export function composerToolKeys(store: ToolStore): void {
   const close = (key: string, event: ToolEvent): void => {
     menu.hidden = true;
     more.setAttribute('aria-expanded', 'false');
+    store.host.dataset['yapyapMenu'] = 'false';
     if (key === 'Escape') {
       event.preventDefault();
       more.focus();

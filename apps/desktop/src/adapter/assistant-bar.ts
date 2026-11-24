@@ -127,6 +127,7 @@ interface BarNode {
   scrollIntoView(options: { readonly block: 'start' }): void;
   addEventListener(type: string, listener: (event: BarEvent) => void): void;
   closest(selectors: string): BarNode | null;
+  querySelector(selectors: string): unknown;
   readonly children: ArrayLike<BarNode>;
   contains(node: unknown): boolean;
   getBoundingClientRect(): {
@@ -525,7 +526,10 @@ export function fitAssistantTray(
   const { backgroundColor, boxShadow } = style(box);
   host.style.setProperty('--tray', backgroundColor);
   host.style.setProperty('--tray-shadow', boxShadow);
-  host.style.zIndex = String((Number.parseInt(style(footer).zIndex, 10) || 0) + 1);
+  // Over the box, to hide its shadow where they meet; level with it while the rewrite
+  // button's menu is open in the box, so the menu, which comes later, shows over the tray (#770).
+  const menu = footer.querySelector('[data-yapyap-menu="true"]') === null ? 1 : 0;
+  host.style.zIndex = String((Number.parseInt(style(footer).zIndex, 10) || 0) + menu);
 }
 
 /**

@@ -399,6 +399,8 @@ describe('the button’s controls', () => {
     click(more);
     expect(menu.hidden).toBe(false);
     expect(more.getAttribute('aria-expanded')).toBe('true');
+    // Marked open on its host, outside its shadow, so the suggestions tray steps back (#770).
+    expect(t.kept().host.dataset['yapyapMenu']).toBe('true');
     expect(t.focused()).toBe(t.items()[1]);
     const odd = t.items()[2];
     if (odd !== undefined) {
@@ -407,6 +409,7 @@ describe('the button’s controls', () => {
     expect(t.bridge.polish).toHaveBeenCalledExactlyOnceWith('odd');
     expect(menu.hidden).toBe(true);
     expect(more.getAttribute('aria-expanded')).toBe('false');
+    expect(t.kept().host.dataset['yapyapMenu']).toBe('false');
     click(more);
     click(more);
     expect(menu.hidden).toBe(true);
@@ -468,6 +471,7 @@ describe('the button’s controls', () => {
     const escape = press(t.focused(), 'Escape');
     expect(escape.defaultPrevented).toBe(true);
     expect(menu.hidden).toBe(true);
+    expect(t.kept().host.dataset['yapyapMenu']).toBe('false');
     expect(more.getAttribute('aria-expanded')).toBe('false');
     expect(t.focused()).toBe(more);
     click(more);
