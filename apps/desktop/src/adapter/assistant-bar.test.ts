@@ -600,26 +600,27 @@ describe('joining the tray to the message box (#764)', () => {
   it('moves WhatsApp’s quote up over the tray while the user replies, and back once it goes', () => {
     page(quoted);
     const scope: Record<string, unknown> = { getComputedStyle };
-    const layer = document.querySelector<HTMLElement>('.layer');
+    const layer = document.querySelector<HTMLElement>('.layer') ?? document.body;
+    const box = document.querySelector<HTMLElement>('.box') ?? document.body;
     renderAssistantBar(document, scope, CONTENT, PLACES, KIT);
     const { host, parts } = scope['bar'] as Stored;
     Object.defineProperty(host, 'offsetHeight', { configurable: true, value: 100 });
     renderAssistantBar(document, scope, { ...CONTENT, writing: true }, PLACES, KIT);
     expect(parts.bar.dataset['joined']).toBe('quote');
-    expect(layer?.style.translate).toBe('0 -100px');
+    expect(layer.style.translate).toBe('0 -100px');
     // WhatsApp squares the box's top itself under its quote.
-    expect(document.querySelector<HTMLElement>('.box')?.style.borderStartStartRadius).toBe('');
+    expect(box.style.borderStartStartRadius).toBe('');
     renderAssistantBar(document, scope, { ...CONTENT, suggestions: [] }, PLACES, KIT);
-    expect(layer?.style.translate).toBe('');
+    expect(layer.style.translate).toBe('');
     // A quote WhatsApp drew anew is moved, and the old layer put back.
     renderAssistantBar(document, scope, CONTENT, PLACES, KIT);
-    expect(layer?.style.translate).toBe('0 -100px');
-    layer?.remove();
+    expect(layer.style.translate).toBe('0 -100px');
+    layer.remove();
     document
       .querySelector('#main footer')
       ?.insertAdjacentHTML('beforeend', `<div class="layer2">${quoted}</div>`);
     renderAssistantBar(document, scope, { ...CONTENT, writing: true }, PLACES, KIT);
-    expect(layer?.style.translate).toBe('');
+    expect(layer.style.translate).toBe('');
     expect(document.querySelector<HTMLElement>('.layer2')?.style.translate).toBe('0 -100px');
   });
 
