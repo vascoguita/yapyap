@@ -628,6 +628,13 @@ describe('joining the tray to the message box (#764)', () => {
     );
     // Over the box, whose own shadow it hides where they meet.
     expect(host.style.zIndex).toBe('3');
+    // Level with it while the rewrite button's menu is open in the box, which then shows over it (#770).
+    box.insertAdjacentHTML('beforeend', '<div data-yapyap-menu="true"></div>');
+    renderAssistantBar(document, scope, { ...CONTENT, writing: true }, PLACES, KIT);
+    expect(host.style.zIndex).toBe('2');
+    box.querySelector('[data-yapyap-menu]')?.setAttribute('data-yapyap-menu', 'false');
+    renderAssistantBar(document, scope, { ...CONTENT, writing: true }, PLACES, KIT);
+    expect(host.style.zIndex).toBe('3');
     expect(parts.bar.dataset['joined']).toBe('box');
     expect([box.style.borderStartStartRadius, box.style.borderStartEndRadius]).toEqual(['0', '0']);
     // At once, not eased in by WhatsApp's own transition, which left them round under the tray.

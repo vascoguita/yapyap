@@ -328,6 +328,32 @@ export async function clickInTool(
   await page.mouse.click(control.x, control.y);
 }
 
+/**
+ * Runs in the adapter's isolated world: whether a click where the rewrite
+ * button's open menu overlaps the suggestions tray lands on the menu, and
+ * not the tray (#770); null while they do not overlap.
+ */
+function readToolOnTop(): boolean | null {
+  const { yapyapComposerToolView: tool, yapyapAssistantBarView: bar } = globalThis as {
+    yapyapComposerToolView?: { host: HTMLElement; parts: { menu: HTMLElement } };
+    yapyapAssistantBarView?: { host: HTMLElement };
+  };
+  if (tool === undefined || bar === undefined) {
+    return null;
+  }
+  const [menu, tray] = [tool.parts.menu.getBoundingClientRect(), bar.host.getBoundingClientRect()];
+  const [top, bottom] = [Math.max(menu.top, tray.top), Math.min(menu.bottom, tray.bottom)];
+  const [left, right] = [Math.max(menu.left, tray.left), Math.min(menu.right, tray.right)];
+  if (top >= bottom || left >= right) {
+    return null;
+  }
+  return document.elementFromPoint((left + right) / 2, (top + bottom) / 2) === tool.host;
+}
+
+/** Whether the rewrite button's open menu shows over the suggestions tray, or null where they do not meet (#770). */
+export const toolOnTop = async (app: ElectronApplication): Promise<boolean | null> =>
+  (await inBarWorld(app, readToolOnTop)) as boolean | null;
+
 /** Three suggested replies. */
 export const CLAUDE_ANSWER = claudeAnswer('Yes, 8 works!\nCan we do 9?\nSee you there');
 
