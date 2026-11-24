@@ -73,6 +73,12 @@ interface BarContext {
    * soon as suggestions are asked for again.
    */
   unsuggested: boolean;
+  /**
+   * The open chat's last item, which got no suggestions because the setup
+   * was not ready or the chat not allowed; they are made once the settings
+   * change, though nothing new arrives. Null when there is none.
+   */
+  waiting: string | null;
   /** The summary being written, called off when another chat opens or the user sends (#705). */
   summarizing: AbortController | undefined;
 }
@@ -259,6 +265,7 @@ function forget(bar: BarContext, writing: boolean): void {
   bar.summarizing?.abort();
   bar.summarizing = undefined;
   bar.chat = null;
+  bar.waiting = null;
   bar.kept = '';
   bar.blocked = false;
   bar.rewritten = false;
@@ -351,9 +358,22 @@ function followed(bar: BarContext, message: string | null): void {
 }
 
 /** Whether suggestions can be made for the open chat: the setup is ready and the user lets it be read. */
-async function readyToSuggest(bar: BarContext): Promise<boolean> {
+/**
+ * Whether suggestions can be made for `message`: the setup is ready and the
+ * user lets the assistant read the open chat. When they cannot, `message`
+ * waits for the settings to change, unless a newer request took over.
+ */
+async function readyToSuggest(
+  bar: BarContext,
+  message: string,
+  signal: AbortSignal,
+): Promise<boolean> {
   const setup = await bar.deps.core.setup();
-  return setup.missing === '' && (await chatToAnswer(bar)) !== undefined;
+  const ready = setup.missing === '' && (await chatToAnswer(bar)) !== undefined;
+  if (!signal.aborted) {
+    bar.waiting = ready ? null : message;
+  }
+  return ready;
 }
 
 /** The open chat, if the user wants suggestions there, whoever sent its last item (#723). */
@@ -478,7 +498,7 @@ async function suggest(bar: BarContext, message: string): Promise<void> {
     return;
   }
   // The blank chips show from the start, so suggestions that start over show no gap (#741).
-  const ready = await readyToSuggest(bar);
+  const ready = await readyToSuggest(bar, message, controller.signal);
   if (controller.signal.aborted) {
     return;
   }
@@ -499,6 +519,10 @@ async function refresh(bar: BarContext): Promise<void> {
     await ready(bar);
   } else {
     update(bar, { model: modelName(await bar.deps.core.setup()) });
+  }
+  // The user set the assistant up, or allowed the chat open now: its last item gets suggestions.
+  if (bar.waiting !== null) {
+    void suggest(bar, bar.waiting);
   }
 }
 
@@ -738,6 +762,7 @@ function sendAndClear(bar: BarContext, last: LastItem): Pick<AssistantBar, 'sent
   return {
     sent: () => {
       last.message = null;
+      bar.waiting = null;
       bar.rewritten = false;
       bar.unsuggested = false;
       bar.suggesting?.abort();
@@ -769,6 +794,7 @@ export function createAssistantBar(deps: BarDependencies): AssistantBar {
     made: new Map(),
     retryFor: '',
     unsuggested: false,
+    waiting: null,
     summarizing: undefined,
   };
   return {
