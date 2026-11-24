@@ -647,9 +647,12 @@ export function AssistantSection(props: {
   return (
     <div class="assistant" aria-busy={view === null}>
       {view === null ? null : <StatusLine view={view} />}
-      <InChatsGroup snapshot={snapshot} onChange={onChange} />
       {view === null ? (
-        <p>{en.common.loading}</p>
+        <>
+          <p>{en.common.loading}</p>
+          {/* So the assistant can be turned off even while its providers cannot be read. */}
+          <InChatsGroup snapshot={snapshot} onChange={onChange} />
+        </>
       ) : (
         <AssistantDetails
           api={api}
@@ -669,6 +672,7 @@ function AssistantDetails(props: Omit<PlaceProps, 'model'>) {
   return (
     <>
       <Places {...props} model={model} />
+      <InChatsGroup snapshot={props.snapshot} onChange={props.onChange} />
       <ChatsGroup {...props} model={model} />
     </>
   );
