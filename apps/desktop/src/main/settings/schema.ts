@@ -164,12 +164,12 @@ export const SettingsSchema = Type.Object(
         autoSuggest: Type.Boolean({ default: true }),
         // Offer a summary of a chat opened with many unread messages, as the maintainer chose (#705).
         summaries: Type.Boolean({ default: true }),
+        // How many unread messages a chat must open with to be summarized (#766).
+        summarizeFrom: Type.Integer({ minimum: 2, maximum: 200, default: 10 }),
         // The chats the assistant works in: every one, or only those the user lists (#107).
         chats: Type.Union([Type.Literal('all'), Type.Literal('chosen')], { default: 'chosen' }),
-        // How many of the open chat's latest messages the assistant sends; more context, better answers (#629).
-        messages: Type.Union([Type.Literal('20'), Type.Literal('50'), Type.Literal('100')], {
-          default: '50',
-        }),
+        // How many of the open chat's latest messages the assistant sends; more context, better answers (#629, #766).
+        messages: Type.Integer({ minimum: 10, maximum: 200, multipleOf: 10, default: 50 }),
         // A model server that speaks OpenAI's API; plain http only on this computer and the home network.
         server: Type.String({ default: '', maxLength: 300, pattern: MODEL_SERVER }),
       },

@@ -173,3 +173,70 @@ describe('a folder setting', () => {
     expect(screen.getByText('Your Downloads folder')).toBeTruthy();
   });
 });
+
+describe('a number setting (#766)', () => {
+  const field = {
+    id: 'assistant.example',
+    label: 'Messages it reads',
+    description: 'How many it reads.',
+    restart: false,
+    stepper: { steps: [10, 20, 30] },
+  } as const;
+  const valued = (value: number) => snapshot({ values: { 'assistant.example': value } });
+
+  it('steps to the next value each way, and stops at either end', () => {
+    const onChange = vi.fn();
+    render(<Field field={field} snapshot={valued(20)} onChange={onChange} />);
+    const group = screen.getByRole('group', { name: 'Messages it reads' });
+    expect(group.getAttribute('aria-describedby')).toBe('assistant.example-hint');
+    expect(group.querySelector('output')?.textContent).toBe('20');
+    fireEvent.click(screen.getByRole('button', { name: 'Fewer' }));
+    fireEvent.click(screen.getByRole('button', { name: 'More' }));
+    expect(onChange.mock.calls).toEqual([
+      ['assistant.example', 10],
+      ['assistant.example', 30],
+    ]);
+    cleanup();
+    render(<Field field={field} snapshot={valued(10)} onChange={onChange} />);
+    expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Fewer' }).disabled).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Fewer' }));
+    cleanup();
+    render(<Field field={field} snapshot={valued(30)} onChange={onChange} />);
+    expect(screen.getByRole<HTMLButtonElement>('button', { name: 'More' }).disabled).toBe(true);
+    expect(onChange).toHaveBeenCalledTimes(2);
+    cleanup();
+    render(<Field field={field} snapshot={valued(30)} onChange={onChange} dimmed />);
+    expect(screen.getByRole('group').closest('.row')?.className).toBe('row dimmed');
+  });
+
+  it('moves a value between two steps to the nearer one each way', () => {
+    const onChange = vi.fn();
+    render(<Field field={field} snapshot={valued(25)} onChange={onChange} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Fewer' }));
+    fireEvent.click(screen.getByRole('button', { name: 'More' }));
+    expect(onChange.mock.calls).toEqual([
+      ['assistant.example', 20],
+      ['assistant.example', 30],
+    ]);
+  });
+
+  it('sits worded under the setting it belongs to, faded while that one is off', () => {
+    const nested = {
+      ...field,
+      label: 'Unread messages that start a summary',
+      stepper: { steps: [2, 10], words: { before: 'From', after: 'unread messages' } },
+    };
+    render(<Field field={nested} snapshot={valued(10)} onChange={vi.fn()} dimmed />);
+    const group = screen.getByRole('group', { name: 'Unread messages that start a summary' });
+    const row = group.closest('.row');
+    expect(row?.className).toBe('row nested dimmed');
+    expect(row?.textContent).toContain('From');
+    expect(row?.textContent).toContain('unread messages');
+    expect(document.getElementById('assistant.example-hint')?.textContent).toBe(
+      'How many it reads.',
+    );
+    cleanup();
+    render(<Field field={nested} snapshot={valued(10)} onChange={vi.fn()} />);
+    expect(screen.getByRole('group').closest('.row')?.className).toBe('row nested');
+  });
+});

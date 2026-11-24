@@ -11,9 +11,6 @@ export const LOOK_EVERY_MS = 1500;
  */
 export const GIVE_UP_AFTER = 4;
 
-/** How many unread messages a chat must open with for the assistant to offer a summary (#705). */
-export const SUMMARIZE_FROM = 10;
-
 export interface ChatWatchDependencies {
   /** The WhatsApp page of the account on screen. */
   readonly activePage: () => AdapterPage;
@@ -23,8 +20,7 @@ export interface ChatWatchDependencies {
   readonly onScreen: () => boolean;
   /**
    * The first look found the open chat, with its last item, or found none
-   * open; `unread` is how many messages it opened with unread, from
-   * {@link SUMMARIZE_FROM} up, else 0.
+   * open; `unread` is how many messages it opened with unread.
    */
   readonly found: (message: string | null, unread: number) => unknown;
   /** Another chat is open, with its last item and, as for `found`, its unread messages; or none is. */
@@ -119,8 +115,7 @@ const sameChat = (was: Newest | null | undefined, now: Newest | null): boolean =
   was !== undefined && was?.chat === now?.chat;
 
 /**
- * How many messages were unread in the chat open now, if at least
- * {@link SUMMARIZE_FROM}, else 0 (#705). WhatsApp marks them read as the
+ * How many messages were unread in the chat open now (#705). WhatsApp marks them read as the
  * chat opens and takes its badge away, so the count is the badge's at the
  * look before, on the same page; a badge still drawn at this look counts
  * too, as at the first look, which has none before it. Badges are named by
@@ -134,8 +129,7 @@ function unreadOnOpening(before: Seen | undefined, now: Seen): number {
     return 0;
   }
   const was = before?.page === now.page ? (before.unread.get(chat) ?? 0) : 0;
-  const count = Math.max(was, now.unread.get(chat) ?? 0);
-  return count >= SUMMARIZE_FROM ? count : 0;
+  return Math.max(was, now.unread.get(chat) ?? 0);
 }
 
 /**

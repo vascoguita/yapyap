@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { followOpenChat, GIVE_UP_AFTER, LOOK_EVERY_MS, SUMMARIZE_FROM } from './auto-suggest.ts';
+import { followOpenChat, GIVE_UP_AFTER, LOOK_EVERY_MS } from './auto-suggest.ts';
 
 /**
  * The look's answer for the open chat's hashes, or no chat, with the chat
@@ -339,15 +339,14 @@ describe('followOpenChat', () => {
   it('tells how many messages a chat opened with unread, by its badge at the look before (#705)', async () => {
     const t = setup('aaaaaaaa:00000001:-:i:e:-:-|bbbbbbbb:12,cccccccc:9');
     await t.look();
-    expect(SUMMARIZE_FROM).toBe(10);
     // WhatsApp takes the badge away as the chat opens.
     t.page().set('bbbbbbbb:00000002:-:i:e:-:-|cccccccc:9');
     await t.look();
     expect(t.deps.opened).toHaveBeenLastCalledWith('bbbbbbbb:00000002:-:-', 12);
-    // Fewer than ten unread offer nothing.
+    // However few: whether that is enough to summarize is the user's setting (#766).
     t.page().set('cccccccc:00000003:-:i:e:-:-');
     await t.look();
-    expect(t.deps.opened).toHaveBeenLastCalledWith('cccccccc:00000003:-:-', 0);
+    expect(t.deps.opened).toHaveBeenLastCalledWith('cccccccc:00000003:-:-', 9);
     // A chat with no badge, and no chat, offer nothing either.
     t.page().set('dddddddd:00000004:-:i:e:-:-|eeeeeeee:40');
     await t.look();

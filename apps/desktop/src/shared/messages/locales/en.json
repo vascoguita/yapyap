@@ -81,6 +81,8 @@
     "proxyPlaceholder": "socks5://127.0.0.1:1080",
     "defaultFolder": "Your Downloads folder",
     "chooseFolder": "Change…",
+    "fewer": "Fewer",
+    "more": "More",
     "useDefaultFolder": "Use Downloads Folder",
     "pages": {
       "general": "General",
@@ -170,11 +172,17 @@
         },
         "summaries": {
           "label": "Summarize unread messages",
-          "description": "When you open a chat with 10 or more unread messages, the AI assistant summarizes them in a box at the top of the chat. Only in chats the AI assistant may read."
+          "description": "When you open a chat with many unread messages, the AI assistant summarizes them in a box at the top of the chat. Only in chats the AI assistant may read."
+        },
+        "summarizeFrom": {
+          "label": "Unread messages that start a summary",
+          "description": "A chat you open with at least this many unread messages is summarized.",
+          "before": "From",
+          "after": "unread messages"
         },
         "chats": {
           "label": "Where the AI assistant works",
-          "description": "It suggests replies, and rewrites what you type, only in these chats.",
+          "description": "It suggests replies, summarizes unread messages and rewrites what you type only in these chats.",
           "options": {
             "all": "All chats",
             "chosen": "Only chosen chats"
@@ -182,12 +190,7 @@
         },
         "messages": {
           "label": "Messages it reads",
-          "description": "How many of the open chat’s latest messages it reads to suggest replies and rewrite your draft. More gives better answers, but each one takes a little longer.",
-          "options": {
-            "20": "20",
-            "50": "50",
-            "100": "100"
-          }
+          "description": "How many of the open chat’s latest messages it reads to suggest replies, summarize unread messages and rewrite your draft. More gives better answers, but each one takes a little longer."
         },
         "server": {
           "label": "Model server address",
@@ -497,8 +500,7 @@
       },
       "groups": {
         "inChats": "In chats",
-        "replies": "Replies and summaries",
-        "chats": "Chats"
+        "chats": "Chats it may read"
       },
       "anthropic": {
         "title": "Claude (Anthropic)",

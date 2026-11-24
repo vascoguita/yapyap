@@ -27,6 +27,7 @@ const PATHS = {
   info: 'M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM10 9v4.5M10 6.5v.5',
   lock: 'M5.5 9.5h9v7h-9zM7.5 9.5V7a2.5 2.5 0 0 1 5 0v2.5',
   plus: 'M10 4.5v11M4.5 10h11',
+  minus: 'M4.5 10h11',
   /** A bell struck through: an account that stays silent. */
   muted: 'M5 13.5V9a5 5 0 0 1 10 0v4.5l1.5 1.5h-13zM8.25 17.25a1.9 1.9 0 0 0 3.5 0M3.5 3.5l13 13',
   /** A crescent moon: Do Not Disturb, for every account at once. */

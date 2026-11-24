@@ -76,6 +76,8 @@ export interface Messages {
     readonly proxyPlaceholder: string;
     readonly defaultFolder: string;
     readonly chooseFolder: string;
+    readonly fewer: string;
+    readonly more: string;
     readonly useDefaultFolder: string;
     readonly pages: {
       readonly general: string;
@@ -152,20 +154,18 @@ export interface Messages {
         readonly model: { readonly label: string; readonly description: string };
         readonly autoSuggest: { readonly label: string; readonly description: string };
         readonly summaries: { readonly label: string; readonly description: string };
+        readonly summarizeFrom: {
+          readonly label: string;
+          readonly description: string;
+          readonly before: string;
+          readonly after: string;
+        };
         readonly chats: {
           readonly label: string;
           readonly description: string;
           readonly options: { readonly all: string; readonly chosen: string };
         };
-        readonly messages: {
-          readonly label: string;
-          readonly description: string;
-          readonly options: {
-            readonly '20': string;
-            readonly '50': string;
-            readonly '100': string;
-          };
-        };
+        readonly messages: { readonly label: string; readonly description: string };
         readonly server: { readonly label: string; readonly description: string };
       };
       readonly agents: {
@@ -404,11 +404,7 @@ export interface Messages {
         readonly notSetUp: string;
         readonly addressSaved: string;
       };
-      readonly groups: {
-        readonly inChats: string;
-        readonly replies: string;
-        readonly chats: string;
-      };
+      readonly groups: { readonly inChats: string; readonly chats: string };
       readonly anthropic: {
         readonly title: string;
         readonly description: string;

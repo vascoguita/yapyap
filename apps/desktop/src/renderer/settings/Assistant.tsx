@@ -601,6 +601,31 @@ function StatusLine({ view }: { readonly view: AssistantView }): JSX.Element {
   );
 }
 
+/** What the assistant does in chats, in one group (#766). */
+function InChatsGroup(props: {
+  readonly snapshot: SettingsSnapshot;
+  readonly onChange: Change;
+}): JSX.Element {
+  const { snapshot, onChange } = props;
+  return (
+    <Group id="assistant-in-chats" title={text.groups.inChats}>
+      {fieldsOf(
+        [
+          'assistant.enabled',
+          'assistant.autoSuggest',
+          'assistant.summaries',
+          'assistant.summarizeFrom',
+          'assistant.messages',
+        ],
+        snapshot,
+        onChange,
+        // The number matters only while unread messages are summarized.
+        snapshot.values['assistant.summaries'] === true ? [] : ['assistant.summarizeFrom'],
+      )}
+    </Group>
+  );
+}
+
 /**
  * Settings › Assistant (ADR 0017), the one place to set the assistant up:
  * whether it shows, where it runs, how it suggests, and the chats it works in.
@@ -622,11 +647,12 @@ export function AssistantSection(props: {
   return (
     <div class="assistant" aria-busy={view === null}>
       {view === null ? null : <StatusLine view={view} />}
-      <Group id="assistant-in-chats" title={text.groups.inChats}>
-        {fieldsOf(['assistant.enabled'], snapshot, onChange)}
-      </Group>
       {view === null ? (
-        <p>{en.common.loading}</p>
+        <>
+          <p>{en.common.loading}</p>
+          {/* So the assistant can be turned off even while its providers cannot be read. */}
+          <InChatsGroup snapshot={snapshot} onChange={onChange} />
+        </>
       ) : (
         <AssistantDetails
           api={api}
@@ -641,18 +667,12 @@ export function AssistantSection(props: {
 }
 
 function AssistantDetails(props: Omit<PlaceProps, 'model'>) {
-  const { view, snapshot, onChange } = props;
+  const { view } = props;
   const model = view.models.length === 0 ? null : <ModelChoice {...props} />;
   return (
     <>
       <Places {...props} model={model} />
-      <Group id="assistant-replies" title={text.groups.replies}>
-        {fieldsOf(
-          ['assistant.autoSuggest', 'assistant.summaries', 'assistant.messages'],
-          snapshot,
-          onChange,
-        )}
-      </Group>
+      <InChatsGroup snapshot={props.snapshot} onChange={props.onChange} />
       <ChatsGroup {...props} model={model} />
     </>
   );

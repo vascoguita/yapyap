@@ -33,6 +33,15 @@ export interface SettingField {
   readonly segmented?: boolean;
   /** Names a stored value that is not among the options, such as a zoom the View menu set. */
   readonly unlisted?: (value: SettingValue) => string;
+  /**
+   * A whole number, stepped through `steps` with − and + buttons (#766).
+   * With `words` around it, it sits under the setting before it, in a line
+   * of its own.
+   */
+  readonly stepper?: {
+    readonly steps: readonly number[];
+    readonly words?: { readonly before: string; readonly after: string };
+  };
   /** A line of text, such as an address, instead of a switch or a choice. */
   readonly text?: { readonly placeholder: string };
   /** A folder, picked in the system's folder dialog; empty is the default folder, named here. */
@@ -74,6 +83,16 @@ function choices(options: Readonly<Record<string, string>>): NonNullable<Setting
   return Object.entries(options).map(([value, label]) => ({ value, label }));
 }
 
+/** Whole numbers from `from` to `to`, `by` apart. */
+const range = (from: number, to: number, by: number): number[] =>
+  Array.from({ length: Math.floor((to - from) / by) + 1 }, (_, index) => from + index * by);
+
+/** Unread messages that start a summary: one by one while few, then by five (#766). */
+const UNREAD_STEPS = [...range(2, 5, 1), ...range(10, 200, 5)];
+
+/** Messages the assistant reads, ten by ten, as the schema allows (#766). */
+const MESSAGE_STEPS = range(10, 200, 10);
+
 /** WhatsApp's zoom in Settings: common steps; the View menu goes finer and up to 300%. */
 const INTERFACE_SCALES = [
   { factor: 0.5 },
@@ -109,17 +128,23 @@ export const SETTING_FIELDS: readonly SettingField[] = [
   { ...described('assistant', 'autoSuggest'), restart: false },
   { ...described('assistant', 'summaries'), restart: false },
   {
+    ...described('assistant', 'summarizeFrom'),
+    restart: false,
+    stepper: {
+      steps: UNREAD_STEPS,
+      words: {
+        before: text.assistant.summarizeFrom.before,
+        after: text.assistant.summarizeFrom.after,
+      },
+    },
+  },
+  {
     ...described('assistant', 'chats'),
     restart: false,
     segmented: true,
     options: choices(text.assistant.chats.options),
   },
-  {
-    ...described('assistant', 'messages'),
-    restart: false,
-    segmented: true,
-    options: choices(text.assistant.messages.options),
-  },
+  { ...described('assistant', 'messages'), restart: false, stepper: { steps: MESSAGE_STEPS } },
   {
     ...described('assistant', 'server'),
     restart: false,

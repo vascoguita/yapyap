@@ -41,8 +41,9 @@ const DEFAULTS = {
     model: 'auto',
     autoSuggest: true,
     summaries: true,
+    summarizeFrom: 10,
     chats: 'chosen',
-    messages: '50',
+    messages: 50,
     server: '',
   },
   agents: { enabled: false, port: 0 },
@@ -64,7 +65,6 @@ const CHOICES: Readonly<Record<string, readonly string[]>> = {
   'privacy.crashReports': ['off', 'local', 'ask'],
   'network.proxyMode': ['system', 'direct', 'manual'],
   'assistant.provider': ['none', 'anthropic', 'openai', 'server'],
-  'assistant.messages': ['20', '50', '100'],
 };
 
 /** The defaults with one setting changed. */
@@ -228,6 +228,24 @@ describe('decodeSettings', () => {
       });
     },
   );
+
+  it.each([
+    ['assistant.messages', [10, 50, 200], [0, 15, 210, '50']],
+    ['assistant.summarizeFrom', [2, 10, 200], [1, 2.5, 201, '10']],
+  ] as const)('keeps the numbers %s accepts, and resets others (#766)', (id, kept, reset) => {
+    for (const value of kept) {
+      expect(decodeSettings(JSON.stringify(withValue(id, value)))).toEqual({
+        kind: 'ok',
+        settings: withValue(id, value),
+        reset: [],
+      });
+    }
+    for (const value of reset) {
+      expect(decodeSettings(JSON.stringify(withValue(id, value)))).toMatchObject({
+        reset: [`/${id.replace('.', '/')}`],
+      });
+    }
+  });
 
   it.each([
     '',
