@@ -6,12 +6,21 @@ import { ADAPTER_WORLD_ID } from '../../src/adapter/world.ts';
 import { allowAllChats, claudeAnswer, readyClaude } from '../assistant-helpers.ts';
 import { startFakeWhatsApp } from '../fake-whatsapp-server.ts';
 import { closeApp, expect, launchApp, test } from '../fixtures.ts';
-import { MAIN, PERSONAL, personalPage, preparePersonas, SCALE, seed } from './showcase.ts';
+import {
+  focusMainWindow,
+  MAIN,
+  PERSONAL,
+  personalPage,
+  preparePersonas,
+  SCALE,
+  seed,
+} from './showcase.ts';
 
 /**
  * The README's animation (#663): suggested replies, one picked and sent, a
  * new message, then a draft of one's own made fuller by the AI Assistant and
- * sent. It is recorded on the showcase page with invented people, and Claude
+ * sent; last, a busy group opens with 16 unread messages, which the AI
+ * Assistant summarizes on its own (#757). It is recorded on the showcase page with invented people, and Claude
  * is played by the test, so nothing reaches a real account or the real API.
  * The file is hosted in GitHub's attachments rather than git; see CONTRIBUTING.
  */
@@ -23,6 +32,19 @@ const SECOND_REPLIES = 'Yes, I’m in! 🍷\nLet’s try Alfama\nI can book a ta
 const DRAFT = 'i know a fado place in alfama, i can book for 8 if everyone is in';
 const ELABORATED =
   'I know a lovely fado place in Alfama with great food. I can book a table for 8 if everyone’s in. Shall I go ahead?';
+const CLIMBING = 'Please reply by tonight so I can book';
+const CLIMBING_REPLIES =
+  'I’m in for Saturday at 9!\nYes, I’ll bring the rope 🧗\nCount me in, see you there';
+const SUMMARY = [
+  '<summary>',
+  'Aiko asks everyone to reply by tonight: who is in for Saturday at 9?',
+  'Tomás asks if you can bring your rope again.',
+  'They meet at the main entrance; day passes are 12 € with a student card.',
+  'Sam brings chalk, and the wall has a new bouldering area.',
+  '</summary>',
+].join('\n');
+/** How long Claude takes over the summary, so the box shows it is being written. */
+const SUMMARY_DELAY_MS = 1800;
 
 interface Spot {
   readonly name: string;
@@ -75,28 +97,24 @@ async function find(app: ElectronApplication, name: string): Promise<Spot> {
   throw new Error(`No ${name} showed.`);
 }
 
-/** Answers by what was asked: the draft is rewritten, the newest message gets its own replies. */
-async function playClaude(app: ElectronApplication): Promise<void> {
-  await app.evaluate(
-    ({ session }, answers) => {
-      const protocol = session.fromPartition('yapyap-assistant').protocol;
-      protocol.unhandle('https');
-      protocol.handle('https', async (request) => {
-        const asked = await request.text();
-        const priya = asked.includes(answers.priya) ? answers.second : answers.first;
-        const answer = asked.includes(answers.draft) ? answers.elaborated : priya;
-        return new Response(answer, { headers: { 'content-type': 'text/event-stream' } });
-      });
-    },
-    {
-      first: claudeAnswer(FIRST_REPLIES),
-      second: claudeAnswer(SECOND_REPLIES),
-      elaborated: claudeAnswer(ELABORATED),
-      draft: DRAFT.slice(0, 24),
-      priya: PRIYA.slice(0, 20),
-    },
-  );
-}
+/**
+ * Claude, as the test plays it, answers by what was asked: the unread
+ * messages are summarized, after a moment; the draft is rewritten; the
+ * newest message gets its own replies. A request's chat may hold another's
+ * words, so the most particular comes first. The helper also lists Claude's
+ * models, which the setup needs before the assistant asks anything (#702).
+ */
+const ANSWERS = [
+  claudeAnswer(FIRST_REPLIES),
+  {
+    when: 'unread messages in this chat',
+    body: claudeAnswer(SUMMARY),
+    delay: SUMMARY_DELAY_MS,
+  },
+  { when: DRAFT.slice(0, 24), body: claudeAnswer(ELABORATED) },
+  { when: PRIYA.slice(0, 20), body: claudeAnswer(SECOND_REPLIES) },
+  { when: CLIMBING, body: claudeAnswer(CLIMBING_REPLIES) },
+] as const;
 
 /** A drawn pointer and click ring: the virtual display does not record the real pointer. */
 async function addPointer(page: Page): Promise<void> {
@@ -184,11 +202,7 @@ function record(file: string): () => Promise<void> {
 /** The story, at a pace someone new to YapYap can follow. */
 async function tellStory(app: ElectronApplication, page: Page): Promise<void> {
   // 1. Suggestions arrive for Inês's message once the window is seen.
-  await app.evaluate(({ BaseWindow }) => {
-    BaseWindow.getAllWindows()
-      .find((window) => window.getContentView().children.length > 0)
-      ?.focus();
-  });
+  await focusMainWindow(app);
   const pick = await find(app, 'See you at 10!');
   await page.waitForTimeout(1500);
   // 2. One is picked and sent.
@@ -221,10 +235,20 @@ async function tellStory(app: ElectronApplication, page: Page): Promise<void> {
   await page.waitForTimeout(1900);
   await send(page);
   await page.waitForTimeout(1600);
+  await summarize(app, page);
+}
+
+/** 5. A busy group opens with 16 unread messages, and the AI Assistant summarizes them on its own. */
+async function summarize(app: ElectronApplication, page: Page): Promise<void> {
+  const group = middle(await page.getByRole('row', { name: /Climbing crew/ }).boundingBox());
+  await click(page, group.x, group.y);
+  const close = await find(app, 'Close Summary');
+  await glide(page, close.x - 420, close.y + 330);
+  await page.waitForTimeout(SUMMARY_DELAY_MS + 5200);
 }
 
 test('README animation', async ({ profile }) => {
-  test.setTimeout(180_000);
+  test.setTimeout(300_000);
   const showcase = await startFakeWhatsApp('showcase.html');
   await seed(profile, 'light');
   await preparePersonas(showcase.origin, profile);
@@ -234,9 +258,8 @@ test('README animation', async ({ profile }) => {
   await mkdir(OUT, { recursive: true });
   const raw = join(OUT, 'raw.mkv');
   try {
-    const settings = await readyClaude(app, claudeAnswer(FIRST_REPLIES));
+    const settings = await readyClaude(app, ...ANSWERS);
     await allowAllChats(settings);
-    await playClaude(app);
     const page = await personalPage(app);
     await page.evaluate(() => {
       (document.activeElement as HTMLElement | null)?.blur();

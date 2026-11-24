@@ -327,6 +327,8 @@ svg {
   display: flex;
   flex-direction: column;
   min-inline-size: 0;
+  /* A long chat scrolls in its list, as WhatsApp's does, rather than growing the page (#757). */
+  min-block-size: 0;
   background-color: var(--wall);
 }
 
@@ -372,6 +374,7 @@ svg {
   flex: 1;
   flex-direction: column;
   gap: 3px;
+  min-block-size: 0;
   overflow: hidden;
   padding: 16px 7% 12px;
   background-image: var(--doodles);
