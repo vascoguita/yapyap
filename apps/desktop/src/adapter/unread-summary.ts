@@ -91,7 +91,7 @@ export function readUnreadSummary(
 const PLACES: SummaryPlaces = {
   chat: LANDMARKS.chatRow,
   unreadCount: LANDMARKS.unreadCount,
-  chatTitle: LANDMARKS.chatTitle,
+  chatTitle: LANDMARKS.chatListName,
   chatPreview: LANDMARKS.chatPreview,
   extras: `${LANDMARKS.unreadCount}, ${LANDMARKS.chatTimestamp}`,
 };

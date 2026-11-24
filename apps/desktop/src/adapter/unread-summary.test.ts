@@ -7,7 +7,7 @@ import { parseUnreadSummary, readUnreadSummary, UNREAD_SUMMARY } from './unread-
 const PLACES = {
   chat: LANDMARKS.chatRow,
   unreadCount: LANDMARKS.unreadCount,
-  chatTitle: LANDMARKS.chatTitle,
+  chatTitle: LANDMARKS.chatListName,
   chatPreview: LANDMARKS.chatPreview,
   extras: `${LANDMARKS.unreadCount}, ${LANDMARKS.chatTimestamp}`,
 };
@@ -16,7 +16,7 @@ const LIMITS = { chats: 2, name: 8, text: 10 };
 /** A chat row as WhatsApp lays it out, with a badge when it is unread. */
 const row = (index: number, name: string, preview: string, badge?: string) =>
   `<div role="row" data-testid="list-item-${String(index)}">
-    <div data-testid="cell-frame-title"><span>${name}</span></div>
+    <div data-testid="cell-frame-title"><span>Chat details</span><span title="${name}">${name}</span></div>
     <span data-testid="chat-list-timestamp">20:01</span>
     <div data-testid="cell-frame-secondary"><span>${preview}</span>${
       badge === undefined ? '' : `<span data-testid="icon-unread-count">${badge}</span>`
@@ -73,7 +73,7 @@ describe('readUnreadSummary', () => {
   it('reads a row missing its name or preview as far as it goes', () => {
     document.body.innerHTML = `<div id="pane-side">
       <div data-testid="list-item-0"><span data-testid="icon-unread-count"> 4 </span></div>
-      <div data-testid="list-item-1"><div data-testid="cell-frame-title">Ana</div>
+      <div data-testid="list-item-1"><div data-testid="cell-frame-title"><span title="Ana">Ana</span></div>
         <div data-testid="cell-frame-secondary"><span data-testid="icon-unread-count">1</span></div></div>
     </div>`;
     expect(readUnreadSummary(placed(document, [0, 1]), PLACES, LIMITS)).toEqual([

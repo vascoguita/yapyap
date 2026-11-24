@@ -15,6 +15,7 @@ const SETTINGS = {
     provider: 'none',
     model: 'auto',
     autoSuggest: true,
+    summaries: true,
     chats: 'chosen',
     messages: '50',
     server: '',

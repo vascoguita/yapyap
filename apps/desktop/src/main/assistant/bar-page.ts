@@ -1,7 +1,7 @@
 import { assistantBarRender, type BarContent } from '../../adapter/assistant-bar.ts';
 import { composerToolRender, type ToolContent } from '../../adapter/composer-tool.ts';
 import { runInAdapterWorld, type AdapterPage } from '../../adapter/world.ts';
-import type { AssistantBarState } from '../../shared/api/assistant-bar-api.ts';
+import type { AssistantBarState, BarSummary } from '../../shared/api/assistant-bar-api.ts';
 import { en } from '../../shared/messages/en.ts';
 import { POLISH_STYLES } from './rewrites.ts';
 
@@ -40,12 +40,33 @@ function contentOf(state: AssistantBarState, visible: boolean): BarContent {
       folded: text.folded,
       writing: text.writing,
       close: text.close,
+      summarizing: text.summarizing,
+      closeSummary: text.closeSummary,
     },
     suggestions: state.suggestions,
     notice: state.notice,
     chat: state.chat,
     collapsed: state.collapsed,
     writing: state.writing,
+    summary: summaryContentOf(state.summary),
+  };
+}
+
+/** The summary in the user's words (#705). */
+function summaryContentOf(summary: BarSummary | null): BarContent['summary'] {
+  if (summary === null) {
+    return null;
+  }
+  const text = en.assistant.bar;
+  const { count, points, covered, problem } = summary;
+  return {
+    stage: summary.stage,
+    title: text.summaryTitle({ count }),
+    ready: text.summaryReady({ count }),
+    points,
+    covers: covered === 0 ? '' : text.summaryCovers({ count: covered }),
+    problem: problem?.text ?? '',
+    retry: problem?.retry === true ? text.retry : '',
   };
 }
 

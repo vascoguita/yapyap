@@ -402,6 +402,7 @@ describe('createChromeFeature', () => {
         'assistant.chats': 'chosen',
         'assistant.messages': '50',
         'assistant.server': '',
+        'assistant.summaries': true,
         'agents.enabled': false,
         'appearance.theme': 'system',
         'appearance.autoHideMenuBar': false,
@@ -940,7 +941,7 @@ describe('createChromeFeature', () => {
     t.feature.afterReady(t.views, vi.fn(), 'hardware accelerated');
     openReport(t);
     await expect(t.call('report:diagnostics')).resolves.toMatch(
-      /^YapYap 0\.1\.0 \(deb\)\n[\s\S]*\nGPU gpu_compositing=enabled, rasterization=unknown, video_decode=unknown, webgl=enabled_on\nUpdates system \(deb\)\nWhatsApp page unavailable \(landmarks v12\)\n\nRecent log:\n2026-10-21T12:00:00\.000Z warn Something happened$/,
+      /^YapYap 0\.1\.0 \(deb\)\n[\s\S]*\nGPU gpu_compositing=enabled, rasterization=unknown, video_decode=unknown, webgl=enabled_on\nUpdates system \(deb\)\nWhatsApp page unavailable \(landmarks v13\)\n\nRecent log:\n2026-10-21T12:00:00\.000Z warn Something happened$/,
     );
   });
 
@@ -963,7 +964,7 @@ describe('createChromeFeature', () => {
     runtime.attachRecovery(contents, 'https://web.whatsapp.com', vi.fn());
     openReport(t);
     await expect(t.call('report:diagnostics')).resolves.toContain(
-      '\nWhatsApp view=chats, chat_open=true (landmarks v12)\n\nRecent log:',
+      '\nWhatsApp view=chats, chat_open=true (landmarks v13)\n\nRecent log:',
     );
   });
 

@@ -3,10 +3,13 @@ import { runInNewContext } from 'node:vm';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   fingerprint,
+  lookAtChats,
   NEWEST_MESSAGES,
   newestMessages,
+  parseLook,
   parseNewest,
   replyingTo,
+  unreadBadges,
 } from './incoming.ts';
 import { LANDMARKS } from './page-state.ts';
 
@@ -185,11 +188,15 @@ describe('newestMessages', () => {
 
   it('looks in the page with the landmarks the adapter keeps', () => {
     // With the fingerprint beside it, which the assistant's bar shares (#741).
-    expect(
-      NEWEST_MESSAGES.endsWith(
-        `(document, ${JSON.stringify(PLACES)}, ${fingerprint.toString()}, ${replyingTo.toString()})`,
-      ),
-    ).toBe(true);
+    const places = {
+      ...PLACES,
+      chatRow: LANDMARKS.chatRow,
+      unreadCount: LANDMARKS.unreadCount,
+      chatTitle: LANDMARKS.chatListName,
+    };
+    expect(NEWEST_MESSAGES).toBe(
+      `(${lookAtChats.toString()})(document, ${JSON.stringify(places)}, ${fingerprint.toString()}, { newest: ${newestMessages.toString()}, quoting: ${replyingTo.toString()}, badges: ${unreadBadges.toString()}, limit: 20 })`,
+    );
   });
 
   // Mutation testing instruments the function with helpers from outside it,
@@ -202,7 +209,118 @@ describe('newestMessages', () => {
     );
     expect(part(6)).not.toBe('-');
     // As in the adapter's isolated world, which has the page's document and the browser's TextEncoder.
-    expect(runInNewContext(NEWEST_MESSAGES, { document, TextEncoder })).toBe(probe());
+    expect(runInNewContext(NEWEST_MESSAGES, { document, TextEncoder })).toBe(
+      `${String(probe())}|-`,
+    );
+    document.body.innerHTML = list(row('Ben', '12'));
+    expect(runInNewContext(NEWEST_MESSAGES, { document, TextEncoder })).toBe(
+      `-|${fingerprint('Ben')}:12`,
+    );
+  });
+});
+
+const BADGES = {
+  chatRow: LANDMARKS.chatRow,
+  unreadCount: LANDMARKS.unreadCount,
+  chatTitle: LANDMARKS.chatListName,
+};
+
+/** A chat list row as WhatsApp lays it out, with an unread badge when `count` is given (#100). */
+function row(name: string, count?: string, index = 0): string {
+  const badge = count === undefined ? '' : `<span data-testid="icon-unread-count">${count}</span>`;
+  return `<div role="row" data-testid="list-item-${String(index)}"><div data-testid="cell-frame-title"><span>Chat details</span><span dir="auto" title="${name}">${name}</span></div><div data-testid="cell-frame-secondary"><span>Hi</span>${badge}</div></div>`;
+}
+
+const list = (...rows: string[]) => `<div id="pane-side">${rows.join('')}</div>`;
+
+describe('unreadBadges', () => {
+  it('hands over each unread chat’s count by the fingerprint of its name alone, never the name (#705)', () => {
+    document.body.innerHTML = list(row('Ana', '12'), row('Ben'), row('Cy', ' 3 '));
+    const badges = unreadBadges(document, BADGES, fingerprint, 20);
+    expect(badges).toBe(`${fingerprint('Ana')}:12,${fingerprint('Cy')}:3`);
+    expect(badges).not.toContain('Ana');
+  });
+
+  it('names a chat as the open chat’s header does, by its name’s textContent', () => {
+    document.body.innerHTML = `${list(row('Ana', '12'))}<div id="main"><header><span dir="auto">Ana</span></header></div>`;
+    const [open] = String(newestMessages(document, PLACES, fingerprint, replyingTo)).split(':');
+    expect(unreadBadges(document, BADGES, fingerprint, 20)).toBe(`${String(open)}:12`);
+  });
+
+  it('counts only badges of numbers, in rows with a name, and at most `limit` of them', () => {
+    const noName =
+      '<div data-testid="list-item-9"><span data-testid="icon-unread-count">5</span></div>';
+    document.body.innerHTML = list(row('Ana', '@'), row('Ben', '0'), row('Cy', ''), noName);
+    expect(unreadBadges(document, BADGES, fingerprint, 20)).toBe('-');
+    document.body.innerHTML = list(row('Ana', '1', 0), row('Ben', '2', 1), row('Cy', '3', 2));
+    expect(unreadBadges(document, BADGES, fingerprint, 2).split(',')).toHaveLength(2);
+  });
+
+  it('reads a badge or a name without text as empty', () => {
+    const empty = { textContent: null };
+    const unread = { textContent: '4' };
+    const doc = {
+      querySelector: () => null,
+      querySelectorAll: () => [
+        { querySelector: (selector: string) => (selector === BADGES.chatTitle ? empty : unread) },
+        { querySelector: () => empty },
+      ],
+    };
+    expect(unreadBadges(doc as never, BADGES, fingerprint, 20)).toBe('811c9dc5:4');
+  });
+});
+
+describe('lookAtChats', () => {
+  it('joins the open chat’s hashes, or `-` for none, and the badges', () => {
+    const probes = { newest: newestMessages, quoting: replyingTo, badges: unreadBadges, limit: 20 };
+    const places = { ...PLACES, ...BADGES };
+    document.body.innerHTML = list(row('Ana', '12'));
+    expect(lookAtChats(document, places, fingerprint, probes)).toBe(`-|${fingerprint('Ana')}:12`);
+    chat('Ana', theirs('3EB0A1'));
+    expect(lookAtChats(document, places, fingerprint, probes)).toBe(`${String(probe())}|-`);
+  });
+});
+
+describe('parseLook', () => {
+  it('takes the open chat, or none, and the badges’ counts by chat', () => {
+    expect(parseLook('0123abcd:-:-:-:e:-:-|-')).toEqual({
+      newest: parseNewest('0123abcd:-:-:-:e:-:-'),
+      unread: new Map(),
+    });
+    expect(parseLook('-|0123abcd:12,89abcdef:999999')).toEqual({
+      newest: null,
+      unread: new Map([
+        ['0123abcd', 12],
+        ['89abcdef', 999_999],
+      ]),
+    });
+    const twenty = Array.from({ length: 20 }, () => '0123abcd:1').join(',');
+    expect(parseLook(`-|${twenty}`)?.unread.get('0123abcd')).toBe(1);
+  });
+
+  it('refuses anything else', () => {
+    const twentyOne = Array.from({ length: 21 }, () => '0123abcd:1').join(',');
+    const refused = [
+      undefined,
+      null,
+      7,
+      '',
+      '-',
+      '-|',
+      'x|-',
+      '-|-|-',
+      '-|0123abcd',
+      '-|0123abcd:0',
+      '-|0123abcd:01',
+      '-|0123abcd:1234567',
+      '-|0123abcd:1,',
+      '-|ABCDEF01:1',
+      `-|${twentyOne}`,
+      ['-|-'],
+    ];
+    for (const value of refused) {
+      expect(parseLook(value)).toBeUndefined();
+    }
   });
 });
 

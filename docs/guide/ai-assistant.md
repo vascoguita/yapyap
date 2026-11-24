@@ -116,7 +116,7 @@ most about 8,000 tokens of chat, the newest messages first.
 
 ### What the model reads
 
-For a suggestion or a rewrite, the model reads the same things:
+For a suggestion, a rewrite or a summary, the model reads the same things:
 
 - Which chat it is: a chat with a contact, by their name, or a group, by
   its name.
@@ -179,6 +179,37 @@ messages asks once, and only while YapYap's window is in front. Each
 time, it reads the chat's latest messages. Turn off **Suggest replies** in
 Settings to stop them.
 
+### Summaries of unread messages
+
+When you open a chat with 10 or more unread messages, such as a busy
+group, the AI assistant summarizes them for you, with no click, in a box
+at the top of the chat, on the right:
+
+- While it is written, the box says **Writing the summary…**.
+- Its title, **Summary of 12 unread messages**, says how many it covers.
+  Below it come at most four short points, which fit without scrolling, in the order things were said,
+  each naming who said it, in the chat's language. It never leaves out
+  anything that needs you, and says so plainly: a message to you, such as
+  one in a group that mentions you or replies to you, a question to you,
+  or a request for everyone to answer, such as "Who is coming to my
+  birthday? Please reply here."
+- If no summary comes, the box says why, with **Try Again** when asking
+  again may help.
+- Close it with its **×**, or Esc while it has the focus. It also goes
+  when you send a message or open another chat. Your suggestions stay
+  at the bottom meanwhile.
+
+The count comes from the chat list's unread badge, which WhatsApp takes
+away as you open the chat. The summary covers only as many of the newest
+messages as **Messages it reads** allows; when there were more unread,
+the box says how many it covers. Opening a chat already marks its
+messages read on WhatsApp, so the summary offers no **Mark all as
+read**.
+
+Summaries are written only in the chats the AI assistant works in, once
+it is set up, and are kept only while they show. Turn off **Summarize
+unread messages** in Settings to stop them.
+
 ### Rewrite what you type
 
 Once you type in the message box, the AI assistant's button appears inside
@@ -221,7 +252,8 @@ fixes it: **Set Up…**, **Paste a Key…** or **Open Settings**.
 
 - The AI assistant reads a chat only in the chats you chose, or in every chat
   if you chose **All chats**, to suggest what to send each time you open
-  one or something new appears in it, and to rewrite what you typed. No phone number is sent.
+  one or something new appears in it, to rewrite what you typed, and to
+  summarize unread messages when you ask. No phone number is sent.
 - Nothing is sent anywhere until you set up a provider.
 - **Settings → AI Assistant**, under the list of providers, says where what
   you ask about goes right now: nowhere off your computer with a model

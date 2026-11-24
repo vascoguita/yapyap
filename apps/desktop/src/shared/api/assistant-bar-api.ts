@@ -14,6 +14,22 @@ interface BarNotice {
   readonly button: { readonly id: Exclude<BarButtonId, 'close'>; readonly label: string } | null;
 }
 
+/**
+ * The summary of the messages the open chat opened with unread (#705):
+ * being written, shown, or why none came. It is held only in memory.
+ */
+export interface BarSummary {
+  readonly stage: 'working' | 'shown' | 'failed';
+  /** How many messages were unread, as the chat list's badge counted them. */
+  readonly count: number;
+  /** Its points, what concerns the user first, as plain text, never markup; empty until it shows. */
+  readonly points: readonly string[];
+  /** How many of the newest messages it covers when the history limit read fewer than `count`; else 0. */
+  readonly covered: number;
+  /** Why no summary came, and whether Try Again may bring one; null unless it failed. */
+  readonly problem: { readonly text: string; readonly retry: boolean } | null;
+}
+
 /** What the assistant shows in and above the open chat's message box (ADR 0013, ADR 0017). */
 export interface AssistantBarState {
   /** Waiting for the model to rewrite the draft. */
@@ -37,6 +53,8 @@ export interface AssistantBarState {
   readonly collapsed: boolean;
   /** The model is writing suggestions, which take seconds (#703). */
   readonly writing: boolean;
+  /** The summary of the unread messages, being written, shown or failed; null for none (#705). */
+  readonly summary: BarSummary | null;
 }
 
 /**
@@ -53,6 +71,8 @@ export const ASSISTANT_BAR_CHANNELS = {
   expand: 'whatsapp:assistant-bar-expand',
   button: 'whatsapp:assistant-bar-button',
   settings: 'whatsapp:assistant-bar-settings',
+  summarize: 'whatsapp:assistant-bar-summarize',
+  closeSummary: 'whatsapp:assistant-bar-close-summary',
 } as const;
 
 /**
@@ -72,4 +92,8 @@ export interface AssistantBarBridge {
   readonly button: (id: string) => void;
   /** Opens Settings, at the assistant. */
   readonly settings: () => void;
+  /** Writes the summary again, after one that failed (#705). */
+  readonly summarize: () => void;
+  /** Closes the summary. */
+  readonly closeSummary: () => void;
 }

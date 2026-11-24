@@ -580,6 +580,7 @@ function attachAssistantBar<Window extends WindowPort>(
       sent: bar.sent,
       cleared: bar.cleared,
       every: setInterval,
+      focused: (callback) => window.on('focus', callback),
     });
     return inPageAssistantBar(bar.state, { activePage, onScreen });
   });

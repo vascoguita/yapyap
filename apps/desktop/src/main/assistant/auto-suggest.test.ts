@@ -1,12 +1,23 @@
 import { describe, expect, it, vi } from 'vitest';
-import { followOpenChat, GIVE_UP_AFTER, LOOK_EVERY_MS } from './auto-suggest.ts';
+import { followOpenChat, GIVE_UP_AFTER, LOOK_EVERY_MS, SUMMARIZE_FROM } from './auto-suggest.ts';
+
+/**
+ * The look's answer for the open chat's hashes, or no chat, with the chat
+ * list's badges, none unless `answer` names some after a `|`.
+ */
+const looked = (answer: unknown): unknown => {
+  if (answer === null) {
+    return '-|-';
+  }
+  return typeof answer === 'string' && !answer.includes('|') ? `${answer}|-` : answer;
+};
 
 /** A page whose probe answers with what `answer` says now. */
 function fakePage(first: unknown) {
   let answer: unknown = first;
   return {
     executeJavaScriptInIsolatedWorld: vi.fn(() =>
-      answer instanceof Error ? Promise.reject(answer) : Promise.resolve(answer),
+      answer instanceof Error ? Promise.reject(answer) : Promise.resolve(looked(answer)),
     ),
     set: (next: unknown) => {
       answer = next;
@@ -19,6 +30,7 @@ function setup(first: unknown = 'aaaaaaaa:00000001:-:i:e:-:-') {
   let enabled = true;
   let onScreen = true;
   let tick = (): void => undefined;
+  let focus = (): void => undefined;
   const deps = {
     activePage: () => page,
     enabled: () => enabled,
@@ -30,6 +42,9 @@ function setup(first: unknown = 'aaaaaaaa:00000001:-:i:e:-:-') {
     cleared: vi.fn(),
     every: vi.fn((callback: () => void) => {
       tick = callback;
+    }),
+    focused: vi.fn((callback: () => void) => {
+      focus = callback;
     }),
   };
   followOpenChat(deps);
@@ -51,6 +66,10 @@ function setup(first: unknown = 'aaaaaaaa:00000001:-:i:e:-:-') {
       tick();
       return page.executeJavaScriptInIsolatedWorld.mock.calls.length > 0;
     },
+    /** The window gets the focus. */
+    focus: () => {
+      focus();
+    },
     look: async () => {
       page.executeJavaScriptInIsolatedWorld.mockClear();
       tick();
@@ -68,7 +87,7 @@ describe('followOpenChat', () => {
     expect(t.deps.every).toHaveBeenCalledWith(expect.any(Function), LOOK_EVERY_MS);
     await t.look();
     // The first look only finds the chat.
-    expect(t.deps.found).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000001:-:-');
+    expect(t.deps.found).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000001:-:-', 0);
     await t.look();
     expect(t.deps.arrived).not.toHaveBeenCalled();
     t.page().set('aaaaaaaa:00000002:-:i:e:-:-');
@@ -81,7 +100,7 @@ describe('followOpenChat', () => {
   it('tells when the chat’s last item is edited, which keeps its ID, as another last item (#739)', async () => {
     const t = setup('aaaaaaaa:00000001:-:i:e:11111111:-');
     await t.look();
-    expect(t.deps.found).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000001:11111111:-');
+    expect(t.deps.found).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000001:11111111:-', 0);
     t.page().set('aaaaaaaa:00000001:-:i:e:22222222:-');
     await t.look();
     expect(t.deps.arrived).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000001:22222222:-');
@@ -171,20 +190,20 @@ describe('followOpenChat', () => {
     await t.look();
     t.page().set('bbbbbbbb:-:00000003:o:e:-:-');
     await t.look();
-    expect(t.deps.opened).toHaveBeenLastCalledWith('bbbbbbbb:00000003:-:-');
+    expect(t.deps.opened).toHaveBeenLastCalledWith('bbbbbbbb:00000003:-:-', 0);
     t.page().set(null);
     await t.look();
-    expect(t.deps.opened).toHaveBeenLastCalledWith(null);
+    expect(t.deps.opened).toHaveBeenLastCalledWith(null, 0);
     await t.look();
     expect(t.deps.opened).toHaveBeenCalledTimes(2);
     const other = fakePage('bbbbbbbb:00000005:-:i:e:-:-');
     t.switchPage(other);
     await t.look();
-    expect(t.deps.opened).toHaveBeenLastCalledWith('bbbbbbbb:00000005:-:-');
+    expect(t.deps.opened).toHaveBeenLastCalledWith('bbbbbbbb:00000005:-:-', 0);
     // A chat with nothing in it yet still has suggestions, to start it.
     t.page().set('cccccccc:-:-:-:e:-:-');
     await t.look();
-    expect(t.deps.opened).toHaveBeenLastCalledWith('cccccccc:-:-:-');
+    expect(t.deps.opened).toHaveBeenLastCalledWith('cccccccc:-:-:-', 0);
     expect(t.deps.arrived).not.toHaveBeenCalled();
     expect(t.deps.sent).not.toHaveBeenCalled();
   });
@@ -204,7 +223,7 @@ describe('followOpenChat', () => {
     const t = setup();
     t.setOnScreen(false);
     await t.look();
-    expect(t.deps.found).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000001:-:-');
+    expect(t.deps.found).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000001:-:-', 0);
     expect(t.looked()).toBe(false);
     t.setOnScreen(true);
     await t.look();
@@ -218,7 +237,7 @@ describe('followOpenChat', () => {
     await t.look();
     t.page().set('aaaaaaaa:00000001:-:i:e:-:-');
     await t.look();
-    expect(t.deps.found).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000001:-:-');
+    expect(t.deps.found).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000001:-:-', 0);
   });
 
   it('looks at no chat while the assistant is off, on screen or not', () => {
@@ -254,7 +273,7 @@ describe('followOpenChat', () => {
     tick?.();
     tick?.();
     expect(t.page().executeJavaScriptInIsolatedWorld).toHaveBeenCalledOnce();
-    finish('aaaaaaaa:00000001:-:i:e:-:-');
+    finish('aaaaaaaa:00000001:-:i:e:-:-|-');
     // Once that look ends, the next tick looks again.
     await vi.waitFor(() => {
       tick?.();
@@ -276,7 +295,7 @@ describe('followOpenChat', () => {
       expect(t.looked()).toBe(false);
     }
     await t.look();
-    expect(t.deps.found).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000001:-:-');
+    expect(t.deps.found).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000001:-:-', 0);
     // The stuck look's answer, a chat that is no longer open, comes in too late to count.
     finish('bbbbbbbb:00000002:-:i:e:-:-');
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -307,13 +326,80 @@ describe('followOpenChat', () => {
     }
     expect(t.looked()).toBe(true);
     // The first look ending must not let a third start while the second still waits.
-    finish('aaaaaaaa:00000001:-:i:e:-:-');
+    finish('aaaaaaaa:00000001:-:i:e:-:-|-');
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(t.looked()).toBe(false);
-    finishNext('aaaaaaaa:00000001:-:i:e:-:-');
+    finishNext('aaaaaaaa:00000001:-:i:e:-:-|-');
     await vi.waitFor(() => {
-      expect(t.deps.found).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000001:-:-');
+      expect(t.deps.found).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000001:-:-', 0);
     });
     expect(t.looked()).toBe(true);
+  });
+
+  it('tells how many messages a chat opened with unread, by its badge at the look before (#705)', async () => {
+    const t = setup('aaaaaaaa:00000001:-:i:e:-:-|bbbbbbbb:12,cccccccc:9');
+    await t.look();
+    expect(SUMMARIZE_FROM).toBe(10);
+    // WhatsApp takes the badge away as the chat opens.
+    t.page().set('bbbbbbbb:00000002:-:i:e:-:-|cccccccc:9');
+    await t.look();
+    expect(t.deps.opened).toHaveBeenLastCalledWith('bbbbbbbb:00000002:-:-', 12);
+    // Fewer than ten unread offer nothing.
+    t.page().set('cccccccc:00000003:-:i:e:-:-');
+    await t.look();
+    expect(t.deps.opened).toHaveBeenLastCalledWith('cccccccc:00000003:-:-', 0);
+    // A chat with no badge, and no chat, offer nothing either.
+    t.page().set('dddddddd:00000004:-:i:e:-:-|eeeeeeee:40');
+    await t.look();
+    expect(t.deps.opened).toHaveBeenLastCalledWith('dddddddd:00000004:-:-', 0);
+    t.page().set('-|eeeeeeee:40');
+    await t.look();
+    expect(t.deps.opened).toHaveBeenLastCalledWith(null, 0);
+    // From no chat, the badge before counts too.
+    t.page().set('eeeeeeee:00000005:-:i:e:-:-');
+    await t.look();
+    expect(t.deps.opened).toHaveBeenLastCalledWith('eeeeeeee:00000005:-:-', 40);
+    // Looks in the same chat tell nothing of badges.
+    t.page().set('eeeeeeee:00000006:-:i:e:-:-|eeeeeeee:50');
+    await t.look();
+    expect(t.deps.arrived).toHaveBeenLastCalledWith('eeeeeeee:00000006:-:-');
+    expect(t.deps.opened).toHaveBeenCalledTimes(5);
+  });
+
+  it('looks as the window gets the focus, so a click on a chat from another window still sees its badge (#705)', async () => {
+    const t = setup('aaaaaaaa:00000001:-:i:e:-:-');
+    await t.look();
+    expect(t.deps.focused).toHaveBeenCalledExactlyOnceWith(expect.any(Function));
+    t.setOnScreen(false);
+    t.page().set('aaaaaaaa:00000001:-:i:e:-:-|bbbbbbbb:12');
+    expect(t.looked()).toBe(false);
+    // The click that focuses the window opens the chat a moment later.
+    t.setOnScreen(true);
+    t.page().executeJavaScriptInIsolatedWorld.mockClear();
+    t.focus();
+    await vi.waitFor(() => {
+      expect(t.page().executeJavaScriptInIsolatedWorld).toHaveBeenCalledOnce();
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    t.page().set('bbbbbbbb:00000002:-:i:e:-:-');
+    await t.look();
+    expect(t.deps.opened).toHaveBeenLastCalledWith('bbbbbbbb:00000002:-:-', 12);
+  });
+
+  it('counts a badge still drawn as the chat opens, as at the first look, but never another page’s', async () => {
+    const t = setup('aaaaaaaa:00000001:-:i:e:-:-|aaaaaaaa:15');
+    await t.look();
+    expect(t.deps.found).toHaveBeenCalledExactlyOnceWith('aaaaaaaa:00000001:-:-', 15);
+    // Another account's page had a badge for a chat of the same name; this page's look has none.
+    t.page().set('aaaaaaaa:00000001:-:i:e:-:-|bbbbbbbb:30');
+    await t.look();
+    const other = fakePage('bbbbbbbb:00000002:-:i:e:-:-');
+    t.switchPage(other);
+    await t.look();
+    expect(t.deps.opened).toHaveBeenLastCalledWith('bbbbbbbb:00000002:-:-', 0);
+    // The badge before is lower than the one still drawn, which counts.
+    t.page().set('cccccccc:00000003:-:i:e:-:-|cccccccc:11');
+    await t.look();
+    expect(t.deps.opened).toHaveBeenLastCalledWith('cccccccc:00000003:-:-', 11);
   });
 });

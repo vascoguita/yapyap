@@ -103,7 +103,7 @@ export function chatListToTop(list: Pick<Scroller, 'scrollTop'> | null): boolean
 const PLACES: OpenPlaces = {
   chatList: LANDMARKS.chatList,
   chatRow: LANDMARKS.chatRow,
-  chatTitle: LANDMARKS.chatTitle,
+  chatTitle: LANDMARKS.chatListName,
 };
 
 /** Whether the page lets an element scroll up and down, from its computed style. */

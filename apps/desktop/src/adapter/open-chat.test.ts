@@ -14,16 +14,16 @@ import { LANDMARKS } from './page-state.ts';
 const PLACES = {
   chatList: LANDMARKS.chatList,
   chatRow: LANDMARKS.chatRow,
-  chatTitle: LANDMARKS.chatTitle,
+  chatTitle: LANDMARKS.chatListName,
 };
 
 const LIST = `
   <div id="pane-side">
     <div role="row" data-testid="list-item-0">
-      <div data-testid="cell-frame-title"><span dir="auto"> Ana </span></div>
+      <div data-testid="cell-frame-title"><span>Chat details</span><span dir="auto" title="Ana"> Ana </span></div>
     </div>
     <div role="row" data-testid="list-item-1">
-      <div data-testid="cell-frame-title"><span dir="auto">Ana Maria</span></div>
+      <div data-testid="cell-frame-title"><span>Chat details</span><span dir="auto" title="Ana Maria">Ana Maria</span></div>
     </div>
     <div role="row" data-testid="list-item-2"></div>
   </div>`;

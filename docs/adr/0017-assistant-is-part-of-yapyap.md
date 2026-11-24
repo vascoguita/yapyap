@@ -155,3 +155,15 @@ could ask for too.
 - 2026-11-16 (#641): decision 4 now names `agents`, not the removed
   `extensions` section (ADR 0018), as the other local section, and the
   Consequences say the engine window ran a model only until #627.
+- 2026-11-22 (#705, the maintainer's decision): the assistant summarizes
+  a chat's unread messages again. Opening a chat with 10 or more unread
+  messages, as the chat list's badge counted them, summarizes them with
+  no click, as suggestions are made with none, in a box at the top of
+  the chat; the maintainer found a chip to click one step too many.
+  Consent is the list of chats the assistant may read, plus a switch of
+  its own, **Summarize unread messages** (`assistant.summaries`, on by
+  default). It sends what
+  suggestions send: the open chat's own messages only, never another
+  chat's, with names and times, as far as the history limit allows, then
+  a task that names the unread count. The summary is shown as plain text
+  and held only in memory, never logged or persisted (C54).

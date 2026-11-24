@@ -6,6 +6,7 @@ const SETTINGS = {
   provider: 'server',
   model: 'auto',
   autoSuggest: true,
+  summaries: true,
   messages: '50',
   server: 'http://localhost:11434/v1',
 } as const;

@@ -1,5 +1,5 @@
 import { runInAdapterWorld, type AdapterPage } from '../../adapter/world.ts';
-import { NEWEST_MESSAGES, parseNewest, type Newest } from '../../adapter/incoming.ts';
+import { NEWEST_MESSAGES, parseLook, type Look, type Newest } from '../../adapter/incoming.ts';
 
 /** How often the open chat is looked at while the assistant shows. */
 export const LOOK_EVERY_MS = 1500;
@@ -11,6 +11,9 @@ export const LOOK_EVERY_MS = 1500;
  */
 export const GIVE_UP_AFTER = 4;
 
+/** How many unread messages a chat must open with for the assistant to offer a summary (#705). */
+export const SUMMARIZE_FROM = 10;
+
 export interface ChatWatchDependencies {
   /** The WhatsApp page of the account on screen. */
   readonly activePage: () => AdapterPage;
@@ -18,10 +21,14 @@ export interface ChatWatchDependencies {
   readonly enabled: () => boolean;
   /** Whether YapYap's window is on screen, where the user can change the chat. */
   readonly onScreen: () => boolean;
-  /** The first look found the open chat, with its last item, or found none open. */
-  readonly found: (message: string | null) => unknown;
-  /** Another chat is open, with its last item, or none is. */
-  readonly opened: (message: string | null) => unknown;
+  /**
+   * The first look found the open chat, with its last item, or found none
+   * open; `unread` is how many messages it opened with unread, from
+   * {@link SUMMARIZE_FROM} up, else 0.
+   */
+  readonly found: (message: string | null, unread: number) => unknown;
+  /** Another chat is open, with its last item and, as for `found`, its unread messages; or none is. */
+  readonly opened: (message: string | null, unread: number) => unknown;
   /**
    * Another item is the open chat's last: someone else's that arrived, or
    * the user's own (#723); or the user chose another message to reply to,
@@ -33,12 +40,21 @@ export interface ChatWatchDependencies {
   /** The open chat's message box is empty, and the user sent nothing since the last look. */
   readonly cleared: () => unknown;
   readonly every: (callback: () => void, ms: number) => unknown;
+  /**
+   * Calls `callback` as YapYap's window gets the focus. A click on a chat
+   * in a window that had none focuses it and opens the chat at once, and
+   * WhatsApp takes the chat's unread badge away as it opens, so a look
+   * right then still sees the badge (#705).
+   */
+  readonly focused: (callback: () => void) => unknown;
 }
 
-/** What was last seen: on which page, and there, the open chat's newest messages, or no chat. */
-interface Seen {
+/**
+ * What was last seen: on which page, and there, the open chat's newest
+ * messages, or no chat, and the chat list's unread badges.
+ */
+interface Seen extends Look {
   readonly page: AdapterPage;
-  readonly newest: Newest | null;
 }
 
 /** The chat's last item, whoever's it is, or null for a chat with none. */
@@ -103,6 +119,26 @@ const sameChat = (was: Newest | null | undefined, now: Newest | null): boolean =
   was !== undefined && was?.chat === now?.chat;
 
 /**
+ * How many messages were unread in the chat open now, if at least
+ * {@link SUMMARIZE_FROM}, else 0 (#705). WhatsApp marks them read as the
+ * chat opens and takes its badge away, so the count is the badge's at the
+ * look before, on the same page; a badge still drawn at this look counts
+ * too, as at the first look, which has none before it. Badges are named by
+ * the same fingerprint as the open chat's header, so a chat whose list name
+ * reads differently, or whose row was scrolled out of the list, is offered
+ * nothing.
+ */
+function unreadOnOpening(before: Seen | undefined, now: Seen): number {
+  const chat = now.newest?.chat;
+  if (chat === undefined) {
+    return 0;
+  }
+  const was = before?.page === now.page ? (before.unread.get(chat) ?? 0) : 0;
+  const count = Math.max(was, now.unread.get(chat) ?? 0);
+  return count >= SUMMARIZE_FROM ? count : 0;
+}
+
+/**
  * Tells what changed between two looks at the same page. The first look
  * only finds the chat: the user may already have rewritten a draft there,
  * and its notice and Undo stay.
@@ -111,9 +147,9 @@ function compare(before: Seen | undefined, now: Seen, deps: ChatWatchDependencie
   const was = before?.page === now.page ? before.newest : undefined;
   const { newest } = now;
   if (before === undefined) {
-    deps.found(answerable(newest));
+    deps.found(answerable(newest), unreadOnOpening(before, now));
   } else if (!sameChat(was, newest)) {
-    deps.opened(answerable(newest));
+    deps.opened(answerable(newest), unreadOnOpening(before, now));
   } else if (was && newest) {
     inSameChat(was, newest, deps);
   }
@@ -122,8 +158,9 @@ function compare(before: Seen | undefined, now: Seen, deps: ChatWatchDependencie
 /**
  * Follows the open chat while the assistant shows (#468): about every
  * second and a half, it asks the page for hashes of the open chat and its
- * newest messages, and tells when another chat opens, a message arrives,
- * or the user sends one. The adapter adds no observers, so a cheap look
+ * newest messages, with the chat list's unread counts, and tells when
+ * another chat opens, with how many messages it had unread (#705), a
+ * message arrives, or the user sends one. The adapter adds no observers, so a cheap look
  * stands in for one, and it never sees page text. Only the first look
  * comes before the window is on screen, so what the user does once it
  * gets focus is told against the chat they were in.
@@ -136,12 +173,12 @@ export function followOpenChat(deps: ChatWatchDependencies): void {
   let waited = 0;
   const look = async (number: number): Promise<void> => {
     const page = deps.activePage();
-    const newest = parseNewest(await runInAdapterWorld(page, NEWEST_MESSAGES));
+    const seenNow = parseLook(await runInAdapterWorld(page, NEWEST_MESSAGES));
     // An answer that came after the look was given up on is stale.
-    if (newest === undefined || number !== current) {
+    if (seenNow === undefined || number !== current) {
       return;
     }
-    const now = { page, newest };
+    const now = { page, ...seenNow };
     const before = seen;
     seen = now;
     compare(before, now, deps);
@@ -150,7 +187,7 @@ export function followOpenChat(deps: ChatWatchDependencies): void {
     waited += 1;
     return current !== 0 && waited <= GIVE_UP_AFTER;
   };
-  deps.every(() => {
+  const tick = (): void => {
     if (busy() || !deps.enabled() || (seen !== undefined && !deps.onScreen())) {
       return;
     }
@@ -166,5 +203,7 @@ export function followOpenChat(deps: ChatWatchDependencies): void {
           current = 0;
         }
       });
-  }, LOOK_EVERY_MS);
+  };
+  deps.every(tick, LOOK_EVERY_MS);
+  deps.focused(tick);
 }

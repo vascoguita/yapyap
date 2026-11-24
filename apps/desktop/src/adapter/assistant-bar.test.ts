@@ -2,7 +2,13 @@
 import { runInNewContext } from 'node:vm';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  actOnAssistantBar,
   alignAssistantBar,
+  assistantSummaryCard,
+  assistantSummarySections,
+  closeAssistantSummary,
+  fitAssistantSummary,
+  summaryAssistantBar,
   assistantBarLift,
   assistantBarHere,
   assistantBarHidden,
@@ -20,6 +26,7 @@ import {
   type BarContent,
   type BarPlacement,
 } from './assistant-bar.ts';
+import { edgeTurn } from '../shared/working-edge.ts';
 import { ASSISTANT_ICONS } from './assistant-look.ts';
 import { paintWhatsAppTheme, shadowPart, strokeIcon } from './page-kit.ts';
 import { fingerprint } from './incoming.ts';
@@ -34,6 +41,8 @@ const LABELS = {
   folded: 'Suggestions',
   writing: 'Writing suggestions…',
   close: 'Close',
+  summarizing: 'Writing the summary…',
+  closeSummary: 'Close Summary',
 };
 
 const CONTENT: BarContent = {
@@ -44,6 +53,7 @@ const CONTENT: BarContent = {
   chat: null,
   collapsed: false,
   writing: false,
+  summary: null,
 };
 
 const UNDO: BarContent = {
@@ -57,6 +67,7 @@ const PLACES = {
   field: '#main footer [contenteditable="true"]',
   quote: '#main footer [data-testid="quoted-message"]',
   conversation: '#main',
+  header: '#main header',
   message: '#main [data-id]',
   chatName: '#main header span',
   store: 'bar',
@@ -83,6 +94,13 @@ const KIT = {
   refresh: refreshAssistantBar,
   hidden: assistantBarHidden,
   mark: markAssistantBar,
+  card: assistantSummaryCard,
+  summary: summaryAssistantBar,
+  sections: assistantSummarySections,
+  fit: fitAssistantSummary,
+  act: actOnAssistantBar,
+  turn: edgeTurn,
+  close: closeAssistantSummary,
 };
 
 interface Stored {
@@ -111,7 +129,14 @@ const FOOTER =
 /** A chat with its message box, the scope the adapter world would be, and the bar's bridge. */
 function setup() {
   document.body.innerHTML = `<div id="main"><div role="row">Hi</div>${FOOTER}</div>`;
-  const bridge = { use: vi.fn(), collapse: vi.fn(), expand: vi.fn(), button: vi.fn() };
+  const bridge = {
+    use: vi.fn(),
+    collapse: vi.fn(),
+    expand: vi.fn(),
+    button: vi.fn(),
+    summarize: vi.fn(),
+    closeSummary: vi.fn(),
+  };
   const scope: Record<string, unknown> = { bridge, getComputedStyle };
   const render = (content: BarContent = CONTENT): BarPlacement =>
     renderAssistantBar(document, scope, content, PLACES, KIT);
@@ -204,6 +229,13 @@ describe('renderAssistantBar', () => {
       ['folded', 'row folded'],
       ['expand', 'fold'],
       ['foldLabel', 'fold-label'],
+      ['card', 'card'],
+      ['cardTitle', 'card-title'],
+      ['cardClose', 'icon'],
+      ['ready', 'status'],
+      ['cardBody', 'card-body'],
+      ['covers', 'covers'],
+      ['retry', 'action'],
     ]);
     expect(parts.status.getAttribute('role')).toBe('status');
     expect(parts.list.tagName).toBe('UL');
@@ -852,6 +884,183 @@ describe('the suggestions folded away, and while they are written', () => {
       bar: { dataset: {} },
       notice: { hidden: true },
     } as unknown as Parameters<typeof assistantBarHidden>[0];
-    expect(assistantBarHidden(parts)).toEqual({ chips: true, folded: true, bar: true });
+    expect(assistantBarHidden(parts)).toEqual({ chips: true, folded: true, card: true, bar: true });
+  });
+});
+
+/** The summary as the main process words it, being written, shown or failed (#705). */
+const SUMMARY = {
+  stage: 'shown',
+  title: 'Summary of 3 unread messages',
+  ready: 'The summary of 3 unread messages is ready.',
+  points: ['Ben asks you to <b>drive</b>.', 'Ana sent a photo.', 'Cy is late.'],
+  covers: 'Covers the newest 2, as your history limit allows.',
+  problem: '',
+  retry: '',
+} as const;
+
+const summarized = (
+  stage: 'working' | 'shown' | 'failed',
+  more: Partial<BarContent> = {},
+  summary: Partial<typeof SUMMARY> | Record<string, unknown> = {},
+) => ({
+  ...CONTENT,
+  summary: { ...SUMMARY, stage, ...summary },
+  ...more,
+});
+
+describe('the summary of unread messages (#705)', () => {
+  const rows = (t: ReturnType<typeof setup>) => {
+    const { chips, folded, card } = t.stored().parts as unknown as Record<string, HTMLElement>;
+    return { chips: !chips?.hidden, folded: !folded?.hidden, card: !card?.hidden };
+  };
+  const card = (t: ReturnType<typeof setup>) =>
+    (t.stored().parts as unknown as { card: HTMLElement }).card;
+  const line = (t: ReturnType<typeof setup>) => card(t).querySelector('.card-line')?.textContent;
+  const retry = (t: ReturnType<typeof setup>) =>
+    card(t).querySelector<HTMLButtonElement>('[data-action="summarize"]');
+
+  it('says in its box that it is being written, with the light round its edge, beside the suggestions', () => {
+    const t = setup();
+    t.render(summarized('working'));
+    expect(rows(t)).toEqual({ chips: true, folded: false, card: true });
+    expect(card(t).getAttribute('class')).toBe('card working');
+    expect(card(t).getAttribute('aria-busy')).toBe('true');
+    expect(line(t)).toBe('Writing the summary…');
+    expect(retry(t)?.hidden).toBe(true);
+    // The suggestions' row says nothing of it.
+    expect(t.stored().parts.list.dataset['items']).toBe(String(CONTENT.suggestions.length));
+    expect(t.stored().parts.status.textContent).toBe('');
+    // Alone, it still shows the bar.
+    t.render(summarized('working', { suggestions: [] }));
+    expect(rows(t)).toEqual({ chips: false, folded: false, card: true });
+    expect(t.stored().host.style.display).toBe('');
+  });
+
+  it('shows it in a box named by its heading, as text, never taking the focus', () => {
+    const t = setup();
+    field()?.focus();
+    t.render(summarized('shown'));
+    const region = card(t);
+    expect(region.getAttribute('class')).toBe('card');
+    expect(region.getAttribute('aria-busy')).toBe('false');
+    expect(region.getAttribute('role')).toBe('region');
+    expect(region.hasAttribute('tabindex')).toBe(false);
+    expect(document.activeElement).toBe(field());
+    const title = t.shadow().querySelector(`#${String(region.getAttribute('aria-labelledby'))}`);
+    expect(title?.textContent).toBe('Summary of 3 unread messages');
+    expect(title?.tagName).toBe('H2');
+    expect(region.querySelector('[role="status"]')?.textContent).toBe(SUMMARY.ready);
+    expect(region.querySelectorAll('h3')).toHaveLength(0);
+    const items = [...region.querySelectorAll('.card-body li')];
+    expect(items.map((item) => item.textContent)).toEqual([
+      'Ben asks you to <b>drive</b>.',
+      'Ana sent a photo.',
+      'Cy is late.',
+    ]);
+    expect(region.querySelector('b')).toBeNull();
+    const covers = region.querySelector<HTMLElement>('.covers');
+    expect([covers?.hidden, covers?.textContent]).toEqual([false, SUMMARY.covers]);
+  });
+
+  it('offers only its close, and says nothing of how much it covers when it covers all, nor once gone', () => {
+    const t = setup();
+    t.render(summarized('shown'));
+    const region = card(t);
+    expect(retry(t)?.hidden).toBe(true);
+    const close = region.querySelector('[data-action="closeSummary"]');
+    expect(close?.getAttribute('aria-label')).toBe('Close Summary');
+    t.render(summarized('shown', {}, { covers: '' }));
+    expect(region.querySelector<HTMLElement>('.covers')?.hidden).toBe(true);
+    t.render(CONTENT);
+    expect(rows(t)).toEqual({ chips: true, folded: false, card: false });
+    expect(region.querySelector('[role="status"]')?.textContent).toBe('');
+  });
+
+  it('says why none came, and writes it again on Try Again only when that may help', () => {
+    const t = setup();
+    const problem = 'Claude (Anthropic) could not be reached.';
+    t.render(summarized('failed', {}, { problem, retry: 'Try Again' }));
+    expect(line(t)).toBe(problem);
+    expect(card(t).querySelector<HTMLElement>('.covers')?.hidden).toBe(true);
+    expect([retry(t)?.hidden, retry(t)?.textContent]).toEqual([false, 'Try Again']);
+    const button = retry(t);
+    if (button !== null) {
+      click(button);
+    }
+    expect(t.bridge.summarize).toHaveBeenCalledExactlyOnceWith();
+    t.render(summarized('failed', {}, { problem: 'The model declined to summarize this chat.' }));
+    expect(retry(t)?.hidden).toBe(true);
+    expect(card(t).querySelector('[role="status"]')?.textContent).toBe('');
+  });
+
+  it('hangs the box below the chat’s header, at most half as high as the room down to the bar', () => {
+    const t = setup();
+    const header = document.createElement('header');
+    document.querySelector('#main')?.prepend(header);
+    const at = (node: Element, top: number, bottom: number, width = 0) => {
+      vi.spyOn(node, 'getBoundingClientRect').mockReturnValue({
+        top,
+        bottom,
+        width,
+        height: bottom - top,
+      } as DOMRect);
+    };
+    at(header, 0, 60);
+    t.render(CONTENT);
+    expect(card(t).style.insetBlockStart).toBe('');
+    at(t.stored().parts.bar, 700, 760);
+    at(card(t), 0, 96, 360);
+    t.render(summarized('shown'));
+    expect(card(t).style.insetBlockStart).toBe('-628px');
+    expect(card(t).style.maxBlockSize).toBe('314px');
+    expect(card(t).style.getPropertyValue('--edge-turn')).toBe(edgeTurn(360, 96));
+    // Never higher than 420px, nor lower than 96px.
+    at(t.stored().parts.bar, 1400, 1460);
+    t.render(summarized('shown', { writing: true }));
+    expect(card(t).style.maxBlockSize).toBe('420px');
+    at(t.stored().parts.bar, 100, 160);
+    t.render(summarized('shown', { collapsed: true }));
+    expect(card(t).style.maxBlockSize).toBe('96px');
+    // Without a header, it is left where it was.
+    header.remove();
+    t.render(summarized('working'));
+    expect(card(t).style.maxBlockSize).toBe('96px');
+  });
+
+  it('closes on Close or Escape in the box, and gives the message box the focus back', () => {
+    const t = setup();
+    t.render(summarized('shown'));
+    const close = card(t).querySelector<HTMLElement>('[data-action="closeSummary"]');
+    if (close !== null) {
+      click(close);
+    }
+    expect(t.bridge.closeSummary).toHaveBeenCalledOnce();
+    expect(document.activeElement).toBe(field());
+    const escape = (target: Element, key = 'Escape') => {
+      target.dispatchEvent(trusted(new KeyboardEvent('keydown', { key, bubbles: true })));
+    };
+    escape(card(t));
+    expect(t.bridge.closeSummary).toHaveBeenCalledTimes(2);
+    // Not another key, nor Escape outside the box, nor one a page script made up.
+    escape(card(t), 'Enter');
+    escape(t.stored().parts.bar);
+    card(t).dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(t.bridge.closeSummary).toHaveBeenCalledTimes(2);
+    // Without a bridge or a message box, it still closes what it can.
+    delete t.scope['bridge'];
+    field()?.remove();
+    expect(() => {
+      escape(card(t));
+    }).not.toThrow();
+  });
+
+  it('shows another chat’s summary nowhere', () => {
+    const t = setup();
+    document
+      .querySelector('#main')
+      ?.prepend(Object.assign(document.createElement('header'), { innerHTML: '<span>Ana</span>' }));
+    t.render(summarized('shown', { chat: fingerprint('Rui') }));
+    expect(card(t).hidden).toBe(true);
   });
 });

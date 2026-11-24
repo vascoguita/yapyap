@@ -74,6 +74,8 @@ export function createAssistantBarBridge(ipc: Pick<PreloadIpc, 'send'>): Assista
     expand: send(channels.expand),
     button: send(channels.button),
     settings: send(channels.settings),
+    summarize: send(channels.summarize),
+    closeSummary: send(channels.closeSummary),
   };
 }
 
