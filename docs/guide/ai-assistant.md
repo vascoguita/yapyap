@@ -100,7 +100,7 @@ settings**, which opens this list.
 
 ### Choose the chats it works in
 
-**Settings → AI Assistant → Where the AI assistant works**:
+**Settings → AI Assistant → Chats it may read → Where the AI assistant works**:
 
 - **Only chosen chats**, the default. Open a chat in WhatsApp, then click
   **Add Open Chat**. **Remove** takes one back.
@@ -108,10 +108,11 @@ settings**, which opens this list.
 - **All chats**: the AI assistant works in every chat.
 
 Nothing of a chat is read for the AI assistant outside these chats.
-**Messages it reads** sets how many of a chat's latest
-messages it reads to suggest replies and rewrite your text: 20, 50 (the
-default) or 100. More gives answers that fit the conversation better;
-each takes a little longer. However many you choose, a request holds at
+**Messages it reads**, under **In chats**, sets how many of a chat's
+latest messages it reads to suggest replies, summarize unread messages
+and rewrite your text: from 10 to 200, ten at a time with its **−** and
+**+** buttons, 50 by default. More gives answers that fit the
+conversation better; each takes a little longer. However many you choose, a request holds at
 most about 8,000 tokens of chat, the newest messages first.
 
 ### What the model reads
@@ -185,7 +186,8 @@ Settings to stop them.
 ### Summaries of unread messages
 
 When you open a chat with 10 or more unread messages, such as a busy
-group, the AI assistant summarizes them for you, with no click, in a box
+group (set how many under **Summarize unread messages**, with **From −
+10 + unread messages**), the AI assistant summarizes them for you, with no click, in a box
 at the top of the chat, on the right:
 
 - While it is written, the box says **Writing the summary…**.

@@ -7,7 +7,8 @@ const SETTINGS = {
   model: 'auto',
   autoSuggest: true,
   summaries: true,
-  messages: '50',
+  summarizeFrom: 10,
+  messages: 50,
   server: 'http://localhost:11434/v1',
 } as const;
 

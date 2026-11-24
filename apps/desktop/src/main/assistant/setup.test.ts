@@ -8,8 +8,9 @@ const SETTINGS: SetupInputs['settings'] = {
   model: 'auto',
   autoSuggest: true,
   summaries: true,
+  summarizeFrom: 10,
   chats: 'chosen',
-  messages: '50',
+  messages: 50,
   server: '',
 };
 

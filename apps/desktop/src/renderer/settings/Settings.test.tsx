@@ -180,8 +180,15 @@ describe('Settings', () => {
       }
     }
     // The rest of the assistant's settings show once its view is read; see Assistant.test.tsx.
+    const inChats = [
+      'assistant.enabled',
+      'assistant.autoSuggest',
+      'assistant.summaries',
+      'assistant.summarizeFrom',
+      'assistant.messages',
+    ];
     const own = SETTING_FIELDS.map(({ id }) => id).filter(
-      (id) => id.startsWith('assistant.') && id !== 'assistant.enabled',
+      (id) => id.startsWith('assistant.') && !inChats.includes(id),
     );
     expect(SETTING_FIELDS.map(({ id }) => id).filter((id) => !seen.has(id))).toEqual(own);
   });

@@ -162,7 +162,8 @@ could ask for too.
   the chat; the maintainer found a chip to click one step too many.
   Consent is the list of chats the assistant may read, plus a switch of
   its own, **Summarize unread messages** (`assistant.summaries`, on by
-  default). It sends what
+  default), with how many unread messages start a summary
+  (`assistant.summarizeFrom`, 10 by default, #766). It sends what
   suggestions send: the open chat's own messages only, never another
   chat's, with names and times, as far as the history limit allows, then
   a task that names the unread count. The summary is shown as plain text

@@ -37,8 +37,9 @@ const SETTINGS = {
   model: 'auto',
   autoSuggest: true,
   summaries: true,
+  summarizeFrom: 10,
   chats: 'chosen',
-  messages: '50',
+  messages: 50,
   server: '',
 } as const;
 
@@ -959,6 +960,7 @@ describe('createAssistantBar: summaries of unread messages (#705)', () => {
 
   it('covers every unread message the history limit read, and writes a summary shown only once', async () => {
     const t = summarizing();
+    t.set({ summarizeFrom: 2 });
     await t.open(2);
     expect(t.last().summary).toEqual({ ...SHOWN, count: 2, covered: 0 });
     // Try Again does nothing for a summary that did not fail, or for none.
@@ -972,7 +974,14 @@ describe('createAssistantBar: summaries of unread messages (#705)', () => {
     const t = summarizing();
     await t.open(0);
     expect(t.last().summary).toBeNull();
-    t.set({ summaries: false });
+    // Fewer unread than the user chose to summarize from (#766).
+    await t.open(9);
+    expect(t.last().summary).toBeNull();
+    t.set({ summarizeFrom: 9 });
+    await t.open(9);
+    expect(t.last().summary).toEqual({ ...SHOWN, count: 9 });
+    t.bar.closeSummary();
+    t.set({ summarizeFrom: 10, summaries: false });
     await t.open();
     expect(t.last().summary).toBeNull();
     t.set({ summaries: true });
@@ -987,7 +996,7 @@ describe('createAssistantBar: summaries of unread messages (#705)', () => {
     t.forbid();
     await t.open();
     expect(t.last().summary).toBeNull();
-    expect(t.asked()).toHaveLength(0);
+    expect(t.asked()).toHaveLength(1);
     t.set({ chats: 'all' });
     await t.open();
     expect(t.last().summary).toEqual(SHOWN);
@@ -1066,6 +1075,7 @@ describe('createAssistantBar: summaries of unread messages (#705)', () => {
 
   it('says there is nothing to summarize when the model fenced nothing or the messages have no text', async () => {
     const t = summarizing('Nothing much happened.');
+    t.set({ summarizeFrom: 2 });
     await t.open();
     const nothing = failed('Nothing to summarize: these messages have no text.', false);
     expect(t.last().summary).toEqual(nothing);
@@ -1074,10 +1084,11 @@ describe('createAssistantBar: summaries of unread messages (#705)', () => {
       messages: [
         { outgoing: true, text: 'See you at 8' },
         { outgoing: false, text: '', kind: 'photo' },
+        { outgoing: false, text: '', kind: 'photo' },
       ],
     });
-    await t.open(1);
-    expect(t.last().summary).toEqual({ ...nothing, count: 1 });
+    await t.open(2);
+    expect(t.last().summary).toEqual({ ...nothing, count: 2 });
     expect(t.asked()).toHaveLength(1);
   });
 

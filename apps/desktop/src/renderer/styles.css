@@ -1582,6 +1582,62 @@ progress {
   outline-offset: 2px;
 }
 
+/* A whole number and its − and + buttons, in one bordered control (#766). */
+.stepper {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--raised);
+}
+
+.stepper button {
+  display: inline-grid;
+  place-items: center;
+  min-inline-size: 32px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+}
+
+.stepper button:disabled {
+  color: var(--muted);
+  opacity: 0.5;
+}
+
+.stepper button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.stepper output {
+  min-inline-size: 3ch;
+  padding-inline: var(--space-1);
+  font-size: var(--font-body);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+/* A setting's number, under the setting it belongs to, as part of it. */
+.group > .row.nested {
+  justify-content: flex-start;
+  gap: var(--space-2);
+  min-block-size: 0;
+  padding-block-start: 0;
+  border-block-start: none;
+  font-size: var(--font-hint);
+}
+
+.row.nested.dimmed {
+  color: var(--muted);
+}
+
 .path {
   overflow: hidden;
   font-size: var(--font-hint);

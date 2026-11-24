@@ -275,6 +275,108 @@ function FolderField(props: FieldProps & { readonly words: NonNullable<SettingFi
   );
 }
 
+type Steps = NonNullable<SettingField['stepper']>['steps'];
+
+/** A − or + button: to the next step that way, or disabled at the end. */
+function StepButton(props: {
+  readonly field: SettingField;
+  readonly to: number | undefined;
+  readonly label: string;
+  readonly icon: 'minus' | 'plus';
+  readonly onChange: Change;
+}): JSX.Element {
+  const { field, to, onChange } = props;
+  return (
+    <button
+      type="button"
+      aria-label={props.label}
+      disabled={to === undefined}
+      onClick={
+        to === undefined
+          ? undefined
+          : () => {
+              onChange(field.id, to);
+            }
+      }
+    >
+      <Icon name={props.icon} />
+    </button>
+  );
+}
+
+/**
+ * A whole number with − and + buttons beside it (#766). A stored value
+ * between two steps goes to the nearer one each way.
+ */
+function Stepper(props: FieldProps & { readonly steps: Steps }): JSX.Element {
+  const { field, snapshot, onChange, steps } = props;
+  const value = Number(snapshot.values[field.id]);
+  return (
+    <fieldset
+      class="stepper"
+      aria-labelledby={`${field.id}-label`}
+      aria-describedby={`${field.id}-hint`}
+    >
+      <StepButton
+        field={field}
+        to={steps.findLast((step) => step < value)}
+        label={text.fewer}
+        icon="minus"
+        onChange={onChange}
+      />
+      <output aria-live="polite">{value}</output>
+      <StepButton
+        field={field}
+        to={steps.find((step) => step > value)}
+        label={text.more}
+        icon="plus"
+        onChange={onChange}
+      />
+    </fieldset>
+  );
+}
+
+/**
+ * A number in a line of its own under the setting before it, which it
+ * belongs to, worded around it: "From − 10 + unread messages".
+ */
+function NestedStepper(
+  props: FieldProps & {
+    readonly steps: Steps;
+    readonly words: { readonly before: string; readonly after: string };
+  },
+): JSX.Element {
+  const { field, words } = props;
+  return (
+    <div class={props.dimmed === true ? 'row nested dimmed' : 'row nested'}>
+      <span id={`${field.id}-label`} class="visually-hidden">
+        {field.label}
+      </span>
+      <span id={`${field.id}-hint`} class="visually-hidden">
+        {field.description}
+      </span>
+      <span aria-hidden="true">{words.before}</span>
+      <Stepper {...props} />
+      <span aria-hidden="true">{words.after}</span>
+    </div>
+  );
+}
+
+/** A whole number: in a row of its own, or under the setting it belongs to. */
+function NumberField(
+  props: FieldProps & { readonly stepper: NonNullable<SettingField['stepper']> },
+): JSX.Element {
+  const { field, snapshot, stepper } = props;
+  const { steps, words } = stepper;
+  return words === undefined ? (
+    <Row field={field} snapshot={snapshot} dimmed={props.dimmed === true}>
+      <Stepper {...props} steps={steps} />
+    </Row>
+  ) : (
+    <NestedStepper {...props} steps={steps} words={words} />
+  );
+}
+
 /** An on/off setting, as a switch: it applies as soon as it flips. */
 function Switch(props: FieldProps): JSX.Element {
   const { field, snapshot, onChange } = props;
@@ -307,20 +409,30 @@ export function Field(props: FieldProps): JSX.Element {
       <Select {...props} options={field.options} />
     );
   }
+  if (field.stepper !== undefined) {
+    return <NumberField {...props} stepper={field.stepper} />;
+  }
   if (field.text !== undefined) {
     return <TextField {...props} placeholder={field.text.placeholder} />;
   }
   return <Switch {...props} />;
 }
 
-/** The listed fields with `id`, which every platform has. */
+/** The listed fields with `id`, which every platform has; those in `dimmed` shown faded. */
 export function fieldsOf(
   ids: readonly string[],
   snapshot: SettingsSnapshot,
   onChange: Change,
+  dimmed: readonly string[] = [],
 ): JSX.Element[] {
   return SETTING_FIELDS.filter((field) => ids.includes(field.id)).map((field) => (
-    <Field key={field.id} field={field} snapshot={snapshot} onChange={onChange} />
+    <Field
+      key={field.id}
+      field={field}
+      snapshot={snapshot}
+      onChange={onChange}
+      dimmed={dimmed.includes(field.id)}
+    />
   ));
 }
 

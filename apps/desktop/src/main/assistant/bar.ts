@@ -203,7 +203,7 @@ interface DraftInChat {
 }
 
 /** How many of the open chat's latest messages the user lets the assistant read. */
-const messagesToRead = (bar: BarContext): number => Number(assistantSettings(bar).messages);
+const messagesToRead = (bar: BarContext): number => assistantSettings(bar).messages;
 
 /** The draft to rewrite in the open chat, if there is one and the assistant may work there. */
 async function draftToRewrite(bar: BarContext): Promise<DraftInChat | undefined> {
@@ -617,13 +617,14 @@ async function writeSummary(bar: BarContext, count: number): Promise<void> {
 }
 
 /**
- * Summarizes the `count` messages the chat that opened had unread, if any
- * (#705), with no click: only while the user wants unread messages
- * summarized, the setup is ready and the user lets the assistant read the
- * chat. Another chat opening meanwhile calls it off.
+ * Summarizes the `count` messages the chat that opened had unread (#705),
+ * with no click: only while the user wants unread messages summarized, from
+ * as many as they chose (#766), the setup is ready and the user lets the
+ * assistant read the chat. Another chat opening meanwhile calls it off.
  */
 async function summarizeOnOpening(bar: BarContext, count: number): Promise<void> {
-  if (count === 0 || !assistantSettings(bar).summaries) {
+  const { summaries, summarizeFrom } = assistantSettings(bar);
+  if (!summaries || count < summarizeFrom) {
     return;
   }
   const controller = new AbortController();
@@ -657,8 +658,7 @@ export interface AssistantBar {
   readonly button: (id: BarButtonId) => Promise<void>;
   /**
    * The open chat was first seen, with `message` its last item, or no chat
-   * is open; it opened with `unread` messages unread, or 0 for too few to
-   * summarize (#705).
+   * is open; it opened with `unread` messages unread (#705).
    */
   readonly found: (message: string | null, unread: number) => void;
   /** Another chat is open, with `message` its last item and `unread` as for `found`, or none is. */

@@ -34,8 +34,9 @@ const SNAPSHOT: SettingsSnapshot = {
     'assistant.model': 'claude-opus',
     'assistant.autoSuggest': true,
     'assistant.summaries': true,
+    'assistant.summarizeFrom': 10,
     'assistant.chats': 'chosen',
-    'assistant.messages': '10',
+    'assistant.messages': 10,
     'assistant.server': '',
   },
   restartPending: false,
@@ -113,14 +114,28 @@ describe('AssistantSection', () => {
     for (const name of ['Show the AI assistant in chats', 'Suggest replies']) {
       expect(screen.getByRole('switch', { name })).toBeTruthy();
     }
-    expect(screen.getByRole('radiogroup', { name: 'Messages it reads' })).toBeTruthy();
+    const messages = screen.getByRole('group', { name: 'Messages it reads' });
+    expect(
+      screen.getByRole('group', { name: 'Unread messages that start a summary' }),
+    ).toBeTruthy();
     expect(screen.getByRole('radiogroup', { name: 'Where the AI assistant works' })).toBeTruthy();
     expect(screen.getByRole('radio', { name: 'Only chosen chats' })).toHaveProperty(
       'checked',
       true,
     );
-    fireEvent.click(screen.getByRole('radio', { name: '20' }));
-    expect(t.onChange).toHaveBeenCalledWith('assistant.messages', '20');
+    fireEvent.click(within(messages).getByRole('button', { name: 'More' }));
+    expect(t.onChange).toHaveBeenCalledWith('assistant.messages', 20);
+  });
+
+  it('keeps every setting of the assistant in chats in one group, the summary’s number faded while summaries are off (#766)', async () => {
+    setup(VIEW, { ...SNAPSHOT, values: { ...SNAPSHOT.values, 'assistant.summaries': false } });
+    await screen.findByText('Ready. Using Claude (Anthropic).');
+    const group = screen.getByRole('group', { name: 'In chats' });
+    expect(within(group).getByRole('switch', { name: 'Suggest replies' })).toBeTruthy();
+    const from = within(group).getByRole('group', { name: 'Unread messages that start a summary' });
+    expect(from.closest('.row')?.className).toBe('row nested dimmed');
+    expect(within(group).getByRole('group', { name: 'Messages it reads' })).toBeTruthy();
+    expect(screen.getByRole('group', { name: 'Chats it may read' })).toBeTruthy();
   });
 
   it('lists the providers with their status, and opens only the chosen one', async () => {

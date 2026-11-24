@@ -67,6 +67,8 @@ describe('settingsHandlers', () => {
       const value: unknown = values[index]?.[1];
       if (field.options !== undefined) {
         expect(field.options.map((option) => option.value)).toContain(value);
+      } else if (field.stepper !== undefined) {
+        expect(field.stepper.steps).toContain(value);
       } else {
         const text = field.text !== undefined || field.folder !== undefined;
         expect(typeof value).toBe(text ? 'string' : 'boolean');
@@ -152,9 +154,10 @@ describe('settingsHandlers', () => {
         'assistant.model': 'auto',
         'assistant.autoSuggest': true,
         'assistant.chats': 'chosen',
-        'assistant.messages': '50',
+        'assistant.messages': 50,
         'assistant.server': '',
         'assistant.summaries': true,
+        'assistant.summarizeFrom': 10,
         'agents.enabled': false,
         [ASK_WHERE]: false,
         [OPEN_DONE]: false,
@@ -227,9 +230,10 @@ describe('settingsHandlers', () => {
         'assistant.model': 'auto',
         'assistant.autoSuggest': true,
         'assistant.chats': 'chosen',
-        'assistant.messages': '50',
+        'assistant.messages': 50,
         'assistant.server': '',
         'assistant.summaries': true,
+        'assistant.summarizeFrom': 10,
         'agents.enabled': false,
         [ASK_WHERE]: false,
         [OPEN_DONE]: false,
