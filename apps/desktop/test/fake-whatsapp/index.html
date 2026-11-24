@@ -71,6 +71,11 @@
         background: #fff;
         color: #111b21;
       }
+      /* As WhatsApp joins the quote to the message box: the box's top corners go square (#764). */
+      footer:has([data-testid='reply-preview']) [data-testid='compose-row'] {
+        border-start-start-radius: 0;
+        border-start-end-radius: 0;
+      }
       [data-testid='compose-field'] {
         flex: 1 1 0;
         min-inline-size: 0;

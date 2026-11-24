@@ -2,6 +2,8 @@
 import { runInNewContext } from 'node:vm';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  joinAssistantBar,
+  raiseAssistantQuote,
   actOnAssistantBar,
   alignAssistantBar,
   assistantSummaryCard,
@@ -9,7 +11,7 @@ import {
   closeAssistantSummary,
   fitAssistantSummary,
   summaryAssistantBar,
-  assistantBarLift,
+  assistantTrayBox,
   assistantBarHere,
   assistantBarHidden,
   assistantBarRender,
@@ -78,7 +80,9 @@ const PLACES = {
 
 const KIT = {
   align: alignAssistantBar,
-  lift: assistantBarLift,
+  join: joinAssistantBar,
+  box: assistantTrayBox,
+  raise: raiseAssistantQuote,
   paint: paintWhatsAppTheme,
   room: holdAssistantBarRoom,
   build: buildAssistantBar,
@@ -113,6 +117,7 @@ interface Stored {
     action: HTMLButtonElement;
     close: HTMLButtonElement;
     chips: HTMLElement;
+    heading: HTMLElement;
     list: HTMLElement;
     status: HTMLElement;
     collapse: HTMLButtonElement;
@@ -178,25 +183,6 @@ afterEach(() => {
 });
 
 describe('renderAssistantBar', () => {
-  it('is drawn above the quote of the message the user replies to, and comes back down, moving nothing else (#740)', () => {
-    const t = setup();
-    let lift = 0;
-    const room = vi.fn(holdAssistantBarRoom);
-    const kit = { ...KIT, lift: () => lift, room };
-    const render = () => renderAssistantBar(document, t.scope, CONTENT, PLACES, kit);
-    render();
-    expect(t.stored().host.style.insetBlockStart).toBe('0px');
-    room.mockClear();
-    lift = 72;
-    render();
-    expect(t.stored().host.style.insetBlockStart).toBe('-72px');
-    // WhatsApp left the room for the quote already, so the chat is not moved.
-    expect(room).not.toHaveBeenCalled();
-    lift = 0;
-    render();
-    expect(t.stored().host.style.insetBlockStart).toBe('0px');
-  });
-
   it('puts the bar right above the message box, in a closed shadow root', () => {
     const t = setup();
     expect(t.render()).toBe('placed');
@@ -222,8 +208,9 @@ describe('renderAssistantBar', () => {
       ['text', 'text'],
       ['action', 'action'],
       ['close', 'icon'],
-      ['chips', 'row chips'],
-      ['collapse', 'fold'],
+      ['chips', 'chips'],
+      ['heading', 'heading'],
+      ['collapse', 'icon'],
       ['list', 'list'],
       ['status', 'status'],
       ['folded', 'row folded'],
@@ -267,11 +254,13 @@ describe('renderAssistantBar', () => {
     ];
     expect(drawn(parts.notice.firstElementChild)).toEqual(['mark', 'true', 'M1 1z']);
     expect(drawn(parts.close.querySelector('svg'))).toEqual(['cross', 'true', 'M2 2z']);
-    // The toggle is first in the suggestions' row, as the one they fold into is in its own (#729).
-    expect(parts.chips.firstElementChild).toBe(parts.collapse);
+    // The suggestions sit under a heading that starts with the sparkle and ends with the fold (#764).
+    const head = parts.chips.firstElementChild;
+    expect(drawn(head?.firstElementChild ?? null)).toEqual(['mark', 'true', 'M1 1z']);
+    expect([...(head?.children ?? [])].slice(1)).toEqual([parts.heading, parts.collapse]);
+    expect(parts.heading.textContent).toBe('Suggested replies');
     expect(parts.folded.firstElementChild).toBe(parts.expand);
     expect([...parts.collapse.querySelectorAll('svg')].map(drawn)).toEqual([
-      ['mark', 'true', 'M1 1z'],
       ['chevron', 'true', 'M3 3z'],
     ]);
     const unfold = [...parts.expand.querySelectorAll('svg')];
@@ -520,48 +509,94 @@ function barHeights() {
       return 0;
     }
     const rows = [...this.querySelectorAll<HTMLElement>('.row')];
-    return rows.filter((row) => !row.hidden).length * 50;
+    return rows.filter((row) => row.closest('[hidden]') === null).length * 50;
   });
 }
 
-describe('assistantBarLift', () => {
-  /** Lays `node` out at `top`, `height` tall, as the browser would. */
-  const at = (node: Element | null, top: number, height: number): void => {
+describe('joining the tray to the message box (#764)', () => {
+  /** Lays `node` out from `left` to `right`, as the browser would. */
+  const across = (node: Element | null, left: number, right: number): void => {
     if (node === null) {
       throw new Error('Nothing to lay out.');
     }
     vi.spyOn(node, 'getBoundingClientRect').mockReturnValue({
-      top,
-      height,
+      left,
+      right,
+      top: 0,
+      bottom: 0,
+      width: right - left,
+      height: 0,
     } as DOMRect);
   };
+  /** WhatsApp's message box, with its fill, inside the footer, and the layer it quotes a message in. */
+  const page = (quote = '') => {
+    document.body.innerHTML = `<div id="main"><footer style="order: 3; z-index: 2; color: rgb(17, 27, 33)"><div><div class="box" style="background-color: rgb(255, 255, 255)"><span><div contenteditable="true"></div></span></div></div><div class="layer">${quote}</div></footer></div>`;
+    across(document.querySelector('#main footer'), 100, 1100);
+    across(document.querySelector('.box'), 112, 1088);
+  };
+  const quoted = '<div><div data-testid="quoted-message">Dinner?</div></div>';
 
-  it('rises as high as the panel of the quote WhatsApp draws over the space above the box (#740)', () => {
-    document.body.innerHTML = `<div id="main"><footer><div contenteditable="true"></div><div><div class="panel"><div><div data-testid="quoted-message"></div></div></div></div></footer></div>`;
-    const box = document.querySelector<HTMLElement>('#main footer');
-    if (box === null) {
-      throw new Error('No footer.');
-    }
-    at(box, 600, 64);
-    // The panel reaches above the quote; the wrapper around it is not laid out at all.
-    at(box.querySelector('.panel'), 520, 70);
-    at(box.querySelector('.panel > div'), 0, 0);
-    at(box.querySelector('[data-testid="quoted-message"]'), 528.4, 50);
-    at(box.querySelector('footer > div:last-child'), 600, 0);
-    expect(assistantBarLift(box as never, PLACES)).toBe(80);
+  it('finds the message box as the field’s nearest box with a fill of its own, or none', () => {
+    page();
+    const footer = document.querySelector('#main footer') as never;
+    expect(assistantTrayBox(window as never, footer, PLACES)).toBe(document.querySelector('.box'));
+    document.querySelector('.box')?.removeAttribute('style');
+    expect(assistantTrayBox(window as never, footer, PLACES)).toBeNull();
+    document.querySelector('[contenteditable]')?.remove();
+    expect(assistantTrayBox(window as never, footer, PLACES)).toBeNull();
   });
 
-  it('stays down with no quote, and with one inside the box', () => {
-    document.body.innerHTML = `<div id="main">${FOOTER}</div>`;
-    const box = document.querySelector<HTMLElement>('#main footer');
-    if (box === null) {
-      throw new Error('No footer.');
-    }
-    at(box, 600, 64);
-    expect(assistantBarLift(box as never, PLACES)).toBe(0);
-    box.insertAdjacentHTML('beforeend', '<div data-testid="quoted-message"></div>');
-    at(box.querySelector('[data-testid="quoted-message"]'), 610, 40);
-    expect(assistantBarLift(box as never, PLACES)).toBe(0);
+  it('takes the box’s width and fill, and reaches down behind its rounded top', () => {
+    page();
+    const scope: Record<string, unknown> = { getComputedStyle };
+    renderAssistantBar(document, scope, CONTENT, PLACES, KIT);
+    const { host, parts } = scope['bar'] as Stored;
+    expect(parts.bar.dataset['tray']).toBe('true');
+    expect(parts.bar.style.marginInline).toBe('12px 12px');
+    expect(host.style.getPropertyValue('--tray')).toBe('rgb(255, 255, 255)');
+    expect(host.style.marginBlockEnd).toBe('-26px');
+    expect(parts.bar.dataset['joined']).toBe('box');
+    // Right to left, the box's start is on its right.
+    across(document.querySelector('.box'), 120, 1088);
+    document.querySelector<HTMLElement>('#main footer')?.style.setProperty('direction', 'rtl');
+    renderAssistantBar(document, scope, CONTENT, PLACES, KIT);
+    expect(parts.bar.style.marginInline).toBe('12px 20px');
+    // With nothing in the tray, it reaches nowhere.
+    renderAssistantBar(document, scope, { ...CONTENT, suggestions: [] }, PLACES, KIT);
+    expect(host.style.marginBlockEnd).toBe('');
+  });
+
+  it('moves WhatsApp’s quote up over the tray while the user replies, and back once it goes', () => {
+    page(quoted);
+    const scope: Record<string, unknown> = { getComputedStyle };
+    const layer = document.querySelector<HTMLElement>('.layer');
+    renderAssistantBar(document, scope, CONTENT, PLACES, KIT);
+    const { host, parts } = scope['bar'] as Stored;
+    Object.defineProperty(host, 'offsetHeight', { configurable: true, value: 126 });
+    renderAssistantBar(document, scope, { ...CONTENT, writing: true }, PLACES, KIT);
+    expect(parts.bar.dataset['joined']).toBe('quote');
+    expect(layer?.style.translate).toBe('0 -100px');
+    renderAssistantBar(document, scope, { ...CONTENT, suggestions: [] }, PLACES, KIT);
+    expect(layer?.style.translate).toBe('');
+    // A quote WhatsApp drew anew is moved, and the old layer put back.
+    renderAssistantBar(document, scope, CONTENT, PLACES, KIT);
+    expect(layer?.style.translate).toBe('0 -100px');
+    layer?.remove();
+    document
+      .querySelector('#main footer')
+      ?.insertAdjacentHTML('beforeend', `<div class="layer2">${quoted}</div>`);
+    renderAssistantBar(document, scope, { ...CONTENT, writing: true }, PLACES, KIT);
+    expect(layer?.style.translate).toBe('');
+    expect(document.querySelector<HTMLElement>('.layer2')?.style.translate).toBe('0 -100px');
+  });
+
+  it('puts back a layer it moved, and moves none while nothing is raised', () => {
+    const moved = document.createElement('div');
+    moved.style.translate = '0 -40px';
+    const store: { raised: HTMLElement | undefined } = { raised: moved };
+    raiseAssistantQuote(store as never, undefined, 0);
+    expect(moved.style.translate).toBe('');
+    expect(store.raised).toBeUndefined();
   });
 });
 
@@ -750,7 +785,7 @@ describe('assistantBarRender', () => {
   it('sends the bar’s helpers, its place, icons and its own styles along with the content', () => {
     const code = assistantBarRender(CONTENT);
     expect(code).toMatch(
-      /\{ align: [\s\S]+, lift: [\s\S]+, paint: [\s\S]+, room: [\s\S]+, build: [\s\S]+, rows: [\s\S]+, node: [\s\S]+, show: [\s\S]+, wire: [\s\S]+, update: [\s\S]+, notice: [\s\S]+, icon: [\s\S]+ \}\)$/,
+      /\{ align: [\s\S]+, join: [\s\S]+, box: [\s\S]+, raise: [\s\S]+, paint: [\s\S]+, room: [\s\S]+, build: [\s\S]+, rows: [\s\S]+, node: [\s\S]+, show: [\s\S]+, wire: [\s\S]+, update: [\s\S]+, notice: [\s\S]+, icon: [\s\S]+ \}\)$/,
     );
     expect(code).toContain('"store":"yapyapAssistantBarView"');
     expect(code).toContain('"bridge":"yapyapAssistantBar"');
@@ -763,7 +798,7 @@ describe('assistantBarRender', () => {
     // The assistant's own accent, in both of WhatsApp's themes, then the bar's styles.
     expect(code).toContain('--ai: #3f2fb8');
     expect(code).toContain(":host([data-theme='dark'])");
-    expect(code).toContain(':host { display: block; }');
+    expect(code).toContain(".bar[data-tray='true']");
     expect(code).toContain(JSON.stringify(CONTENT));
   });
 
@@ -884,7 +919,13 @@ describe('the suggestions folded away, and while they are written', () => {
       bar: { dataset: {} },
       notice: { hidden: true },
     } as unknown as Parameters<typeof assistantBarHidden>[0];
-    expect(assistantBarHidden(parts)).toEqual({ chips: true, folded: true, card: true, bar: true });
+    expect(assistantBarHidden(parts)).toEqual({
+      chips: true,
+      folded: true,
+      card: true,
+      tray: true,
+      bar: true,
+    });
   });
 });
 

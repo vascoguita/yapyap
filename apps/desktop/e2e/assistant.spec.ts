@@ -742,12 +742,13 @@ test('suggests replies to the message the user replies to, and the last one’s 
   await expect(async () => {
     expect(await barNames(app)).toContain('Dinner sounds great!');
   }).toPass({ timeout: 15_000 });
-  // The suggestions show above the quote, which WhatsApp draws over the space above the
-  // box, and the chat ends right above them, with no room left empty between.
+  // As one box: the quote first, then the suggestions, then the message box, which the tray
+  // reaches behind; the chat ends right above the quote, with no room left empty (#764).
   await expect(async () => {
     const layout = await replyLayout(window);
-    expect(layout.barEnd).toBeLessThanOrEqual(layout.quoteTop + 1);
-    expect(Math.abs(layout.barTop - layout.chatEnd)).toBeLessThan(1);
+    expect(Math.abs(layout.quoteEnd - layout.barTop)).toBeLessThan(1);
+    expect(Math.abs(layout.barEnd - 26 - layout.boxTop)).toBeLessThan(1);
+    expect(Math.abs(layout.quoteTop - layout.chatEnd)).toBeLessThan(1);
   }).toPass();
   const asked = await claudeRequests(app);
   expect(asked).toHaveLength(before + 1);
@@ -761,10 +762,11 @@ test('suggests replies to the message the user replies to, and the last one’s 
     expect(names).toContain('See you there');
     expect(names).not.toContain('Dinner sounds great!');
   }).toPass({ timeout: 15_000 });
-  // And they come back down onto the message box.
+  // And the tray sits right on the message box again, the chat ending above it.
   await expect(async () => {
     const layout = await replyLayout(window);
-    expect(Math.abs(layout.boxTop - layout.barEnd)).toBeLessThan(1);
+    expect(Math.abs(layout.barEnd - 26 - layout.boxTop)).toBeLessThan(1);
+    expect(Math.abs(layout.barTop - layout.chatEnd)).toBeLessThan(1);
   }).toPass();
   await window.waitForTimeout(3000);
   expect(await claudeRequests(app)).toHaveLength(before + 1);

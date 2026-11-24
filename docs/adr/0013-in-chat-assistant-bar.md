@@ -220,3 +220,12 @@ still should.
   tokens too, written in pixels because WhatsApp sets its own root font
   size. The 40 and 44 px heights stay, to line up with WhatsApp's own
   message box.
+- 2026-11-24 (#764, the maintainer's decision): the bar becomes a tray
+  joined to the message box, as WhatsApp joins the quote of a message
+  being replied to: as wide as the box, in its fill, reaching behind its
+  rounded top, with WhatsApp's neutral chips under a "Suggested replies"
+  heading; the sparkle alone marks the assistant. While the user replies,
+  WhatsApp's quote layer moves up by the tray's height, so the quote comes
+  first, then the suggestions, then the box. That layer's `translate` is
+  the only style the assistant sets on WhatsApp's own elements, and it is
+  put back once the tray goes.
