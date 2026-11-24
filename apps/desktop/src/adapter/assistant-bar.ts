@@ -237,7 +237,7 @@ export interface BarKit {
     box: BarNode,
   ) => void;
   readonly square: (store: Pick<BarStore, 'squared'>, box: BarNode | null) => void;
-  readonly squaredBy: (scope: Scope, box: BarNode) => boolean;
+  readonly squaredBy: (scope: Scope, box: BarNode | null, layer: BarNode | undefined) => boolean;
   readonly layer: (footer: BarNode, places: BarPlaces) => BarNode | undefined;
   readonly watchPage: (doc: BarDocument, scope: Scope, sync: () => void) => void;
   readonly box: (scope: Scope, footer: BarNode, places: BarPlaces) => BarNode | null;
@@ -452,7 +452,7 @@ export function joinAssistantBar(
   const layer = kit.layer(footer, places);
   // The user replies while WhatsApp squares the box's top under its quote; a quote it is
   // still taking away, as the user closed it, leaves the box rounded already.
-  const replying = box !== null && layer !== undefined && kit.squaredBy(scope, box);
+  const replying = kit.squaredBy(scope, box, layer);
   parts.bar.dataset['joined'] = replying ? 'quote' : 'box';
   if (box !== null) {
     kit.fitTray(scope, footer, store, box);
@@ -465,11 +465,18 @@ export function joinAssistantBar(
 }
 
 /**
- * Whether WhatsApp itself squared the message box's top corners, as it
- * does under its quote of a message the user replies to (#764). The
- * tray's own squaring is set aside for a moment to tell.
+ * Whether the user replies: WhatsApp shows its quote of the message, in
+ * `layer`, and itself squared the message box's top corners under it
+ * (#764). The tray's own squaring is set aside for a moment to tell.
  */
-export function assistantBoxSquared(scope: Scope, box: BarNode): boolean {
+export function assistantBoxSquared(
+  scope: Scope,
+  box: BarNode | null,
+  layer: BarNode | undefined,
+): boolean {
+  if (box === null || layer === undefined) {
+    return false;
+  }
   const { style } = box;
   const kept = [style.borderStartStartRadius, style.borderStartEndRadius] as const;
   style.borderStartStartRadius = '';

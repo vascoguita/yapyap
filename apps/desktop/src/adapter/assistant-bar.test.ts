@@ -676,7 +676,8 @@ describe('joining the tray to the message box (#764)', () => {
     // Its quote drops back behind the tray, where its way out goes unseen.
     expect(document.querySelector<HTMLElement>('.layer')?.style.translate).toBe('');
     // Telling whose corners are square sets the tray's own aside only for a moment.
-    expect(assistantBoxSquared(window as never, box as never)).toBe(false);
+    expect(assistantBoxSquared(window as never, box as never, box as never)).toBe(false);
+    expect(assistantBoxSquared(window as never, null, box as never)).toBe(false);
     expect(box.style.borderStartStartRadius).toBe('0');
   });
 
