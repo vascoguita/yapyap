@@ -48,7 +48,7 @@ export function electronCapture(
  * A hidden account's page still names the main window as its own once its
  * view has been taken out, so only a page the window shows counts (#56).
  */
-function isShownIn(window: BrowserWindow, contents: object): boolean {
+function isShownIn(window: Electron.BrowserWindow, contents: object): boolean {
   return (
     window.webContents === contents ||
     window.contentView.children.some(

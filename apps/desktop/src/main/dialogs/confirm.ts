@@ -1,4 +1,4 @@
-import { dialog, type BaseWindow } from 'electron';
+import { dialog } from 'electron';
 import { PRODUCT_NAME } from '../identity/product.ts';
 
 /** A question with two answers, asked in a native message box. */
@@ -14,7 +14,7 @@ export interface Question {
    */
   readonly enterMeansYes?: boolean;
   /** The window the box belongs to, when one asked, which keeps the box on top of it. */
-  readonly parent?: BaseWindow;
+  readonly parent?: Electron.BaseWindow;
 }
 
 /** True only when the user picks the yes button. */

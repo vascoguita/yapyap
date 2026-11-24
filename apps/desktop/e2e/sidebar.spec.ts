@@ -6,13 +6,15 @@ const sidebarPage = (app: ElectronApplication): Promise<Page> => chromePage(app,
 
 /** Where each view sits in the main window: the sidebar first, then the accounts. */
 const layout = (app: ElectronApplication) =>
-  app.evaluate(({ BaseWindow }) =>
+  app.evaluate(({ BaseWindow, WebContentsView }) =>
     BaseWindow.getAllWindows().flatMap((window) =>
-      window.contentView.children.map((view) => ({
-        url: (view as Electron.WebContentsView).webContents.getURL(),
-        x: view.getBounds().x,
-        width: view.getBounds().width,
-      })),
+      window.contentView.children
+        .filter((view) => view instanceof WebContentsView)
+        .map((view) => ({
+          url: view.webContents.getURL(),
+          x: view.getBounds().x,
+          width: view.getBounds().width,
+        })),
     ),
   );
 

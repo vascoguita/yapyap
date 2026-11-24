@@ -9,7 +9,7 @@ const FILTERS = [{ name: en.settings.backup.fileType, extensions: ['json'] }];
 
 // The owner is the settings window's own web contents, handed over by IPC.
 // Without a window there is nobody to ask, which counts as a cancel.
-const windowOf = (owner: object): BrowserWindow | null =>
+const windowOf = (owner: object): Electron.BrowserWindow | null =>
   BrowserWindow.fromWebContents(owner as WebContents);
 
 /** One byte past the limit, so an oversized file is recognizable without reading it all. */
