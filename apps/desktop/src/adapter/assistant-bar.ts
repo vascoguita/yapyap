@@ -405,7 +405,7 @@ export function assistantTrayBox(scope: Scope, footer: BarNode, places: BarPlace
   };
   // A box without a fill of its own reads as no colour, transparent, or one with no alpha.
   const clear = (node: BarNode): boolean =>
-    /^(|transparent|rgba\(.*,\s*0\))$/.test(computed.call(scope, node).backgroundColor);
+    /^(transparent|rgba\(.*,\s*0\))?$/.test(computed.call(scope, node).backgroundColor);
   const field = footer.ownerDocument.querySelector(places.field) as BarNode | null;
   let box = field?.parentElement ?? null;
   while (box !== null && box !== footer && clear(box)) {
