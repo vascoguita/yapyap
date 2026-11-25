@@ -49,6 +49,7 @@ import type { TrayDependencies, TrayPort } from '../tray/tray.ts';
 import type { SchemeSource, TrayIconDependencies } from '../tray/tray-icon.ts';
 import type { AutostartPort } from '../autostart/autostart.ts';
 import type { ManagedWindow } from '../window/main-window.ts';
+import type { DockPort } from '../window/dock.ts';
 import type { Rect } from '../window/window-state.ts';
 import type { GlobalShortcutPort } from '../shortcuts/global-shortcuts.ts';
 import type { ContextMenuItem, MenuPage } from '../spelling/context-menu.ts';
@@ -66,6 +67,8 @@ export interface AppPort {
   enableSandbox(): void;
   whenReady(): Promise<unknown>;
   setAppUserModelId(id: string): void;
+  /** Brings YapYap to the front; on macOS, `steal` takes it from the app in use. */
+  focus(options: { steal: boolean }): void;
   on(
     event: 'window-all-closed' | 'before-quit' | 'will-quit' | 'activate',
     listener: () => void,
@@ -165,6 +168,8 @@ export interface WindowPort extends LinkWindow, Omit<ManagedWindow, 'on' | 'once
 
 export interface StartDependencies<Window extends WindowPort> {
   readonly app: AppPort;
+  /** Electron's `app.dock`, undefined off macOS. */
+  readonly dock: DockPort | undefined;
   readonly createWindow: (options: MainWindowOptions) => Window;
   /** The account sidebar, docked in the main window. */
   readonly createSidebar: (window: Window, renderer: RendererOptions) => SidebarPort;

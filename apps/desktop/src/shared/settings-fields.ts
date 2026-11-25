@@ -22,6 +22,8 @@ export interface SettingField {
   /** `section.key` in the settings file. */
   readonly id: `${SettingsSection}.${string}`;
   readonly label: string;
+  /** The label on macOS, where the tray is the menu bar. */
+  readonly labelMac?: string;
   readonly description: string;
   /** The description on macOS, where it words the place differently, such as the menu bar for the tray. */
   readonly descriptionMac?: string;
@@ -62,17 +64,25 @@ type Texts = typeof text;
 function described<S extends keyof Texts>(
   section: S,
   key: keyof Texts[S] & string,
-): Pick<SettingField, 'id' | 'label' | 'description' | 'descriptionMac'> {
-  const { label, description, descriptionMac } = text[section][key] as {
+): Pick<SettingField, 'id' | 'label' | 'labelMac' | 'description' | 'descriptionMac'> {
+  const { label, labelMac, description, descriptionMac } = text[section][key] as {
     label: string;
+    labelMac?: string;
     description: string;
     descriptionMac?: string;
   };
-  const id = `${section}.${key}` as const;
-  return descriptionMac === undefined
-    ? { id, label, description }
-    : { id, label, description, descriptionMac };
+  return {
+    id: `${section}.${key}`,
+    label,
+    description,
+    ...(labelMac === undefined ? {} : { labelMac }),
+    ...(descriptionMac === undefined ? {} : { descriptionMac }),
+  };
 }
+
+/** The label a field has on `platform`. */
+export const labelOn = (field: SettingField, platform: string): string =>
+  platform === 'darwin' ? (field.labelMac ?? field.label) : field.label;
 
 /** The description a field has on `platform`. */
 export const descriptionOn = (field: SettingField, platform: string): string =>
@@ -155,8 +165,8 @@ export const SETTING_FIELDS: readonly SettingField[] = [
   { ...described('general', 'startMinimized'), restart: false },
   { ...described('general', 'betaUpdates'), restart: false },
   { ...described('general', 'doNotDisturb'), restart: false },
-  // macOS always keeps YapYap in the Dock when the window closes.
-  { ...described('general', 'closeToTray'), restart: false, platforms: ['linux', 'win32'] },
+  // On macOS it closes to the menu bar alone; without it, the Dock keeps YapYap (#708).
+  { ...described('general', 'closeToTray'), restart: false },
   { ...described('spelling', 'enabled'), restart: false },
   {
     ...described('appearance', 'theme'),

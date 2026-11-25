@@ -320,6 +320,7 @@ const chrome = createChromeFeature({
 void startAppReporting(
   {
     app,
+    dock: app.dock,
     autostart,
     chrome,
     settings,

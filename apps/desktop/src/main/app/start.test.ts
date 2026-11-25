@@ -69,6 +69,7 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
     enableSandbox: vi.fn(),
     whenReady: vi.fn(() => Promise.resolve()),
     setAppUserModelId: vi.fn(),
+    focus: vi.fn(),
     // Every listener of an event runs, as Electron's emitter runs them all.
     on: vi.fn((event: string, listener: (...args: never[]) => void) => {
       const previous = listeners.get(event);
@@ -230,6 +231,7 @@ function fakes(env: Record<string, string | undefined> = {}, argv: readonly stri
   };
   return {
     app,
+    dock: undefined as { hide(): void; show(): Promise<void> } | undefined,
     runtime,
     window,
     web,
@@ -1558,6 +1560,28 @@ describe('startApp', () => {
     f.web.fire('dom-ready');
     await vi.advanceTimersByTimeAsync(5000);
     expect(f.window.show).not.toHaveBeenCalled();
+  });
+
+  it('starts in the macOS menu bar alone at login, and takes the Dock back with the window', async () => {
+    const f = fakes({}, ['/usr/bin/yapyap', '--started-at-login']);
+    const dock = { hide: vi.fn(), show: vi.fn(() => Promise.resolve()) };
+    f.dock = dock;
+    const settings = defaultSettings();
+    f.settings.current = () => ({
+      ...settings,
+      general: { ...settings.general, startMinimized: true },
+    });
+    await startApp(f);
+    expect(dock.hide).toHaveBeenCalledOnce();
+    for (const [event, listener] of f.window.on.mock.calls as [string, () => void][]) {
+      if (event === 'show') {
+        listener();
+      }
+    }
+    expect(dock.show).toHaveBeenCalledOnce();
+    await vi.waitFor(() => {
+      expect(f.app.focus).toHaveBeenCalledExactlyOnceWith({ steal: true });
+    });
   });
 
   it('shows the window when the user opens YapYap, even set to start in the background', async () => {

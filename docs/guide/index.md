@@ -251,7 +251,10 @@ the tray, and notifications keep coming. **Hide the menu bar** under
 Settings → Appearance hides the menu until you press <kbd>Alt</kbd>.
 <kbd>Ctrl</kbd>+<kbd>,</kbd> opens Settings either way. On macOS, closing
 the window keeps YapYap running, as other Mac apps do: click its Dock icon
-to bring the window back, and choose **Quit** to quit.
+to bring the window back, and choose **Quit** to quit. With **Close to the
+menu bar** on, closing the window also takes YapYap off the Dock, so it
+lives in the menu bar alone; showing the window again from the menu bar
+icon brings the Dock icon back.
 
 The **File** menu holds **Settings…**, **Close Window**
 (<kbd>Ctrl</kbd>+<kbd>W</kbd>) and **Quit**; on macOS, Settings and Quit are
@@ -260,13 +263,16 @@ has **Minimize** and **Downloads…**, and everything about your accounts is
 in the **Account** menu.
 
 YapYap's tray icon shows the window again; on macOS it sits in the menu bar
-and opens its menu. The menu shows or hides the window, lists your running
+and opens its menu. It is there whenever YapYap runs, however it started.
+On a Mac with a notch, macOS hides menu bar icons that do not fit beside
+the menus of the app in front, and YapYap's menus are wide; switch to
+another app, or turn on **Close to the menu bar**, to see the icon. The menu shows or hides the window, lists your running
 accounts to switch to, and has **Settings…** and **Quit YapYap**. Its
 tooltip shows how many chats have unread messages across all accounts, and
 on macOS the number also appears next to the icon. Some Linux desktops have
 no tray; there, starting YapYap again always brings its window back.
 
-**Tray icon** under Settings → Appearance swaps the colorful app icon for a
+**Tray icon** (**Menu bar icon** on macOS) under Settings → Appearance swaps the colorful app icon for a
 one-color one that matches the other icons of your panel. **Automatic**
 picks a light or dark shade to stand out against the panel, following your
 color scheme (on Windows, the taskbar's own setting). On macOS every
@@ -286,8 +292,9 @@ icon on Linux desktops that support counts, such as Ubuntu's dock and KDE
 Plasma.
 
 **Start at login** under Settings → General starts YapYap when you log in.
-With **Start in the background** on as well, it starts in the tray (the
-menu bar on macOS), without its window; when you open YapYap yourself, the window shows.
+With **Start in the background** on as well, it starts in the tray, without
+its window; on macOS it starts in the menu bar alone, with no window and no
+Dock icon. When you open YapYap yourself, the window shows.
 It uses your system's login items, so removing YapYap there turns the
 setting off too.
 In the Flatpak package, your desktop asks first whether YapYap may start
