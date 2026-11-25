@@ -41,6 +41,7 @@ function setup(platform = 'linux', autoHideMenuBar = false, closeToTray = false,
     },
     warn: vi.fn(),
     hidden,
+    leaveDock: vi.fn(),
   };
   const close = () => {
     const preventDefault = vi.fn();
@@ -103,6 +104,13 @@ describe('manageMainWindow', () => {
     t.show();
     expect(t.window.maximize).toHaveBeenCalledOnce();
     expect(t.window.setFullScreen).toHaveBeenCalledExactlyOnceWith(true);
+    expect(t.deps.leaveDock).toHaveBeenCalledOnce();
+  });
+
+  it('keeps the Dock icon of a window that starts shown', () => {
+    const t = setup('darwin');
+    manageMainWindow(t.window, { maximized: false, fullScreen: false }, t.deps);
+    expect(t.deps.leaveDock).not.toHaveBeenCalled();
   });
 
   it('saves the window state on close and lets the window close outside macOS', () => {
@@ -143,6 +151,18 @@ describe('manageMainWindow', () => {
     expect(t.close()).not.toHaveBeenCalled();
     expect(t.window.hide).toHaveBeenCalledOnce();
     expect(t.deps.store.write).toHaveBeenCalledTimes(2);
+    expect(t.deps.leaveDock).not.toHaveBeenCalled();
+  });
+
+  it('closes to the menu bar alone on macOS, if the setting says so', () => {
+    const t = setup('darwin', false, true);
+    manageMainWindow(t.window, { maximized: false, fullScreen: false }, t.deps);
+    expect(t.close()).toHaveBeenCalledOnce();
+    expect(t.window.hide).toHaveBeenCalledOnce();
+    expect(t.deps.leaveDock).toHaveBeenCalledOnce();
+    t.appListeners.get('before-quit')?.();
+    expect(t.close()).not.toHaveBeenCalled();
+    expect(t.deps.leaveDock).toHaveBeenCalledOnce();
   });
 
   it('keeps running in the tray when the window closes, if the setting says so', () => {

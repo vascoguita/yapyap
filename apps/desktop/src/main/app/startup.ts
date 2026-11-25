@@ -9,6 +9,7 @@ import { installSecurity, type SecurityDependencies } from '../security/security
 import type { MainWindowOptions } from '../window/windows.ts';
 import { refuseUnsafeStart } from '../security/sandbox-check.ts';
 import { manageMainWindow, restoreWindowState } from '../window/main-window.ts';
+import { dockFollowsWindow } from '../window/dock.ts';
 import { resolveWhatsAppOrigin } from './whatsapp-origin.ts';
 import { en } from '../../shared/messages/en.ts';
 import { followGlobalShortcuts, toggleWindow } from '../shortcuts/global-shortcuts.ts';
@@ -186,6 +187,13 @@ export function openMainWindow<Window extends WindowPort>(deps: StartDependencie
     app: deps.app,
     warn: deps.warn,
     hidden: startsHidden(deps.settings.current().general.startMinimized, deps),
+    leaveDock: dockFollowsWindow(window, {
+      dock: deps.dock,
+      focus: () => {
+        deps.app.focus({ steal: true });
+      },
+      warn: deps.warn,
+    }),
   });
   return window;
 }

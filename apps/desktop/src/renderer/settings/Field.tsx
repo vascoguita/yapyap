@@ -4,6 +4,7 @@ import type { SettingsSnapshot } from '../../shared/api/chrome-api.ts';
 import { en } from '../../shared/messages/en.ts';
 import {
   descriptionOn,
+  labelOn,
   SETTING_FIELDS,
   type SettingField,
   type SettingValue,
@@ -64,14 +65,15 @@ function Row(
   },
 ): JSX.Element {
   const { field, labelFor } = props;
+  const label = labelOn(field, props.snapshot.platform);
   const name =
     labelFor === undefined ? (
       <span id={`${field.id}-label`} class="row-label">
-        {field.label}
+        {label}
       </span>
     ) : (
       <label id={`${field.id}-label`} class="row-label" for={labelFor}>
-        {field.label}
+        {label}
       </label>
     );
   return (
@@ -207,7 +209,7 @@ function TextField(props: FieldProps & { readonly placeholder: string }) {
   return (
     <div class="row stacked">
       <label class="row-label" for={field.id}>
-        {field.label}
+        {labelOn(field, snapshot.platform)}
       </label>
       <div class="line">
         <TextInput

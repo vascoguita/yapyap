@@ -180,7 +180,12 @@ export interface Messages {
         readonly autostart: { readonly label: string; readonly description: string };
         readonly betaUpdates: { readonly label: string; readonly description: string };
         readonly doNotDisturb: { readonly label: string; readonly description: string };
-        readonly closeToTray: { readonly label: string; readonly description: string };
+        readonly closeToTray: {
+          readonly label: string;
+          readonly labelMac: string;
+          readonly description: string;
+          readonly descriptionMac: string;
+        };
       };
       readonly spelling: {
         readonly enabled: { readonly label: string; readonly description: string };
@@ -198,6 +203,7 @@ export interface Messages {
         readonly autoHideMenuBar: { readonly label: string; readonly description: string };
         readonly trayIcon: {
           readonly label: string;
+          readonly labelMac: string;
           readonly description: string;
           readonly options: {
             readonly color: string;

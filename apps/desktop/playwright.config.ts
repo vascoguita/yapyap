@@ -16,12 +16,14 @@ const MACOS_ONLY = [
   // Only macOS reads its badge back: Windows draws an overlay Electron cannot
   // return, and Linux keeps a count only under launchers that show one.
   'badge.spec.ts',
+  // Only macOS has a Dock for YapYap to leave (#708).
+  'dock.spec.ts',
 ];
 const NOT_ON_MACOS = [
   // macOS shows its own system picker for screen sharing.
   'picker.spec.ts',
   'share-indicator.spec.ts',
-  // macOS always keeps YapYap in the Dock instead of the tray.
+  // macOS has its own tests of the menu bar alone in dock.spec.ts.
   'tray.spec.ts',
 ];
 const elsewhere = [

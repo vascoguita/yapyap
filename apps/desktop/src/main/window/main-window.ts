@@ -31,6 +31,8 @@ export interface MainWindowDependencies {
   readonly warn: (message: string) => void;
   /** Whether the window starts hidden, as Start in the background does at login. */
   readonly hidden: boolean;
+  /** Takes YapYap off the macOS Dock until the window shows again (#708). */
+  readonly leaveDock: () => void;
 }
 
 /** The saved state, with bounds kept only while they land on a connected display. */
@@ -91,6 +93,8 @@ function restoreLayout(window: ManagedWindow, state: WindowState, hidden: boolea
  * bar setting, and saves the window's state whenever it closes. On macOS,
  * and elsewhere with "Close to the tray" on, closing the window hides it
  * until the Dock or tray brings it back, and only Quit really closes it.
+ * On macOS, a window started hidden or closed to the menu bar takes
+ * YapYap off the Dock too, leaving it in the menu bar alone.
  */
 export function manageMainWindow(
   window: ManagedWindow,
@@ -98,6 +102,9 @@ export function manageMainWindow(
   deps: MainWindowDependencies,
 ): void {
   restoreLayout(window, state, deps.hidden);
+  if (deps.hidden) {
+    deps.leaveDock();
+  }
   applyMenuBar(window, deps.platform, deps.settings.current());
   deps.settings.onChange((settings) => {
     applyMenuBar(window, deps.platform, settings);
@@ -114,11 +121,14 @@ export function manageMainWindow(
   });
   window.on('close', (event) => {
     saveState(window, deps);
-    const keepRunning = deps.platform === 'darwin' || deps.settings.current().general.closeToTray;
-    if (quitting || !keepRunning) {
+    const { closeToTray } = deps.settings.current().general;
+    if (quitting || !(deps.platform === 'darwin' || closeToTray)) {
       return;
     }
     event.preventDefault();
     window.hide();
+    if (closeToTray) {
+      deps.leaveDock();
+    }
   });
 }

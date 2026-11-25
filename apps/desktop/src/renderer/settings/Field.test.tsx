@@ -47,6 +47,19 @@ describe('a switch', () => {
     expect(document.getElementById('general.example-hint')?.textContent).toBe('Applies at once.');
   });
 
+  it('takes its macOS name on macOS, for a text field too', () => {
+    const tray = { ...field, labelMac: 'Example on a Mac' };
+    render(<Field field={tray} snapshot={snapshot({ platform: 'darwin' })} onChange={vi.fn()} />);
+    expect(screen.getByRole('switch', { name: 'Example on a Mac' })).toBeTruthy();
+    cleanup();
+    render(<Field field={tray} snapshot={snapshot()} onChange={vi.fn()} />);
+    expect(screen.getByRole('switch', { name: 'Example' })).toBeTruthy();
+    cleanup();
+    const text = { ...tray, text: { placeholder: 'Type' } };
+    render(<Field field={text} snapshot={snapshot({ platform: 'darwin' })} onChange={vi.fn()} />);
+    expect(screen.getByRole('textbox', { name: 'Example on a Mac' })).toBeTruthy();
+  });
+
   it('explains under a setting why its change did not take effect', () => {
     render(
       <Field
