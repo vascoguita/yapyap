@@ -1,4 +1,5 @@
 import type { DictionaryWatch } from '../spelling/dictionaries.ts';
+import type { Terminal } from '../headless/headless.ts';
 import type { AccountAvatars, AvatarPage } from '../accounts/avatars.ts';
 import type { ChromeFeature, ChromeRuntime, WhatsAppContents } from '../chrome/feature.ts';
 import type { SidebarPort } from '../accounts/sidebar-handlers.ts';
@@ -105,6 +106,8 @@ export interface AppPort {
   ): unknown;
   requestSingleInstanceLock(): boolean;
   quit(): void;
+  /** Ends at once, before Chromium starts on a display that is not there. */
+  exit(code: number): void;
 }
 
 /** An account's WhatsApp, in its own view and partition (ADR 0001). */
@@ -202,10 +205,12 @@ export interface StartDependencies<Window extends WindowPort> {
   readonly capture: (pickInApp: PickInApp, wayland: boolean) => DisplayCapturePort;
   readonly chrome: ChromeFeature;
   readonly env: Environment;
-  /** The command line, for `--safe-mode` and the login flag. */
+  /** The command line, for `--safe-mode`, `--headless` and the login flag. */
   readonly argv: readonly string[];
   /** Whether macOS opened YapYap as a login item, which passes no flag (#699). */
   readonly wasOpenedAtLogin: () => boolean;
+  /** Where headless mode shows what the user must see, such as a login code (ADR 0021). */
+  readonly terminal: Terminal;
   readonly openExternal: (url: string) => Promise<unknown>;
   readonly isOnline: () => boolean;
   readonly onResume: (listener: () => void) => void;

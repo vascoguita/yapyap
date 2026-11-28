@@ -42,6 +42,7 @@ Use pnpm (version pinned in `package.json`) on Node.js 26 LTS.
 | Vulnerability audit               | `pnpm audit --audit-level high`                                                                                                |
 | Docs site (dev / build)           | `pnpm docs:dev` / `pnpm docs:build`                                                                                            |
 | Package installers for this OS    | `pnpm package` (output in `apps/desktop/release/`)                                                                             |
+| Run headless (no display)         | `pnpm --filter @yapyap/desktop exec electron --ozone-platform=headless out/main/index.js --headless` after `pnpm build`        |
 | Smoke-test an installed package   | `YAPYAP_PACKAGED_EXECUTABLE=<path> pnpm test:smoke`                                                                            |
 | Verify hardened fuses             | `node scripts/src/bin/verify-fuses.ts <executable or .app>`                                                                    |
 | AUR PKGBUILD and .SRCINFO         | `node scripts/src/bin/aur.ts <version> <amd64 .deb> <arm64 .deb> <output dir>`                                                 |

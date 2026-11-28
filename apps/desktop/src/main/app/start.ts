@@ -12,7 +12,7 @@ import { PRODUCT_NAME } from '../identity/product.ts';
 import { followThemeSetting } from '../appearance/theme.ts';
 import { followZoomSetting } from '../appearance/zoom.ts';
 import { chromeUserAgent } from '../identity/user-agent.ts';
-import { describeGraphics } from '../recovery/gpu-safe-mode.ts';
+import { describeGraphics, type Graphics } from '../recovery/gpu-safe-mode.ts';
 import { trackVisibility, type Visibility } from '../window/visibility.ts';
 import { type ProxyController } from '../network/proxy.ts';
 import { trackShares, type ScreenShares } from '../capture/shares.ts';
@@ -56,6 +56,8 @@ import { syncAutostartSetting } from '../autostart/autostart.ts';
 import { followSpellingSetting } from '../spelling/spelling.ts';
 import { sidebarSource } from '../accounts/sidebar-source.ts';
 import { startsHidden } from '../autostart/login-launch.ts';
+import { headlessRequested } from '../headless/headless.ts';
+import { showPairingCodes } from '../headless/pairing.ts';
 import {
   beforeReady,
   applyDisplayBackend,
@@ -65,7 +67,7 @@ import {
   signInToProxies,
   takeGlobalShortcuts,
   openMainWindow,
-  refuseWithoutSandbox,
+  refusal,
 } from './startup.ts';
 import type {
   AccountContents,
@@ -367,6 +369,10 @@ function accountsTray<Window extends WindowPort>(
   visibility: Visibility,
   screens: Screens,
 ): { readonly refresh: () => void; readonly setUnread: (unread: number) => void } {
+  if (headlessRequested(deps.argv)) {
+    // Headless, a tray has nobody to show it to, and no display to show it on.
+    return { refresh: () => undefined, setUnread: () => undefined };
+  }
   let unread = 0;
   const port = deps.tray.create();
   followTrayIconSetting(port, { ...deps.tray, platform: deps.platform, settings: deps.settings });
@@ -638,11 +644,10 @@ function wireMainWindow<Window extends WindowPort>(
       activePage().focus();
     },
   });
-  showWhenPageReady(
-    window,
-    startsHidden(deps.settings.current().general.startMinimized, deps),
-    activePage(),
-  );
+  const hidden =
+    startsHidden(deps.settings.current().general.startMinimized, deps) ||
+    headlessRequested(deps.argv);
+  showWhenPageReady(window, hidden, activePage());
   return page;
 }
 
@@ -686,6 +691,23 @@ function listenToNotifications<Window extends WindowPort>(
   return notifiers;
 }
 
+/** Shows each logged-out account's login code in the terminal (ADR 0021). */
+function pairInTerminal<Window extends WindowPort>(
+  deps: StartDependencies<Window>,
+  running: RunningAccounts<OpenedAccount>,
+): void {
+  showPairingCodes({
+    accounts: () =>
+      running.opened().map(({ account, page }) => ({
+        id: account.id,
+        name: account.name,
+        page: page.contents,
+      })),
+    terminal: deps.terminal,
+    every: setInterval,
+  });
+}
+
 /** Opens the main window with every account, and waits for their first loads. */
 async function openWindow<Window extends WindowPort>(
   deps: StartDependencies<Window>,
@@ -696,7 +718,10 @@ async function openWindow<Window extends WindowPort>(
   proxy: ProxyController,
 ): Promise<void> {
   const window = openMainWindow(deps);
-  takeGlobalShortcuts(deps, window);
+  const headless = headlessRequested(deps.argv);
+  if (!headless) {
+    takeGlobalShortcuts(deps, window);
+  }
   const chatList = attachChatList(deps, window, security, origin);
   const running = openAccounts({
     deps,
@@ -716,6 +741,9 @@ async function openWindow<Window extends WindowPort>(
   }));
   attachAssistantBar({ deps, chrome, window, security, origin }, running);
   instances.attach(window, wireMainWindow(deps, window, running));
+  if (headless) {
+    pairInTerminal(deps, running);
+  }
   // A failed load must not end startup: the monitor shows the recovery screen.
   await Promise.all(running.opened().map(({ page }) => page.loaded));
 }
@@ -728,7 +756,8 @@ function welcomeOnFirstRun<Window extends WindowPort>(
   deps: StartDependencies<Window>,
   chrome: ChromeRuntime,
 ): void {
-  if (!deps.settings.firstRun) {
+  // Headless, nobody would see the welcome, which waits for the first desktop launch.
+  if (!deps.settings.firstRun || headlessRequested(deps.argv)) {
     return;
   }
   deps.settings.update((settings) => settings);
@@ -745,12 +774,26 @@ function browserIdentity<Window extends WindowPort>(
   };
 }
 
+/** Tells the user about startup and a past crash; headless, nobody could answer the dialogs. */
+function announceUnlessHeadless<Window extends WindowPort>(
+  deps: StartDependencies<Window>,
+  graphics: Graphics,
+  reportCrash: () => void,
+): void {
+  if (headlessRequested(deps.argv)) {
+    return;
+  }
+  announceStartup(deps, graphics);
+  reportCrash();
+}
+
 export async function startApp<Window extends WindowPort>(
   deps: StartDependencies<Window>,
 ): Promise<void> {
   const { app, warn } = deps;
-  if (deps.sandboxDisabled) {
-    await refuseWithoutSandbox(deps);
+  const refused = refusal(deps);
+  if (refused !== undefined) {
+    await refused;
     return;
   }
   const origin = whatsAppOrigin(deps.env, warn);
@@ -779,8 +822,9 @@ export async function startApp<Window extends WindowPort>(
   const chrome = deps.chrome.afterReady(views, warn, rendering);
   signInToProxies(deps, chrome);
   picker.bind(chrome.pickCaptureSource);
-  announceStartup(deps, graphics);
-  reportCrash(chrome.technicalDetails);
+  announceUnlessHeadless(deps, graphics, () => {
+    reportCrash(chrome.technicalDetails);
+  });
   await openWindow(deps, chrome, security, instances, origin, proxy);
   welcomeOnFirstRun(deps, chrome);
 }
