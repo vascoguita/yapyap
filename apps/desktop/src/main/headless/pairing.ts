@@ -102,10 +102,16 @@ async function check(account: PairingAccount, terminal: Terminal, said: Said): P
  */
 export function showPairingCodes(deps: PairingDependencies): void {
   const said: Said = { codes: new Map(), told: new Set() };
+  // Electron holds a probe back until a loading page has loaded, and
+  // WhatsApp loads for longer than a check, so probes would pile up.
+  const asking = new Set<string>();
   deps.every(() => {
-    for (const account of deps.accounts()) {
-      // A page that is loading or gone answers nothing; the next check asks again.
-      check(account, deps.terminal, said).catch(() => undefined);
+    for (const account of deps.accounts().filter(({ id }) => !asking.has(id))) {
+      asking.add(account.id);
+      // A page that is gone answers nothing; the next check asks again.
+      check(account, deps.terminal, said)
+        .catch(() => undefined)
+        .finally(() => asking.delete(account.id));
     }
   }, PAIRING_CHECK_MS);
 }

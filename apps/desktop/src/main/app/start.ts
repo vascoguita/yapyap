@@ -739,7 +739,10 @@ async function openWindow<Window extends WindowPort>(
     account: running.active().account.id,
     page: running.active().page.contents,
   }));
-  attachAssistantBar({ deps, chrome, window, security, origin }, running);
+  // Headless, nobody sees the bar, and its looks at a loading page would pile up.
+  if (!headless) {
+    attachAssistantBar({ deps, chrome, window, security, origin }, running);
+  }
   instances.attach(window, wireMainWindow(deps, window, running));
   if (headless) {
     pairInTerminal(deps, running);

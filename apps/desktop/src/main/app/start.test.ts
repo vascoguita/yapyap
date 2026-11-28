@@ -1821,7 +1821,7 @@ describe('startApp headless', () => {
     expect(f.window.show).not.toHaveBeenCalled();
   });
 
-  it('shows no window, tray, welcome, update or crash review, and takes no shortcut', async () => {
+  it('shows no window, tray, assistant bar, welcome, update or crash review, and takes no shortcut', async () => {
     const f = headless();
     await startApp(f);
     f.web.fire('dom-ready');
@@ -1833,6 +1833,7 @@ describe('startApp headless', () => {
     expect(f.selfUpdate.updater).not.toHaveBeenCalled();
     expect(f.crashes.review).not.toHaveBeenCalled();
     expect(f.globalShortcuts.register).not.toHaveBeenCalled();
+    expect(f.runtime.attachAssistantBar).not.toHaveBeenCalled();
     expect(f.createWindow).toHaveBeenCalledWith(expect.objectContaining({ show: false }));
   });
 

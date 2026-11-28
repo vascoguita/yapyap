@@ -131,6 +131,35 @@ describe('showPairingCodes', () => {
     }
   });
 
+  it('asks an account again only once its last check has answered', async () => {
+    let answer: (state: unknown) => void = () => undefined;
+    const page = pageOf(
+      () =>
+        new Promise((resolve) => {
+          answer = resolve;
+        }),
+    );
+    const { terminal, tick } = setUp(true, [{ id: 'a', name: 'Work', page }]);
+    await tick();
+    await tick();
+    await tick();
+    expect(page.executeJavaScriptInIsolatedWorld).toHaveBeenCalledOnce();
+    answer(LOGGED_OUT);
+    await tick();
+    expect(terminal.write).toHaveBeenCalledOnce();
+    expect(page.executeJavaScriptInIsolatedWorld).toHaveBeenCalledTimes(3);
+  });
+
+  it('asks again after a check that failed', async () => {
+    let fail = true;
+    const page = pageOf(() => (fail ? Promise.reject(new Error('navigating')) : LOGGED_OUT));
+    const { terminal, tick } = setUp(true, [{ id: 'a', name: 'Work', page }]);
+    await tick();
+    fail = false;
+    await tick();
+    expect(terminal.write).toHaveBeenCalledOnce();
+  });
+
   it('shows each account’s own code', async () => {
     const { terminal, tick } = setUp(true, [
       {
